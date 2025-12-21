@@ -170,13 +170,14 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final String targetAddr = _composeTargetAddress(_deliverySel, fallback: location);
 
     final days = (req.end.difference(req.start).inHours / 24).ceil().clamp(1, 365);
-    double totalPaid = DataService.computeTotalWithDiscounts(item: item, days: days).$1;
-    // Add express fee if accepted
+    final rentalSubtotalOnly = DataService.computeTotalWithDiscounts(item: item, days: days).$1;
+    final platformFee = DataService.platformContributionForRental(rentalSubtotalOnly);
+    // Add express fee if accepted (goes to owner as extra)
     final bool expressOn = req.expressRequested && (req.expressStatus == 'accepted');
-    if (expressOn) totalPaid += (req.expressFee);
-    final daily = days > 0 ? (totalPaid / days) : totalPaid;
-    final fee = (totalPaid * 0.10);
-    final subtotal = (totalPaid - fee).clamp(0.0, totalPaid);
+    double totalPaid = rentalSubtotalOnly + platformFee + (expressOn ? req.expressFee : 0.0);
+    final daily = days > 0 ? (rentalSubtotalOnly / days) : rentalSubtotalOnly;
+    final fee = platformFee;
+    final subtotal = rentalSubtotalOnly;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -635,7 +636,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
             const SizedBox(height: 10),
             _AmountRow(label: 'Tagespreis × Tage', value: '${_formatEuro(daily)} × $days'),
             _AmountRow(label: 'Zwischensumme', value: _formatEuro(subtotal)),
-            _AmountRow(label: 'Gebühren', value: _formatEuro(fee)),
+            _AmountRow(label: 'Plattformbeitrag', value: _formatEuro(fee)),
             if (expressOn) _AmountRow(label: 'Expresslieferung', value: _formatEuro(req.expressFee)),
             const Divider(height: 16, color: Colors.white24),
             _AmountRow(label: 'Gesamt bezahlt (Mieter)', value: _formatEuro(totalPaid), strong: true),
@@ -793,7 +794,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
  <hr>
  <table>
    <tr><td>Mietpreis (Tagespreis × Tage)</td><td class="right">${_formatEuro(subtotal)}</td></tr>
-   <tr><td>Servicegebühr</td><td class="right">${_formatEuro(fee)}</td></tr>
+    <tr><td>Plattformbeitrag</td><td class="right">${_formatEuro(fee)}</td></tr>
    <tr><td colspan="2"><hr></td></tr>
    <tr><td class="total">Gesamt bezahlt (Mieter)</td><td class="right total">${_formatEuro(totalPaid)}</td></tr>
   ${expressRefund ? '<tr><td>Rückerstattung (Express)</td><td class="right">${_formatEuro(req.expressFee)}</td></tr>' : ''}
@@ -807,9 +808,12 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   }
 
   String _formatRange(DateTime a, DateTime b) {
-    String dd(DateTime d) => '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
-    String tt(DateTime d) => '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
-    return '${dd(a)} um ${tt(a)} – ${dd(b)} um ${tt(b)}';
+    // Show dates only (no time-of-day) to match the SIT design app-wide
+    const months = ['Jan','Feb','M\u00e4r','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+    String dd(int v) => v.toString().padLeft(2, '0');
+    final sa = '${dd(a.day)}. ${months[(a.month - 1).clamp(0, 11)]}';
+    final sb = '${dd(b.day)}. ${months[(b.month - 1).clamp(0, 11)]}';
+    return '$sa – $sb';
   }
 
   String _formatDurationCompact(Duration d) {

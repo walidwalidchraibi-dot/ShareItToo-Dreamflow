@@ -13,7 +13,7 @@ import 'package:lendify/screens/placeholder_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
-import 'package:lendify/widgets/modern_range_picker_sheet.dart';
+ import 'package:lendify/screens/select_rental_duration_screen.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/services/maps_service.dart';
 import 'package:lendify/screens/bookings_screen.dart';
@@ -111,13 +111,25 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
     final DateTimeRange? initial = _selectedRange;
     // Load booked ranges to mark them in calendar
     final unavailable = await DataService.getUnavailableRangesForItem(widget.item.id);
-    final picked = await showModalBottomSheet<DateTimeRange>(
-      context: context,
-      isScrollControlled: false,
-      backgroundColor: Colors.transparent,
-      // Darker barrier so the blur behind is barely visible
-      barrierColor: Colors.black.withValues(alpha: 0.85),
-      builder: (_) => ModernRangePickerSheet(firstDate: now, lastDate: now.add(const Duration(days: 365)), initialRange: initial, allowSameDayEnd: widget.item.priceUnit != 'week', unavailableRanges: unavailable),
+    // Switch to the new full screen availability UX
+    final picked = await Navigator.of(context).push<DateTimeRange>(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black.withValues(alpha: 0.25),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return Material(
+            type: MaterialType.transparency,
+            child: Stack(children: [
+              Positioned.fill(child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), child: Container(color: Colors.transparent))),
+              SelectRentalDurationScreen(item: widget.item, initialRange: initial),
+            ]),
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+          return FadeTransition(opacity: curved, child: SlideTransition(position: Tween(begin: const Offset(0, 0.02), end: Offset.zero).animate(curved), child: child));
+        },
+      ),
     );
     if (picked != null) {
       DateTimeRange rangeWithTime = picked;
@@ -133,10 +145,9 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
   }
 
   String _priceWithUnit(Item i) {
-    final unit = i.priceUnit; final perDay = i.pricePerDay;
-    final price = unit == 'week' ? perDay * 7 : perDay;
+    final unit = i.priceUnit; final raw = i.priceRaw;
     final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
-    return '${price.toStringAsFixed(0)} $suffix';
+    return '${raw.toStringAsFixed(0)} $suffix';
   }
 
   String _formatRangeForButton(Item i, DateTimeRange r) {
@@ -417,13 +428,11 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
     // Do not pre-select a default range. The sheet must open without a
     // selection unless the user already picked something in this session.
     final DateTimeRange? initial = _selectedRange;
-    final unavailable = await DataService.getUnavailableRangesForItem(widget.item.id);
-    final picked = await showModalBottomSheet<DateTimeRange>(
-      context: context,
-      isScrollControlled: false,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.8),
-      builder: (_) => ModernRangePickerSheet(firstDate: now, lastDate: now.add(const Duration(days: 365)), initialRange: initial, allowSameDayEnd: widget.item.priceUnit != 'week', unavailableRanges: unavailable),
+    final picked = await Navigator.of(context).push<DateTimeRange>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => SelectRentalDurationScreen(item: widget.item, initialRange: initial),
+      ),
     );
     if (picked != null) {
       DateTimeRange rangeWithTime = picked;
@@ -446,10 +455,9 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
   }
 
   String _priceWithUnit(Item i) {
-    final unit = i.priceUnit; final perDay = i.pricePerDay;
-    final price = unit == 'week' ? perDay * 7 : perDay;
+    final unit = i.priceUnit; final raw = i.priceRaw;
     final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
-    return '${price.toStringAsFixed(0)} $suffix';
+    return '${raw.toStringAsFixed(0)} $suffix';
   }
 
   String _formatRangeForButton(Item i, DateTimeRange r) {
@@ -682,6 +690,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
               fresh: widget.fresh,
               ownerPreview: isPreview,
               collapsibleDelivery: true,
+                showDeliverySection: false,
               onCanReserveChange: (v) {
                 if (_canReserve != v) setState(() => _canReserve = v);
               },
@@ -711,6 +720,13 @@ class _ItemMetaSection extends StatelessWidget {
       ),
       padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        // Preis basierend auf der vom Anbieter gewählten Einheit
+        Builder(builder: (context) {
+          final unit = item.priceUnit;
+          final raw = item.priceRaw;
+          final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
+          return _TableLine(label: l10n.t('Preis'), value: '${raw.toStringAsFixed(0)} $suffix');
+        }),
         _TableLine(label: l10n.t('Kategorie'), valueWidget: _CategoryNameById(id: item.categoryId, sub: item.subcategory)),
         _TableLine(label: l10n.t('Zustand'), value: _conditionLabel(item.condition)),
         if (item.minDays != null || item.maxDays != null) _TableLine(label: l10n.t('Mietdauer'), value: _duration(item)),
@@ -1311,8 +1327,11 @@ class _BottomActionBar extends StatefulWidget {
   // (collapsible). We will enable this only on the full page view after dates
   // have been chosen. Overlay remains non-collapsible.
   final bool collapsibleDelivery;
+  // New: allow completely hiding delivery/abhol section on the final page
+  // before reserving, per latest spec.
+  final bool showDeliverySection;
   final ValueChanged<bool>? onCanReserveChange;
-  const _BottomActionBar({required this.item, required this.range, required this.onPickRange, required this.priceSummary, required this.rangeLabel, required this.onReserve, this.isEditing = false, this.editRequestId, this.fresh = false, this.ownerPreview = false, this.collapsibleDelivery = false, this.onCanReserveChange});
+  const _BottomActionBar({required this.item, required this.range, required this.onPickRange, required this.priceSummary, required this.rangeLabel, required this.onReserve, this.isEditing = false, this.editRequestId, this.fresh = false, this.ownerPreview = false, this.collapsibleDelivery = false, this.showDeliverySection = true, this.onCanReserveChange});
 
   @override
   State<_BottomActionBar> createState() => _BottomActionBarState();
@@ -1447,10 +1466,45 @@ class _BottomActionBarState extends State<_BottomActionBar> {
     final showDeliveryOptions = range != null; // only after dates are chosen
     final theme = Theme.of(context);
 
-    final serviceFee = range != null ? 1.0 : 0.0; // simple demo flat fee
     final deliverySum = (_feeHinweg + _feeRueckweg);
-    final base = _baseRentalTotal();
-    final total = base + serviceFee + deliverySum + (_wantExpress ? 0.0 : 0.0); // Express is optional and added only after confirmation
+    // Rental part with discounts applied (owner-configured thresholds)
+    double rentalSubtotal = 0.0;
+    if (range != null) {
+      int days = range.end.difference(range.start).inDays; if (days <= 0) days = 1;
+      final tuple = DataService.computeTotalWithDiscounts(item: item, days: days);
+      rentalSubtotal = tuple.$1; // final after discount
+    }
+    // Calculate TOTAL identical to Mietdauer/"Verfügbarkeit prüfen" screen:
+    // subtotal = rental (after discount) + delivery (Abgabe) + pickup (Rückgabe) + express (if selected)
+    // platform fee = 10% of subtotal (min 1€), then total = subtotal + platform fee
+    double km = 0.0;
+    if (_addressLat != null && _addressLng != null) {
+      km = DataService.estimateDistanceKm(widget.item.lat, widget.item.lng, _addressLat!, _addressLng!);
+    } else if (_addressLine.trim().isNotEmpty) {
+      km = DataService.estimateDistanceKmFromAddressLine(widget.item.lat, widget.item.lng, _addressLine);
+    }
+    final bool dropSelected = _dropoff == _DropoffOption.landlord && item.offersDeliveryAtDropoff;
+    final bool pickSelected = _returning == _ReturnOption.landlord && item.offersPickupAtReturn;
+    double deliveryFee = 0.0; // Abgabe
+    double pickupFee = 0.0;   // Rückgabe
+    if (range != null && dropSelected) {
+      // Mirror Mietdauer formula: 0.30 €/km, plus 5€ express if chosen
+      deliveryFee = double.parse((km * 0.30).toStringAsFixed(2));
+      if (_wantExpress) deliveryFee = double.parse((deliveryFee + 5.0).toStringAsFixed(2));
+    }
+    if (range != null && pickSelected) {
+      pickupFee = double.parse((km * 0.30).toStringAsFixed(2));
+    }
+    final subtotalBeforePlatform = range != null ? double.parse((rentalSubtotal + deliveryFee + pickupFee).toStringAsFixed(2)) : 0.0;
+    double platformFee;
+    if (subtotalBeforePlatform <= 0.0) {
+      platformFee = 0.0;
+    } else if (subtotalBeforePlatform < 10.0) {
+      platformFee = 1.0;
+    } else {
+      platformFee = double.parse((subtotalBeforePlatform * 0.10).toStringAsFixed(2));
+    }
+    final total = double.parse((subtotalBeforePlatform + platformFee).toStringAsFixed(2));
 
     // compute canReserve to inform parent (for showing cancellation section)
     final requiresAddress = (_dropoff == _DropoffOption.landlord) || (_returning == _ReturnOption.landlord);
@@ -1473,7 +1527,8 @@ class _BottomActionBarState extends State<_BottomActionBar> {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             // Collapsible variant only on full page and only after dates are selected
-            if (range != null && widget.collapsibleDelivery) ...[
+            // Hidden entirely when showDeliverySection == false (per latest spec)
+            if (range != null && widget.collapsibleDelivery && widget.showDeliverySection) ...[
               Theme(
                 data: Theme.of(context).copyWith(
                   dividerColor: Colors.transparent,
@@ -1626,20 +1681,26 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                 ),
               ),
             ],
-            // Liefer-/Abholoptionen – Standard (nicht aufklappbar). Überschrift nur zeigen,
-            // wenn wir NICHT im kollabierbaren Modus sind oder noch kein Datum gewählt ist.
-            if (range == null || !widget.collapsibleDelivery)
+            // Liefer-/Abholoptionen – Standard (nicht aufklappbar)
+            // Hidden entirely when showDeliverySection == false
+            if (widget.showDeliverySection && (range == null || !widget.collapsibleDelivery))
               const Center(child: Text('Liefer- und Abholoptionen', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15))),
-            if (range == null || !widget.collapsibleDelivery)
+            if (widget.showDeliverySection && (range == null || !widget.collapsibleDelivery))
               const SizedBox(height: 8),
-            if (range == null) ...[
+            if (widget.showDeliverySection && range == null) ...[
               Builder(builder: (context) {
                 if (!item.offersDeliveryAtDropoff && !item.offersPickupAtReturn) {
                   return const _NoDeliveryParagraph();
                 }
-                return const Text('Nach Datumsauswahl kannst du Lieferung/Abholung wählen.', style: TextStyle(color: Colors.white70));
+                return const Center(
+                  child: Text(
+                    'Im nächsten Schritt kannst du die Lieferung/Abholung wählen.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                );
               }),
-            ] else if (!widget.collapsibleDelivery) ...[
+            ] else if (widget.showDeliverySection && !widget.collapsibleDelivery) ...[
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Text('Abgabe (Artikel zu dir):', style: TextStyle(color: Colors.white70, fontSize: 12)),
                   RadioListTile<_DropoffOption>(
@@ -1791,15 +1852,26 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                 width: double.infinity,
                 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.12))),
                 padding: const EdgeInsets.all(12),
-                child: Column(children: [
-                  _LineRow(label: 'Mietpreis', value: '${base.round().toString()} €'),
-                  _LineRow(label: 'Servicegebühr', value: '${serviceFee.toStringAsFixed(2)} €'),
-                  if (deliverySum > 0) _LineRow(label: 'Liefergebühr', value: deliverySum.toStringAsFixed(2) + ' €'),
-                  if (_wantExpress) _LineRow(label: 'Expresszuschlag', value: '5,00 €'),
-                  const SizedBox(height: 6),
-                  const Divider(color: Colors.white24, height: 1),
-                  const SizedBox(height: 8),
-                  _LineRow(label: 'Gesamtsumme', value: total.toStringAsFixed(2) + ' €', bold: true),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  // Checkout: nur EIN Preis (inkl. Plattformbeitrag)
+                  Builder(builder: (context) {
+                    // Subtitle like Mietdauer page
+                    String subtitle = 'inkl. Plattformbeitrag';
+                    if (dropSelected && pickSelected) {
+                      subtitle = 'Inkl. Lieferung/Abholung und Plattformbeitrag';
+                    } else if (dropSelected || pickSelected) {
+                      final single = dropSelected ? 'Lieferung' : 'Abholung';
+                      subtitle = 'inkl. ' + single + ' und Plattformbeitrag';
+                    }
+                    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Expanded(child: Text('Gesamtbetrag', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+                      Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                        Text(total.toStringAsFixed(2) + ' €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+                        const SizedBox(height: 2),
+                        Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                      ]),
+                    ]);
+                  }),
                   if (_isAvailable == false) ...[
                     const SizedBox(height: 10),
                     Row(children: const [
@@ -2146,8 +2218,8 @@ class _CancellationPolicySection extends StatelessWidget {
             '• Danach: keine Rückerstattung.\n'
             '• Nicht-Erscheinen: keine Rückerstattung.\n\n'
             '📌 Hinweis:\n'
-            '– Servicegebühr und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Servicegebühr automatisch zurückerstattet.';
+            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
+            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
       case 'moderate':
         return '$intro\n\n'
             'Nach Bestätigung gelten:\n'
@@ -2155,8 +2227,8 @@ class _CancellationPolicySection extends StatelessWidget {
             '• Zwischen 12–48 Std. vorher: 50% Rückerstattung.\n'
             '• Weniger als 12 Std. vorher oder nach Mietbeginn: keine Rückerstattung.\n\n'
             '📌 Hinweis:\n'
-            '– Servicegebühr und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Servicegebühr automatisch zurückerstattet.';
+            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
+            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
       case 'flexible':
       default:
         return '$intro\n\n'
@@ -2165,8 +2237,8 @@ class _CancellationPolicySection extends StatelessWidget {
             '• Weniger als 24 Std. vorher: 50% Rückerstattung.\n'
             '• Nicht-Erscheinen: keine Rückerstattung.\n\n'
             '📌 Hinweis:\n'
-            '– Servicegebühr und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Servicegebühr automatisch zurückerstattet.';
+            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
+            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
     }
   }
   @override
@@ -2223,8 +2295,8 @@ class _CancellationPolicyBookingCardState extends State<_CancellationPolicyBooki
             '• Danach: keine Rückerstattung.\n'
             '• Nicht-Erscheinen: keine Rückerstattung.\n\n'
             '📌 Hinweis:\n'
-            '– Servicegebühr und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Servicegebühr automatisch zurückerstattet.';
+            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
+            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
       case 'moderate':
         return '$intro\n\n'
             'Nach Bestätigung gelten:\n'
@@ -2232,8 +2304,8 @@ class _CancellationPolicyBookingCardState extends State<_CancellationPolicyBooki
             '• Zwischen 12–48 Std. vorher: 50% Rückerstattung.\n'
             '• Weniger als 12 Std. vorher oder nach Mietbeginn: keine Rückerstattung.\n\n'
             '📌 Hinweis:\n'
-            '– Servicegebühr und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Servicegebühr automatisch zurückerstattet.';
+            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
+            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
       case 'flexible':
       default:
         return '$intro\n\n'
@@ -2242,8 +2314,8 @@ class _CancellationPolicyBookingCardState extends State<_CancellationPolicyBooki
             '• Weniger als 24 Std. vorher: 50% Rückerstattung.\n'
             '• Nicht-Erscheinen: keine Rückerstattung.\n\n'
             '📌 Hinweis:\n'
-            '– Servicegebühr und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Servicegebühr automatisch zurückerstattet.';
+            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
+            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
     }
   }
 

@@ -148,7 +148,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     int days = diff.inDays;
     if (days <= 0) days = 1;
     final priced = DataService.computeTotalWithDiscounts(item: it, days: days);
-    double total = priced.$1;
+    final platformFee = DataService.platformContributionForRental(priced.$1);
+    double total = priced.$1 + platformFee;
     // Add express fee if accepted; if still pending, show without surcharge for now
     if (r.expressRequested && r.expressStatus == 'accepted') {
       total += r.expressFee;

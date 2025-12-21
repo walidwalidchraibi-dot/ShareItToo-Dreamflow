@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter/foundation.dart' show debugPrint;
@@ -28,6 +29,10 @@ class DataService {
   static const String _requestsLastSeenKey = 'requests_last_seen_by_owner';
   static const String _handoverFailCountsKey = 'handover_fail_counts';
   static const String _handoverBannersKey = 'handover_banners';
+
+  // Runtime timers for express confirmation deadlines (not persisted). We also
+  // run a sweep on data fetch to enforce timeouts across sessions.
+  static final Map<String, Timer> _expressTimers = {};
 
   // Transient event to communicate that a listing was created or saved as draft.
   // Consumed by ExploreScreen to show a confirmation popup after navigation.
@@ -211,6 +216,21 @@ class DataService {
     return (total, base, pct, discountAmount);
   }
 
+  /// Platform contribution ("Plattformbeitrag").
+  /// Input: rentalSubtotal (after any rental discounts), excluding delivery/express.
+  /// Rule update:
+  ///  - Bis 10,00 € Mietbetrag: 1,00 €
+  ///  - Ab 10,01 € Mietbetrag: 10 % des Mietbetrags
+  /// Edge case: For a 0 € subtotal, the fee is 0 €.
+  /// UI never shows percentages, only the absolute fee.
+  static double platformContributionForRental(double rentalSubtotal) {
+    final v = (rentalSubtotal.isNaN || rentalSubtotal.isInfinite || rentalSubtotal < 0) ? 0.0 : rentalSubtotal;
+    if (v <= 0.0) return 0.0;
+    if (v <= 10.0) return 1.0; // ≤ 10 € => 1 € flat
+    final fee = v * 0.10; // ≥ 10.01 € => 10%
+    return double.parse(fee.toStringAsFixed(2));
+  }
+
   // Add or update an item in local storage
   static Future<Item> addItem(Item item) async {
     final prefs = await SharedPreferences.getInstance();
@@ -263,7 +283,57 @@ class DataService {
       cancellationPolicy: item.cancellationPolicy,
     );
     list.add(toStore.toJson());
-    await prefs.setString(_itemsKey, jsonEncode(list));
+
+    Future<void> _persist(List<dynamic> payload) async {
+      await prefs.setString(_itemsKey, jsonEncode(payload));
+    }
+
+    // Try to persist, falling back to photo sanitation when web storage quota is exceeded.
+    try {
+      await _persist(list);
+    } catch (e) {
+      debugPrint('[DataService] addItem persist failed, attempting to shrink payload: ' + e.toString());
+      // 1) Replace base64 data URLs with lightweight placeholders and limit to max 3 photos per item
+      List<dynamic> shrunk = list.map((raw) {
+        try {
+          final m = Map<String, dynamic>.from(raw as Map);
+          final photos = (m['photos'] as List?)?.map((p) => p?.toString() ?? '').where((s) => s.isNotEmpty).toList() ?? <String>[];
+          final limited = <String>[];
+          int idx = 0;
+          for (final p in photos) {
+            if (idx >= 3) break;
+            if (p.startsWith('data:')) {
+              // Deterministic placeholder per item id and index to keep UI varied
+              limited.add('https://picsum.photos/seed/${m['id'] ?? 'x'}_${idx}/800/800');
+            } else {
+              limited.add(p);
+            }
+            idx++;
+          }
+          if (limited.isEmpty) {
+            limited.add('https://picsum.photos/seed/${m['id'] ?? 'x'}/800/800');
+          }
+          m['photos'] = limited;
+          return m;
+        } catch (_) {
+          return raw;
+        }
+      }).toList();
+      try {
+        await _persist(shrunk);
+      } catch (e2) {
+        debugPrint('[DataService] addItem persist still failing after shrink: ' + e2.toString());
+        // 2) Last resort: strip photos entirely to guarantee saving
+        final stripped = shrunk.map((raw) {
+          try {
+            final m = Map<String, dynamic>.from(raw as Map);
+            m['photos'] = <String>[];
+            return m;
+          } catch (_) { return raw; }
+        }).toList();
+        await _persist(stripped);
+      }
+    }
     return toStore;
   }
 
@@ -491,8 +561,48 @@ class DataService {
         mutated = true; break;
       }
     }
-    if (mutated) {
-      await prefs.setString(_itemsKey, jsonEncode(list));
+    if (!mutated) return;
+    Future<void> _persist(List<dynamic> payload) async {
+      await prefs.setString(_itemsKey, jsonEncode(payload));
+    }
+    try {
+      await _persist(list);
+    } catch (e) {
+      debugPrint('[DataService] updateItem persist failed, attempting to shrink payload: ' + e.toString());
+      // Shrink photos across all items (limit to 3, replace base64 with placeholders)
+      List<dynamic> shrunk = list.map((raw) {
+        try {
+          final m = Map<String, dynamic>.from(raw as Map);
+          final photos = (m['photos'] as List?)?.map((p) => p?.toString() ?? '').where((s) => s.isNotEmpty).toList() ?? <String>[];
+          final limited = <String>[];
+          int idx = 0;
+          for (final p in photos) {
+            if (idx >= 3) break;
+            if (p.startsWith('data:')) {
+              limited.add('https://picsum.photos/seed/${m['id'] ?? 'x'}_${idx}/800/800');
+            } else {
+              limited.add(p);
+            }
+            idx++;
+          }
+          if (limited.isEmpty) {
+            limited.add('https://picsum.photos/seed/${m['id'] ?? 'x'}/800/800');
+          }
+          m['photos'] = limited;
+          return m;
+        } catch (_) {
+          return raw;
+        }
+      }).toList();
+      try {
+        await _persist(shrunk);
+      } catch (e2) {
+        debugPrint('[DataService] updateItem persist still failing after shrink: ' + e2.toString());
+        final stripped = shrunk.map((raw) {
+          try { final m = Map<String, dynamic>.from(raw as Map); m['photos'] = <String>[]; return m; } catch (_) { return raw; }
+        }).toList();
+        await _persist(stripped);
+      }
     }
   }
 
@@ -1477,6 +1587,7 @@ class DataService {
   }
 
   static Future<List<RentalRequest>> getRentalRequestsForOwner(String ownerId, {String? status}) async {
+    await _sweepExpressTimeouts();
     final all = await _getAllRentalRequests();
     final filtered = all.where((r) => r.ownerId == ownerId && (status == null || r.status == status)).toList();
     // Sort newest first
@@ -1538,6 +1649,7 @@ class DataService {
   }
 
   static Future<RentalRequest?> getRentalRequestById(String id) async {
+    await _sweepExpressTimeouts();
     final all = await _getAllRentalRequests();
     try { return all.firstWhere((e) => e.id == id); } catch (_) { return null; }
   }
@@ -1564,6 +1676,8 @@ class DataService {
     );
     all.add(toStore);
     await _saveAllRentalRequests(all);
+    // Start 30-minute express confirmation timer if applicable (runtime only)
+    _scheduleExpressTimerIfNeeded(toStore);
     return toStore;
   }
 
@@ -1596,6 +1710,12 @@ class DataService {
           expressConfirmedAt: null,
         );
         mutated = true;
+        // Schedule/clear runtime express timer accordingly
+        if (exp) {
+          _scheduleExpressTimerIfNeeded(all[i]);
+        } else {
+          try { _expressTimers[requestId]?.cancel(); _expressTimers.remove(requestId); } catch (_) {}
+        }
         break;
       }
     }
@@ -1611,10 +1731,67 @@ class DataService {
         final newStatus = accept ? 'accepted' : 'declined';
         all[i] = all[i].copyWith(expressStatus: newStatus, expressConfirmedAt: accept ? DateTime.now() : all[i].expressConfirmedAt);
         mutated = true;
+        // If accepted/declined, cancel any scheduled timer
+        try { _expressTimers[requestId]?.cancel(); _expressTimers.remove(requestId); } catch (_) {}
         break;
       }
     }
     if (mutated) await _saveAllRentalRequests(all);
+  }
+
+  // Schedules a 30-minute timer for express confirmation. If the app is closed,
+  // the sweep will enforce the timeout on next load.
+  static void _scheduleExpressTimerIfNeeded(RentalRequest r) {
+    if (!r.expressRequested) return;
+    if (r.expressStatus == 'accepted') return;
+    final started = r.expressRequestedAt ?? r.createdAt;
+    final deadline = started.add(const Duration(minutes: 30));
+    final delay = deadline.difference(DateTime.now());
+    if (delay.isNegative) {
+      // Past due; run sweep soon.
+      scheduleMicrotask(() => _sweepExpressTimeouts());
+      return;
+    }
+    _expressTimers[r.id]?.cancel();
+    _expressTimers[r.id] = Timer(delay, () async {
+      await _sweepExpressTimeouts();
+    });
+  }
+
+  /// Checks all requests for express confirmation timeouts and auto-downgrades
+  /// to Standard if not confirmed within 30 minutes. Also logs a timeline event.
+  static Future<void> _sweepExpressTimeouts() async {
+    try {
+      final all = await _getAllRentalRequests();
+      bool mutated = false;
+      final now = DateTime.now();
+      for (int i = 0; i < all.length; i++) {
+        final r = all[i];
+        if (!r.expressRequested) continue;
+        if (r.expressStatus == 'accepted') continue;
+        final started = r.expressRequestedAt ?? r.createdAt;
+        final deadline = started.add(const Duration(minutes: 30));
+        if (now.isAfter(deadline)) {
+          all[i] = r.copyWith(
+            expressRequested: false,
+            expressStatus: null,
+            expressRequestedAt: null,
+            expressConfirmedAt: null,
+          );
+          mutated = true;
+          debugPrint('[DataService] Express timeout -> auto-switch to Standard for request ${r.id}');
+          try { await addTimelineEvent(requestId: r.id, type: 'express_timeout_refund', note: 'Express abgelaufen; auf Standard umgestellt'); } catch (_) {}
+          // Cancel any pending timer for safety
+          try { _expressTimers[r.id]?.cancel(); _expressTimers.remove(r.id); } catch (_) {}
+        } else {
+          // Still pending; ensure a timer is scheduled for runtime
+          _scheduleExpressTimerIfNeeded(r);
+        }
+      }
+      if (mutated) await _saveAllRentalRequests(all);
+    } catch (e) {
+      debugPrint('[DataService] sweepExpressTimeouts failed: ' + e.toString());
+    }
   }
 
   static Future<void> _ensureDemoRentalRequests() async {
@@ -1627,6 +1804,7 @@ class DataService {
 
   // New: requests where the current viewer is the renter
   static Future<List<RentalRequest>> getRentalRequestsForRenter(String renterId, {String? status}) async {
+    await _sweepExpressTimeouts();
     final all = await _getAllRentalRequests();
     final filtered = all.where((r) => r.renterId == renterId && (status == null || r.status == status)).toList();
     filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));

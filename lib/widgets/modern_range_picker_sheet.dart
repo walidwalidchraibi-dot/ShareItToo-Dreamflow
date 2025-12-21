@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'package:lendify/models/item.dart';
+import 'package:lendify/services/data_service.dart';
+import 'package:lendify/openai/openai_config.dart';
 
 class ModernRangePickerSheet extends StatefulWidget {
   final DateTime firstDate;
@@ -10,7 +13,9 @@ class ModernRangePickerSheet extends StatefulWidget {
   final bool allowSameDayEnd;
   // New: mark days that are already booked (start inclusive, end exclusive)
   final List<DateTimeRange> unavailableRanges;
-  const ModernRangePickerSheet({super.key, required this.firstDate, required this.lastDate, this.initialRange, this.allowSameDayEnd = false, this.unavailableRanges = const []});
+  // Optional: pass item to show discount hints in a chat-style header
+  final Item? item;
+  const ModernRangePickerSheet({super.key, required this.firstDate, required this.lastDate, this.initialRange, this.allowSameDayEnd = false, this.unavailableRanges = const [], this.item});
 
   @override
   State<ModernRangePickerSheet> createState() => _ModernRangePickerSheetState();
@@ -21,6 +26,7 @@ class _ModernRangePickerSheetState extends State<ModernRangePickerSheet> {
   DateTime? _start;
   DateTime? _end;
   bool _overlapsBlocked = false;
+  String? _aiTip; // Short chat-style hint from OpenAI
 
   static const _monthsDe = [
     'Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'
@@ -37,6 +43,7 @@ class _ModernRangePickerSheetState extends State<ModernRangePickerSheet> {
       _end = _stripTime(widget.initialRange!.end);
       _visibleMonth = DateTime(_start!.year, _start!.month, 1);
     }
+    _maybeLoadAiTip();
   }
 
   DateTime _stripTime(DateTime d) => DateTime(d.year, d.month, d.day);
@@ -45,6 +52,31 @@ class _ModernRangePickerSheetState extends State<ModernRangePickerSheet> {
   String _fmtFull(DateTime d) {
     String two(int v) => v.toString().padLeft(2, '0');
     return '${two(d.day)}.${two(d.month)}.${d.year}';
+  }
+
+  Future<void> _maybeLoadAiTip() async {
+    final item = widget.item;
+    if (item == null) return;
+    try {
+      // Convert tiers to simple maps for AI prompt
+      final tiers = item.longRentalDiscounts
+          .map((t) => {'days': t.days, 'discount': t.discountPercent})
+          .toList(growable: false);
+      final msg = await OpenAIConfig.availabilityDiscountTip(
+        title: item.title,
+        location: item.city,
+        pricePerDay: item.pricePerDay,
+        tiers: tiers.isEmpty
+            ? [
+                {'days': 3, 'discount': 10},
+                {'days': 5, 'discount': 20},
+                {'days': 8, 'discount': 30},
+              ]
+            : tiers,
+      );
+      if (!mounted) return;
+      setState(() => _aiTip = msg);
+    } catch (_) {/* non-fatal */}
   }
 
   bool _isSameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
@@ -167,6 +199,20 @@ class _ModernRangePickerSheetState extends State<ModernRangePickerSheet> {
                       ],
                     ),
                     const SizedBox(height: 8),
+                    // Chat-style helper section
+                    if (widget.item != null)
+                      _ChatTipsBox(
+                        aiTip: _aiTip,
+                        item: widget.item!,
+                        start: _start,
+                        end: _end,
+                        blocked: _overlapsBlocked,
+                        primary: primary,
+                        textColor: headerText,
+                      )
+                    else
+                      const SizedBox.shrink(),
+                    const SizedBox(height: 8),
                     _WeekdayRow(color: subText),
                     const SizedBox(height: 6),
                     _MonthGrid(
@@ -183,14 +229,6 @@ class _ModernRangePickerSheetState extends State<ModernRangePickerSheet> {
                       isBooked: _isBookedDay,
                     ),
                     const SizedBox(height: 8),
-                    _HintRow(
-                      start: _start,
-                      end: _end,
-                      primary: primary,
-                      textColor: headerText,
-                      subText: subText,
-                      blocked: _overlapsBlocked,
-                    ),
                     const SizedBox(height: 12),
                     // Footer with left "Löschen" and right "Fertig" buttons only
                     Row(
@@ -373,5 +411,95 @@ class _HintRow extends StatelessWidget {
   String _fmtFull(DateTime d) {
     String two(int v) => v.toString().padLeft(2, '0');
     return '${two(d.day)}.${two(d.month)}.${d.year}';
+  }
+}
+
+class _ChatTipsBox extends StatelessWidget {
+  final String? aiTip;
+  final Item item;
+  final DateTime? start;
+  final DateTime? end;
+  final bool blocked;
+  final Color primary;
+  final Color textColor;
+  const _ChatTipsBox({required this.aiTip, required this.item, required this.start, required this.end, required this.blocked, required this.primary, required this.textColor});
+
+  int _rentalDays(DateTime s, DateTime e) {
+    int d = e.difference(s).inDays;
+    if (d <= 0) d = 1;
+    return d;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bubbleBg = Colors.white.withValues(alpha: 0.06);
+    final bubbleBorder = Colors.white.withValues(alpha: 0.12);
+    final danger = const Color(0xFFF43F5E);
+
+    String? dynamicLine;
+    String? savingsLine;
+    if (start != null && end != null) {
+      final days = _rentalDays(start!, end!);
+      dynamicLine = 'Zeitraum: $days ${days == 1 ? 'Tag' : 'Tage'}';
+      final priced = DataService.computeTotalWithDiscounts(item: item, days: days);
+      final pct = priced.$3; final disc = priced.$4;
+      if (pct > 0) {
+        savingsLine = 'Langzeitmiet‑Rabatt: -${pct.toStringAsFixed(0)}% · Du sparst ${disc.toStringAsFixed(2)} €';
+      } else if (item.autoApplyDiscounts && item.longRentalDiscounts.isNotEmpty) {
+        // Find next tier above the chosen days
+        final tiers = List.of(item.longRentalDiscounts)..sort((a, b) => a.days.compareTo(b.days));
+        final next = tiers.firstWhere((t) => t.days > days, orElse: () => tiers.last);
+        if (next.days > days) {
+          savingsLine = 'Tipp: Ab ${next.days} Tagen erhältst du ${next.discountPercent.toStringAsFixed(0)}% Rabatt.';
+        }
+      }
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (aiTip != null && aiTip!.trim().isNotEmpty)
+        _BotBubble(
+          icon: Icons.tips_and_updates_outlined,
+          text: aiTip!,
+          color: bubbleBg,
+          border: bubbleBorder,
+        ),
+      if (blocked)
+        _BotBubble(
+          icon: Icons.block,
+          text: 'In diesem Zeitraum bereits gebucht',
+          color: danger.withValues(alpha: 0.20),
+          border: danger.withValues(alpha: 0.30),
+          iconColor: danger,
+        )
+      else if (dynamicLine != null) ...[
+        _BotBubble(icon: Icons.event_available, text: dynamicLine!, color: bubbleBg, border: bubbleBorder),
+        if (savingsLine != null) _BotBubble(icon: Icons.local_offer_outlined, text: savingsLine!, color: bubbleBg, border: bubbleBorder),
+      ] else ...[
+        _BotBubble(icon: Icons.calendar_month, text: 'Wähle Start- und Enddatum', color: bubbleBg, border: bubbleBorder),
+      ],
+    ]);
+  }
+}
+
+class _BotBubble extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final Color color;
+  final Color border;
+  final Color? iconColor;
+  const _BotBubble({required this.icon, required this.text, required this.color, required this.border, this.iconColor});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(color: color, border: Border.all(color: border), borderRadius: BorderRadius.circular(14)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, color: iconColor ?? Colors.white70, size: 18),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 13))),
+      ]),
+    );
   }
 }

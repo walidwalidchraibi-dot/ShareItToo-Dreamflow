@@ -332,4 +332,78 @@ REGELN:
       };
     }
   }
+
+  /// Generate a concise German chat-style hint about long-term discounts for the
+  /// availability calendar. Returns a short single or two-line message.
+  ///
+  /// Input tiers format: [{"days": 3, "discount": 10}, ...]
+  static Future<String> availabilityDiscountTip({
+    required String title,
+    required String location,
+    required double pricePerDay,
+    required List<Map<String, dynamic>> tiers,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(_endpoint),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_apiKey',
+        },
+        body: jsonEncode({
+          'model': 'gpt-4o-mini',
+          'messages': [
+            {
+              'role': 'system',
+              'content': '''Du bist ein freundlicher Assistent für die Verfügbarkeitsauswahl in einer Miet-App (ShareItToo).
+Formuliere einen sehr kurzen, motivierenden Hinweis (max. 120 Zeichen) über Mietrabatte bei längerer Dauer.
+
+Vorgaben:
+- Sprache: Deutsch, Ton: locker, hilfreich, mit einem passenden Emoji.
+- Nutze die Rabattstaffel (z.B. ab 3/5/8 Tagen -10/-20/-30%).
+- Nenne nur die wichtigsten Schwellen in einer Zeile, kompakt und klar.
+- Kein Preisspektrum, keine Links, keine Aufzählungszeichen.
+- Keine Platzhalter, keine Variablennamen.
+
+Gib NUR ein JSON-Objekt zurück:
+{"message":"kurzer Hinweistext"}
+'''
+            },
+            {
+              'role': 'user',
+              'content': 'Artikel: ' + title + '\nOrt: ' + location + '\nPreis/Tag: ' + pricePerDay.toString() + '\nTiers: ' + jsonEncode(tiers),
+            }
+          ],
+          'response_format': {'type': 'json_object'},
+          'temperature': 0.4,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final content = data['choices']?[0]?['message']?['content'];
+        if (content == null) {
+          debugPrint('OpenAI: No content in availability tip');
+          return 'Tipp 💡: Länger mieten = günstiger. Z.B. ab 3/5/8 Tagen: -10/-20/-30%';
+        }
+        try {
+          final parsed = jsonDecode(content) as Map<String, dynamic>;
+          final msg = parsed['message']?.toString();
+          if (msg == null || msg.trim().isEmpty) {
+            return 'Tipp 💡: Länger mieten = günstiger. Z.B. ab 3/5/8 Tagen: -10/-20/-30%';
+          }
+          return msg;
+        } catch (e) {
+          debugPrint('OpenAI: Failed to parse availability tip JSON: $e');
+          return 'Tipp 💡: Länger mieten = günstiger. Z.B. ab 3/5/8 Tagen: -10/-20/-30%';
+        }
+      } else {
+        debugPrint('OpenAI availability tip API error: ${response.statusCode}');
+        return 'Tipp 💡: Länger mieten = günstiger. Z.B. ab 3/5/8 Tagen: -10/-20/-30%';
+      }
+    } catch (e) {
+      debugPrint('OpenAI availability tip: Exception: $e');
+      return 'Tipp 💡: Länger mieten = günstiger. Z.B. ab 3/5/8 Tagen: -10/-20/-30%';
+    }
+  }
 }

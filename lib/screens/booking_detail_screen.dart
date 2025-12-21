@@ -348,8 +348,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final days = (start != null && end != null) ? end.difference(start).inDays.clamp(1, 365) : 1;
     final totalPaid = _parseEuro(pricePaidStr);
     final discounts = _discountsFromBooking();
-    final fee = _serviceFee(totalPaid);
-    final rentalSubtotal = (totalPaid - fee + discounts).clamp(0.0, totalPaid);
+    final providedBasePerDay = (widget.booking['basePerDay'] as num?)?.toDouble();
+    final baseTotal = providedBasePerDay != null ? (providedBasePerDay * days) : totalPaid;
+    final rentalSubtotal = (baseTotal - discounts).clamp(0.0, baseTotal);
+    final fee = DataService.platformContributionForRental(rentalSubtotal);
     final daily = days > 0 ? (rentalSubtotal / days) : rentalSubtotal;
 
     return ListView(
@@ -563,13 +565,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               baseTotal = (providedBasePerDay * daysLocal);
               discountAmount = discountAmountProvided;
             } else {
-              final feeTmp = _serviceFee(totalPaid);
-              final rentalSubtotalTmp = (totalPaid - feeTmp + discountAmountProvided).clamp(0.0, totalPaid);
-              baseTotal = rentalSubtotalTmp;
+              // Fallback: approximate base from total when basePerDay is missing
+              baseTotal = totalPaid;
               discountAmount = discountAmountProvided;
             }
-            final feeLocal = _serviceFee(totalPaid);
             final rentalSubtotalLocal = (baseTotal - discountAmount).clamp(0.0, totalPaid);
+            final feeLocal = DataService.platformContributionForRental(rentalSubtotalLocal);
             return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Zahlungsübersicht', style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
               const SizedBox(height: 10),
@@ -585,15 +586,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   child: Row(children: [
                     const Icon(Icons.percent_outlined, color: Color(0xFF10B981), size: 18),
                     const SizedBox(width: 8),
-                    Expanded(child: Text('Langzeitmiet‑Rabatt aktiv: Du sparst ${discountPercentProvided > 0 ? discountPercentProvided.toStringAsFixed(0) + '%' : ''} bei dieser Buchung.', style: const TextStyle(color: Colors.white))),
+                    const Expanded(child: Text('Langzeitmiet‑Rabatt aktiv.', style: TextStyle(color: Colors.white))),
                   ]),
                 ),
               if (providedBasePerDay != null)
                 _AmountRow(label: 'Grundpreis: ${_formatEuro(providedBasePerDay)} × $daysLocal', value: _formatEuro(baseTotal)),
               if (discountAmount > 0)
-                _AmountRow(label: 'Rabatt${discountPercentProvided > 0 ? ' (${discountPercentProvided.toStringAsFixed(0)}%)' : ''}', value: '-${_formatEuro(discountAmount)}'),
+                _AmountRow(label: 'Rabatt', value: '-${_formatEuro(discountAmount)}'),
               _AmountRow(label: 'Zwischensumme (Mietpreis)', value: _formatEuro(rentalSubtotalLocal)),
-              _AmountRow(label: 'Servicegebühr', value: _formatEuro(feeLocal)),
+              _AmountRow(label: 'Plattformbeitrag', value: _formatEuro(feeLocal)),
               const Divider(height: 16, color: Colors.white24),
               _AmountRow(label: 'Gesamt bezahlt (Mieter)', value: _formatEuro(totalPaid), strong: true),
               if (_isViewerOwnerSync()) ...[
@@ -1125,7 +1126,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             Text('Zahlungsübersicht', style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
             _AmountRow(label: 'Mietpreis (Tagespreis × Tage)', value: _formatEuro(rentalSubtotal)),
-            _AmountRow(label: 'Servicegebühr', value: _formatEuro(fee)),
+            _AmountRow(label: 'Plattformbeitrag', value: _formatEuro(fee)),
             if (!isPending) ...[
               const Divider(height: 16, color: Colors.white24),
               _AmountRow(label: 'Gesamt bezahlt (Mieter)', value: _formatEuro(totalPaid), strong: true),
@@ -1165,7 +1166,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 final totalRefund = rentalRefund.clamp(0.0, totalPaid);
                 return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   _AmountRow(label: 'Rückerstattung (gesamt)', value: _formatEuro(totalRefund), strong: true),
-                  Text('Erstattung gem. Stornobedingungen. Servicegebühr nicht erstattbar.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
+                  Text('Erstattung gem. Stornobedingungen. Plattformbeitrag nicht erstattbar.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
                 ]);
               }),
             ],
@@ -1778,8 +1779,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final (start, end) = _parseDateRange();
     final pricePaidStr = (widget.booking['pricePaid'] as String?) ?? '';
     final totalPaid = _parseEuro(pricePaidStr);
-    final fee = _serviceFee(totalPaid);
-    final rentalSubtotal = (totalPaid - fee + _discountsFromBooking()).clamp(0.0, totalPaid);
+    // Recompute rental subtotal from provided base/day and discounts when possible
+    final daysVal = (widget.booking['days'] as num?)?.toInt() ?? ((start != null && end != null) ? end.difference(start).inDays.clamp(1, 365) : 1);
+    final basePerDayProvided = (widget.booking['basePerDay'] as num?)?.toDouble();
+    double baseTotal = basePerDayProvided != null && daysVal != null ? (basePerDayProvided * daysVal) : totalPaid;
+    final double discountAmount = _discountsFromBooking();
+    final rentalSubtotal = (baseTotal - discountAmount).clamp(0.0, baseTotal);
+    final fee = DataService.platformContributionForRental(rentalSubtotal);
     // Refund computation (demo logic based on policy and assumed cancel time = now)
     final policy = (widget.booking['policy'] as String?) ?? 'flexible';
     final createdAt = DateTime.tryParse((widget.booking['requestCreatedAtIso'] as String?) ?? '');
@@ -1811,14 +1817,14 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 <div style="margin:8px 0 16px 0">$title</div>
 <div class="muted">Zeitraum: ${(widget.booking['dates'] as String?) ?? '-'}</div>
 <hr>
-<table>
-   <tr><td>Mietpreis (Tagespreis × Tage)</td><td class="right">${_formatEuro(rentalSubtotal)}</td></tr>
-  <tr><td>Servicegebühr</td><td class="right">${_formatEuro(fee)}</td></tr>
+ <table>
+    <tr><td>Mietpreis (Tagespreis × Tage)</td><td class="right">${_formatEuro(rentalSubtotal)}</td></tr>
+   <tr><td>Plattformbeitrag</td><td class="right">${_formatEuro(fee)}</td></tr>
   <tr><td colspan="2"><hr></td></tr>
   <tr><td class="total">Gesamt bezahlt (Mieter)</td><td class="right total">${_formatEuro(totalPaid)}</td></tr>
   ${totalRefund > 0 ? '<tr><td class="total">Rückerstattung gesamt</td><td class="right total">${_formatEuro(totalRefund)}</td></tr>' : '<tr><td>Rückerstattung</td><td class="right">0,00 €</td></tr>'}
 </table>
-<p class="muted">${status == 'Storniert' ? 'Erstattung gem. Stornobedingungen (Servicegebühr ausgenommen).' : 'Keine Erstattung angewendet.'}</p>
+ <p class="muted">${status == 'Storniert' ? 'Erstattung gem. Stornobedingungen (Plattformbeitrag ausgenommen).' : 'Keine Erstattung angewendet.'}</p>
 <p class="muted">ShareItToo – Quittung ohne Gewähr.</p>
 </html>
 ''';
@@ -2686,8 +2692,8 @@ class _CancellationPolicyCardState extends State<_CancellationPolicyCard> {
             '• Danach: keine Rückerstattung.\n'
             '• Nicht-Erscheinen: keine Rückerstattung.\n\n'
             '📌 Hinweis:\n'
-            '– Servicegebühr und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Servicegebühr automatisch zurückerstattet.';
+            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
+            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
         break;
       case 'moderate':
         header = 'Stornierungsbedingungen – Standard';
@@ -2697,8 +2703,8 @@ class _CancellationPolicyCardState extends State<_CancellationPolicyCard> {
             '• Zwischen 12–48 Std. vorher: 50% Rückerstattung.\n'
             '• Weniger als 12 Std. vorher oder nach Mietbeginn: keine Rückerstattung.\n\n'
             '📌 Hinweis:\n'
-            '– Servicegebühr und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Servicegebühr automatisch zurückerstattet.';
+            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
+            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
         break;
       default:
         header = 'Stornierungsbedingungen – Flexibel';
@@ -2708,8 +2714,8 @@ class _CancellationPolicyCardState extends State<_CancellationPolicyCard> {
             '• Weniger als 24 Std. vorher: 50% Rückerstattung.\n'
             '• Nicht-Erscheinen: keine Rückerstattung.\n\n'
             '📌 Hinweis:\n'
-            '– Servicegebühr und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Servicegebühr automatisch zurückerstattet.';
+            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
+            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
     }
     final status = (widget.booking['status'] as String?)?.toLowerCase() ?? '';
     final category = (widget.booking['category'] as String?)?.toLowerCase() ?? '';

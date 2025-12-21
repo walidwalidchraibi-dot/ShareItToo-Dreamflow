@@ -113,11 +113,10 @@ class ItemCard extends StatelessWidget {
                         Builder(
                           builder: (context) {
                             final unit = item.priceUnit;
-                            final perDay = item.pricePerDay;
-                            final price = unit == 'week' ? perDay * 7 : perDay;
+                            final raw = item.priceRaw;
                             final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
                             return Text(
-                              '${price.toStringAsFixed(0)} $suffix',
+                              'Preis: ${raw.toStringAsFixed(0)} $suffix',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
