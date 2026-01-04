@@ -8,6 +8,7 @@ import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/review_prompt_sheet.dart';
+import 'package:lendify/widgets/item_details_overlay.dart';
 
 class BookingsScreen extends StatefulWidget {
   final int? initialTabIndex; // Neue Reihenfolge: 0: Laufend, 1: Kommend, 2: Ausstehend, 3: Abgeschlossen
@@ -92,6 +93,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
               );
               if (ok == true && mounted) {
                 await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
+                final item = await DataService.getItemById(itemId);
+                if (item != null && mounted) {
+                  await ItemDetailsOverlay.showFullPage(context, item: item);
+                }
               }
               _showingReminder = false;
             },
@@ -143,30 +148,34 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       final dd = d.day.toString().padLeft(2, '0');
       return '$dd. $mm';
     }
-    // Simple total estimation (matches item_details_overlay logic roughly)
-    final diff = r.end.difference(r.start);
-    int days = diff.inDays;
-    if (days <= 0) days = 1;
-    final priced = DataService.computeTotalWithDiscounts(item: it, days: days);
-    final platformFee = DataService.platformContributionForRental(priced.$1);
-    double total = priced.$1 + platformFee;
-    // Add express fee if accepted; if still pending, show without surcharge for now
-    if (r.expressRequested && r.expressStatus == 'accepted') {
-      total += r.expressFee;
-    }
+    // Unified breakdown including delivery/pickup/express
+    final breakdown = DataService.priceBreakdownForRequest(item: it, req: r, deliverySel: deliverySel);
+    final priced = (breakdown.rentalSubtotal, breakdown.baseTotal, 0.0, breakdown.discountAmount);
+    final int days = breakdown.days;
+    final double total = (r.quotedTotalRenter ?? breakdown.totalRenter);
     // Address privacy: hide exact house number until 6h before pickup
     final now = DateTime.now();
     final hideHouseNumber = now.isBefore(r.start.subtract(const Duration(hours: 6)));
     final displayLocation = hideHouseNumber ? _approximateAddress(it.locationText, seed: r.id) : it.locationText;
 
-    // Delivery selection flags (demo): true means OWNER travels; false => RENTER travels
-    final bool ownerDeliversAtDropoff = (deliverySel?['hinweg'] == true);
-    final bool ownerPicksUpAtReturn = (deliverySel?['rueckweg'] == true);
+    // Delivery selection flags (persisted on request; fall back to transient selection if missing)
+    // Be robust: if legacy requests are missing the snapshot flags, infer from
+    // - transient selection
+    // - express (only available when delivery at dropoff is chosen)
+    // - presence of a delivery address snapshot
+    final bool inferredOwnerDeliversByTransient = (deliverySel?['hinweg'] == true);
+    final bool inferredOwnerDeliversByExpress = r.expressRequested || (r.expressStatus != null);
+    final bool inferredOwnerDeliversByAddress = ((r.deliveryAddressLine ?? '').toString().trim().isNotEmpty) || ((r.deliveryCity ?? '').toString().trim().isNotEmpty);
+    final bool ownerDeliversAtDropoff = r.ownerDeliversAtDropoffChosen || inferredOwnerDeliversByTransient || inferredOwnerDeliversByExpress || inferredOwnerDeliversByAddress;
+
+    final bool inferredOwnerPicksUpByTransient = (deliverySel?['rueckweg'] == true);
+    final bool ownerPicksUpAtReturn = r.ownerPicksUpAtReturnChosen || inferredOwnerPicksUpByTransient;
 
     return {
       'requestId': r.id,
       'itemId': it.id,
       'rawStatus': r.status,
+      'cancelledBy': r.cancelledBy,
       'title': it.title,
       'dates': '${fmt(r.start)} – ${fmt(r.end)}',
       'location': displayLocation,
@@ -178,11 +187,16 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       'listerAvatar': owner?.photoURL,
       'category': r.status == 'pending' ? 'pending' : null, // let UI compute otherwise
       'pricePaid': '${total.round()} €',
-      if (priced.$4 > 0) 'discounts': '-${priced.$4.toStringAsFixed(0)} €',
+      // Persisted renter-facing constants for stable display across all states
+      if (r.quotedTotalRenter != null) 'quotedTotalRenter': r.quotedTotalRenter,
+      if (r.quotedSubtitle != null) 'quotedSubtitle': r.quotedSubtitle,
+      if (breakdown.discountAmount > 0) 'discounts': '-${breakdown.discountAmount.toStringAsFixed(0)} €',
       // add context so detail view can show breakdown precisely
       'days': days,
       'basePerDay': it.pricePerDay,
-      if (priced.$3 > 0) 'discountPercentApplied': priced.$3,
+      // keep percent only when available from item discount tiers; use computeTotalWithDiscounts again
+      if (DataService.computeTotalWithDiscounts(item: it, days: days).$3 > 0)
+        'discountPercentApplied': DataService.computeTotalWithDiscounts(item: it, days: days).$3,
       // express fields for countdown in UI
       'expressRequested': r.expressRequested,
       'expressStatus': r.expressStatus,
@@ -199,10 +213,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       // chosen responsibilities (persisted per item for demo)
       'ownerDeliversAtDropoffChosen': ownerDeliversAtDropoff,
       'ownerPicksUpAtReturnChosen': ownerPicksUpAtReturn,
-      'deliveryAddressLine': (deliverySel?['addressLine'] as String?) ?? '',
-      'deliveryCity': (deliverySel?['city'] as String?) ?? '',
-      'deliveryLat': (deliverySel?['lat'] as num?)?.toDouble(),
-      'deliveryLng': (deliverySel?['lng'] as num?)?.toDouble(),
+      'deliveryAddressLine': r.deliveryAddressLine ?? (deliverySel?['addressLine'] as String?) ?? '',
+      'deliveryCity': r.deliveryCity ?? (deliverySel?['city'] as String?) ?? '',
+      'deliveryLat': r.deliveryLat ?? (deliverySel?['lat'] as num?)?.toDouble(),
+      'deliveryLng': r.deliveryLng ?? (deliverySel?['lng'] as num?)?.toDouble(),
     };
   }
 
@@ -479,6 +493,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
               );
               if (ok == true && context.mounted) {
                 await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
+                final item = await DataService.getItemById(itemId);
+                if (item != null && context.mounted) {
+                  await ItemDetailsOverlay.showFullPage(context, item: item);
+                }
               }
             },
             icon: const Icon(Icons.star_rate_outlined, color: Colors.white70, size: 18),
@@ -530,7 +548,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                         Navigator.of(context, rootNavigator: true).maybePop();
                         final id = booking['requestId'] as String?;
                         if (id != null) {
-                          await DataService.updateRentalRequestStatus(requestId: id, status: 'cancelled');
+                          await DataService.updateRentalRequestStatusWithActor(requestId: id, status: 'cancelled', cancelledBy: 'renter');
                           if (!mounted) return;
                           await _load();
                           await AppPopup.toast(context, icon: Icons.cancel_outlined, title: 'Buchung storniert');
@@ -553,23 +571,21 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     }
   }
 
-  // Compute effective category from dates for renter view.
-  // Rules:
-  // - pending stays pending
-  // - else with pickup/return times: now < pickup => upcoming; pickup <= now < return => ongoing; now >= return => completed
+  // Compute effective category for renter view strictly from status.
+  // Business rules:
+  // - pending → pending
+  // - accepted → upcoming (never auto-advance by time)
+  // - running → ongoing (only after confirmed Übergabe)
+  // - completed/cancelled/declined → completed (never auto-complete by time)
   String _effectiveCategoryFor(Map<String, dynamic> booking, DateTime? start, DateTime? end) {
-    final raw = booking['category'] as String?;
-    final rawStatus = booking['rawStatus'] as String?;
-    if (raw == 'pending') return 'pending';
-    // Completed, cancelled and declined requests are considered completed in the list
-    if (rawStatus == 'completed' || rawStatus == 'cancelled' || rawStatus == 'declined') {
-      return 'completed';
-    }
-    if (start == null || end == null) return raw ?? 'upcoming';
-    final now = DateTime.now();
-    if (now.isBefore(start)) return 'upcoming';
-    if (now.isBefore(end)) return 'ongoing';
-    return 'completed';
+    final raw = (booking['category'] as String?)?.toLowerCase();
+    final status = (booking['rawStatus'] as String?)?.toLowerCase();
+    if (raw == 'pending' || status == 'pending') return 'pending';
+    if (status == 'accepted') return 'upcoming';
+    if (status == 'running') return 'ongoing';
+    if (status == 'completed' || status == 'cancelled' || status == 'declined') return 'completed';
+    // Fallback for unknown/missing status: treat as upcoming
+    return 'upcoming';
   }
 
   // Status chip with countdown for list card (German, renter view)
@@ -609,7 +625,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
             remain = left.isNegative ? Duration.zero : left;
           }
         }
-        label = remain != null ? 'Express: ${_formatTwoUnitsCountdown(remain)}' : 'Wartet auf Bestätigung';
+        label = remain != null ? 'Priorität: ${_formatTwoUnitsCountdown(remain)}' : 'Wartet auf Bestätigung';
         color = Colors.grey; // Grau
         break;
       case 'completed':
@@ -704,6 +720,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
               );
               if (ok == true && mounted) {
                 await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
+                final item = await DataService.getItemById(itemId);
+                if (item != null && mounted) {
+                  await ItemDetailsOverlay.showFullPage(context, item: item);
+                }
               }
             },
           );

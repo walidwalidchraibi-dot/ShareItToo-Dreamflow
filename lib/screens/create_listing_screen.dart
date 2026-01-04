@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:lendify/models/item.dart';
@@ -17,6 +17,7 @@ import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/utils/category_label.dart';
 import 'package:lendify/services/ai_price_calculator_service.dart';
 import 'package:lendify/openai/openai_config.dart';
+import 'package:lendify/utils/cancellation_policy_text.dart';
 
 // Google Maps Places API key (configure in Dreamflow as environment variable)
 const String kGoogleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
@@ -49,12 +50,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   List<String> _coarseCats = [];
   // Map coarse label -> fine categories in that group
   Map<String, List<Category>> _catsByCoarse = {};
-  String _priceUnit = 'day'; // hour, day, week
+  String _priceUnit = 'day'; // only 'day' is supported in UI
   String _condition = 'new'; // 'new' | 'like-new' | 'good' | 'acceptable'
   // Delivery options
   bool _offersDeliveryAtDropoff = false; // Lieferung bei Abgabe (Hinweg)
   bool _offersPickupAtReturn = false;    // Abholung bei Rückgabe (Rückweg)
-  bool _offersExpressAtDropoff = false;  // Expresslieferung (2,5h, +5€) optional anbieten, nur bei Abgabe
+  bool _offersExpressAtDropoff = false;  // Deprecated: Prioritäts-/Expresslieferung (nicht mehr angeboten)
   double? _maxDistanceKm; // applies to both delivery and pickup (simple model)
   // Cancellation policy
   String _cancellationPolicy = 'flexible'; // 'flexible' | 'moderate' | 'strict'
@@ -101,10 +102,15 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       _priceCtrl.text = ex.priceRaw.toStringAsFixed(ex.priceRaw.truncateToDouble() == ex.priceRaw ? 0 : 2);
       _categoryId = ex.categoryId;
       _priceUnit = ex.priceUnit;
+      // Enforce day-only pricing unit in UI
+      if (_priceUnit != 'day') {
+        _priceUnit = 'day';
+      }
       _condition = ex.condition;
       _offersDeliveryAtDropoff = ex.offersDeliveryAtDropoff;
       _offersPickupAtReturn = ex.offersPickupAtReturn;
-      _offersExpressAtDropoff = ex.offersExpressAtDropoff;
+      // Deprecated: no longer used, UI removed
+      _offersExpressAtDropoff = false;
       _maxDistanceKm = ex.maxDeliveryKmAtDropoff ?? ex.maxPickupKmAtReturn;
       _registeredCity = ex.city;
       _addressCtrl.text = ex.locationText;
@@ -161,20 +167,22 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   }
 
   Future<void> _pickFromCamera() async {
-    if (kIsWeb) {
-      final res = await FilePicker.platform.pickFiles(
-        allowMultiple: false,
-        withData: true,
-        type: FileType.image,
+    // Always prefer camera when explicitly chosen, including on Web.
+    // On Web, image_picker's web implementation may open a file dialog,
+    // but on supported devices it can trigger camera capture.
+    try {
+      final XFile? file = await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.rear,
+        imageQuality: 85,
+        maxWidth: 1600,
       );
-      if (res != null && res.files.isNotEmpty && res.files.first.bytes != null) {
-        final f = res.files.first;
-        setState(() => _pickedImages.add(XFile.fromData(f.bytes!, name: f.name)));
-      }
-      return;
+      if (file != null) setState(() => _pickedImages.add(file));
+    } catch (e) {
+      // Keep experience consistent: avoid auto-switching to gallery on Web.
+      // Some browsers will still show a file dialog even for ImageSource.camera.
+      debugPrint('Camera pick failed or blocked: ' + e.toString());
     }
-    final XFile? file = await _picker.pickImage(source: ImageSource.camera, imageQuality: 85, maxWidth: 1600);
-    if (file != null) setState(() => _pickedImages.add(file));
   }
 
   Future<void> _pickFromGallery() async {
@@ -334,10 +342,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         status: forceInactive ? 'draft' : 'active',
         offersDeliveryAtDropoff: _offersDeliveryAtDropoff,
         offersPickupAtReturn: _offersPickupAtReturn,
-        offersExpressAtDropoff: _offersExpressAtDropoff && _offersDeliveryAtDropoff,
+        offersExpressAtDropoff: false, // deprecated option removed from UI
         maxDeliveryKmAtDropoff: _maxDistanceKm,
         maxPickupKmAtReturn: _maxDistanceKm,
-        cancellationPolicy: _cancellationPolicy,
+        cancellationPolicy: 'unified',
         autoApplyDiscounts: _autoApplyDiscounts,
         longRentalDiscounts: ([
           LongRentalDiscount(days: _tier1Days, discountPercent: _tier1Pct),
@@ -389,10 +397,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       timesLent: ex.timesLent,
       offersDeliveryAtDropoff: _offersDeliveryAtDropoff,
       offersPickupAtReturn: _offersPickupAtReturn,
-      offersExpressAtDropoff: _offersExpressAtDropoff && _offersDeliveryAtDropoff,
+      offersExpressAtDropoff: false, // deprecated option removed from UI
       maxDeliveryKmAtDropoff: _maxDistanceKm,
       maxPickupKmAtReturn: _maxDistanceKm,
-      cancellationPolicy: _cancellationPolicy,
+      cancellationPolicy: 'unified',
       autoApplyDiscounts: _autoApplyDiscounts,
       longRentalDiscounts: ([
         LongRentalDiscount(days: _tier1Days, discountPercent: _tier1Pct),
@@ -776,71 +784,47 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   ]),
                 )),
                 const SizedBox(height: 12),
-                _Section(
-                  title: 'Stornierungsbedingungen',
-                  // Remove inner card/accordion: just show options inline inside the main card
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      RadioListTile<String>(
-                        value: 'flexible',
-                        groupValue: _cancellationPolicy,
-                        onChanged: (v) => setState(() => _cancellationPolicy = v ?? 'flexible'),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Flexibel (Empfohlen)', style: TextStyle(color: Colors.white)),
-                      ),
-                      RadioListTile<String>(
-                        value: 'moderate',
-                        groupValue: _cancellationPolicy,
-                        onChanged: (v) => setState(() => _cancellationPolicy = v ?? 'moderate'),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Standard', style: TextStyle(color: Colors.white)),
-                      ),
-                      RadioListTile<String>(
-                        value: 'strict',
-                        groupValue: _cancellationPolicy,
-                        onChanged: (v) => setState(() => _cancellationPolicy = v ?? 'strict'),
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Streng', style: TextStyle(color: Colors.white)),
-                      ),
-                      const SizedBox(height: 6),
-                      Builder(builder: (context) {
-                        String text;
-                        switch (_cancellationPolicy) {
-                          case 'strict':
-                            text = 'Kostenlose Stornierung nur innerhalb von 1 Stunde nach Buchung (wenn mehr als 48 Std. bis Mietbeginn). Danach keine Rückerstattung.';
-                            break;
-                          case 'moderate':
-                            text = 'Kostenlos bis 48 Std. vor Mietbeginn. 12–48 Std. vorher: 50% Rückerstattung. <12 Std. oder nach Beginn: keine Rückerstattung.';
-                            break;
-                          case 'flexible':
-                          default:
-                            text = 'Kostenlos bis 24 Std. vor Mietbeginn. Weniger als 24 Std.: 50% Rückerstattung. Nicht-Erscheinen: keine Rückerstattung.';
-                        }
-                        return Text(
-                          text,
-                          style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.35),
-                        );
-                      }),
-                    ],
+                // Stornierungsbedingungen: zentrierter Titel im Info-Card-Stil, identische Optik wie in BookingDetail
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.20),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
                   ),
+                  child: _OwnerCancellationInfoCard(body: CancellationPolicyText.bodyForOwnerListingCard),
                 ),
                 const SizedBox(height: 12),
                 _Section(title: 'Fotos', child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Wrap(spacing: 8, runSpacing: 8, children: [
-                      // Show existing photos (non-removable) when editing
-                      if (_existingPhotos.isNotEmpty)
-                        for (final url in _existingPhotos)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: SizedBox(width: 84, height: 84, child: AppImage(url: url, fit: BoxFit.cover)),
-                          ),
-                      for (int i = 0; i < _pickedImages.length; i++) _PickedThumb(file: _pickedImages[i], onRemove: () => setState(() => _pickedImages.removeAt(i))),
-                      _AddPhotoTile(onTap: _showPhotoSourceSheet),
-                    ]),
+                    Builder(builder: (context) {
+                      final hasAnyPhotos = _existingPhotos.isNotEmpty || _pickedImages.isNotEmpty;
+                      if (!hasAnyPhotos) {
+                        // Center the + photo button horizontally (and give the card some height) when there are no images yet
+                        return SizedBox(
+                          height: 120,
+                          child: Center(child: _AddPhotoTile(onTap: _showPhotoSourceSheet)),
+                        );
+                      }
+                      // When there are photos, show the grid-like wrap (the + button stays inline)
+                      return Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.center,
+                        runAlignment: WrapAlignment.center,
+                        children: [
+                          // Show existing photos (non-removable) when editing
+                          if (_existingPhotos.isNotEmpty)
+                            for (final url in _existingPhotos)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: SizedBox(width: 84, height: 84, child: AppImage(url: url, fit: BoxFit.cover)),
+                              ),
+                          for (int i = 0; i < _pickedImages.length; i++)
+                            _PickedThumb(file: _pickedImages[i], onRemove: () => setState(() => _pickedImages.removeAt(i))),
+                          _AddPhotoTile(onTap: _showPhotoSourceSheet),
+                        ],
+                      );
+                    }),
                   const SizedBox(height: 6),
                   const Text('Füge Fotos hinzu. Tippe auf +, um Kamera oder Galerie zu wählen.', style: TextStyle(color: Colors.white70, fontSize: 12)),
                   const SizedBox(height: 8),
@@ -867,31 +851,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Lieferung bei Abgabe anbieten', style: TextStyle(color: Colors.white)),
                   ),
-                  if (_offersDeliveryAtDropoff)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 12.0),
-                      child: _Accordion(
-                        title: 'Expresslieferung anbieten',
-                        initiallyExpanded: false,
-                        bare: true,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CheckboxListTile(
-                              value: _offersExpressAtDropoff,
-                              onChanged: (v) => setState(() => _offersExpressAtDropoff = (v ?? false)),
-                              controlAffinity: ListTileControlAffinity.leading,
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text('Expresslieferung (innerhalb von 2,5 Stunden) gegen 5,00 € Aufpreis anbieten', style: TextStyle(color: Colors.white)),
-                              subtitle: const Text(
-                                'Die 5,00 € Express-Aufpreis werden nur berechnet, wenn du die Anfrage innerhalb von 30 Minuten bestätigst und den Artikel innerhalb von 2,5 Stunden nach Eingang der Buchungsanfrage beim Mieter ablieferst.',
-                                style: TextStyle(color: Colors.white70, fontSize: 12),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  // Removed: Prioritätslieferung anbieten (no longer supported)
                   CheckboxListTile(
                     value: _offersPickupAtReturn,
                     onChanged: (v) => setState(() => _offersPickupAtReturn = v ?? false),
@@ -916,6 +876,22 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   ],
                   const SizedBox(height: 6),
                   const Text('Wenn nichts aktiviert ist, muss der Mieter selbst abholen und zurückbringen.', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  const SizedBox(height: 8),
+                  _Accordion(
+                    title: 'Vergütung für Fahrtaufwand',
+                    initiallyExpanded: false,
+                    bare: true,
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Vergütung: 0,30 € pro tatsächlich zu fahrendem Kilometer (Hin- und Rückfahrt).', style: TextStyle(color: Colors.white70, height: 1.4)),
+                        SizedBox(height: 6),
+                        Text('Die Mindestvergütung für eine Lieferung oder Abholung beträgt jeweils 3,00 €.', style: TextStyle(color: Colors.white70, height: 1.4)),
+                        SizedBox(height: 6),
+                        Text('Die Vergütung für Lieferung und/oder Abholung wird automatisch anhand der Entfernung berechnet.', style: TextStyle(color: Colors.white70, height: 1.4)),
+                      ],
+                    ),
+                  ),
                 ])),
                 const SizedBox(height: 12),
                 _Section(title: 'Ort', child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -952,22 +928,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     ),
                   ),
                 ])),
-                const SizedBox(height: 12),
-                _Accordion(
-                  title: 'Preisberechnung & Gebühren',
-                  initiallyExpanded: false,
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _Bullet(text: 'Mietpreis = Preis × Anzahl der Zeiteinheiten (Tag/Woche).'),
-                      _Bullet(text: 'Bei Wochenpreis werden angebrochene Wochen anteilig berechnet.'),
-                      _Bullet(text: 'Kaution (falls gesetzt) wird bei der Buchung reserviert.'),
-                      _Bullet(text: 'Bei Lieferung oder Abholung werden Kosten pro Kilometer berechnet (0,30 € je km, einfache Fahrt; für Hin- und Rückweg automatisch ×2).'),
-                      _Bullet(text: 'Die Mindestgebühr einer Lieferung beträgt 3,00 €. Die Gesamtkosten werden automatisch anhand der Entfernung kalkuliert.'),
-                        _Bullet(text: 'Optional kann eine Expresslieferung (innerhalb von 2,5 Stunden) gegen einen Aufpreis von 5,00 € angeboten werden – abhängig von der Bestätigung der Anfrage durch den Vermieter.'),
-                    ],
-                  ),
-                ),
+                // Removed per request: Preisberechnung & Gebühren infocard
                 const SizedBox(height: 12),
                 _Section(title: 'Preis', child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   // AI Price Calculator Card
@@ -1111,23 +1072,14 @@ class _FixedUnitSelector extends StatelessWidget {
   const _FixedUnitSelector({required this.value, required this.onChanged});
   @override
   Widget build(BuildContext context) {
-    final selectedColor = Theme.of(context).colorScheme.primary;
-    final items = const [
-      ('day', 'Tag'),
-      ('week', 'Woche'),
-    ];
-    return ToggleButtons(
-      isSelected: items.map((e) => e.$1 == value).toList(),
-      onPressed: (index) => onChanged(items[index].$1),
-      borderRadius: BorderRadius.circular(10),
-      selectedBorderColor: selectedColor,
-      borderColor: Colors.white.withValues(alpha: 0.24),
-      fillColor: selectedColor,
-      selectedColor: Colors.black,
-      color: Colors.white,
-      constraints: const BoxConstraints(minWidth: 74, minHeight: 42),
-      children: [for (final e in items) Text(e.$2)],
-    );
+    // Only "Tag" is available and permanently selected (blue)
+    // Keep calling onChanged with 'day' to normalize state upstream when needed.
+    if (value != 'day') {
+      // This is safe here: it just normalizes the state in parent on next frame.
+      // ignore: invalid_use_of_protected_member
+      WidgetsBinding.instance.addPostFrameCallback((_) => onChanged('day'));
+    }
+    return _BlueChoice(label: 'Tag', selected: true, onTap: () { /* fixed selection */ });
   }
 }
 
@@ -1462,6 +1414,49 @@ class _AccordionState extends State<_Accordion> with SingleTickerProviderStateMi
         border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
       ),
       child: Column(children: [header, body]),
+    );
+  }
+}
+
+// ---------- Owner-facing Cancellation Info Card (centered title, tap-to-expand) ----------
+class _OwnerCancellationInfoCard extends StatefulWidget {
+  final String body;
+  const _OwnerCancellationInfoCard({required this.body});
+  @override
+  State<_OwnerCancellationInfoCard> createState() => _OwnerCancellationInfoCardState();
+}
+
+class _OwnerCancellationInfoCardState extends State<_OwnerCancellationInfoCard> {
+  bool _open = false;
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => setState(() => _open = !_open),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Center(
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.policy_outlined, color: Colors.white70),
+                const SizedBox(width: 8),
+                const Text('Stornierungsbedingungen', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
+              ]),
+            ),
+          ),
+        ),
+        AnimatedCrossFade(
+          crossFadeState: _open ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+          duration: const Duration(milliseconds: 200),
+          firstChild: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: Text(widget.body, style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.35)),
+          ),
+          secondChild: const SizedBox(height: 0),
+        ),
+      ],
     );
   }
 }

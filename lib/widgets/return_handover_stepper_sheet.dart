@@ -8,6 +8,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:lendify/services/data_service.dart';
 
 class ReturnHandoverStepperSheet {
   static Future<bool?> show(BuildContext context, {
@@ -108,13 +110,11 @@ class _ReturnHandoverStepper extends StatefulWidget {
 }
 
 enum ReturnFlowMode { returnFlow, pickupFlow }
-enum _StepKind { photos, damage, codes }
+enum _StepKind { photos, rideConfirm, damage, codes }
 
 class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
   // Dynamic steps based on mode
-  late final List<_StepKind> _steps = widget.mode == ReturnFlowMode.returnFlow
-      ? <_StepKind>[_StepKind.photos, _StepKind.damage, _StepKind.codes]
-      : <_StepKind>[_StepKind.photos, _StepKind.codes];
+  late final List<_StepKind> _steps = _buildSteps();
   int _step = 0;
 
   // Legacy (removed) steps are no longer used
@@ -132,6 +132,11 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
 
   // Step: code confirm (now display-only + manual confirm)
   bool _otherPartyConfirmed = false;
+
+  // Step: ride compensation confirmation (Etappe 2, conditional)
+  bool? _rideAnsweredYes; // null until user selects
+  bool? _rideGrant; // final decision for this segment (grant/deny)
+  bool _resolvingLocation = false;
 
   @override
   void initState() {
@@ -154,6 +159,8 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
       case _StepKind.photos:
         // Rename to domain wording per request
         return widget.mode == ReturnFlowMode.returnFlow ? 'Rückgabe Fotos' : 'Übergabe Fotos';
+      case _StepKind.rideConfirm:
+        return 'Fahrtvergütung';
       case _StepKind.damage:
         return 'Schaden melden';
       case _StepKind.codes:
@@ -167,6 +174,9 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
     switch (kind) {
       case _StepKind.photos:
         return _checkoutPhotos.length >= 4;
+      case _StepKind.rideConfirm:
+        // Require the user to at least select an answer; location fallback optional
+        return _rideAnsweredYes != null;
       case _StepKind.damage:
         if (!_hasDamage) return true;
         return _damagePhotos.isNotEmpty || _damageNotesCtrl.text.trim().isNotEmpty;
@@ -350,6 +360,8 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
     switch (kind) {
       case _StepKind.photos:
         return _stepCheckoutPhotos();
+      case _StepKind.rideConfirm:
+        return _stepRideConfirm();
       case _StepKind.damage:
         return _stepDamage();
       case _StepKind.codes:
@@ -429,6 +441,172 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
           ),
       ],
     );
+  }
+
+  List<_StepKind> _buildSteps() {
+    final isReturn = widget.mode == ReturnFlowMode.returnFlow;
+    final List<_StepKind> base = [];
+    base.add(_StepKind.photos);
+    final bool showRideConfirm =
+        (!isReturn && widget.request.ownerDeliversAtDropoffChosen) ||
+        (isReturn && widget.request.ownerPicksUpAtReturnChosen);
+    if (showRideConfirm) base.add(_StepKind.rideConfirm);
+    if (isReturn) base.add(_StepKind.damage);
+    base.add(_StepKind.codes);
+    return base;
+  }
+
+  Widget _rideInfoChip({required bool grant}) {
+    final color = grant ? Colors.greenAccent.withValues(alpha: 0.18) : Colors.redAccent.withValues(alpha: 0.18);
+    final border = grant ? Colors.greenAccent.withValues(alpha: 0.35) : Colors.redAccent.withValues(alpha: 0.35);
+    // Dynamic copy depending on viewer role: renter sees "dir", owner sees "dem Mieter".
+    final String text = grant
+        ? 'Fahrtvergütung wird freigegeben'
+        : (widget.viewerIsOwner
+            ? 'Die Fahrtvergütung wird dem Mieter zurückerstattet.'
+            : 'Die Fahrtvergütung wird dir zurückerstattet.');
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12), border: Border.all(color: border)),
+      child: Row(children: [
+        Icon(grant ? Icons.verified_outlined : Icons.block_outlined, color: Colors.white70, size: 18),
+        const SizedBox(width: 8),
+        Flexible(child: Text(text, style: const TextStyle(color: Colors.white)))]),
+    );
+  }
+
+  Future<void> _resolveByLocation() async {
+    if (_resolvingLocation) return;
+    setState(() => _resolvingLocation = true);
+    try {
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) {
+        await AppPopup.toast(context, icon: Icons.location_off, title: 'Standortzugriff verweigert.');
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      final dLat = widget.request.deliveryLat;
+      final dLng = widget.request.deliveryLng;
+      if (dLat == null || dLng == null) {
+        await AppPopup.toast(context, icon: Icons.info_outline, title: 'Keine Zieladresse gespeichert');
+        return;
+      }
+      final distanceMeters = Geolocator.distanceBetween(pos.latitude, pos.longitude, dLat, dLng);
+      final nearRenter = distanceMeters <= 500; // within 0.5 km counts as Mieter-Standort
+      // Rule: near renter => Vermieter ist gefahren => freigeben; near owner => keine Vergütung
+      final grant = nearRenter;
+      setState(() {
+        _rideGrant = grant;
+      });
+      await AppPopup.toast(context, icon: grant ? Icons.verified_outlined : Icons.block_outlined, title: grant ? 'Vergütung wird freigegeben' : 'Keine Vergütung');
+    } catch (e) {
+      debugPrint('[handover] location resolve failed: $e');
+      await AppPopup.toast(context, icon: Icons.location_disabled, title: 'Standort konnte nicht ermittelt werden.');
+    } finally {
+      if (mounted) setState(() => _resolvingLocation = false);
+    }
+  }
+
+  Future<void> _persistRideDecisionIfAny() async {
+    // Persist lightweight decision so the caller page can release/cancel after Abschluss
+    try {
+      final segment = widget.mode == ReturnFlowMode.returnFlow ? 'return' : 'dropoff';
+      if (_rideAnsweredYes != null) {
+        // If user explicitly answered, that is authoritative unless a mismatch
+        final grant = _rideAnsweredYes!; // Ja => owner delivered/picked => grant
+        await DataService.setRideCompensationDecision(requestId: widget.request.id, segment: segment, grant: grant, reason: grant ? 'matched_yes' : 'matched_no');
+        _rideGrant = grant;
+      }
+      if (_rideGrant != null) {
+        final reason = _rideAnsweredYes == null ? 'location_only' : 'location_override';
+        await DataService.setRideCompensationDecision(requestId: widget.request.id, segment: segment, grant: _rideGrant!, reason: reason);
+      }
+    } catch (e) {
+      debugPrint('[handover] persist ride decision failed: $e');
+    }
+  }
+
+  Widget _stepRideConfirm() {
+    final isReturn = widget.mode == ReturnFlowMode.returnFlow;
+    final title = isReturn ? 'Rückgabe – Fahrtvergütung' : 'Übergabe – Fahrtvergütung';
+    final forRenterQ = isReturn ? 'Hat der Vermieter den Artikel bei dir abgeholt?' : 'Hat der Vermieter den Artikel zu dir geliefert?';
+    final forOwnerQ = isReturn ? 'Hast du den Artikel beim Mieter abgeholt?' : 'Hast du dem Mieter den Artikel geliefert?';
+    final q = widget.viewerIsOwner ? forOwnerQ : forRenterQ;
+    final breakdown = DataService.priceBreakdownForRequest(item: widget.item, req: widget.request);
+    final fee = isReturn ? breakdown.returnFee : breakdown.dropoffFee;
+
+    return Align(
+      alignment: Alignment.center,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 8),
+            _card(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+                Row(children: const [Icon(Icons.directions_car_filled_outlined, color: Colors.white70), SizedBox(width: 8), Text('Fahrtvergütung bestätigen', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800))]),
+                const SizedBox(height: 8),
+                Text(q, style: const TextStyle(color: Colors.white)),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(child: _rideChoiceButton(yes: true)),
+                  const SizedBox(width: 10),
+                  Expanded(child: _rideChoiceButton(yes: false)),
+                ]),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    Row(children: const [Icon(Icons.info_outline, color: Colors.white70, size: 18), SizedBox(width: 6), Flexible(child: Text('Bei unterschiedlichen Antworten: Bitte Standort aktivieren, dann entscheidet der Ort.', style: TextStyle(color: Colors.white70)))]),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.center,
+                      child: FilledButton.icon(
+                        onPressed: _resolvingLocation ? null : () async {
+                          await _resolveByLocation();
+                          await _persistRideDecisionIfAny();
+                        },
+                        icon: const Icon(Icons.my_location),
+                        label: Text(_resolvingLocation ? 'Prüfe Standort…' : 'Standort prüfen'),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (_rideGrant != null) _rideInfoChip(grant: _rideGrant!),
+                  ]),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Die Fahrtvergütung beträgt für diese ${isReturn ? 'Abholung' : 'Lieferung'} ${_fmtEuro(fee)}, sie ist blockiert und wird erst nach dem Abschluss freigegeben.',
+              style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _rideChoiceButton({required bool yes}) {
+    // Default pre-highlight "Ja" visually, without forcing selection.
+    final bool selected = (_rideAnsweredYes ?? true) == yes;
+    final icon = yes ? Icons.check_circle_outline : Icons.close;
+    final label = yes ? const Text('Ja') : const Text('Nein');
+    final onTap = () async {
+      setState(() { _rideAnsweredYes = yes; _rideGrant = yes; });
+      await _persistRideDecisionIfAny();
+    };
+    if (selected) {
+      return FilledButton.icon(onPressed: onTap, icon: Icon(icon), label: label);
+    }
+    return OutlinedButton.icon(onPressed: onTap, icon: Icon(icon), label: label);
   }
 
   void _openImagePreview(PlatformFile file) {

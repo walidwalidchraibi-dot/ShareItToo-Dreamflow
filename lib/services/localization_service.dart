@@ -78,6 +78,7 @@ class LocalizationController extends ChangeNotifier {
     // Listing details
     'Verfügbarkeit prüfen': 'Verfügbarkeit prüfen',
     'Reservieren': 'Reservieren',
+    'Anfrage senden': 'Anfrage senden',
     'Anfragen': 'Anfragen',
     'Anfrage gesendet (Demo)': 'Anfrage gesendet (Demo)',
     'Zum Profil': 'Zum Profil',
@@ -234,6 +235,7 @@ class LocalizationController extends ChangeNotifier {
     // Listing details
     'Verfügbarkeit prüfen': 'Check availability',
     'Reservieren': 'Reserve',
+    'Anfrage senden': 'Send request',
     'Anfragen': 'Request',
     'Anfrage gesendet (Demo)': 'Request sent (demo)',
     'Zum Profil': 'View profile',

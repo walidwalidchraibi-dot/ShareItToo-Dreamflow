@@ -8,6 +8,7 @@ import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/screens/ongoing_owner_detail_screen.dart';
 import 'package:lendify/widgets/review_prompt_sheet.dart';
+import 'package:lendify/widgets/item_details_overlay.dart';
 
 /// Owner-side requests hub: Tabs for Laufend, Kommend, Anfragen, Abgeschlossen
 class OwnerRequestsScreen extends StatefulWidget {
@@ -93,6 +94,10 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
               );
               if (ok == true && mounted) {
                 await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
+                final item = await DataService.getItemById(itemId);
+                if (item != null && mounted) {
+                  await ItemDetailsOverlay.showFullPage(context, item: item);
+                }
               }
               _showingReminder = false;
             },
@@ -296,29 +301,32 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
       return '$dd. $mm';
     }
     final r = e.r; final it = e.item; final renter = e.renter;
-    final diff = r.end.difference(r.start);
-    int days = diff.inDays; if (days <= 0) days = 1;
-    final priced = DataService.computeTotalWithDiscounts(item: it, days: days);
-    double total = priced.$1;
-    if (r.expressRequested && r.expressStatus == 'accepted') total += r.expressFee;
+    final breakdown = DataService.priceBreakdownForRequest(item: it, req: r);
+    final payout = breakdown.payoutOwner.clamp(0.0, double.infinity);
     return {
       'title': it.title,
       'dates': '${fmt(r.start)} – ${fmt(r.end)}',
       'image': it.photos.isNotEmpty ? it.photos.first : '',
-      'total': '${total.round()} €',
+      // Show only the payout value for owner lists
+      'total': '${payout.round()} €',
       'renter': renter.displayName,
     };
   }
 
+  // Strict status-driven categorization (no auto-advance by time)
+  // Business rules (mirror renter view and detail page):
+  // - pending   → requests (Mietanfragen)
+  // - accepted  → upcoming (Kommend)
+  // - running   → ongoing (Laufend; only after bestätigte Übergabe)
+  // - completed/cancelled/declined → completed (Abgeschlossen)
   String _effectiveCategory(_OwnerEntry e) {
-    final now = DateTime.now();
-    final status = e.r.status;
-    if (status == 'pending') return 'requests';
-    if (status == 'completed' || status == 'declined' || status == 'cancelled') return 'completed';
-    final start = e.r.start; final end = e.r.end;
-    if (now.isBefore(start)) return 'upcoming';
-    if (now.isBefore(end)) return 'ongoing';
-    return 'completed';
+    final s = (e.r.status).toLowerCase();
+    if (s == 'pending') return 'requests';
+    if (s == 'accepted') return 'upcoming';
+    if (s == 'running') return 'ongoing';
+    if (s == 'completed' || s == 'cancelled' || s == 'declined') return 'completed';
+    // Fallback to upcoming to avoid misrouting unknown states
+    return 'upcoming';
   }
 
   String _titleForCategory(String category) {
@@ -370,8 +378,14 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
       case 'completed':
         final s = e.r.status;
         final cancelled = s == 'cancelled' || s == 'declined';
-        label = cancelled ? 'Storniert' : 'Abgeschlossen';
-        color = cancelled ? const Color(0xFFF43F5E) : const Color(0xFF22C55E);
+        // Special copy: if renter withdrew (cancelledBy == 'renter'), show "Zurückgezogen"
+        if (s == 'cancelled' && (e.r.cancelledBy == 'renter')) {
+          label = 'Zurückgezogen';
+          color = const Color(0xFFF43F5E);
+        } else {
+          label = cancelled ? 'Storniert' : 'Abgeschlossen';
+          color = cancelled ? const Color(0xFFF43F5E) : const Color(0xFF22C55E);
+        }
         break;
       default:
         label = '—';
@@ -526,6 +540,9 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
               );
               if (ok == true && mounted) {
                 await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
+                if (mounted) {
+                  await ItemDetailsOverlay.showFullPage(context, item: e.item);
+                }
               }
             },
           );

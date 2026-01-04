@@ -287,18 +287,18 @@ class _ExpressOwnerBanner extends StatelessWidget {
         Row(children: const [
           Icon(Icons.flash_on_outlined, color: Colors.white70),
           SizedBox(width: 8),
-          Text('Expresslieferung angefragt', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+          Text('Prioritätslieferung angefragt', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
         ]),
         const SizedBox(height: 6),
         Text(
-          canAccept ? 'Du hast noch ${_fmt(left)} Minuten zur Bestätigung.' : 'Die 30 Minuten sind abgelaufen. Express gilt als nicht bestätigt.',
+          canAccept ? 'Du hast noch ${_fmt(left)} Minuten zur Bestätigung.' : 'Die 30 Minuten sind abgelaufen. Priorität gilt als nicht bestätigt.',
           style: const TextStyle(color: Colors.white70),
         ),
         const SizedBox(height: 10),
         Row(children: [
-          Expanded(child: FilledButton(onPressed: canAccept ? onAccept : null, child: const Text('Express bestätigen (+5,00 €)'))),
+          Expanded(child: FilledButton(onPressed: canAccept ? onAccept : null, child: const Text('Priorität bestätigen (+5,00 €)'))),
           const SizedBox(width: 12),
-          Expanded(child: OutlinedButton(onPressed: onDecline, child: const Text('Express ablehnen'))),
+          Expanded(child: OutlinedButton(onPressed: onDecline, child: const Text('Priorität ablehnen'))),
         ]),
         const SizedBox(height: 8),
         const Text(
@@ -344,7 +344,7 @@ class _ExpressAcceptedInfo extends StatelessWidget {
         Row(children: const [
           Icon(Icons.check_circle_outline, color: Color(0xFF22C55E)),
           SizedBox(width: 8),
-          Text('Express bestätigt (+5,00 €)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+          Text('Priorität bestätigt (+5,00 €)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
         ]),
         const SizedBox(height: 6),
         Text('Lieferung bis: ${_formatGermanDateTime(deliveryBy)}  •  Noch $countdown', style: const TextStyle(color: Colors.white70)),

@@ -70,8 +70,13 @@ class AppPopup {
     // Schedule auto-close if requested
     if (autoCloseAfter != null) {
       Future<void>.delayed(autoCloseAfter).then((_) {
-        if (Navigator.of(context, rootNavigator: true).canPop()) {
-          Navigator.of(context, rootNavigator: true).maybePop();
+        try {
+          final nav = Navigator.maybeOf(context, rootNavigator: true);
+          if (nav != null && nav.canPop()) {
+            nav.maybePop();
+          }
+        } catch (_) {
+          // Silently ignore if navigator is unavailable (e.g., context disposed)
         }
       });
     }
@@ -139,8 +144,13 @@ class AppPopup {
   }) async {
     bool closed = false;
     Future<void>.delayed(duration).then((_) {
-      if (!closed && Navigator.of(context, rootNavigator: true).canPop()) {
-        Navigator.of(context, rootNavigator: true).maybePop();
+      try {
+        final nav = Navigator.maybeOf(context, rootNavigator: true);
+        if (!closed && nav != null && nav.canPop()) {
+          nav.maybePop();
+        }
+      } catch (_) {
+        // Ignore navigator lookup failures
       }
     });
     await showGeneralDialog<void>(

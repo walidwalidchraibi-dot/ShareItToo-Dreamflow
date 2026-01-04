@@ -20,6 +20,8 @@ import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/sit_overflow_menu.dart';
 import 'package:lendify/screens/report_issue_screen.dart';
+import 'package:lendify/utils/total_subtitle.dart';
+import 'package:lendify/utils/cancellation_policy_text.dart';
 
 class ItemDetailsOverlay {
   static Future<void> show(BuildContext context, {required Item item, model.User? owner}) async {
@@ -144,6 +146,51 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
     }
   }
 
+  Future<void> _sendRequest() async {
+    final range = _selectedRange;
+    if (range == null) return;
+    try {
+      final ok = await DataService.checkAvailability(itemId: widget.item.id, start: range.start, end: range.end);
+      if (!ok) {
+        if (!mounted) return;
+        await _showUnavailablePopup(context);
+        return;
+      }
+      final current = await DataService.getCurrentUser();
+      if (current == null) {
+        if (!mounted) return;
+        await AppPopup.toast(context, icon: Icons.person_outline, title: 'Bitte zuerst anmelden');
+        return;
+      }
+      final req = RentalRequest(
+        id: 'local',
+        itemId: widget.item.id,
+        ownerId: widget.item.ownerId,
+        renterId: current.id,
+        start: range.start,
+        end: range.end,
+        status: 'pending',
+        message: null,
+        expressRequested: false,
+        expressStatus: null,
+        expressFee: 5.0,
+      );
+      final stored = await DataService.addRentalRequest(req);
+      if (!mounted) return;
+      // Return to Explore page: pop everything back to the root route
+      final rootNav = Navigator.of(context, rootNavigator: true);
+      rootNav.popUntil((route) => route.isFirst);
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      // Show confirmation on top of Explore
+      await _showReservationSentPopup(rootNav.context, requestId: stored.id, item: widget.item);
+    } catch (e) {
+      if (!mounted) return;
+      await AppPopup.toast(context, icon: Icons.error_outline, title: 'Anfrage konnte nicht gesendet werden');
+    }
+  }
+
+  
+
   String _priceWithUnit(Item i) {
     final unit = i.priceUnit; final raw = i.priceRaw;
     final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
@@ -191,6 +238,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
           ])),
           Expanded(
             child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 AspectRatio(
@@ -336,7 +384,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
                   rangeLabel: _selectedRange == null ? null : _formatRangeForButton(item, _selectedRange!),
                   onReserve: _selectedRange == null ? null : () {
                     final msg = _selectedRange == null ? '' : _formatRangeForButton(item, _selectedRange!);
-                    AppPopup.toast(context, icon: Icons.info_outline, title: l10n.t('Reservieren'), message: msg);
+                    AppPopup.toast(context, icon: Icons.info_outline, title: l10n.t('Anfrage senden'), message: msg);
                   },
                   collapsibleDelivery: false,
                   onCanReserveChange: (v) { if (_canReserve != v) setState(() => _canReserve = v); },
@@ -389,12 +437,31 @@ class _ItemDetailsPage extends StatefulWidget {
 class _ItemDetailsPageState extends State<_ItemDetailsPage> {
   int _page = 0;
   final PageController _pc = PageController();
+    final ScrollController _sc = ScrollController();
   DateTimeRange? _selectedRange;
   bool _canReserve = false;
+  
+  Widget _availabilityLabel() {
+    final r = _selectedRange;
+    String two(int v) => v.toString().padLeft(2, '0');
+    if (r == null) return const Text('Verfügbarkeit prüfen');
+    final startStr = '${two(r.start.day)}.${two(r.start.month)}.${r.start.year}';
+    final endStr = '${two(r.end.day)}.${two(r.end.month)}.${r.end.year}';
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Text(startStr), const SizedBox(width: 8), const Text('–'), const SizedBox(width: 8), Text(endStr),
+    ]);
+  }
 
   @override
   void initState() {
     super.initState();
+      // Ensure the page always starts scrolled to the very top on open
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        try {
+          _sc.jumpTo(0);
+        } catch (_) {}
+      });
     if (widget.fresh == true) {
       // Clear any previously saved selection so page opens as if brand new
       // Do not await; fire-and-forget to avoid delaying initial build
@@ -420,6 +487,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
     DataService.clearSavedDateRange(widget.item.id);
     DataService.clearSavedDeliverySelection(widget.item.id);
     _pc.dispose();
+      _sc.dispose();
     super.dispose();
   }
 
@@ -444,6 +512,50 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
       }
       setState(() => _selectedRange = rangeWithTime);
       await DataService.setSavedDateRange(widget.item.id, start: rangeWithTime.start, end: rangeWithTime.end);
+    }
+  }
+
+  Future<void> _sendRequest() async {
+    final range = _selectedRange;
+    if (range == null) return;
+    try {
+      final ok = await DataService.checkAvailability(itemId: widget.item.id, start: range.start, end: range.end);
+      if (!ok) {
+        if (!mounted) return;
+        await _showUnavailablePopup(context);
+        return;
+      }
+      final current = await DataService.getCurrentUser();
+      if (current == null) {
+        if (!mounted) return;
+        await AppPopup.toast(context, icon: Icons.person_outline, title: 'Bitte einloggen');
+        return;
+      }
+      final req = RentalRequest(
+        id: 'local',
+        itemId: widget.item.id,
+        ownerId: widget.item.ownerId,
+        renterId: current.id,
+        start: range.start,
+        end: range.end,
+        status: 'pending',
+        message: null,
+        expressRequested: false,
+        expressStatus: null,
+        expressFee: 5.0,
+      );
+      final stored = await DataService.addRentalRequest(req);
+      if (!mounted) return;
+      // Go back to Explore (root) and show confirmation there
+      await DataService.clearSavedDateRange(widget.item.id);
+      await DataService.clearSavedDeliverySelection(widget.item.id);
+      final rootNav = Navigator.of(context, rootNavigator: true);
+      rootNav.popUntil((route) => route.isFirst);
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      await _showReservationSentPopup(rootNav.context, requestId: stored.id, item: widget.item);
+    } catch (_) {
+      if (!mounted) return;
+      await AppPopup.toast(context, icon: Icons.error_outline, title: 'Fehler beim Senden');
     }
   }
 
@@ -532,6 +644,9 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _sc,
+          // Only scrolls when content exceeds viewport; no bounce when not needed
+          physics: const ClampingScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // Photos carousel (square)
@@ -683,7 +798,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                   ? null
                   : () {
                       final msg = _selectedRange == null ? '' : _formatRangeForButton(item, _selectedRange!);
-                      AppPopup.toast(context, icon: Icons.info_outline, title: l10n.t('Reservieren'), message: msg);
+                      AppPopup.toast(context, icon: Icons.info_outline, title: l10n.t('Anfrage senden'), message: msg);
                     },
               isEditing: isEditing,
               editRequestId: widget.editRequestId,
@@ -691,6 +806,8 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
               ownerPreview: isPreview,
               collapsibleDelivery: true,
                 showDeliverySection: false,
+                showReserveButton: false,
+                showDatePickerInline: false,
               onCanReserveChange: (v) {
                 if (_canReserve != v) setState(() => _canReserve = v);
               },
@@ -699,7 +816,32 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
           ]),
         ),
       ),
-      // bottomNavigationBar removed to combine sections into a single scrollable page
+      // Bottom-anchored availability button only (no reserve button on listing page)
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FilledButton.icon(
+                onPressed: _pickRange,
+                icon: const Icon(Icons.calendar_month),
+                label: _availabilityLabel(),
+              ),
+              if (_selectedRange != null) ...[
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: _sendRequest,
+                  icon: const Icon(Icons.event_available),
+                  label: const Text('Anfrage senden'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1331,7 +1473,10 @@ class _BottomActionBar extends StatefulWidget {
   // before reserving, per latest spec.
   final bool showDeliverySection;
   final ValueChanged<bool>? onCanReserveChange;
-  const _BottomActionBar({required this.item, required this.range, required this.onPickRange, required this.priceSummary, required this.rangeLabel, required this.onReserve, this.isEditing = false, this.editRequestId, this.fresh = false, this.ownerPreview = false, this.collapsibleDelivery = false, this.showDeliverySection = true, this.onCanReserveChange});
+  // New flags to control inline components visibility
+  final bool showReserveButton;
+  final bool showDatePickerInline;
+  const _BottomActionBar({required this.item, required this.range, required this.onPickRange, required this.priceSummary, required this.rangeLabel, required this.onReserve, this.isEditing = false, this.editRequestId, this.fresh = false, this.ownerPreview = false, this.collapsibleDelivery = false, this.showDeliverySection = true, this.onCanReserveChange, this.showReserveButton = true, this.showDatePickerInline = true});
 
   @override
   State<_BottomActionBar> createState() => _BottomActionBarState();
@@ -1352,7 +1497,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
   double _feeHinweg = 0.0;
   double _feeRueckweg = 0.0;
   bool _loadingUserCity = true;
-  bool _wantExpress = false; // renter choice for express delivery option (2h)
+  bool _wantExpress = false; // renter choice for priority (express) delivery option (2h)
   bool? _isAvailable; // null = unknown, true/false = checked
   bool? _lastNotifiedCanReserve;
 
@@ -1361,7 +1506,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
     super.initState();
     _refreshAvailability();
     if (widget.fresh == true) {
-      // Start with a pristine state for Explore: self/self, no address, express off
+      // Start with a pristine state for Explore: self/self, no address, priority off
       () async {
         final user = await DataService.getCurrentUser();
         if (!mounted) return;
@@ -1386,8 +1531,18 @@ class _BottomActionBarState extends State<_BottomActionBar> {
   @override
   void didUpdateWidget(covariant _BottomActionBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.range?.start != widget.range?.start || oldWidget.range?.end != widget.range?.end || oldWidget.item.id != widget.item.id) {
+    // When the selected range changes (e.g., returning from the
+    // Mietdauer/Verfügbarkeit prüfen screen), we must:
+    // 1) Re-check availability for the new period
+    // 2) Reload the saved delivery/abhol/express selection that might have been
+    //    persisted on the previous screen so the Gesamtbetrag matches exactly.
+    if (oldWidget.range?.start != widget.range?.start ||
+        oldWidget.range?.end != widget.range?.end ||
+        oldWidget.item.id != widget.item.id) {
       _refreshAvailability();
+      // Important: reflect any choices saved in SelectRentalDurationScreen
+      // (hinweg/rueckweg/express + address) to keep totals identical.
+      _loadSaved();
     }
   }
 
@@ -1415,8 +1570,9 @@ class _BottomActionBarState extends State<_BottomActionBar> {
       // Respect item capabilities; coerce to self if landlord option not offered
       _dropoff = (hinweg && widget.item.offersDeliveryAtDropoff) ? _DropoffOption.landlord : _DropoffOption.self;
       _returning = (rueck && widget.item.offersPickupAtReturn) ? _ReturnOption.landlord : _ReturnOption.self;
-      // Only restore express when the item offers it at dropoff
-      _wantExpress = (saved != null ? (saved['express'] == true) : false) && widget.item.offersExpressAtDropoff;
+      // Restore Priorität exactly as the user selected it earlier – independent of item flags
+      // so the Gesamtbetrag and Untertitel remain consistent across pages.
+      _wantExpress = (saved != null ? (saved['express'] == true) : false);
       _loadingUserCity = false;
     });
     _recomputeFees();
@@ -1475,8 +1631,8 @@ class _BottomActionBarState extends State<_BottomActionBar> {
       rentalSubtotal = tuple.$1; // final after discount
     }
     // Calculate TOTAL identical to Mietdauer/"Verfügbarkeit prüfen" screen:
-    // subtotal = rental (after discount) + delivery (Abgabe) + pickup (Rückgabe) + express (if selected)
-    // platform fee = 10% of subtotal (min 1€), then total = subtotal + platform fee
+    // subtotal = rental (after discount) + delivery (Abgabe) + pickup (Rückgabe) + Priorität (if selected)
+    // platform fee = only on rental subtotal, plus 10% of priority surcharge
     double km = 0.0;
     if (_addressLat != null && _addressLng != null) {
       km = DataService.estimateDistanceKm(widget.item.lat, widget.item.lng, _addressLat!, _addressLng!);
@@ -1488,23 +1644,23 @@ class _BottomActionBarState extends State<_BottomActionBar> {
     double deliveryFee = 0.0; // Abgabe
     double pickupFee = 0.0;   // Rückgabe
     if (range != null && dropSelected) {
-      // Mirror Mietdauer formula: 0.30 €/km, plus 5€ express if chosen
+      // Distanzkosten (0,30€/km)
       deliveryFee = double.parse((km * 0.30).toStringAsFixed(2));
-      if (_wantExpress) deliveryFee = double.parse((deliveryFee + 5.0).toStringAsFixed(2));
     }
     if (range != null && pickSelected) {
       pickupFee = double.parse((km * 0.30).toStringAsFixed(2));
     }
-    final subtotalBeforePlatform = range != null ? double.parse((rentalSubtotal + deliveryFee + pickupFee).toStringAsFixed(2)) : 0.0;
-    double platformFee;
-    if (subtotalBeforePlatform <= 0.0) {
-      platformFee = 0.0;
-    } else if (subtotalBeforePlatform < 10.0) {
-      platformFee = 1.0;
-    } else {
-      platformFee = double.parse((subtotalBeforePlatform * 0.10).toStringAsFixed(2));
-    }
-    final total = double.parse((subtotalBeforePlatform + platformFee).toStringAsFixed(2));
+    // Prioritätszuschlag: 5,00€ sobald ausgewählt (immer, auch bei Selbstabholung), plus 10% Plattformanteil auf Priorität
+    // Wichtig: Der Betrag reagiert sofort auf die Nutzerwahl. Dadurch bleibt er konsistent
+    // über Ausstehend → Kommend → Laufend → Abgeschlossen.
+    final bool expressIncluded = _wantExpress;
+    final double expressFee = (range != null && expressIncluded) ? 5.0 : 0.0;
+    final double expressFeePlatform = expressFee > 0 ? double.parse((expressFee * 0.10).toStringAsFixed(2)) : 0.0;
+    // Plattformbeitrag nur auf Mietpreis (ohne Lieferung/Priorität)
+    final platformFee = range != null ? DataService.platformContributionForRental(rentalSubtotal) : 0.0;
+    final total = range != null
+        ? double.parse((rentalSubtotal + platformFee + deliveryFee + pickupFee + expressFee + expressFeePlatform).toStringAsFixed(2))
+        : 0.0;
 
     // compute canReserve to inform parent (for showing cancellation section)
     final requiresAddress = (_dropoff == _DropoffOption.landlord) || (_returning == _ReturnOption.landlord);
@@ -1617,7 +1773,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                         if (!canOfferHinweg && !canOfferRueckweg)
                           const Text('Dieser Vermieter bietet für diese Anzeige keine Lieferung oder Abholung an.', style: TextStyle(color: Colors.white54, fontSize: 12))
                         else if (!widget.item.offersExpressAtDropoff)
-                          const Text('Expresslieferung ist für dieses Angebot nicht verfügbar.', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                          const Text('Prioritätslieferung ist für dieses Angebot nicht verfügbar.', style: TextStyle(color: Colors.white54, fontSize: 12)),
                         if ((_dropoff == _DropoffOption.landlord) || (_returning == _ReturnOption.landlord)) ...[
                           const SizedBox(height: 10),
                           Row(children: [
@@ -1666,12 +1822,12 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                               onChanged: (v) { setState(() { _wantExpress = v ?? false; }); _recomputeFees(); },
                               controlAffinity: ListTileControlAffinity.leading,
                               contentPadding: EdgeInsets.zero,
-                              title: const Text('Expresslieferung (innerhalb von 2,5 Stunden) gegen 5,00 € Aufpreis', style: TextStyle(color: Colors.white, fontSize: 13)),
+                               title: const Text('Prioritätslieferung (innerhalb von 2,5 Stunden) gegen 5,00 € Aufpreis', style: TextStyle(color: Colors.white, fontSize: 13)),
                               subtitle: const Text('Die 5,00 € werden nur berechnet, wenn die Anfrage in 30 Minuten bestätigt wird und innerhalb von 2,5 Stunden geliefert wird.', style: TextStyle(color: Colors.white70, fontSize: 11)),
                             ),
                           ],
-                          if (_wantExpress) const SizedBox(height: 4),
-                          if (_wantExpress) const Text('Express (Option): 5,00 € – wird bei Bestätigung automatisch hinzugefügt', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                           if (_wantExpress) const SizedBox(height: 4),
+                           if (_wantExpress) const Text('Priorität (Option): 5,00 € – wird bei Bestätigung automatisch hinzugefügt', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                         ] else ...[
                           const SizedBox(height: 6),
                         ],
@@ -1773,7 +1929,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                   if (!canOfferHinweg && !canOfferRueckweg)
                     const Text('Dieser Vermieter bietet für diese Anzeige keine Lieferung oder Abholung an.', style: TextStyle(color: Colors.white54, fontSize: 12))
                   else if (!widget.item.offersExpressAtDropoff)
-                    const Text('Expresslieferung ist für dieses Angebot nicht verfügbar.', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    const Text('Prioritätslieferung ist für dieses Angebot nicht verfügbar.', style: TextStyle(color: Colors.white54, fontSize: 12)),
 
                   if ((_dropoff == _DropoffOption.landlord) || (_returning == _ReturnOption.landlord)) ...[
                     const SizedBox(height: 10),
@@ -1824,12 +1980,12 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                         onChanged: (v) { setState(() { _wantExpress = v ?? false; }); _recomputeFees(); },
                         controlAffinity: ListTileControlAffinity.leading,
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Expresslieferung (innerhalb von 2,5 Stunden) gegen 5,00 € Aufpreis', style: TextStyle(color: Colors.white, fontSize: 13)),
+                        title: const Text('Prioritätslieferung (innerhalb von 2,5 Stunden) gegen 5,00 € Aufpreis', style: TextStyle(color: Colors.white, fontSize: 13)),
                         subtitle: const Text('Die 5,00 € werden nur berechnet, wenn die Anfrage in 30 Minuten bestätigt wird und innerhalb von 2,5 Stunden geliefert wird.', style: TextStyle(color: Colors.white70, fontSize: 11)),
                       ),
                     ],
                     if (_wantExpress) const SizedBox(height: 4),
-                    if (_wantExpress) const Text('Express (Option): 5,00 € – wird bei Bestätigung automatisch hinzugefügt', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    if (_wantExpress) const Text('Priorität (Option): 5,00 € – wird bei Bestätigung automatisch hinzugefügt', style: TextStyle(color: Colors.white70, fontSize: 12)),
                   ] else ...[
                     const SizedBox(height: 6),
                   ],
@@ -1855,21 +2011,24 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   // Checkout: nur EIN Preis (inkl. Plattformbeitrag)
                   Builder(builder: (context) {
-                    // Subtitle like Mietdauer page
-                    String subtitle = 'inkl. Plattformbeitrag';
-                    if (dropSelected && pickSelected) {
-                      subtitle = 'Inkl. Lieferung/Abholung und Plattformbeitrag';
-                    } else if (dropSelected || pickSelected) {
-                      final single = dropSelected ? 'Lieferung' : 'Abholung';
-                      subtitle = 'inkl. ' + single + ' und Plattformbeitrag';
-                    }
-                    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Expanded(child: Text('Gesamtbetrag', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
-                      Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                        Text(total.toStringAsFixed(2) + ' €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
-                        const SizedBox(height: 2),
-                        Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                      ]),
+                    // Subtitle under Gesamtbetrag per decision matrix
+                    final String subtitle = TotalSubtitleHelper.build(
+                      delivery: dropSelected,
+                      pickup: pickSelected,
+                      priority: expressIncluded,
+                    );
+                    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          const Text('Gesamtbetrag', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                          Text('${total.toStringAsFixed(2)} €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 11)),
                     ]);
                   }),
                   if (_isAvailable == false) ...[
@@ -1885,54 +2044,59 @@ class _BottomActionBarState extends State<_BottomActionBar> {
               const SizedBox(height: 10),
             ],
 
-            // Date picker button placed directly above Reservieren button
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              onPressed: widget.onPickRange,
-              icon: const Icon(Icons.calendar_month),
-              label: _buildAvailabilityLabel(),
-            ),
-            const SizedBox(height: 12),
+            // Date picker button placed directly above Reservieren button (optional)
+            if (widget.showDatePickerInline) ...[
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: widget.onPickRange,
+                icon: const Icon(Icons.calendar_month),
+                label: _buildAvailabilityLabel(),
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // Stornierungsbedingungen-Info wurde in "Infos zum Listing" verschoben.
             const SizedBox.shrink(),
 
-            // Reservieren button with disabled state + tap guard popup for address
-            Builder(builder: (context) {
-              final requiresAddress = (_dropoff == _DropoffOption.landlord) || (_returning == _ReturnOption.landlord);
-              final hasValidAddress = !requiresAddress || (_addressLat != null && _addressLng != null);
-              final canReserve = range != null && hasValidAddress && (_isAvailable != false);
-              final buttonStyle = FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ).copyWith(
-                backgroundColor: MaterialStateProperty.resolveWith<Color?>((states) {
-                  if (states.contains(MaterialState.disabled)) {
-                    return Colors.white.withValues(alpha: 0.12);
-                  }
-                  return Theme.of(context).colorScheme.primary;
-                }),
-                foregroundColor: const MaterialStatePropertyAll<Color>(Colors.white),
-              );
-              final btn = FilledButton.icon(
-                style: buttonStyle,
-                onPressed: canReserve
-                    ? () {
-                        if (widget.ownerPreview) {
-                          _showOwnerPreviewBlockPopup(context);
-                          return;
+            // Reservieren button with disabled state + tap guard popup for address (optional)
+            if (widget.showReserveButton) ...[
+              Builder(builder: (context) {
+                final l10n = context.watch<LocalizationController>();
+                final requiresAddress = (_dropoff == _DropoffOption.landlord) || (_returning == _ReturnOption.landlord);
+                final hasValidAddress = !requiresAddress || (_addressLat != null && _addressLng != null);
+                final canReserve = range != null && hasValidAddress && (_isAvailable != false);
+                final buttonStyle = FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ).copyWith(
+                  backgroundColor: MaterialStateProperty.resolveWith<Color?>((states) {
+                    if (states.contains(MaterialState.disabled)) {
+                      return Colors.white.withValues(alpha: 0.12);
+                    }
+                    return Theme.of(context).colorScheme.primary;
+                  }),
+                  foregroundColor: const MaterialStatePropertyAll<Color>(Colors.white),
+                );
+                final btn = FilledButton.icon(
+                  style: buttonStyle,
+                  onPressed: canReserve
+                      ? () {
+                          if (widget.ownerPreview) {
+                            _showOwnerPreviewBlockPopup(context);
+                            return;
+                          }
+                          _handleReserve(context);
                         }
-                        _handleReserve(context);
-                      }
-                    : null,
-                icon: const Icon(Icons.event_available),
-                label: Text(widget.isEditing ? 'Reservierung aktualisieren' : 'Reservieren'),
-              );
-              return btn;
-            }),
-            if (range != null) ...[
-              const SizedBox(height: 6),
-              const Text('Mit Klick auf „Reservieren“ akzeptierst du die AGB und die Stornierungsbedingungen.', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                      : null,
+                  icon: const Icon(Icons.event_available),
+                  label: Text(widget.isEditing ? 'Reservierung aktualisieren' : l10n.t('Anfrage senden')),
+                );
+                return btn;
+              }),
+              if (range != null) ...[
+                const SizedBox(height: 6),
+                const Text('Mit Klick auf „Anfrage senden“ akzeptierst du die AGB und die Stornierungsbedingungen.', style: TextStyle(color: Colors.white54, fontSize: 11)),
+              ],
             ],
           ]),
         ]),
@@ -2014,11 +2178,11 @@ class _BottomActionBarState extends State<_BottomActionBar> {
     final stored = await DataService.addRentalRequest(req);
 
     if (!mounted) return;
-    // Close overlay, then show confirmation popup on Explore
-    if (mounted) Navigator.of(context).maybePop();
+    // Navigate back to Explore: pop to root, then show confirmation on top
+    final rootNav = Navigator.of(context, rootNavigator: true);
+    rootNav.popUntil((route) => route.isFirst);
     await Future<void>.delayed(const Duration(milliseconds: 120));
-    if (!mounted) return;
-    await _showReservationSentPopup(context, requestId: stored.id, item: widget.item);
+    await _showReservationSentPopup(rootNav.context, requestId: stored.id, item: widget.item);
   }
 }
 
@@ -2109,7 +2273,7 @@ Future<void> _showReservationSentPopup(BuildContext context, {required String re
                             },
                             icon: const Icon(Icons.receipt_long),
                             label: const Text(
-                              'Reservierung sehen',
+                              'Anfrage ansehen',
                               softWrap: false,
                               maxLines: 1,
                               overflow: TextOverflow.fade,
@@ -2195,52 +2359,9 @@ class _LineRow extends StatelessWidget {
 class _CancellationPolicySection extends StatelessWidget {
   final String policy; // 'flexible' | 'moderate' | 'strict'
   const _CancellationPolicySection({required this.policy});
-  String _header() {
-    switch (policy) {
-      case 'strict':
-        return 'Stornierungsbedingungen – Streng';
-      case 'moderate':
-        return 'Stornierungsbedingungen – Standard';
-      case 'flexible':
-      default:
-        return 'Stornierungsbedingungen – Flexibel';
-    }
-  }
+  String _header() => CancellationPolicyText.header;
 
-  String _body() {
-    // Erste Zeile laut Vorgabe auf der Listing-Seite anpassen
-    const intro = 'Solange deine Anfrage noch nicht akzeptiert ist, kannst du sie kostenlos jederzeit zurückziehen.';
-    switch (policy) {
-      case 'strict':
-        return '$intro\n\n'
-            'Nach Bestätigung gelten:\n'
-            '• Kostenlos nur innerhalb von 1 Stunde nach Annahme (wenn mehr als 48 Std. bis Mietbeginn).\n'
-            '• Danach: keine Rückerstattung.\n'
-            '• Nicht-Erscheinen: keine Rückerstattung.\n\n'
-            '📌 Hinweis:\n'
-            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
-      case 'moderate':
-        return '$intro\n\n'
-            'Nach Bestätigung gelten:\n'
-            '• Kostenlos bis 48 Std. vor Mietbeginn.\n'
-            '• Zwischen 12–48 Std. vorher: 50% Rückerstattung.\n'
-            '• Weniger als 12 Std. vorher oder nach Mietbeginn: keine Rückerstattung.\n\n'
-            '📌 Hinweis:\n'
-            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
-      case 'flexible':
-      default:
-        return '$intro\n\n'
-            'Nach Bestätigung gelten:\n'
-            '• Kostenlos bis 24 Std. vor Mietbeginn.\n'
-            '• Weniger als 24 Std. vorher: 50% Rückerstattung.\n'
-            '• Nicht-Erscheinen: keine Rückerstattung.\n\n'
-            '📌 Hinweis:\n'
-            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
-    }
-  }
+  String _body() => CancellationPolicyText.body();
   @override
   Widget build(BuildContext context) {
     return Theme(
@@ -2264,7 +2385,7 @@ class _CancellationPolicySection extends StatelessWidget {
 
 // Match the expandable card design used in booking_detail_screen.dart (_CancellationPolicyCard)
 class _CancellationPolicyBookingCard extends StatefulWidget {
-  final String policy; // 'flexible' | 'moderate' | 'strict'
+  final String policy; // kept for compatibility, no longer used (unified policy)
   const _CancellationPolicyBookingCard({required this.policy});
   @override
   State<_CancellationPolicyBookingCard> createState() => _CancellationPolicyBookingCardState();
@@ -2273,51 +2394,9 @@ class _CancellationPolicyBookingCard extends StatefulWidget {
 class _CancellationPolicyBookingCardState extends State<_CancellationPolicyBookingCard> {
   bool _open = false;
 
-  String _header() {
-    switch (widget.policy) {
-      case 'strict':
-        return 'Stornierungsbedingungen – Streng';
-      case 'moderate':
-        return 'Stornierungsbedingungen – Standard';
-      case 'flexible':
-      default:
-        return 'Stornierungsbedingungen – Flexibel';
-    }
-  }
+  String _header() => CancellationPolicyText.header;
 
-  String _body() {
-    const intro = 'Solange deine Anfrage noch nicht akzeptiert ist, kannst du sie kostenlos jederzeit zurückziehen.';
-    switch (widget.policy) {
-      case 'strict':
-        return '$intro\n\n'
-            'Nach Bestätigung gelten:\n'
-            '• Kostenlos nur innerhalb von 1 Stunde nach Annahme (wenn mehr als 48 Std. bis Mietbeginn).\n'
-            '• Danach: keine Rückerstattung.\n'
-            '• Nicht-Erscheinen: keine Rückerstattung.\n\n'
-            '📌 Hinweis:\n'
-            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
-      case 'moderate':
-        return '$intro\n\n'
-            'Nach Bestätigung gelten:\n'
-            '• Kostenlos bis 48 Std. vor Mietbeginn.\n'
-            '• Zwischen 12–48 Std. vorher: 50% Rückerstattung.\n'
-            '• Weniger als 12 Std. vorher oder nach Mietbeginn: keine Rückerstattung.\n\n'
-            '📌 Hinweis:\n'
-            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
-      case 'flexible':
-      default:
-        return '$intro\n\n'
-            'Nach Bestätigung gelten:\n'
-            '• Kostenlos bis 24 Std. vor Mietbeginn.\n'
-            '• Weniger als 24 Std. vorher: 50% Rückerstattung.\n'
-            '• Nicht-Erscheinen: keine Rückerstattung.\n\n'
-            '📌 Hinweis:\n'
-            '– Plattformbeitrag und Expresszuschlag bekommst du nur zurück, wenn deine Anfrage noch nicht akzeptiert wurde.\n'
-            '– Wenn der Vermieter nach Annahme deiner Anfrage storniert, bekommst du den vollen Betrag inkl. Plattformbeitrag automatisch zurückerstattet.';
-    }
-  }
+  String _body() => CancellationPolicyText.body();
 
   @override
   Widget build(BuildContext context) {
@@ -2583,7 +2662,7 @@ class _ExpressCountdownSheetState extends State<_ExpressCountdownSheet> {
       setState(() => _req = r);
       if (r?.expressStatus == 'accepted') {
         if (!mounted) return;
-        await AppPopup.toast(context, icon: Icons.flash_on_outlined, title: 'Expresslieferung bestätigt (+5,00 €).');
+        await AppPopup.toast(context, icon: Icons.flash_on_outlined, title: 'Prioritätslieferung bestätigt (+5,00 €).');
         Navigator.of(context).maybePop();
       } else if (r?.expressStatus == 'declined') {
         _showFallbackChoice();
@@ -2631,11 +2710,11 @@ class _ExpressCountdownSheetState extends State<_ExpressCountdownSheet> {
           decoration: BoxDecoration(color: bg, borderRadius: const BorderRadius.vertical(top: Radius.circular(24)), border: Border.all(color: border)),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: const [Icon(Icons.flash_on_outlined, color: Colors.white70), SizedBox(width: 8), Text('Warte auf Expressbestätigung …', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800))]),
+            Row(children: const [Icon(Icons.flash_on_outlined, color: Colors.white70), SizedBox(width: 8), Text('Warte auf Prioritätsbestätigung …', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800))]),
             const SizedBox(height: 4),
             Text(_fmt(_remaining), style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 12),
-            const Text('Expresslieferung innerhalb von 2,5 Stunden – Zuschlag 5,00 €, nur bei Bestätigung.', style: TextStyle(color: Colors.white70, fontSize: 12)),
+            const Text('Prioritätslieferung innerhalb von 2,5 Stunden – Zuschlag 5,00 €, nur bei Bestätigung.', style: TextStyle(color: Colors.white70, fontSize: 12)),
             const SizedBox(height: 8),
             Row(children: [
               const Icon(Icons.info_outline, color: Colors.white54, size: 18),
@@ -2672,7 +2751,7 @@ class _ExpressFallbackSheetState extends State<_ExpressFallbackSheet> {
           decoration: BoxDecoration(color: bg, borderRadius: const BorderRadius.vertical(top: Radius.circular(24)), border: Border.all(color: border)),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Expresslieferung konnte nicht bestätigt werden.', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+            const Text('Prioritätslieferung konnte nicht bestätigt werden.', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             const Text('Du kannst deine Anfrage jetzt anpassen oder stornieren:', style: TextStyle(color: Colors.white70)),
             const SizedBox(height: 12),
@@ -2729,7 +2808,7 @@ class _ExpressFallbackSheetState extends State<_ExpressFallbackSheet> {
                     if (_rebook) {
                       // Persist new local preference without express
                       // Note: In this demo we do not update the existing request payload beyond express flags
-                      await AppPopup.toast(context, icon: Icons.edit_outlined, title: 'Anfrage aktualisiert (ohne Express).');
+                       await AppPopup.toast(context, icon: Icons.edit_outlined, title: 'Anfrage aktualisiert (ohne Priorität).');
                     } else {
                       // Mark as declined locally (demo)
                       // We don't have the request id here; renter can manage from requests list in a full app

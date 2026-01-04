@@ -14,6 +14,12 @@ class OpenAIConfig {
       return {'what': null, 'where': null, 'whenStart': null, 'whenEnd': null, 'priceMin': null, 'priceMax': null, 'category': null};
     }
 
+    // Guard: Skip API call when endpoint or key are not provided in env (Dreamflow: no backend connected yet)
+    if (_endpoint.trim().isEmpty || !_endpoint.trim().toLowerCase().startsWith('http')) {
+      debugPrint('OpenAI: endpoint missing, returning empty parse result');
+      return {'what': null, 'where': null, 'whenStart': null, 'whenEnd': null, 'priceMin': null, 'priceMax': null, 'category': null};
+    }
+
     try {
       final response = await http.post(
         Uri.parse(_endpoint),
@@ -132,6 +138,12 @@ Felder die nicht erkannt werden können → null'''
       return {'dailyPrice': 10.0, 'weeklyPrice': 50.0, 'reasoning': 'Bitte Titel eingeben für Preisvorschlag'};
     }
 
+    // Guard: Skip API call when endpoint or key are not provided
+    if (_endpoint.trim().isEmpty || !_endpoint.trim().toLowerCase().startsWith('http')) {
+      debugPrint('OpenAI price: endpoint missing, using defaults');
+      return {'dailyPrice': 10.0, 'weeklyPrice': 50.0, 'reasoning': 'KI nicht konfiguriert'};
+    }
+
     try {
       final response = await http.post(
         Uri.parse(_endpoint),
@@ -233,6 +245,18 @@ ANTWORTFORMAT (NUR JSON):
     required String location,
     required String strategy, // 'quick' | 'premium'
   }) async {
+    // Guard: Skip API call when endpoint or key are not provided
+    if (_endpoint.trim().isEmpty || !_endpoint.trim().toLowerCase().startsWith('http')) {
+      debugPrint('OpenAI discount: endpoint missing, using defaults');
+      return {
+        'tiers': [
+          {'days': 3, 'discount': 10},
+          {'days': 5, 'discount': 20},
+          {'days': 8, 'discount': 30},
+        ]
+      };
+    }
+
     try {
       final response = await http.post(
         Uri.parse(_endpoint),
@@ -343,6 +367,12 @@ REGELN:
     required double pricePerDay,
     required List<Map<String, dynamic>> tiers,
   }) async {
+    // Guard: Skip API call when endpoint or key are not provided
+    if (_endpoint.trim().isEmpty || !_endpoint.trim().toLowerCase().startsWith('http')) {
+      debugPrint('OpenAI availability tip: endpoint missing, using default tip');
+      return 'Tipp 💡: Länger mieten = günstiger. Z.B. ab 3/5/8 Tagen: -10/-20/-30%';
+    }
+
     try {
       final response = await http.post(
         Uri.parse(_endpoint),

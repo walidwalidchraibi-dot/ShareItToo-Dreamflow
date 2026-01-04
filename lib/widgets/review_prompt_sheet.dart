@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lendify/models/multi_criteria_review.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/theme.dart';
 
 class ReviewPromptSheet extends StatefulWidget {
   final String requestId;
@@ -28,7 +29,7 @@ class ReviewPromptSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.86),
+      barrierColor: Colors.black.withValues(alpha: 0.30),
       builder: (_) => ReviewPromptSheet(
         requestId: requestId,
         itemId: itemId,
@@ -46,11 +47,21 @@ class ReviewPromptSheet extends StatefulWidget {
 class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
   late List<_CriterionState> _criteria;
   bool _submitting = false;
+  String? _reviewedName;
 
   @override
   void initState() {
     super.initState();
     _criteria = _buildCriteriaFor(widget.direction);
+    // Resolve reviewed user's display name for a personalized title
+    Future.microtask(() async {
+      try {
+        final u = await DataService.getUserById(widget.reviewedUserId);
+        if (mounted) setState(() => _reviewedName = u?.displayName);
+      } catch (e) {
+        debugPrint('[reviews] failed to resolve reviewed user name: $e');
+      }
+    });
   }
 
   List<_CriterionState> _buildCriteriaFor(String direction) {
@@ -100,48 +111,45 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.direction == 'renter_to_owner' ? 'Vermieter bewerten' : 'Mieter bewerten';
+    final baseRole = widget.direction == 'renter_to_owner' ? 'Vermieter' : 'Mieter';
+    final name = _reviewedName;
+    final title = ((name != null && name.isNotEmpty) ? name : baseRole) + ' bewerten';
     final bg = Colors.black.withValues(alpha: 0.45);
     final border = Colors.white.withValues(alpha: 0.12);
     return Material(
       color: Colors.transparent,
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Container(
-              decoration: BoxDecoration(color: bg, border: Border.all(color: border)),
-              padding: EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 12 + MediaQuery.of(context).viewInsets.bottom),
-              constraints: const BoxConstraints(maxWidth: 720),
-              child: SafeArea(
-                top: false,
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Row(children: [
-                    const Icon(Icons.star_rate_rounded, color: Color(0xFFFB923C)),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18))),
-                    IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.close, color: Colors.white70)),
-                  ]),
-                  const SizedBox(height: 8),
-                  Flexible(
-                    child: SingleChildScrollView(
-                      child: Column(children: [
-                        for (final c in _criteria) _CriterionTile(data: c),
-                      ]),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _submitting ? null : () => Navigator.of(context).maybePop(),
-                        child: const Text('Später'),
+      child: Stack(children: [
+        // Blurred SIT app design background
+        const AppGradientBackground(child: SizedBox.shrink()),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                decoration: BoxDecoration(color: bg, border: Border.all(color: border)),
+                padding: EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 12 + MediaQuery.of(context).viewInsets.bottom),
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: SafeArea(
+                  top: false,
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Row(children: [
+                      // Removed leading star icon per spec
+                      Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18))),
+                      IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.close, color: Colors.white70)),
+                    ]),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(children: [
+                          for (final c in _criteria) _CriterionTile(data: c),
+                        ]),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
                       child: FilledButton.icon(
                         onPressed: _submitting ? null : _submit,
                         icon: const Icon(Icons.send_rounded),
@@ -149,12 +157,12 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
                       ),
                     ),
                   ]),
-                ]),
+                ),
               ),
             ),
           ),
         ),
-      ),
+      ]),
     );
   }
 }

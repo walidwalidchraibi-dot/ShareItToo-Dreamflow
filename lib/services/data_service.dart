@@ -10,6 +10,7 @@ import 'package:lendify/models/user.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/review.dart';
 import 'package:lendify/models/multi_criteria_review.dart';
+import 'package:lendify/utils/total_subtitle.dart';
 
 class DataService {
   static const String _categoriesKey = 'categories';
@@ -29,6 +30,7 @@ class DataService {
   static const String _requestsLastSeenKey = 'requests_last_seen_by_owner';
   static const String _handoverFailCountsKey = 'handover_fail_counts';
   static const String _handoverBannersKey = 'handover_banners';
+  static const String _rideCompKey = 'ride_compensation_v1';
 
   // Runtime timers for express confirmation deadlines (not persisted). We also
   // run a sweep on data fetch to enforce timeouts across sessions.
@@ -150,7 +152,12 @@ class DataService {
     if (raw != null && raw.isNotEmpty) {
       try { map = jsonDecode(raw) as Map<String, dynamic>; } catch (_) { map = {}; }
     }
-    map[itemId] = {'start': start.toIso8601String(), 'end': end.toIso8601String()};
+    // Merge into existing per-item object instead of overwriting it so we
+    // don't drop previously saved delivery selections.
+    final existing = (map[itemId] as Map?)?.map((k, v) => MapEntry(k.toString(), v)) ?? <String, dynamic>{};
+    existing['start'] = start.toIso8601String();
+    existing['end'] = end.toIso8601String();
+    map[itemId] = existing;
     await prefs.setString(_bookingSelectionsKey, jsonEncode(map));
   }
 
@@ -229,6 +236,104 @@ class DataService {
     if (v <= 10.0) return 1.0; // ≤ 10 € => 1 € flat
     final fee = v * 0.10; // ≥ 10.01 € => 10%
     return double.parse(fee.toStringAsFixed(2));
+  }
+
+  /// Unified pricing breakdown for an existing rental request.
+  ///
+  /// Returns a record with:
+  /// - days: number of rental days (min 1)
+  /// - basePerDay, baseTotal, discountAmount, rentalSubtotal
+  /// - platformFee (computed ONLY on rentalSubtotal)
+  /// - dropoffFee (owner delivers at pickup) and returnFee (owner picks up at return)
+  /// - expressApplied: For the RENTER total we include Express immediately
+  ///   when selected/requested (transient deliverySel.express, req.expressRequested
+  ///   or already accepted). This makes the renter’s Gesamtbetrag stable across
+  ///   Ausstehend → Kommend → Laufend → Abgeschlossen.
+  ///   For OWNER payout we only count Express when it is accepted.
+  /// - total includes additional 10% applied on Express surcharge (if applied)
+  /// - totalRenter (what renter pays)
+  /// - payoutOwner (what owner receives; platform fee does not reduce delivery/express)
+  static ({
+    int days,
+    double basePerDay,
+    double baseTotal,
+    double discountAmount,
+    double rentalSubtotal,
+    double platformFee,
+    double dropoffFee,
+    double returnFee,
+    double expressApplied,
+    double totalRenter,
+    double payoutOwner,
+  }) priceBreakdownForRequest({
+    required Item item,
+    required RentalRequest req,
+    Map<String, dynamic>? deliverySel,
+  }) {
+    // Days
+    final int days = (req.end.difference(req.start).inHours / 24).ceil().clamp(1, 365);
+    final priced = computeTotalWithDiscounts(item: item, days: days);
+    final double basePerDay = item.pricePerDay;
+    final double baseTotal = priced.$2; // before discount
+    final double discountAmount = priced.$4; // absolute EUR
+    final double rentalSubtotal = priced.$1; // after discount
+    final double platformFee = platformContributionForRental(rentalSubtotal);
+
+    // Infer delivery responsibilities robustly (persisted flags first, then fallbacks)
+    final bool inferredOwnerDeliversByTransient = (deliverySel?['hinweg'] == true);
+    final bool inferredOwnerDeliversByExpress = req.expressRequested || (req.expressStatus != null);
+    final bool inferredOwnerDeliversByAddress = ((req.deliveryAddressLine ?? '').toString().trim().isNotEmpty) || ((req.deliveryCity ?? '').toString().trim().isNotEmpty);
+    final bool ownerDelivers = req.ownerDeliversAtDropoffChosen || inferredOwnerDeliversByTransient || inferredOwnerDeliversByExpress || inferredOwnerDeliversByAddress;
+
+    final bool inferredOwnerPicksUpByTransient = (deliverySel?['rueckweg'] == true);
+    final bool ownerPicksUp = req.ownerPicksUpAtReturnChosen || inferredOwnerPicksUpByTransient;
+
+    // Distance estimation using best available signal
+    double km = 0.0;
+    final double? lat = req.deliveryLat ?? (deliverySel?['lat'] as num?)?.toDouble();
+    final double? lng = req.deliveryLng ?? (deliverySel?['lng'] as num?)?.toDouble();
+    if (lat != null && lng != null) {
+      km = estimateDistanceKm(item.lat, item.lng, lat, lng);
+    } else if ((req.deliveryAddressLine ?? '').toString().trim().isNotEmpty) {
+      km = estimateDistanceKmFromAddressLine(item.lat, item.lng, req.deliveryAddressLine!.trim());
+    } else if ((req.deliveryCity ?? '').toString().trim().isNotEmpty) {
+      km = estimateDistanceKmToCity(item.lat, item.lng, req.deliveryCity!.trim());
+    }
+
+    double dropoffFee = 0.0;
+    double returnFee = 0.0;
+    if (ownerDelivers) dropoffFee = double.parse((km * 0.30).toStringAsFixed(2));
+    if (ownerPicksUp) returnFee = double.parse((km * 0.30).toStringAsFixed(2));
+
+    // Express: renter sees the surcharge as soon as it is selected/requested.
+    // We consider three sources:
+    //  - transient UI selection deliverySel['express']
+    //  - request.expressRequested (persisted)
+    //  - request.expressStatus == 'accepted' (persisted)
+    final bool expressSelectedTransient = (deliverySel?['express'] == true);
+    final bool expressAccepted = req.expressRequested && (req.expressStatus == 'accepted');
+    final bool expressRequestedOrSelected = expressSelectedTransient || req.expressRequested || expressAccepted;
+    final double expressApplied = expressRequestedOrSelected ? (req.expressFee) : 0.0; // renter-facing
+    // New rule: add 10% of the Express surcharge to the renter total
+    final double expressPlatformPart = expressApplied > 0 ? double.parse((expressApplied * 0.10).toStringAsFixed(2)) : 0.0;
+
+    final double totalRenter = double.parse((rentalSubtotal + platformFee + dropoffFee + returnFee + expressApplied + expressPlatformPart).toStringAsFixed(2));
+    // Owner payout should only include express when accepted
+    final double payoutOwner = double.parse((rentalSubtotal + dropoffFee + returnFee + (expressAccepted ? req.expressFee : 0.0)).toStringAsFixed(2));
+
+    return (
+      days: days,
+      basePerDay: basePerDay,
+      baseTotal: double.parse(baseTotal.toStringAsFixed(2)),
+      discountAmount: double.parse(discountAmount.toStringAsFixed(2)),
+      rentalSubtotal: double.parse(rentalSubtotal.toStringAsFixed(2)),
+      platformFee: double.parse(platformFee.toStringAsFixed(2)),
+      dropoffFee: dropoffFee,
+      returnFee: returnFee,
+      expressApplied: double.parse(expressApplied.toStringAsFixed(2)),
+      totalRenter: totalRenter,
+      payoutOwner: payoutOwner,
+    );
   }
 
   // Add or update an item in local storage
@@ -834,6 +939,7 @@ class DataService {
         if (!map.containsKey('city')) map['city'] = '';
         if (!map.containsKey('lat')) map['lat'] = null;
         if (!map.containsKey('lng')) map['lng'] = null;
+        if (!map.containsKey('express')) map['express'] = false; // ensure key exists for priority
         return map;
       }
     } catch (_) {}
@@ -1658,6 +1764,27 @@ class DataService {
     final all = await _getAllRentalRequests();
     final nextId = (all.fold<int>(0, (p, e) => (int.tryParse(e.id) ?? 0) > p ? (int.tryParse(e.id) ?? 0) : p) + 1).toString();
     final now = DateTime.now();
+    // Snapshot current delivery selection for this item so booking details remain accurate
+    Map<String, dynamic>? deliverySel;
+    try { deliverySel = await getSavedDeliverySelection(req.itemId); } catch (_) { deliverySel = null; }
+    final bool ownerDelivers = (deliverySel?['hinweg'] == true);
+    final bool ownerPicksUp = (deliverySel?['rueckweg'] == true);
+    // Compute renter-facing quoted total and subtitle exactly as seen at booking time
+    double? quotedTotal;
+    String? quotedSub;
+    try {
+      final item = await getItemById(req.itemId);
+      if (item != null) {
+        final breakdown = priceBreakdownForRequest(item: item, req: req, deliverySel: deliverySel);
+        final bool expressSelectedTransient = (deliverySel?['express'] == true);
+        final bool expressAccepted = req.expressRequested && (req.expressStatus == 'accepted');
+        final bool priority = expressSelectedTransient || req.expressRequested || expressAccepted;
+        quotedTotal = breakdown.totalRenter;
+        quotedSub = TotalSubtitleHelper.build(delivery: ownerDelivers, pickup: ownerPicksUp, priority: priority);
+      }
+    } catch (e) {
+      debugPrint('[DataService] addRentalRequest: failed to compute quoted total: ' + e.toString());
+    }
     final toStore = RentalRequest(
       id: nextId,
       itemId: req.itemId,
@@ -1670,12 +1797,24 @@ class DataService {
       expressRequested: req.expressRequested,
       expressStatus: req.expressStatus,
       expressFee: req.expressFee,
+      ownerDeliversAtDropoffChosen: ownerDelivers,
+      ownerPicksUpAtReturnChosen: ownerPicksUp,
+      deliveryAddressLine: (deliverySel?['addressLine'] as String?),
+      deliveryCity: (deliverySel?['city'] as String?),
+      deliveryLat: (deliverySel?['lat'] as num?)?.toDouble(),
+      deliveryLng: (deliverySel?['lng'] as num?)?.toDouble(),
       createdAt: now,
       expressRequestedAt: req.expressRequested ? now : null,
       expressConfirmedAt: null,
+      quotedTotalRenter: quotedTotal,
+      quotedSubtitle: quotedSub,
     );
     all.add(toStore);
     await _saveAllRentalRequests(all);
+    debugPrint('[DataService] addRentalRequest stored id='+nextId+
+        ' ownerDeliversAtDropoffChosen='+ownerDelivers.toString()+
+        ' ownerPicksUpAtReturnChosen='+ownerPicksUp.toString()+
+        ' expressRequested='+toStore.expressRequested.toString());
     // Start 30-minute express confirmation timer if applicable (runtime only)
     _scheduleExpressTimerIfNeeded(toStore);
     return toStore;
@@ -1687,6 +1826,20 @@ class DataService {
     for (int i = 0; i < all.length; i++) {
       if (all[i].id == requestId) {
         all[i] = all[i].copyWith(status: status);
+        mutated = true; break;
+      }
+    }
+    if (mutated) await _saveAllRentalRequests(all);
+  }
+
+  /// Update status and optionally set the actor who cancelled.
+  /// If [status] is 'cancelled' and [cancelledBy] is provided, we persist it.
+  static Future<void> updateRentalRequestStatusWithActor({required String requestId, required String status, String? cancelledBy}) async {
+    final all = await _getAllRentalRequests();
+    bool mutated = false;
+    for (int i = 0; i < all.length; i++) {
+      if (all[i].id == requestId) {
+        all[i] = all[i].copyWith(status: status, cancelledBy: (status == 'cancelled') ? (cancelledBy ?? all[i].cancelledBy) : all[i].cancelledBy);
         mutated = true; break;
       }
     }
@@ -1780,7 +1933,7 @@ class DataService {
           );
           mutated = true;
           debugPrint('[DataService] Express timeout -> auto-switch to Standard for request ${r.id}');
-          try { await addTimelineEvent(requestId: r.id, type: 'express_timeout_refund', note: 'Express abgelaufen; auf Standard umgestellt'); } catch (_) {}
+          try { await addTimelineEvent(requestId: r.id, type: 'express_timeout_refund', note: 'Priorität abgelaufen; auf Standard umgestellt'); } catch (_) {}
           // Cancel any pending timer for safety
           try { _expressTimers[r.id]?.cancel(); _expressTimers.remove(r.id); } catch (_) {}
         } else {
@@ -1850,6 +2003,60 @@ class DataService {
       'read': false,
     });
     await prefs.setString(_notificationsKey, jsonEncode(list));
+  }
+
+  // ===== Ride compensation lightweight state =====
+  /// Persist a decision for ride compensation per request and segment ('dropoff' | 'return').
+  static Future<void> setRideCompensationDecision({required String requestId, required String segment, required bool grant, String? reason}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_rideCompKey);
+      Map<String, dynamic> map = {};
+      if (raw != null && raw.isNotEmpty) {
+        try { map = jsonDecode(raw) as Map<String, dynamic>; } catch (_) { map = {}; }
+      }
+      final entry = Map<String, dynamic>.from(map[requestId] as Map? ?? {});
+      entry[segment] = {
+        'grant': grant,
+        'reason': reason ?? '',
+        'ts': DateTime.now().toIso8601String(),
+      };
+      map[requestId] = entry;
+      await prefs.setString(_rideCompKey, jsonEncode(map));
+    } catch (e) {
+      debugPrint('[DataService] setRideCompensationDecision failed: ' + e.toString());
+    }
+  }
+
+  /// Returns the decision if present. If [consume] is true, removes it after reading.
+  static Future<bool?> getRideCompensationDecision({required String requestId, required String segment, bool consume = false}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_rideCompKey);
+      if (raw == null || raw.isEmpty) return null;
+      Map<String, dynamic> map;
+      try { map = jsonDecode(raw) as Map<String, dynamic>; } catch (_) { return null; }
+      final entry = map[requestId];
+      if (entry is Map) {
+        final seg = (entry[segment] as Map?);
+        final grant = (seg?['grant'] as bool?);
+        if (consume) {
+          final e2 = Map<String, dynamic>.from(entry);
+          e2.remove(segment);
+          if (e2.isEmpty) {
+            map.remove(requestId);
+          } else {
+            map[requestId] = e2;
+          }
+          await prefs.setString(_rideCompKey, jsonEncode(map));
+        }
+        return grant;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[DataService] getRideCompensationDecision failed: ' + e.toString());
+      return null;
+    }
   }
 
   // ===== Review reminder scheduling (local, lightweight) =====
@@ -2007,68 +2214,69 @@ class DataService {
     await prefs.setString(_feedbacksKey, jsonEncode(list));
   }
 
-  // ===== Cancellation policy helpers =====
-  /// Human-readable policy name (DE)
-  static String policyName(String code) => switch (code) {
-        'strict' => 'Streng',
-        'moderate' => 'Standard',
-        _ => 'Flexibel',
-      };
+  // ===== Cancellation policy helpers (Unified) =====
+  /// Human-readable policy title (DE) – unified across the app
+  static String policyName([String? _ignored]) => 'Einheitliche Stornobedingung';
 
-  /// Compute the deadline until which cancellation is free, if any.
-  /// Returns null if there is no free cancellation window left.
+  /// Returns the calendar-date-only representation of a DateTime.
+  static DateTime _dateOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
+
+  /// Compute the deadline date until which cancellation is fully free (100%) under the
+  /// unified policy. We operate on calendar days only (no times).
+  /// Rule interpretation (unified):
+  /// - 100%: Bis mindestens 2 Kalendertage vor Mietbeginn.
+  /// - 50%: Am Kalendertag vor Mietbeginn.
+  /// - 0%: Ab Mietbeginn oder bei Nicht‑Erscheinen.
   static DateTime? freeCancellationUntil({
     required String policy,
     required DateTime start,
     required DateTime createdAt,
   }) {
-    final now = DateTime.now();
-    switch (policy) {
-      case 'flexible':
-        return start.subtract(const Duration(hours: 24));
-      case 'moderate':
-        return start.subtract(const Duration(hours: 48));
-      case 'strict':
-        // Only within 1h after booking, if more than 48h until start
-        final moreThan48h = start.isAfter(now.add(const Duration(hours: 48)));
-        if (!moreThan48h) return null;
-        return createdAt.add(const Duration(hours: 1));
-      default:
-        return start.subtract(const Duration(hours: 24));
-    }
+    // Unified: Free until the end of the day two days before the start date.
+    final s = _dateOnly(start);
+    final freeUntil = s.subtract(const Duration(days: 2));
+    return freeUntil;
   }
 
-  /// Returns the refund ratio (0.0..1.0) of the RENTAL PRICE (excl. fees) when cancelled at [cancelAt].
-  /// For no-show we assume 0% refund. This does not include service/express fees logic.
+  /// Returns the refund ratio (0.0..1.0) applied to the RENTAL PRICE under the unified policy,
+  /// based solely on calendar days between [cancelAt] and [start].
+  /// Master rule is applied by callers to all other fees using the same ratio.
   static double refundRatio({
     required String policy,
     required DateTime start,
     required DateTime cancelAt,
     DateTime? createdAt,
   }) {
-    final diff = start.difference(cancelAt);
-    final hoursBefore = diff.inHours.toDouble();
-    switch (policy) {
-      case 'flexible':
-        if (hoursBefore >= 24) return 1.0; // free
-        if (hoursBefore < 0) return 0.0; // after start => no refund
-        return 0.5; // <24h => 50%
-      case 'moderate':
-        if (hoursBefore >= 48) return 1.0; // free
-        if (hoursBefore >= 12) return 0.5; // 12–48h => 50%
-        return 0.0; // <12h or after start => 0%
-      case 'strict':
-        if (createdAt != null) {
-          // Only within 1h of booking if more than 48h until start at booking time
-          final bookedMoreThan48h = start.isAfter((createdAt).add(const Duration(hours: 48)));
-          if (bookedMoreThan48h && cancelAt.isBefore(createdAt.add(const Duration(hours: 1)))) {
-            return 1.0;
-          }
-        }
-        return 0.0;
-      default:
-        // Default to flexible behavior if unknown
-        if (hoursBefore >= 24) return 1.0; if (hoursBefore < 0) return 0.0; return 0.5;
+    final startD = _dateOnly(start);
+    final cancelD = _dateOnly(cancelAt);
+    final daysBefore = startD.difference(cancelD).inDays;
+    if (daysBefore >= 2) return 1.0; // Early: ≥ 2 days before start
+    if (daysBefore == 1) return 0.5; // Late: on the day before start
+    return 0.0; // Start day or after: no refund
+  }
+
+  /// Deletes ALL locally stored rentals and bookings (rental requests), including
+  /// related timelines, reminders, last-seen markers and transient handover caches.
+  /// Also clears saved availability/delivery selections to avoid stale UI state.
+  static Future<void> clearAllRentalsAndBookings() async {
+    try {
+      // Stop any express timers running in this session
+      try {
+        for (final t in _expressTimers.values) { t.cancel(); }
+        _expressTimers.clear();
+      } catch (_) {/* ignore */}
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_rentalRequestsKey);
+      await prefs.remove(_timelineEventsKey);
+      await prefs.remove(_reviewRemindersKey);
+      await prefs.remove(_requestsLastSeenKey);
+      await prefs.remove(_handoverFailCountsKey);
+      await prefs.remove(_handoverBannersKey);
+      await prefs.remove(_bookingSelectionsKey);
+      debugPrint('[DataService] Cleared rentals/bookings and related local caches');
+    } catch (e) {
+      debugPrint('[DataService] clearAllRentalsAndBookings failed: ' + e.toString());
     }
   }
 }

@@ -240,25 +240,43 @@ class _CheckAvailabilityScreenState extends State<CheckAvailabilityScreen> {
 
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 2, 16, 120),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                // 2. Rental duration focus
-                const Text('Mietdauer', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-                  decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(16), border: Border.all(color: border)),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      Expanded(child: Text(_durationLabel(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 26))),
-                    ]),
-                    const SizedBox(height: 2),
-                    if (_start != null && _end != null)
-                      Text(_dateSpanText(), style: TextStyle(color: sub, fontSize: 13))
-                    else
-                      Text('Wähle Zeitraum', style: TextStyle(color: sub, fontSize: 13)),
-                    const SizedBox(height: 8),
-                    const Text('Verlängere & spare automatisch', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                // 2. Rental duration focus with overlapping header chip
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Stack(clipBehavior: Clip.none, children: [
+                    // Card
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                      decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(16), border: Border.all(color: border)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Expanded(child: Text(_durationLabel(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 26))),
+                        ]),
+                        const SizedBox(height: 2),
+                        if (_start != null && _end != null)
+                          Text(_dateSpanText(), style: TextStyle(color: sub, fontSize: 13))
+                        else
+                          Text('Wähle Zeitraum', style: TextStyle(color: sub, fontSize: 13)),
+                        const SizedBox(height: 8),
+                        const Text('Verlängere & spare automatisch', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      ]),
+                    ),
+                    // Overlapping label chip
+                    Positioned(
+                      left: 18,
+                      top: -14,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: bg,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: border),
+                        ),
+                        child: const Text('Mietdauer', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 12)),
+                      ),
+                    ),
                   ]),
                 ),
                 const SizedBox(height: 12),
@@ -318,7 +336,7 @@ class _CheckAvailabilityScreenState extends State<CheckAvailabilityScreen> {
 
                 // 5. Calendar
                 _WeekdayRow(color: sub),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 _MonthGrid(
                   month: _visibleMonth,
                   firstDate: _firstDate,
@@ -331,6 +349,18 @@ class _CheckAvailabilityScreenState extends State<CheckAvailabilityScreen> {
                   textColor: text,
                   subText: sub,
                   danger: danger,
+                ),
+                const SizedBox(height: 6),
+                // Hinweis direkt unter dem Kalender
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    child: Text(
+                      'Nach Annahme deiner Anfrage vereinbarst du im Chat die Abhol- und Rückgabezeit mit dem Vermieter',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ),
                 ),
               ]),
             ),
@@ -415,7 +445,7 @@ class _DayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (day == null) return const SizedBox(height: 44);
+    if (day == null) return const SizedBox(height: 40);
     final d = day!;
     final isStart = start != null && _isSameDay(d, start!);
     final isEnd = end != null && _isSameDay(d, end!);
@@ -429,18 +459,18 @@ class _DayCell extends StatelessWidget {
     final txtDefault = (isBooked(d)) ? danger : (disabled ? subText.withValues(alpha: 0.4) : textColor);
 
     Widget content = Center(child: Text('${d.day}', style: TextStyle(color: (isStart || isEnd) ? txtOnPrimary : txtDefault, fontWeight: FontWeight.w600)));
-    Widget decorated = Container(height: 44, alignment: Alignment.center, child: content);
+    Widget decorated = Container(height: 40, alignment: Alignment.center, child: content);
     if (isRange && !(isStart || isEnd)) {
-      decorated = Container(height: 44, decoration: BoxDecoration(color: bgRange), child: content);
+      decorated = Container(height: 40, decoration: BoxDecoration(color: bgRange), child: content);
     }
     if (isStart || isEnd) {
-      decorated = Container(height: 44, decoration: BoxDecoration(color: bgSE, borderRadius: BorderRadius.circular(12)), child: content);
+      decorated = Container(height: 40, decoration: BoxDecoration(color: bgSE, borderRadius: BorderRadius.circular(12)), child: content);
     }
     if (isBooked(d)) {
-      decorated = Container(height: 44, decoration: BoxDecoration(color: bgBooked, borderRadius: BorderRadius.circular(8)), child: content);
+      decorated = Container(height: 40, decoration: BoxDecoration(color: bgBooked, borderRadius: BorderRadius.circular(8)), child: content);
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 1),
       child: Opacity(
         opacity: disabled ? 0.5 : 1,
         child: InkWell(

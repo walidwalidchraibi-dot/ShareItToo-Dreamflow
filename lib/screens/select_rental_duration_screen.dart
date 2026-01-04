@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/utils/total_subtitle.dart';
 
 class SelectRentalDurationScreen extends StatefulWidget {
   final Item item;
@@ -35,7 +36,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
   String? _addressCity;
   double? _addressLat;
   double? _addressLng;
-  // Express choice for delivery at dropoff
+  // Express choice for delivery at dropoff (UI label shows "Priorität")
   bool _wantExpress = false;
 
   static const _monthsDe = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
@@ -82,7 +83,9 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
         _addressCity = saved != null ? (saved['city'] as String?) : null;
         _addressLat = saved != null ? (saved['lat'] as num?)?.toDouble() : null;
         _addressLng = saved != null ? (saved['lng'] as num?)?.toDouble() : null;
-        _wantExpress = (saved != null ? (saved['express'] == true) : false) && widget.item.offersExpressAtDropoff;
+        // Restore Priorität (express) exactly as saved, regardless of item flags,
+        // per new spec that treats Priorität als Anfrage‑Zusatzleistung.
+        _wantExpress = (saved != null ? (saved['express'] == true) : false);
         // Respect item capabilities
         if (!widget.item.offersDeliveryAtDropoff) _hinwegLandlord = false;
         if (!widget.item.offersPickupAtReturn) _rueckwegLandlord = false;
@@ -257,7 +260,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                 Row(children: [
                   Icon(Icons.flash_on_outlined, color: primary),
                   const SizedBox(width: 10),
-                  const Expanded(child: Text('Expresslieferung', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16))),
+                  const Expanded(child: Text('Priorität', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16))),
                   IconButton(
                     tooltip: 'Schließen',
                     icon: const Icon(Icons.close, color: Colors.white70),
@@ -274,9 +277,10 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
-                    '- Lieferung innerhalb von 2 Std. nach Bestätigung der Anfrage.\n'
-                    '- Wenn die Anfrage nicht innerhalb von 30 Min. bestätigt wird, erhältst du den Expresszuschlag zurück und die Anfrage wird automatisch als Standardlieferung weitergeführt.\n'
-                    '- Solange deine Anfrage noch nicht bestätigt worden ist, kannst du sie jederzeit zurückziehen.',
+                    'Mit der Prioritätsoption wird deine Anfrage hervorgehoben und für den Vermieter attraktiver dargestellt.\n\n'
+                    'Priorität signalisiert den Wunsch nach einer möglichst schnellen Abgabe.\n\n'
+                    'Die tatsächliche Abgabe hängt von der Verfügbarkeit und Entscheidung des Vermieters ab.\n\n'
+                    'Solange deine Anfrage noch nicht bestätigt wurde, kannst du sie jederzeit zurückziehen.',
                     style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.35),
                   ),
                 ),
@@ -505,33 +509,30 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                                   },
                                 )),
                               ]),
-                              // Always show Standard/Express choices when delivery by landlord is selected
-                              if (_hinwegLandlord) ...[
-                                const SizedBox(height: 8),
-                                // Standard & Express as rounded pills in one horizontal row with "?" between
-                                Row(children: [
-                                  Expanded(child: _OptionPill(
-                                    label: 'Standard',
-                                    selected: !_wantExpress,
-                                    onTap: () { setState(() { _wantExpress = false; }); _persistDeliverySelection(); },
-                                  )),
-                                  const SizedBox(width: 6),
-                                  GestureDetector(
-                                    onTap: () => _showExpressInfoSheet(context),
-                                    behavior: HitTestBehavior.opaque,
-                                    child: const Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: 2),
-                                      child: Icon(Icons.help_outline, color: Colors.white70, size: 16),
-                                    ),
+                              // Standard & Priorität are always visible on Abgabe, regardless of delivery choice
+                              const SizedBox(height: 8),
+                              Row(children: [
+                                Expanded(child: _OptionPill(
+                                  label: 'Standard',
+                                  selected: !_wantExpress,
+                                  onTap: () { setState(() { _wantExpress = false; }); _persistDeliverySelection(); },
+                                )),
+                                const SizedBox(width: 6),
+                                GestureDetector(
+                                  onTap: () => _showExpressInfoSheet(context),
+                                  behavior: HitTestBehavior.opaque,
+                                  child: const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 2),
+                                    child: Icon(Icons.help_outline, color: Colors.white70, size: 16),
                                   ),
-                                  const SizedBox(width: 6),
-                                  Expanded(child: _OptionPill(
-                                    label: 'Express',
-                                    selected: _wantExpress,
-                                    onTap: () { setState(() { _wantExpress = true; }); _persistDeliverySelection(); },
-                                  )),
-                                ]),
-                              ],
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(child: _OptionPill(
+                                  label: 'Priorität',
+                                  selected: _wantExpress,
+                                  onTap: () { setState(() { _wantExpress = true; }); _persistDeliverySelection(); },
+                                )),
+                              ]),
                               const SizedBox(height: 6),
                               if (_hinwegLandlord) Builder(builder: (context) {
                                 final km = _savedDistanceKm();
@@ -539,7 +540,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                                 final overMax = (km != null && maxKm != null && km > maxKm);
                                 final kmLabel = km != null ? km.toStringAsFixed(1) : '...';
                                 return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  Text('Liefergebühr: $kmLabel Km${_wantExpress ? ' + Expresszuschlag' : ''}', style: TextStyle(color: sub, fontSize: 12)),
+                                  Text('Liefergebühr: $kmLabel Km${_wantExpress ? ' + Prioritätszuschlag' : ''}', style: TextStyle(color: sub, fontSize: 12)),
                                   if (overMax) ...[
                                     const SizedBox(height: 6),
                                     Text(
@@ -607,7 +608,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                         // Chips moved under Mietdauer card per spec
                         _WeekdayRow(color: sub),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         _MonthGrid(
                           month: _visibleMonth,
                           firstDate: _firstDate,
@@ -621,7 +622,18 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                           subText: sub,
                           danger: danger,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
+                        // Hinweis direkt unter dem Kalender (zentriert)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            child: Text(
+                              'Nach Annahme deiner Anfrage vereinbarst du im Chat die Abhol- und Rückgabezeit mit dem Vermieter',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.white70, fontSize: 12),
+                            ),
+                          ),
+                        ),
                       ]),
                     ),
                   ),
@@ -656,58 +668,53 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                     double deliveryFee = 0.0; // Abgabe
                     double pickupFee = 0.0;   // Rückgabe
                     if (dropChargeable) {
+                      // Distanzkosten (0,30€/km)
                       deliveryFee = double.parse((km * 0.30).toStringAsFixed(2));
-                      if (_wantExpress) deliveryFee = double.parse((deliveryFee + 5.0).toStringAsFixed(2));
                     }
                     if (pickChargeable) {
                       pickupFee = double.parse((km * 0.30).toStringAsFixed(2));
                     }
 
-                    final subtotalBeforePlatform = double.parse((rentalPrice + deliveryFee + pickupFee).toStringAsFixed(2));
-                    // Platform fee: always 10% of subtotal (rental after discount + delivery + pickup + express)
-                    // Minimum fee rule: if subtotal < 10 €, platform fee is always 1 €
-                    double platformFee;
-                    if (subtotalBeforePlatform < 10.0) {
-                      platformFee = 1.0;
-                    } else {
-                      platformFee = double.parse((subtotalBeforePlatform * 0.10).toStringAsFixed(2));
-                    }
-                    final total = double.parse((subtotalBeforePlatform + platformFee).toStringAsFixed(2));
+                    // Prioritätszuschlag: 5,00€ sobald ausgewählt (immer, auch bei Selbstabholung), plus 10% Plattformanteil auf Priorität
+                    // Wichtig: Der Gesamtbetrag des Mieters reagiert SOFORT auf die Auswahl –
+                    // unabhängig davon, ob Lieferung gewählt ist. Das sorgt dafür,
+                    // dass der Betrag über alle Stadien stabil bleibt, sobald der Nutzer Priorität antippt.
+                    final bool expressIncluded = _wantExpress;
+                    final double expressFee = expressIncluded ? 5.0 : 0.0;
+                    final double expressFeePlatform = expressFee > 0 ? double.parse((expressFee * 0.10).toStringAsFixed(2)) : 0.0;
 
-                    String subtitle = 'inkl. Plattformbeitrag';
-                    if (dropSelected && pickSelected) {
-                      // Exact requested copy when both are selected
-                      subtitle = 'Inkl. Lieferung/Abholung und Plattformbeitrag';
-                    } else if (dropSelected || pickSelected) {
-                      final single = dropSelected ? 'Lieferung' : 'Abholung';
-                      subtitle = 'inkl. $single und Plattformbeitrag';
-                    }
+                    // Plattformbeitrag wird NUR auf den Mietpreis erhoben (ohne Lieferung/Priorität)
+                    final double platformFee = DataService.platformContributionForRental(rentalPrice);
+                    final total = double.parse((rentalPrice + platformFee + deliveryFee + pickupFee + expressFee + expressFeePlatform).toStringAsFixed(2));
+
+                    // Dynamic subtitle under Gesamtbetrag per decision matrix
+                    final String subtitle = TotalSubtitleHelper.build(
+                      delivery: dropSelected,
+                      pickup: pickSelected,
+                      priority: expressIncluded,
+                    );
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-                      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                        const Expanded(child: Text('Gesamtbetrag', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
-                        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                          Text('${total.toStringAsFixed(2)} €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            const Text('Gesamtbetrag', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                            Text('${total.toStringAsFixed(2)} €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+                          ],
+                        ),
+                        if (subtitle.isNotEmpty) ...[
                           const SizedBox(height: 2),
-                          if (subtitle.isNotEmpty) Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                        ]),
+                          Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                        ],
                       ]),
                     );
                   }),
                   const SizedBox(height: 10),
                 ],
-                // Hinweistext zwischen Gesamtbetrag und Button
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Text(
-                      'Nach Annahme deiner Anfrage vereinbarst du im Chat die Abhol- und Rückgabezeit mit dem Vermieter',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ),
-                ),
                 FilledButton(
                   onPressed: (_start != null && !_overlapsBlocked && !_checking) ? _confirm : null,
                   style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
@@ -1018,7 +1025,7 @@ class _DayCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (day == null) return const SizedBox(height: 44);
+    if (day == null) return const SizedBox(height: 40);
     final d = day!;
     final isStart = start != null && _isSameDay(d, start!);
     final DateTime? endInclusive = end == null ? null : _strip(end!.subtract(const Duration(days: 1)));
@@ -1033,18 +1040,18 @@ class _DayCell extends StatelessWidget {
     final txtDefault = (isBooked(d)) ? danger : (disabled ? subText.withValues(alpha: 0.4) : textColor);
 
     Widget content = Center(child: Text('${d.day}', style: TextStyle(color: (isStart || isEnd) ? txtOnPrimary : txtDefault, fontWeight: FontWeight.w600)));
-    Widget decorated = Container(height: 44, alignment: Alignment.center, child: content);
+    Widget decorated = Container(height: 40, alignment: Alignment.center, child: content);
     if (isRange && !(isStart || isEnd)) {
-      decorated = Container(height: 44, decoration: BoxDecoration(color: bgRange), child: content);
+      decorated = Container(height: 40, decoration: BoxDecoration(color: bgRange), child: content);
     }
     if (isStart || isEnd) {
-      decorated = Container(height: 44, decoration: BoxDecoration(color: bgSE, borderRadius: BorderRadius.circular(12)), child: content);
+      decorated = Container(height: 40, decoration: BoxDecoration(color: bgSE, borderRadius: BorderRadius.circular(12)), child: content);
     }
     if (isBooked(d)) {
-      decorated = Container(height: 44, decoration: BoxDecoration(color: bgBooked, borderRadius: BorderRadius.circular(8)), child: content);
+      decorated = Container(height: 40, decoration: BoxDecoration(color: bgBooked, borderRadius: BorderRadius.circular(8)), child: content);
     }
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 1),
       child: Opacity(
         opacity: disabled ? 0.5 : 1,
         child: InkWell(

@@ -721,12 +721,10 @@ final amHeight = amCardSize * amRows + amGap * (amRows - 1);
             SizedBox(
               width: tile,
               height: tile,
-              child: _SquareItemCard(
+              child: _SquareTitleOnlyCard(
                 item: visible[i],
                 isFavorite: _savedIds.contains(visible[i].id),
                 onFavoriteToggle: () => _toggleFavorite(visible[i].id),
-                showFavorite: true,
-                showInfo: false,
               ),
             ),
             if (i != visible.length - 1) const SizedBox(width: 8),
@@ -763,12 +761,10 @@ final amHeight = amCardSize * amRows + amGap * (amRows - 1);
   return SizedBox(
   width: amCardSize,
   height: amCardSize,
-  child: _SquareItemCard(
+  child: _SquareTitleOnlyCard(
   item: item,
   isFavorite: isFav,
   onFavoriteToggle: () => _toggleFavorite(item.id),
-  showFavorite: true,
-  showInfo: false,
   ),
   );
   }),
@@ -841,25 +837,24 @@ final l10n = context.watch<LocalizationController>();
  // Kunden gefällt auch: vertical grid fills available scroll area
  SliverPadding(
    padding: const EdgeInsets.symmetric(horizontal: 16),
-   sliver: SliverGrid(
+     sliver: SliverGrid(
      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
        crossAxisCount: isDesktop ? 4 : (isTablet ? 3 : 3),
        mainAxisSpacing: 8,
        crossAxisSpacing: 8,
      ),
-     delegate: SliverChildBuilderDelegate((context, index) {
-       final extrasFiltered = _extraGuests.where(_matches).toList();
-       final combined = [...extrasFiltered, ...itemsFiltered];
-       if (combined.isEmpty) return const SizedBox();
-       final item = combined[index % combined.length];
-       final isFav = _savedIds.contains(item.id);
-       return _SmallGridCard(
-         item: item,
-         isFavorite: isFav,
-         onFavoriteToggle: () => _toggleFavorite(item.id),
-         compact: false,
-       );
-     }, childCount: (itemsFiltered.length + _extraGuests.where(_matches).length).clamp(0, 9999)),
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final liked = itemsFiltered.where((it) => _savedIds.contains(it.id) || it.timesLent > 5).toList();
+        if (liked.isEmpty) return const SizedBox();
+        final item = liked[index % liked.length];
+        final isFav = _savedIds.contains(item.id);
+        return _SmallGridCard(
+          item: item,
+          isFavorite: isFav,
+          onFavoriteToggle: () => _toggleFavorite(item.id),
+          compact: false,
+        );
+      }, childCount: itemsFiltered.where((it) => _savedIds.contains(it.id) || it.timesLent > 5).length),
    ),
  ),
 
@@ -1521,6 +1516,24 @@ class _SmallGridCardState extends State<_SmallGridCard> {
                     ),
                   ),
                 ),
+                // Title overlay at bottom (like Neue Angebote)
+                Positioned(
+                  left: 0, right: 0, bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [
+                        Colors.black.withValues(alpha: 0.0), Colors.black.withValues(alpha: 0.55),
+                      ]),
+                    ),
+                    child: Text(
+                      widget.item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
                 // Favorite heart (top-right)
                 Positioned(
                   top: 6,
@@ -1632,13 +1645,7 @@ crossAxisAlignment: CrossAxisAlignment.start,
 mainAxisSize: MainAxisSize.min,
 children: [
 Text(widget.item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: Colors.white)),
-const SizedBox(height: 2),
-Builder(builder: (context) {
-final d = widget.item.createdAt;
-final dateStr = '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
-final l10n = context.watch<LocalizationController>();
-return Text('${l10n.t('Eingestellt am')} $dateStr', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70));
-})
+  // Date removed per request
 ],
 ),
 ),

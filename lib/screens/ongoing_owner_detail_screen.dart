@@ -101,7 +101,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                         FilledButton(
                           onPressed: () async {
                             Navigator.of(context, rootNavigator: true).maybePop();
-                            await DataService.updateRentalRequestStatus(requestId: req.id, status: 'cancelled');
+                            await DataService.updateRentalRequestStatusWithActor(requestId: req.id, status: 'cancelled', cancelledBy: 'owner');
                             await DataService.addTimelineEvent(requestId: req.id, type: 'cancelled', note: 'Von Vermieter storniert');
                             if (!mounted) return;
                             AppPopup.toast(context, icon: Icons.cancel_outlined, title: 'Buchung storniert');
@@ -123,6 +123,29 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
             ),
         ],
       ),
+      // Bottom-anchored review button for completed rentals (owner -> renter)
+      bottomNavigationBar: Builder(builder: (context) {
+        final r = _req; final it = _item; final rn = _renter;
+        if (r == null || it == null || rn == null) return const SizedBox.shrink();
+        final cat = _categoryFor(r);
+        // Show for all "completed" bucket items that are not cancelled/declined
+        final isTrulyCompleted = (cat == 'completed') && r.status != 'cancelled' && r.status != 'declined';
+        if (!isTrulyCompleted) return const SizedBox.shrink();
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: SizedBox(
+              height: 46,
+              child: FilledButton.icon(
+                onPressed: () => _showReviewSheet(context, rn),
+                icon: const Icon(Icons.star_rate_outlined),
+                label: const Text('Bewerten'),
+              ),
+            ),
+          ),
+        );
+      }),
       body: (req == null || item == null || renter == null)
           ? const Center(child: CircularProgressIndicator())
           : _buildOngoingBody(context, req, item, renter),
@@ -146,12 +169,14 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   }
 
   String _categoryFor(RentalRequest r) {
-    if (r.status == 'pending') return 'requests';
-    if (r.status == 'completed' || r.status == 'cancelled' || r.status == 'declined') return 'completed';
-    final now = DateTime.now();
-    if (now.isBefore(r.start)) return 'upcoming';
-    if (now.isBefore(r.end)) return 'ongoing';
-    return 'completed';
+    // Owner view follows strict status-driven categories
+    final s = r.status.toLowerCase();
+    if (s == 'pending') return 'requests';
+    if (s == 'accepted') return 'upcoming';
+    if (s == 'running') return 'ongoing';
+    if (s == 'completed' || s == 'cancelled' || s == 'declined') return 'completed';
+    // Fallback
+    return 'upcoming';
   }
 
   Widget _buildOngoingBody(BuildContext context, RentalRequest req, Item item, User renter) {
@@ -165,16 +190,23 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final isCompleted = req.status == 'completed';
     final title = item.title;
     final location = item.locationText ?? (item.city ?? '');
-    final bool ownerDelivers = (_deliverySel?['hinweg'] == true);
-    final bool ownerPicksUp = (_deliverySel?['rueckweg'] == true);
-    final String targetAddr = _composeTargetAddress(_deliverySel, fallback: location);
+    // Derive responsibilities robustly from persisted request snapshot; fall back to
+    // transient selection and express/address hints for legacy data.
+    final bool inferredOwnerDeliversByTransient = (_deliverySel?['hinweg'] == true);
+    final bool inferredOwnerDeliversByExpress = req.expressRequested || (req.expressStatus != null);
+    final bool inferredOwnerDeliversByAddress = ((req.deliveryAddressLine ?? '').toString().trim().isNotEmpty) || ((req.deliveryCity ?? '').toString().trim().isNotEmpty);
+    final bool ownerDelivers = req.ownerDeliversAtDropoffChosen || inferredOwnerDeliversByTransient || inferredOwnerDeliversByExpress || inferredOwnerDeliversByAddress;
 
-    final days = (req.end.difference(req.start).inHours / 24).ceil().clamp(1, 365);
-    final rentalSubtotalOnly = DataService.computeTotalWithDiscounts(item: item, days: days).$1;
-    final platformFee = DataService.platformContributionForRental(rentalSubtotalOnly);
-    // Add express fee if accepted (goes to owner as extra)
-    final bool expressOn = req.expressRequested && (req.expressStatus == 'accepted');
-    double totalPaid = rentalSubtotalOnly + platformFee + (expressOn ? req.expressFee : 0.0);
+    final bool inferredOwnerPicksUpByTransient = (_deliverySel?['rueckweg'] == true);
+    final bool ownerPicksUp = req.ownerPicksUpAtReturnChosen || inferredOwnerPicksUpByTransient;
+
+    final String targetAddr = _composeTargetAddressFromReq(req, _deliverySel, fallback: location);
+
+    final breakdown = DataService.priceBreakdownForRequest(item: item, req: req, deliverySel: _deliverySel);
+    final days = breakdown.days;
+    final rentalSubtotalOnly = breakdown.rentalSubtotal;
+    final platformFee = breakdown.platformFee;
+    double totalPaid = breakdown.totalRenter;
     final daily = days > 0 ? (rentalSubtotalOnly / days) : rentalSubtotalOnly;
     final fee = platformFee;
     final subtotal = rentalSubtotalOnly;
@@ -182,7 +214,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Express confirmation card (only when request pending confirmation and express was requested)
+        // Priorität confirmation card (only when request pending confirmation and express was requested)
         if (req.status == 'pending' && req.expressRequested && (req.expressStatus == null || req.expressStatus == 'pending')) ...[
           Container(
             decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
@@ -191,25 +223,25 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               Row(children: const [
                 Icon(Icons.flash_on_outlined, color: Colors.white70),
                 SizedBox(width: 8),
-                Text('Expresslieferung angefragt', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                Text('Prioritätslieferung angefragt', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
               ]),
               const SizedBox(height: 8),
-              const Text('Expresslieferung in den nächsten 2 Stunden möglich?', style: TextStyle(color: Colors.white)),
+              const Text('Prioritätslieferung in den nächsten 2 Stunden möglich?', style: TextStyle(color: Colors.white)),
               const SizedBox(height: 4),
               const Text('(5,00 € Zusatzvergütung – wird automatisch gutgeschrieben)', style: TextStyle(color: Colors.white70, fontSize: 12)),
               const SizedBox(height: 10),
               Row(children: [
                 Expanded(child: ElevatedButton.icon(onPressed: () async {
                   await DataService.updateRentalRequestExpress(requestId: req.id, accept: true);
-                  await DataService.addTimelineEvent(requestId: req.id, type: 'express_accepted', note: 'Expresslieferung bestätigt');
-                  await DataService.addNotification(title: 'Express bestätigt', body: 'Die Expresslieferung wurde bestätigt (+5,00 €).');
+                  await DataService.addTimelineEvent(requestId: req.id, type: 'express_accepted', note: 'Prioritätslieferung bestätigt');
+                  await DataService.addNotification(title: 'Priorität bestätigt', body: 'Die Prioritätslieferung wurde bestätigt (+5,00 €).');
                   await _load();
                 }, icon: const Icon(Icons.check_circle_outline), label: const Text('Ja, bestätigen'))),
                 const SizedBox(width: 12),
                 Expanded(child: OutlinedButton.icon(onPressed: () async {
                   await DataService.updateRentalRequestExpress(requestId: req.id, accept: false);
-                  await DataService.addTimelineEvent(requestId: req.id, type: 'express_declined', note: 'Expresslieferung abgelehnt');
-                  await DataService.addNotification(title: 'Express abgelehnt', body: 'Die 5,00 € Express-Zahlung wird dem Mieter automatisch erstattet.');
+                  await DataService.addTimelineEvent(requestId: req.id, type: 'express_declined', note: 'Prioritätslieferung abgelehnt');
+                  await DataService.addNotification(title: 'Priorität abgelehnt', body: 'Die 5,00 € Prioritäts-Zahlung wird dem Mieter automatisch erstattet.');
                   await _load();
                 }, icon: const Icon(Icons.cancel_outlined), label: const Text('Ablehnen'))),
               ])
@@ -223,7 +255,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
             child: Row(children: const [
               Icon(Icons.check_circle_outline, color: Color(0xFF22C55E)),
               SizedBox(width: 8),
-              Expanded(child: Text('Expresslieferung bestätigt (+5,00 €)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+              Expanded(child: Text('Prioritätslieferung bestätigt (+5,00 €)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
             ]),
           ),
           const SizedBox(height: 12),
@@ -234,7 +266,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
             child: Row(children: const [
               Icon(Icons.info_outline, color: Color(0xFFF43F5E)),
               SizedBox(width: 8),
-              Expanded(child: Text('Expresslieferung abgelehnt – 5,00 € werden erstattet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+              Expanded(child: Text('Prioritätslieferung abgelehnt – 5,00 € werden erstattet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
             ]),
           ),
           const SizedBox(height: 12),
@@ -281,8 +313,11 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                     child: Text(
                       () {
                         if (category == 'completed') {
-                          final cancelled = req.status == 'cancelled' || req.status == 'declined';
-                          return cancelled ? 'Storniert' : 'Abgeschlossen';
+                          final isCancelled = req.status == 'cancelled';
+                          final isDeclined = req.status == 'declined';
+                          if (isCancelled && (req.cancelledBy == 'renter')) return 'Zurückgezogen';
+                          if (isCancelled || isDeclined) return 'Storniert';
+                          return 'Abgeschlossen';
                         }
                         if (isCompleted) return 'Abgeschlossen';
                         if (category == 'requests') return 'Anfrage';
@@ -566,11 +601,14 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               onProfile: () {
                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => PublicProfileScreen(userId: renter.id)));
               },
-              onMessage: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => MessageThreadScreen(participantName: renter.displayName, avatarUrl: renter.photoURL),
-                ));
-              },
+              // Remove message button for requests (Ausstehende Anmietung)
+              onMessage: (category == 'requests')
+                  ? null
+                  : () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => MessageThreadScreen(participantName: renter.displayName, avatarUrl: renter.photoURL),
+                      ));
+                    },
             ),
           ]),
         ),
@@ -623,7 +661,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         ],
 
         const SizedBox(height: 16),
-        // Payment summary
+        // Payment summary (owner view): only payout shown
         Container(
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.20),
@@ -634,39 +672,58 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Zahlungsübersicht', style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
-            _AmountRow(label: 'Tagespreis × Tage', value: '${_formatEuro(daily)} × $days'),
-            _AmountRow(label: 'Zwischensumme', value: _formatEuro(subtotal)),
-            _AmountRow(label: 'Plattformbeitrag', value: _formatEuro(fee)),
-            if (expressOn) _AmountRow(label: 'Expresslieferung', value: _formatEuro(req.expressFee)),
-            const Divider(height: 16, color: Colors.white24),
-            _AmountRow(label: 'Gesamt bezahlt (Mieter)', value: _formatEuro(totalPaid), strong: true),
-            const SizedBox(height: 8),
-            if (req.expressRequested && req.expressStatus == 'declined') ...[
-              _AmountRow(label: 'Rückerstattung (Express)', value: _formatEuro(req.expressFee)),
-              const SizedBox(height: 4),
-              Text('Expresszuschlag wird vollständig erstattet.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
-              const SizedBox(height: 8),
-            ],
-            if (isCompleted) ...[
+            // If this rental was cancelled by the owner, there is no payout
+            if (req.status == 'cancelled' && (req.cancelledBy == 'owner')) ...[
+              _AmountRow(label: 'Auszahlung', value: '0,00 €', strong: true),
+              const SizedBox(height: 2),
+              Text('Keine Auszahlung, da vom Vermieter storniert.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
+            ] else if (isCompleted) ...[
               _AmountRow(label: 'Ausgezahlt (an Vermieter)', value: _formatEuro(totalPaid - fee), strong: true),
               Text('Ausgezahlt am ${_formatPayoutDate(req.end)}', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
             ] else ...[
-              _AmountRow(label: 'Vorauss. Auszahlung', value: _formatEuro(totalPaid - fee), strong: true),
+              _AmountRow(label: 'Vorauss. Auszahlung', value: _formatEuro(breakdown.payoutOwner), strong: true),
               Text('Auszahlung am ${_formatPayoutDate(req.end)}', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
             ],
             const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.center,
-              child: OutlinedButton.icon(
-                onPressed: () => _downloadReceiptPdf(item, req, totalPaid, fee, subtotal),
-                icon: const Icon(Icons.picture_as_pdf),
-                label: const Text('Beleg herunterladen (PDF)'),
+            if ((category == 'ongoing' || category == 'completed') && !(req.status == 'cancelled' && (req.cancelledBy == 'owner')))
+              Align(
+                alignment: Alignment.center,
+                child: OutlinedButton.icon(
+                  onPressed: () => _downloadReceiptPdf(item, req, totalPaid, fee, subtotal),
+                  icon: const Icon(Icons.picture_as_pdf),
+                  label: const Text('Beleg herunterladen (PDF)'),
+                ),
               ),
-            ),
           ]),
         ),
 
-        // Removed owner status card per request
+        // Completion summary (like renter view) – show for completed bucket including cancelled
+        const SizedBox(height: 12),
+        if (category == 'completed')
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.20),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Abschluss-Zusammenfassung', style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 10),
+              _FactRow(icon: req.status == 'cancelled' ? Icons.cancel_outlined : Icons.verified_outlined,
+                  label: 'Status',
+                  value: () {
+                    if (req.status == 'cancelled' && (req.cancelledBy == 'renter')) return 'Zurückgezogen';
+                    if (req.status == 'cancelled') return 'Storniert';
+                    return 'Abgeschlossen';
+                  }(),
+                  color: req.status == 'cancelled' ? const Color(0xFFF43F5E) : Colors.blueGrey),
+              const SizedBox(height: 8),
+              _FactRow(icon: Icons.event_busy, label: req.status == 'cancelled' ? 'Storniert am' : 'Rückgabe bestätigt', value: _formatRange(req.start, req.end).split('–').last.trim()),
+              const SizedBox(height: 8),
+              _FactRow(icon: Icons.receipt_long_outlined, label: 'Beleg', value: 'Erstattung gem. Richtlinien'),
+            ]),
+          ),
 
         // Bottom timeline removed in favor of compact status card
 
@@ -751,17 +808,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
             ]),
           ),
 
-        if (category == 'completed' && req.status == 'completed') ...[
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 40,
-            child: FilledButton.icon(
-              onPressed: () => _showReviewSheet(context, renter),
-              icon: const Icon(Icons.star_rate_outlined),
-              label: const Text('Bewerten'),
-            ),
-          ),
-        ],
+        // Review button moved to bottomNavigationBar for completed owner view
 
         // Problem melden should be at the bottom for completed
         // Removed duplicate Problem melden CTA – moved to overflow menu
@@ -772,6 +819,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   Future<void> _downloadReceiptPdf(Item item, RentalRequest req, double totalPaid, double fee, double subtotal) async {
     final bookingId = _computeBookingId(item, req);
     final bool expressRefund = req.expressRequested && req.expressStatus == 'declined' && req.expressFee > 0;
+    final breakdown = DataService.priceBreakdownForRequest(item: item, req: req, deliverySel: _deliverySel);
     final html = '''
 <!doctype html>
 <html lang="de">
@@ -792,14 +840,18 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
  <div style="margin:8px 0 16px 0">${item.title}</div>
  <div class="muted">Zeitraum: ${_formatRange(req.start, req.end)}</div>
  <hr>
- <table>
-   <tr><td>Mietpreis (Tagespreis × Tage)</td><td class="right">${_formatEuro(subtotal)}</td></tr>
-    <tr><td>Plattformbeitrag</td><td class="right">${_formatEuro(fee)}</td></tr>
+  <table>
+   <tr><td>Mietpreis (Tagespreis × Tage)</td><td class="right">${_formatEuro(breakdown.rentalSubtotal)}</td></tr>
+   ${breakdown.dropoffFee > 0 ? '<tr><td>Lieferung (Abgabe)</td><td class="right">${_formatEuro(breakdown.dropoffFee)}</td></tr>' : ''}
+   ${breakdown.returnFee > 0 ? '<tr><td>Abholung (Rückgabe)</td><td class="right">${_formatEuro(breakdown.returnFee)}</td></tr>' : ''}
+    ${breakdown.expressApplied > 0 ? '<tr><td>Prioritätszuschlag</td><td class="right">${_formatEuro(breakdown.expressApplied)}</td></tr>' : ''}
+    ${breakdown.expressApplied > 0 ? '<tr><td>Plattformbeitrag auf Priorität (10%)</td><td class="right">${_formatEuro(double.parse((breakdown.expressApplied * 0.10).toStringAsFixed(2)))}</td></tr>' : ''}
+   <tr><td>Plattformbeitrag</td><td class="right">${_formatEuro(breakdown.platformFee)}</td></tr>
    <tr><td colspan="2"><hr></td></tr>
-   <tr><td class="total">Gesamt bezahlt (Mieter)</td><td class="right total">${_formatEuro(totalPaid)}</td></tr>
-  ${expressRefund ? '<tr><td>Rückerstattung (Express)</td><td class="right">${_formatEuro(req.expressFee)}</td></tr>' : ''}
+   <tr><td class="total">Gesamt bezahlt (Mieter)</td><td class="right total">${_formatEuro(breakdown.totalRenter)}</td></tr>
+  ${expressRefund ? '<tr><td>Rückerstattung (Priorität)</td><td class="right">${_formatEuro(req.expressFee)}</td></tr>' : ''}
  </table>
- <p class="muted">${expressRefund ? 'Expresszuschlag wird vollständig erstattet.' : ''}</p>
+  <p class="muted">${expressRefund ? 'Prioritätszuschlag wird vollständig erstattet.' : ''}</p>
  <p class="muted">ShareItToo – Quittung ohne Gewähr.</p>
  </html>
 ''';
@@ -872,9 +924,10 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     return '$dd. $m';
   }
 
-  String _composeTargetAddress(Map<String, dynamic>? sel, {required String fallback}) {
-    final line = (sel?['addressLine'] as String?)?.trim() ?? '';
-    final city = (sel?['city'] as String?)?.trim() ?? '';
+  String _composeTargetAddressFromReq(RentalRequest req, Map<String, dynamic>? sel, {required String fallback}) {
+    // Prefer persisted snapshot on the request; fall back to last-known transient selection.
+    final String line = (req.deliveryAddressLine ?? (sel?['addressLine'] as String?) ?? '').trim();
+    final String city = (req.deliveryCity ?? (sel?['city'] as String?) ?? '').trim();
     if (line.isEmpty && city.isEmpty) return fallback;
     if (line.isNotEmpty && city.isNotEmpty) return '$line, $city';
     return line.isNotEmpty ? line : city;
@@ -1009,6 +1062,13 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       // Set completed, add timeline + notification, send receipt
       await DataService.updateRentalRequestStatus(requestId: req.id, status: 'completed');
       await DataService.addTimelineEvent(requestId: req.id, type: 'completed', note: 'Rückgabe abgeschlossen');
+      // Release/cancel ride compensation if present (return segment)
+      try {
+        final grant = await DataService.getRideCompensationDecision(requestId: req.id, segment: 'return', consume: true);
+        if (grant != null) {
+          await DataService.addTimelineEvent(requestId: req.id, type: grant ? 'ride_comp_release_return' : 'ride_comp_cancel_return', note: grant ? 'Fahrtvergütung freigegeben (Rückgabe)' : 'Fahrtvergütung nicht ausgezahlt (Rückgabe)');
+        }
+      } catch (_) {}
       await DataService.addNotification(title: 'Buchung abgeschlossen', body: 'Die Rückgabe für "${item.title}" wurde abgeschlossen. Beleg gesendet.');
       if (!mounted) return;
       AppPopup.toast(context, icon: Icons.receipt_long, title: 'Beleg gesendet');
@@ -1238,7 +1298,7 @@ class _OwnerStatusCard extends StatelessWidget {
           ]),
           if (expressAccepted) ...[
             const SizedBox(height: 8),
-            const Text('Abholung vereinbart (Express)', style: TextStyle(color: Colors.white)),
+            const Text('Abholung vereinbart (Priorität)', style: TextStyle(color: Colors.white)),
           ],
         ],
       ]),
@@ -1316,11 +1376,12 @@ class _CounterpartyRow extends StatelessWidget {
         Text(name, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
         Text(role, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
       ])),
-      IconButton(
-        tooltip: 'Nachricht',
-        onPressed: onMessage,
-        icon: const Icon(Icons.forum_outlined, color: Colors.white70),
-      ),
+      if (onMessage != null)
+        IconButton(
+          tooltip: 'Nachricht',
+          onPressed: onMessage,
+          icon: const Icon(Icons.forum_outlined, color: Colors.white70),
+        ),
     ]);
   }
 }
@@ -1338,6 +1399,32 @@ class _AmountRow extends StatelessWidget {
         Text(value, style: style),
       ]),
     );
+  }
+}
+
+class _FactRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? color;
+  const _FactRow({required this.icon, required this.label, required this.value, this.color});
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(8)),
+        child: Icon(icon, size: 18, color: color ?? Colors.white),
+      ),
+      const SizedBox(width: 12),
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: TextStyle(color: theme.colorScheme.primary, fontSize: 12, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 2),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+      ])),
+    ]);
   }
 }
 

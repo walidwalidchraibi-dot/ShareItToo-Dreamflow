@@ -411,7 +411,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                         Padding(
                           padding: const EdgeInsets.only(left: 38), // ~1cm Einzug
                           child: _RoundCheckboxRow(
-                            label: context.watch<LocalizationController>().t('Express-Lieferung (optional)'),
+                            label: context.watch<LocalizationController>().t('Prioritätslieferung (optional)'),
                             value: _delivery.contains('express'),
                             small: true,
                             onChanged: (v) => setState(() => v ? _delivery.add('express') : _delivery.remove('express')),
