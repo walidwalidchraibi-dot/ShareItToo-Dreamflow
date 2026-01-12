@@ -8,6 +8,7 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/widgets/modern_range_picker_sheet.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/screens/see_all_screen.dart';
+import 'package:lendify/screens/search_results_screen.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/openai/openai_config.dart';
 
@@ -98,10 +99,15 @@ class _SearchSheetState extends State<_SearchSheet> {
   List<String> _suggestions = [];
   List<String> _locSuggestions = [];
   List<Item> _nearby = [];
+  // Live-updated grid suggestions based on Was/Wo/Datum
+  List<Item> _displayNearby = [];
   Set<String> _verifiedOwnerIds = {};
   Map<String, app_user.User> _usersById = {};
+  app_user.User? _currentUser;
+  // Recent section removed per request – keep local var for minimal code churn but unused
   List<String> _recent = [];
   bool _loading = true;
+  bool _recomputing = false;
 
   @override
   void initState() {
@@ -126,6 +132,7 @@ class _SearchSheetState extends State<_SearchSheet> {
   Future<void> _loadData() async {
     final items = await DataService.getItems();
     final users = await DataService.getUsers();
+    final me = await DataService.getCurrentUser();
     final byId = {for (final u in users) u.id: u};
     final verifiedIds = users.where((u) => u.isVerified).map((u) => u.id).toSet();
     final itemTitles = items.map((e) => e.title).where((e) => e.trim().isNotEmpty).toList();
@@ -133,10 +140,13 @@ class _SearchSheetState extends State<_SearchSheet> {
       _nearby = items;
       _usersById = byId;
       _verifiedOwnerIds = verifiedIds;
+      _currentUser = me;
       _suggestions = itemTitles.take(12).toList();
       _recent = itemTitles.take(12).toList();
       _loading = false;
     });
+    // Compute initial grid suggestions
+    await _recomputeNearbySuggestions();
   }
 
   @override
@@ -203,7 +213,11 @@ class _SearchSheetState extends State<_SearchSheet> {
         _categoryFilter = result['category'].toString();
       }
     });
+    // Refresh live grid after AI updated fields
+    await _recomputeNearbySuggestions();
   }
+
+  
 
   void _onQueryChangedWhat(String v) async {
     final items = await DataService.getItems();
@@ -214,6 +228,7 @@ class _SearchSheetState extends State<_SearchSheet> {
     final matches = all.where((t) => t.toLowerCase().contains(q)).toList()..sort((a, b) => a.toLowerCase().indexOf(q).compareTo(b.toLowerCase().indexOf(q)));
     setState(() => _suggestions = matches.take(10).toList());
     _updateWhatOverlay();
+    await _recomputeNearbySuggestions();
   }
 
   void _onQueryChangedWhere(String v) async {
@@ -225,6 +240,7 @@ class _SearchSheetState extends State<_SearchSheet> {
     final matches = all.where((t) => t.toLowerCase().contains(q)).toList()..sort((a, b) => a.toLowerCase().indexOf(q).compareTo(b.toLowerCase().indexOf(q)));
     setState(() => _locSuggestions = matches.take(10).toList());
     _updateWhereOverlay();
+    await _recomputeNearbySuggestions();
   }
 
   void _addToRecentWhat(String term) {
@@ -261,9 +277,109 @@ class _SearchSheetState extends State<_SearchSheet> {
     }).toList();
   }
 
+  // Live compute suggestions grid near user's city or typed "Wo"
+  Future<void> _recomputeNearbySuggestions() async {
+    if (!mounted) return;
+    try {
+      setState(() => _recomputing = true);
+      final pool = List<Item>.from(_nearby);
+      final what = _whatCtrl.text.trim().toLowerCase();
+      final whereRaw = _whereCtrl.text.trim();
+
+      // Resolve target city text
+      String targetCity = '';
+      if (whereRaw.isNotEmpty) {
+        final extracted = DataService.deriveCityFromAddress(whereRaw);
+        targetCity = extracted.isNotEmpty ? extracted : whereRaw;
+      } else {
+        targetCity = (_currentUser?.city ?? '').toString();
+      }
+
+      // Find coordinates for target city
+      (double lat, double lng)? targetCoords;
+      if (targetCity.trim().isNotEmpty) {
+        final cities = DataService.getCities();
+        for (final e in cities.entries) {
+          if (e.key.toLowerCase() == targetCity.toLowerCase()) { targetCoords = (e.value.$1, e.value.$2); break; }
+        }
+        if (targetCoords == null) {
+          for (final e in cities.entries) {
+            if (targetCity.toLowerCase().contains(e.key.toLowerCase()) || e.key.toLowerCase().contains(targetCity.toLowerCase())) { targetCoords = (e.value.$1, e.value.$2); break; }
+          }
+        }
+      }
+
+      // Filter by what/price/category
+      List<Item> candidates = pool.where((it) {
+        final matchWhat = what.isEmpty || it.title.toLowerCase().contains(what) || it.tags.any((t) => t.toLowerCase().contains(what));
+        final matchesPriceMin = _priceMin == null || it.pricePerDay >= _priceMin!;
+        final matchesPriceMax = _priceMax == null || it.pricePerDay <= _priceMax!;
+        final matchesCategory = _categoryFilter == null ||
+            it.title.toLowerCase().contains(_categoryFilter!.toLowerCase()) ||
+            it.tags.any((t) => t.toLowerCase().contains(_categoryFilter!.toLowerCase()));
+        return matchWhat && matchesPriceMin && matchesPriceMax && matchesCategory;
+      }).toList();
+
+      // Sort by distance to target or by recency
+      if (targetCoords != null) {
+        candidates.sort((a, b) {
+          final da = DataService.estimateDistanceKm(a.lat, a.lng, targetCoords!.$1, targetCoords!.$2);
+          final db = DataService.estimateDistanceKm(b.lat, b.lng, targetCoords!.$1, targetCoords!.$2);
+          return da.compareTo(db);
+        });
+        // Keep items within ~60km for "in der Nähe"
+        candidates = candidates.where((it) => DataService.estimateDistanceKm(it.lat, it.lng, targetCoords!.$1, targetCoords!.$2) <= 60).toList();
+      } else {
+        candidates.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      }
+
+      // Optional availability filter when a date range is set
+      List<Item> available = candidates;
+      if (_pickup != null && _return != null) {
+        final start = _pickup!;
+        final end = _return!;
+        final subset = candidates.take(80).toList();
+        final checks = await Future.wait(subset.map((it) => DataService.checkAvailability(itemId: it.id, start: start, end: end)));
+        available = [for (int i = 0; i < subset.length; i++) if (checks[i]) subset[i]];
+      }
+
+      setState(() {
+        _displayNearby = available.take(16).toList();
+      });
+    } catch (e) {
+      debugPrint('[_SearchSheet] recompute suggestions failed: ' + e.toString());
+    } finally {
+      if (mounted) setState(() => _recomputing = false);
+    }
+  }
+
   void _openResults() {
     final items = _filteredResults();
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => SeeAllScreen(title: 'Ergebnisse', items: items)));
+    String buildQueryText() {
+      final w = _whatCtrl.text.trim();
+      final loc = _whereCtrl.text.trim();
+      if (w.isNotEmpty && loc.isNotEmpty) return '$w in $loc';
+      if (w.isNotEmpty) return w;
+      if (loc.isNotEmpty) return loc;
+      return 'Suche';
+    }
+    String? buildDateText() {
+      if (_pickup == null || _return == null) return null;
+      final months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+      final s = _pickup!;
+      final e = _return!;
+      final left = '${s.day}. ${months[s.month - 1]}';
+      final right = '${e.day}. ${months[e.month - 1]}';
+      return '$left – $right';
+    }
+    final query = buildQueryText();
+    final date = buildDateText();
+    // Push results as a full screen above the overlay so Back returns to KI-Suche
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => SearchResultsScreen(queryText: query, dateText: date, results: items),
+      ),
+    );
   }
 
   void _clearAll() {
@@ -279,6 +395,8 @@ class _SearchSheetState extends State<_SearchSheet> {
     });
     _hideWhatOverlay();
     _hideWhereOverlay();
+    // Reset suggestions to defaults near user's city
+    _recomputeNearbySuggestions();
   }
 
   Size? _sizeOf(GlobalKey key) {
@@ -332,12 +450,13 @@ class _SearchSheetState extends State<_SearchSheet> {
             icon: Icons.search,
             query: _whatCtrl.text,
             suggestions: _suggestions,
-            onTap: (s) {
+            onTap: (s) async {
               setState(() => _whatCtrl.text = s);
               _whatCtrl.selection = TextSelection.fromPosition(TextPosition(offset: _whatCtrl.text.length));
               _addToRecentWhat(s);
               _hideWhatOverlay();
               _whatFocus.unfocus();
+              await _recomputeNearbySuggestions();
             },
             onClose: _hideWhatOverlay,
           ),
@@ -394,11 +513,12 @@ class _SearchSheetState extends State<_SearchSheet> {
             icon: Icons.place_outlined,
             query: _whereCtrl.text,
             suggestions: _locSuggestions,
-            onTap: (s) {
+            onTap: (s) async {
               setState(() => _whereCtrl.text = s);
               _whereCtrl.selection = TextSelection.fromPosition(TextPosition(offset: _whereCtrl.text.length));
               _hideWhereOverlay();
               _whereFocus.unfocus();
+              await _recomputeNearbySuggestions();
             },
             onClose: _hideWhereOverlay,
           ),
@@ -463,7 +583,7 @@ class _SearchSheetState extends State<_SearchSheet> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        // AI-Suche Feld (ganz oben)
+        // KI-Suche Feld (ganz oben)
         Container(
           decoration: BoxDecoration(
             color: primary.withValues(alpha: 0.08),
@@ -477,7 +597,7 @@ class _SearchSheetState extends State<_SearchSheet> {
               Row(children: [
                 Icon(Icons.auto_awesome, color: primary, size: 16),
                 const SizedBox(width: 6),
-                Text('AI-Suche', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: primary)),
+                Text('KI-Suche', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: primary)),
               ]),
               const SizedBox(height: 6),
               TextField(
@@ -487,12 +607,12 @@ class _SearchSheetState extends State<_SearchSheet> {
                 maxLines: 2,
                 minLines: 1,
                 textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                   border: InputBorder.none,
-                  hintText: 'Beschreibe, was du suchst (z. B. Was, Wo, Ab wann, Dauer)…',
-                  hintStyle: TextStyle(color: Colors.white60, fontSize: 12),
+                   hintText: 'z. B. „Bohrmaschine in Berlin ab heute für 3 Tage“',
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 12),
                 ),
                 onChanged: (v) {
                   _parseAIPrompt(v);
@@ -502,11 +622,7 @@ class _SearchSheetState extends State<_SearchSheet> {
                   _aiFocus.unfocus();
                 },
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Beispiel: "Bohrmaschine in Berlin ab nächsten Freitag für 1 Woche"',
-                style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.5)),
-              ),
+              // Beispieltext entfernt – bewusst minimaler Platz unter dem Feld
             ],
           ),
         ),
@@ -572,7 +688,7 @@ class _SearchSheetState extends State<_SearchSheet> {
           label: 'Wann',
           trailingIcon: Icons.event_available_rounded,
           child: InkWell(
-            onTap: _openDateTimeFlow,
+            onTap: () async { await _openDateTimeFlow(); await _recomputeNearbySuggestions(); },
             borderRadius: BorderRadius.circular(10),
             child: SizedBox(
               height: 56,
@@ -625,51 +741,43 @@ class _SearchSheetState extends State<_SearchSheet> {
                 ),
             ]),
           ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Text('Zuletzt gesucht', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: primary)),
-        ),
-        const SizedBox(height: 6),
-        LayoutBuilder(builder: (context, c) {
-          final chips = _recent;
-          return Wrap(spacing: 8, runSpacing: 8, children: [
-            for (final term in chips)
-              ActionChip(
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-                backgroundColor: Colors.white.withValues(alpha: 0.08),
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
-                label: Text(term, maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false, style: const TextStyle(color: Colors.white, fontSize: 11)),
-                onPressed: () { setState(() => _whatCtrl.text = term); },
-              ),
-          ]);
-        }),
-        const SizedBox(height: 20),
+        // "Zuletzt gesucht" Abschnitt entfernt
+        const SizedBox(height: 12),
         Text('Vorschläge in der Nähe', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: Colors.white)),
         const SizedBox(height: 8),
-        _loading
+        (_loading || _recomputing)
             ? const Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)))
-            : Column(children: [
-                GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  itemCount: (_nearby.length >= 16) ? 16 : _nearby.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4, crossAxisSpacing: 8, mainAxisSpacing: 8, childAspectRatio: 4/3),
-                  itemBuilder: (context, i) {
-                    final it = _nearby[i];
-                    final ownerVerified = _verifiedOwnerIds.contains(it.ownerId);
-                    final owner = _usersById[it.ownerId];
-                    return _MiniItem(
-                      item: it,
-                      ownerVerified: ownerVerified,
-                      rating: owner?.avgRating ?? 0.0,
-                      reviews: owner?.reviewCount ?? 0,
-                      onTap: () => ItemDetailsOverlay.showFullPage(context, item: it, owner: owner),
+            : (_displayNearby.isEmpty
+                ? const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Keine passenden Vorschläge', style: TextStyle(color: Colors.white70, fontSize: 12)))
+                : LayoutBuilder(builder: (context, constraints) {
+                    // Grid: 3 Anzeigen pro Zeile, 5 Zeilen max (=> bis zu 15 Items)
+                    final itemCount = _displayNearby.length > 15 ? 15 : _displayNearby.length;
+                    const crossAxisCount = 3;
+                    const spacing = 10.0;
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: spacing,
+                        mainAxisSpacing: spacing,
+                        childAspectRatio: 1,
+                      ),
+                      itemCount: itemCount,
+                      itemBuilder: (context, index) {
+                        final it = _displayNearby[index];
+                        final ownerVerified = _verifiedOwnerIds.contains(it.ownerId);
+                        final owner = _usersById[it.ownerId];
+                        return _MiniItem(
+                          item: it,
+                          ownerVerified: ownerVerified,
+                          rating: 0,
+                          reviews: 0,
+                          onTap: () => ItemDetailsOverlay.showFullPage(context, item: it, owner: owner),
+                        );
+                      },
                     );
-                  },
-                ),
-              ]),
+                  })),
         const SizedBox(height: 0),
       ]),
     );
@@ -814,15 +922,106 @@ class _MiniItem extends StatelessWidget {
           decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.32), border: Border.all(color: Colors.white.withValues(alpha: 0.08)), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 10, offset: const Offset(0, 6))]),
           child: Stack(children: [
             Positioned.fill(child: AppImage(url: item.photos.isNotEmpty ? item.photos.first : '', fit: BoxFit.cover)),
+            // Verification badge moved to top-right and reduced to half size
             Positioned(
-              left: 6,
+              right: 6,
               top: 6,
               child: Container(
-                width: 24,
-                height: 24,
+                width: 12,
+                height: 12,
                 decoration: BoxDecoration(color: isVerified ? const Color(0xFF22C55E) : Colors.grey, shape: BoxShape.circle),
-                child: Icon(isVerified ? Icons.verified : Icons.verified_outlined, size: 16, color: Colors.white),
+                child: Icon(isVerified ? Icons.verified : Icons.verified_outlined, size: 8, color: Colors.white),
               ),
+            ),
+              // Title overlay at the bottom for better discoverability
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.55),
+                        Colors.black.withValues(alpha: 0.20),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Text(
+                    item.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      // Slightly increased (~+1/6 of original ~11.5 => ~9.6)
+                      fontSize: 9.6,
+                      fontWeight: FontWeight.w700,
+                      height: 1.15,
+                    ),
+                  ),
+                ),
+              ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _NearbyCard extends StatelessWidget {
+  final Item item;
+  final bool verified;
+  final VoidCallback? onTap;
+  const _NearbyCard({required this.item, required this.verified, this.onTap});
+
+  String _shorten(String s, {int max = 26}) {
+    if (s.length <= max) return s;
+    // Try to cut on word boundary before max; else hard cut
+    final cut = s.substring(0, max);
+    final lastSpace = cut.lastIndexOf(' ');
+    final base = lastSpace > 12 ? cut.substring(0, lastSpace) : cut;
+    return '$base…';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final titleStyle = theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12.5);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            // Image 4:3
+            AspectRatio(aspectRatio: 4 / 3, child: AppImage(url: item.photos.isNotEmpty ? item.photos.first : '', fit: BoxFit.cover)),
+            // Title row
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+              child: Row(children: [
+                Expanded(child: Text(_shorten(item.title), maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle)),
+                if (verified)
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.45)),
+                    ),
+                    child: const Center(child: Icon(Icons.verified, size: 10, color: Colors.white)),
+                  ),
+              ]),
             ),
           ]),
         ),

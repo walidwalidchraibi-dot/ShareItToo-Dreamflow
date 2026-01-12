@@ -18,6 +18,7 @@ import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/screens/profile_screen.dart';
 import 'package:lendify/screens/my_listings_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/screens/explore_screen_pinned_header.dart';
@@ -433,10 +434,50 @@ if (!mounted) return;
 }
 
 Future<void> _toggleFavorite(String id) async {
-await DataService.toggleSavedItem(id);
-final saved = await DataService.getSavedItemIds();
-if (!mounted) return;
-setState(() => _savedIds = saved);
+  final current = await DataService.getWishlistForItem(id);
+  if (current == null) {
+    final sel = await WishlistSelectionSheet.showAdd(context);
+    if (sel != null && sel.isNotEmpty) {
+      await DataService.setItemWishlist(id, sel);
+    }
+  } else {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              ListTile(
+                leading: Icon(Icons.swap_horiz, color: cs.primary),
+                title: const Text('In andere Wunschliste verschieben'),
+                onTap: () => Navigator.of(ctx).pop('move'),
+              ),
+              ListTile(
+                leading: Icon(Icons.delete_outline, color: cs.error),
+                title: const Text('Aus Wunschliste entfernen'),
+                onTap: () => Navigator.of(ctx).pop('remove'),
+              ),
+            ]),
+          ),
+        );
+      },
+    );
+    if (choice == 'move') {
+      final sel = await WishlistSelectionSheet.showMove(context, currentListId: current);
+      if (sel != null && sel.isNotEmpty) {
+        await DataService.setItemWishlist(id, sel);
+      }
+    } else if (choice == 'remove') {
+      await DataService.removeItemFromWishlist(id);
+    }
+  }
+  final saved = await DataService.getSavedItemIds();
+  if (!mounted) return;
+  setState(() => _savedIds = saved);
 }
 
 bool _matches(Item it) {
@@ -1299,7 +1340,7 @@ mouseCursor: SystemMouseCursors.basic,
 child: Container(
 padding: const EdgeInsets.all(6),
 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
-child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: 16, color: widget.isFavorite ? Colors.red : Colors.black54),
+ child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: 16, color: widget.isFavorite ? Colors.pinkAccent : Colors.black54),
 ),
 ),
 ),
@@ -1545,7 +1586,7 @@ class _SmallGridCardState extends State<_SmallGridCard> {
                     child: Container(
                       padding: EdgeInsets.all(iconSize * 0.35),
                       decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
-                      child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: iconSize, color: widget.isFavorite ? Colors.red : Colors.black54),
+                      child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: iconSize, color: widget.isFavorite ? Colors.pinkAccent : Colors.black54),
                     ),
                   ),
                 ),
@@ -1662,7 +1703,7 @@ mouseCursor: SystemMouseCursors.basic,
 child: Container(
 padding: const EdgeInsets.all(6),
 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
-child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: 16, color: widget.isFavorite ? Colors.red : Colors.black54),
+ child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: 16, color: widget.isFavorite ? Colors.pinkAccent : Colors.black54),
 ),
 ),
 ),

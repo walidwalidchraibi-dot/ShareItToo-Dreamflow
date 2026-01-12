@@ -32,16 +32,17 @@ class OpenAIConfig {
           'messages': [
             {
               'role': 'system',
-              'content': '''Du bist ein intelligenter Parser für eine Miet-App. Extrahiere aus der natürlichen Sprache des Nutzers die folgenden Felder:
+              'content': '''Du bist ein intelligenter Parser für eine Miet-App. Extrahiere aus der natürlichen Sprache des Nutzers die folgenden Felder UND korrigiere Tippfehler in sinnvolle, echte Begriffe:
 
 REGELN:
 1. "was" = der gesuchte Gegenstand (z.B. "Auto", "Bohrmaschine", "Fahrrad")
-   - Ignoriere Tippfehler und unsinnige Eingaben (z.B. "cih" → null)
-   - Ignoriere Artikel, Pronomen und Verben (ich, suche, brauche, möchte, etc.)
-   - Nur sinnvolle Gegenstände extrahieren
-   - Mindestens 3 Buchstaben
+   - Erkenne und korrigiere Tippfehler (z.B. "borhmaschiene" → "Bohrmaschine")
+   - Ignoriere Füllwörter/Verben (ich, suche, brauche, möchte, etc.)
+   - Nur sinnvolle Gegenstände extrahieren; wenn der Text unsinnig ist → null
+   - Nutze sinnvolle Groß-/Kleinschreibung
 
 2. "wo" = Ort oder Stadt (z.B. "München", "Berlin", "Hamburg")
+   - Erkenne und korrigiere Tippfehler und Schreibvarianten ("munchen"/"muenchen" → "München")
    - Nur echte Ortsnamen, keine Gegenstände
    - Wenn der Nutzer "Auto in München" sagt: was="Auto", wo="München"
    - Wenn kein Ort erkennbar ist → null

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -18,6 +19,7 @@ import 'package:lendify/utils/category_label.dart';
 import 'package:lendify/services/ai_price_calculator_service.dart';
 import 'package:lendify/openai/openai_config.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
+import 'package:lendify/widgets/selection_controls.dart';
 
 // Google Maps Places API key (configure in Dreamflow as environment variable)
 const String kGoogleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
@@ -57,6 +59,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   bool _offersPickupAtReturn = false;    // Abholung bei Rückgabe (Rückweg)
   bool _offersExpressAtDropoff = false;  // Deprecated: Prioritäts-/Expresslieferung (nicht mehr angeboten)
   double? _maxDistanceKm; // applies to both delivery and pickup (simple model)
+  // Master toggle for Liefer- & Abholoptionen (default disabled like requested)
+  bool _deliveryOptionsEnabled = false;
   // Cancellation policy
   String _cancellationPolicy = 'flexible'; // 'flexible' | 'moderate' | 'strict'
  
@@ -77,6 +81,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   PriceSuggestion? _priceSuggestion;
   String _priceStrategy = 'quick'; // 'quick' | 'premium'
   bool _hasCalculatedPrice = false;
+  // Stable market-price truth (independent of mode)
+  double? _marketPriceMin;
+  double? _marketPriceMax;
   // Debounce for live AI recalculation
   Timer? _priceRecalcDebounce;
   // Long-term discount state (threshold-based: Ab X Tagen -> Y%)
@@ -89,6 +96,14 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   double _tier3Pct = 30;
   bool _hasCalculatedDiscounts = false;
   bool _discountsTouched = false; // if user edits any tier, avoid overwriting with AI
+  // If user manually edits the price, we stop all auto-adjustments
+  bool _priceTouched = false;
+  // Track whether any % input fields are currently empty so we can restore on mode toggle
+  bool _tier1PctEmpty = false;
+  bool _tier2PctEmpty = false;
+  bool _tier3PctEmpty = false;
+  // Force-refresh discount rows when switching strategy so focused inputs also update
+  int _strategyEpoch = 0;
 
   @override
   void initState() {
@@ -112,6 +127,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       // Deprecated: no longer used, UI removed
       _offersExpressAtDropoff = false;
       _maxDistanceKm = ex.maxDeliveryKmAtDropoff ?? ex.maxPickupKmAtReturn;
+      // Enable the section by default in edit mode only if any option had been set before
+      _deliveryOptionsEnabled = _offersDeliveryAtDropoff || _offersPickupAtReturn || (_maxDistanceKm != null);
       _registeredCity = ex.city;
       _addressCtrl.text = ex.locationText;
       _selectedAddrLat = ex.lat;
@@ -450,7 +467,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     _priceRecalcDebounce = Timer(const Duration(milliseconds: 450), () async {
       await _calculatePriceSuggestion();
       if (!_discountsTouched) {
-        await _calculateDiscountSuggestion();
+        _applyModeDiscountPreset();
       }
     });
   }
@@ -637,63 +654,75 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     );
     
     setState(() {
-      final dailyPrice = result['dailyPrice'] as double;
-      final weeklyPrice = result['weeklyPrice'] as double;
-      final reasoning = result['reasoning'] as String;
-      
-      // Adjust based on strategy
-      final adjustedDaily = _priceStrategy == 'quick' ? dailyPrice * 0.85 : dailyPrice * 1.15;
-      final adjustedWeekly = _priceStrategy == 'quick' ? weeklyPrice * 0.85 : weeklyPrice * 1.15;
-      
+      // Be defensive: values may come back as int on web → cast via num
+      final dailyPrice = (result['dailyPrice'] as num).toDouble();
+      final weeklyPrice = (result['weeklyPrice'] as num).toDouble();
+      final reasoning = (result['reasoning'] as String);
+
+      // IMPORTANT: One market-price truth (independent of mode)
+      final mMin = (dailyPrice * 0.9);
+      final mMax = (dailyPrice * 1.1);
+      _marketPriceMin = mMin;
+      _marketPriceMax = mMax;
+
       _priceSuggestion = PriceSuggestion(
-        dailyPriceMin: adjustedDaily * 0.9,
-        dailyPriceMax: adjustedDaily * 1.1,
-        weeklyPriceMin: adjustedWeekly * 0.9,
-        weeklyPriceMax: adjustedWeekly * 1.1,
+        dailyPriceMin: mMin,
+        dailyPriceMax: mMax,
+        weeklyPriceMin: weeklyPrice * 0.9,
+        weeklyPriceMax: weeklyPrice * 1.1,
         reasoning: reasoning,
-        optimizationTip: _priceStrategy == 'quick' 
-          ? 'Niedrigerer Preis erhöht Buchungswahrscheinlichkeit um bis zu 40%'
-          : 'Premium-Preis für maximalen Gewinn – ideal für Luxus-Artikel',
+        // Keep messaging neutral and factual – no % promises
+        optimizationTip: 'Richte den Preis an der Marktspanne aus und nutze Rabatte sinnvoll.',
       );
       _hasCalculatedPrice = true;
     });
 
-    // Also try discount suggestion if not yet calculated or when strategy changes
+    // Auto-fill the price field based on selected mode unless user has manually edited
+    if (!_priceTouched) {
+      _autofillPriceFromMarket();
+    }
+
+    // Also set discount presets based on mode unless manually edited
     if (!_hasCalculatedDiscounts || !_discountsTouched) {
-      await _calculateDiscountSuggestion();
+      _applyModeDiscountPreset();
     }
   }
 
-  Future<void> _calculateDiscountSuggestion() async {
-    if (_titleCtrl.text.trim().isEmpty || _categoryId == null || _addressCtrl.text.trim().isEmpty) return;
-    // Respect manual edits
-    if (_discountsTouched) return;
-    final cat = _categories.firstWhere((c) => c.id == _categoryId, orElse: () => _categories.first);
-    final categoryName = DataService.coarseCategoryFor(cat.name);
-    try {
-      final rsp = await OpenAIConfig.suggestDiscountTiers(
-        title: _titleCtrl.text.trim(),
-        description: _descCtrl.text.trim(),
-        category: categoryName,
-        condition: _condition,
-        location: _addressCtrl.text.trim(),
-        strategy: _priceStrategy,
-      );
-      final tiers = (rsp['tiers'] as List?) ?? [];
-      if (tiers.length >= 3) {
-        setState(() {
-          _tier1Days = (tiers[0]['days'] as num?)?.toInt() ?? _tier1Days;
-          _tier1Pct = (tiers[0]['discount'] as num?)?.toDouble() ?? _tier1Pct;
-          _tier2Days = (tiers[1]['days'] as num?)?.toInt() ?? _tier2Days;
-          _tier2Pct = (tiers[1]['discount'] as num?)?.toDouble() ?? _tier2Pct;
-          _tier3Days = (tiers[2]['days'] as num?)?.toInt() ?? _tier3Days;
-          _tier3Pct = (tiers[2]['discount'] as num?)?.toDouble() ?? _tier3Pct;
-          _hasCalculatedDiscounts = true;
-        });
+  // Apply fixed, mode-based discount presets unless user touched them
+  void _applyModeDiscountPreset({bool force = false}) {
+    if (_discountsTouched && !force) return;
+    setState(() {
+      if (_priceStrategy == 'quick') {
+        // Schnell vermieten – aggressive Rabatte
+        _tier1Days = 3; _tier1Pct = 15;
+        _tier2Days = 5; _tier2Pct = 25;
+        _tier3Days = 8; _tier3Pct = 35;
+      } else {
+        // Maximaler Gewinn – moderate Rabatte
+        _tier1Days = 3; _tier1Pct = 8;
+        _tier2Days = 5; _tier2Pct = 15;
+        _tier3Days = 8; _tier3Pct = 25;
       }
-    } catch (e) {
-      // ignore, keep defaults
-    }
+      _hasCalculatedDiscounts = true;
+      // After presetting, consider inputs no longer empty
+      _tier1PctEmpty = false;
+      _tier2PctEmpty = false;
+      _tier3PctEmpty = false;
+    });
+  }
+
+  // Compute price from market range according to current mode
+  void _autofillPriceFromMarket() {
+    final min = _marketPriceMin;
+    final max = _marketPriceMax;
+    if (min == null || max == null) return;
+    // Small offset to avoid exact boundary numbers
+    const double offset = 1.0;
+    double price = _priceStrategy == 'quick' ? (min + offset) : (max - offset);
+    // Clamp to [min, max]
+    if (price < min) price = min;
+    if (price > max) price = max;
+    _priceCtrl.text = price.toStringAsFixed(price.truncateToDouble() == price ? 0 : 2);
   }
 
   @override
@@ -727,7 +756,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             child: Form(
               key: _formKey,
               child: Column(children: [
-                _Section(title: 'Kategorie', child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                _Section(
+                  title: 'Kategorie',
+                  leading: const Icon(Icons.widgets_outlined, color: Colors.lightBlueAccent, size: 18),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   InkWell(
                     onTap: _pickCategory,
                     borderRadius: BorderRadius.circular(12),
@@ -752,7 +784,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 ])),
                 const SizedBox(height: 12),
                 const SizedBox(height: 12),
-                _Section(title: 'Details', child: Column(children: [
+                _Section(
+                  title: 'Details',
+                  leading: const Icon(Icons.description_outlined, color: Colors.lightBlueAccent, size: 18),
+                  child: Column(children: [
                   TextFormField(
                     controller: _titleCtrl,
                     style: const TextStyle(color: Colors.white),
@@ -771,31 +806,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   ),
                 ])),
                 const SizedBox(height: 12),
-                _Section(title: 'Zustand', child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: [
-                    _BlueChoice(label: 'Neu', selected: _condition == 'new', onTap: () { setState(() => _condition = 'new'); _schedulePriceRecalc(); }),
-                    const SizedBox(width: 8),
-                    _BlueChoice(label: 'wie Neu', selected: _condition == 'like-new', onTap: () { setState(() => _condition = 'like-new'); _schedulePriceRecalc(); }),
-                    const SizedBox(width: 8),
-                    _BlueChoice(label: 'Gut', selected: _condition == 'good', onTap: () { setState(() => _condition = 'good'); _schedulePriceRecalc(); }),
-                    const SizedBox(width: 8),
-                    _BlueChoice(label: 'Akzeptabel', selected: _condition == 'acceptable', onTap: () { setState(() => _condition = 'acceptable'); _schedulePriceRecalc(); }),
-                  ]),
-                )),
-                const SizedBox(height: 12),
-                // Stornierungsbedingungen: zentrierter Titel im Info-Card-Stil, identische Optik wie in BookingDetail
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.20),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-                  ),
-                  child: _OwnerCancellationInfoCard(body: CancellationPolicyText.bodyForOwnerListingCard),
-                ),
-                const SizedBox(height: 12),
-                _Section(title: 'Fotos', child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                // Fotos kommt vor Zustand
+                _Section(
+                  title: 'Fotos',
+                  leading: const Icon(Icons.photo_library_outlined, color: Colors.lightBlueAccent, size: 18),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Builder(builder: (context) {
                       final hasAnyPhotos = _existingPhotos.isNotEmpty || _pickedImages.isNotEmpty;
                       if (!hasAnyPhotos) {
@@ -840,61 +855,22 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   ),
                 ])),
                 const SizedBox(height: 12),
-                _Section(title: 'Liefer- und Abholoptionen', child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  CheckboxListTile(
-                    value: _offersDeliveryAtDropoff,
-                    onChanged: (v) => setState(() {
-                      _offersDeliveryAtDropoff = v ?? false;
-                      if (!_offersDeliveryAtDropoff) _offersExpressAtDropoff = false;
-                    }),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Lieferung bei Abgabe anbieten', style: TextStyle(color: Colors.white)),
+                _Section(
+                  title: 'Zustand',
+                  leading: const Icon(Icons.workspace_premium_outlined, color: Colors.lightBlueAccent, size: 18),
+                  child: _ConditionPager(
+                    selected: _condition,
+                    onChanged: (v) {
+                      setState(() => _condition = v);
+                      _schedulePriceRecalc();
+                    },
                   ),
-                  // Removed: Prioritätslieferung anbieten (no longer supported)
-                  CheckboxListTile(
-                    value: _offersPickupAtReturn,
-                    onChanged: (v) => setState(() => _offersPickupAtReturn = v ?? false),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Abholung bei Rückgabe anbieten', style: TextStyle(color: Colors.white)),
-                  ),
-                  if (_offersDeliveryAtDropoff || _offersPickupAtReturn) ...[
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      initialValue: _maxDistanceKm?.toStringAsFixed(1),
-                      onChanged: (v) => _maxDistanceKm = double.tryParse(v.replaceAll(',', '.')),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: 'Maximale Entfernung (einfache Fahrt) in km',
-                        // Make the label more subtle/smaller when the field appears
-                        labelStyle: TextStyle(color: Colors.white70, fontSize: 12),
-                        floatingLabelStyle: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 6),
-                  const Text('Wenn nichts aktiviert ist, muss der Mieter selbst abholen und zurückbringen.', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                  const SizedBox(height: 8),
-                  _Accordion(
-                    title: 'Vergütung für Fahrtaufwand',
-                    initiallyExpanded: false,
-                    bare: true,
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Vergütung: 0,30 € pro tatsächlich zu fahrendem Kilometer (Hin- und Rückfahrt).', style: TextStyle(color: Colors.white70, height: 1.4)),
-                        SizedBox(height: 6),
-                        Text('Die Mindestvergütung für eine Lieferung oder Abholung beträgt jeweils 3,00 €.', style: TextStyle(color: Colors.white70, height: 1.4)),
-                        SizedBox(height: 6),
-                        Text('Die Vergütung für Lieferung und/oder Abholung wird automatisch anhand der Entfernung berechnet.', style: TextStyle(color: Colors.white70, height: 1.4)),
-                      ],
-                    ),
-                  ),
-                ])),
+                ),
                 const SizedBox(height: 12),
-                _Section(title: 'Ort', child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _Section(
+                  title: 'Adresse',
+                  leading: const Icon(Icons.place_outlined, color: Colors.lightBlueAccent, size: 18),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   _AddressAutocompleteField(
                     controller: _addressCtrl,
                     onPlaceChosen: (d) {
@@ -928,40 +904,133 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     ),
                   ),
                 ])),
+                const SizedBox(height: 12),
+                _Section(
+                  title: 'Liefer- & Abholoptionen',
+                  leading: const Icon(Icons.local_shipping_outlined, color: Colors.lightBlueAccent, size: 18),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    // Activation switch like the Preisnachlass section (switch on the right)
+                    SwitchListTile(
+                      value: _deliveryOptionsEnabled,
+                      onChanged: (v) => setState(() {
+                        _deliveryOptionsEnabled = v;
+                        if (!v) {
+                          // Reset inner options when disabled to avoid accidental persistence
+                          _offersDeliveryAtDropoff = false;
+                          _offersPickupAtReturn = false;
+                          _offersExpressAtDropoff = false;
+                          _maxDistanceKm = null;
+                        }
+                      }),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        _deliveryOptionsEnabled
+                            ? 'Liefer- & Abholoptionen deaktivieren'
+                            : 'Liefer- & Abholoptionen aktivieren',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    if (_deliveryOptionsEnabled) ...[
+                      const SizedBox(height: 4),
+                      ToggleTextOption(
+                        label: 'Lieferung bei Abgabe anbieten',
+                        selected: _offersDeliveryAtDropoff,
+                        onTap: () => setState(() {
+                          _offersDeliveryAtDropoff = !_offersDeliveryAtDropoff;
+                          if (!_offersDeliveryAtDropoff) _offersExpressAtDropoff = false;
+                        }),
+                      ),
+                      // Removed: Prioritätslieferung anbieten (no longer supported)
+                      ToggleTextOption(
+                        label: 'Abholung bei Rückgabe anbieten',
+                        selected: _offersPickupAtReturn,
+                        onTap: () => setState(() => _offersPickupAtReturn = !_offersPickupAtReturn),
+                      ),
+                      if (_offersDeliveryAtDropoff || _offersPickupAtReturn) ...[
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          initialValue: _maxDistanceKm?.toStringAsFixed(1),
+                          onChanged: (v) => _maxDistanceKm = double.tryParse(v.replaceAll(',', '.')),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          style: const TextStyle(color: Colors.white),
+                          decoration: const InputDecoration(
+                            labelText: 'Maximale Entfernung (einfache Fahrt) in km',
+                            // Make the label more subtle/smaller when the field appears
+                            labelStyle: TextStyle(color: Colors.white70, fontSize: 12),
+                            floatingLabelStyle: TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 6),
+                      const Text('Wenn nichts aktiviert ist, muss der Mieter selbst abholen und zurückbringen.', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      const SizedBox(height: 8),
+                      _Accordion(
+                        title: 'Vergütung für Fahrtaufwand',
+                        initiallyExpanded: false,
+                        bare: true,
+                        child: const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Vergütung: 0,30 € pro tatsächlich zu fahrendem Kilometer (Hin- und Rückfahrt).', style: TextStyle(color: Colors.white70, height: 1.4)),
+                            SizedBox(height: 6),
+                            Text('Die Mindestvergütung für eine Lieferung oder Abholung beträgt jeweils 3,00 €.', style: TextStyle(color: Colors.white70, height: 1.4)),
+                            SizedBox(height: 6),
+                            Text('Die Vergütung für Lieferung und/oder Abholung wird automatisch anhand der Entfernung berechnet.', style: TextStyle(color: Colors.white70, height: 1.4)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ]),
+                ),
                 // Removed per request: Preisberechnung & Gebühren infocard
                 const SizedBox(height: 12),
-                _Section(title: 'Preis', child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _Section(
+                  title: 'Preis',
+                  leading: const Icon(Icons.euro_outlined, color: Colors.lightBlueAccent, size: 18),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   // AI Price Calculator Card
                   _AIPriceCalculatorCard(
                     suggestion: _priceSuggestion,
                     strategy: _priceStrategy,
                     onStrategyChanged: (v) {
-                      setState(() => _priceStrategy = v);
-          _calculatePriceSuggestion();
-          // Also adjust discount tiers based on strategy unless user edited
-          if (!_discountsTouched) { _calculateDiscountSuggestion(); }
+                      // Always re-apply mode defaults when switching strategy
+                      setState(() {
+                        _priceStrategy = v;
+                        // bump epoch to recreate discount inputs, ensuring visible values refresh even if focused
+                        _strategyEpoch++;
+                        // Reset manual override so the mode can take full effect
+                        _priceTouched = false;
+                      });
+                      _autofillPriceFromMarket();
+                      // Always reset the discount preset for the chosen mode
+                      _applyModeDiscountPreset(force: true);
                     },
                     onRecalculate: _calculatePriceSuggestion,
                     canCalculate: _titleCtrl.text.trim().isNotEmpty && _categoryId != null && _addressCtrl.text.trim().isNotEmpty,
                   ),
                   const SizedBox(height: 12),
-                  Row(children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _priceCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(color: Colors.white),
-                        decoration: const InputDecoration(prefixText: '€ ', labelText: 'Preis', floatingLabelBehavior: FloatingLabelBehavior.auto),
-                        validator: (v) {
-                          final n = double.tryParse((v ?? '').replaceAll(',', '.'));
-                          if (n == null || n <= 0) return 'Gültigen Preis eingeben';
-                          return null;
-                        },
-                      ),
+                  TextFormField(
+                    controller: _priceCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Preis',
+                      floatingLabelBehavior: FloatingLabelBehavior.auto,
+                      suffixText: ' Euro/Tag',
                     ),
-                    const SizedBox(width: 12),
-                    _FixedUnitSelector(value: _priceUnit, onChanged: (v) => setState(() => _priceUnit = v)),
-                  ]),
+                    onChanged: (_) => setState(() { _priceTouched = true; }),
+                    validator: (v) {
+                      final n = double.tryParse((v ?? '').replaceAll(',', '.'));
+                      if (n == null || n <= 0) return 'Gültigen Preis eingeben';
+                      return null;
+                    },
+                  ),
+                  if (_priceTouched)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 6),
+                      child: Text('Du hast den Preis manuell angepasst.', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ),
                   const SizedBox(height: 12),
                   // Long-term discount editor
                   Container(
@@ -978,36 +1047,48 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                         const Text('Preisnachlass bei längerer Mietdauer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                       ]),
                       const SizedBox(height: 6),
-                      // Switch on top: Preisnachlass aktivieren
+                      // Switch on top: Preisnachlass – toggles label based on state
                       SwitchListTile(
                         value: _autoApplyDiscounts,
                         onChanged: (v) => setState(() => _autoApplyDiscounts = v),
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Preisnachlass aktivieren', style: TextStyle(color: Colors.white)),
+                        title: Text(
+                          _autoApplyDiscounts ? 'Preisnachlass deaktivieren' : 'Preisnachlass aktivieren',
+                          style: const TextStyle(color: Colors.white),
+                        ),
                       ),
                       if (_autoApplyDiscounts) ...[
                         const SizedBox(height: 4),
                         const SizedBox(height: 6),
                         _ThresholdDiscountRow(
+                           key: ValueKey('tier1_'+_strategyEpoch.toString()),
                           days: _tier1Days,
                           percent: _tier1Pct,
+                          pricePerDay: double.tryParse(_priceCtrl.text.replaceAll(',', '.')) ?? 0.0,
                           onDaysChanged: (v) => setState(() { _tier1Days = v; _discountsTouched = true; }),
-                          onPercentChanged: (v) => setState(() { _tier1Pct = v; _discountsTouched = true; }),
+                           onPercentChanged: (v) => setState(() { _tier1Pct = v; _tier1PctEmpty = false; _discountsTouched = true; }),
+                           onPercentEmptyChanged: (isEmpty) => setState(() { _tier1PctEmpty = isEmpty; }),
                         ),
                         const SizedBox(height: 6),
                         _ThresholdDiscountRow(
+                           key: ValueKey('tier2_'+_strategyEpoch.toString()),
                           days: _tier2Days,
                           percent: _tier2Pct,
+                          pricePerDay: double.tryParse(_priceCtrl.text.replaceAll(',', '.')) ?? 0.0,
                           onDaysChanged: (v) => setState(() { _tier2Days = v; _discountsTouched = true; }),
-                          onPercentChanged: (v) => setState(() { _tier2Pct = v; _discountsTouched = true; }),
+                           onPercentChanged: (v) => setState(() { _tier2Pct = v; _tier2PctEmpty = false; _discountsTouched = true; }),
+                           onPercentEmptyChanged: (isEmpty) => setState(() { _tier2PctEmpty = isEmpty; }),
                         ),
                         const SizedBox(height: 6),
                         _ThresholdDiscountRow(
+                           key: ValueKey('tier3_'+_strategyEpoch.toString()),
                           days: _tier3Days,
                           percent: _tier3Pct,
+                          pricePerDay: double.tryParse(_priceCtrl.text.replaceAll(',', '.')) ?? 0.0,
                           onDaysChanged: (v) => setState(() { _tier3Days = v; _discountsTouched = true; }),
-                          onPercentChanged: (v) => setState(() { _tier3Pct = v; _discountsTouched = true; }),
+                           onPercentChanged: (v) => setState(() { _tier3Pct = v; _tier3PctEmpty = false; _discountsTouched = true; }),
+                           onPercentEmptyChanged: (isEmpty) => setState(() { _tier3PctEmpty = isEmpty; }),
                         ),
                         const SizedBox(height: 8),
                         const Text('Rabattstaffel wird automatisch in allen Preisvorschauen berücksichtigt.', style: TextStyle(color: Colors.white70, fontSize: 12)),
@@ -1022,27 +1103,24 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text('AI‑Tipp', style: TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.w700)),
                             SizedBox(height: 6),
-                            Text('Für ähnliche Objekte in dieser Kategorie sind Rabatte wie oben angegeben zu empfehlen, um Mietfrequenz und Mietdauer zu erhöhen. Du kannst die Staffelung anpassen oder komplett deaktivieren.', style: TextStyle(color: Colors.white70)),
+                             Text('Für ähnliche Objekte in dieser Kategorie sind Rabatte wie oben angegeben zu empfehlen, um Mietfrequenz und Mietdauer zu erhöhen. Du kannst den Preis und die Staffelung anpassen oder komplett deaktivieren.', style: TextStyle(color: Colors.white70)),
                           ]),
                         ),
                       ],
                     ]),
                   ),
-                  const SizedBox(height: 12),
-                  _Accordion(
-                    title: 'Hinweis zur Preisgestaltung',
-                    initiallyExpanded: false,
-                    bare: true,
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _Bullet(text: 'Niedrigere Mietpreise erhöhen die Wahrscheinlichkeit, dass dein Artikel gebucht wird. Ein etwas günstigerer Preis, der mehrfach vermietet wird, ist langfristig oft profitabler als ein hoher Preis mit seltener Vermietung.'),
-                        SizedBox(height: 4),
-                        _Bullet(text: 'Die AI hilft dir, faire und marktgerechte Preise anhand deiner Artikeldaten und der Nachfrage festzulegen, damit möglichst viele Mieter den Preis akzeptieren und reservieren.'),
-                      ],
-                    ),
-                  ),
                 ])),
+                // Preis-Section Ende – ab hier Inhalte außerhalb der Preis-Karte
+                // Stornierungsbedingungen außerhalb der Preis-Karte und oberhalb des Erstellen-Buttons
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.20),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                  ),
+                  child: _OwnerCancellationInfoCard(body: CancellationPolicyText.bodyForOwnerListingCard),
+                ),
                 const SizedBox(height: 20),
                 Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   FilledButton.icon(
@@ -1067,21 +1145,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   }
 }
 
-class _FixedUnitSelector extends StatelessWidget {
-  final String value; final ValueChanged<String> onChanged;
-  const _FixedUnitSelector({required this.value, required this.onChanged});
-  @override
-  Widget build(BuildContext context) {
-    // Only "Tag" is available and permanently selected (blue)
-    // Keep calling onChanged with 'day' to normalize state upstream when needed.
-    if (value != 'day') {
-      // This is safe here: it just normalizes the state in parent on next frame.
-      // ignore: invalid_use_of_protected_member
-      WidgetsBinding.instance.addPostFrameCallback((_) => onChanged('day'));
-    }
-    return _BlueChoice(label: 'Tag', selected: true, onTap: () { /* fixed selection */ });
-  }
-}
+// Unit selector removed: pricing is fixed per Tag and indicated inline as suffix
 
 class _BlueChoice extends StatelessWidget {
   final String label; final bool selected; final VoidCallback onTap;
@@ -1099,6 +1163,94 @@ class _BlueChoice extends StatelessWidget {
           border: Border.all(color: selected ? Theme.of(context).colorScheme.primary : Colors.white.withValues(alpha: 0.20)),
         ),
         child: Text(label, style: TextStyle(color: selected ? Colors.black : Colors.white, fontWeight: FontWeight.w600)),
+      ),
+    );
+  }
+}
+
+class _ConditionPager extends StatefulWidget {
+  final String selected; final ValueChanged<String> onChanged;
+  const _ConditionPager({required this.selected, required this.onChanged});
+  @override
+  State<_ConditionPager> createState() => _ConditionPagerState();
+}
+
+class _ConditionPagerState extends State<_ConditionPager> {
+  late final PageController _controller;
+  int _currentIndex = 0;
+  static const List<String> _labels = ['Wie neu', 'Gut gepflegt', 'Gebrauchsspuren'];
+  static const List<String> _keys = ['like-new', 'good', 'acceptable'];
+
+  int _indexFor(String sel) {
+    switch (sel) {
+      case 'like-new': return 0;
+      case 'good': return 1;
+      case 'acceptable': return 2;
+      case 'new': return 0; // map legacy "Neu" to "Wie neu"
+      default: return 1;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = _indexFor(widget.selected);
+    _controller = PageController(initialPage: _currentIndex, viewportFraction: 0.5);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ConditionPager oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newIndex = _indexFor(widget.selected);
+    if (newIndex != _currentIndex) {
+      _currentIndex = newIndex;
+      // Jump without animation to reflect external change
+      if (_controller.hasClients) {
+        _controller.jumpToPage(_currentIndex);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    return SizedBox(
+      height: 56,
+      child: PageView.builder(
+        controller: _controller,
+        physics: const BouncingScrollPhysics(),
+        onPageChanged: (i) {
+          setState(() => _currentIndex = i);
+          if (i >= 0 && i < _keys.length) widget.onChanged(_keys[i]);
+        },
+        itemCount: _labels.length,
+        itemBuilder: (context, i) {
+          final selected = i == _currentIndex;
+          // Ensure each page consumes exactly half of the card width to reveal half-neighbors
+          final itemWidth = width * 0.5;
+          return Center(
+            child: SizedBox(
+              width: itemWidth - 16, // slight breathing space so the chip isn't full-bleed
+              child: Center(
+                child: _BlueChoice(
+                  label: _labels[i],
+                  selected: selected,
+                  onTap: () {
+                    if (_controller.hasClients) {
+                      _controller.animateToPage(i, duration: const Duration(milliseconds: 220), curve: Curves.easeOut);
+                    }
+                  },
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -1209,8 +1361,8 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
 }
 
 class _Section extends StatelessWidget {
-  final String title; final Widget child;
-  const _Section({required this.title, required this.child});
+  final String title; final Widget child; final Widget? leading; final Widget? trailing;
+  const _Section({required this.title, required this.child, this.leading, this.trailing});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -1222,7 +1374,15 @@ class _Section extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+        if (leading == null && trailing == null)
+          Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w700))
+        else
+          Row(children: [
+            if (leading != null) leading!,
+            if (leading != null) const SizedBox(width: 8),
+            Expanded(child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w700))),
+            if (trailing != null) ...[const SizedBox(width: 8), trailing!],
+          ]),
         const SizedBox(height: 8),
         child,
       ]),
@@ -1252,6 +1412,9 @@ class _AddPhotoTile extends StatelessWidget {
     );
   }
 }
+
+// Compact toggle tile with a blue circular indicator (no check glyph)
+// _BlueDotToggleTile removed in favor of shared ToggleTextOption for consistent design.
 
 class _PickedThumb extends StatelessWidget {
   final XFile file; final VoidCallback onRemove;
@@ -1625,13 +1788,13 @@ class _AIPriceCalculatorCard extends StatelessWidget {
         Row(children: [
           const Icon(Icons.auto_awesome, color: Colors.lightBlueAccent, size: 20),
           const SizedBox(width: 8),
-          const Text('AI-Preisberechner', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+          const Text('KI-Preisberechnung', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
           const Spacer(),
           // Live recalculation enabled – manual refresh removed
         ]),
         if (!canCalculate) ...[
           const SizedBox(height: 8),
-          const Text('Bitte fülle Titel, Kategorie und Ort aus, um eine Preisempfehlung zu erhalten.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+          const Text('Bitte fülle Titel, Kategorie und Adresse aus, um eine Preisempfehlung zu erhalten.', style: TextStyle(color: Colors.white70, fontSize: 13)),
         ],
         if (canCalculate && suggestion == null) ...[
           const SizedBox(height: 8),
@@ -1671,21 +1834,25 @@ class _AIPriceCalculatorCard extends StatelessWidget {
               Row(children: [
                 const Icon(Icons.calendar_today, color: Colors.white70, size: 16),
                 const SizedBox(width: 6),
-                const Text('Tagespreis:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+                const Text('Aktueller Marktpreis (€/Tag):', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
                 const Spacer(),
                 Text('${suggestion!.dailyPriceMin.toStringAsFixed(0)}–${suggestion!.dailyPriceMax.toStringAsFixed(0)} €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
-              ]),
-              const SizedBox(height: 8),
-              Row(children: [
-                const Icon(Icons.date_range, color: Colors.white70, size: 16),
-                const SizedBox(width: 6),
-                const Text('Wochenpreis:', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
-                const Spacer(),
-                Text('${suggestion!.weeklyPriceMin.toStringAsFixed(0)}–${suggestion!.weeklyPriceMax.toStringAsFixed(0)} €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
               ]),
             ]),
           ),
           const SizedBox(height: 12),
+          // Mode-specific helper text
+          Builder(builder: (context) {
+            final help = strategy == 'quick'
+                ? 'Preis im unteren Marktbereich – erhöht die Buchungswahrscheinlichkeit.'
+                : 'Preis im oberen Marktbereich – optimiert Ertrag pro Vermietung.';
+            return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.info_outline, color: Colors.white54, size: 16),
+              const SizedBox(width: 6),
+              Expanded(child: Text(help, style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4))),
+            ]);
+          }),
+          const SizedBox(height: 8),
           // Reasoning
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Icon(Icons.info_outline, color: Colors.white54, size: 16),
@@ -1762,7 +1929,7 @@ class _DiscountRow extends StatelessWidget {
           decoration: const InputDecoration(suffixText: '%', labelText: 'Rabatt', isDense: true),
           onChanged: (v) {
             final n = double.tryParse(v.replaceAll(',', '.'));
-            if (n != null) onChanged(n.clamp(0, 95));
+            if (n != null) onChanged(n.clamp(0.0, 95.0).toDouble());
           },
         ),
       ),
@@ -1770,63 +1937,180 @@ class _DiscountRow extends StatelessWidget {
   }
 }
 
-class _ThresholdDiscountRow extends StatelessWidget {
-  final int days; final double percent; final ValueChanged<int> onDaysChanged; final ValueChanged<double> onPercentChanged;
-  const _ThresholdDiscountRow({required this.days, required this.percent, required this.onDaysChanged, required this.onPercentChanged});
+class _ThresholdDiscountRow extends StatefulWidget {
+  final int days; final double percent; final double pricePerDay; final ValueChanged<int> onDaysChanged; final ValueChanged<double> onPercentChanged; final ValueChanged<bool>? onPercentEmptyChanged;
+  const _ThresholdDiscountRow({super.key, required this.days, required this.percent, required this.pricePerDay, required this.onDaysChanged, required this.onPercentChanged, this.onPercentEmptyChanged});
+  @override
+  State<_ThresholdDiscountRow> createState() => _ThresholdDiscountRowState();
+}
+
+class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
+  late final TextEditingController _daysCtrl = TextEditingController(text: widget.days.toString());
+  late final TextEditingController _pctCtrl = TextEditingController(text: _formatPercent(widget.percent));
+  late final FocusNode _daysFocus = FocusNode();
+  late final FocusNode _pctFocus = FocusNode();
+
+  String _formatPercent(double v) => v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 1);
+
+  @override
+  void didUpdateWidget(covariant _ThresholdDiscountRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only sync controllers when field is NOT focused to avoid overriding user typing
+    final newDaysText = widget.days.toString();
+    if (!_daysFocus.hasFocus && _daysCtrl.text != newDaysText) {
+      _daysCtrl.text = newDaysText;
+    }
+    final newPctText = _formatPercent(widget.percent);
+    if (!_pctFocus.hasFocus && _pctCtrl.text != newPctText) {
+      _pctCtrl.text = newPctText;
+    }
+  }
+
+  @override
+  void dispose() {
+    _daysCtrl.dispose();
+    _pctCtrl.dispose();
+    _daysFocus.dispose();
+    _pctFocus.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final daysCtrl = TextEditingController(text: days.toString());
-    final pctCtrl = TextEditingController(text: percent.toStringAsFixed(percent.truncateToDouble() == percent ? 0 : 1));
+    final discountEuroPerDay = ((widget.pricePerDay) * (widget.percent / 100)).clamp(0.0, double.infinity).toDouble();
     return Row(children: [
-      // Days field with floating label integrated in the input's top border
-      Expanded(
-        child: TextField(
-          controller: daysCtrl,
-          keyboardType: const TextInputType.numberWithOptions(signed: false, decimal: false),
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            labelText: 'Mietdauer',
-            labelStyle: TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.w700),
-            floatingLabelStyle: TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.w700),
-            floatingLabelAlignment: FloatingLabelAlignment.center,
-            floatingLabelBehavior: FloatingLabelBehavior.always,
-            prefixText: 'Ab ',
-            suffixText: ' Tagen',
-            isDense: true,
+      // Mietdauer: slightly narrower so Rabatt gets a bit more space (~0.5 cm)
+      Flexible(
+        flex: 6, // give Mietdauer more breathing room so it stays tappable/editable
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 120), // ensure a minimum interactive width
+          child: TextField(
+            controller: _daysCtrl,
+            focusNode: _daysFocus,
+            keyboardType: const TextInputType.numberWithOptions(signed: false, decimal: false),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(2),
+            ],
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              labelText: 'Mietdauer',
+              labelStyle: TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.w700),
+              floatingLabelStyle: TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.w700),
+              floatingLabelAlignment: FloatingLabelAlignment.center,
+              floatingLabelBehavior: FloatingLabelBehavior.always,
+              prefixText: 'Ab ',
+              suffixText: ' Tagen',
+              isDense: true,
+            ),
+            onChanged: (v) {
+              final n = int.tryParse(v.replaceAll(',', '.'));
+              if (n != null) widget.onDaysChanged(n.clamp(1, 365));
+            },
           ),
-          onChanged: (v) {
-            final n = int.tryParse(v.replaceAll(',', '.'));
-            if (n != null) {
-              onDaysChanged(n.clamp(1, 365));
-            }
-          },
         ),
       ),
       const SizedBox(width: 12),
-      // Percent field with floating label integrated
-      SizedBox(
-        width: 140,
+      // Rabatt: behave like a single input (like Mietdauer). Tap to edit percent; right side shows computed €/Tag.
+      // Widen the editable area so multiple digits remain fully visible.
+      Flexible(
+        flex: 10,
         child: TextField(
-          controller: pctCtrl,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          controller: _pctCtrl,
+          focusNode: _pctFocus,
+          keyboardType: const TextInputType.numberWithOptions(signed: false, decimal: false),
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(2),
+          ],
           style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Rabatt',
-            labelStyle: TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.w700),
-            floatingLabelStyle: TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.w700),
+            labelStyle: const TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.w700),
+            floatingLabelStyle: const TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.w700),
             floatingLabelAlignment: FloatingLabelAlignment.center,
             floatingLabelBehavior: FloatingLabelBehavior.always,
-            suffixText: '%',
             isDense: true,
+            // Place '%' on the left, before the entered value, aligned across rows
+            // Ensure the prefix does not intercept taps so the field stays editable
+            prefixIcon: const IgnorePointer(child: _PercentPrefix()),
+            prefixIconConstraints: _PercentPrefix.constraints,
+            // Keep the computed "€/Tag" as a compact suffix that only takes its intrinsic width
+            // so the editable area remains wide enough to show the typed number.
+            suffix: IgnorePointer(child: _ComputedDiscountSuffix(value: discountEuroPerDay)),
           ),
           onChanged: (v) {
             final n = double.tryParse(v.replaceAll(',', '.'));
-            if (n != null) {
-              onPercentChanged(n.clamp(0, 95));
-            }
+            widget.onPercentEmptyChanged?.call(v.trim().isEmpty);
+            if (n != null) widget.onPercentChanged(n.clamp(0.0, 95.0).toDouble());
           },
         ),
       ),
+    ]);
+  }
+}
+
+class _PercentPrefix extends StatelessWidget {
+  const _PercentPrefix();
+
+  // Fixed width so '%' aligns vertically across all Rabatt rows
+  static const double _width = 24; // slimmer to free space for input
+  static final BoxConstraints constraints = const BoxConstraints(
+    minWidth: _width,
+    maxWidth: _width,
+    minHeight: 0,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: constraints.maxWidth,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          // Keep a small left inset; keep gap to the input minimal
+          padding: const EdgeInsets.only(left: 8, right: 2),
+          child: Text('%', style: const TextStyle(color: Colors.white)),
+        ),
+      ),
+    );
+  }
+}
+
+class _ComputedDiscountSuffix extends StatelessWidget {
+  final double value;
+  const _ComputedDiscountSuffix({required this.value});
+
+  // Compact layout sizes. This widget is used as InputDecoration.suffix (not suffixIcon)
+  // so it will shrink-wrap to its intrinsic width and avoid stealing space from the input text.
+  static const double _dividerWidth = 1;
+  static const double _gapBeforeDivider = 6; // pull divider closer to reclaim input width
+  static const double _gapAfterDivider = 6;
+  static const double _endPadding = 12; // ~2mm from the field's right edge
+
+  @override
+  Widget build(BuildContext context) {
+    final text = (value.isFinite ? value.toStringAsFixed(2) : '0.00') + ' €/Tag';
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      SizedBox(width: _gapBeforeDivider),
+      Container(width: _dividerWidth, height: 24, color: Colors.white24),
+      const SizedBox(width: _gapAfterDivider),
+      // Let the euro text size itself but keep it from growing too tall and clip if needed
+      Flexible(
+        fit: FlexFit.loose,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 44, maxWidth: 96),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(text, style: const TextStyle(color: Colors.white), maxLines: 1, softWrap: false),
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: _endPadding),
     ]);
   }
 }

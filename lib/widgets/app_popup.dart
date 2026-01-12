@@ -84,36 +84,46 @@ class AppPopup {
       context: context,
       barrierDismissible: barrierDismissible,
       barrierLabel: title,
-      barrierColor: Colors.black.withValues(alpha: 0.80),
+      // Keep barrier technically transparent; we render our own dimming+blur layer
+      barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 220),
       pageBuilder: (ctx, anim, secondaryAnim) {
-        return SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: Material(
-                  color: Colors.transparent,
-                  child: _GlassCard(
-                    leadingIcon: icon,
-                    leadingWidget: leadingWidget,
-                    title: title,
-                    message: message,
-                    actions: actions,
-                    onClose: () => Navigator.of(ctx).maybePop(),
-                    plainCloseIcon: plainCloseIcon,
-                    showClose: showCloseIcon,
-                    accentGradient: accentGradient,
-                    backgroundColor: backgroundColor,
-                    borderColor: borderColor,
-                    useExploreBackground: useExploreBackground,
+        return Stack(children: [
+          // Fullscreen background blur + subtle dark tint
+          Positioned.fill(
+            child: ImageFiltered(
+              imageFilter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(color: Colors.black.withValues(alpha: 0.55)),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: _GlassCard(
+                      leadingIcon: icon,
+                      leadingWidget: leadingWidget,
+                      title: title,
+                      message: message,
+                      actions: actions,
+                      onClose: () => Navigator.of(ctx).maybePop(),
+                      plainCloseIcon: plainCloseIcon,
+                      showClose: showCloseIcon,
+                      accentGradient: accentGradient,
+                      backgroundColor: backgroundColor,
+                      borderColor: borderColor,
+                      useExploreBackground: useExploreBackground,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        );
+        ]);
       },
       transitionBuilder: (ctx, anim, secondary, child) {
         final t = Curves.easeOutCubic.transform(anim.value);
@@ -157,34 +167,42 @@ class AppPopup {
       context: context,
       barrierDismissible: true,
       barrierLabel: title,
-      barrierColor: Colors.black.withValues(alpha: 0.80),
+      barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (ctx, anim, secondaryAnim) {
-        return SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: Material(
-                  color: Colors.transparent,
-                  child: _GlassCard(
-                    leadingIcon: icon,
-                    leadingWidget: leadingWidget,
-                    title: title,
-                    message: message,
-                    // No actions and no explicit close button for toast
-                    showClose: false,
-                    accentGradient: accentGradient,
-                    backgroundColor: backgroundColor,
-                    borderColor: borderColor,
-                    useExploreBackground: useExploreBackground,
+        return Stack(children: [
+          Positioned.fill(
+            child: ImageFiltered(
+              imageFilter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(color: Colors.black.withValues(alpha: 0.55)),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 640),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: _GlassCard(
+                      leadingIcon: icon,
+                      leadingWidget: leadingWidget,
+                      title: title,
+                      message: message,
+                      // No actions and no explicit close button for toast
+                      showClose: false,
+                      accentGradient: accentGradient,
+                      backgroundColor: backgroundColor,
+                      borderColor: borderColor,
+                      useExploreBackground: useExploreBackground,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        );
+        ]);
       },
       transitionBuilder: (ctx, anim, secondary, child) {
         final t = Curves.easeOutCubic.transform(anim.value);
@@ -197,6 +215,86 @@ class AppPopup {
         );
       },
     ).whenComplete(() => closed = true);
+  }
+
+  /// Shows a centered glass dialog with arbitrary [body] content.
+  /// Use for selection popups (e.g., Wunschlisten) that need custom widgets.
+  static Future<T?> showCustom<T>(BuildContext context, {
+    required IconData icon,
+    required String title,
+    required Widget body,
+    bool barrierDismissible = true,
+    // Optional: override the default leading icon with a custom widget
+    Widget? leadingWidget,
+    // Control close icon visibility; for selection popups we hide it
+    bool showCloseIcon = false,
+    // New: allow hiding the leading badge entirely
+    bool showLeading = true,
+    // New: allow disabling the blue accent line under the header
+    bool showAccentLine = false,
+    // New: customize the glass card background color
+    Color? cardBackgroundColor,
+  }) async {
+    return showGeneralDialog<T>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      barrierLabel: title,
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (ctx, anim, secondaryAnim) {
+        return Stack(children: [
+          Positioned.fill(
+            child: ImageFiltered(
+              imageFilter: ui.ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+              // Darker scrim for stronger separation from background
+              child: Container(color: Colors.black.withValues(alpha: 0.84)),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: _GlassCard(
+                      leadingIcon: icon,
+                      leadingWidget: leadingWidget,
+                      title: title,
+                      // Inject custom body
+                      body: body,
+                      onClose: () => Navigator.of(ctx).maybePop(),
+                      showClose: showCloseIcon,
+                      // Add subtle brand accent to the leading badge (can be hidden via showAccentLine)
+                      accentGradient: showAccentLine
+                          ? LinearGradient(colors: [
+                              Theme.of(ctx).colorScheme.primary,
+                              Theme.of(ctx).colorScheme.primary.withValues(alpha: 0.85),
+                            ])
+                          : null,
+                      // Make the card a bit lighter for better contrast as requested
+                      backgroundColor: cardBackgroundColor ?? Colors.black.withValues(alpha: 0.60),
+                      showLeading: showLeading,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ]);
+      },
+      transitionBuilder: (ctx, anim, secondary, child) {
+        final t = Curves.easeOutCubic.transform(anim.value);
+        return Opacity(
+          opacity: anim.value,
+          child: Transform.scale(
+            scale: 0.96 + (0.04 * t),
+            child: child,
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -213,6 +311,8 @@ class _GlassCard extends StatelessWidget {
   final Color? backgroundColor;
   final Color? borderColor;
   final bool useExploreBackground;
+  final Widget? body;
+  final bool showLeading;
 
   const _GlassCard({
     this.leadingIcon,
@@ -227,13 +327,16 @@ class _GlassCard extends StatelessWidget {
     this.backgroundColor,
     this.borderColor,
     this.useExploreBackground = false,
+    this.body,
+    this.showLeading = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(20);
-    final baseColor = backgroundColor ?? (useExploreBackground ? Colors.black.withValues(alpha: 0.20) : Colors.black.withValues(alpha: 0.34));
-    final borderClr = borderColor ?? Colors.white.withValues(alpha: 0.12);
+    // Make the glass card itself more opaque for better readability on busy backdrops
+    final baseColor = backgroundColor ?? (useExploreBackground ? Colors.black.withValues(alpha: 0.28) : Colors.black.withValues(alpha: 0.58));
+    final borderClr = borderColor ?? Colors.white.withValues(alpha: 0.16);
     final danger = Theme.of(context).colorScheme.error;
     return ClipRRect(
       borderRadius: radius,
@@ -261,8 +364,10 @@ class _GlassCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  _buildLeading(),
-                  const SizedBox(width: 10),
+                  if (showLeading) ...[
+                    _buildLeading(),
+                    const SizedBox(width: 10),
+                  ],
                   Expanded(
                     child: Text(
                       title,
@@ -315,6 +420,10 @@ class _GlassCard extends StatelessWidget {
               if (message != null) ...[
                 const SizedBox(height: 6),
                 Text(message!, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+              ],
+              if (body != null) ...[
+                const SizedBox(height: 12),
+                body!,
               ],
               if (actions != null && actions!.isNotEmpty) ...[
                 const SizedBox(height: 12),

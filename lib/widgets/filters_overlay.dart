@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:lendify/models/category.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:provider/provider.dart';
+import 'package:lendify/widgets/selection_controls.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/utils/category_label.dart';
+import 'package:lendify/utils/condition_labels.dart';
 
 class FiltersOverlay {
   static Future<Map<String, dynamic>?> show(BuildContext context, {Map<String, dynamic>? initial}) async {
@@ -88,8 +90,17 @@ class _FiltersSheetState extends State<_FiltersSheet> {
   final Set<String> _selectedCategories = {};
   String _sort = 'Preis';
   String _priceOrder = 'asc'; // 'asc' | 'desc'
-  bool _priceOrderExpanded = true; // controls expand/collapse for Preis order options
+  String _ratingOrder = 'desc'; // 'asc' | 'desc' (default: highest rating first)
+  // Use one common SliderTheme for both Entfernung (Slider) and Preis/Tag (RangeSlider)
+  SliderThemeData _commonSliderTheme(BuildContext context) => SliderTheme.of(context).copyWith(
+        trackHeight: 2.0,
+        // Ensure both single and range sliders use the same paddle-style indicator
+        valueIndicatorShape: const PaddleSliderValueIndicatorShape(),
+        rangeValueIndicatorShape: const PaddleRangeSliderValueIndicatorShape(),
+      );
   double _minRating = 0;
+  // Progressive disclosure: whether to show advanced section
+  bool _showAdvanced = false;
   // Coarse/top-level categories used in filters (labels only)
   List<String> _allCoarse = const [];
   final TextEditingController _minCtrl = TextEditingController(text: '0');
@@ -123,6 +134,12 @@ class _FiltersSheetState extends State<_FiltersSheet> {
       _minRating = (i['minRating'] as double?) ?? _minRating;
       _minCtrl.text = _price.start.round().toString();
       _maxCtrl.text = _price.end.round().toString();
+      _priceOrder = i['priceOrder'] ?? _priceOrder;
+      _ratingOrder = i['ratingOrder'] ?? _ratingOrder;
+      // Determine if advanced section should be shown initially
+      // Do not consider rating order anymore (no UI for asc/desc on rating)
+      final hasAdvanced = (_sort != 'Preis') || (_priceOrder != 'asc') || _delivery.isNotEmpty || (_minRating > 0) || _selectedCategories.isNotEmpty;
+      _showAdvanced = hasAdvanced;
     }
     // Clear default values on first focus so placeholder is readable and defaults vanish
     _minFocus.addListener(() {
@@ -271,116 +288,74 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                   // Ort selector removed per request
                   const SizedBox.shrink(),
 
-                  // 1) Sortieren nach
+                  // ---------- Standardansicht (kompakt) ----------
                   const SizedBox(height: 12),
-                  _Section(label: context.watch<LocalizationController>().t('Sortieren nach'), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    SizedBox(
-                      height: 44,
-                      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                        Expanded(child: _FieldButton(label: _sort, icon: _sortIcon(_sort), onTap: _pickSort)),
-                        if (_sort == 'Preis')
-                          InkWell(
-                            onTap: () => setState(() => _priceOrderExpanded = !_priceOrderExpanded),
-                            borderRadius: BorderRadius.circular(22),
-                            child: SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: Center(
-                                child: AnimatedRotation(
-                                  duration: const Duration(milliseconds: 200),
-                                  turns: _priceOrderExpanded ? 0.5 : 0.0, // arrow up when expanded
-                                  child: const Icon(Icons.expand_more, color: Colors.white70, size: 22),
-                                ),
-                              ),
+
+                  const SizedBox(height: 12),
+                  _Section(
+                    label: context.watch<LocalizationController>().t('Preis/Tag'),
+                    labelColor: Theme.of(context).colorScheme.primary,
+                    child: Column(children: [
+                      // Fixed to day; hide unit switcher
+                      // Use the EXACT same theme as Entfernung
+                      SliderTheme(
+                        data: _commonSliderTheme(context),
+                        child: RangeSlider(
+                          values: _price,
+                          min: 0,
+                          max: 500,
+                          divisions: 100,
+                          labels: RangeLabels('${_price.start.round()} €', '${_price.end.round()} €'),
+                          onChanged: (v) {
+                            setState(() {
+                              _price = v;
+                              _minCtrl.text = v.start.round().toString();
+                              _maxCtrl.text = v.end.round().toString();
+                              _priceUnit = 'day';
+                            });
+                          },
+                        ),
+                      ),
+                      Row(children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _minCtrl,
+                            focusNode: _minFocus,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: const TextStyle(color: Colors.white),
+                            decoration: const InputDecoration(
+                              labelText: 'Min',
+                              hintText: '€ 0',
+                              hintStyle: TextStyle(color: Colors.white70),
                             ),
+                            onSubmitted: (_) => _syncPriceFromText(),
+                            onEditingComplete: _syncPriceFromText,
                           ),
-                      ]),
-                    ),
-                    if (_sort == 'Preis' && _priceOrderExpanded)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Row(children: [
-                          Expanded(child: RadioListTile<String>(contentPadding: EdgeInsets.zero, title: const Text('aufsteigend', style: TextStyle(color: Colors.white)), value: 'asc', groupValue: _priceOrder, onChanged: (v) => setState(() => _priceOrder = v ?? 'asc'))),
-                          Expanded(child: RadioListTile<String>(contentPadding: EdgeInsets.zero, title: const Text('absteigend', style: TextStyle(color: Colors.white)), value: 'desc', groupValue: _priceOrder, onChanged: (v) => setState(() => _priceOrder = v ?? 'desc'))),
-                        ]),
-                      ),
-                  ])),
-
-                  // 2) Verifizierung
-                  const SizedBox(height: 12),
-                  _Section(label: context.watch<LocalizationController>().t('Verifizierung'), child: SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Builder(builder: (context) => Text(context.watch<LocalizationController>().t('Nur verifiziert'), style: const TextStyle(color: Colors.white))),
-                    value: _verifiedOnly,
-                    onChanged: (v) => setState(() => _verifiedOnly = v),
-                  )),
-
-                  // 3) Preis pro
-                  const SizedBox(height: 12),
-                  _Section(label: context.watch<LocalizationController>().t('Preis pro'), labelColor: Theme.of(context).colorScheme.primary, child: Column(children: [
-                    Row(children: [
-                      Wrap(spacing: 8, children: [
-                        _ChoiceChip(value: 'day', label: 'Tag', group: _priceUnit, onChanged: (v) => setState(() => _priceUnit = v)),
-                        _ChoiceChip(value: 'week', label: 'Woche', group: _priceUnit, onChanged: (v) => setState(() => _priceUnit = v)),
-                      ]),
-                      const Spacer(),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _maxCtrl,
+                            focusNode: _maxFocus,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            style: const TextStyle(color: Colors.white),
+                            decoration: const InputDecoration(
+                              labelText: 'Max',
+                              hintText: '€ 500',
+                              hintStyle: TextStyle(color: Colors.white70),
+                            ),
+                            onSubmitted: (_) => _syncPriceFromText(),
+                            onEditingComplete: _syncPriceFromText,
+                          ),
+                        ),
+                      ])
                     ]),
-                    const SizedBox(height: 8),
-                    RangeSlider(values: _price, min: 0, max: 500, divisions: 100, labels: RangeLabels('${_price.start.round()} €', '${_price.end.round()} €'), onChanged: (v) {
-                      setState(() {
-                        _price = v;
-                        _minCtrl.text = v.start.round().toString();
-                        _maxCtrl.text = v.end.round().toString();
-                      });
-                    }), 
-                    Row(children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _minCtrl,
-                          focusNode: _minFocus,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
-                            labelText: 'Min',
-                            hintText: '€ 0',
-                            hintStyle: TextStyle(color: Colors.white70),
-                          ),
-                          onSubmitted: (_) => _syncPriceFromText(),
-                          onEditingComplete: _syncPriceFromText,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _maxCtrl,
-                          focusNode: _maxFocus,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
-                            labelText: 'Max',
-                            hintText: '€ 500',
-                            hintStyle: TextStyle(color: Colors.white70),
-                          ),
-                          onSubmitted: (_) => _syncPriceFromText(),
-                          onEditingComplete: _syncPriceFromText,
-                        ),
-                      ),
-                    ])
-                  ])),
-                  // 4) Zustand
-                  const SizedBox(height: 12),
-                  _Section(label: context.watch<LocalizationController>().t('Zustand'), child: Wrap(spacing: 8, runSpacing: 8, children: [
-                    _ChoiceChip(value: 'neu', label: context.watch<LocalizationController>().t('Neu'), group: _condition, onChanged: (v) => setState(() => _condition = v)),
-                    _ChoiceChip(value: 'wie-neu', label: context.watch<LocalizationController>().t('wie Neu'), group: _condition, onChanged: (v) => setState(() => _condition = v)),
-                    _ChoiceChip(value: 'gut', label: context.watch<LocalizationController>().t('Gut'), group: _condition, onChanged: (v) => setState(() => _condition = v)),
-                    _ChoiceChip(value: 'akzeptabel', label: context.watch<LocalizationController>().t('Akzeptabel'), group: _condition, onChanged: (v) => setState(() => _condition = v)),
-                    _ChoiceChip(value: 'egal', label: context.watch<LocalizationController>().t('Alle'), group: _condition, onChanged: (v) => setState(() => _condition = v)),
-                  ])),
-                  // 5) Entfernung (slightly thinner)
+                  ),
+
                   const SizedBox(height: 12),
                   _Section(label: context.watch<LocalizationController>().t('Entfernung (bis zu)'), dense: true, child: Column(children: [
                     SliderTheme(
-                      data: SliderTheme.of(context).copyWith(trackHeight: 2.0),
+                      data: _commonSliderTheme(context),
                       child: Slider(value: _distance, min: 0, max: 100, divisions: 20, label: '${_distance.round()} km', onChanged: (v) => setState(() => _distance = v)),
                     ),
                     Row(children: [
@@ -389,110 +364,179 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                     ])
                   ])),
 
-                  // 6) Lieferung
                   const SizedBox(height: 12),
                   _Section(
-                    label: context.watch<LocalizationController>().t('Lieferung'),
-                    subtitle: Text(context.watch<LocalizationController>().t('Mehrfachauswahl möglich'), style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 11, fontWeight: FontWeight.w600)),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      _RoundCheckboxRow(
-                        label: context.watch<LocalizationController>().t('Lieferung bei Abgabe'),
-                        value: _delivery.contains('dropoff'),
-                        onChanged: (v) => setState(() {
-                          if (v) {
-                            _delivery.add('dropoff');
-                          } else {
-                            _delivery.remove('dropoff');
-                            _delivery.remove('express');
-                          }
-                        }),
-                      ),
-                      if (_delivery.contains('dropoff'))
-                        Padding(
-                          padding: const EdgeInsets.only(left: 38), // ~1cm Einzug
-                          child: _RoundCheckboxRow(
-                            label: context.watch<LocalizationController>().t('Prioritätslieferung (optional)'),
-                            value: _delivery.contains('express'),
-                            small: true,
-                            onChanged: (v) => setState(() => v ? _delivery.add('express') : _delivery.remove('express')),
-                          ),
-                        ),
-                      _RoundCheckboxRow(
-                        label: context.watch<LocalizationController>().t('Abholung bei Rückgabe'),
-                        value: _delivery.contains('pickup'),
-                        onChanged: (v) => setState(() => v ? _delivery.add('pickup') : _delivery.remove('pickup')),
-                      ),
-                    ]),
+                    label: context.watch<LocalizationController>().t('Zustand'),
+                    child: _FilterConditionPager(
+                      selected: _condition,
+                      onChanged: (v) => setState(() => _condition = v),
+                    ),
                   ),
 
-                  // 7) Bewertung
                   const SizedBox(height: 12),
-                  // Bewertung stars
-                  _Section(label: context.watch<LocalizationController>().t('Bewertung'), child: Row(children: [
-                    for (int i = 1; i <= 5; i++)
-                      IconButton(
-                        onPressed: () => setState(() => _minRating = i.toDouble()),
-                        icon: Icon(i <= _minRating ? Icons.star : Icons.star_border, color: i <= _minRating ? const Color(0xFFFB923C) : Colors.white24),
-                      ),
-                    const SizedBox.shrink(),
-                  ])),
-
-                  // 8) Kategorien (Top-Level/Oberkategorien)
-                  const SizedBox(height: 12),
-                  // Kategorien comes last
-                  _Section(label: context.watch<LocalizationController>().t('Kategorien'), subtitle: Text(context.watch<LocalizationController>().t('Mehrfachauswahl möglich'), style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 11, fontWeight: FontWeight.w600)), child: GridView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    // Taller tiles so long second lines (e.g., "& Kleingeräte") fully fit
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.68),
-                    itemCount: _allCoarse.length,
-                    itemBuilder: (context, index) {
-                      final raw = _allCoarse[index];
-                      final label = stackCategoryLabel(raw);
-                      final active = _selectedCategories.contains(raw);
-                      return InkWell(
-                        onTap: () => setState(() {
-                          if (active) {
-                            _selectedCategories.remove(raw);
-                          } else {
-                            _selectedCategories.add(raw);
-                          }
-                        }),
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: active ? Theme.of(context).colorScheme.primary : Colors.white.withValues(alpha: 0.06),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: active ? Theme.of(context).colorScheme.primary : Colors.white.withValues(alpha: 0.16)),
-                          ),
-                          padding: const EdgeInsets.all(8),
-                          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            Icon(_coarseIconForGroup(_allCoarse[index]), color: active ? Colors.black : Colors.white, size: 24),
-                            const SizedBox(height: 6),
-                            Text(
-                              label,
-                              maxLines: 2,
-                              softWrap: true,
-                              overflow: TextOverflow.clip,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: active ? Colors.black : Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 9,
-                                height: 1.15,
-                                letterSpacing: -0.1,
-                              ),
-                            ),
-
-
-                          ]),
-                        ),
+                  _Section(label: context.watch<LocalizationController>().t('Verifizierung'), child: SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Builder(builder: (context) {
+                      final primary = Theme.of(context).colorScheme.primary;
+                      return Text(
+                        context.watch<LocalizationController>().t('Nur verifiziert'),
+                        style: TextStyle(color: _verifiedOnly ? primary : Colors.white, fontWeight: FontWeight.w700),
                       );
-                    },
+                    }),
+                    value: _verifiedOnly,
+                    onChanged: (v) => setState(() => _verifiedOnly = v),
                   )),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () => setState(() => _showAdvanced = !_showAdvanced),
+                      icon: Icon(_showAdvanced ? Icons.expand_less : Icons.expand_more, color: Theme.of(context).colorScheme.primary),
+                      label: Builder(builder: (context) => Text(
+                        context.watch<LocalizationController>().t(_showAdvanced ? 'Weitere Filter ausblenden' : 'Weitere Filter anzeigen'),
+                        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700),
+                      )),
+                    ),
+                  ),
+
+                  // ---------- Erweiterter Bereich ----------
+                  if (_showAdvanced) ...[
+                    const SizedBox(height: 12),
+                    _Section(
+                      label: context.watch<LocalizationController>().t('Sortieren nach'),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        Row(children: [
+                          Expanded(child: _SortPager(selected: _sort, onChanged: (v) => setState(() => _sort = v))),
+                        ]),
+                        if (_sort == 'Preis')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: SizedBox(
+                              height: 40,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                child: Row(children: [
+                                  _RadioTextOption(
+                                    label: context.watch<LocalizationController>().t('aufsteigend'),
+                                    value: 'asc',
+                                    groupValue: _priceOrder,
+                                    onChanged: (v) => setState(() => _priceOrder = v),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _RadioTextOption(
+                                    label: context.watch<LocalizationController>().t('absteigend'),
+                                    value: 'desc',
+                                    groupValue: _priceOrder,
+                                    onChanged: (v) => setState(() => _priceOrder = v),
+                                  ),
+                                  const SizedBox(width: 4),
+                                ]),
+                              ),
+                            ),
+                          ),
+                        // No ascending/descending options for rating
+                      ]),
+                    ),
+                    const SizedBox(height: 12),
+                    _Section(
+                      label: context.watch<LocalizationController>().t('Lieferung'),
+                      subtitle: Text(context.watch<LocalizationController>().t('Mehrfachauswahl möglich'), style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 11, fontWeight: FontWeight.w600)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ToggleTextOption(
+                            label: context.watch<LocalizationController>().t('Lieferung bei Abgabe'),
+                            selected: _delivery.contains('dropoff'),
+                            onTap: () => setState(() {
+                              final currently = _delivery.contains('dropoff');
+                              if (currently) {
+                                _delivery.remove('dropoff');
+                                _delivery.remove('express');
+                              } else {
+                                _delivery.add('dropoff');
+                              }
+                            }),
+                          ),
+                          const SizedBox(height: 8),
+                          ToggleTextOption(
+                            label: context.watch<LocalizationController>().t('Abholung bei Rückgabe'),
+                            selected: _delivery.contains('pickup'),
+                            onTap: () => setState(() {
+                              final currently = _delivery.contains('pickup');
+                              if (currently) {
+                                _delivery.remove('pickup');
+                              } else {
+                                _delivery.add('pickup');
+                              }
+                            }),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+                    _Section(label: context.watch<LocalizationController>().t('Bewertung'), child: Row(children: [
+                      for (int i = 1; i <= 5; i++)
+                        IconButton(
+                          onPressed: () => setState(() => _minRating = i.toDouble()),
+                          icon: Icon(i <= _minRating ? Icons.star : Icons.star_border, color: i <= _minRating ? const Color(0xFFFB923C) : Colors.white24),
+                        ),
+                      const SizedBox.shrink(),
+                    ])),
+
+                    const SizedBox(height: 12),
+                    _Section(label: context.watch<LocalizationController>().t('Kategorien'), subtitle: Text(context.watch<LocalizationController>().t('Mehrfachauswahl möglich'), style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 11, fontWeight: FontWeight.w600)), child: GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.68),
+                      itemCount: _allCoarse.length,
+                      itemBuilder: (context, index) {
+                        final raw = _allCoarse[index];
+                        final label = stackCategoryLabel(raw);
+                        final active = _selectedCategories.contains(raw);
+                        return InkWell(
+                          onTap: () => setState(() {
+                            if (active) {
+                              _selectedCategories.remove(raw);
+                            } else {
+                              _selectedCategories.add(raw);
+                            }
+                          }),
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: active ? Theme.of(context).colorScheme.primary : Colors.white.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: active ? Theme.of(context).colorScheme.primary : Colors.white.withValues(alpha: 0.16)),
+                            ),
+                            padding: const EdgeInsets.all(8),
+                            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              Icon(_coarseIconForGroup(_allCoarse[index]), color: active ? Colors.black : Colors.white, size: 24),
+                              const SizedBox(height: 6),
+                              Text(
+                                label,
+                                maxLines: 2,
+                                softWrap: true,
+                                overflow: TextOverflow.clip,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: active ? Colors.black : Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 9,
+                                  height: 1.15,
+                                  letterSpacing: -0.1,
+                                ),
+                              ),
+                            ]),
+                          ),
+                        );
+                      },
+                    )),
+
+                    const SizedBox(height: 8),
+                  ],
                 ]),
               ),
             ),
@@ -518,6 +562,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                     'categories': <String>[],
                     'sort': 'Preis',
                     'priceOrder': 'asc',
+                     'ratingOrder': 'desc',
                     'minRating': 0.0,
                     'location': {
                       'mode': 'registered',
@@ -541,6 +586,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                     'categories': _selectedCategories.toList(),
                     'sort': _sort,
                     'priceOrder': _priceOrder,
+                      'ratingOrder': _ratingOrder,
                     'minRating': _minRating,
                     'location': {
                       'mode': _locationMode,
@@ -719,3 +765,188 @@ class _RoundCheckboxRow extends StatelessWidget {
     );
   }
 }
+
+// ---------- Horizontal pager for Zustand in Filters (mirrors Create Listing style) ----------
+class _FilterConditionPager extends StatefulWidget {
+  final String selected;
+  final ValueChanged<String> onChanged;
+  const _FilterConditionPager({required this.selected, required this.onChanged});
+  @override
+  State<_FilterConditionPager> createState() => _FilterConditionPagerState();
+}
+
+class _FilterConditionPagerState extends State<_FilterConditionPager> {
+  late final PageController _controller;
+  int _currentIndex = 0;
+  // Keep order stable; include "Alle" to allow resetting the filter quickly.
+  static const List<String> _codes = ['neu', 'wie-neu', 'gut', 'akzeptabel', 'egal'];
+
+  int _indexFor(String sel) {
+    final i = _codes.indexOf(sel);
+    return i >= 0 ? i : _codes.indexOf('egal');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = _indexFor(widget.selected);
+    _controller = PageController(initialPage: _currentIndex, viewportFraction: 0.5);
+  }
+
+  @override
+  void didUpdateWidget(covariant _FilterConditionPager oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newIndex = _indexFor(widget.selected);
+    if (newIndex != _currentIndex && _controller.hasClients) {
+      _currentIndex = newIndex;
+      _controller.jumpToPage(_currentIndex);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.watch<LocalizationController>();
+    final labels = _codes.map((c) => l10n.t(ConditionLabels.filterLabel(c))).toList(growable: false);
+    final width = MediaQuery.sizeOf(context).width;
+    return SizedBox(
+      height: 56,
+      child: PageView.builder(
+        controller: _controller,
+        physics: const BouncingScrollPhysics(),
+        onPageChanged: (i) {
+          setState(() => _currentIndex = i);
+          if (i >= 0 && i < _codes.length) widget.onChanged(_codes[i]);
+        },
+        itemCount: labels.length,
+        itemBuilder: (context, i) {
+          final selected = i == _currentIndex;
+          final itemWidth = width * 0.5;
+          return Center(
+            child: SizedBox(
+              width: itemWidth - 16,
+              child: Center(
+                child: _PillChoice(
+                  label: labels[i],
+                  selected: selected,
+                  onTap: () {
+                    if (_controller.hasClients) {
+                      _controller.animateToPage(i, duration: const Duration(milliseconds: 220), curve: Curves.easeOut);
+                    }
+                  },
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PillChoice extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _PillChoice({required this.label, required this.selected, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? primary : Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: selected ? primary : Colors.white.withValues(alpha: 0.20)),
+        ),
+        child: Text(label, style: TextStyle(color: selected ? Colors.black : Colors.white, fontWeight: FontWeight.w700)),
+      ),
+    );
+  }
+}
+
+// ---------- Text-only scroller for Sortieren nach ----------
+class _SortPager extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onChanged;
+  const _SortPager({required this.selected, required this.onChanged});
+
+  static const List<String> _options = ['Preis', 'Entfernung', 'Bewertung', 'Neueste'];
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.watch<LocalizationController>();
+    final primary = Theme.of(context).colorScheme.primary;
+    return SizedBox(
+      height: 40,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: [
+            const SizedBox(width: 4),
+            for (final opt in _options) ...[
+              InkWell(
+                onTap: () => onChanged(opt),
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: Text(
+                    l10n.t(opt),
+                    style: TextStyle(
+                      color: opt == selected ? primary : Colors.white,
+                      fontWeight: opt == selected ? FontWeight.w700 : FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RadioTextOption extends StatelessWidget {
+  final String label;
+  final String value;
+  final String groupValue;
+  final ValueChanged<String> onChanged;
+  const _RadioTextOption({required this.label, required this.value, required this.groupValue, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = value == groupValue;
+    final primary = Theme.of(context).colorScheme.primary;
+    return InkWell(
+      onTap: () => onChanged(value),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+            DotCircleIndicator(selected: selected, dotColor: primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(color: selected ? primary : Colors.white, fontWeight: selected ? FontWeight.w700 : FontWeight.w600),
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
+          ),
+        ]),
+      ),
+    );
+  }
+}
+

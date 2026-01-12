@@ -22,6 +22,8 @@ import 'package:lendify/widgets/sit_overflow_menu.dart';
 import 'package:lendify/screens/report_issue_screen.dart';
 import 'package:lendify/utils/total_subtitle.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
+import 'package:lendify/utils/condition_labels.dart';
+import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 
 class ItemDetailsOverlay {
   static Future<void> show(BuildContext context, {required Item item, model.User? owner}) async {
@@ -96,6 +98,22 @@ class _ItemDetailsSheet extends StatefulWidget {
 class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
   int _page = 0; final PageController _pc = PageController(); DateTimeRange? _selectedRange;
   bool _canReserve = false;
+  String? _wishlistId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWishlist();
+  }
+
+  Future<void> _loadWishlist() async {
+    try {
+      final id = await DataService.getWishlistForItem(widget.item.id);
+      if (mounted) setState(() => _wishlistId = id);
+    } catch (e) {
+      f.debugPrint('[ItemDetailsSheet] load wishlist failed: $e');
+    }
+  }
   @override
   void dispose() {
     // Always clear any cached selection when leaving the listing overlay
@@ -197,6 +215,8 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
     return '${raw.toStringAsFixed(0)} $suffix';
   }
 
+  
+
   String _formatRangeForButton(Item i, DateTimeRange r) {
     String two(int v) => v.toString().padLeft(2, '0');
     final von = '${two(r.start.day)}.${two(r.start.month)}.${r.start.year}';
@@ -213,9 +233,52 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
   }
 
   Future<void> _addToWishlist() async {
-    await DataService.toggleSavedItem(widget.item.id);
-    if (!mounted) return;
-    await AppPopup.toast(context, icon: Icons.favorite_border, title: 'Zur Wunschliste hinzugefügt');
+    if (_wishlistId == null) {
+      final sel = await WishlistSelectionSheet.showAdd(context);
+      if (sel != null && sel.isNotEmpty) {
+        await DataService.setItemWishlist(widget.item.id, sel);
+        if (!mounted) return;
+        setState(() => _wishlistId = sel);
+        await AppPopup.toast(context, icon: Icons.favorite, title: 'Zur Wunschliste hinzugefügt');
+      }
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              ListTile(
+                leading: Icon(Icons.swap_horiz, color: cs.primary),
+                title: const Text('In andere Wunschliste verschieben'),
+                onTap: () async {
+                  Navigator.of(ctx).pop();
+                  final sel = await WishlistSelectionSheet.showMove(context, currentListId: _wishlistId!);
+                  if (sel != null && sel.isNotEmpty) {
+                    await DataService.setItemWishlist(widget.item.id, sel);
+                    if (mounted) setState(() => _wishlistId = sel);
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.delete_outline, color: cs.error),
+                title: const Text('Aus Wunschliste entfernen'),
+                onTap: () async {
+                  await DataService.removeItemFromWishlist(widget.item.id);
+                  if (mounted) setState(() => _wishlistId = null);
+                  if (context.mounted) Navigator.of(ctx).pop();
+                },
+              ),
+            ]),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -265,7 +328,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
-                            child: const Icon(Icons.favorite_border, size: 18, color: Colors.black54),
+                            child: Icon(_wishlistId == null ? Icons.favorite_border : Icons.favorite, size: 18, color: _wishlistId == null ? Colors.black54 : Colors.pinkAccent),
                           ),
                         ),
                       ),
@@ -440,6 +503,25 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
     final ScrollController _sc = ScrollController();
   DateTimeRange? _selectedRange;
   bool _canReserve = false;
+  String? _wishlistId;
+
+  Future<void> _toggleWishlistFromMenu() async {
+    if (_wishlistId == null) {
+      final sel = await WishlistSelectionSheet.showAdd(context);
+      if (sel != null && sel.isNotEmpty) {
+        await DataService.setItemWishlist(widget.item.id, sel);
+        if (!mounted) return;
+        setState(() => _wishlistId = sel);
+        await AppPopup.toast(context, icon: Icons.favorite, title: 'Zur Wunschliste hinzugefügt');
+      }
+      return;
+    }
+    final sel = await WishlistSelectionSheet.showMove(context, currentListId: _wishlistId!);
+    if (sel != null && sel.isNotEmpty) {
+      await DataService.setItemWishlist(widget.item.id, sel);
+      if (mounted) setState(() => _wishlistId = sel);
+    }
+  }
   
   Widget _availabilityLabel() {
     final r = _selectedRange;
@@ -462,6 +544,9 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
           _sc.jumpTo(0);
         } catch (_) {}
       });
+    () async {
+      try { final id = await DataService.getWishlistForItem(widget.item.id); if (mounted) setState(() => _wishlistId = id); } catch (e) {}
+    }();
     if (widget.fresh == true) {
       // Clear any previously saved selection so page opens as if brand new
       // Do not await; fire-and-forget to avoid delaying initial build
@@ -623,12 +708,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                   }
                   break;
                 case 'wishlist':
-                  try {
-                    await DataService.toggleSavedItem(item.id);
-                    await AppPopup.toast(context, icon: Icons.favorite_border, title: 'Zur Wunschliste hinzugefügt');
-                  } catch (e) {
-                    f.debugPrint('[wishlist] toggle failed: $e');
-                  }
+                  await _toggleWishlistFromMenu();
                   break;
                 case 'report':
                   await Navigator.of(context).push(
@@ -669,19 +749,12 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                     top: 10,
                     right: 7,
                     child: InkWell(
-                      onTap: () async {
-                        try {
-                          await DataService.toggleSavedItem(item.id);
-                          await AppPopup.toast(context, icon: Icons.favorite_border, title: 'Zur Wunschliste hinzugefügt');
-                        } catch (e) {
-                          f.debugPrint('[wishlist] toggle failed: $e');
-                        }
-                      },
+                      onTap: _toggleWishlistFromMenu,
                       borderRadius: BorderRadius.circular(18),
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
-                        child: const Icon(Icons.favorite_border, size: 18, color: Colors.black54),
+                        child: Icon(_wishlistId == null ? Icons.favorite_border : Icons.favorite, size: 18, color: _wishlistId == null ? Colors.black54 : Colors.pinkAccent),
                       ),
                     ),
                   ),
@@ -870,7 +943,7 @@ class _ItemMetaSection extends StatelessWidget {
           return _TableLine(label: l10n.t('Preis'), value: '${raw.toStringAsFixed(0)} $suffix');
         }),
         _TableLine(label: l10n.t('Kategorie'), valueWidget: _CategoryNameById(id: item.categoryId, sub: item.subcategory)),
-        _TableLine(label: l10n.t('Zustand'), value: _conditionLabel(item.condition)),
+        _TableLine(label: l10n.t('Zustand'), value: ConditionLabels.label(item.condition)),
         if (item.minDays != null || item.maxDays != null) _TableLine(label: l10n.t('Mietdauer'), value: _duration(item)),
         _TableLine(label: l10n.t('Verliehen'), value: '${item.timesLent}×'),
         _TableLine(label: l10n.t('Eingestellt am'), value: _date(item.createdAt)),
@@ -895,7 +968,7 @@ class _ItemMetaSection extends StatelessWidget {
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
                   Expanded(child: Text(u?.displayName ?? l10n.t('Anbieter'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
-                  if (u?.isVerified == true) const Icon(Icons.verified, size: 16, color: Color(0xFF22C55E)),
+                  Icon(Icons.verified, size: 16, color: (u?.isVerified == true) ? const Color(0xFF22C55E) : Colors.grey),
                 ]),
                 const SizedBox(height: 2),
                 Row(children: [
@@ -936,14 +1009,7 @@ class _ItemMetaSection extends StatelessWidget {
     );
   }
 
-  static String _conditionLabel(String c) => switch (c) {
-    'new' => 'Neu',
-    'like-new' => 'Wie neu',
-    'good' => 'Gut',
-    'acceptable' => 'Akzeptabel',
-    'used' => 'Gebraucht',
-    _ => c,
-  };
+  
 
   static String _duration(Item i) {
     final min = i.minDays; final max = i.maxDays;
@@ -1256,7 +1322,7 @@ class _OwnerRow extends StatelessWidget {
                 final l10n = context.watch<LocalizationController>();
                 return Text(owner?.displayName ?? l10n.t('Anbieter'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700));
               })),
-              if (verified) const Icon(Icons.verified, size: 16, color: Color(0xFF22C55E)),
+              Icon(Icons.verified, size: 16, color: verified ? const Color(0xFF22C55E) : Colors.grey),
             ]),
             const SizedBox(height: 2),
             Row(children: [
@@ -1293,7 +1359,7 @@ class _ListerDetailsCard extends StatelessWidget {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
             Row(children: [
               Expanded(child: Text(u?.displayName ?? l10n.t('Anbieter'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
-              if (u?.isVerified == true) const Icon(Icons.verified, size: 18, color: Color(0xFF22C55E))
+              Icon(Icons.verified, size: 18, color: (u?.isVerified == true) ? const Color(0xFF22C55E) : Colors.grey)
             ]),
             const SizedBox(height: 2),
             Row(children: [

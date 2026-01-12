@@ -306,48 +306,61 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       ),
       // Bottom actions
       bottomNavigationBar: Builder(builder: (context) {
-        // Show bottom-anchored review button only for truly completed bookings (not cancelled/declined)
+        // Show bottom-anchored actions depending on effective booking state
         final statusLc = ((widget.booking['status'] as String?) ?? '').toLowerCase();
         final (s, e) = _parseDateRange();
         final effective = _effectiveCategory(start: s, end: e);
         final isTrulyCompleted = effective == 'completed' && !statusLc.contains('storniert') && !statusLc.contains('abgelehnt');
         final isRenterView = !_isViewerOwnerSync();
+
+        Widget? child;
         if (isTrulyCompleted && isRenterView) {
-          return SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: SizedBox(
-                height: 46,
-                child: FilledButton.icon(
-                  onPressed: () async {
-                    final current = await DataService.getCurrentUser();
-                    final requestId = widget.booking['requestId'] as String?;
-                    final itemId = widget.booking['itemId'] as String?;
-                    final listerId = widget.booking['listerId'] as String?;
-                    if (current == null || requestId == null || itemId == null || listerId == null) return;
-                    final ok = await ReviewPromptSheet.show(
-                      context,
-                      requestId: requestId,
-                      itemId: itemId,
-                      reviewerId: current.id,
-                      reviewedUserId: listerId,
-                      direction: 'renter_to_owner',
-                    );
-                    if (ok == true && mounted) {
-                      await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
-                      // Navigate back to the original listing page automatically
-                      await _viewListing();
-                    }
-                  },
-                  icon: const Icon(Icons.star_rate_outlined),
-                  label: const Text('Bewerten'),
-                ),
-              ),
+          child = SizedBox(
+            height: 46,
+            child: FilledButton.icon(
+              onPressed: () async {
+                final current = await DataService.getCurrentUser();
+                final requestId = widget.booking['requestId'] as String?;
+                final itemId = widget.booking['itemId'] as String?;
+                final listerId = widget.booking['listerId'] as String?;
+                if (current == null || requestId == null || itemId == null || listerId == null) return;
+                final ok = await ReviewPromptSheet.show(
+                  context,
+                  requestId: requestId,
+                  itemId: itemId,
+                  reviewerId: current.id,
+                  reviewedUserId: listerId,
+                  direction: 'renter_to_owner',
+                );
+                if (ok == true && mounted) {
+                  await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
+                  await _viewListing();
+                }
+              },
+              icon: const Icon(Icons.star_rate_outlined),
+              label: const Text('Bewerten'),
+            ),
+          );
+        } else if (effective == 'pending' && isRenterView) {
+          // Anchor the withdraw button at the very bottom for pending renter view
+          child = SizedBox(
+            height: 46,
+            child: OutlinedButton.icon(
+              onPressed: _confirmWithdrawPending,
+              icon: const Icon(Icons.undo),
+              label: const Text('Anfrage zurückziehen'),
             ),
           );
         }
-        return const SizedBox.shrink();
+
+        if (child == null) return const SizedBox.shrink();
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: child,
+          ),
+        );
       }),
       body: SafeArea(
         child: _isOngoing ? _buildOngoingBody(theme) : _buildDefaultBody(theme, pickupText, returnText),
@@ -1363,16 +1376,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          // Renter-facing primary action in Pending: Anfrage zurückziehen (centered)
-          if (!_isViewerOwnerSync())
-            Align(
-              alignment: Alignment.center,
-              child: OutlinedButton.icon(
-                onPressed: _confirmWithdrawPending,
-                icon: const Icon(Icons.undo),
-                label: const Text('Anfrage zurückziehen'),
-              ),
-            ),
+          // Button wurde an die feste Fußleiste (bottomNavigationBar) verschoben
         ],
 
         if (isUpcoming && _isViewerOwnerSync()) ...[

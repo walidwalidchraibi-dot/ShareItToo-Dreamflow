@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:ui';
+import 'dart:async';
 import 'package:lendify/theme.dart';
 import 'package:lendify/navigation/main_navigation.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +9,7 @@ import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/data_service.dart';
 
 Future<void> main() async {
+  // Initialize bindings once in the same zone as runApp to avoid zone mismatch warnings.
   WidgetsFlutterBinding.ensureInitialized();
 
   // Surface synchronous Flutter framework errors to the console
@@ -30,8 +32,9 @@ Future<void> main() async {
     debugPrint('[Main] ensureOnlyUserItemsOnce start');
     await DataService.ensureOnlyUserItemsOnce();
     debugPrint('[Main] ensureOnlyUserItemsOnce done');
-  } catch (e) {
+  } catch (e, st) {
     debugPrint('[Main] ensureOnlyUserItemsOnce failed: ' + e.toString());
+    debugPrint(st.toString());
   }
 
   // Wipe all locally stored rentals/bookings so you can retest from a clean state.
@@ -41,8 +44,9 @@ Future<void> main() async {
     debugPrint('[Main] Clear rentals/bookings start');
     await DataService.clearAllRentalsAndBookings();
     debugPrint('[Main] Clear rentals/bookings done');
-  } catch (e) {
+  } catch (e, st) {
     debugPrint('[Main] Clear rentals/bookings failed: ' + e.toString());
+    debugPrint(st.toString());
   }
 
   debugPrint('[Main] runApp(MyApp)');

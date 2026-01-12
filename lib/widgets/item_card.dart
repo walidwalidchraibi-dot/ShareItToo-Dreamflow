@@ -7,6 +7,7 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 
 class ItemCard extends StatelessWidget {
   final Item item;
@@ -64,25 +65,8 @@ class ItemCard extends StatelessWidget {
                     );
                   },
                 ),
-                // Wishlist heart on the RIGHT
-                Positioned(
-                  top: 8,
-                  right: 5,
-                  child: GestureDetector(
-                    onTap: () {
-                      final l10n = context.read<LocalizationController>();
-                      AppPopup.toast(context, icon: Icons.favorite_border, title: l10n.t('Zur Wunschliste hinzugefügt'), duration: const Duration(seconds: 1));
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(iconSize * 0.30),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.favorite_border, size: iconSize * 0.90, color: Colors.black54),
-                    ),
-                  ),
-                ),
+                // Wishlist heart on the RIGHT (manual selection flow)
+                Positioned(top: 8, right: 5, child: _WishlistHeartButton(itemId: item.id, size: iconSize)),
               ]),
             ),
             SizedBox(
@@ -146,3 +130,103 @@ class ItemCard extends StatelessWidget {
     );
   }
 }
+
+class _WishlistHeartButton extends StatefulWidget {
+  final String itemId;
+  final double size;
+  const _WishlistHeartButton({required this.itemId, required this.size});
+
+  @override
+  State<_WishlistHeartButton> createState() => _WishlistHeartButtonState();
+}
+
+class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
+  String? listId; // null means not in any list
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final id = await DataService.getWishlistForItem(widget.itemId);
+      setState(() { listId = id; });
+    } catch (e) {
+      debugPrint('[ItemCard] load wishlist state failed: ' + e.toString());
+    } finally {
+      if (mounted) setState(() { _loading = false; });
+    }
+  }
+
+  Future<void> _onTap() async {
+    if (_loading) return;
+    if (listId == null) {
+      // First time: ask which wishlist
+      final sel = await WishlistSelectionSheet.showAdd(context);
+      if (sel != null && sel.isNotEmpty) {
+        await DataService.setItemWishlist(widget.itemId, sel);
+        setState(() { listId = sel; });
+        final l10n = context.read<LocalizationController>();
+        AppPopup.toast(context, icon: Icons.favorite, title: l10n.t('Zur Wunschliste hinzugefügt'));
+      }
+      return;
+    }
+    // Already in a wishlist: show small menu
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              ListTile(
+                leading: Icon(Icons.swap_horiz, color: cs.primary),
+                title: const Text('In andere Wunschliste verschieben'),
+                onTap: () async {
+                  Navigator.of(ctx).pop();
+                  final sel = await WishlistSelectionSheet.showMove(context, currentListId: listId!);
+                  if (sel != null && sel.isNotEmpty) {
+                    await DataService.setItemWishlist(widget.itemId, sel);
+                    if (mounted) setState(() { listId = sel; });
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.delete_outline, color: cs.error),
+                title: const Text('Aus Wunschliste entfernen'),
+                onTap: () async {
+                  await DataService.removeItemFromWishlist(widget.itemId);
+                  if (mounted) setState(() { listId = null; });
+                  if (context.mounted) Navigator.of(ctx).pop();
+                },
+              ),
+            ]),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = Colors.white.withValues(alpha: 0.92);
+    final cs = Theme.of(context).colorScheme;
+    final icon = listId == null ? Icons.favorite_border : Icons.favorite;
+    final color = listId == null ? Colors.black54 : Colors.pinkAccent;
+    return GestureDetector(
+      onTap: _onTap,
+      child: Container(
+        padding: EdgeInsets.all(widget.size * 0.30),
+        decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+        child: Icon(icon, size: widget.size * 0.90, color: color),
+      ),
+    );
+  }
+}
+

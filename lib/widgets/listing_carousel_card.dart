@@ -89,7 +89,7 @@ class ListingCarouselCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
-                  child: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, size: 18, color: isFavorite ? Colors.red : Colors.black54),
+                  child: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, size: 18, color: isFavorite ? Colors.pinkAccent : Colors.black54),
                 ),
               ),
             )

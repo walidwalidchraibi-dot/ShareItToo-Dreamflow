@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lendify/utils/condition_labels.dart';
 
 class FiltersBottomSheet extends StatefulWidget {
   const FiltersBottomSheet({super.key});
@@ -80,9 +81,10 @@ class _FiltersBottomSheetState extends State<FiltersBottomSheet> {
           Wrap(
             spacing: 8,
             children: [
-              _buildConditionChip('all', 'Alle'),
-              _buildConditionChip('new', 'Neu'),
-              _buildConditionChip('used', 'Gebraucht'),
+              _buildConditionChip('all', ConditionLabels.filterLabel('egal')),
+              _buildConditionChip('like-new', ConditionLabels.label('like-new')),
+              _buildConditionChip('good', ConditionLabels.label('good')),
+              _buildConditionChip('acceptable', ConditionLabels.label('acceptable')),
             ],
           ),
           
