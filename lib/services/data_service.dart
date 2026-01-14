@@ -875,6 +875,38 @@ class DataService {
     }
   }
 
+  /// Renames a custom wishlist. No-op for system lists.
+  static Future<void> renameCustomWishlist({required String id, required String newName}) async {
+    if (id == wlSoonId || id == wlLaterId || id == wlAgainId) return; // cannot rename system
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_wishlistsMetaKey);
+      if (raw == null || raw.isEmpty) return;
+      final List list = jsonDecode(raw);
+      bool mutated = false;
+      for (int i = 0; i < list.length; i++) {
+        try {
+          final m = Map<String, dynamic>.from(list[i] as Map);
+          if ((m['id'] ?? '').toString() == id) {
+            // Only allow rename when not a system list
+            final isSystem = m['system'] == true;
+            if (!isSystem) {
+              m['name'] = newName.trim();
+              list[i] = m;
+              mutated = true;
+            }
+            break;
+          }
+        } catch (_) {/* ignore malformed entry */}
+      }
+      if (mutated) {
+        await prefs.setString(_wishlistsMetaKey, jsonEncode(list));
+      }
+    } catch (e) {
+      debugPrint('[DataService] renameCustomWishlist failed: ' + e.toString());
+    }
+  }
+
   /// Returns the wishlist id the item currently belongs to, or null.
   static Future<String?> getWishlistForItem(String itemId) async {
     try {

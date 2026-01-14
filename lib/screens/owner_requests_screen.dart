@@ -25,6 +25,8 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
   List<_OwnerEntry> _entries = const [];
   Timer? _ticker;
   final Map<String, Map<String, dynamic>?> _deliveryByItemId = {};
+  // Temporary: force-show dot on Mietanfragen tab for visual confirmation
+  DateTime? _forceRequestsDotUntil;
 
   @override
   void initState() {
@@ -36,6 +38,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
       }
       if (mounted) setState(() {}); // refresh app bar title on tab change
     });
+    _forceRequestsDotUntil = DateTime.now().add(const Duration(minutes: 5));
     _load();
     _ticker = Timer.periodic(const Duration(minutes: 1), (_) async {
       if (!mounted) return;
@@ -139,6 +142,9 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
   @override
   Widget build(BuildContext context) {
     final tabsStyle = Theme.of(context).textTheme.bodySmall;
+    final bool hasPendingRequests = _entries.any((e) => _effectiveCategory(e) == 'requests');
+    final bool forceDot = _forceRequestsDotUntil != null && DateTime.now().isBefore(_forceRequestsDotUntil!);
+    final bool showRequestsDot = hasPendingRequests || forceDot;
     String title;
     switch (_tabController.index) {
       case 0:
@@ -169,11 +175,23 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
           labelStyle: tabsStyle,
           unselectedLabelStyle: tabsStyle,
           indicatorColor: Theme.of(context).colorScheme.primary,
-          tabs: const [
-            Tab(text: 'Laufend'),
-            Tab(text: 'Kommend'),
-            Tab(text: 'Mietanfragen'),
-            Tab(text: 'Abgeschlossen'),
+          tabs: [
+            const Tab(text: 'Laufend'),
+            const Tab(text: 'Kommend'),
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (showRequestsDot) ...[
+                    Container(width: 12, height: 12, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle)),
+                    const SizedBox(width: 6),
+                  ],
+                  const Text('Mietanfragen'),
+                ],
+              ),
+            ),
+            const Tab(text: 'Abgeschlossen'),
           ],
         ),
       ),

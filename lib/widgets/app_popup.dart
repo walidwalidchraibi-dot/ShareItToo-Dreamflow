@@ -89,11 +89,14 @@ class AppPopup {
       transitionDuration: const Duration(milliseconds: 220),
       pageBuilder: (ctx, anim, secondaryAnim) {
         return Stack(children: [
-          // Fullscreen background blur + subtle dark tint
+          // True backdrop blur only (no dark scrim) so the page stays intact, just blurred
           Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(color: Colors.black.withValues(alpha: 0.55)),
+            child: IgnorePointer(
+              ignoring: true,
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(color: Colors.transparent),
+              ),
             ),
           ),
           SafeArea(
@@ -172,9 +175,12 @@ class AppPopup {
       pageBuilder: (ctx, anim, secondaryAnim) {
         return Stack(children: [
           Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(color: Colors.black.withValues(alpha: 0.55)),
+            child: IgnorePointer(
+              ignoring: true,
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(color: Colors.transparent),
+              ),
             ),
           ),
           SafeArea(
@@ -244,10 +250,13 @@ class AppPopup {
       pageBuilder: (ctx, anim, secondaryAnim) {
         return Stack(children: [
           Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ui.ImageFilter.blur(sigmaX: 26, sigmaY: 26),
-              // Darker scrim for stronger separation from background
-              child: Container(color: Colors.black.withValues(alpha: 0.84)),
+            child: IgnorePointer(
+              ignoring: true,
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+                // Pure blur without scrim to keep background visible
+                child: Container(color: Colors.transparent),
+              ),
             ),
           ),
           SafeArea(
@@ -372,7 +381,7 @@ class _GlassCard extends StatelessWidget {
                     child: Text(
                       title,
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
-                      textAlign: TextAlign.left,
+                      textAlign: TextAlign.center,
                     ),
                   ),
                   if (showClose)

@@ -13,6 +13,7 @@ import 'package:lendify/widgets/search_overlay.dart';
 import 'package:lendify/widgets/all_categories_overlay.dart';
 import 'package:lendify/widgets/filters_overlay.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
+import 'package:lendify/screens/owner_requests_screen.dart';
 import 'package:lendify/screens/see_all_screen.dart';
 import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/screens/profile_screen.dart';
@@ -441,31 +442,7 @@ Future<void> _toggleFavorite(String id) async {
       await DataService.setItemWishlist(id, sel);
     }
   } else {
-    final choice = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) {
-        final cs = Theme.of(ctx).colorScheme;
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              ListTile(
-                leading: Icon(Icons.swap_horiz, color: cs.primary),
-                title: const Text('In andere Wunschliste verschieben'),
-                onTap: () => Navigator.of(ctx).pop('move'),
-              ),
-              ListTile(
-                leading: Icon(Icons.delete_outline, color: cs.error),
-                title: const Text('Aus Wunschliste entfernen'),
-                onTap: () => Navigator.of(ctx).pop('remove'),
-              ),
-            ]),
-          ),
-        );
-      },
-    );
+    final choice = await WishlistSelectionSheet.showManageOptions(context);
     if (choice == 'move') {
       final sel = await WishlistSelectionSheet.showMove(context, currentListId: current);
       if (sel != null && sel.isNotEmpty) {
@@ -685,7 +662,13 @@ Transform.translate(offset: const Offset(0, 4), child: _HoverSpinAppLogo(size: 4
 const SliverToBoxAdapter(child: SizedBox(height: 16)),
 SliverToBoxAdapter(
   child: SearchHeader(
-    onFiltersPressed: _showFilters,
+    onFiltersPressed: () async {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const OwnerRequestsScreen(initialTabIndex: 2),
+        ),
+      );
+    },
     onSearchTap: _openSearch,
     onListingCreated: _handleListingCreated,
   ),

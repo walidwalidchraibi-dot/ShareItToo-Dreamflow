@@ -26,11 +26,12 @@ class AppTypography {
     final base = GoogleFonts.interTextTheme(Theme.of(context).textTheme);
     const h = 1.25;
     return base.copyWith(
-      titleLarge: base.titleLarge?.copyWith(fontSize: 18, height: h, fontWeight: FontWeight.w700),
-      titleMedium: base.titleMedium?.copyWith(fontSize: 16, height: h, fontWeight: FontWeight.w600),
-      bodyMedium: base.bodyMedium?.copyWith(fontSize: 13, height: h, fontWeight: FontWeight.w500),
-      bodySmall: base.bodySmall?.copyWith(fontSize: 12, height: h, fontWeight: FontWeight.w500),
-      labelSmall: base.labelSmall?.copyWith(fontSize: 11, height: h, fontWeight: FontWeight.w600),
+      // Force white as default text color to ensure readability on our dark blurred background
+      titleLarge: base.titleLarge?.copyWith(fontSize: 18, height: h, fontWeight: FontWeight.w700, color: Colors.white),
+      titleMedium: base.titleMedium?.copyWith(fontSize: 16, height: h, fontWeight: FontWeight.w600, color: Colors.white),
+      bodyMedium: base.bodyMedium?.copyWith(fontSize: 13, height: h, fontWeight: FontWeight.w500, color: Colors.white),
+      bodySmall: base.bodySmall?.copyWith(fontSize: 12, height: h, fontWeight: FontWeight.w500, color: Colors.white),
+      labelSmall: base.labelSmall?.copyWith(fontSize: 11, height: h, fontWeight: FontWeight.w600, color: Colors.white),
     );
   }
 }
@@ -46,11 +47,14 @@ ThemeData buildLightTheme(BuildContext context) {
       secondary: const Color(0xFF111827),
       tertiary: BrandColors.success,
       error: BrandColors.danger,
-      surface: Colors.white,
-      onSurface: const Color(0xFF111827),
+      // Use dark surface with white foreground to match our global dark backdrop
+      surface: const Color(0xFF0F172A),
+      onSurface: Colors.white,
     ),
     scaffoldBackgroundColor: Colors.transparent,
     appBarTheme: const AppBarTheme(backgroundColor: Colors.transparent, foregroundColor: Colors.white, elevation: 0, centerTitle: false),
+    listTileTheme: const ListTileThemeData(iconColor: Colors.white, textColor: Colors.white),
+    iconTheme: const IconThemeData(color: Colors.white),
     textTheme: text,
   );
 }
@@ -69,6 +73,8 @@ ThemeData buildDarkTheme(BuildContext context) {
     ),
     scaffoldBackgroundColor: Colors.transparent,
     appBarTheme: const AppBarTheme(backgroundColor: Colors.transparent, foregroundColor: Colors.white, elevation: 0, centerTitle: false),
+    listTileTheme: const ListTileThemeData(iconColor: Colors.white, textColor: Colors.white),
+    iconTheme: const IconThemeData(color: Colors.white),
     textTheme: text,
   );
 }

@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/box_chat_icon.dart';
+import 'package:lendify/services/data_service.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/screens/create_listing_screen.dart';
 
 class SearchHeader extends StatelessWidget {
+  // TEMP: Force the blue badge to be visible for 5 minutes from load to preview the look.
+  // This does not remove the existing logic; it only ORs an additional condition.
+  static final DateTime _badgeForceUntil = DateTime.now().add(const Duration(minutes: 5));
+  static bool get _isBadgeForced => DateTime.now().isBefore(_badgeForceUntil);
   final VoidCallback onFiltersPressed;
   final VoidCallback onSearchTap;
   final Future<void> Function(Item created)? onListingCreated;
@@ -79,19 +86,57 @@ class SearchHeader extends StatelessWidget {
           InkWell(
             onTap: onFiltersPressed,
             borderRadius: BorderRadius.circular(filterSize / 2),
-            child: Container(
-              width: filterSize,
-              height: filterSize,
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
-                borderRadius: BorderRadius.circular(filterSize / 2),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.14 : 0.06), blurRadius: 12, offset: const Offset(0, 6)),
-                ],
-                border: Border.all(color: Colors.white, width: 1.5),
-              ),
-              alignment: Alignment.center,
-              child: const Icon(Icons.tune, size: 22, color: BrandColors.primary),
+            child: FutureBuilder<bool>(
+              future: () async {
+                try {
+                  final u = await DataService.getCurrentUser();
+                  if (u == null) return false;
+                  // Show badge whenever there are any pending owner requests.
+                  // This is more robust in demo flows and matches the intention
+                  // of highlighting incoming requests.
+                  final pending = await DataService.getRentalRequestsForOwner(u.id, status: 'pending');
+                  final has = pending.isNotEmpty;
+                  debugPrint('[SearchHeader] hasPendingOwnerRequests=' + has.toString() + ' (ownerId=' + u.id + ', count=' + pending.length.toString() + ')');
+                  return has;
+                } catch (_) {
+                  return false;
+                }
+              }(),
+              builder: (context, snapshot) {
+                final hasNew = (snapshot.data == true) || _isBadgeForced;
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: filterSize,
+                      height: filterSize,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
+                        borderRadius: BorderRadius.circular(filterSize / 2),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.14 : 0.06), blurRadius: 12, offset: const Offset(0, 6)),
+                        ],
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      alignment: Alignment.center,
+                      child: Transform.translate(
+                        offset: const Offset(-1, 3), // fine-tuned placement within the circle
+                        child: const BoxChatIcon(size: 22, color: BrandColors.primary),
+                      ),
+                    ),
+                    if (hasNew)
+                      const Positioned(
+                        // Place just inside the circle so it visually touches the inner edge
+                        right: 1,
+                        top: 1,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle),
+                          child: SizedBox(width: 12, height: 12),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
           ),
         ]);

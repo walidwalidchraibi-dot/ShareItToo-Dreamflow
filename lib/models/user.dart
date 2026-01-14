@@ -23,6 +23,10 @@ class User {
   final String? hobbies; // comma-separated simple string for demo
   final String? homeLocation; // optional override of city/country
   final String? favoriteSong;
+  // New: structured address extras and personal data
+  final double? homeLat;
+  final double? homeLng;
+  final DateTime? birthDate;
 
   // Visibility toggles for public profile
   final bool showWork;
@@ -59,6 +63,9 @@ class User {
     this.showHomeLocation = false,
     this.showBioPublic = true,
     this.showFavoriteSong = false,
+    this.homeLat,
+    this.homeLng,
+    this.birthDate,
   });
 
   factory User.fromJson(Map<String, dynamic> json) => User(
@@ -89,6 +96,9 @@ class User {
     showHomeLocation: json['showHomeLocation'] ?? false,
     showBioPublic: json['showBioPublic'] ?? true,
     showFavoriteSong: json['showFavoriteSong'] ?? false,
+    homeLat: (json['homeLat'] as num?)?.toDouble(),
+    homeLng: (json['homeLng'] as num?)?.toDouble(),
+    birthDate: _parseNullableDate(json['birthDate']),
   );
 
   static DateTime _parseDateOrNow(dynamic value) {
@@ -126,6 +136,9 @@ class User {
     'showHomeLocation': showHomeLocation,
     'showBioPublic': showBioPublic,
     'showFavoriteSong': showFavoriteSong,
+    'homeLat': homeLat,
+    'homeLng': homeLng,
+    'birthDate': birthDate?.toIso8601String(),
   };
 
   User copyWith({
@@ -156,6 +169,9 @@ class User {
     bool? showHomeLocation,
     bool? showBioPublic,
     bool? showFavoriteSong,
+    double? homeLat,
+    double? homeLng,
+    DateTime? birthDate,
   }) => User(
         id: id ?? this.id,
         displayName: displayName ?? this.displayName,
@@ -184,5 +200,15 @@ class User {
         showHomeLocation: showHomeLocation ?? this.showHomeLocation,
         showBioPublic: showBioPublic ?? this.showBioPublic,
         showFavoriteSong: showFavoriteSong ?? this.showFavoriteSong,
+        homeLat: homeLat ?? this.homeLat,
+        homeLng: homeLng ?? this.homeLng,
+        birthDate: birthDate ?? this.birthDate,
       );
+
+  static DateTime? _parseNullableDate(dynamic v) {
+    if (v is String && v.isNotEmpty) {
+      return DateTime.tryParse(v);
+    }
+    return null;
+  }
 }

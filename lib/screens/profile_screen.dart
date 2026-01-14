@@ -8,11 +8,15 @@ import 'package:lendify/screens/placeholder_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:lendify/screens/verification_intro_screen.dart';
 import 'package:lendify/screens/edit_profile_screen.dart';
+import 'package:lendify/screens/profile_info_screen.dart';
+import 'package:lendify/screens/account_settings_screen.dart';
+import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/box_chat_icon.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -26,6 +30,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _myListingsCount = 0;
   bool _isLoading = true;
   bool _hasNewRequests = false;
+  // Temporary: force-show requests dot for quick visual review
+  DateTime? _forceRequestsDotUntil;
   // Feedback state
   final TextEditingController _feedbackCtrl = TextEditingController();
   final FocusNode _feedbackFocus = FocusNode();
@@ -35,6 +41,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _user = _placeholderUser();
+    // Show the Mietanfragen-Badge for 5 minutes for visual confirmation
+    _forceRequestsDotUntil = DateTime.now().add(const Duration(minutes: 5));
     _load();
   }
 
@@ -91,6 +99,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final l10n = context.watch<LocalizationController>();
     final userForDisplay = _user ?? _placeholderUser();
     final verified = userForDisplay.isVerified;
+    // JSON-like spec that defines the Profile menu structure
+    final Map<String, dynamic> menuSpec = {
+      'primaryActions': [
+        {
+          'id': 'verify_now',
+          'labelKey': 'profile.action.verifyNow',
+          'icon': 'badge-check',
+          'route': '/verify',
+          'visibleWhen': !verified,
+        },
+        {
+          'id': 'view_public_profile',
+          'labelKey': 'profile.action.viewMyProfile',
+          'icon': 'user',
+          'route': '/myProfilePublic',
+          'visibleWhen': true,
+        },
+      ],
+      'mainMenu': [
+        {
+          'id': 'my_listings',
+          'labelKey': 'profile.menu.myListings',
+          'icon': 'storefront',
+          'route': '/myListings',
+        },
+        {
+          'id': 'rental_requests',
+          'labelKey': 'profile.menu.rentalRequests',
+          'icon': 'requests',
+          'route': '/ownerRequests',
+          'showDot': _hasNewRequests || _forceShowRequestsDot,
+        },
+        {
+          'id': 'my_bookings',
+          'labelKey': 'profile.menu.myBookings',
+          'icon': 'calendar',
+          'route': '/bookings',
+        },
+      ],
+      'secondaryMenu': [
+        {
+          'id': 'profile_info',
+          'labelKey': 'account.item.profileInfo',
+          'icon': 'user',
+          'route': '/profileInfo',
+        },
+        {
+          'id': 'account_settings',
+          'labelKey': 'profile.menu.accountSettings',
+          'icon': 'settings',
+          'route': '/accountSettings',
+        },
+        {
+          'id': 'help_center',
+          'labelKey': 'profile.menu.helpCenter',
+          'icon': 'help',
+          'route': '/help',
+        },
+        {
+          'id': 'legal',
+          'labelKey': 'profile.menu.legal',
+          'icon': 'legal',
+          'route': '/legal',
+        },
+        {
+          'id': 'language',
+          'labelKey': 'profile.menu.language',
+          'icon': 'language',
+          'route': '/language',
+        },
+        {
+          'id': 'logout',
+          'labelKey': 'profile.menu.logout',
+          'icon': 'logout',
+          'route': '/logout',
+          'destructive': true,
+        },
+      ],
+    };
     final profileKey = ValueKey('profile-${userForDisplay.id}-${_myListingsCount}-${userForDisplay.avgRating.toStringAsFixed(2)}-${userForDisplay.reviewCount}');
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -100,6 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
+        centerTitle: true,
         leading: IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
         title: Text(l10n.t('Profil')),
         actions: [
@@ -145,59 +233,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          Visibility(
-            visible: !verified,
-            maintainAnimation: true,
-            maintainState: true,
-            maintainSize: true,
-            child: Column(
-              children: [
+          // Primary actions (from JSON spec)
+          Column(children: [
+            for (final action in (menuSpec['primaryActions'] as List))
+              if (action['visibleWhen'] == true) ...[
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VerificationIntroScreen())),
-                    icon: const Icon(Icons.verified_user_outlined),
-                    label: const Text('Jetzt verifizieren'),
+                    onPressed: () => _handleRoute(action['route'] as String),
+                    icon: _iconFromSpec(action['icon'] as String),
+                    label: Text(l10n.t(action['labelKey'] as String)),
                   ),
                 ),
                 const SizedBox(height: 16),
               ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PublicProfileScreen())),
-              child: Text(l10n.t('Mein Profil anzeigen')),
-            ),
-          ),
+          ]),
           const SizedBox(height: 24),
           Container(
             decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.30), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
             child: Column(children: [
-              _buildMenuItem(Icons.storefront_outlined, l10n.t('Meine Anzeigen')),
-              _divider(),
-              // Renamed: Requests -> Mietanfragen
-              _buildMenuItem(Icons.mark_unread_chat_alt_outlined, 'Mietanfragen', showDot: _hasNewRequests),
-              _divider(),
-              // Removed: Vergangene Buchungen
-              _buildMenuItem(Icons.people_outline, l10n.t('Kontakte')),
+              for (int i = 0; i < (menuSpec['mainMenu'] as List).length; i++) ...[
+                _buildMenuFromSpec(menuSpec['mainMenu'][i] as Map<String, dynamic>, l10n),
+                if (i < (menuSpec['mainMenu'] as List).length - 1) _divider(),
+              ],
             ]),
           ),
           const SizedBox(height: 16),
           Container(
             decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.30), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
             child: Column(children: [
-              _buildMenuItem(Icons.settings_outlined, l10n.t('Kontoeinstellungen')),
-              _divider(),
-              _buildMenuItem(Icons.help_outline, l10n.t('Hilfe-Center')),
-              _divider(),
-              _buildMenuItem(Icons.article_outlined, l10n.t('Rechtliches')),
-              _divider(),
-              _buildMenuItem(Icons.language, l10n.t('Sprache')),
-              _divider(),
-              _buildMenuItem(Icons.logout, l10n.t('Abmelden'), isDestructive: true),
+              for (int i = 0; i < (menuSpec['secondaryMenu'] as List).length; i++) ...[
+                _buildMenuFromSpec(menuSpec['secondaryMenu'][i] as Map<String, dynamic>, l10n),
+                if (i < (menuSpec['secondaryMenu'] as List).length - 1) _divider(),
+              ],
             ]),
           ),
           const SizedBox(height: 16),
@@ -217,15 +285,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ]);
   }
 
-  Widget _buildMenuItem(IconData icon, String title, {bool isDestructive = false, bool showDot = false}) {
+  // removed legacy _svgIcon helper after switching to composed icon
+
+  Widget _buildMenuItem(IconData icon, String title, {bool isDestructive = false, bool showDot = false, Widget? leadingOverride}) {
     final l10n = context.read<LocalizationController>();
+    final placeDotLeft = showDot && title == 'Mietanfragen';
+    final baseLeading = leadingOverride ?? Icon(icon, color: isDestructive ? Colors.red : Colors.white70);
+    final leadingWithDotLeft = SizedBox(
+      width: 28,
+      height: 28,
+      child: Stack(children: [
+        // Center the original leading widget
+        Center(child: SizedBox(width: 22, height: 22, child: FittedBox(child: baseLeading))),
+        // Orange badge on the left side, vertically centered
+        Positioned(left: 2, top: 8, child: Container(width: 12, height: 12, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle))),
+      ]),
+    );
+
     return ListTile(
-      leading: Icon(icon, color: isDestructive ? Colors.red : Colors.white70),
+      leading: placeDotLeft ? leadingWithDotLeft : baseLeading,
       title: Text(title, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: isDestructive ? Colors.red : Colors.white)),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showDot) ...[
+          if (showDot && !placeDotLeft) ...[
             Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle)),
             const SizedBox(width: 8),
           ],
@@ -237,6 +320,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           case 'Meine Anzeigen':
           case 'My listings':
             Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyListingsScreen()));
+            break;
+          case 'Meine Buchungen':
+          case 'My bookings':
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BookingsScreen()));
             break;
           case 'Anfragen':
           case 'Requests':
@@ -251,7 +338,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             break;
           case 'Kontoeinstellungen':
           case 'Account settings':
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EditProfileScreen()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountSettingsScreen()));
             break;
           case 'Hilfe-Center':
           case 'Help Center':
@@ -274,6 +361,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       },
     );
+  }
+
+  // Build a menu entry from the JSON-like spec
+  Widget _buildMenuFromSpec(Map<String, dynamic> spec, LocalizationController l10n) {
+    final title = l10n.t(spec['labelKey'] as String);
+    final iconName = (spec['icon'] as String?) ?? '';
+    final showDot = (spec['showDot'] as bool?) ?? false;
+    final isDestructive = (spec['destructive'] as bool?) ?? false;
+    final iconData = _iconDataFromSpec(iconName);
+    final leadingOverride = iconName == 'requests' ? const BoxChatIcon(size: 22, color: Colors.white70) : null;
+    return _buildMenuItem(iconData, title, isDestructive: isDestructive, showDot: showDot, leadingOverride: leadingOverride);
+  }
+
+  // Map abstract icon names from the spec to Material icons
+  Icon _iconFromSpec(String name) => Icon(_iconDataFromSpec(name));
+
+  IconData _iconDataFromSpec(String name) {
+    switch (name) {
+      case 'badge-check':
+        return Icons.verified_user_outlined;
+      case 'user':
+        return Icons.person_outline;
+      case 'storefront':
+        return Icons.storefront_outlined;
+      case 'requests':
+        return Icons.mark_unread_chat_alt_outlined;
+      case 'calendar':
+        return Icons.calendar_month_outlined;
+      case 'settings':
+        return Icons.settings_outlined;
+      case 'help':
+        return Icons.help_outline;
+      case 'legal':
+        return Icons.article_outlined;
+      case 'language':
+        return Icons.language;
+      case 'logout':
+        return Icons.logout;
+      default:
+        return Icons.chevron_right;
+    }
+  }
+
+  void _handleRoute(String route) {
+    switch (route) {
+      case '/verify':
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VerificationIntroScreen()));
+        break;
+      case '/myProfilePublic':
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PublicProfileScreen()));
+        break;
+      case '/myListings':
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyListingsScreen()));
+        break;
+      case '/ownerRequests':
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerRequestsScreen(initialTabIndex: 2))).then((_) { if (mounted) { _load(); } });
+        break;
+      case '/bookings':
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BookingsScreen()));
+        break;
+      case '/accountSettings':
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountSettingsScreen()));
+        break;
+      case '/help':
+        final l10n = context.read<LocalizationController>();
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => PlaceholderScreen(title: l10n.t('Hilfe-Center'), description: 'FAQ und Support.')));
+        break;
+      case '/legal':
+        final l10n = context.read<LocalizationController>();
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => PlaceholderScreen(title: l10n.t('Rechtliches'), description: 'AGB, Datenschutz und Impressum.')));
+        break;
+      case '/language':
+        _openLanguageSheet();
+        break;
+      case '/profileInfo':
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileInfoScreen()));
+        break;
+      case '/logout':
+        _confirmLogout();
+        break;
+      default:
+        break;
+    }
+  }
+
+  bool get _forceShowRequestsDot {
+    final until = _forceRequestsDotUntil;
+    if (until == null) return false;
+    return DateTime.now().isBefore(until);
   }
 
   void _openLanguageSheet() {

@@ -174,43 +174,19 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
       }
       return;
     }
-    // Already in a wishlist: show small menu
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) {
-        final cs = Theme.of(ctx).colorScheme;
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              ListTile(
-                leading: Icon(Icons.swap_horiz, color: cs.primary),
-                title: const Text('In andere Wunschliste verschieben'),
-                onTap: () async {
-                  Navigator.of(ctx).pop();
-                  final sel = await WishlistSelectionSheet.showMove(context, currentListId: listId!);
-                  if (sel != null && sel.isNotEmpty) {
-                    await DataService.setItemWishlist(widget.itemId, sel);
-                    if (mounted) setState(() { listId = sel; });
-                  }
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.delete_outline, color: cs.error),
-                title: const Text('Aus Wunschliste entfernen'),
-                onTap: () async {
-                  await DataService.removeItemFromWishlist(widget.itemId);
-                  if (mounted) setState(() { listId = null; });
-                  if (context.mounted) Navigator.of(ctx).pop();
-                },
-              ),
-            ]),
-          ),
-        );
-      },
-    );
+    // Already in a wishlist: show centered popup with the same design as
+    // the wishlist selection (blurred background, glass card)
+    final choice = await WishlistSelectionSheet.showManageOptions(context);
+    if (choice == 'move') {
+      final sel = await WishlistSelectionSheet.showMove(context, currentListId: listId!);
+      if (sel != null && sel.isNotEmpty) {
+        await DataService.setItemWishlist(widget.itemId, sel);
+        if (mounted) setState(() { listId = sel; });
+      }
+    } else if (choice == 'remove') {
+      await DataService.removeItemFromWishlist(widget.itemId);
+      if (mounted) setState(() { listId = null; });
+    }
   }
 
   @override

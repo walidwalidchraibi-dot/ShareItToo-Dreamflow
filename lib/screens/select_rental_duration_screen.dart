@@ -4,6 +4,7 @@ import 'package:lendify/models/item.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/utils/total_subtitle.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 class SelectRentalDurationScreen extends StatefulWidget {
   final Item item;
@@ -280,7 +281,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                     'Mit der Prioritätsoption wird deine Anfrage hervorgehoben und für den Vermieter attraktiver dargestellt.\n\n'
                     'Priorität signalisiert den Wunsch nach einer möglichst schnellen Abgabe.\n\n'
                     'Die tatsächliche Abgabe hängt von der Verfügbarkeit und Entscheidung des Vermieters ab.\n\n'
-                    'Solange deine Anfrage noch nicht bestätigt wurde, kannst du sie jederzeit zurückziehen.',
+                    'Bei Rückzug deiner Anfrage oder rechtzeitiger Stornierung der Buchung wird der Prioritätszuschlag zurückerstattet.',
                     style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.35),
                   ),
                 ),
@@ -289,6 +290,100 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
           ),
         );
       },
+    );
+  }
+
+  Future<void> _showPriorityActivateDialog(BuildContext context) async {
+    await AppPopup.showCustom<void>(
+      context,
+      icon: Icons.flash_on_outlined,
+      title: '⚡ Priorität',
+      showCloseIcon: false,
+      showLeading: false,
+      cardBackgroundColor: Colors.black.withValues(alpha: 0.60),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Mit der Option Priorität wird deine Anfrage hervorgehoben und dem Vermieter bevorzugt angezeigt.\n\n'
+            'Für zusätzliche 5 Euro erhält der Vermieter einen finanziellen Anreiz, deine Anfrage schnellstmöglich anzunehmen.\n\n'
+            'Die tatsächliche Abgabe hängt weiterhin von der Verfügbarkeit des Artikels und der Entscheidung des Vermieters ab.\n\n'
+            'Bei Rückzug deiner Anfrage oder rechtzeitiger Stornierung der Buchung wird der Prioritätszuschlag zurückerstattet.',
+            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.35),
+            textAlign: TextAlign.left,
+            softWrap: true,
+          ),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+              child: FilledButton(
+                onPressed: () {
+                  setState(() => _wantExpress = true);
+                  _persistDeliverySelection();
+                  Navigator.of(context, rootNavigator: true).maybePop();
+                },
+                child: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Priorität aktivieren',
+                    maxLines: 1,
+                    softWrap: false,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context, rootNavigator: true).maybePop(),
+                child: const Text('Abbrechen'),
+              ),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showPriorityDeactivateDialog(BuildContext context) async {
+    await AppPopup.showCustom<void>(
+      context,
+      icon: Icons.flash_on_outlined,
+      title: 'Priorität deaktivieren?',
+      showCloseIcon: false,
+      showLeading: false,
+      cardBackgroundColor: Colors.black.withValues(alpha: 0.60),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Möchtest du die Option Priorität wieder deaktivieren?',
+            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.35),
+          ),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+              child: FilledButton(
+                onPressed: () {
+                  setState(() => _wantExpress = false);
+                  _persistDeliverySelection();
+                  Navigator.of(context, rootNavigator: true).maybePop();
+                },
+                child: const Text('Ja, deaktivieren'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context, rootNavigator: true).maybePop(),
+                child: const Text('Behalten'),
+              ),
+            ),
+          ]),
+        ],
+      ),
     );
   }
 
@@ -511,28 +606,53 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                               ]),
                               // Standard & Priorität are always visible on Abgabe, regardless of delivery choice
                               const SizedBox(height: 8),
+                              // Standard & Priorität row – ensure taps go directly to the pills
                               Row(children: [
-                                Expanded(child: _OptionPill(
-                                  label: 'Standard',
-                                  selected: !_wantExpress,
-                                  onTap: () { setState(() { _wantExpress = false; }); _persistDeliverySelection(); },
-                                )),
-                                const SizedBox(width: 6),
-                                GestureDetector(
-                                  onTap: () => _showExpressInfoSheet(context),
-                                  behavior: HitTestBehavior.opaque,
-                                  child: const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 2),
-                                    child: Icon(Icons.help_outline, color: Colors.white70, size: 16),
+                                // Standard – must remain tappable even when Priorität aktiv
+                                Expanded(
+                                  child: _OptionPill(
+                                    label: 'Standard',
+                                    selected: !_wantExpress,
+                                    // Standard ist nie disabled
+                                    disabled: false,
+                                    onTap: () {
+                                      debugPrint('[SelectRentalDuration] onTap(Standard) fired (was wantExpress=$_wantExpress)');
+                                      setState(() { _wantExpress = false; });
+                                      _persistDeliverySelection();
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).clearSnackBars();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Standard gewählt')),
+                                        );
+                                      }
+                                      debugPrint('[SelectRentalDuration] -> wantExpress now $_wantExpress');
+                                    },
                                   ),
                                 ),
-                                const SizedBox(width: 6),
-                                Expanded(child: _OptionPill(
-                                  label: 'Priorität',
-                                  selected: _wantExpress,
-                                  onTap: () { setState(() { _wantExpress = true; }); _persistDeliverySelection(); },
-                                )),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _OptionPill(
+                                    label: 'Priorität',
+                                    selected: _wantExpress,
+                                    onTap: () async {
+                                      debugPrint('[SelectRentalDuration] onTap(Priorität) fired (wantExpress=$_wantExpress)');
+                                      if (_wantExpress) {
+                                        await _showPriorityDeactivateDialog(context);
+                                      } else {
+                                        await _showPriorityActivateDialog(context);
+                                      }
+                                    },
+                                  ),
+                                ),
                               ]),
+                              // Small on-screen indicator to help verify current mode during debugging
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: Text(
+                                  _wantExpress ? 'Modus: Priorität' : 'Modus: Standard',
+                                  style: TextStyle(color: sub, fontSize: 11),
+                                ),
+                              ),
                               const SizedBox(height: 6),
                               if (_hinwegLandlord) Builder(builder: (context) {
                                 final km = _savedDistanceKm();
@@ -907,27 +1027,45 @@ class _OptionPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = BrandColors.primary;
-    final base = Colors.white.withValues(alpha: 0.06);
-    final border = Colors.white.withValues(alpha: 0.12);
+    // Increase base contrast so inactive pills (e.g., "Standard" when Priorität aktiv) look clearly tappable
+    // Previously too faint; bumping opacity makes them match the inactive Priorität style more closely
+    final base = Colors.white.withValues(alpha: 0.16);
+    final border = Colors.white.withValues(alpha: 0.28);
     final selBg = primary.withValues(alpha: 0.22);
     final selBorder = primary;
     final fg = disabled ? Colors.white54 : Colors.white;
     return Opacity(
       opacity: disabled ? 0.6 : 1,
-      child: GestureDetector(
-        onTap: disabled ? null : onTap,
-        child: Container(
-          height: 40,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: selected ? selBg : base,
-            border: Border.all(color: selected ? selBorder : border),
+      child: MouseRegion(
+        cursor: disabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            // No splash/highlight per design guidelines
+            overlayColor: MaterialStateProperty.all(Colors.transparent),
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            onTap: disabled
+                ? null
+                : () {
+                    debugPrint('[OptionPill] Tap on "$label" (selected=$selected disabled=$disabled)');
+                    onTap?.call();
+                  },
             borderRadius: BorderRadius.circular(999),
-          ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 13)),
+            child: Container(
+              height: 40,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: selected ? selBg : base,
+                border: Border.all(color: selected ? selBorder : border),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 13)),
+              ),
+            ),
           ),
         ),
       ),

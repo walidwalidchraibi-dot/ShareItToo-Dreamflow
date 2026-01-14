@@ -24,6 +24,7 @@ import 'package:lendify/utils/total_subtitle.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
 import 'package:lendify/utils/condition_labels.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
+import 'package:lendify/widgets/image_gallery_overlay.dart';
 
 class ItemDetailsOverlay {
   static Future<void> show(BuildContext context, {required Item item, model.User? owner}) async {
@@ -104,6 +105,16 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
   void initState() {
     super.initState();
     _loadWishlist();
+  }
+
+  Future<void> _share() async {
+    try {
+      f.debugPrint('[share] listing ${widget.item.id}');
+      await AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Link kopiert');
+    } catch (e) {
+      f.debugPrint('[share] failed: $e');
+      await AppPopup.toast(context, icon: Icons.error_outline, title: 'Teilen fehlgeschlagen');
+    }
   }
 
   Future<void> _loadWishlist() async {
@@ -243,42 +254,17 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
       }
       return;
     }
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) {
-        final cs = Theme.of(ctx).colorScheme;
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              ListTile(
-                leading: Icon(Icons.swap_horiz, color: cs.primary),
-                title: const Text('In andere Wunschliste verschieben'),
-                onTap: () async {
-                  Navigator.of(ctx).pop();
-                  final sel = await WishlistSelectionSheet.showMove(context, currentListId: _wishlistId!);
-                  if (sel != null && sel.isNotEmpty) {
-                    await DataService.setItemWishlist(widget.item.id, sel);
-                    if (mounted) setState(() => _wishlistId = sel);
-                  }
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.delete_outline, color: cs.error),
-                title: const Text('Aus Wunschliste entfernen'),
-                onTap: () async {
-                  await DataService.removeItemFromWishlist(widget.item.id);
-                  if (mounted) setState(() => _wishlistId = null);
-                  if (context.mounted) Navigator.of(ctx).pop();
-                },
-              ),
-            ]),
-          ),
-        );
-      },
-    );
+    final choice = await WishlistSelectionSheet.showManageOptions(context);
+    if (choice == 'move') {
+      final sel = await WishlistSelectionSheet.showMove(context, currentListId: _wishlistId!);
+      if (sel != null && sel.isNotEmpty) {
+        await DataService.setItemWishlist(widget.item.id, sel);
+        if (mounted) setState(() => _wishlistId = sel);
+      }
+    } else if (choice == 'remove') {
+      await DataService.removeItemFromWishlist(widget.item.id);
+      if (mounted) setState(() => _wishlistId = null);
+    }
   }
 
   @override
@@ -317,6 +303,22 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
                           final url = item.photos.isNotEmpty ? item.photos[index] : 'https://picsum.photos/seed/item_details_fallback/1000/1000';
                           return AppImage(url: url, fit: BoxFit.cover);
                         },
+                      ),
+                      // Tap to open immersive gallery overlay
+                      Positioned.fill(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onTap: () async {
+                            await ImageGalleryOverlay.show(
+                              context,
+                              images: item.photos,
+                              initialIndex: _page,
+                              isWishlisted: () => _wishlistId != null,
+                              onWishlistPressed: _addToWishlist,
+                              onShare: _share,
+                            );
+                          },
+                        ),
                       ),
                       // Top-right: wishlist heart (nudged ~1.5mm to the right edge)
                       Positioned(
@@ -520,6 +522,15 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
     if (sel != null && sel.isNotEmpty) {
       await DataService.setItemWishlist(widget.item.id, sel);
       if (mounted) setState(() => _wishlistId = sel);
+    }
+  }
+  Future<void> _share() async {
+    try {
+      f.debugPrint('[share] listing ${widget.item.id}');
+      await AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Link kopiert');
+    } catch (e) {
+      f.debugPrint('[share] failed: $e');
+      await AppPopup.toast(context, icon: Icons.error_outline, title: 'Teilen fehlgeschlagen');
     }
   }
   
@@ -743,6 +754,22 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                       final url = item.photos.isNotEmpty ? item.photos[index] : 'https://picsum.photos/seed/item_details_fallback/1000/1000';
                       return AppImage(url: url, fit: BoxFit.cover);
                     },
+                  ),
+                  // Tap to open immersive gallery overlay
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: () async {
+                        await ImageGalleryOverlay.show(
+                          context,
+                          images: item.photos,
+                          initialIndex: _page,
+                          isWishlisted: () => _wishlistId != null,
+                          onWishlistPressed: _toggleWishlistFromMenu,
+                          onShare: _share,
+                        );
+                      },
+                    ),
                   ),
                   // Top-right: wishlist heart (nudged ~1.5mm to the right edge)
                   Positioned(

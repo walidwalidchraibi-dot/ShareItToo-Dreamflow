@@ -67,7 +67,9 @@ class WishlistFolderGrid extends StatelessWidget {
                     width: 46,
                     height: 46,
                     decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(10)),
-                    child: Icon(Icons.folder, color: iconColor),
+                    // Für vom Nutzer erstellte Wunschlisten ein persönliches Icon anzeigen,
+                    // für Systemlisten ein generisches Ordner-Icon beibehalten.
+                    child: Icon(op.system ? Icons.folder : Icons.person_outline, color: iconColor),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
