@@ -9,10 +9,6 @@ import 'package:lendify/models/item.dart';
 import 'package:lendify/screens/create_listing_screen.dart';
 
 class SearchHeader extends StatelessWidget {
-  // TEMP: Force the blue badge to be visible for 5 minutes from load to preview the look.
-  // This does not remove the existing logic; it only ORs an additional condition.
-  static final DateTime _badgeForceUntil = DateTime.now().add(const Duration(minutes: 5));
-  static bool get _isBadgeForced => DateTime.now().isBefore(_badgeForceUntil);
   final VoidCallback onFiltersPressed;
   final VoidCallback onSearchTap;
   final Future<void> Function(Item created)? onListingCreated;
@@ -103,7 +99,7 @@ class SearchHeader extends StatelessWidget {
                 }
               }(),
               builder: (context, snapshot) {
-                final hasNew = (snapshot.data == true) || _isBadgeForced;
+                final hasNew = (snapshot.data == true);
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -126,12 +122,12 @@ class SearchHeader extends StatelessWidget {
                     ),
                     if (hasNew)
                       const Positioned(
-                        // Place just inside the circle so it visually touches the inner edge
+                        // Match the smaller profile badge size and keep similar corner placement
                         right: 1,
                         top: 1,
                         child: DecoratedBox(
                           decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle),
-                          child: SizedBox(width: 12, height: 12),
+                          child: SizedBox(width: 8, height: 8),
                         ),
                       ),
                   ],

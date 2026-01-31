@@ -8,7 +8,6 @@ import 'package:lendify/screens/placeholder_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:lendify/screens/verification_intro_screen.dart';
 import 'package:lendify/screens/edit_profile_screen.dart';
-import 'package:lendify/screens/profile_info_screen.dart';
 import 'package:lendify/screens/account_settings_screen.dart';
 import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
@@ -30,8 +29,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _myListingsCount = 0;
   bool _isLoading = true;
   bool _hasNewRequests = false;
-  // Temporary: force-show requests dot for quick visual review
-  DateTime? _forceRequestsDotUntil;
   // Feedback state
   final TextEditingController _feedbackCtrl = TextEditingController();
   final FocusNode _feedbackFocus = FocusNode();
@@ -41,8 +38,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _user = _placeholderUser();
-    // Show the Mietanfragen-Badge for 5 minutes for visual confirmation
-    _forceRequestsDotUntil = DateTime.now().add(const Duration(minutes: 5));
     _load();
   }
 
@@ -99,6 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final l10n = context.watch<LocalizationController>();
     final userForDisplay = _user ?? _placeholderUser();
     final verified = userForDisplay.isVerified;
+    final bool _hasAnyNotifications = _hasNewRequests; // extend when adding more sources
     // JSON-like spec that defines the Profile menu structure
     final Map<String, dynamic> menuSpec = {
       'primaryActions': [
@@ -129,39 +125,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'labelKey': 'profile.menu.rentalRequests',
           'icon': 'requests',
           'route': '/ownerRequests',
-          'showDot': _hasNewRequests || _forceShowRequestsDot,
+          'showDot': _hasNewRequests,
         },
         {
           'id': 'my_bookings',
           'labelKey': 'profile.menu.myBookings',
           'icon': 'calendar',
           'route': '/bookings',
+          // Only show when real notifications exist (not implemented yet)
+          // 'showDot': _hasNewBookings,
         },
       ],
       'secondaryMenu': [
-        {
-          'id': 'profile_info',
-          'labelKey': 'account.item.profileInfo',
-          'icon': 'user',
-          'route': '/profileInfo',
-        },
         {
           'id': 'account_settings',
           'labelKey': 'profile.menu.accountSettings',
           'icon': 'settings',
           'route': '/accountSettings',
+          // 'showDot': _hasNewAccountNotices,
         },
         {
           'id': 'help_center',
           'labelKey': 'profile.menu.helpCenter',
           'icon': 'help',
           'route': '/help',
+          // 'showDot': _hasNewHelpUpdates,
         },
         {
           'id': 'legal',
           'labelKey': 'profile.menu.legal',
           'icon': 'legal',
           'route': '/legal',
+          // 'showDot': _hasNewLegalUpdates,
         },
         {
           'id': 'language',
@@ -202,7 +197,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 icon: const Icon(Icons.notifications_outlined),
               ),
-              Positioned(right: 8, top: 8, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle))),
+              if (_hasAnyNotifications)
+                Positioned(right: 8, top: 8, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle))),
             ]),
           ),
         ],
@@ -287,18 +283,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // removed legacy _svgIcon helper after switching to composed icon
 
-  Widget _buildMenuItem(IconData icon, String title, {bool isDestructive = false, bool showDot = false, Widget? leadingOverride}) {
+  Widget _buildMenuItem(IconData icon, String title, {bool isDestructive = false, bool showDot = false, Widget? leadingOverride, VoidCallback? onTapOverride}) {
     final l10n = context.read<LocalizationController>();
-    final placeDotLeft = showDot && title == 'Mietanfragen';
+    // Place the dot left (on the leading icon) for all items that request a dot
+    final placeDotLeft = showDot;
     final baseLeading = leadingOverride ?? Icon(icon, color: isDestructive ? Colors.red : Colors.white70);
     final leadingWithDotLeft = SizedBox(
       width: 28,
       height: 28,
-      child: Stack(children: [
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
         // Center the original leading widget
         Center(child: SizedBox(width: 22, height: 22, child: FittedBox(child: baseLeading))),
-        // Orange badge on the left side, vertically centered
-        Positioned(left: 2, top: 8, child: Container(width: 12, height: 12, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle))),
+        // Orange badge; after feedback: move ~1mm back towards center on both axes
+        // ~1mm ≈ 4.2 logical px on typical densities
+        Positioned(left: -4.2, top: -2.2, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle))),
       ]),
     );
 
@@ -316,6 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       onTap: () {
+        if (onTapOverride != null) { onTapOverride(); return; }
         switch (title) {
           case 'Meine Anzeigen':
           case 'My listings':
@@ -371,7 +372,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isDestructive = (spec['destructive'] as bool?) ?? false;
     final iconData = _iconDataFromSpec(iconName);
     final leadingOverride = iconName == 'requests' ? const BoxChatIcon(size: 22, color: Colors.white70) : null;
-    return _buildMenuItem(iconData, title, isDestructive: isDestructive, showDot: showDot, leadingOverride: leadingOverride);
+    final String? route = spec['route'] as String?;
+    return _buildMenuItem(
+      iconData,
+      title,
+      isDestructive: isDestructive,
+      showDot: showDot,
+      leadingOverride: leadingOverride,
+      onTapOverride: route != null ? () => _handleRoute(route) : null,
+    );
   }
 
   // Map abstract icon names from the spec to Material icons
@@ -435,21 +444,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case '/language':
         _openLanguageSheet();
         break;
-      case '/profileInfo':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileInfoScreen()));
-        break;
       case '/logout':
         _confirmLogout();
         break;
       default:
         break;
     }
-  }
-
-  bool get _forceShowRequestsDot {
-    final until = _forceRequestsDotUntil;
-    if (until == null) return false;
-    return DateTime.now().isBefore(until);
   }
 
   void _openLanguageSheet() {

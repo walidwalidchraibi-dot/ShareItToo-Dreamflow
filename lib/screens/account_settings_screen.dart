@@ -4,6 +4,7 @@ import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/models/user.dart';
 import 'package:provider/provider.dart';
+import 'package:lendify/screens/profile_info_screen.dart';
 import 'package:lendify/widgets/blur_modal.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
@@ -50,10 +51,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           _SectionCard(children: [
             _RowTile(
               icon: Icons.badge_outlined,
-              label: l10n.t('account.item.profileInfo'),
-              onTap: () => _openProfileInfoSheet(context),
+              label: l10n.t('Profilinformationen'),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileInfoScreen())),
             ),
-            const _Divider(),
+          ]),
+          const SizedBox(height: 16),
+          _SectionCard(children: [
             _RowTile(
               icon: Icons.mail_outline,
               label: l10n.t('account.item.contactData'),
@@ -124,129 +127,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     );
   }
 
-  void _openProfileInfoSheet(BuildContext context) {
-    final l10n = context.read<LocalizationController>();
-    final u = _user;
-    if (u == null) return;
-    final cityCtrl = TextEditingController(text: u.city ?? '');
-    final countryCtrl = TextEditingController(text: u.country ?? '');
-    final jobCtrl = TextEditingController(text: u.workTitle ?? '');
-    DateTime? birthDate; // demo-only (not persisted)
-    final languages = [...u.languages];
-    final interests = [...u.interests];
-    final hobbies = <String>{...
-      (u.hobbies ?? '').split(',').map((e) => e.trim()).where((e) => e.isNotEmpty)
-    };
-    final addLangCtrl = TextEditingController();
-    final addHobbyCtrl = TextEditingController();
-    final addInterestCtrl = TextEditingController();
-
-    void addTo(Set<String> set, TextEditingController c) { final v = c.text.trim(); if (v.isEmpty) return; set.add(v); c.clear(); }
-    void addToList(List<String> list, TextEditingController c) { final v = c.text.trim(); if (v.isEmpty) return; if (!list.contains(v)) list.add(v); c.clear(); }
-
-    showBlurBottomSheet(context, child: StatefulBuilder(builder: (context, setStateSheet) {
-      bool changed() {
-        final changedCity = cityCtrl.text != (u.city ?? '');
-        final changedCountry = countryCtrl.text != (u.country ?? '');
-        final changedJob = jobCtrl.text != (u.workTitle ?? '');
-        final changedLang = languages.join('|') != u.languages.join('|');
-        final changedHobby = hobbies.join('|') != (u.hobbies ?? '').split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).join('|');
-        final changedInt = interests.join('|') != u.interests.join('|');
-        return changedCity || changedCountry || changedJob || changedLang || changedHobby || changedInt || birthDate != null;
-      }
-
-      Future<void> save() async {
-        if (_user == null) return;
-        final updated = _user!.copyWith(
-          city: cityCtrl.text.trim().isEmpty ? null : cityCtrl.text.trim(),
-          country: countryCtrl.text.trim().isEmpty ? null : countryCtrl.text.trim(),
-          workTitle: jobCtrl.text.trim().isEmpty ? null : jobCtrl.text.trim(),
-          languages: languages,
-          interests: interests,
-          hobbies: hobbies.isEmpty ? null : hobbies.join(', '),
-        );
-        await DataService.setCurrentUser(updated);
-        if (!mounted) return;
-        setState(() => _user = updated);
-        // ignore: use_build_context_synchronously
-        Navigator.of(context).maybePop();
-        // ignore: use_build_context_synchronously
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.t('Gespeichert'))));
-      }
-
-      Widget chipSet({required String label, required List<String> values, required TextEditingController controller, required VoidCallback onAdd, void Function(int)? onRemoveIndex}) {
-        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
-          const SizedBox(height: 6),
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            for (int i = 0; i < values.length; i++) InputChip(
-              label: Text(values[i]),
-              onDeleted: onRemoveIndex == null ? null : () { setStateSheet(() { onRemoveIndex(i); }); },
-            ),
-          ]),
-          const SizedBox(height: 8),
-          Row(children: [
-            Expanded(child: TextField(controller: controller, decoration: const InputDecoration(hintText: 'Hinzufügen'))),
-            const SizedBox(width: 8),
-            FilledButton(onPressed: () { onAdd(); setStateSheet(() {}); }, child: const Text('Add')),
-          ]),
-        ]);
-      }
-
-      return SheetScaffold(
-        title: l10n.t('account.item.profileInfo'),
-        body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Row(children: [
-            Expanded(child: TextField(controller: cityCtrl, decoration: const InputDecoration(prefixIcon: Icon(Icons.location_city_outlined), labelText: 'Stadt'))),
-            const SizedBox(width: 12),
-            Expanded(child: TextField(controller: countryCtrl, decoration: const InputDecoration(prefixIcon: Icon(Icons.flag_outlined), labelText: 'Land'))),
-          ]),
-          const SizedBox(height: 12),
-          TextField(controller: jobCtrl, decoration: const InputDecoration(prefixIcon: Icon(Icons.work_outline), labelText: 'Beruf')),
-          const SizedBox(height: 12),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.cake_outlined),
-            title: const Text('Geburtsdatum'),
-            subtitle: Text(birthDate == null ? '—' : '${birthDate!.day}.${birthDate!.month}.${birthDate!.year}'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () async {
-              final now = DateTime.now();
-              final picked = await showDatePicker(context: context, initialDate: DateTime(now.year - 25), firstDate: DateTime(1900), lastDate: now);
-              if (picked != null) setStateSheet(() { birthDate = picked; });
-            },
-          ),
-          const SizedBox(height: 12),
-          chipSet(
-            label: 'Sprachen',
-            values: languages,
-            controller: addLangCtrl,
-            onAdd: () => addToList(languages, addLangCtrl),
-            onRemoveIndex: (i) => languages.removeAt(i),
-          ),
-          const SizedBox(height: 12),
-          chipSet(
-            label: 'Hobbys',
-            values: hobbies.toList(),
-            controller: addHobbyCtrl,
-            onAdd: () => addTo(hobbies, addHobbyCtrl),
-            onRemoveIndex: (i) => hobbies.remove(hobbies.elementAt(i)),
-          ),
-          const SizedBox(height: 12),
-          chipSet(
-            label: 'Interessen',
-            values: interests,
-            controller: addInterestCtrl,
-            onAdd: () => addToList(interests, addInterestCtrl),
-            onRemoveIndex: (i) => interests.removeAt(i),
-          ),
-        ]),
-        bottomBar: Row(children: [
-          Expanded(child: FilledButton(onPressed: changed() ? save : null, child: Text(l10n.t('Speichern')))),
-        ]),
-      );
-    }));
-  }
+  // Profileinformationen entfernt
 
   void _openContactDataSheet(BuildContext context) {
     final l10n = context.read<LocalizationController>();
@@ -258,10 +139,23 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         _InfoRow(icon: Icons.alternate_email, label: 'E‑Mail', value: u.email, actionLabel: 'Ändern', onAction: () => _openChangeEmailFlow(context)),
         const SizedBox(height: 8),
         _InfoRow(icon: Icons.phone_outlined, label: 'Telefon', value: u.phone ?? '—', actionLabel: 'Ändern', onAction: () => _openChangePhoneFlow(context)),
+        const SizedBox(height: 8),
+        _InfoRow(icon: Icons.place_outlined, label: 'Adresse', value: _addressDisplay(u), actionLabel: 'Ändern', onAction: () => _openChangeAddressFlow(context)),
         const SizedBox(height: 12),
-        Text('E‑Mail und Telefon sind niemals öffentlich sichtbar.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
+        Text('E‑Mail, Telefon und Adresse sind niemals öffentlich sichtbar.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
       ]),
     ));
+  }
+
+  String _addressDisplay(User u) {
+    final line = (u.homeLocation ?? '').trim();
+    if (line.isNotEmpty) return line;
+    final city = (u.city ?? '').trim();
+    final country = (u.country ?? '').trim();
+    if (city.isEmpty && country.isEmpty) return '—';
+    if (city.isEmpty) return country;
+    if (country.isEmpty) return city;
+    return '$city, $country';
   }
 
   void _openVerificationSheet(BuildContext context) {
@@ -396,6 +290,79 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         ]),
         bottomBar: Row(children: [
           Expanded(child: FilledButton(onPressed: () { if (!sent) { setStateSheet(() => sent = true); } else { Navigator.of(context).maybePop(); } }, child: Text(sent ? 'Bestätigen' : 'Code senden'))),
+        ]),
+      );
+    }));
+  }
+
+  void _openChangeAddressFlow(BuildContext context) {
+    final u = _user;
+    if (u == null) return;
+    final addrCtrl = TextEditingController(text: _addressDisplay(u) == '—' ? '' : _addressDisplay(u));
+    showBlurBottomSheet(context, child: StatefulBuilder(builder: (context, setStateSheet) {
+      String error = '';
+      bool _hasStreetNumber(String input) {
+        // Validate: first segment (before first comma) must contain at least one digit
+        final raw = input.trim();
+        if (raw.isEmpty) return false;
+        final first = raw.split(',').first.trim();
+        // Typical formats: "Musterstraße 12", "12 Musterweg", "Musterstr. 12a"
+        return RegExp(r"\d").hasMatch(first);
+      }
+      return SheetScaffold(
+        title: 'Adresse ändern',
+        body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          TextField(
+            controller: addrCtrl,
+            keyboardType: TextInputType.streetAddress,
+            autofillHints: const [AutofillHints.streetAddressLine1, AutofillHints.streetAddressLine2, AutofillHints.postalCode, AutofillHints.addressCity],
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.place_outlined),
+              labelText: 'Adresse (Straße und Hausnummer, PLZ, Stadt)',
+              hintText: 'z. B. Musterstraße 12, 12345 Berlin'
+            )
+          ),
+          const SizedBox(height: 8),
+          Text('Nur du und deine Gegenpartei nach Annahme sehen diese Adresse.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
+          if (error.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(error, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.redAccent)),
+          ],
+        ]),
+        bottomBar: Row(children: [
+          Expanded(child: FilledButton(
+            onPressed: () async {
+              final line = addrCtrl.text.trim();
+              if (line.isEmpty) {
+                setStateSheet(() { error = 'Bitte gib eine Adresse ein'; });
+                return;
+              }
+              if (!_hasStreetNumber(line)) {
+                setStateSheet(() { error = 'Bitte gib Straße und Hausnummer an (z. B. Musterstraße 12)'; });
+                return;
+              }
+              try {
+                final current = await DataService.getCurrentUser();
+                if (current == null) { Navigator.of(context).maybePop(); return; }
+                // Heuristic: derive city from address; keep existing country if not present
+                final derivedCity = DataService.deriveCityFromAddress(line);
+                final updated = current.copyWith(
+                  homeLocation: line,
+                  city: derivedCity.isNotEmpty ? derivedCity : current.city,
+                );
+                await DataService.setCurrentUser(updated);
+                if (!mounted) return;
+                setState(() => _user = updated);
+                Navigator.of(context).maybePop();
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gespeichert')));
+              } catch (e) {
+                debugPrint('[AccountSettings] change address failed: '+e.toString());
+                if (!mounted) return;
+                setStateSheet(() { error = 'Speichern fehlgeschlagen'; });
+              }
+            },
+            child: const Text('Speichern'),
+          )),
         ]),
       );
     }));
