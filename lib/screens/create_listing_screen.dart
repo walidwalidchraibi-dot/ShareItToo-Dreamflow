@@ -219,40 +219,63 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   }
 
   void _showPhotoSourceSheet() {
-    // Centered popup for picking photos
+    // Centered popup for picking photos with blurred background
     showDialog<void>(
       context: context,
       barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.25),
       builder: (context) {
-        return Dialog(
-          backgroundColor: Colors.black.withValues(alpha: 0.90),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        return Material(
+          type: MaterialType.transparency,
           child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.photo_camera, color: Colors.white),
-                    title: const Text('Mit Kamera aufnehmen', style: TextStyle(color: Colors.white)),
-                    onTap: () async {
-                      Navigator.of(context).maybePop();
-                      await _pickFromCamera();
-                    },
+            child: Stack(children: [
+              // Blurred backdrop
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.of(context).maybePop(),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                    child: Container(color: Colors.transparent),
                   ),
-                  const Divider(height: 1, color: Colors.white12),
-                  ListTile(
-                    leading: const Icon(Icons.photo_library, color: Colors.white),
-                    title: const Text('Aus Galerie auswählen', style: TextStyle(color: Colors.white)),
-                    onTap: () async {
-                      Navigator.of(context).maybePop();
-                      await _pickFromGallery();
-                    },
-                  ),
-                ],
+                ),
               ),
-            ),
+              // Dialog content
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.34),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.photo_camera, color: Colors.white),
+                          title: const Text('Mit Kamera aufnehmen', style: TextStyle(color: Colors.white)),
+                          onTap: () async {
+                            Navigator.of(context).maybePop();
+                            await _pickFromCamera();
+                          },
+                        ),
+                        const Divider(height: 1, color: Colors.white12),
+                        ListTile(
+                          leading: const Icon(Icons.photo_library, color: Colors.white),
+                          title: const Text('Aus Galerie auswählen', style: TextStyle(color: Colors.white)),
+                          onTap: () async {
+                            Navigator.of(context).maybePop();
+                            await _pickFromGallery();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ]),
           ),
         );
       },

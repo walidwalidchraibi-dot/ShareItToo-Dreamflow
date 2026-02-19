@@ -10,6 +10,7 @@ import 'package:lendify/models/user.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/review.dart';
 import 'package:lendify/models/multi_criteria_review.dart';
+import 'package:lendify/models/message.dart';
 import 'package:lendify/utils/total_subtitle.dart';
 
 class DataService {
@@ -28,12 +29,14 @@ class DataService {
   static const String _seedFiveFlagKey = 'seed_five_showcase_applied';
   static const String _purgedToOwnedFlagKey = 'purged_to_owned_once';
   static const String _requestsLastSeenKey = 'requests_last_seen_by_owner';
+  static const String _readRequestsKey = 'read_requests_v1'; // userId -> Set<requestId>
   static const String _handoverFailCountsKey = 'handover_fail_counts';
   static const String _handoverBannersKey = 'handover_banners';
   static const String _rideCompKey = 'ride_compensation_v1';
   // Wishlists
   static const String _wishlistsMetaKey = 'wishlists_meta_v1';
   static const String _wishlistAssignKey = 'wishlist_assign_v1';
+  static const String _messageThreadsKey = 'message_threads_v1';
 
   // Runtime timers for express confirmation deadlines (not persisted). We also
   // run a sweep on data fetch to enforce timeouts across sessions.
@@ -1985,6 +1988,71 @@ class DataService {
     }
   }
 
+  /// Marks a specific rental request as read by a user (owner or renter).
+  /// Used to track which individual requests have been viewed.
+  static Future<void> markRequestAsRead({required String userId, required String requestId}) async {
+    if (userId.isEmpty || requestId.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    try {
+      final raw = prefs.getString(_readRequestsKey);
+      Map<String, dynamic> map = {};
+      if (raw != null && raw.isNotEmpty) {
+        map = jsonDecode(raw) as Map<String, dynamic>;
+      }
+      // Get the user's read set
+      List<dynamic> readList = (map[userId] as List<dynamic>?) ?? [];
+      Set<String> readSet = readList.map((e) => e.toString()).toSet();
+      
+      if (!readSet.contains(requestId)) {
+        readSet.add(requestId);
+        map[userId] = readSet.toList();
+        await prefs.setString(_readRequestsKey, jsonEncode(map));
+      }
+    } catch (e) {
+      debugPrint('[DataService] markRequestAsRead error: $e');
+    }
+  }
+
+  /// Checks if a specific request has been read by a user.
+  static Future<bool> isRequestRead({required String userId, required String requestId}) async {
+    if (userId.isEmpty || requestId.isEmpty) return false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_readRequestsKey);
+      if (raw == null || raw.isEmpty) return false;
+      
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      final readList = (map[userId] as List<dynamic>?) ?? [];
+      final readSet = readList.map((e) => e.toString()).toSet();
+      
+      return readSet.contains(requestId);
+    } catch (e) {
+      debugPrint('[DataService] isRequestRead error: $e');
+      return false;
+    }
+  }
+
+  /// Returns count of unread requests for a user in a specific category.
+  /// Category can be: 'ongoing', 'upcoming', 'requests', 'pending', 'completed'
+  static Future<int> getUnreadCountForCategory({
+    required String userId,
+    required String category,
+    required List<RentalRequest> requests,
+  }) async {
+    if (userId.isEmpty) return 0;
+    try {
+      int unreadCount = 0;
+      for (final req in requests) {
+        final isRead = await isRequestRead(userId: userId, requestId: req.id);
+        if (!isRead) unreadCount++;
+      }
+      return unreadCount;
+    } catch (e) {
+      debugPrint('[DataService] getUnreadCountForCategory error: $e');
+      return 0;
+    }
+  }
+
   static Future<RentalRequest?> getRentalRequestById(String id) async {
     await _sweepExpressTimeouts();
     final all = await _getAllRentalRequests();
@@ -2054,13 +2122,26 @@ class DataService {
   static Future<void> updateRentalRequestStatus({required String requestId, required String status}) async {
     final all = await _getAllRentalRequests();
     bool mutated = false;
+    RentalRequest? updatedRequest;
     for (int i = 0; i < all.length; i++) {
       if (all[i].id == requestId) {
         all[i] = all[i].copyWith(status: status);
+        updatedRequest = all[i];
         mutated = true; break;
       }
     }
-    if (mutated) await _saveAllRentalRequests(all);
+    if (mutated) {
+      await _saveAllRentalRequests(all);
+      
+      // Wenn die Anfrage angenommen wurde, erstelle einen Message Thread
+      if (status == 'accepted' && updatedRequest != null) {
+        try {
+          await _createMessageThreadForRequest(updatedRequest);
+        } catch (e) {
+          debugPrint('[DataService] Failed to create message thread: $e');
+        }
+      }
+    }
   }
 
   /// Update status and optionally set the actor who cancelled.
@@ -2508,6 +2589,214 @@ class DataService {
       debugPrint('[DataService] Cleared rentals/bookings and related local caches');
     } catch (e) {
       debugPrint('[DataService] clearAllRentalsAndBookings failed: ' + e.toString());
+    }
+  }
+
+  // ===== Message Threads =====
+  /// Erstellt automatisch einen Message Thread wenn eine Anfrage angenommen wird
+  static Future<void> _createMessageThreadForRequest(RentalRequest request) async {
+    try {
+      final item = await getItemById(request.itemId);
+      if (item == null) return;
+
+      final renter = await getUserById(request.renterId);
+      final owner = await getUserById(request.ownerId);
+      if (renter == null || owner == null) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+      List<dynamic> list = [];
+      if (raw != null && raw.isNotEmpty) {
+        try { list = jsonDecode(raw); } catch (_) { list = []; }
+      }
+
+      // Prüfe ob bereits ein Thread für diese Anfrage existiert
+      final exists = list.any((e) {
+        try {
+          final map = Map<String, dynamic>.from(e as Map);
+          return (map['requestId']?.toString() ?? '') == request.id;
+        } catch (_) {
+          return false;
+        }
+      });
+
+      if (exists) return; // Thread existiert bereits
+
+      // Erstelle neuen Thread mit initialer Nachricht
+      final threadId = 'thread_${DateTime.now().microsecondsSinceEpoch}';
+      final now = DateTime.now();
+      
+      final initialMessage = Message(
+        id: 'msg_${now.microsecondsSinceEpoch}',
+        senderId: 'system',
+        text: 'Starte einen Chat mit ${owner.displayName}, um eine Uhrzeit für Übergabe und Rückgabe zu vereinbaren.',
+        timestamp: now,
+        isRead: false,
+      );
+
+      final thread = MessageThread(
+        id: threadId,
+        requestId: request.id,
+        itemId: request.itemId,
+        itemTitle: item.title,
+        user1Id: request.renterId,
+        user2Id: request.ownerId,
+        messages: [initialMessage],
+        createdAt: now,
+        lastMessageAt: now,
+      );
+
+      list.add(thread.toJson());
+      await prefs.setString(_messageThreadsKey, jsonEncode(list));
+      debugPrint('[DataService] Created message thread for request ${request.id}');
+    } catch (e) {
+      debugPrint('[DataService] _createMessageThreadForRequest error: $e');
+    }
+  }
+
+  /// Gibt alle Message Threads für einen User zurück
+  static Future<List<MessageThread>> getMessageThreadsForUser(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+      if (raw == null || raw.isEmpty) return [];
+
+      final List<dynamic> list = jsonDecode(raw);
+      final threads = <MessageThread>[];
+
+      for (final e in list) {
+        try {
+          final thread = MessageThread.fromJson(Map<String, dynamic>.from(e as Map));
+          // Nur Threads zeigen, die den User betreffen
+          if (thread.user1Id == userId || thread.user2Id == userId) {
+            threads.add(thread);
+          }
+        } catch (err) {
+          debugPrint('[DataService] Skipped corrupted thread: $err');
+        }
+      }
+
+      // Sortiere nach letzter Nachricht (neueste zuerst)
+      threads.sort((a, b) {
+        final aTime = a.lastMessageAt ?? a.createdAt;
+        final bTime = b.lastMessageAt ?? b.createdAt;
+        return bTime.compareTo(aTime);
+      });
+
+      return threads;
+    } catch (e) {
+      debugPrint('[DataService] getMessageThreadsForUser error: $e');
+      return [];
+    }
+  }
+
+  /// Findet einen Thread anhand der Thread-ID
+  static Future<MessageThread?> getMessageThreadById(String threadId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+      if (raw == null || raw.isEmpty) return null;
+
+      final List<dynamic> list = jsonDecode(raw);
+      for (final e in list) {
+        try {
+          final thread = MessageThread.fromJson(Map<String, dynamic>.from(e as Map));
+          if (thread.id == threadId) return thread;
+        } catch (_) {}
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[DataService] getMessageThreadById error: $e');
+      return null;
+    }
+  }
+
+  /// Fügt eine Nachricht zu einem Thread hinzu
+  static Future<void> addMessageToThread({
+    required String threadId,
+    required String senderId,
+    required String text,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+      if (raw == null || raw.isEmpty) return;
+
+      final List<dynamic> list = jsonDecode(raw);
+      bool mutated = false;
+
+      for (int i = 0; i < list.length; i++) {
+        try {
+          final map = Map<String, dynamic>.from(list[i] as Map);
+          if ((map['id']?.toString() ?? '') == threadId) {
+            final thread = MessageThread.fromJson(map);
+            final now = DateTime.now();
+            final newMessage = Message(
+              id: 'msg_${now.microsecondsSinceEpoch}',
+              senderId: senderId,
+              text: text,
+              timestamp: now,
+              isRead: false,
+            );
+
+            final updatedThread = thread.copyWith(
+              messages: [...thread.messages, newMessage],
+              lastMessageAt: now,
+            );
+
+            list[i] = updatedThread.toJson();
+            mutated = true;
+            break;
+          }
+        } catch (_) {}
+      }
+
+      if (mutated) {
+        await prefs.setString(_messageThreadsKey, jsonEncode(list));
+      }
+    } catch (e) {
+      debugPrint('[DataService] addMessageToThread error: $e');
+    }
+  }
+
+  /// Markiert alle Nachrichten in einem Thread als gelesen für einen User
+  static Future<void> markThreadMessagesAsRead({
+    required String threadId,
+    required String userId,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+      if (raw == null || raw.isEmpty) return;
+
+      final List<dynamic> list = jsonDecode(raw);
+      bool mutated = false;
+
+      for (int i = 0; i < list.length; i++) {
+        try {
+          final map = Map<String, dynamic>.from(list[i] as Map);
+          if ((map['id']?.toString() ?? '') == threadId) {
+            final thread = MessageThread.fromJson(map);
+            final updatedMessages = thread.messages.map((msg) {
+              if (msg.senderId != userId && !msg.isRead) {
+                return msg.copyWith(isRead: true);
+              }
+              return msg;
+            }).toList();
+
+            final updatedThread = thread.copyWith(messages: updatedMessages);
+            list[i] = updatedThread.toJson();
+            mutated = true;
+            break;
+          }
+        } catch (_) {}
+      }
+
+      if (mutated) {
+        await prefs.setString(_messageThreadsKey, jsonEncode(list));
+      }
+    } catch (e) {
+      debugPrint('[DataService] markThreadMessagesAsRead error: $e');
     }
   }
 }

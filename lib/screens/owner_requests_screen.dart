@@ -25,20 +25,16 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
   List<_OwnerEntry> _entries = const [];
   Timer? _ticker;
   final Map<String, Map<String, dynamic>?> _deliveryByItemId = {};
-  // Temporary: force-show dot on Mietanfragen tab for visual confirmation
-  DateTime? _forceRequestsDotUntil;
+  // Track unread counts per category
+  final Map<String, int> _unreadCounts = {};
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this, initialIndex: (widget.initialTabIndex ?? 2).clamp(0, 3));
     _tabController.addListener(() {
-      if (_tabController.index == 2 && _ownerId != null) {
-        DataService.markOwnerRequestsSeen(_ownerId!);
-      }
       if (mounted) setState(() {}); // refresh app bar title on tab change
     });
-    _forceRequestsDotUntil = DateTime.now().add(const Duration(minutes: 5));
     _load();
     _ticker = Timer.periodic(const Duration(minutes: 1), (_) async {
       if (!mounted) return;
@@ -133,18 +129,34 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
       if (it == null || renter == null) continue;
       list.add(_OwnerEntry(r: r, item: it, renter: renter));
     }
-    setState(() => _entries = list);
-    if (_tabController.index == 2 && _ownerId != null) {
-      await DataService.markOwnerRequestsSeen(_ownerId!);
+    
+    // Calculate unread counts for each category
+    final categorized = {
+      'ongoing': <RentalRequest>[],
+      'upcoming': <RentalRequest>[],
+      'requests': <RentalRequest>[],
+      'completed': <RentalRequest>[],
+    };
+    for (final e in list) {
+      final cat = _effectiveCategory(e);
+      categorized[cat]?.add(e.r);
     }
+    
+    for (final cat in categorized.keys) {
+      final unreadCount = await DataService.getUnreadCountForCategory(
+        userId: owner.id,
+        category: cat,
+        requests: categorized[cat]!,
+      );
+      _unreadCounts[cat] = unreadCount;
+    }
+    
+    setState(() => _entries = list);
   }
 
   @override
   Widget build(BuildContext context) {
     final tabsStyle = Theme.of(context).textTheme.bodySmall;
-    final bool hasPendingRequests = _entries.any((e) => _effectiveCategory(e) == 'requests');
-    final bool forceDot = _forceRequestsDotUntil != null && DateTime.now().isBefore(_forceRequestsDotUntil!);
-    final bool showRequestsDot = hasPendingRequests || forceDot;
     String title;
     switch (_tabController.index) {
       case 0:
@@ -160,6 +172,13 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
       default:
         title = 'Abgeschlossene Anmietungen';
     }
+    
+    // Get unread counts for each tab
+    final ongoingUnread = _unreadCounts['ongoing'] ?? 0;
+    final upcomingUnread = _unreadCounts['upcoming'] ?? 0;
+    final requestsUnread = _unreadCounts['requests'] ?? 0;
+    final completedUnread = _unreadCounts['completed'] ?? 0;
+    
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -176,22 +195,10 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
           unselectedLabelStyle: tabsStyle,
           indicatorColor: Theme.of(context).colorScheme.primary,
           tabs: [
-            const Tab(text: 'Laufend'),
-            const Tab(text: 'Kommend'),
-            Tab(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (showRequestsDot) ...[
-                    Container(width: 12, height: 12, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle)),
-                    const SizedBox(width: 6),
-                  ],
-                  const Text('Mietanfragen'),
-                ],
-              ),
-            ),
-            const Tab(text: 'Abgeschlossen'),
+            _buildTabWithBadge('Laufend', ongoingUnread),
+            _buildTabWithBadge('Kommend', upcomingUnread),
+            _buildTabWithBadge('Mietanfragen', requestsUnread),
+            _buildTabWithBadge('Abgeschlossen', completedUnread),
           ],
         ),
       ),
@@ -202,6 +209,30 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
           _buildList('upcoming'),
           _buildList('requests'),
           _buildList('completed'),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildTabWithBadge(String text, int unreadCount) {
+    if (unreadCount == 0) {
+      return Tab(text: text);
+    }
+    return Tab(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 12,
+            height: 12,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFB277),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(text),
         ],
       ),
     );
@@ -240,6 +271,10 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: () async {
+              // Mark request as read when user taps on it
+              if (_ownerId != null) {
+                await DataService.markRequestAsRead(userId: _ownerId!, requestId: e.r.id);
+              }
               await Navigator.of(context).push(MaterialPageRoute(builder: (_) => OngoingOwnerDetailScreen(requestId: e.r.id, titleOverride: titleForCategory)));
               if (!mounted) return;
               await _load();
@@ -435,7 +470,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
                   context,
                   icon: Icons.check_circle_outline,
                   title: 'Du hast die Anfrage akzeptiert.',
-                  message: 'Du findest diese Anmietung jetzt unter „Kommende Anmietungen“.',
+                  message: 'Du findest diese Anmietung jetzt unter „Kommende Anmietungen“.\n\nDu kannst jetzt mit ${e.renter.displayName} unter Nachrichten einen Chat starten.',
                   barrierDismissible: false,
                   showCloseIcon: false,
                   plainCloseIcon: true,

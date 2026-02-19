@@ -19,6 +19,12 @@ class BrandColors {
   static const primary = Color(0xFF0EA5E9);
   static const success = Color(0xFF22C55E);
   static const danger = Color(0xFFF43F5E);
+
+  // Social brand colors
+  static const xBlue = Color(0xFF1DA1F2); // X/Twitter legacy blue for recognizability
+  static const instagram = Color(0xFFE1306C);
+  static const facebook = Color(0xFF1877F2);
+  static const tiktok = Color(0xFFEE1D52);
 }
 
 class AppTypography {

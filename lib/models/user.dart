@@ -35,6 +35,13 @@ class User {
   final bool showBioPublic;
   final bool showFavoriteSong;
 
+  // Social links (stored as normalized URLs)
+  final String? socialX; // https://x.com/<handle>
+  final String? socialFacebook; // https://facebook.com/<handleOrId>
+  final String? socialInstagram; // https://instagram.com/<handle>
+  final String? socialTiktok; // https://www.tiktok.com/@<handle>
+  final String? socialSnapchat; // https://www.snapchat.com/add/<username>
+
   const User({
     required this.id,
     required this.displayName,
@@ -66,6 +73,11 @@ class User {
     this.homeLat,
     this.homeLng,
     this.birthDate,
+    this.socialX,
+    this.socialFacebook,
+    this.socialInstagram,
+    this.socialTiktok,
+    this.socialSnapchat,
   });
 
   factory User.fromJson(Map<String, dynamic> json) => User(
@@ -99,6 +111,11 @@ class User {
     homeLat: (json['homeLat'] as num?)?.toDouble(),
     homeLng: (json['homeLng'] as num?)?.toDouble(),
     birthDate: _parseNullableDate(json['birthDate']),
+    socialX: json['socialX'],
+    socialFacebook: json['socialFacebook'],
+    socialInstagram: json['socialInstagram'],
+    socialTiktok: json['socialTiktok'],
+    socialSnapchat: json['socialSnapchat'],
   );
 
   static DateTime _parseDateOrNow(dynamic value) {
@@ -139,6 +156,11 @@ class User {
     'homeLat': homeLat,
     'homeLng': homeLng,
     'birthDate': birthDate?.toIso8601String(),
+    'socialX': socialX,
+    'socialFacebook': socialFacebook,
+    'socialInstagram': socialInstagram,
+    'socialTiktok': socialTiktok,
+    'socialSnapchat': socialSnapchat,
   };
 
   User copyWith({
@@ -172,6 +194,11 @@ class User {
     double? homeLat,
     double? homeLng,
     DateTime? birthDate,
+    String? socialX,
+    String? socialFacebook,
+    String? socialInstagram,
+    String? socialTiktok,
+    String? socialSnapchat,
   }) => User(
         id: id ?? this.id,
         displayName: displayName ?? this.displayName,
@@ -203,6 +230,11 @@ class User {
         homeLat: homeLat ?? this.homeLat,
         homeLng: homeLng ?? this.homeLng,
         birthDate: birthDate ?? this.birthDate,
+        socialX: socialX ?? this.socialX,
+        socialFacebook: socialFacebook ?? this.socialFacebook,
+        socialInstagram: socialInstagram ?? this.socialInstagram,
+        socialTiktok: socialTiktok ?? this.socialTiktok,
+        socialSnapchat: socialSnapchat ?? this.socialSnapchat,
       );
 
   static DateTime? _parseNullableDate(dynamic v) {

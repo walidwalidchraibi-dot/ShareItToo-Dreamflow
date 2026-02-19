@@ -1,6 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
+import 'package:lendify/services/data_service.dart';
+import 'package:lendify/models/message.dart';
+import 'package:lendify/models/user.dart';
+import 'package:lendify/models/item.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -13,6 +17,38 @@ class _MessagesScreenState extends State<MessagesScreen> {
   String _selectedFilter = 'Alle';
   String _query = '';
   final FocusNode _searchFocus = FocusNode();
+  List<MessageThread> _threads = [];
+  User? _currentUser;
+  Map<String, User> _usersCache = {};
+  Map<String, Item> _itemsCache = {};
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final user = await DataService.getCurrentUser();
+      if (user == null) return;
+      
+      final threads = await DataService.getMessageThreadsForUser(user.id);
+      final users = await DataService.getUsers();
+      final items = await DataService.getItems();
+      
+      setState(() {
+        _currentUser = user;
+        _threads = threads;
+        _usersCache = {for (final u in users) u.id: u};
+        _itemsCache = {for (final i in items) i.id: i};
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -88,40 +124,92 @@ class _MessagesScreenState extends State<MessagesScreen> {
           ),
         ),
         Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: threads.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final thread = threads[index];
-              return _ChatThreadCard(
-                name: thread['name'],
-                lastMessage: thread['lastMessage'],
-                time: thread['time'],
-                avatarUrl: thread['avatar'],
-                hasUnread: thread['hasUnread'],
-                bookingStatus: thread['bookingStatus'],
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MessageThreadScreen(participantName: thread['name'], avatarUrl: thread['avatar']))),
-              );
-            },
-          ),
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : threads.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Keine Nachrichten vorhanden',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: threads.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final thread = threads[index];
+                        final otherUserId = thread.user1Id == _currentUser?.id ? thread.user2Id : thread.user1Id;
+                        final otherUser = _usersCache[otherUserId];
+                        final lastMsg = thread.messages.isNotEmpty ? thread.messages.last : null;
+                        final hasUnread = thread.messages.any((m) => m.senderId != _currentUser?.id && !m.isRead);
+                        
+                        return _ChatThreadCard(
+                          name: otherUser?.displayName ?? 'Unbekannt',
+                          itemTitle: thread.itemTitle,
+                          lastMessage: lastMsg?.text ?? '',
+                          time: _formatTime(lastMsg?.timestamp ?? thread.createdAt),
+                          avatarUrl: otherUser?.photoURL ?? '',
+                          hasUnread: hasUnread,
+                          onTap: () async {
+                            final result = await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => MessageThreadScreen(
+                                  threadId: thread.id,
+                                  participantName: otherUser?.displayName ?? 'Unbekannt',
+                                  avatarUrl: otherUser?.photoURL,
+                                  itemTitle: thread.itemTitle,
+                                ),
+                              ),
+                            );
+                            if (result == true) _loadData(); // Reload if messages were sent
+                          },
+                        );
+                      },
+                    ),
         ),
       ]),
     );
   }
 
-  List<Map<String, dynamic>> _filteredThreads() {
+  List<MessageThread> _filteredThreads() {
     final q = _query.toLowerCase();
-    Iterable<Map<String, dynamic>> data = _sampleThreads;
-    if (_selectedFilter == 'Support') {
-      data = data.where((t) => t['type'] == 'support');
-    } else if (_selectedFilter == 'Buchungen') {
-      data = data.where((t) => t['type'] == 'booking');
+    var data = _threads.toList();
+    
+    if (_selectedFilter == 'Buchungen') {
+      // Alle echten Threads sind Buchungs-bezogen
+      // Keine Filterung nötig
     }
+    
     if (q.isNotEmpty) {
-      data = data.where((t) => (t['name'] as String).toLowerCase().contains(q) || (t['lastMessage'] as String).toLowerCase().contains(q));
+      data = data.where((t) {
+        final otherUserId = t.user1Id == _currentUser?.id ? t.user2Id : t.user1Id;
+        final otherUser = _usersCache[otherUserId];
+        final name = otherUser?.displayName ?? '';
+        final lastMsg = t.messages.isNotEmpty ? t.messages.last.text : '';
+        return name.toLowerCase().contains(q) || 
+               lastMsg.toLowerCase().contains(q) ||
+               t.itemTitle.toLowerCase().contains(q);
+      }).toList();
     }
-    return data.toList();
+    
+    return data;
+  }
+
+  String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final diff = now.difference(time);
+    
+    if (diff.inDays == 0) {
+      // Heute: zeige Uhrzeit
+      return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+    } else if (diff.inDays == 1) {
+      return 'Gestern';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays}d';
+    } else {
+      return '${time.day}.${time.month}.';
+    }
   }
 
   void _openMessageSettings() {
@@ -147,45 +235,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
       },
     );
   }
-
-  static final List<Map<String, dynamic>> _sampleThreads = [
-    {
-      'name': 'Max Mustermann',
-      'lastMessage': 'Danke für die schnelle Antwort!',
-      'time': '14.8.',
-      'avatar': 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-      'hasUnread': true,
-      'bookingStatus': 'Bestätigt',
-      'type': 'booking',
-    },
-    {
-      'name': 'Support Team',
-      'lastMessage': 'Wie können wir dir helfen? Antwort innerhalb von 24h.',
-      'time': 'Gestern',
-      'avatar': 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&h=150&fit=crop&crop=face',
-      'hasUnread': false,
-      'bookingStatus': null,
-      'type': 'support',
-    },
-    {
-      'name': 'Sarah Schmidt',
-      'lastMessage': 'Wann kann ich die Kamera abholen?',
-      'time': '13.8.',
-      'avatar': 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-      'hasUnread': false,
-      'bookingStatus': 'Bezahlt',
-      'type': 'booking',
-    },
-    {
-      'name': 'Thomas Weber',
-      'lastMessage': 'Alles klar, bis morgen!',
-      'time': '12.8.',
-      'avatar': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-      'hasUnread': false,
-      'bookingStatus': null,
-      'type': 'general',
-    },
-  ];
 }
 
 class _MessageSettingsSheet extends StatefulWidget {
@@ -254,13 +303,21 @@ class _SettingsTile extends StatelessWidget {
 
 class _ChatThreadCard extends StatelessWidget {
   final String name;
+  final String itemTitle;
   final String lastMessage;
   final String time;
   final String avatarUrl;
   final bool hasUnread;
-  final String? bookingStatus;
   final VoidCallback onTap;
-  const _ChatThreadCard({required this.name, required this.lastMessage, required this.time, required this.avatarUrl, required this.hasUnread, required this.bookingStatus, required this.onTap});
+  const _ChatThreadCard({
+    required this.name,
+    required this.itemTitle,
+    required this.lastMessage,
+    required this.time,
+    required this.avatarUrl,
+    required this.hasUnread,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -283,14 +340,30 @@ class _ChatThreadCard extends StatelessWidget {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    Expanded(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white))),
+                    Expanded(
+                      child: RichText(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        text: TextSpan(
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
+                          children: [
+                            TextSpan(text: name),
+                            TextSpan(
+                              text: ' • $itemTitle',
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Text(time, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70)),
                   ]),
-                  const SizedBox(height: 4),
-                  Text(lastMessage, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white)),
-                  if (bookingStatus != null)
-                    Container(margin: const EdgeInsets.only(top: 6), padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white.withValues(alpha: 0.12))), child: Text(bookingStatus!, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white)))
+                  const SizedBox(height: 6),
+                  Text(lastMessage, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
                 ]),
               ),
               const SizedBox(width: 8),

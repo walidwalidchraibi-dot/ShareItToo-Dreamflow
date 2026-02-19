@@ -27,6 +27,9 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   Timer? _ticker;
   // Used to disable highlight after navigation/first render
   String? _highlightRequestId;
+  String? _currentUserId;
+  // Track unread counts per category
+  final Map<String, int> _unreadCounts = {};
 
   @override
   void initState() {
@@ -113,9 +116,13 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     final user = await DataService.getCurrentUser();
     if (user == null) {
       if (!mounted) return;
-      setState(() => _allBookings = const []);
+      setState(() {
+        _allBookings = const [];
+        _currentUserId = null;
+      });
       return;
     }
+    _currentUserId = user.id;
     final requests = await DataService.getRentalRequestsForRenter(user.id);
     // Load items and listers referenced by requests
     final Map<String, Item?> itemById = {};
@@ -137,6 +144,32 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       final owner = userById[it.ownerId];
       maps.add(_toBookingMap(r, it, owner, deliveryByItemId[it.id]));
     }
+    
+    // Calculate unread counts for each category
+    final categorized = {
+      'ongoing': <RentalRequest>[],
+      'upcoming': <RentalRequest>[],
+      'pending': <RentalRequest>[],
+      'completed': <RentalRequest>[],
+    };
+    for (final r in requests) {
+      final it = itemById[r.itemId];
+      if (it == null) continue;
+      final bookingMap = _toBookingMap(r, it, userById[it.ownerId], deliveryByItemId[it.id]);
+      final (start, end) = _parseDateRange(bookingMap['dates'] ?? '');
+      final cat = _effectiveCategoryFor(bookingMap, start, end);
+      categorized[cat]?.add(r);
+    }
+    
+    for (final cat in categorized.keys) {
+      final unreadCount = await DataService.getUnreadCountForCategory(
+        userId: user.id,
+        category: cat,
+        requests: categorized[cat]!,
+      );
+      _unreadCounts[cat] = unreadCount;
+    }
+    
     if (!mounted) return;
     setState(() => _allBookings = maps);
   }
@@ -259,6 +292,12 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final tabsStyle = Theme.of(context).textTheme.bodySmall;
+    
+    // Get unread counts for each tab
+    final ongoingUnread = _unreadCounts['ongoing'] ?? 0;
+    final upcomingUnread = _unreadCounts['upcoming'] ?? 0;
+    final pendingUnread = _unreadCounts['pending'] ?? 0;
+    final completedUnread = _unreadCounts['completed'] ?? 0;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -275,11 +314,11 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
           labelStyle: tabsStyle,
           unselectedLabelStyle: tabsStyle,
           indicatorColor: Theme.of(context).colorScheme.primary,
-          tabs: const [
-            Tab(text: 'Laufend'),
-            Tab(text: 'Kommend'),
-            Tab(text: 'Ausstehend'),
-            Tab(text: 'Abgeschlossen'),
+          tabs: [
+            _buildTabWithBadge('Laufend', ongoingUnread),
+            _buildTabWithBadge('Kommend', upcomingUnread),
+            _buildTabWithBadge('Ausstehend', pendingUnread),
+            _buildTabWithBadge('Abgeschlossen', completedUnread),
           ],
         ),
       ),
@@ -290,6 +329,30 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
           _buildBookingsList('upcoming'),
           _buildBookingsList('pending'),
           _buildBookingsList('completed'),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildTabWithBadge(String text, int unreadCount) {
+    if (unreadCount == 0) {
+      return Tab(text: text);
+    }
+    return Tab(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 12,
+            height: 12,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFB277),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(text),
         ],
       ),
     );
@@ -352,6 +415,13 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: () async {
+                // Mark request as read when user taps on it
+                if (_currentUserId != null) {
+                  final requestId = booking['requestId'] as String?;
+                  if (requestId != null) {
+                    await DataService.markRequestAsRead(userId: _currentUserId!, requestId: requestId);
+                  }
+                }
                 await Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => BookingDetailScreen(booking: booking),

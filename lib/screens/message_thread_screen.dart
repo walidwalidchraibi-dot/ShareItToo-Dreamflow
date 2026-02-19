@@ -2,11 +2,22 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/services/data_service.dart';
+import 'package:lendify/models/message.dart';
+import 'package:lendify/models/user.dart';
 
 class MessageThreadScreen extends StatefulWidget {
+  final String? threadId;
   final String participantName;
   final String? avatarUrl;
-  const MessageThreadScreen({super.key, required this.participantName, this.avatarUrl});
+  final String? itemTitle;
+  const MessageThreadScreen({
+    super.key,
+    this.threadId,
+    required this.participantName,
+    this.avatarUrl,
+    this.itemTitle,
+  });
 
   @override
   State<MessageThreadScreen> createState() => _MessageThreadScreenState();
@@ -19,10 +30,45 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   double _lastViewInsetBottom = 0;
   bool _isAtBottom = true;
   bool _showJumpToBottom = false;
-  final List<_ChatBubbleModel> _messages = [
-    _ChatBubbleModel(text: 'Hallo! Ist der Artikel noch verfügbar?', me: false, time: '10:12'),
-    _ChatBubbleModel(text: 'Ja, auf jeden Fall. Wann passt dir die Abholung?', me: true, time: '10:14'),
-  ];
+  List<Message> _messages = [];
+  User? _currentUser;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+    _listController.addListener(_onScroll);
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final user = await DataService.getCurrentUser();
+      if (user == null) return;
+
+      if (widget.threadId != null) {
+        final thread = await DataService.getMessageThreadById(widget.threadId!);
+        if (thread != null) {
+          setState(() {
+            _currentUser = user;
+            _messages = thread.messages;
+            _isLoading = false;
+          });
+          
+          // Markiere Nachrichten als gelesen
+          await DataService.markThreadMessagesAsRead(
+            threadId: widget.threadId!,
+            userId: user.id,
+          );
+          
+          // Initial scroll to bottom nach ersten Frame
+          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
 
   void _openMoreSheet() {
     showModalBottomSheet<void>(
@@ -43,20 +89,30 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     super.dispose();
   }
 
-  void _send() {
+  Future<void> _send() async {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
-    setState(() {
-      _messages.add(_ChatBubbleModel(text: text, me: true, time: _now()));
-    });
+    if (text.isEmpty || widget.threadId == null || _currentUser == null) return;
+    
     _controller.clear();
-    // Keep view pinned to bottom on send
-    _scrollToBottom(animate: true);
+    
+    try {
+      await DataService.addMessageToThread(
+        threadId: widget.threadId!,
+        senderId: _currentUser!.id,
+        text: text,
+      );
+      
+      await _loadData(); // Reload messages
+      _scrollToBottom(animate: true);
+    } catch (e) {
+      if (mounted) {
+        AppPopup.toast(context, icon: Icons.error, title: 'Fehler beim Senden');
+      }
+    }
   }
 
-  String _now() {
-    final n = DateTime.now();
-    return '${n.hour.toString().padLeft(2, '0')}:${n.minute.toString().padLeft(2, '0')}';
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -76,11 +132,33 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        leading: IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).pop(true), // Return true to signal reload
+          icon: const Icon(Icons.arrow_back),
+        ),
         title: Row(children: [
-          CircleAvatar(radius: 14, backgroundImage: widget.avatarUrl != null ? NetworkImage(widget.avatarUrl!) : null, child: widget.avatarUrl == null ? const Icon(Icons.person, size: 16) : null),
+          CircleAvatar(
+            radius: 14,
+            backgroundImage: widget.avatarUrl != null ? NetworkImage(widget.avatarUrl!) : null,
+            child: widget.avatarUrl == null ? const Icon(Icons.person, size: 16) : null,
+          ),
           const SizedBox(width: 8),
-          Expanded(child: Text(widget.participantName, maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(widget.participantName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16)),
+                if (widget.itemTitle != null)
+                  Text(
+                    widget.itemTitle!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w400),
+                  ),
+              ],
+            ),
+          ),
         ]),
         actions: [
           IconButton(onPressed: () => AppPopup.toast(context, icon: Icons.call, title: 'Anrufen (Demo)'), icon: const Icon(Icons.call)),
@@ -90,27 +168,63 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       body: Stack(children: [
         Column(children: [
           Expanded(
-            child: NotificationListener<UserScrollNotification>(
-              onNotification: (n) {
-                if (n.direction == ScrollDirection.forward && _inputFocus.hasFocus) {
-                  // Scroll down gesture while typing hides keyboard (optional behavior)
-                  FocusScope.of(context).unfocus();
-                }
-                return false;
-              },
-              child: ListView.builder(
-                controller: _listController,
-                padding: const EdgeInsets.all(16),
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  final m = _messages[index];
-                  return Align(
-                    alignment: m.me ? Alignment.centerRight : Alignment.centerLeft,
-                    child: _ChatBubble(text: m.text, me: m.me, time: m.time),
-                  );
-                },
-              ),
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _messages.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Noch keine Nachrichten',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      )
+                    : NotificationListener<UserScrollNotification>(
+                        onNotification: (n) {
+                          if (n.direction == ScrollDirection.forward && _inputFocus.hasFocus) {
+                            FocusScope.of(context).unfocus();
+                          }
+                          return false;
+                        },
+                        child: ListView.builder(
+                          controller: _listController,
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final m = _messages[index];
+                            final isMe = m.senderId == _currentUser?.id;
+                            final isSystem = m.senderId == 'system';
+                            
+                            if (isSystem) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                                    ),
+                                    child: Text(
+                                      m.text,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                            
+                            return Align(
+                              alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                              child: _ChatBubble(
+                                text: m.text,
+                                me: isMe,
+                                time: _formatTime(m.timestamp),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
           ),
           SafeArea(
             top: false,
@@ -162,14 +276,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    // Initial scroll to bottom after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-    _listController.addListener(_onScroll);
-  }
-
   void _onScroll() {
     if (!_listController.hasClients) return;
     final pos = _listController.position;
@@ -191,11 +297,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       _listController.jumpTo(max);
     }
   }
-}
-
-class _ChatBubbleModel {
-  final String text; final bool me; final String time;
-  _ChatBubbleModel({required this.text, required this.me, required this.time});
 }
 
 class _ThreadMoreSheet extends StatelessWidget {
