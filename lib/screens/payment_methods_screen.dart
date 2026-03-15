@@ -369,11 +369,7 @@ class _SitCreditCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Expanded(child: Text('SIT-Guthaben verwenden', style: titleStyle)),
-                const SizedBox(width: 10),
-                _ActivePill(active: enabled),
-              ]),
+              Text('SIT-Guthaben', style: titleStyle),
               const SizedBox(height: 4),
               Text('Aktuelles SIT-Guthaben: $balanceLabel', style: bodyStyle),
               const SizedBox(height: 2),
@@ -392,32 +388,6 @@ class _SitCreditCard extends StatelessWidget {
           ),
         ]),
       ),
-    );
-  }
-}
-
-class _ActivePill extends StatelessWidget {
-  final bool active;
-  const _ActivePill({required this.active});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
-
-    final bg = active ? primary.withValues(alpha: 0.18) : Colors.white.withValues(alpha: 0.06);
-    final border = active ? primary.withValues(alpha: 0.35) : Colors.white.withValues(alpha: 0.10);
-    final fg = active ? primary : Colors.white.withValues(alpha: 0.70);
-    final text = active ? 'Aktiv' : 'Nicht aktiv';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: border),
-      ),
-      child: Text(text, style: theme.textTheme.labelSmall?.copyWith(color: fg)),
     );
   }
 }

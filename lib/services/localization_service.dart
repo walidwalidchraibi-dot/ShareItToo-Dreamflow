@@ -154,7 +154,7 @@ class LocalizationController extends ChangeNotifier {
     'account.item.changePassword': 'Passwort ändern',
     'account.section.payments': 'Zahlungen',
     'account.item.paymentMethods': 'Zahlungsmethoden',
-    'account.item.payoutMethods': 'Auszahlungen',
+    'account.item.payoutMethods': 'Auszahlungsmethoden',
     'account.item.invoices': 'Rechnungen & Belege',
     'account.section.notifications': 'Benachrichtigungen',
     'account.item.notifications': 'Benachrichtigungen',
