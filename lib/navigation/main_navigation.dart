@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/services/localization_service.dart';
+import 'package:lendify/widgets/user_avatar.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -199,21 +200,8 @@ class _ProfileNavIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color border = active ? BrandColors.primary : BrandColors.inactiveNav;
     final double size = 20;
-    final double radius = size / 2;
     return MouseRegion(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: border, width: 1.6),
-        ),
-        child: ClipOval(
-          child: photoUrl != null && photoUrl!.isNotEmpty
-              ? Image.network(photoUrl!, fit: BoxFit.cover)
-              : Center(child: Icon(Icons.person_outline, size: 14, color: border)),
-        ),
-      ),
+      child: SitUserAvatar(url: photoUrl, radius: size / 2, borderColor: border, placeholderIcon: Icons.person_outline),
     );
   }
 }

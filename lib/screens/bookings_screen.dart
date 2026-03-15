@@ -7,6 +7,7 @@ import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/box_chat_icon.dart';
 import 'package:lendify/widgets/review_prompt_sheet.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 
@@ -31,10 +32,29 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   // Track unread counts per category
   final Map<String, int> _unreadCounts = {};
 
+  String get _sectionTitle {
+    switch (_tabController.index) {
+      case 0:
+        return 'Laufende Buchungen';
+      case 1:
+        return 'Kommende Buchungen';
+      case 2:
+        return 'Ausstehende Buchungen';
+      case 3:
+      default:
+        return 'Abgeschlossene Buchungen';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this, initialIndex: widget.initialTabIndex ?? 0);
+    _tabController.addListener(() {
+      if (!mounted) return;
+      // Rebuild AppBar title while swiping or tapping between tabs.
+      setState(() {});
+    });
     _highlightRequestId = widget.highlightRequestId;
     _load();
     // Periodically refresh to update countdowns and move cards between tabs
@@ -303,7 +323,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
-          title: const Text('Buchungen'),
+          title: Text(_sectionTitle),
           centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
@@ -362,25 +382,31 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     final bookings = _getBookingsForStatus(status);
 
     if (bookings.isEmpty) {
+      final (icon, title, useBoxChat) = _emptyStateForCategory(status);
+      final cs = Theme.of(context).colorScheme;
+      final emptyIconColor = cs.onSurfaceVariant.withValues(alpha: 0.65);
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.calendar_today_outlined,
-              size: 64,
-              color: Colors.grey.shade400,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Keine Buchungen',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (useBoxChat)
+                BoxChatIcon(size: 64, color: emptyIconColor)
+              else
+                Icon(icon, size: 64, color: emptyIconColor),
+              const SizedBox(height: 14),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.85),
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
@@ -897,6 +923,23 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       final effective = _effectiveCategoryFor(b, start, end);
       return effective == status;
     }).toList();
+  }
+
+  /// Returns (icon, title, useBoxChatIcon)
+  (IconData, String, bool) _emptyStateForCategory(String category) {
+    switch (category) {
+      case 'ongoing':
+        return (Icons.timelapse_outlined, 'Du hast keine Laufenden Buchungen', false);
+      case 'upcoming':
+        return (Icons.event_available_outlined, 'Du hast keine Kommenden Buchungen', false);
+      case 'pending':
+        // Pending bookings are booking requests waiting for confirmation.
+        // Use a dedicated pending icon (instead of the Mietanfragen/BoxChat icon).
+        return (Icons.pending_actions_outlined, 'Du hast keine Ausstehenden Buchungen', false);
+      case 'completed':
+      default:
+        return (Icons.task_alt_outlined, 'Du hast keine Abgeschlossenen Buchungen', false);
+    }
   }
 }
 

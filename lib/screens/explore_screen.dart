@@ -14,7 +14,6 @@ import 'package:lendify/widgets/all_categories_overlay.dart';
 import 'package:lendify/widgets/filters_overlay.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/screens/owner_requests_screen.dart';
-import 'package:lendify/screens/see_all_screen.dart';
 import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/screens/profile_screen.dart';
 import 'package:lendify/screens/my_listings_screen.dart';
@@ -34,9 +33,8 @@ State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-final ScrollController _scrollController = ScrollController();
-  final PageController _pageTopBooked = PageController(viewportFraction: 1);
-  final ScrollController _ctrlNeue = ScrollController();
+  final ScrollController _scrollController = ScrollController();
+  final PageController _feedPager = PageController();
   final ScrollController _ctrlGuests = ScrollController();
 
 List<Item> _items = [];
@@ -116,8 +114,7 @@ _loadData();
   @override
   void dispose() {
     _scrollController.dispose();
-    _pageTopBooked.dispose();
-    _ctrlNeue.dispose();
+    _feedPager.dispose();
     _ctrlGuests.dispose();
     super.dispose();
   }
@@ -578,36 +575,86 @@ final latest = [...itemsFiltered]..sort((a, b) => b.createdAt.compareTo(a.create
 final recent = latest.where((e) => e.createdAt.isAfter(now.subtract(const Duration(days: 14)))).toList();
 final neueQuelle = (recent.isNotEmpty ? recent : latest);
 
-return Scaffold(
-backgroundColor: Colors.transparent,
-body: SafeArea(
-child: _isLoading
-? const Center(child: CircularProgressIndicator())
-: LayoutBuilder(builder: (context, constraints) {
-final width = constraints.maxWidth;
-final isTablet = width >= 600 && width < 900;
-final isDesktop = width >= 900;
+    // Feed datasets (same cards/logic; only layout/navigation changes)
+    final topBooked = [...itemsFiltered, ..._extraTopBooked];
+    final nearYou = [...itemsFiltered]
+      ..sort((a, b) => (_distanceFromUserKm(a) ?? double.infinity).compareTo(_distanceFromUserKm(b) ?? double.infinity));
+    final customersLike = itemsFiltered.where((it) => _savedIds.contains(it.id) || it.timesLent > 5).toList();
 
-// Grid sizing (phones/tablets): base 3 columns
-const horizontalPadding = 16.0;
-const gridGap = 8.0;
-final cols = isDesktop ? 4 : (isTablet ? 3 : 3);
-final cardSize = (width - (horizontalPadding * 2) - (gridGap * (cols - 1))) / cols;
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : LayoutBuilder(builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final isTablet = width >= 600 && width < 900;
+                final isDesktop = width >= 900;
 
-// Height for 'Am meisten gebucht' horizontal list (1:1 tiles)
-final gridHeight = cardSize;
+                // Guests row: keep previous style
+                const guestsViewportFraction = 0.24; // ~24–25%
+                final guestsRowHeight = width * guestsViewportFraction; // 1:1 tile
 
-// Neue Angebote row: exactly 3 tiles visible
-final neueTile = (width - (horizontalPadding * 2) - (2 * 8)) / 3;
+                Widget feedPage({required String title, required List<Item> items}) {
+                  final l10n = context.watch<LocalizationController>();
+                  return CustomScrollView(
+                    // Each page scrolls vertically on its own.
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: _SectionHeader(
+                          title: title,
+                          // Keep the title very close to the pinned categories row.
+                          padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
+                        ),
+                      ),
+                      if (items.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(
+                            child: Text(
+                              l10n.t('Keine Anzeigen gefunden'),
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                            ),
+                          ),
+                        )
+                      else
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          sliver: SliverGrid(
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: isDesktop ? 4 : (isTablet ? 3 : 2),
+                              mainAxisSpacing: 10,
+                              crossAxisSpacing: 10,
+                              // Make cards more compact vertically so the tile ends right below
+                              // the price row (matching "Meine Anzeigen" density).
+                              // Higher ratio => less height for the same width.
+                              // Tuned to remove the remaining bottom "air" under "Preis pro Tag".
+                              // Slightly higher ratio => slightly less tile height (tighter bottom edge).
+                              childAspectRatio: isDesktop ? 1.40 : (isTablet ? 1.32 : 1.26),
+                            ),
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                final item = items[index];
+                                final isFav = _savedIds.contains(item.id);
+                                return _ExploreListingCard(
+                                  item: item,
+                                  isFavorite: isFav,
+                                  onFavoriteToggle: () => _toggleFavorite(item.id),
+                                );
+                              },
+                              childCount: items.length,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                }
 
-// Guests row: keep previous style
-const guestsViewportFraction = 0.24; // ~24–25%
-final guestsRowHeight = width * guestsViewportFraction; // 1:1 tile
-
-return CustomScrollView(
-controller: _scrollController,
-slivers: [
-const SliverToBoxAdapter(child: SizedBox(height: 0)),
+                return NestedScrollView(
+                  controller: _scrollController,
+                  headerSliverBuilder: (context, innerBoxIsScrolled) {
+                    return [
+                      const SliverToBoxAdapter(child: SizedBox(height: 0)),
 
 // New Header with greeting and rotating logo
 SliverToBoxAdapter(
@@ -711,202 +758,65 @@ _filters = f;
 ),
 const SliverToBoxAdapter(child: SizedBox(height: 0)),
 
-// Am meisten gebucht (horizontally paged 3x3)
-SliverToBoxAdapter(child: Builder(builder: (context) {
-final l10n = context.watch<LocalizationController>();
-  return _SectionHeader(title: l10n.t('Am meisten gebucht'), showSeeAll: true, padding: const EdgeInsets.fromLTRB(16, 0, 16, 8), onSeeAll: () {
-final extrasFiltered = _extraTopBooked.where(_matches).toList();
-final combinedSrc = [...itemsFiltered, ...extrasFiltered];
-final ensured = combinedSrc.isEmpty
-? combinedSrc
-: List<Item>.from(combinedSrc)..addAll(List<Item>.from(combinedSrc));
-Navigator.of(context).push(MaterialPageRoute(builder: (_) => SeeAllScreen(title: l10n.t('Am meisten gebucht'), items: ensured)));
-});
-})),
-
-
-SliverToBoxAdapter(
-child: Builder(builder: (context) {
-  List<Item> combined = [...itemsFiltered, ..._extraTopBooked];
-const amCols = 3;
-const amRows = 3;
-const amGap = 8.0;
-final amCardSize = (width - (horizontalPadding * 2) - (amGap * (amCols - 1))) / amCols;
-final amHeight = amCardSize * amRows + amGap * (amRows - 1);
-    if (combined.length <= 5) {
-      final visible = combined;
-    final tile = (width - (horizontalPadding * 2) - (8.0 * (visible.length - 1))) / max(1, visible.length);
-    return SizedBox(
-      height: tile,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
-        child: Row(children: [
-          for (int i = 0; i < visible.length; i++) ...[
-            SizedBox(
-              width: tile,
-              height: tile,
-              child: _SquareTitleOnlyCard(
-                item: visible[i],
-                isFavorite: _savedIds.contains(visible[i].id),
-                onFavoriteToggle: () => _toggleFavorite(visible[i].id),
-              ),
-            ),
-            if (i != visible.length - 1) const SizedBox(width: 8),
-          ]
-        ]),
+                       // Keep the feed visually tight to the pinned categories row.
+                       const SliverToBoxAdapter(child: SizedBox(height: 0)),
+                    ];
+                  },
+                  body: ScrollEdgeIndicators.page(
+                    controller: _feedPager,
+                    pageCount: 4,
+                    showLeft: true,
+                    showRight: true,
+                     // Move the page arrows up to the page-title area.
+                     arrowsTop: 6,
+                    child: PageView(
+                      controller: _feedPager,
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        feedPage(title: context.watch<LocalizationController>().t('Am meisten gebucht'), items: topBooked),
+                        feedPage(title: context.watch<LocalizationController>().t('Neue Angebote'), items: neueQuelle),
+                        feedPage(title: context.watch<LocalizationController>().t('In der Nähe von dir'), items: nearYou),
+                        feedPage(title: context.watch<LocalizationController>().t('Kunden gefällt auch'), items: customersLike),
+                      ],
+                    ),
+                  ),
+                );
+              }),
       ),
     );
   }
-  final pageCount = max(1, (combined.length / 9).ceil());
-      return SizedBox(
-        height: amHeight,
-        child: ScrollEdgeIndicators.page(
-          controller: _pageTopBooked,
-          pageCount: pageCount,
-          showLeft: false,
-          showRight: true,
-          child: PageView.builder(
-            padEnds: true,
-            controller: _pageTopBooked,
-            itemCount: pageCount,
-            itemBuilder: (context, pageIndex) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: Column(children: [
-  for (int r = 0; r < amRows; r++) ...[
-  Row(children: [
-  for (int c = 0; c < amCols; c++) ...[
-  Builder(builder: (context) {
-  if (combined.isEmpty) return const SizedBox();
-  final idx = pageIndex * 9 + r * 3 + c;
-  if (idx >= combined.length) return const SizedBox();
-  final item = combined[idx];
-  final isFav = _savedIds.contains(item.id);
-  return SizedBox(
-  width: amCardSize,
-  height: amCardSize,
-  child: _SquareTitleOnlyCard(
-  item: item,
-  isFavorite: isFav,
-  onFavoriteToggle: () => _toggleFavorite(item.id),
-  ),
-  );
-  }),
-  if (c != amCols - 1) const SizedBox(width: amGap),
-  ],
-  ]),
-  if (r != amRows - 1) const SizedBox(height: amGap),
-  ],
-                ]),
-              );
-            },
-          ),
-        ),
-  );
-}),
-),
-
-// Neue Angebote (horizontal, 3 visible)
-SliverToBoxAdapter(child: Builder(builder: (context) {
-final l10n = context.watch<LocalizationController>();
- return _SectionHeader(title: l10n.t('Neue Angebote'), showSeeAll: true, padding: const EdgeInsets.only(left: 16, right: 16, top: 0, bottom: 8), onSeeAll: () {
-Navigator.of(context).push(MaterialPageRoute(builder: (_) => SeeAllScreen(title: l10n.t('Neue Angebote'), items: neueQuelle)));
-});
-})),
-
-SliverToBoxAdapter(
-  child: SizedBox(
-    height: neueTile,
-    child: ScrollEdgeIndicators.list(
-      controller: _ctrlNeue,
-        showLeft: false,
-        showRight: true,
-      child: Builder(builder: (context) {
-        final list = neueQuelle;
-        // Show the full list horizontally instead of capping at 5
-        if (list.isEmpty) return const SizedBox();
-        return ListView.separated(
-          controller: _ctrlNeue,
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
-          itemBuilder: (context, index) {
-            final item = list[index];
-            final isFav = _savedIds.contains(item.id);
-            return SizedBox(
-              width: neueTile,
-              height: neueTile,
-              child: _SquareTitleOnlyCard(
-                item: item,
-                isFavorite: isFav,
-                onFavoriteToggle: () => _toggleFavorite(item.id),
-              ),
-            );
-          },
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
-          itemCount: list.length,
-        );
-      }),
-),
-),
-),
-
- const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
-// Kunden gefällt auch … (horizontal row with See All link)
-SliverToBoxAdapter(child: Builder(builder: (context) {
-final l10n = context.watch<LocalizationController>();
- return _SectionHeader(title: l10n.t('Kunden gefällt auch'), showSeeAll: false);
-})),
-
- // Kunden gefällt auch: vertical grid fills available scroll area
- SliverPadding(
-   padding: const EdgeInsets.symmetric(horizontal: 16),
-     sliver: SliverGrid(
-     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-       crossAxisCount: isDesktop ? 4 : (isTablet ? 3 : 3),
-       mainAxisSpacing: 8,
-       crossAxisSpacing: 8,
-     ),
-      delegate: SliverChildBuilderDelegate((context, index) {
-        final liked = itemsFiltered.where((it) => _savedIds.contains(it.id) || it.timesLent > 5).toList();
-        if (liked.isEmpty) return const SizedBox();
-        final item = liked[index % liked.length];
-        final isFav = _savedIds.contains(item.id);
-        return _SmallGridCard(
-          item: item,
-          isFavorite: isFav,
-          onFavoriteToggle: () => _toggleFavorite(item.id),
-          compact: false,
-        );
-      }, childCount: itemsFiltered.where((it) => _savedIds.contains(it.id) || it.timesLent > 5).length),
-   ),
- ),
-
- const SliverToBoxAdapter(child: SizedBox(height: 16)),
-],
-);
-}),
-),
-);
-}
 }
 
 class _SectionHeader extends StatelessWidget {
-final String title; final bool showSeeAll; final EdgeInsets? padding; final VoidCallback? onSeeAll;
-const _SectionHeader({required this.title, this.showSeeAll = false, this.padding, this.onSeeAll});
+final String title;
+final EdgeInsets? padding;
+const _SectionHeader({required this.title, this.padding});
 @override
 Widget build(BuildContext context) {
-return Padding(
-padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-child: Row(children: [
-Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white))),
-if (showSeeAll)
-Builder(builder: (context) {
-final l10n = context.watch<LocalizationController>();
-return TextButton(onPressed: onSeeAll, child: Text(l10n.t('Alle ansehen')));
-})
-]),
-);
+ final effectivePadding = padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8);
+ final titleStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white);
+
+ return Padding(
+ padding: effectivePadding,
+ child: SizedBox(
+  height: 28,
+ child: Stack(
+ alignment: Alignment.center,
+ children: [
+ Align(
+ alignment: Alignment.center,
+ child: Text(
+ title,
+ maxLines: 1,
+ overflow: TextOverflow.ellipsis,
+ textAlign: TextAlign.center,
+ style: titleStyle,
+ ),
+ ),
+ ],
+ ),
+ ),
+ );
 }
 }
 
@@ -1585,6 +1495,82 @@ class _SmallGridCardState extends State<_SmallGridCard> {
             }),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Explore tile in the same visual style as "Meine Anzeigen":
+/// image (16:9) + title + price per day.
+///
+/// Note: intentionally no "Aktiv" chip and no overflow menu.
+class _ExploreListingCard extends StatelessWidget {
+  final Item item;
+  final bool isFavorite;
+  final VoidCallback onFavoriteToggle;
+
+  const _ExploreListingCard({required this.item, required this.isFavorite, required this.onFavoriteToggle});
+
+  bool get _isVerified => item.verificationStatus == 'approved' || item.verificationStatus == 'verified';
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.watch<LocalizationController>();
+    return InkWell(
+      onTap: () => ItemDetailsOverlay.showFullPage(context, item: item, fresh: true),
+      borderRadius: BorderRadius.circular(12),
+      mouseCursor: SystemMouseCursors.basic,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.30),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            child: Stack(children: [
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: AppImage(url: item.photos.isNotEmpty ? item.photos.first : 'https://picsum.photos/seed/explore_listing/800/600', fit: BoxFit.cover),
+              ),
+              Positioned(
+                top: 8,
+                left: 8,
+                child: _isVerified
+                    ? const Icon(Icons.verified, size: 16, color: Color(0xFF22C55E))
+                    : Tooltip(message: l10n.t('Nicht verifiziert'), child: const Icon(Icons.verified_outlined, size: 16, color: Colors.grey)),
+              ),
+              Positioned(
+                top: 6,
+                right: 6,
+                child: InkWell(
+                  onTap: onFavoriteToggle,
+                  borderRadius: BorderRadius.circular(16),
+                  mouseCursor: SystemMouseCursors.basic,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
+                    child: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, size: 16, color: isFavorite ? Colors.pinkAccent : Colors.black54),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+          Padding(
+            // Slightly smaller bottom padding to keep the border tight under the price row.
+            padding: const EdgeInsets.fromLTRB(6, 6, 6, 2),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Row(children: [
+                Text('${item.pricePerDay.toStringAsFixed(0)} €', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white)),
+                const SizedBox(width: 4),
+                Text(l10n.t('pro Tag'), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70)),
+              ]),
+            ]),
+          ),
+        ]),
       ),
     );
   }

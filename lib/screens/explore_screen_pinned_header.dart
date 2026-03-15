@@ -6,7 +6,8 @@ class PinnedCategoriesHeader extends SliverPersistentHeaderDelegate {
   PinnedCategoriesHeader({required this.builder});
 
   // Thickness adjustments (~1 mm ≈ 6 dp) applied on top and bottom
-  static const double _topGapAfterSeparator = 10; // was 16, reduced by ~6
+  // Keep this very tight so the first feed title sits close to the category row.
+  static const double _topGapAfterSeparator = 4;
   static const double _iconsHeight = 84; // CategoryIconRow reduced by ~1mm from bottom
   static const double _separatorHeight = 1;
   static const double _bottomPad = 0; // was 6, reduced by ~6

@@ -5,13 +5,15 @@ import 'package:lendify/models/user.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/screens/profile_info_screen.dart';
 import 'package:lendify/screens/contact_data_screen.dart';
-import 'package:lendify/screens/verification_screen.dart';
 import 'package:lendify/screens/change_password_screen.dart';
 import 'package:lendify/screens/payment_methods_screen.dart';
 import 'package:lendify/screens/payout_methods_screen.dart';
 import 'package:lendify/screens/invoices_screen.dart';
 import 'package:lendify/screens/notifications_screen.dart';
 import 'package:lendify/screens/privacy_info_screen.dart';
+import 'package:lendify/screens/two_factor_auth_screen.dart';
+import 'package:lendify/screens/verification_intro_screen.dart';
+import 'package:lendify/screens/verification_screen.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -38,7 +40,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
-    final user = _user;
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
@@ -51,85 +52,107 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         centerTitle: true,
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
       ),
-      body: _loading ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 16, 16, 24),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          _SectionCard(children: [
-            _RowTile(
-              icon: Icons.badge_outlined,
-              label: l10n.t('Profilinformationen'),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileInfoScreen())),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 16, 16, 24),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                const _GroupTitle('PROFIL'),
+                _SectionCard(children: [
+                  _RowTile(
+                    icon: Icons.badge_outlined,
+                    label: l10n.t('Profilinformationen'),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileInfoScreen())),
+                  ),
+                  const _Divider(),
+                  _RowTile(
+                    icon: Icons.mail_outline,
+                    label: l10n.t('account.item.contactData'),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ContactDataScreen())),
+                  ),
+                ]),
+                const SizedBox(height: 28),
+
+                const _GroupTitle('SICHERHEIT'),
+                _SectionCard(children: [
+                  _RowTile(
+                    icon: Icons.verified_user_outlined,
+                    label: 'Verifizierung',
+                    onTap: () {
+                      final verified = _user?.isVerified == true;
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => verified ? const VerificationScreen() : const VerificationIntroScreen()),
+                      );
+                    },
+                  ),
+                  const _Divider(),
+                  _RowTile(
+                    icon: Icons.lock_outline,
+                    label: l10n.t('account.item.changePassword'),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
+                  ),
+                  const _Divider(),
+                  _RowTile(
+                    icon: Icons.phonelink_lock_outlined,
+                    label: 'Zwei‑Faktor‑Authentifizierung',
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TwoFactorAuthScreen())),
+                  ),
+                ]),
+                const SizedBox(height: 28),
+
+                const _GroupTitle('ZAHLUNGEN'),
+                _SectionCard(children: [
+                  _RowTile(
+                    icon: Icons.credit_card,
+                    label: l10n.t('account.item.paymentMethods'),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaymentMethodsScreen())),
+                  ),
+                  const _Divider(),
+                  _RowTile(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: l10n.t('account.item.payoutMethods'),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PayoutMethodsScreen())),
+                  ),
+                  const _Divider(),
+                  _RowTile(
+                    icon: Icons.receipt_long_outlined,
+                    label: l10n.t('account.item.invoices'),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const InvoicesScreen())),
+                  ),
+                ]),
+                const SizedBox(height: 28),
+
+                const _GroupTitle('BENACHRICHTIGUNGEN'),
+                _SectionCard(children: [
+                  _RowTile(
+                    icon: Icons.notifications_active_outlined,
+                    label: l10n.t('account.item.notifications'),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                  ),
+                ]),
+                const SizedBox(height: 28),
+
+                const _GroupTitle('DATENSCHUTZ'),
+                _SectionCard(children: [
+                  _RowTile(
+                    icon: Icons.shield_outlined,
+                    label: l10n.t('account.item.dataPrivacyInfo'),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyInfoScreen())),
+                  ),
+                ]),
+                const SizedBox(height: 28),
+
+                const _GroupTitle('KONTO'),
+                _SectionCard(children: [
+                  _RowTile(
+                    icon: Icons.delete_outline,
+                    label: l10n.t('account.item.deleteAccount'),
+                    isDestructive: true,
+                    onTap: () => _confirmDeleteAccount(context),
+                  ),
+                ]),
+              ]),
             ),
-          ]),
-          const SizedBox(height: 16),
-          _SectionCard(children: [
-            _RowTile(
-              icon: Icons.mail_outline,
-              label: l10n.t('account.item.contactData'),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ContactDataScreen())),
-            ),
-          ]),
-          const SizedBox(height: 16),
-          if ((user?.isVerified ?? false)) _SectionCard(children: [
-            _RowTile(
-              icon: Icons.verified_outlined,
-              label: l10n.t('account.item.verification'),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VerificationScreen())),
-            ),
-          ]),
-          if ((user?.isVerified ?? false)) const SizedBox(height: 16),
-          _SectionCard(children: [
-            _RowTile(
-              icon: Icons.lock_outline,
-              label: l10n.t('account.item.changePassword'),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
-            ),
-          ]),
-          const SizedBox(height: 16),
-          _SectionCard(children: [
-            _RowTile(
-              icon: Icons.credit_card,
-              label: l10n.t('account.item.paymentMethods'),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaymentMethodsScreen())),
-            ),
-            const _Divider(),
-            _RowTile(
-              icon: Icons.account_balance_wallet_outlined,
-              label: l10n.t('account.item.payoutMethods'),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PayoutMethodsScreen())),
-            ),
-            const _Divider(),
-            _RowTile(
-              icon: Icons.receipt_long_outlined,
-              label: l10n.t('account.item.invoices'),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const InvoicesScreen())),
-            ),
-          ]),
-          const SizedBox(height: 16),
-          _SectionCard(children: [
-            _RowTile(
-              icon: Icons.notifications_active_outlined,
-              label: l10n.t('account.item.notifications'),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsScreen())),
-            ),
-          ]),
-          const SizedBox(height: 16),
-          _SectionCard(children: [
-            _RowTile(
-              icon: Icons.shield_outlined,
-              label: l10n.t('account.item.dataPrivacyInfo'),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyInfoScreen())),
-            ),
-            const _Divider(),
-            _RowTile(
-              icon: Icons.delete_outline,
-              label: l10n.t('account.item.deleteAccount'),
-              isDestructive: true,
-              onTap: () => _confirmDeleteAccount(context),
-            ),
-          ]),
-        ]),
-      ),
     );
   }
 
@@ -144,6 +167,27 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         ],
       );
     });
+  }
+}
+
+class _GroupTitle extends StatelessWidget {
+  final String title;
+  const _GroupTitle(this.title);
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.labelSmall;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+      child: Text(
+        title,
+        style: style?.copyWith(
+          color: Colors.white70,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
   }
 }
 

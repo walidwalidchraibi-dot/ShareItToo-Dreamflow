@@ -756,7 +756,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) => _calculatePriceSuggestion());
     }
     return Scaffold(
-      appBar: AppBar(title: Text(_isEdit ? 'Anzeige bearbeiten' : 'Neue Anzeige')),
+      appBar: AppBar(title: Text(_isEdit ? 'Anzeige bearbeiten' : 'Neue Anzeige'), centerTitle: true),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),

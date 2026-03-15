@@ -156,16 +156,16 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildItemsGrid(_listedItems(_items), l10n),
-          _buildItemsGrid(_draftItems(_items), l10n),
+          _buildItemsGrid(_listedItems(_items), l10n, emptyKind: _EmptyKind.listed),
+          _buildItemsGrid(_draftItems(_items), l10n, emptyKind: _EmptyKind.savedForLater),
         ],
       ),
     );
   }
 
-  Widget _buildItemsGrid(List<Item> visible, LocalizationController l10n) {
+  Widget _buildItemsGrid(List<Item> visible, LocalizationController l10n, {required _EmptyKind emptyKind}) {
     return visible.isEmpty
-        ? Center(child: Text(l10n.t('Keine Anzeigen'), style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white70)))
+        ? _MyListingsEmptyState(kind: emptyKind, onTapCreate: _startCreateListing, canCreate: _canCreateListings)
         : GridView.builder(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.02),
@@ -218,7 +218,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
                                     if (!mounted) return;
                                     if (res == 'drafts') {
                                       // Jump to the "für später gespeichert" tab first
-                                      _tabController.animateTo(3);
+                                       _tabController.animateTo(1);
                                       // Ensure UI has settled before showing the popup
                                       WidgetsBinding.instance.addPostFrameCallback((_) {
                                         if (!mounted) return;
@@ -266,5 +266,62 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
               );
             },
           );
+  }
+}
+
+enum _EmptyKind { listed, savedForLater }
+
+class _MyListingsEmptyState extends StatelessWidget {
+  final _EmptyKind kind;
+  final VoidCallback onTapCreate;
+  final bool canCreate;
+  const _MyListingsEmptyState({required this.kind, required this.onTapCreate, required this.canCreate});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.watch<LocalizationController>();
+    final cs = Theme.of(context).colorScheme;
+
+    // Use the same "Neue Anzeige" icon for both empty states, and make it tappable
+    // to jump directly into the create-listing flow.
+    final (String title, String? hint) = switch (kind) {
+      _EmptyKind.listed => (l10n.t('Du hast noch keine Anzeige.'), l10n.t('Tippe auf das Icon, um eine neue Anzeige zu erstellen.')),
+      _EmptyKind.savedForLater => (l10n.t('Du hast noch keine Anzeige für später gespeichert.'), l10n.t('Tippe auf das Icon, um eine neue Anzeige zu erstellen.')),
+    };
+
+    final iconWidget = InkWell(
+      onTap: canCreate ? onTapCreate : null,
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Icon(Icons.add_business, size: 64, color: cs.primary.withValues(alpha: 0.85)),
+      ),
+    );
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            iconWidget,
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white.withValues(alpha: 0.88), height: 1.4),
+            ),
+            if (hint != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                hint,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.4),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

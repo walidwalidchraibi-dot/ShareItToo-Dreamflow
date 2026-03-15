@@ -7,6 +7,8 @@ class OpenAIConfig {
   static const _apiKey = String.fromEnvironment('OPENAI_PROXY_API_KEY');
   static const _endpoint = String.fromEnvironment('OPENAI_PROXY_ENDPOINT');
 
+  static bool get _enabled => _endpoint.trim().isNotEmpty && _endpoint.trim().toLowerCase().startsWith('http');
+
   /// Parse natural language search query into structured fields
   /// Returns {what: String?, where: String?, whenStart: String?, whenEnd: String?, priceMin: double?, priceMax: double?, category: String?}
   static Future<Map<String, dynamic>> parseSearchQuery(String userInput) async {
@@ -15,7 +17,7 @@ class OpenAIConfig {
     }
 
     // Guard: Skip API call when endpoint or key are not provided in env (Dreamflow: no backend connected yet)
-    if (_endpoint.trim().isEmpty || !_endpoint.trim().toLowerCase().startsWith('http')) {
+    if (!_enabled) {
       debugPrint('OpenAI: endpoint missing, returning empty parse result');
       return {'what': null, 'where': null, 'whenStart': null, 'whenEnd': null, 'priceMin': null, 'priceMax': null, 'category': null};
     }
@@ -435,6 +437,102 @@ Gib NUR ein JSON-Objekt zurück:
     } catch (e) {
       debugPrint('OpenAI availability tip: Exception: $e');
       return 'Tipp 💡: Länger mieten = günstiger. Z.B. ab 3/5/8 Tagen: -10/-20/-30%';
+    }
+  }
+
+  /// Suggest multiple possible categories for a given free-text item description.
+  ///
+  /// Returns a list of category name strings (from the provided taxonomy) ordered by likelihood.
+  /// If OpenAI is not configured, returns an empty list.
+  static Future<List<String>> suggestCategories({required String userInput, required List<String> availableCategories, int maxResults = 5}) async {
+    if (userInput.trim().isEmpty) return const [];
+    if (availableCategories.isEmpty) return const [];
+    if (!_enabled) {
+      debugPrint('OpenAI: endpoint missing, returning empty category suggestions');
+      return const [];
+    }
+
+    final allowed = <String, String>{
+      for (final c in availableCategories)
+        if (c.trim().isNotEmpty) c.trim().toLowerCase(): c.trim(),
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(_endpoint),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_apiKey',
+        },
+        body: jsonEncode({
+          'model': 'gpt-4o-mini',
+          'messages': [
+            {
+              'role': 'system',
+              'content': '''Du hilfst bei der Kategorie-Zuordnung in einer Miet-App.
+
+Aufgabe:
+- Der Nutzer beschreibt einen Artikel (z.B. "Gitarre", "Auto", "DJ Controller", "Anhänger", "GoPro").
+- Du sollst aus einer vorgegebenen Liste an Kategorien die 1 bis ${maxResults} passendsten Kategorien auswählen.
+
+REGELN:
+1) Du MUSST die Kategorien EXAKT so schreiben wie in der Liste (keine neuen Kategorien erfinden).
+2) Wenn mehrere Kategorien plausibel sind, gib mehrere zurück (geordnet nach Wahrscheinlichkeit).
+3) Wenn nichts passt, gib eine leere Liste zurück.
+4) Antworte NUR als JSON-Objekt.
+
+KATEGORIEN-LISTE:
+${availableCategories.join(', ')}
+
+Antworte im Format:
+{"categories": ["Kategorie A", "Kategorie B"]}'''
+            },
+            {
+              'role': 'user',
+              'content': userInput,
+            }
+          ],
+          'response_format': {'type': 'json_object'},
+          'temperature': 0.2,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        debugPrint('OpenAI category suggestion error: ${response.statusCode} ${response.body}');
+        return const [];
+      }
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      final content = data['choices']?[0]?['message']?['content'];
+      if (content == null) return const [];
+
+      try {
+        final parsed = jsonDecode(content) as Map<String, dynamic>;
+        final raw = parsed['categories'];
+        if (raw is! List) return const [];
+        final list = raw
+            .whereType<String>()
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            // HARD RULE: only keep categories that exist in the app-provided list.
+            .map((e) => allowed[e.toLowerCase()])
+            .whereType<String>()
+            .toList();
+        final unique = <String>[];
+        final seen = <String>{};
+        for (final c in list) {
+          final k = c.toLowerCase();
+          if (seen.add(k)) unique.add(c);
+        }
+        if (unique.length > maxResults) return unique.take(maxResults).toList();
+        return unique;
+      } catch (e) {
+        debugPrint('OpenAI: Failed to parse category suggestions JSON: $e');
+        return const [];
+      }
+    } catch (e) {
+      debugPrint('OpenAI: Exception during category suggestion call: $e');
+      return const [];
     }
   }
 }

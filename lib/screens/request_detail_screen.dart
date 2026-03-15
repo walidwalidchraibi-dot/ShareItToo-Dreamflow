@@ -8,6 +8,7 @@ import 'package:lendify/services/localization_service.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/user_avatar.dart';
 
 class RequestDetailScreen extends StatefulWidget {
   final String requestId;
@@ -210,7 +211,11 @@ class _RenterCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
       child: ListTile(
-        leading: CircleAvatar(backgroundImage: NetworkImage(user.photoURL ?? 'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=150&h=150&fit=crop&crop=face')),
+        leading: SitUserAvatar(
+          url: user.photoURL ?? 'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=150&h=150&fit=crop&crop=face',
+          radius: 20,
+          borderColor: Colors.white.withValues(alpha: 0.12),
+        ),
         title: Text(user.displayName, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)),
         subtitle: Text('${user.city ?? ''}${(user.city?.isNotEmpty ?? false) && (user.country?.isNotEmpty ?? false) ? ', ' : ''}${user.country ?? ''}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
         trailing: TextButton(onPressed: () {
@@ -374,7 +379,11 @@ class _PublicProfileQuickView extends StatelessWidget {
       appBar: AppBar(title: Text(title)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Row(children: [
-          CircleAvatar(radius: 36, backgroundImage: NetworkImage(user.photoURL ?? 'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=150&h=150&fit=crop&crop=face')),
+          SitUserAvatar(
+            url: user.photoURL ?? 'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=150&h=150&fit=crop&crop=face',
+            radius: 36,
+            borderColor: Colors.white.withValues(alpha: 0.12),
+          ),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(user.displayName, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),

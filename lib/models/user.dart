@@ -3,6 +3,8 @@ class User {
   final String displayName;
   final String email;
   final String? phone;
+  final bool emailVerified;
+  final bool phoneVerified;
   final String? photoURL;
   final String? bio; // Short about me
   final String? city;
@@ -28,6 +30,14 @@ class User {
   final double? homeLng;
   final DateTime? birthDate;
 
+  // Private contact information (not publicly visible)
+  final String? addressStreet;
+  final String? addressHouseNumber;
+  final String? addressPostalCode;
+  final String? addressCity;
+  final String? addressCountry;
+  final String? addressExtra;
+
   // Visibility toggles for public profile
   final bool showWork;
   final bool showHobbies;
@@ -47,6 +57,8 @@ class User {
     required this.displayName,
     required this.email,
     this.phone,
+    this.emailVerified = false,
+    this.phoneVerified = false,
     this.photoURL,
     this.bio,
     this.city,
@@ -78,6 +90,13 @@ class User {
     this.socialInstagram,
     this.socialTiktok,
     this.socialSnapchat,
+
+    this.addressStreet,
+    this.addressHouseNumber,
+    this.addressPostalCode,
+    this.addressCity,
+    this.addressCountry,
+    this.addressExtra,
   });
 
   factory User.fromJson(Map<String, dynamic> json) => User(
@@ -85,6 +104,8 @@ class User {
     displayName: json['displayName'],
     email: json['email'],
     phone: json['phone'],
+    emailVerified: json['emailVerified'] ?? false,
+    phoneVerified: json['phoneVerified'] ?? false,
     photoURL: json['photoURL'],
     bio: json['bio'],
     city: json['city'],
@@ -116,6 +137,13 @@ class User {
     socialInstagram: json['socialInstagram'],
     socialTiktok: json['socialTiktok'],
     socialSnapchat: json['socialSnapchat'],
+
+    addressStreet: json['addressStreet'],
+    addressHouseNumber: json['addressHouseNumber'],
+    addressPostalCode: json['addressPostalCode'],
+    addressCity: json['addressCity'],
+    addressCountry: json['addressCountry'],
+    addressExtra: json['addressExtra'],
   );
 
   static DateTime _parseDateOrNow(dynamic value) {
@@ -130,6 +158,8 @@ class User {
     'displayName': displayName,
     'email': email,
     'phone': phone,
+    'emailVerified': emailVerified,
+    'phoneVerified': phoneVerified,
     'photoURL': photoURL,
     'bio': bio,
     'city': city,
@@ -161,6 +191,13 @@ class User {
     'socialInstagram': socialInstagram,
     'socialTiktok': socialTiktok,
     'socialSnapchat': socialSnapchat,
+
+    'addressStreet': addressStreet,
+    'addressHouseNumber': addressHouseNumber,
+    'addressPostalCode': addressPostalCode,
+    'addressCity': addressCity,
+    'addressCountry': addressCountry,
+    'addressExtra': addressExtra,
   };
 
   User copyWith({
@@ -168,6 +205,8 @@ class User {
     String? displayName,
     String? email,
     String? phone,
+    bool? emailVerified,
+    bool? phoneVerified,
     String? photoURL,
     String? bio,
     String? city,
@@ -199,11 +238,20 @@ class User {
     String? socialInstagram,
     String? socialTiktok,
     String? socialSnapchat,
+
+    String? addressStreet,
+    String? addressHouseNumber,
+    String? addressPostalCode,
+    String? addressCity,
+    String? addressCountry,
+    String? addressExtra,
   }) => User(
         id: id ?? this.id,
         displayName: displayName ?? this.displayName,
         email: email ?? this.email,
         phone: phone ?? this.phone,
+        emailVerified: emailVerified ?? this.emailVerified,
+        phoneVerified: phoneVerified ?? this.phoneVerified,
         photoURL: photoURL ?? this.photoURL,
         bio: bio ?? this.bio,
         city: city ?? this.city,
@@ -235,6 +283,13 @@ class User {
         socialInstagram: socialInstagram ?? this.socialInstagram,
         socialTiktok: socialTiktok ?? this.socialTiktok,
         socialSnapchat: socialSnapchat ?? this.socialSnapchat,
+
+        addressStreet: addressStreet ?? this.addressStreet,
+        addressHouseNumber: addressHouseNumber ?? this.addressHouseNumber,
+        addressPostalCode: addressPostalCode ?? this.addressPostalCode,
+        addressCity: addressCity ?? this.addressCity,
+        addressCountry: addressCountry ?? this.addressCountry,
+        addressExtra: addressExtra ?? this.addressExtra,
       );
 
   static DateTime? _parseNullableDate(dynamic v) {

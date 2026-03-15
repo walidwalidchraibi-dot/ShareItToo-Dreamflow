@@ -13,6 +13,9 @@ class ScrollEdgeIndicators extends StatefulWidget {
   final bool tapToScroll;
   final bool showLeft;
   final bool showRight;
+  /// Optional: fixed top offset for the left/right arrows.
+  /// If null, arrows are vertically centered.
+  final double? arrowsTop;
   // When true, the respective arrow remains translucent even if it can scroll
   final bool forceLeftTranslucent;
   final bool forceRightTranslucent;
@@ -24,6 +27,7 @@ class ScrollEdgeIndicators extends StatefulWidget {
     this.tapToScroll = true,
     this.showLeft = true,
     this.showRight = true,
+    this.arrowsTop,
     this.forceLeftTranslucent = false,
     this.forceRightTranslucent = false,
   })
@@ -39,6 +43,7 @@ class ScrollEdgeIndicators extends StatefulWidget {
     this.tapToScroll = true,
     this.showLeft = true,
     this.showRight = true,
+    this.arrowsTop,
     this.forceLeftTranslucent = false,
     this.forceRightTranslucent = false,
   })
@@ -201,6 +206,7 @@ class _ScrollEdgeIndicatorsState extends State<ScrollEdgeIndicators>
       builder: (context, constraints) {
         final h = constraints.maxHeight;
         final vCenter = h / 2;
+        final arrowTop = widget.arrowsTop ?? (vCenter - 18);
         final leftActive = Colors.white.withValues(alpha: 0.85);
         final leftInactive = Colors.white.withValues(alpha: 0.25);
         final rightActive = Colors.white.withValues(alpha: 0.85);
@@ -265,7 +271,7 @@ class _ScrollEdgeIndicatorsState extends State<ScrollEdgeIndicators>
             if (showLeft)
               Positioned(
                 left: -12, // ~2mm on mdpi (~12dp)
-                top: vCenter - 18,
+                top: arrowTop,
                 child: Material(
                   type: MaterialType.transparency,
                   child: InkResponse(
@@ -286,7 +292,7 @@ class _ScrollEdgeIndicatorsState extends State<ScrollEdgeIndicators>
             if (showRight)
               Positioned(
                 right: -12, // ~2mm on mdpi (~12dp)
-                top: vCenter - 18,
+                top: arrowTop,
                 child: Material(
                   type: MaterialType.transparency,
                   child: InkResponse(

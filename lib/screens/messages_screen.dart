@@ -5,6 +5,7 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/models/message.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/models/item.dart';
+import 'package:lendify/widgets/user_avatar.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key});
@@ -149,7 +150,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                           itemTitle: thread.itemTitle,
                           lastMessage: lastMsg?.text ?? '',
                           time: _formatTime(lastMsg?.timestamp ?? thread.createdAt),
-                          avatarUrl: otherUser?.photoURL ?? '',
+                          avatarUrl: otherUser?.photoURL,
                           hasUnread: hasUnread,
                           onTap: () async {
                             final result = await Navigator.of(context).push(
@@ -306,7 +307,7 @@ class _ChatThreadCard extends StatelessWidget {
   final String itemTitle;
   final String lastMessage;
   final String time;
-  final String avatarUrl;
+  final String? avatarUrl;
   final bool hasUnread;
   final VoidCallback onTap;
   const _ChatThreadCard({
@@ -321,6 +322,8 @@ class _ChatThreadCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final url = (avatarUrl ?? '').trim();
+    final hasAvatar = url.isNotEmpty;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -332,7 +335,12 @@ class _ChatThreadCard extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
               Stack(children: [
-                CircleAvatar(radius: 28, backgroundImage: NetworkImage(avatarUrl)),
+                SitUserAvatar(
+                  url: hasAvatar ? url : null,
+                  radius: 28,
+                  borderColor: Colors.white.withValues(alpha: 0.12),
+                  placeholderIcon: Icons.person_outline,
+                ),
                 if (hasUnread)
                   Positioned(right: 0, top: 0, child: Container(width: 10, height: 10, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle))),
               ]),

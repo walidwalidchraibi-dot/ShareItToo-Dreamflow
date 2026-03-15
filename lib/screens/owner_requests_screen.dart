@@ -7,6 +7,7 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/screens/ongoing_owner_detail_screen.dart';
+import 'package:lendify/widgets/box_chat_icon.dart';
 import 'package:lendify/widgets/review_prompt_sheet.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 
@@ -187,8 +188,12 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          isScrollable: false,
+          // Prevent overflow on small widths (e.g. long labels like "Abgeschlossen")
+          // by allowing horizontal scrolling.
+          isScrollable: true,
           tabAlignment: TabAlignment.center,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 14),
+          indicatorSize: TabBarIndicatorSize.label,
           labelColor: Theme.of(context).colorScheme.primary,
           unselectedLabelColor: Colors.white70,
           labelStyle: tabsStyle,
@@ -232,7 +237,9 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
             ),
           ),
           const SizedBox(width: 6),
-          Text(text),
+          // In scrollable TabBars, we still want to be safe against edge cases
+          // (very small widths / large text scale).
+          Flexible(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis)),
         ],
       ),
     );
@@ -241,14 +248,31 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
   Widget _buildList(String target) {
     final maps = _entries.where((e) => _effectiveCategory(e) == target).toList();
     if (maps.isEmpty) {
+      final (icon, title) = _emptyStateForCategory(target);
+      final cs = Theme.of(context).colorScheme;
+      final emptyIconColor = cs.onSurfaceVariant.withValues(alpha: 0.65);
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade400),
-            const SizedBox(height: 16),
-            Text('Keine Einträge', style: TextStyle(fontSize: 16, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (target == 'requests')
+                BoxChatIcon(size: 64, color: emptyIconColor)
+              else
+                Icon(icon, size: 64, color: emptyIconColor),
+              const SizedBox(height: 14),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.85),
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -393,6 +417,20 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
       case 'ongoing':
       default:
         return 'Laufende Anmietung';
+    }
+  }
+
+  (IconData, String) _emptyStateForCategory(String category) {
+    switch (category) {
+      case 'ongoing':
+        return (Icons.timelapse_outlined, 'Du hast keine Laufenden Anmietungen');
+      case 'upcoming':
+        return (Icons.event_available_outlined, 'Du hast keine Kommenden Anmietungen');
+      case 'requests':
+        return (Icons.assignment_outlined, 'Du hast keine Mietanfragen');
+      case 'completed':
+      default:
+        return (Icons.task_alt_outlined, 'Du hast keine Abgeschlossenen Anmietungen');
     }
   }
 

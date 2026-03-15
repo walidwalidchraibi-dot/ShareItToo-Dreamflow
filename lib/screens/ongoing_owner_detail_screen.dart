@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
@@ -1365,11 +1366,7 @@ class _CounterpartyRow extends StatelessWidget {
       InkWell(
         borderRadius: BorderRadius.circular(999),
         onTap: onProfile,
-        child: CircleAvatar(
-          radius: 18,
-          backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null,
-          child: avatarUrl == null ? const Icon(Icons.person) : null,
-        ),
+        child: SitUserAvatar(url: avatarUrl, radius: 18, borderColor: Colors.white.withValues(alpha: 0.12), placeholderIcon: Icons.person_outline),
       ),
       const SizedBox(width: 10),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

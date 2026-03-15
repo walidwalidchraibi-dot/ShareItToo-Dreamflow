@@ -11,6 +11,7 @@ import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/review.dart';
 import 'package:lendify/models/multi_criteria_review.dart';
 import 'package:lendify/models/message.dart';
+import 'package:lendify/models/security.dart';
 import 'package:lendify/utils/total_subtitle.dart';
 
 class DataService {
@@ -37,6 +38,91 @@ class DataService {
   static const String _wishlistsMetaKey = 'wishlists_meta_v1';
   static const String _wishlistAssignKey = 'wishlist_assign_v1';
   static const String _messageThreadsKey = 'message_threads_v1';
+  static const String _demoNotifSeedFlagPrefix = 'demo_notif_seeded_for_';
+
+  // Security
+  static const String _securitySettingsKey = 'security_settings_v1';
+  static const String _signedInDevicesKey = 'signed_in_devices_v1';
+
+  static Future<SecuritySettings> getSecuritySettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_securitySettingsKey);
+      if (raw == null || raw.isEmpty) return const SecuritySettings(enabled: false, method: 'sms');
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      return SecuritySettings.fromJson(map);
+    } catch (e) {
+      debugPrint('[DataService] getSecuritySettings failed: ' + e.toString());
+      return const SecuritySettings(enabled: false, method: 'sms');
+    }
+  }
+
+  static Future<void> setSecuritySettings(SecuritySettings settings) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_securitySettingsKey, jsonEncode(settings.toJson()));
+    } catch (e) {
+      debugPrint('[DataService] setSecuritySettings failed: ' + e.toString());
+    }
+  }
+
+  static Future<List<SecurityDevice>> getSignedInDevices() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_signedInDevicesKey);
+      if (raw == null || raw.isEmpty) {
+        final seeded = _seedSignedInDevices();
+        await prefs.setString(_signedInDevicesKey, jsonEncode(seeded.map((e) => e.toJson()).toList()));
+        return seeded;
+      }
+      final list = jsonDecode(raw);
+      if (list is! List) return const [];
+      final parsed = <SecurityDevice>[];
+      for (final e in list) {
+        if (e is Map) {
+          parsed.add(SecurityDevice.fromJson(e.map((k, v) => MapEntry(k.toString(), v))));
+        }
+      }
+      return parsed;
+    } catch (e) {
+      debugPrint('[DataService] getSignedInDevices failed: ' + e.toString());
+      return const [];
+    }
+  }
+
+  static Future<void> setSignedInDevices(List<SecurityDevice> devices) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_signedInDevicesKey, jsonEncode(devices.map((e) => e.toJson()).toList()));
+    } catch (e) {
+      debugPrint('[DataService] setSignedInDevices failed: ' + e.toString());
+    }
+  }
+
+  static List<SecurityDevice> _seedSignedInDevices() {
+    final now = DateTime.now();
+    return [
+      SecurityDevice(
+        id: 'this',
+        name: 'Dieses Gerät',
+        location: 'Aktuell',
+        lastActive: now,
+        isThisDevice: true,
+      ),
+      SecurityDevice(
+        id: 'dev_2',
+        name: 'Chrome Browser',
+        location: 'Stuttgart',
+        lastActive: now.subtract(const Duration(days: 1, hours: 3)),
+      ),
+      SecurityDevice(
+        id: 'dev_3',
+        name: 'iPhone',
+        location: 'Berlin',
+        lastActive: now.subtract(const Duration(hours: 6)),
+      ),
+    ];
+  }
 
   // Runtime timers for express confirmation deadlines (not persisted). We also
   // run a sweep on data fetch to enforce timeouts across sessions.
@@ -598,7 +684,18 @@ class DataService {
   static Future<User?> getCurrentUser() async {
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString(_currentUserKey);
-    if (userJson == null) return null;
+    if (userJson == null) {
+      // Ensure demo data exists even when the user opens a screen (like
+      // Notifications) before any other data has been requested.
+      try {
+        await _initializeSampleData();
+      } catch (e) {
+        debugPrint('[DataService] getCurrentUser init demo failed: $e');
+      }
+      final again = prefs.getString(_currentUserKey);
+      if (again == null || again.isEmpty) return null;
+      return User.fromJson(jsonDecode(again) as Map<String, dynamic>);
+    }
 
     final Map<String, dynamic> map = jsonDecode(userJson) as Map<String, dynamic>;
     bool mutated = false;
@@ -627,6 +724,75 @@ class DataService {
       await prefs.setString(_currentUserKey, jsonEncode(user.toJson()));
     }
     return user;
+  }
+
+  static Future<void> _ensureDemoNotificationsForUserOnce(String userId) async {
+    if (userId.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '$_demoNotifSeedFlagPrefix$userId';
+      final done = prefs.getBool(key) ?? false;
+      if (done) return;
+
+      final now = DateTime.now();
+      // A small, realistic starter feed covering the MVP categories.
+      await addStructuredNotification(
+        userId: userId,
+        category: 'platform',
+        priority: 5,
+        title: 'Willkommen bei ShareItToo',
+        body: 'Hier findest du alle Updates zu Buchungen, Chats, Bewertungen und Zahlungen.',
+        entityType: 'system',
+        entityId: 'welcome_${now.microsecondsSinceEpoch}',
+        ctaLabel: '',
+        critical: false,
+      );
+      await addStructuredNotification(
+        userId: userId,
+        category: 'security',
+        priority: 1,
+        title: 'Sicherheits‑Check',
+        body: 'Aktiviere bei Gelegenheit deine Verifizierung, um mehr Vertrauen zu schaffen.',
+        entityType: 'system',
+        entityId: 'security_tip_${now.microsecondsSinceEpoch}',
+        ctaLabel: '',
+        critical: false,
+      );
+      await addStructuredNotification(
+        userId: userId,
+        category: 'payments',
+        priority: 2,
+        title: 'Zahlungsmethode hinzufügen',
+        body: 'Hinterlege eine Zahlungsmethode, damit Buchungen später schneller gehen.',
+        entityType: 'payment',
+        entityId: 'payment_methods',
+        ctaLabel: 'Öffnen',
+      );
+      await addStructuredNotification(
+        userId: userId,
+        category: 'reviews',
+        priority: 4,
+        title: 'Bewertungen sammeln',
+        body: 'Nach jeder abgeschlossenen Miete kannst du eine Bewertung abgeben.',
+        entityType: 'system',
+        entityId: 'review_tip_${now.microsecondsSinceEpoch}',
+        ctaLabel: '',
+      );
+      await addStructuredNotification(
+        userId: userId,
+        category: 'messages',
+        priority: 3,
+        title: 'Tipp: Schnelle Abstimmung',
+        body: 'Nutze Chats, um Übergabe und Rückgabe effizient zu planen.',
+        entityType: 'system',
+        entityId: 'chat_tip_${now.microsecondsSinceEpoch}',
+        ctaLabel: '',
+      );
+
+      await prefs.setBool(key, true);
+    } catch (e) {
+      debugPrint('[DataService] _ensureDemoNotificationsForUserOnce failed: $e');
+    }
   }
 
   static Future<void> setCurrentUser(User user) async {
@@ -1905,25 +2071,119 @@ class DataService {
 
   // Rental requests storage (demo, persisted locally)
   static Future<List<RentalRequest>> _getAllRentalRequests() async {
-    final prefs = await SharedPreferences.getInstance();
+    SharedPreferences prefs;
+    try {
+      prefs = await SharedPreferences.getInstance();
+    } catch (e) {
+      debugPrint('[DataService] _getAllRentalRequests: SharedPreferences unavailable: $e');
+      return [];
+    }
+
     String? raw = prefs.getString(_rentalRequestsKey);
     if (raw == null) {
       // Do not seed demo requests anymore. Persist an empty list by default.
-      await prefs.setString(_rentalRequestsKey, jsonEncode(<Map<String, dynamic>>[]));
-      raw = prefs.getString(_rentalRequestsKey);
+      try {
+        await prefs.setString(_rentalRequestsKey, jsonEncode(<Map<String, dynamic>>[]));
+        raw = prefs.getString(_rentalRequestsKey);
+      } catch (e) {
+        debugPrint('[DataService] _getAllRentalRequests: failed to initialize empty list: $e');
+        return [];
+      }
     }
-    if (raw == null) return [];
+    if (raw == null || raw.isEmpty) return [];
+
     try {
       final List<dynamic> list = jsonDecode(raw);
-      return list.map((e) => RentalRequest.fromJson(Map<String, dynamic>.from(e as Map))).toList();
-    } catch (_) {
+      final parsed = <RentalRequest>[];
+      for (final e in list) {
+        try {
+          parsed.add(RentalRequest.fromJson(Map<String, dynamic>.from(e as Map)));
+        } catch (inner) {
+          debugPrint('[DataService] _getAllRentalRequests: skipping corrupted entry: $inner');
+        }
+      }
+
+      // Auto-sanitize storage so future loads don't keep failing.
+      if (parsed.length != list.length) {
+        try {
+          await prefs.setString(_rentalRequestsKey, jsonEncode(parsed.map((e) => e.toJson()).toList()));
+        } catch (e) {
+          debugPrint('[DataService] _getAllRentalRequests: failed to sanitize storage: $e');
+        }
+      }
+      return parsed;
+    } catch (e) {
+      debugPrint('[DataService] _getAllRentalRequests: failed to decode JSON: $e');
+      // Reset to a clean state.
+      try {
+        await prefs.setString(_rentalRequestsKey, jsonEncode(<Map<String, dynamic>>[]));
+      } catch (e2) {
+        debugPrint('[DataService] _getAllRentalRequests: failed to reset corrupted JSON: $e2');
+      }
       return [];
     }
   }
 
   static Future<void> _saveAllRentalRequests(List<RentalRequest> list) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_rentalRequestsKey, jsonEncode(list.map((e) => e.toJson()).toList()));
+    Future<void> persist(List<RentalRequest> payload) async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_rentalRequestsKey, jsonEncode(payload.map((e) => e.toJson()).toList()));
+    }
+
+    bool isQuotaError(Object e) {
+      final s = e.toString();
+      return s.contains('QuotaExceededError') || s.contains('exceeded the quota') || s.contains('QuotaExceeded');
+    }
+
+    List<RentalRequest> prune(List<RentalRequest> input, {required int hardCapNewest}) {
+      if (input.isEmpty) return input;
+      // Newest first for keeping.
+      final newestFirst = [...input]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      // Prefer dropping old terminal states first.
+      final terminal = <String>{'completed', 'declined', 'cancelled'};
+      final kept = <RentalRequest>[];
+      final droppedTerminal = <RentalRequest>[];
+      for (final r in newestFirst) {
+        if (terminal.contains(r.status)) {
+          droppedTerminal.add(r);
+        } else {
+          kept.add(r);
+        }
+      }
+      final merged = [...kept, ...droppedTerminal];
+      // Apply cap.
+      return merged.take(hardCapNewest).toList();
+    }
+
+    try {
+      await persist(list);
+      return;
+    } catch (e) {
+      debugPrint('[DataService] _saveAllRentalRequests: failed: $e');
+      if (!isQuotaError(e)) rethrow;
+    }
+
+    // Web/local storage quota exceeded: prune older requests and retry.
+    try {
+      final pruned250 = prune(list, hardCapNewest: 250);
+      debugPrint('[DataService] _saveAllRentalRequests: quota exceeded, pruning from ${list.length} -> ${pruned250.length} and retrying');
+      await persist(pruned250);
+      return;
+    } catch (e) {
+      debugPrint('[DataService] _saveAllRentalRequests: retry after prune(250) failed: $e');
+      if (!isQuotaError(e)) rethrow;
+    }
+
+    // Last resort: keep only the newest 80.
+    try {
+      final pruned80 = prune(list, hardCapNewest: 80);
+      debugPrint('[DataService] _saveAllRentalRequests: quota still exceeded, pruning to newest ${pruned80.length} and retrying');
+      await persist(pruned80);
+      return;
+    } catch (e) {
+      debugPrint('[DataService] _saveAllRentalRequests: retry after prune(80) failed: $e');
+      rethrow;
+    }
   }
 
   static Future<List<RentalRequest>> getRentalRequestsForOwner(String ownerId, {String? status}) async {
@@ -2137,6 +2397,37 @@ class DataService {
       if (status == 'accepted' && updatedRequest != null) {
         try {
           await _createMessageThreadForRequest(updatedRequest);
+
+          // Create in-app notifications for both parties.
+          try {
+            final item = await getItemById(updatedRequest.itemId);
+            if (item != null) {
+              // For renter
+              await addStructuredNotification(
+                userId: updatedRequest.renterId,
+                category: 'bookings',
+                priority: 2,
+                title: 'Mietanfrage angenommen',
+                body: 'Deine Anfrage für „${item.title}“ wurde angenommen. Öffne die Buchung für Details.',
+                entityType: 'booking',
+                entityId: updatedRequest.id,
+                ctaLabel: 'Jetzt ansehen',
+              );
+              // For owner
+              await addStructuredNotification(
+                userId: updatedRequest.ownerId,
+                category: 'bookings',
+                priority: 2,
+                title: 'Buchung bestätigt',
+                body: 'Du hast die Anfrage für „${item.title}“ angenommen. Öffne die Buchung für Übergabe & Rückgabe.',
+                entityType: 'booking',
+                entityId: updatedRequest.id,
+                ctaLabel: 'Jetzt ansehen',
+              );
+            }
+          } catch (e) {
+            debugPrint('[DataService] booking notifications failed: $e');
+          }
         } catch (e) {
           debugPrint('[DataService] Failed to create message thread: $e');
         }
@@ -2315,6 +2606,219 @@ class DataService {
       'read': false,
     });
     await prefs.setString(_notificationsKey, jsonEncode(list));
+  }
+
+  // ===== Notifications (structured feed, local) =====
+  // NOTE: Stored as a list of map entries under [_notificationsKey]. We keep
+  // legacy entries compatible by backfilling missing fields at read time.
+  static Future<void> addStructuredNotification({
+    required String userId,
+    required String category, // important | bookings | messages | reviews | platform
+    required String title,
+    required String body,
+    int priority = 2, // 1=important, 2=bookings, 3=messages, 4=reviews, 5=platform
+    String? entityType, // booking | thread | payment | review | system
+    String? entityId,
+    String? ctaLabel,
+    bool critical = false,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_notificationsKey);
+      List<dynamic> list = raw != null && raw.isNotEmpty ? (jsonDecode(raw) as List) : [];
+      final now = DateTime.now();
+      list.add({
+        'id': 'n_${now.microsecondsSinceEpoch}',
+        'userId': userId,
+        'category': category,
+        'priority': priority,
+        'title': title,
+        'body': body,
+        'entityType': entityType,
+        'entityId': entityId,
+        'ctaLabel': ctaLabel,
+        'critical': critical,
+        'archived': false,
+        'ts': now.toIso8601String(),
+        'read': false,
+      });
+      await prefs.setString(_notificationsKey, jsonEncode(list));
+    } catch (e) {
+      debugPrint('[DataService] addStructuredNotification failed: ' + e.toString());
+    }
+  }
+
+  static Map<String, dynamic> _normalizeNotification(Map<String, dynamic> raw, {required String userId}) {
+    // Backfill legacy fields to the structured format.
+    final out = Map<String, dynamic>.from(raw);
+    out['id'] = (out['id'] ?? '').toString().isNotEmpty ? out['id'].toString() : 'n_${DateTime.now().microsecondsSinceEpoch}';
+    out['userId'] = (out['userId'] ?? userId).toString();
+    final String cat = (out['category'] ?? '').toString();
+    if (cat.isEmpty) {
+      // Legacy entries: assume platform unless title suggests something else.
+      out['category'] = 'platform';
+    }
+    out['priority'] = (out['priority'] is num) ? (out['priority'] as num).toInt() : _priorityForCategory((out['category'] ?? 'platform').toString());
+    out['title'] = (out['title'] ?? '').toString();
+    out['body'] = (out['body'] ?? '').toString();
+    out['entityType'] = (out['entityType'] as String?);
+    out['entityId'] = (out['entityId'] as String?);
+    out['ctaLabel'] = (out['ctaLabel'] as String?);
+    out['critical'] = (out['critical'] == true);
+    out['archived'] = (out['archived'] == true);
+    out['read'] = (out['read'] == true);
+    // Support both 'ts' and 'createdAt'
+    final tsStr = (out['ts'] ?? out['createdAt'] ?? '').toString();
+    out['ts'] = tsStr.isNotEmpty ? tsStr : DateTime.now().toIso8601String();
+    return out;
+  }
+
+  static int _priorityForCategory(String category) {
+    switch (category) {
+      case 'important':
+        return 1;
+      case 'bookings':
+        return 2;
+      case 'messages':
+        return 3;
+      case 'reviews':
+        return 4;
+      case 'platform':
+      default:
+        return 5;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getNotificationFeedForUser(String userId, {bool includeArchived = false}) async {
+    try {
+      // On first install we want the Notifications screen to never feel empty.
+      try {
+        await _ensureDemoNotificationsForUserOnce(userId);
+      } catch (_) {/* ignore */}
+
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_notificationsKey);
+      if (raw == null || raw.isEmpty) return [];
+      final List list = jsonDecode(raw);
+      final out = <Map<String, dynamic>>[];
+      bool mutated = false;
+      for (final e in list) {
+        if (e is! Map) continue;
+        final m = Map<String, dynamic>.from(e);
+        final uid = (m['userId'] ?? userId).toString();
+        if (uid != userId) continue;
+        final norm = _normalizeNotification(m, userId: userId);
+        if (norm['archived'] == true && !includeArchived) continue;
+        out.add(norm);
+        // Sanitize storage by ensuring normalized entries exist
+        if (m['category'] == null || m['priority'] == null || m['userId'] == null || m['archived'] == null || m['critical'] == null) {
+          mutated = true;
+        }
+      }
+      out.sort((a, b) {
+        final at = DateTime.tryParse((a['ts'] ?? '').toString()) ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bt = DateTime.tryParse((b['ts'] ?? '').toString()) ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bt.compareTo(at);
+      });
+      if (mutated) {
+        // Merge back normalized values for this user only; keep other users' entries.
+        final merged = <dynamic>[];
+        for (final e in list) {
+          if (e is! Map) continue;
+          final m = Map<String, dynamic>.from(e);
+          final uid = (m['userId'] ?? userId).toString();
+          if (uid == userId) {
+            merged.add(_normalizeNotification(m, userId: userId));
+          } else {
+            merged.add(m);
+          }
+        }
+        await prefs.setString(_notificationsKey, jsonEncode(merged));
+      }
+      return out;
+    } catch (e) {
+      debugPrint('[DataService] getNotificationFeedForUser failed: ' + e.toString());
+      return [];
+    }
+  }
+
+  static Future<void> markNotificationRead({required String userId, required String notificationId}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_notificationsKey);
+      if (raw == null || raw.isEmpty) return;
+      final List list = jsonDecode(raw);
+      bool mutated = false;
+      for (int i = 0; i < list.length; i++) {
+        if (list[i] is! Map) continue;
+        final m = Map<String, dynamic>.from(list[i] as Map);
+        final uid = (m['userId'] ?? userId).toString();
+        if (uid != userId) continue;
+        if ((m['id'] ?? '').toString() == notificationId) {
+          if (m['read'] != true) {
+            m['read'] = true;
+            list[i] = m;
+            mutated = true;
+          }
+          break;
+        }
+      }
+      if (mutated) await prefs.setString(_notificationsKey, jsonEncode(list));
+    } catch (e) {
+      debugPrint('[DataService] markNotificationRead failed: ' + e.toString());
+    }
+  }
+
+  static Future<void> markAllNotificationsRead(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_notificationsKey);
+      if (raw == null || raw.isEmpty) return;
+      final List list = jsonDecode(raw);
+      bool mutated = false;
+      for (int i = 0; i < list.length; i++) {
+        if (list[i] is! Map) continue;
+        final m = Map<String, dynamic>.from(list[i] as Map);
+        final uid = (m['userId'] ?? userId).toString();
+        if (uid != userId) continue;
+        if (m['read'] != true) {
+          m['read'] = true;
+          list[i] = m;
+          mutated = true;
+        }
+      }
+      if (mutated) await prefs.setString(_notificationsKey, jsonEncode(list));
+    } catch (e) {
+      debugPrint('[DataService] markAllNotificationsRead failed: ' + e.toString());
+    }
+  }
+
+  static Future<void> archiveNotification({required String userId, required String notificationId}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_notificationsKey);
+      if (raw == null || raw.isEmpty) return;
+      final List list = jsonDecode(raw);
+      bool mutated = false;
+      for (int i = 0; i < list.length; i++) {
+        if (list[i] is! Map) continue;
+        final m = Map<String, dynamic>.from(list[i] as Map);
+        final uid = (m['userId'] ?? userId).toString();
+        if (uid != userId) continue;
+        if ((m['id'] ?? '').toString() == notificationId) {
+          final critical = (m['critical'] == true);
+          if (!critical && m['archived'] != true) {
+            m['archived'] = true;
+            list[i] = m;
+            mutated = true;
+          }
+          break;
+        }
+      }
+      if (mutated) await prefs.setString(_notificationsKey, jsonEncode(list));
+    } catch (e) {
+      debugPrint('[DataService] archiveNotification failed: ' + e.toString());
+    }
   }
 
   // ===== Ride compensation lightweight state =====
@@ -2649,6 +3153,32 @@ class DataService {
       list.add(thread.toJson());
       await prefs.setString(_messageThreadsKey, jsonEncode(list));
       debugPrint('[DataService] Created message thread for request ${request.id}');
+
+      // Create message notifications for both parties pointing directly into the thread.
+      try {
+        await addStructuredNotification(
+          userId: request.renterId,
+          category: 'messages',
+          priority: 3,
+          title: 'Neuer Chat',
+          body: 'Du kannst jetzt mit ${owner.displayName} zu „${item.title}“ chatten.',
+          entityType: 'thread',
+          entityId: threadId,
+          ctaLabel: 'Chat öffnen',
+        );
+        await addStructuredNotification(
+          userId: request.ownerId,
+          category: 'messages',
+          priority: 3,
+          title: 'Neuer Chat',
+          body: 'Du kannst jetzt mit ${renter.displayName} zu „${item.title}“ chatten.',
+          entityType: 'thread',
+          entityId: threadId,
+          ctaLabel: 'Chat öffnen',
+        );
+      } catch (e) {
+        debugPrint('[DataService] thread notifications failed: $e');
+      }
     } catch (e) {
       debugPrint('[DataService] _createMessageThreadForRequest error: $e');
     }

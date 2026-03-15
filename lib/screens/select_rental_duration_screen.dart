@@ -84,13 +84,15 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
         _addressCity = saved != null ? (saved['city'] as String?) : null;
         _addressLat = saved != null ? (saved['lat'] as num?)?.toDouble() : null;
         _addressLng = saved != null ? (saved['lng'] as num?)?.toDouble() : null;
-        // Restore Priorität (express) exactly as saved, regardless of item flags,
-        // per new spec that treats Priorität als Anfrage‑Zusatzleistung.
-        _wantExpress = (saved != null ? (saved['express'] == true) : false);
+        // NOTE: Priorität/Express mode has been removed from the booking UI.
+        // Keep the internal flag disabled to avoid unexpected pricing changes.
+        _wantExpress = false;
         // Respect item capabilities
         if (!widget.item.offersDeliveryAtDropoff) _hinwegLandlord = false;
         if (!widget.item.offersPickupAtReturn) _rueckwegLandlord = false;
       });
+      // Sanitize any previously persisted express=true selection.
+      _persistDeliverySelection();
     } catch (e) {
       // ignore but keep defaults
     }
@@ -103,8 +105,8 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
       rueckweg: _rueckwegLandlord && widget.item.offersPickupAtReturn,
       addressCity: _addressCity,
       addressLine: _addressLine,
-      // Persist express choice regardless of item flag so UI can restore user intent
-      express: _wantExpress,
+      // Priorität/Express removed from UI: always persist as false.
+      express: false,
       lat: _addressLat,
       lng: _addressLng,
     );
@@ -604,55 +606,6 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                                   },
                                 )),
                               ]),
-                              // Standard & Priorität are always visible on Abgabe, regardless of delivery choice
-                              const SizedBox(height: 8),
-                              // Standard & Priorität row – ensure taps go directly to the pills
-                              Row(children: [
-                                // Standard – must remain tappable even when Priorität aktiv
-                                Expanded(
-                                  child: _OptionPill(
-                                    label: 'Standard',
-                                    selected: !_wantExpress,
-                                    // Standard ist nie disabled
-                                    disabled: false,
-                                    onTap: () {
-                                      debugPrint('[SelectRentalDuration] onTap(Standard) fired (was wantExpress=$_wantExpress)');
-                                      setState(() { _wantExpress = false; });
-                                      _persistDeliverySelection();
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).clearSnackBars();
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Standard gewählt')),
-                                        );
-                                      }
-                                      debugPrint('[SelectRentalDuration] -> wantExpress now $_wantExpress');
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: _OptionPill(
-                                    label: 'Priorität',
-                                    selected: _wantExpress,
-                                    onTap: () async {
-                                      debugPrint('[SelectRentalDuration] onTap(Priorität) fired (wantExpress=$_wantExpress)');
-                                      if (_wantExpress) {
-                                        await _showPriorityDeactivateDialog(context);
-                                      } else {
-                                        await _showPriorityActivateDialog(context);
-                                      }
-                                    },
-                                  ),
-                                ),
-                              ]),
-                              // Small on-screen indicator to help verify current mode during debugging
-                              Padding(
-                                padding: const EdgeInsets.only(top: 6),
-                                child: Text(
-                                  _wantExpress ? 'Modus: Priorität' : 'Modus: Standard',
-                                  style: TextStyle(color: sub, fontSize: 11),
-                                ),
-                              ),
                               const SizedBox(height: 6),
                               if (_hinwegLandlord) Builder(builder: (context) {
                                 final km = _savedDistanceKm();
@@ -660,7 +613,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                                 final overMax = (km != null && maxKm != null && km > maxKm);
                                 final kmLabel = km != null ? km.toStringAsFixed(1) : '...';
                                 return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  Text('Liefergebühr: $kmLabel Km${_wantExpress ? ' + Prioritätszuschlag' : ''}', style: TextStyle(color: sub, fontSize: 12)),
+                                  Text('Liefergebühr: $kmLabel Km', style: TextStyle(color: sub, fontSize: 12)),
                                   if (overMax) ...[
                                     const SizedBox(height: 6),
                                     Text(

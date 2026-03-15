@@ -7,7 +7,9 @@ import 'package:flutter/material.dart';
 /// AppImage renders images from http/https URLs, data: URIs, and file paths.
 /// It gracefully falls back to a neutral placeholder if the input is empty.
 class AppImage extends StatelessWidget {
-  final String url;
+  /// Source URL/path. Can be null/invalid when coming from older local storage
+  /// entries on web (which may surface as JS `undefined`).
+  final String? url;
   final BoxFit fit;
   final double? width;
   final double? height;
@@ -28,12 +30,16 @@ class AppImage extends StatelessWidget {
   }
 
   Widget _buildInner() {
-    final src = (url).trim();
+    final src = (url ?? '').trim();
     if (src.isEmpty) {
       return const ColoredBox(color: Color(0x14000000));
     }
     if (src.startsWith('http')) {
-      return Image.network(src, fit: fit);
+      return Image.network(
+        src,
+        fit: fit,
+        errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0x14000000)),
+      );
     }
     if (src.startsWith('data:image')) {
       try {
@@ -56,6 +62,10 @@ class AppImage extends StatelessWidget {
       }
     }
     // Unknown scheme: try network as a last resort
-    return Image.network(src, fit: fit);
+    return Image.network(
+      src,
+      fit: fit,
+      errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0x14000000)),
+    );
   }
 }

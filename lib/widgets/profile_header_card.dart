@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/localization_service.dart';
+import 'package:lendify/widgets/user_avatar.dart';
 import 'package:provider/provider.dart';
 
 class ProfileHeaderCard extends StatelessWidget {
@@ -26,11 +27,10 @@ class ProfileHeaderCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Stack(children: [
-                  CircleAvatar(
+                  SitUserAvatar(
+                    url: user.photoURL ?? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
                     radius: 36,
-                    backgroundImage: NetworkImage(
-                      user.photoURL ?? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-                    ),
+                    borderColor: Colors.white.withValues(alpha: 0.12),
                   ),
                   Positioned(
                     right: 0,

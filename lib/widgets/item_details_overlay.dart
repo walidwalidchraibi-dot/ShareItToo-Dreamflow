@@ -15,6 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
  import 'package:lendify/screens/select_rental_duration_screen.dart';
 import 'package:lendify/widgets/app_image.dart';
+import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/services/maps_service.dart';
 import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/widgets/app_popup.dart';
@@ -178,43 +179,53 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
   Future<void> _sendRequest() async {
     final range = _selectedRange;
     if (range == null) return;
-    try {
-      final ok = await DataService.checkAvailability(itemId: widget.item.id, start: range.start, end: range.end);
-      if (!ok) {
-        if (!mounted) return;
-        await _showUnavailablePopup(context);
-        return;
-      }
-      final current = await DataService.getCurrentUser();
-      if (current == null) {
-        if (!mounted) return;
-        await AppPopup.toast(context, icon: Icons.person_outline, title: 'Bitte zuerst anmelden');
-        return;
-      }
-      final req = RentalRequest(
-        id: 'local',
-        itemId: widget.item.id,
-        ownerId: widget.item.ownerId,
-        renterId: current.id,
-        start: range.start,
-        end: range.end,
-        status: 'pending',
-        message: null,
-        expressRequested: false,
-        expressStatus: null,
-        expressFee: 5.0,
-      );
-      final stored = await DataService.addRentalRequest(req);
+
+    final ok = await DataService.checkAvailability(itemId: widget.item.id, start: range.start, end: range.end);
+    if (!ok) {
       if (!mounted) return;
-      // Return to Explore page: pop everything back to the root route
+      await _showUnavailablePopup(context);
+      return;
+    }
+    final current = await DataService.getCurrentUser();
+    if (current == null) {
+      if (!mounted) return;
+      await AppPopup.toast(context, icon: Icons.person_outline, title: 'Bitte zuerst anmelden');
+      return;
+    }
+
+    final req = RentalRequest(
+      id: 'local',
+      itemId: widget.item.id,
+      ownerId: widget.item.ownerId,
+      renterId: current.id,
+      start: range.start,
+      end: range.end,
+      status: 'pending',
+      message: null,
+      expressRequested: false,
+      expressStatus: null,
+      expressFee: 5.0,
+    );
+
+    RentalRequest stored;
+    try {
+      stored = await DataService.addRentalRequest(req);
+    } catch (e) {
+      f.debugPrint('[ItemDetailsOverlay] addRentalRequest failed: $e');
+      if (!mounted) return;
+      await AppPopup.toast(context, icon: Icons.error_outline, title: 'Anfrage konnte nicht gesendet werden');
+      return;
+    }
+
+    // UI flow errors should not be shown as “send failed” if the request was stored.
+    try {
+      if (!mounted) return;
       final rootNav = Navigator.of(context, rootNavigator: true);
       rootNav.popUntil((route) => route.isFirst);
       await Future<void>.delayed(const Duration(milliseconds: 120));
-      // Show confirmation on top of Explore
       await _showReservationSentPopup(rootNav.context, requestId: stored.id, item: widget.item);
     } catch (e) {
-      if (!mounted) return;
-      await AppPopup.toast(context, icon: Icons.error_outline, title: 'Anfrage konnte nicht gesendet werden');
+      f.debugPrint('[ItemDetailsOverlay] post-send UI flow failed (request stored): $e');
     }
   }
 
@@ -614,44 +625,54 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
   Future<void> _sendRequest() async {
     final range = _selectedRange;
     if (range == null) return;
-    try {
-      final ok = await DataService.checkAvailability(itemId: widget.item.id, start: range.start, end: range.end);
-      if (!ok) {
-        if (!mounted) return;
-        await _showUnavailablePopup(context);
-        return;
-      }
-      final current = await DataService.getCurrentUser();
-      if (current == null) {
-        if (!mounted) return;
-        await AppPopup.toast(context, icon: Icons.person_outline, title: 'Bitte einloggen');
-        return;
-      }
-      final req = RentalRequest(
-        id: 'local',
-        itemId: widget.item.id,
-        ownerId: widget.item.ownerId,
-        renterId: current.id,
-        start: range.start,
-        end: range.end,
-        status: 'pending',
-        message: null,
-        expressRequested: false,
-        expressStatus: null,
-        expressFee: 5.0,
-      );
-      final stored = await DataService.addRentalRequest(req);
+
+    final ok = await DataService.checkAvailability(itemId: widget.item.id, start: range.start, end: range.end);
+    if (!ok) {
       if (!mounted) return;
-      // Go back to Explore (root) and show confirmation there
+      await _showUnavailablePopup(context);
+      return;
+    }
+    final current = await DataService.getCurrentUser();
+    if (current == null) {
+      if (!mounted) return;
+      await AppPopup.toast(context, icon: Icons.person_outline, title: 'Bitte einloggen');
+      return;
+    }
+
+    final req = RentalRequest(
+      id: 'local',
+      itemId: widget.item.id,
+      ownerId: widget.item.ownerId,
+      renterId: current.id,
+      start: range.start,
+      end: range.end,
+      status: 'pending',
+      message: null,
+      expressRequested: false,
+      expressStatus: null,
+      expressFee: 5.0,
+    );
+
+    RentalRequest stored;
+    try {
+      stored = await DataService.addRentalRequest(req);
+    } catch (e) {
+      f.debugPrint('[ItemDetailsOverlay] addRentalRequest failed: $e');
+      if (!mounted) return;
+      await AppPopup.toast(context, icon: Icons.error_outline, title: 'Fehler beim Senden');
+      return;
+    }
+
+    try {
+      if (!mounted) return;
       await DataService.clearSavedDateRange(widget.item.id);
       await DataService.clearSavedDeliverySelection(widget.item.id);
       final rootNav = Navigator.of(context, rootNavigator: true);
       rootNav.popUntil((route) => route.isFirst);
       await Future<void>.delayed(const Duration(milliseconds: 120));
       await _showReservationSentPopup(rootNav.context, requestId: stored.id, item: widget.item);
-    } catch (_) {
-      if (!mounted) return;
-      await AppPopup.toast(context, icon: Icons.error_outline, title: 'Fehler beim Senden');
+    } catch (e) {
+      f.debugPrint('[ItemDetailsOverlay] post-send UI flow failed (request stored): $e');
     }
   }
 
@@ -985,11 +1006,11 @@ class _ItemMetaSection extends StatelessWidget {
           builder: (context, snap) {
             final u = snap.data;
             return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-              CircleAvatar(
+              SitUserAvatar(
+                url: (u?.photoURL != null && (u!.photoURL!.isNotEmpty)) ? u.photoURL : null,
                 radius: 18,
-                backgroundColor: Colors.white.withValues(alpha: 0.2),
-                backgroundImage: (u?.photoURL != null && (u!.photoURL!.isNotEmpty)) ? NetworkImage(u.photoURL!) : null,
-                child: (u?.photoURL == null || (u?.photoURL?.isEmpty ?? true)) ? const Icon(Icons.person, color: Colors.white) : null,
+                borderColor: Colors.white.withValues(alpha: 0.12),
+                placeholderIcon: Icons.person_outline,
               ),
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1335,11 +1356,11 @@ class _OwnerRow extends StatelessWidget {
       decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.12))),
       padding: const EdgeInsets.all(10),
       child: Row(children: [
-        CircleAvatar(
+        SitUserAvatar(
+          url: owner?.photoURL,
           radius: 18,
-          backgroundColor: Colors.white.withValues(alpha: 0.2),
-          backgroundImage: owner?.photoURL != null ? NetworkImage(owner!.photoURL!) : null,
-          child: owner?.photoURL == null ? const Icon(Icons.person, color: Colors.white) : null,
+          borderColor: Colors.white.withValues(alpha: 0.12),
+          placeholderIcon: Icons.person_outline,
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -1381,7 +1402,13 @@ class _ListerDetailsCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-          CircleAvatar(radius: 22, backgroundImage: NetworkImage(u?.photoURL ?? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face')),
+          SitUserAvatar(
+            url: (u?.photoURL != null && (u!.photoURL ?? '').isNotEmpty)
+                ? u.photoURL
+                : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+            radius: 22,
+            borderColor: Colors.white.withValues(alpha: 0.12),
+          ),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
             Row(children: [

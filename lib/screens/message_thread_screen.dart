@@ -1,10 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
+import 'package:flutter/foundation.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/models/message.dart';
 import 'package:lendify/models/user.dart';
+import 'package:lendify/widgets/user_avatar.dart';
 
 class MessageThreadScreen extends StatefulWidget {
   final String? threadId;
@@ -30,6 +32,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   double _lastViewInsetBottom = 0;
   bool _isAtBottom = true;
   bool _showJumpToBottom = false;
+  bool _dismissedSystemHint = false;
   List<Message> _messages = [];
   User? _currentUser;
   bool _isLoading = true;
@@ -66,6 +69,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         }
       }
     } catch (e) {
+      debugPrint('MessageThreadScreen._loadData failed: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -101,10 +105,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         senderId: _currentUser!.id,
         text: text,
       );
+
+      // Sobald die erste echte Nachricht gesendet wurde, soll der System-Hinweis verschwinden.
+      if (mounted && !_dismissedSystemHint) {
+        setState(() => _dismissedSystemHint = true);
+      }
       
       await _loadData(); // Reload messages
       _scrollToBottom(animate: true);
     } catch (e) {
+      debugPrint('MessageThreadScreen._send failed: $e');
       if (mounted) {
         AppPopup.toast(context, icon: Icons.error, title: 'Fehler beim Senden');
       }
@@ -129,6 +139,20 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       });
     }
 
+    String? systemHint;
+    for (final m in _messages) {
+      if (m.senderId == 'system') {
+        final t = m.text.trim();
+        if (t.isNotEmpty) {
+          systemHint = t;
+          break;
+        }
+      }
+    }
+
+    // System-Hinweis nur anzeigen, solange noch keine echte Nachricht im Chat existiert.
+    final hasAnyUserMessage = _messages.any((m) => m.senderId != 'system' && m.text.trim().isNotEmpty);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -136,12 +160,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           onPressed: () => Navigator.of(context).pop(true), // Return true to signal reload
           icon: const Icon(Icons.arrow_back),
         ),
-        title: Row(children: [
-          CircleAvatar(
-            radius: 14,
-            backgroundImage: widget.avatarUrl != null ? NetworkImage(widget.avatarUrl!) : null,
-            child: widget.avatarUrl == null ? const Icon(Icons.person, size: 16) : null,
-          ),
+          title: Row(children: [
+            SitUserAvatar(
+              url: widget.avatarUrl,
+              radius: 14,
+              borderColor: Colors.white.withValues(alpha: 0.12),
+              placeholderIcon: Icons.person_outline,
+            ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -161,12 +186,19 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           ),
         ]),
         actions: [
-          IconButton(onPressed: () => AppPopup.toast(context, icon: Icons.call, title: 'Anrufen (Demo)'), icon: const Icon(Icons.call)),
           IconButton(onPressed: _openMoreSheet, icon: const Icon(Icons.more_vert)),
         ],
       ),
       body: Stack(children: [
         Column(children: [
+          if (!_isLoading && !_dismissedSystemHint && systemHint != null && !hasAnyUserMessage)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _PinnedSystemHint(
+                text: systemHint,
+                onDismiss: () => setState(() => _dismissedSystemHint = true),
+              ),
+            ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -193,26 +225,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                             final isMe = m.senderId == _currentUser?.id;
                             final isSystem = m.senderId == 'system';
                             
-                            if (isSystem) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                child: Center(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.08),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                                    ),
-                                    child: Text(
-                                      m.text,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(color: Colors.white70, fontSize: 13),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
+                            // System-Hinweis wird als "angeheftete" Infokarte oberhalb angezeigt,
+                            // damit er nicht beim Scrollen "verschwindet".
+                            if (isSystem) return const SizedBox.shrink();
                             
                             return Align(
                               alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -237,7 +252,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                     focusNode: _inputFocus,
                     controller: _controller,
                     minLines: 1,
-                    maxLines: 4,
+                     maxLines: 1,
+                     textInputAction: TextInputAction.send,
+                     onSubmitted: (_) => _send(),
                     style: const TextStyle(color: Colors.white),
                     onTap: () {
                       // Scroll latest into view when focusing input
@@ -382,6 +399,54 @@ class _ChatBubble extends StatelessWidget {
         const SizedBox(height: 4),
         Align(alignment: Alignment.bottomRight, child: Text(time, style: TextStyle(color: fg.withValues(alpha: 0.8), fontSize: 10))),
       ]),
+    );
+  }
+}
+
+class _PinnedSystemHint extends StatelessWidget {
+  final String text;
+  final VoidCallback onDismiss;
+
+  const _PinnedSystemHint({required this.text, required this.onDismiss});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      alignment: Alignment.topCenter,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 1),
+            child: Icon(Icons.info_outline, color: Colors.white70, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.35),
+            ),
+          ),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 34,
+            height: 34,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              tooltip: 'Ausblenden',
+              onPressed: onDismiss,
+              icon: const Icon(Icons.close, color: Colors.white70, size: 18),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 }

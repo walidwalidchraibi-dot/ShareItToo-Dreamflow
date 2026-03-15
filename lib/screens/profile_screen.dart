@@ -10,6 +10,7 @@ import 'package:lendify/screens/verification_intro_screen.dart';
 import 'package:lendify/screens/edit_profile_screen.dart';
 import 'package:lendify/screens/account_settings_screen.dart';
 import 'package:lendify/screens/bookings_screen.dart';
+import 'package:lendify/screens/notifications_screen.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
@@ -192,7 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               IconButton(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => PlaceholderScreen(title: l10n.t('Benachrichtigungen'), description: l10n.t('Hier siehst du künftig deine Benachrichtigungen.')),
+                    builder: (_) => const NotificationsScreen(),
                   ),
                 ),
                 icon: const Icon(Icons.notifications_outlined),

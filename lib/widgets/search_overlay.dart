@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:lendify/models/category.dart' as app_category;
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart' as app_user;
 import 'package:lendify/services/data_service.dart';
@@ -10,6 +12,7 @@ import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/screens/see_all_screen.dart';
 import 'package:lendify/screens/search_results_screen.dart';
 import 'package:lendify/widgets/app_image.dart';
+import 'package:lendify/widgets/all_categories_overlay.dart';
 import 'package:lendify/openai/openai_config.dart';
 
 class SearchOverlay {
@@ -68,6 +71,9 @@ class _SearchSheetState extends State<_SearchSheet> {
   OverlayEntry? _whereOverlay;
   DateTime? _pickup;
   DateTime? _return;
+
+  Timer? _aiDebounce;
+  Timer? _categoryDebounce;
   
   Future<void> _openDateTimeFlow() async {
     // Use a simple calendar range picker for an easier flow (like availability check)
@@ -101,6 +107,15 @@ class _SearchSheetState extends State<_SearchSheet> {
   List<Item> _nearby = [];
   // Live-updated grid suggestions based on Was/Wo/Datum
   List<Item> _displayNearby = [];
+  List<app_category.Category> _categories = [];
+  final Map<String, app_category.Category> _categoriesById = {};
+
+  // Multiple possible categories inferred from "Was" or "KI-Suche".
+  // NOTE: In Suche we only allow the 11 coarse categories (same as "Neue Anzeige").
+  // We keep this list for internal/AI logic, but we intentionally do not render
+  // live suggestion chips in the UI (per previous request).
+  List<String> _categoryCandidates = [];
+  bool _categorySuggesting = false;
   Set<String> _verifiedOwnerIds = {};
   Map<String, app_user.User> _usersById = {};
   app_user.User? _currentUser;
@@ -133,6 +148,7 @@ class _SearchSheetState extends State<_SearchSheet> {
     final items = await DataService.getItems();
     final users = await DataService.getUsers();
     final me = await DataService.getCurrentUser();
+    final categories = await DataService.getCategories();
     final byId = {for (final u in users) u.id: u};
     final verifiedIds = users.where((u) => u.isVerified).map((u) => u.id).toSet();
     final itemTitles = items.map((e) => e.title).where((e) => e.trim().isNotEmpty).toList();
@@ -141,6 +157,10 @@ class _SearchSheetState extends State<_SearchSheet> {
       _usersById = byId;
       _verifiedOwnerIds = verifiedIds;
       _currentUser = me;
+      _categories = categories;
+      _categoriesById
+        ..clear()
+        ..addAll({for (final c in categories) c.id: c});
       _suggestions = itemTitles.take(12).toList();
       _recent = itemTitles.take(12).toList();
       _loading = false;
@@ -153,6 +173,8 @@ class _SearchSheetState extends State<_SearchSheet> {
   void dispose() {
     _hideWhatOverlay();
     _hideWhereOverlay();
+    _aiDebounce?.cancel();
+    _categoryDebounce?.cancel();
     _aiCtrl.dispose();
     _aiFocus.dispose();
     _whatCtrl.dispose();
@@ -162,9 +184,177 @@ class _SearchSheetState extends State<_SearchSheet> {
     super.dispose();
   }
 
+  List<String> _availableCategoryNamesForAI() {
+    // STRICT: Only the 11 coarse categories that exist in "Neue Anzeige".
+    // The AI must not invent any other category labels.
+    return _coarseCategoryOrder;
+  }
+
+  Future<void> _suggestCategoriesFromText(String text) async {
+    if (!mounted) return;
+    final q = text.trim();
+    if (q.isEmpty || _categories.isEmpty) {
+      if (_categoryCandidates.isNotEmpty) setState(() => _categoryCandidates = []);
+      return;
+    }
+
+    // Fast local guess (no network) so the UI reacts instantly.
+    final local = _normalizeCoarseCategory(q);
+    final quick = <String>[];
+    if (local != null) quick.add(local);
+    if (quick.isNotEmpty) {
+      setState(() {
+        final uniq = <String>{};
+        _categoryCandidates = [for (final c in quick) if (uniq.add(c)) c];
+      });
+    }
+
+    // Then ask OpenAI for multiple plausible categories.
+    setState(() => _categorySuggesting = true);
+    try {
+      final suggestions = await OpenAIConfig.suggestCategories(
+        userInput: q,
+        availableCategories: _availableCategoryNamesForAI(),
+        maxResults: 5,
+      );
+      if (!mounted) return;
+
+      final mapped = <String>[];
+      for (final s in suggestions) {
+        final c = _normalizeCoarseCategory(s);
+        if (c != null) mapped.add(c);
+      }
+      // Always also include the local guess at the front.
+      if (local != null) mapped.insert(0, local);
+      final ids = <String>{};
+      final unique = [for (final c in mapped) if (ids.add(c)) c];
+
+      setState(() {
+        // Don't show the currently selected category as a "candidate" chip.
+        _categoryCandidates = unique.where((c) => c != _coarseCategory).toList();
+      });
+    } catch (e) {
+      debugPrint('[_SearchSheet] suggestCategories failed: $e');
+    } finally {
+      if (mounted) setState(() => _categorySuggesting = false);
+    }
+  }
+
   double? _priceMin;
   double? _priceMax;
-  String? _categoryFilter;
+
+  /// Selected category must always come from the same 11 coarse categories as
+  /// the "Neue Anzeige" flow.
+  String? _coarseCategory;
+
+  List<String> get _coarseCategoryOrder => DataService.coarseCategoryOrder;
+
+  String? _normalizeCoarseCategory(String raw) {
+    final q = raw.trim().toLowerCase();
+    if (q.isEmpty) return null;
+
+    // 0) Exact coarse label match
+    for (final c in _coarseCategoryOrder) {
+      if (c.toLowerCase() == q) return c;
+    }
+
+    // Simple synonyms for common natural-language inputs.
+    final synonymHints = <String, String>{
+      'auto': 'Fahrzeuge & Mobilität',
+      'wagen': 'Fahrzeuge & Mobilität',
+      'pkw': 'Fahrzeuge & Mobilität',
+      'mercedes': 'Fahrzeuge & Mobilität',
+      'bmw': 'Fahrzeuge & Mobilität',
+      'audi': 'Fahrzeuge & Mobilität',
+      'transporter': 'Fahrzeuge & Mobilität',
+      'wohnmobil': 'Fahrzeuge & Mobilität',
+      'fahrrad': 'Fahrzeuge & Mobilität',
+      'ebike': 'Fahrzeuge & Mobilität',
+      'e-bike': 'Fahrzeuge & Mobilität',
+      'e scooter': 'Fahrzeuge & Mobilität',
+      'e-scooter': 'Fahrzeuge & Mobilität',
+    };
+    for (final e in synonymHints.entries) {
+      if (q.contains(e.key)) return e.value;
+    }
+
+    // 1) Map fine category/subcategory back to coarse.
+    for (final c in _categories) {
+      final name = c.name.toLowerCase();
+      if (name == q || name.contains(q) || q.contains(name)) {
+        final coarse = DataService.coarseCategoryFor(c.name);
+        if (_coarseCategoryOrder.contains(coarse)) return coarse;
+      }
+      for (final s in c.subcategories) {
+        final ss = s.toLowerCase();
+        if (ss == q || ss.contains(q) || q.contains(ss)) {
+          final coarse = DataService.coarseCategoryFor(c.name);
+          if (_coarseCategoryOrder.contains(coarse)) return coarse;
+        }
+      }
+    }
+
+    // 2) Loose contains match against coarse labels.
+    for (final c in _coarseCategoryOrder) {
+      final lc = c.toLowerCase();
+      if (lc.contains(q) || q.contains(lc)) return c;
+    }
+
+    return null;
+  }
+
+  String _coarseForItem(Item it) {
+    final cat = _categoriesById[it.categoryId];
+    if (cat == null) return 'Sonstiges';
+    final coarse = DataService.coarseCategoryFor(cat.name);
+    return _coarseCategoryOrder.contains(coarse) ? coarse : 'Sonstiges';
+  }
+
+  IconData _iconForCoarseGroup(String group) {
+    switch (group) {
+      case 'Technik & Elektronik':
+        return Icons.devices_other_outlined;
+      case 'Haushalt & Wohnen':
+        return Icons.weekend_outlined;
+      case 'Fahrzeuge & Mobilität':
+        return Icons.directions_car_outlined;
+      case 'Mode & Lifestyle':
+        return Icons.checkroom_outlined;
+      case 'Sport & Hobbys':
+        return Icons.sports_soccer_outlined;
+      case 'Werkzeuge & Kleingeräte':
+        return Icons.construction_outlined;
+      case 'Garten & Hof':
+        return Icons.grass_outlined;
+      case 'Büro & Gewerbe':
+        return Icons.business_center_outlined;
+      case 'Babys & Kinder':
+        return Icons.child_friendly_outlined;
+      case 'Haustierbedarf':
+        return Icons.pets_outlined;
+      case 'Sonstiges':
+        return Icons.more_horiz;
+      default:
+        return Icons.category_outlined;
+    }
+  }
+
+  Future<void> _openCategoryPicker() async {
+    final data = [
+      for (final c in _coarseCategoryOrder)
+        CategoryChipData(id: c, label: c, icon: _iconForCoarseGroup(c)),
+    ];
+    final pickedId = await AllCategoriesOverlay.show(context, data);
+    if (!mounted) return;
+    if (pickedId == null) return;
+    _setSelectedCoarseCategory(pickedId);
+    await _recomputeNearbySuggestions();
+  }
+
+  void _setSelectedCoarseCategory(String? coarse) {
+    if (_coarseCategory == coarse) return;
+    setState(() => _coarseCategory = coarse);
+  }
 
   Future<void> _parseAIPrompt(String prompt) async {
     if (prompt.trim().isEmpty) return;
@@ -210,11 +400,26 @@ class _SearchSheetState extends State<_SearchSheet> {
 
       // Update category filter
       if (result['category'] != null && result['category'].toString().isNotEmpty) {
-        _categoryFilter = result['category'].toString();
+        final normalized = _normalizeCoarseCategory(result['category'].toString());
+        _coarseCategory = normalized;
       }
     });
+
+    // Heuristic fallback: if AI didn't provide a valid category, try to infer from the user's "Was".
+    if (_coarseCategory == null && _whatCtrl.text.trim().isNotEmpty) {
+      final inferred = _normalizeCoarseCategory(_whatCtrl.text);
+      if (inferred != null) _setSelectedCoarseCategory(inferred);
+    }
     // Refresh live grid after AI updated fields
     await _recomputeNearbySuggestions();
+
+    // Suggest possible categories based on the final "Was" (preferred) or the whole prompt.
+    final basis = _whatCtrl.text.trim().isNotEmpty ? _whatCtrl.text : prompt;
+    _categoryDebounce?.cancel();
+    _categoryDebounce = Timer(const Duration(milliseconds: 200), () {
+      if (!mounted) return;
+      _suggestCategoriesFromText(basis);
+    });
   }
 
   
@@ -228,6 +433,18 @@ class _SearchSheetState extends State<_SearchSheet> {
     final matches = all.where((t) => t.toLowerCase().contains(q)).toList()..sort((a, b) => a.toLowerCase().indexOf(q).compareTo(b.toLowerCase().indexOf(q)));
     setState(() => _suggestions = matches.take(10).toList());
     _updateWhatOverlay();
+
+    // If the user types a category name (or common synonym like "Auto"), snap to one of the 11.
+    final inferred = _normalizeCoarseCategory(v);
+    if (inferred != null) _setSelectedCoarseCategory(inferred);
+
+    // Also show multiple possible categories under "Wann".
+    _categoryDebounce?.cancel();
+    _categoryDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      _suggestCategoriesFromText(v);
+    });
+
     await _recomputeNearbySuggestions();
   }
 
@@ -257,7 +474,9 @@ class _SearchSheetState extends State<_SearchSheet> {
   String _fmt(DateTime? dt) => dt == null ? 'Datum wählen' : '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
 
   List<Item> _filteredResults() {
-    final q = _whatCtrl.text.trim().toLowerCase();
+    final whatRaw = _whatCtrl.text.trim();
+    final inferredCatFromWhat = _normalizeCoarseCategory(whatRaw);
+    final q = (inferredCatFromWhat != null && inferredCatFromWhat == _coarseCategory) ? '' : whatRaw.toLowerCase();
     final w = _whereCtrl.text.trim().toLowerCase();
     return _nearby.where((it) {
       final inTitleOrTags = it.title.toLowerCase().contains(q) || it.tags.any((t) => t.toLowerCase().contains(q));
@@ -268,10 +487,8 @@ class _SearchSheetState extends State<_SearchSheet> {
       final matchesPriceMin = _priceMin == null || it.pricePerDay >= _priceMin!;
       final matchesPriceMax = _priceMax == null || it.pricePerDay <= _priceMax!;
       
-      // Category filter (basic string matching)
-      final matchesCategory = _categoryFilter == null || 
-        it.title.toLowerCase().contains(_categoryFilter!.toLowerCase()) ||
-        it.tags.any((t) => t.toLowerCase().contains(_categoryFilter!.toLowerCase()));
+      // Category filter (STRICT: only the 11 coarse categories)
+      final matchesCategory = _coarseCategory == null || _coarseForItem(it) == _coarseCategory;
       
       return matchesWhat && inPlace && matchesPriceMin && matchesPriceMax && matchesCategory;
     }).toList();
@@ -283,7 +500,9 @@ class _SearchSheetState extends State<_SearchSheet> {
     try {
       setState(() => _recomputing = true);
       final pool = List<Item>.from(_nearby);
-      final what = _whatCtrl.text.trim().toLowerCase();
+      final whatRaw = _whatCtrl.text.trim();
+      final inferredCatFromWhat = _normalizeCoarseCategory(whatRaw);
+      final what = (inferredCatFromWhat != null && inferredCatFromWhat == _coarseCategory) ? '' : whatRaw.toLowerCase();
       final whereRaw = _whereCtrl.text.trim();
 
       // Resolve target city text
@@ -314,9 +533,7 @@ class _SearchSheetState extends State<_SearchSheet> {
         final matchWhat = what.isEmpty || it.title.toLowerCase().contains(what) || it.tags.any((t) => t.toLowerCase().contains(what));
         final matchesPriceMin = _priceMin == null || it.pricePerDay >= _priceMin!;
         final matchesPriceMax = _priceMax == null || it.pricePerDay <= _priceMax!;
-        final matchesCategory = _categoryFilter == null ||
-            it.title.toLowerCase().contains(_categoryFilter!.toLowerCase()) ||
-            it.tags.any((t) => t.toLowerCase().contains(_categoryFilter!.toLowerCase()));
+        final matchesCategory = _coarseCategory == null || _coarseForItem(it) == _coarseCategory;
         return matchWhat && matchesPriceMin && matchesPriceMax && matchesCategory;
       }).toList();
 
@@ -391,7 +608,8 @@ class _SearchSheetState extends State<_SearchSheet> {
       _return = null;
       _priceMin = null;
       _priceMax = null;
-      _categoryFilter = null;
+      _coarseCategory = null;
+      _categoryCandidates = [];
     });
     _hideWhatOverlay();
     _hideWhereOverlay();
@@ -615,9 +833,30 @@ class _SearchSheetState extends State<_SearchSheet> {
                   hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 12),
                 ),
                 onChanged: (v) {
-                  _parseAIPrompt(v);
+                  // Debounce to avoid firing an OpenAI request on every keystroke.
+                  _aiDebounce?.cancel();
+
+                  // Debounce category suggestions too (separate from the structured parse).
+                  _categoryDebounce?.cancel();
+                  _categoryDebounce = Timer(const Duration(milliseconds: 450), () {
+                    if (!mounted) return;
+                    _suggestCategoriesFromText(v);
+                  });
+
+                  // Instant: infer category from taxonomy (e.g., "Auto" -> "Fahrzeuge & Mobilität").
+                  final inferred = _normalizeCoarseCategory(v);
+                  if (inferred != null) {
+                    _setSelectedCoarseCategory(inferred);
+                    _recomputeNearbySuggestions();
+                  }
+
+                  _aiDebounce = Timer(const Duration(milliseconds: 650), () {
+                    if (!mounted) return;
+                    _parseAIPrompt(v);
+                  });
                 },
                 onSubmitted: (v) {
+                  _aiDebounce?.cancel();
                   _parseAIPrompt(v);
                   _aiFocus.unfocus();
                 },
@@ -652,6 +891,39 @@ class _SearchSheetState extends State<_SearchSheet> {
                 hintStyle: TextStyle(color: Colors.white70, fontSize: 13),
               ),
               ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        _FieldShell(
+          label: 'Kat.',
+          trailingIcon: Icons.category_outlined,
+          child: InkWell(
+            onTap: _openCategoryPicker,
+            borderRadius: BorderRadius.circular(10),
+            child: SizedBox(
+              height: 56,
+              child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _coarseCategory ?? 'Kat. wählen',
+                      style: const TextStyle(fontSize: 13, color: Colors.white70),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                if (_coarseCategory != null)
+                  IconButton(
+                    onPressed: () async {
+                      setState(() => _coarseCategory = null);
+                      await _recomputeNearbySuggestions();
+                    },
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 18),
+                    tooltip: 'Kategorie entfernen',
+                  ),
+              ]),
             ),
           ),
         ),
@@ -710,37 +982,6 @@ class _SearchSheetState extends State<_SearchSheet> {
           ),
         ),
         const SizedBox(height: 12),
-        // Show active filters from AI
-        if (_priceMin != null || _priceMax != null || _categoryFilter != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Wrap(spacing: 6, runSpacing: 6, children: [
-              if (_priceMin != null)
-                Chip(
-                  label: Text('Ab ${_priceMin!.toStringAsFixed(0)}€', style: const TextStyle(fontSize: 11)),
-                  onDeleted: () => setState(() => _priceMin = null),
-                  deleteIcon: const Icon(Icons.close, size: 14),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-                ),
-              if (_priceMax != null)
-                Chip(
-                  label: Text('Bis ${_priceMax!.toStringAsFixed(0)}€', style: const TextStyle(fontSize: 11)),
-                  onDeleted: () => setState(() => _priceMax = null),
-                  deleteIcon: const Icon(Icons.close, size: 14),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-                ),
-              if (_categoryFilter != null)
-                Chip(
-                  label: Text(_categoryFilter!, style: const TextStyle(fontSize: 11)),
-                  onDeleted: () => setState(() => _categoryFilter = null),
-                  deleteIcon: const Icon(Icons.close, size: 14),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-                ),
-            ]),
-          ),
         // "Zuletzt gesucht" Abschnitt entfernt
         const SizedBox(height: 12),
         Text('Vorschläge in der Nähe', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: Colors.white)),

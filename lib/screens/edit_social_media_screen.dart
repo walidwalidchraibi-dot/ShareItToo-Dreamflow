@@ -20,6 +20,22 @@ class _EditSocialMediaScreenState extends State<EditSocialMediaScreen> {
   final _ttCtrl = TextEditingController();
   final _scCtrl = TextEditingController();
 
+  static const double _platformIconSize = 26;
+
+  Widget _platformPrefixIcon(String assetPath, {required String semanticLabel}) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Semantics(
+        label: semanticLabel,
+        image: true,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.asset(assetPath, width: _platformIconSize, height: _platformIconSize, fit: BoxFit.cover),
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -134,12 +150,9 @@ class _EditSocialMediaScreenState extends State<EditSocialMediaScreen> {
                     style: const TextStyle(color: Colors.white),
                     cursorColor: Colors.white,
                     decoration: InputDecoration(
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Image.asset('assets/images/X_social_media_app_icon_2025_black_logo_null_1770586094871.jpg', width: 24, height: 24, fit: BoxFit.cover),
-                        ),
+                      prefixIcon: _platformPrefixIcon(
+                        'assets/images/X_Twitter_app_icon_round_null_1770568181426.jpg',
+                        semanticLabel: 'X',
                       ),
                       prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
                       labelText: 'X (Twitter)',
@@ -152,12 +165,9 @@ class _EditSocialMediaScreenState extends State<EditSocialMediaScreen> {
                     style: const TextStyle(color: Colors.white),
                     cursorColor: Colors.white,
                     decoration: InputDecoration(
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Image.asset('assets/images/Instagram_app_icon_2025_gradient_logo_square_null_1770571531306.png', width: 24, height: 24, fit: BoxFit.cover),
-                        ),
+                      prefixIcon: _platformPrefixIcon(
+                        'assets/images/Instagram_app_icon_round_null_1770568182606.jpg',
+                        semanticLabel: 'Instagram',
                       ),
                       prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
                       labelText: 'Instagram',
@@ -170,12 +180,9 @@ class _EditSocialMediaScreenState extends State<EditSocialMediaScreen> {
                     style: const TextStyle(color: Colors.white),
                     cursorColor: Colors.white,
                     decoration: InputDecoration(
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Image.asset('assets/images/Facebook_app_icon_2025_blue_logo_square_null_1770571533016.png', width: 24, height: 24, fit: BoxFit.cover),
-                        ),
+                      prefixIcon: _platformPrefixIcon(
+                        'assets/images/Facebook_app_icon_round_null_1770568183449.jpg',
+                        semanticLabel: 'Facebook',
                       ),
                       prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
                       labelText: 'Facebook',
@@ -188,12 +195,9 @@ class _EditSocialMediaScreenState extends State<EditSocialMediaScreen> {
                     style: const TextStyle(color: Colors.white),
                     cursorColor: Colors.white,
                     decoration: InputDecoration(
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Image.asset('assets/images/TikTok_app_icon_2025_colorful_logo_square_null_1770571534194.png', width: 24, height: 24, fit: BoxFit.cover),
-                        ),
+                      prefixIcon: _platformPrefixIcon(
+                        'assets/images/TikTok_app_icon_round_null_1770568184844.jpg',
+                        semanticLabel: 'TikTok',
                       ),
                       prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
                       labelText: 'TikTok',
@@ -206,12 +210,9 @@ class _EditSocialMediaScreenState extends State<EditSocialMediaScreen> {
                     style: const TextStyle(color: Colors.white),
                     cursorColor: Colors.white,
                     decoration: InputDecoration(
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Image.asset('assets/images/Snapchat_app_icon_2025_yellow_ghost_logo_square_null_1770571535012.png', width: 24, height: 24, fit: BoxFit.cover),
-                        ),
+                      prefixIcon: _platformPrefixIcon(
+                        'assets/images/Snapchat_app_icon_2025_null_1770570919160.png',
+                        semanticLabel: 'Snapchat',
                       ),
                       prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
                       labelText: 'Snapchat',

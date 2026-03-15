@@ -7,6 +7,7 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_card.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
+import 'package:lendify/widgets/user_avatar.dart';
 import 'package:provider/provider.dart';
 
 class PublicProfileScreen extends StatefulWidget {
@@ -100,7 +101,11 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Stack(children: [
-                  CircleAvatar(radius: 36, backgroundImage: NetworkImage(user.photoURL ?? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face')),
+                  SitUserAvatar(
+                    url: user.photoURL ?? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+                    radius: 36,
+                    borderColor: Colors.white.withValues(alpha: 0.12),
+                  ),
                   Positioned(
                     right: 0,
                     bottom: 0,
@@ -300,11 +305,10 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
               border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
             ),
             child: ListTile(
-              leading: CircleAvatar(
-                backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
-                child: (avatarUrl == null || avatarUrl.isEmpty)
-                    ? Text(name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?', style: const TextStyle(color: Colors.white))
-                    : null,
+              leading: SitUserAvatar(
+                url: (avatarUrl != null && avatarUrl.isNotEmpty) ? avatarUrl : null,
+                radius: 20,
+                borderColor: Colors.white.withValues(alpha: 0.12),
               ),
               title: Row(
                 children: [
@@ -438,11 +442,10 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                                   child: Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      CircleAvatar(
-                                        backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
-                                        child: (avatarUrl == null || avatarUrl.isEmpty)
-                                            ? Text(name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?', style: const TextStyle(color: Colors.white))
-                                            : null,
+                                      SitUserAvatar(
+                                        url: (avatarUrl != null && avatarUrl.isNotEmpty) ? avatarUrl : null,
+                                        radius: 20,
+                                        borderColor: Colors.white.withValues(alpha: 0.12),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(

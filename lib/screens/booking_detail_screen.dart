@@ -16,6 +16,7 @@ import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/widgets/review_prompt_sheet.dart';
 import 'package:lendify/services/address_privacy.dart';
 import 'package:lendify/widgets/approx_location_map.dart';
@@ -2737,7 +2738,7 @@ class _CounterpartyInlineRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Row(children: [
-      CircleAvatar(radius: 18, backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null, child: avatarUrl == null ? const Icon(Icons.person) : null),
+      SitUserAvatar(url: avatarUrl, radius: 18, borderColor: Colors.white.withValues(alpha: 0.12), placeholderIcon: Icons.person_outline),
       const SizedBox(width: 12),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(role, style: TextStyle(color: theme.colorScheme.primary, fontSize: 12, fontWeight: FontWeight.w700)),
@@ -2769,7 +2770,7 @@ class _CounterpartyRow extends StatelessWidget {
       ratingText = '${trustPercent!.clamp(0, 100)}% Vertrauen';
     }
     return Row(children: [
-      CircleAvatar(radius: 18, backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null, child: avatarUrl == null ? const Icon(Icons.person) : null),
+      SitUserAvatar(url: avatarUrl, radius: 18, borderColor: Colors.white.withValues(alpha: 0.12), placeholderIcon: Icons.person_outline),
       const SizedBox(width: 10),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(name, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -2868,7 +2869,7 @@ class _ListerCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          CircleAvatar(radius: 22, backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl!) : null, child: avatarUrl == null ? const Icon(Icons.person) : null),
+          SitUserAvatar(url: avatarUrl, radius: 22, borderColor: Colors.white.withValues(alpha: 0.12), placeholderIcon: Icons.person_outline),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(name, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),

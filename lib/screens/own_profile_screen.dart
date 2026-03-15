@@ -9,6 +9,7 @@ import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/user_avatar.dart';
 
 class OwnProfileScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -528,7 +529,13 @@ class _AboutMeTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          CircleAvatar(radius: 34, backgroundImage: NetworkImage(u?.photoURL ?? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face')),
+          SitUserAvatar(
+            url: (u?.photoURL != null && (u!.photoURL ?? '').isNotEmpty)
+                ? u.photoURL
+                : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+            radius: 34,
+            borderColor: Colors.white.withValues(alpha: 0.12),
+          ),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
