@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/screens/own_profile_screen.dart';
@@ -11,6 +12,8 @@ import 'package:lendify/screens/edit_profile_screen.dart';
 import 'package:lendify/screens/account_settings_screen.dart';
 import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/screens/notifications_screen.dart';
+import 'package:lendify/screens/help_center_screen.dart';
+import 'package:lendify/screens/legal_screen.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
@@ -34,6 +37,139 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _feedbackCtrl = TextEditingController();
   final FocusNode _feedbackFocus = FocusNode();
   bool _sendingFeedback = false;
+
+  FeedbackValidation _validateFeedback(String input) {
+    final raw = input;
+    final text = raw.trim();
+    if (text.isEmpty) {
+      return const FeedbackValidation(valid: false, reason: null);
+    }
+
+    // 1) Mindestlänge
+    if (text.runes.length < 20) {
+      return const FeedbackValidation(valid: false, reason: 'Bitte beschreibe dein Feedback etwas genauer.');
+    }
+
+    // Normalize to simplify word analysis.
+    final normalized = text
+        .toLowerCase()
+        .replaceAll(RegExp(r"[\n\t]+"), ' ')
+        .replaceAll(RegExp(r"[^\p{L}\p{N} ]", unicode: true), ' ')
+        .replaceAll(RegExp(r"\s+"), ' ')
+        .trim();
+
+    // 2) Wörterprüfung: mindestens 3 echte Wörter.
+    final words = normalized.isEmpty ? <String>[] : normalized.split(' ');
+    final realWords = <String>[];
+    for (final w in words) {
+      if (_isRealWord(w)) realWords.add(w);
+    }
+
+    if (realWords.length < 3) {
+      return const FeedbackValidation(valid: false, reason: 'Bitte formuliere dein Feedback mit mindestens 3 Wörtern.');
+    }
+
+    // 3) Zeichenvielfalt / Wiederholungsmuster.
+    final nonSpace = text.replaceAll(RegExp(r"\s+"), '');
+    if (nonSpace.isNotEmpty) {
+      final freq = <String, int>{};
+      for (final r in nonSpace.runes) {
+        final ch = String.fromCharCode(r).toLowerCase();
+        freq[ch] = (freq[ch] ?? 0) + 1;
+      }
+      final maxCount = freq.values.fold<int>(0, (m, v) => v > m ? v : m);
+      final ratio = maxCount / nonSpace.runes.length;
+      if (ratio > 0.60) {
+        return const FeedbackValidation(valid: false, reason: 'Bitte formuliere dein Feedback etwas konkreter.');
+      }
+    }
+
+    // 3b) Nur ein Wort wiederholt (z.B. "test test test").
+    final uniqueRealWords = realWords.toSet();
+    if (uniqueRealWords.length == 1 && realWords.length >= 3) {
+      return const FeedbackValidation(valid: false, reason: 'Bitte formuliere dein Feedback abwechslungsreicher.');
+    }
+
+    // 4) Spam-/Unsinnsfilter (Heuristiken)
+    if (_looksLikeRandomLetters(normalized)) {
+      return const FeedbackValidation(valid: false, reason: 'Bitte formuliere dein Feedback etwas konkreter.');
+    }
+
+    if (_looksLikeGenericSpam(realWords)) {
+      return const FeedbackValidation(valid: false, reason: 'Bitte beschreibe kurz, was genau du meinst.');
+    }
+
+    return const FeedbackValidation(valid: true, reason: null);
+  }
+
+  bool _isRealWord(String word) {
+    final w = word.trim();
+    if (w.length < 2) return false;
+    if (!RegExp(r"^[\p{L}\p{N}]+$", unicode: true).hasMatch(w)) return false;
+
+    // Reject obvious keyboard spam / repeated patterns (asdf, aaaaa, xyzxyz, testtesttest)
+    if (RegExp(r"^(.)\1{3,}$").hasMatch(w)) return false; // aaaa...
+    if (_isRepeatedChunk(w)) return false; // xyzxyz, testtest...
+
+    // Require at least one letter. If it's only digits, treat it as not a "real word".
+    final hasLetter = RegExp(r"\p{L}", unicode: true).hasMatch(w);
+    if (!hasLetter) return false;
+
+    // A lightweight natural-language heuristic: at least one vowel.
+    // (Allows DE umlauts and common latin vowels.)
+    final hasVowel = RegExp(r"[aeiouäöüy]", unicode: true).hasMatch(w);
+    if (!hasVowel) return false;
+
+    return true;
+  }
+
+  bool _isRepeatedChunk(String word) {
+    final w = word;
+    if (w.length < 4) return false;
+    for (int len = 2; len <= (w.length ~/ 2); len++) {
+      if (w.length % len != 0) continue;
+      final chunk = w.substring(0, len);
+      final repeated = chunk * (w.length ~/ len);
+      if (repeated == w) return true;
+    }
+    return false;
+  }
+
+  bool _looksLikeRandomLetters(String normalized) {
+    // If it's mostly letters, but has very low vowel ratio and many distinct letters,
+    // it's likely random text (e.g., "xqtrplm..." or "asdfghj...").
+    final lettersOnly = normalized.replaceAll(RegExp(r"[^\p{L}]", unicode: true), '');
+    if (lettersOnly.length < 20) return false;
+    final vowels = RegExp(r"[aeiouäöüy]", unicode: true).allMatches(lettersOnly).length;
+    final vowelRatio = vowels / lettersOnly.length;
+    if (vowelRatio >= 0.18) return false;
+
+    final distinct = lettersOnly.split('').toSet().length;
+    final distinctRatio = distinct / lettersOnly.length;
+    return distinctRatio > 0.25;
+  }
+
+  bool _looksLikeGenericSpam(List<String> realWords) {
+    // Reject feedback that is basically a loop of generic filler words.
+    const generic = {
+      'ok',
+      'okay',
+      'gut',
+      'nice',
+      'cool',
+      'top',
+      'super',
+      'danke',
+      'thanks',
+      'merci',
+      'great',
+      'perfekt',
+    };
+    final unique = realWords.toSet();
+    if (unique.isEmpty) return false;
+    if (unique.every(generic.contains) && realWords.length >= 3) return true;
+    return false;
+  }
 
   @override
   void initState() {
@@ -348,7 +484,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             break;
           case 'Rechtliches':
           case 'Legal':
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => PlaceholderScreen(title: l10n.t('Rechtliches'), description: 'AGB, Datenschutz und Impressum.')));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalScreen()));
             break;
           case 'Sprache':
           case 'Language':
@@ -435,12 +571,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountSettingsScreen()));
         break;
       case '/help':
-        final l10n = context.read<LocalizationController>();
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => PlaceholderScreen(title: l10n.t('Hilfe-Center'), description: 'FAQ und Support.')));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpCenterScreen()));
         break;
       case '/legal':
-        final l10n = context.read<LocalizationController>();
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => PlaceholderScreen(title: l10n.t('Rechtliches'), description: 'AGB, Datenschutz und Impressum.')));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalScreen()));
         break;
       case '/language':
         _openLanguageSheet();
@@ -515,7 +649,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildFeedbackSection() {
     final theme = Theme.of(context);
-    final canSend = !_sendingFeedback && _hasAtLeastOneWord(_feedbackCtrl.text);
+    final validation = _validateFeedback(_feedbackCtrl.text);
+    final canSend = !_sendingFeedback && validation.valid;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -548,7 +683,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onChanged: (_) => setState(() {}),
             style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
             decoration: InputDecoration(
-              hintText: '✏️ Dein Feedback …',
+              hintText: 'Was gefällt dir an ShareItToo – oder was können wir verbessern?',
               hintStyle: theme.textTheme.bodyMedium?.copyWith(color: Colors.white38),
               filled: true,
               fillColor: Colors.black.withValues(alpha: 0.25),
@@ -558,6 +693,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.6))),
             ),
           ),
+          if (!validation.valid && (_feedbackCtrl.text.trim().isNotEmpty) && (validation.reason != null)) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Text(
+                validation.reason!,
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.white60, height: 1.35),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [
@@ -605,7 +750,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _submitFeedback() async {
     if (_user == null) return;
     final text = _feedbackCtrl.text.trim();
-    if (text.isEmpty) return;
+    final validation = _validateFeedback(text);
+    if (!validation.valid) return;
     setState(() { _sendingFeedback = true; });
     try {
       await DataService.addFeedback(userId: _user!.id, text: text);
@@ -615,14 +761,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _sendingFeedback = false;
       });
       _feedbackFocus.unfocus();
-      AppPopup.toast(
+
+      await AppPopup.show(
         context,
         icon: Icons.check_circle_outline,
-        title: 'Danke, dass du die ShareItToo App mitgestaltest.',
-        message: 'Dein Feedback hilft uns, die Plattform für alle besser zu machen.',
-        duration: const Duration(seconds: 7),
+        title: 'Danke für dein Feedback',
+        message: 'Wir lesen jedes Feedback persönlich und nutzen es, um ShareItToo zu verbessern.',
+        showCloseIcon: false,
         leadingWidget: _sitCelebrationBadge(),
-        // Use app blue color for the Danke popup accent
         accentGradient: LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
@@ -632,8 +778,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
         borderColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
-          // Use blurred Explore background inside the card
-          useExploreBackground: true,
+        useExploreBackground: true,
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => Navigator.of(context, rootNavigator: true).maybePop(),
+              child: const Text('Schließen'),
+            ),
+          ),
+        ],
       );
     } catch (e) {
       if (!mounted) return;
@@ -646,4 +800,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
+}
+
+@immutable
+class FeedbackValidation {
+  final bool valid;
+  final String? reason;
+  const FeedbackValidation({required this.valid, required this.reason});
 }

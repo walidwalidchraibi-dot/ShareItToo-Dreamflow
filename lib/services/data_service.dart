@@ -19,6 +19,7 @@ class DataService {
   static const String _itemsKey = 'items';
   static const String _usersKey = 'users';
   static const String _currentUserKey = 'currentUser';
+  static const String _accountDeletedKey = 'account_deleted_v1';
   static const String _bookingSelectionsKey = 'booking_selections';
   static const String _rentalRequestsKey = 'rental_requests';
   static const String _timelineEventsKey = 'timeline_events';
@@ -664,8 +665,9 @@ class DataService {
       }
       if (!map.containsKey('avgRating') || map['avgRating'] == null) { map['avgRating'] = 0.0; mutated = true; }
       if (!map.containsKey('reviewCount') || map['reviewCount'] == null) { map['reviewCount'] = 0; mutated = true; }
+      final isDeactivated = map['isDeactivated'] == true;
       final id = map['id']?.toString();
-      if (id != null) {
+      if (!isDeactivated && id != null) {
         final override = _seedForId(id);
         if (override != null) {
           if (map['displayName'] != override.$1) { map['displayName'] = override.$1; mutated = true; }
@@ -683,6 +685,11 @@ class DataService {
 
   static Future<User?> getCurrentUser() async {
     final prefs = await SharedPreferences.getInstance();
+    final deleted = prefs.getBool(_accountDeletedKey) ?? false;
+    if (deleted) {
+      // When the user has deleted their account, do not re-seed demo data.
+      return null;
+    }
     final userJson = prefs.getString(_currentUserKey);
     if (userJson == null) {
       // Ensure demo data exists even when the user opens a screen (like
@@ -705,17 +712,20 @@ class DataService {
     if (!map.containsKey('avgRating') || map['avgRating'] == null) { map['avgRating'] = 0.0; mutated = true; }
     if (!map.containsKey('reviewCount') || map['reviewCount'] == null) { map['reviewCount'] = 0; mutated = true; }
 
-    // Personalize the display name for the current user to "Walid Chraibi"
-    if (map['displayName'] != 'Walid Chraibi') {
-      map['displayName'] = 'Walid Chraibi';
-      mutated = true;
-    }
-    final id = map['id']?.toString();
-    if (id != null) {
-      final override = _seedForId(id);
-      if (override != null && map['photoURL'] != override.$2) {
-        map['photoURL'] = override.$2;
+    final isDeactivated = map['isDeactivated'] == true;
+    if (!isDeactivated) {
+      // Personalize the display name for the current user to "Walid Chraibi"
+      if (map['displayName'] != 'Walid Chraibi') {
+        map['displayName'] = 'Walid Chraibi';
         mutated = true;
+      }
+      final id = map['id']?.toString();
+      if (id != null) {
+        final override = _seedForId(id);
+        if (override != null && map['photoURL'] != override.$2) {
+          map['photoURL'] = override.$2;
+          mutated = true;
+        }
       }
     }
 
@@ -746,6 +756,7 @@ class DataService {
         entityId: 'welcome_${now.microsecondsSinceEpoch}',
         ctaLabel: '',
         critical: false,
+        timestamp: now,
       );
       await addStructuredNotification(
         userId: userId,
@@ -757,6 +768,7 @@ class DataService {
         entityId: 'security_tip_${now.microsecondsSinceEpoch}',
         ctaLabel: '',
         critical: false,
+        timestamp: now.subtract(const Duration(hours: 3)),
       );
       await addStructuredNotification(
         userId: userId,
@@ -767,6 +779,7 @@ class DataService {
         entityType: 'payment',
         entityId: 'payment_methods',
         ctaLabel: 'Öffnen',
+        timestamp: now.subtract(const Duration(days: 1, hours: 1)),
       );
       await addStructuredNotification(
         userId: userId,
@@ -777,6 +790,7 @@ class DataService {
         entityType: 'system',
         entityId: 'review_tip_${now.microsecondsSinceEpoch}',
         ctaLabel: '',
+        timestamp: now.subtract(const Duration(days: 3, hours: 2)),
       );
       await addStructuredNotification(
         userId: userId,
@@ -787,6 +801,21 @@ class DataService {
         entityType: 'system',
         entityId: 'chat_tip_${now.microsecondsSinceEpoch}',
         ctaLabel: '',
+        timestamp: now.subtract(const Duration(days: 12, hours: 5)),
+      );
+
+      await addStructuredNotification(
+        userId: userId,
+        category: 'messages',
+        priority: 3,
+        title: 'Neue Nachricht',
+        body: 'Du hast eine neue Nachricht – antworte direkt aus dem Feed.',
+        entityType: 'system',
+        entityId: 'demo_message_${now.microsecondsSinceEpoch}',
+        actions: const [
+          {'id': 'reply', 'label': 'Antworten'},
+        ],
+        timestamp: now.subtract(const Duration(minutes: 18)),
       );
 
       await prefs.setBool(key, true);
@@ -798,6 +827,149 @@ class DataService {
   static Future<void> setCurrentUser(User user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_currentUserKey, jsonEncode(user.toJson()));
+  }
+
+  static Future<void> clearCurrentUserAndMarkDeleted() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_accountDeletedKey, true);
+      await prefs.remove(_currentUserKey);
+      debugPrint('[DataService] Account marked deleted and current user cleared');
+    } catch (e) {
+      debugPrint('[DataService] clearCurrentUserAndMarkDeleted failed: $e');
+    }
+  }
+
+  static Future<void> anonymizeAndDeactivateUser({required String userId}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final usersJson = prefs.getString(_usersKey);
+      if (usersJson == null || usersJson.isEmpty) return;
+      final decoded = jsonDecode(usersJson);
+      if (decoded is! List) return;
+
+      final now = DateTime.now();
+      bool mutated = false;
+      for (int i = 0; i < decoded.length; i++) {
+        if (decoded[i] is! Map) continue;
+        final map = Map<String, dynamic>.from(decoded[i] as Map);
+        if (map['id']?.toString() != userId) continue;
+
+        map['displayName'] = 'Gelöschter Nutzer';
+        map['photoURL'] = null;
+        map['bio'] = null;
+        map['interests'] = const <String>[];
+        map['languages'] = const <String>[];
+        map['email'] = 'deleted+$userId@shareittoo.invalid';
+        map['phone'] = null;
+        map['emailVerified'] = false;
+        map['phoneVerified'] = false;
+        map['isVerified'] = false;
+        map['workTitle'] = null;
+        map['hobbies'] = null;
+        map['homeLocation'] = null;
+        map['favoriteSong'] = null;
+        map['showWork'] = false;
+        map['showHobbies'] = false;
+        map['showHomeLocation'] = false;
+        map['showBioPublic'] = false;
+        map['showFavoriteSong'] = false;
+        map['homeLat'] = null;
+        map['homeLng'] = null;
+        map['birthDate'] = null;
+        map['socialX'] = null;
+        map['socialFacebook'] = null;
+        map['socialInstagram'] = null;
+        map['socialTiktok'] = null;
+        map['socialSnapchat'] = null;
+
+        map['addressStreet'] = null;
+        map['addressHouseNumber'] = null;
+        map['addressPostalCode'] = null;
+        map['addressCity'] = null;
+        map['addressCountry'] = null;
+        map['addressExtra'] = null;
+
+        map['isDeactivated'] = true;
+        map['deactivatedAt'] = now.toIso8601String();
+
+        decoded[i] = map;
+        mutated = true;
+        break;
+      }
+
+      if (mutated) {
+        await prefs.setString(_usersKey, jsonEncode(decoded));
+        debugPrint('[DataService] User $userId anonymized/deactivated');
+      }
+    } catch (e) {
+      debugPrint('[DataService] anonymizeAndDeactivateUser failed: $e');
+    }
+  }
+
+  static Future<void> deactivateAllListingsForUser(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final itemsJson = prefs.getString(_itemsKey);
+      if (itemsJson == null || itemsJson.isEmpty) return;
+      final decoded = jsonDecode(itemsJson);
+      if (decoded is! List) return;
+
+      bool mutated = false;
+      for (int i = 0; i < decoded.length; i++) {
+        if (decoded[i] is! Map) continue;
+        final map = Map<String, dynamic>.from(decoded[i] as Map);
+        if (map['ownerId']?.toString() != userId) continue;
+
+        if ((map['status']?.toString() ?? 'active') == 'ended') continue;
+        map['status'] = 'ended';
+        map['isActive'] = false;
+        map['endedAt'] = DateTime.now().toIso8601String();
+        decoded[i] = map;
+        mutated = true;
+      }
+
+      if (mutated) {
+        await prefs.setString(_itemsKey, jsonEncode(decoded));
+        debugPrint('[DataService] Deactivated all listings for user $userId');
+      }
+    } catch (e) {
+      debugPrint('[DataService] deactivateAllListingsForUser failed: $e');
+    }
+  }
+
+  static Future<void> archiveAllMessageThreadsForUser(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+      if (raw == null || raw.isEmpty) return;
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return;
+
+      bool mutated = false;
+      for (int i = 0; i < decoded.length; i++) {
+        if (decoded[i] is! Map) continue;
+        final map = Map<String, dynamic>.from(decoded[i] as Map);
+        final u1 = map['user1Id']?.toString();
+        final u2 = map['user2Id']?.toString();
+        if (u1 != userId && u2 != userId) continue;
+
+        final archived = (map['archivedForUserIds'] as List?)?.map((e) => e.toString()).toList() ?? <String>[];
+        if (!archived.contains(userId)) {
+          archived.add(userId);
+          map['archivedForUserIds'] = archived;
+          decoded[i] = map;
+          mutated = true;
+        }
+      }
+
+      if (mutated) {
+        await prefs.setString(_messageThreadsKey, jsonEncode(decoded));
+        debugPrint('[DataService] Archived all message threads for user $userId');
+      }
+    } catch (e) {
+      debugPrint('[DataService] archiveAllMessageThreadsForUser failed: $e');
+    }
   }
 
   static const String _savedItemsKey = 'saved_item_ids';
@@ -2620,13 +2792,15 @@ class DataService {
     String? entityType, // booking | thread | payment | review | system
     String? entityId,
     String? ctaLabel,
+    List<Map<String, String>>? actions,
+    DateTime? timestamp,
     bool critical = false,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_notificationsKey);
       List<dynamic> list = raw != null && raw.isNotEmpty ? (jsonDecode(raw) as List) : [];
-      final now = DateTime.now();
+      final now = timestamp ?? DateTime.now();
       list.add({
         'id': 'n_${now.microsecondsSinceEpoch}',
         'userId': userId,
@@ -2637,6 +2811,7 @@ class DataService {
         'entityType': entityType,
         'entityId': entityId,
         'ctaLabel': ctaLabel,
+        'actions': actions,
         'critical': critical,
         'archived': false,
         'ts': now.toIso8601String(),
@@ -2664,6 +2839,21 @@ class DataService {
     out['entityType'] = (out['entityType'] as String?);
     out['entityId'] = (out['entityId'] as String?);
     out['ctaLabel'] = (out['ctaLabel'] as String?);
+    if (out['actions'] is List) {
+      try {
+        out['actions'] = (out['actions'] as List)
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .map((e) => {
+                  'id': (e['id'] ?? '').toString(),
+                  'label': (e['label'] ?? '').toString(),
+                })
+            .where((e) => (e['id'] ?? '').toString().isNotEmpty && (e['label'] ?? '').toString().isNotEmpty)
+            .toList();
+      } catch (_) {
+        out.remove('actions');
+      }
+    }
     out['critical'] = (out['critical'] == true);
     out['archived'] = (out['archived'] == true);
     out['read'] = (out['read'] == true);
@@ -3145,6 +3335,7 @@ class DataService {
         itemTitle: item.title,
         user1Id: request.renterId,
         user2Id: request.ownerId,
+        archivedForUserIds: const <String>[],
         messages: [initialMessage],
         createdAt: now,
         lastMessageAt: now,
@@ -3198,7 +3389,7 @@ class DataService {
         try {
           final thread = MessageThread.fromJson(Map<String, dynamic>.from(e as Map));
           // Nur Threads zeigen, die den User betreffen
-          if (thread.user1Id == userId || thread.user2Id == userId) {
+          if ((thread.user1Id == userId || thread.user2Id == userId) && !thread.archivedForUserIds.contains(userId)) {
             threads.add(thread);
           }
         } catch (err) {

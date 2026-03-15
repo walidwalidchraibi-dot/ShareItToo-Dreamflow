@@ -71,7 +71,7 @@ class ProfileHeaderCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _MetricLine(label: l10n.t('Bewertung'), value: '${user.avgRating.toStringAsFixed(1)} ★'),
+                  _MetricLine(label: l10n.t('Bewertung'), value: _ratingText(context, user)),
                   const SizedBox(height: 8),
                   _MetricLine(label: l10n.t('Buchungen'), value: _estimatedBookings(user).toString()),
                   const SizedBox(height: 8),
@@ -85,6 +85,14 @@ class ProfileHeaderCard extends StatelessWidget {
         ]),
       ),
     );
+  }
+
+  static String _ratingText(BuildContext context, User user) {
+    final l10n = context.read<LocalizationController>();
+    final c = user.reviewCount;
+    if (c <= 0) return l10n.t('Noch keine Bewertungen');
+    final label = c == 1 ? l10n.t('Bewertung') : l10n.t('Bewertungen');
+    return '${user.avgRating.toStringAsFixed(1)} ★ ($c $label)';
   }
 
   static String _joinedMonthYear(DateTime createdAt) {

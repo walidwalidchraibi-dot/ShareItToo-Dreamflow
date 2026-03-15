@@ -11,6 +11,7 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/user_avatar.dart';
+import 'package:lendify/navigation/main_nav_controller.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -49,10 +50,16 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
+    final nav = context.watch<MainNavController>();
+
+    if (nav.index != _currentIndex) {
+      // Keep internal state in sync with the global controller.
+      _currentIndex = nav.index;
+    }
     return WillPopScope(
       onWillPop: () async {
         if (_currentIndex != 0) {
-          setState(() => _currentIndex = 0);
+          context.read<MainNavController>().setIndex(0);
           return false;
         }
         return true;
@@ -65,7 +72,7 @@ class _MainNavigationState extends State<MainNavigation> {
           type: BottomNavigationBarType.fixed,
           currentIndex: _currentIndex,
           onTap: (index) {
-            setState(() => _currentIndex = index);
+            context.read<MainNavController>().setIndex(index);
           },
           selectedItemColor: BrandColors.primary,
           unselectedItemColor: BrandColors.inactiveNav,

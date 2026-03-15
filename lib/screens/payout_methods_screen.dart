@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:lendify/models/payout_method.dart';
 import 'package:lendify/services/payout_methods_service.dart';
+import 'package:lendify/services/sit_credit_service.dart';
+import 'package:lendify/screens/sit_wallet_screen.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/blur_modal.dart';
 
@@ -15,6 +17,9 @@ class PayoutMethodsScreen extends StatefulWidget {
 class _PayoutMethodsScreenState extends State<PayoutMethodsScreen> {
   bool _loading = true;
   List<PayoutMethod> _methods = const [];
+  bool _walletEnabled = false;
+  double _walletBalance = 0;
+  PayoutDestination _defaultDestination = PayoutDestination.wallet;
 
   @override
   void initState() {
@@ -24,16 +29,32 @@ class _PayoutMethodsScreenState extends State<PayoutMethodsScreen> {
 
   Future<void> _load() async {
     try {
-      final methods = await PayoutMethodsService.getPayoutMethods();
+      final results = await Future.wait([
+        PayoutMethodsService.getPayoutMethods(),
+        SitCreditService.getStatus(),
+        PayoutMethodsService.getDefaultDestination(),
+      ]);
+      final methods = results[0] as List<PayoutMethod>;
+      final sit = results[1] as SitCreditStatus;
+      final dest = results[2] as PayoutDestination;
       if (!mounted) return;
       setState(() {
         _methods = methods;
+        _walletEnabled = sit.enabled;
+        _walletBalance = sit.balance;
+        _defaultDestination = dest;
         _loading = false;
       });
     } catch (e) {
       debugPrint('[PayoutMethodsScreen] load failed: $e');
       if (!mounted) return;
-      setState(() => _loading = false);
+      setState(() {
+        _methods = const [];
+        _walletEnabled = false;
+        _walletBalance = 0;
+        _defaultDestination = PayoutDestination.wallet;
+        _loading = false;
+      });
     }
   }
 
@@ -51,10 +72,10 @@ class _PayoutMethodsScreenState extends State<PayoutMethodsScreen> {
           ),
           const SizedBox(height: 10),
           _ChoiceTile(
-            icon: Icons.paypal,
-            title: 'PayPal verbinden',
-            subtitle: 'E-Mail Adresse',
-            onTap: () => Navigator.of(context).pop(_AddPayoutChoice.paypal),
+            icon: Icons.account_balance_wallet_outlined,
+            title: _walletEnabled ? 'SIT Guthaben verwalten' : 'SIT Guthaben aktivieren',
+            subtitle: 'Wallet für Einnahmen & Buchungen',
+            onTap: () => Navigator.of(context).pop(_AddPayoutChoice.wallet),
           ),
         ]),
       ),
@@ -64,9 +85,24 @@ class _PayoutMethodsScreenState extends State<PayoutMethodsScreen> {
       case _AddPayoutChoice.bank:
         await showBlurBottomSheet<void>(context, child: _AddBankAccountSheet(onSaved: _handleSaved));
         break;
-      case _AddPayoutChoice.paypal:
-        await showBlurBottomSheet<void>(context, child: _AddPaypalSheet(onSaved: _handleSaved));
+      case _AddPayoutChoice.wallet:
+        await showBlurBottomSheet<void>(context, child: _EnableWalletSheet(onEnabled: _handleWalletEnabled));
         break;
+    }
+  }
+
+  Future<void> _handleWalletEnabled(bool enabled) async {
+    try {
+      await SitCreditService.setEnabled(enabled);
+      final status = await SitCreditService.getStatus();
+      if (!mounted) return;
+      setState(() {
+        _walletEnabled = status.enabled;
+        _walletBalance = status.balance;
+      });
+      await AppPopup.toast(context, icon: Icons.check_circle_outline, title: enabled ? 'SIT Guthaben aktiviert' : 'SIT Guthaben deaktiviert');
+    } catch (e) {
+      debugPrint('[PayoutMethodsScreen] handleWalletEnabled failed: $e');
     }
   }
 
@@ -91,6 +127,14 @@ class _PayoutMethodsScreenState extends State<PayoutMethodsScreen> {
       setState(() => _methods = updated);
     } catch (e) {
       debugPrint('[PayoutMethodsScreen] setDefault failed: $e');
+    }
+  }
+
+  Future<void> _setDefaultDestination(PayoutDestination dest) async {
+    setState(() => _defaultDestination = dest);
+    await PayoutMethodsService.setDefaultDestination(dest);
+    if (dest == PayoutDestination.wallet && !_walletEnabled) {
+      await _handleWalletEnabled(true);
     }
   }
 
@@ -130,6 +174,9 @@ class _PayoutMethodsScreenState extends State<PayoutMethodsScreen> {
     final primary = theme.colorScheme.primary;
     final onSurface = theme.colorScheme.onSurface;
 
+    final bankMethods = _methods.where((m) => m.type == PayoutMethodType.sepa).toList();
+    final hasBank = bankMethods.isNotEmpty;
+
     return Stack(children: [
       Positioned.fill(
         child: BackdropFilter(
@@ -157,31 +204,125 @@ class _PayoutMethodsScreenState extends State<PayoutMethodsScreen> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                     const SizedBox(height: 4),
                     Text('Auszahlungsmethoden', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: onSurface)),
-                    const SizedBox(height: 12),
-
-                    if (_methods.isEmpty) ...[
-                      _EmptyStateCard(onAdd: _openAddFlow),
-                    ] else ...[
-                      for (final m in _methods) ...[
-                        _PayoutMethodCard(
-                          method: m,
-                          onSetDefault: m.isDefault ? null : () => _setDefault(m.id),
-                          onRemove: () => _remove(m.id),
-                        ),
-                        const SizedBox(height: 10),
-                      ],
-                    ],
-
                     const SizedBox(height: 6),
-                    _InfoCard(
-                      title: 'Auszahlungen',
-                      text: 'Einnahmen aus deinen Vermietungen werden automatisch auf deine Standard-Auszahlungsmethode überwiesen.',
-                      subtext: 'Auszahlungen erfolgen in der Regel innerhalb von 1–3 Werktagen nach abgeschlossener Buchung.',
+                    Text(
+                      'Lege fest, wie du Einnahmen aus deinen Vermietungen erhalten möchtest.',
+                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
                     ),
                     const SizedBox(height: 14),
 
+                    _SectionCard(
+                      icon: Icons.account_balance_wallet_outlined,
+                      title: 'SIT Guthaben',
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        Text(
+                          'Du kannst deine Einnahmen als ShareItToo-Guthaben behalten und direkt für Buchungen auf der Plattform verwenden.',
+                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 10),
+                        _Bullets(items: const [
+                          'Guthaben ist sofort verfügbar',
+                          'Kann für eigene Buchungen genutzt werden',
+                          'Kann später auf ein Bankkonto ausgezahlt werden',
+                        ]),
+                        const SizedBox(height: 12),
+                        _MiniValueRow(label: 'SIT Guthaben', value: _formatCurrency(_walletBalance)),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 48,
+                          child: FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SitWalletScreen())),
+                            icon: const Icon(Icons.open_in_new),
+                            label: const Text('Guthaben anzeigen'),
+                          ),
+                        ),
+                      ]),
+                    ),
+                    const SizedBox(height: 10),
+
+                    _SectionCard(
+                      icon: Icons.account_balance_outlined,
+                      title: 'Bankkonto',
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        Text(
+                          'Erhalte deine Einnahmen direkt auf dein Bankkonto.',
+                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 10),
+                        _Bullets(items: const [
+                          'Auszahlungen erfolgen automatisch nach abgeschlossener Buchung',
+                          'Auszahlung dauert in der Regel 1–3 Werktage',
+                        ]),
+                        const SizedBox(height: 12),
+                        if (!hasBank) ...[
+                          Text('Keine Auszahlungsmethode hinterlegt.', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 48,
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              ),
+                              onPressed: () async => showBlurBottomSheet<void>(context, child: _AddBankAccountSheet(onSaved: _handleSaved)),
+                              icon: const Icon(Icons.add, color: Colors.white),
+                              label: const Text('Bankkonto hinzufügen'),
+                            ),
+                          ),
+                        ] else ...[
+                          for (final m in bankMethods) ...[
+                            _PayoutMethodCard(method: m, onSetDefault: m.isDefault ? null : () => _setDefault(m.id), onRemove: () => _remove(m.id)),
+                            const SizedBox(height: 10),
+                          ],
+                        ],
+                      ]),
+                    ),
+                    const SizedBox(height: 10),
+
+                    _SectionCard(
+                      icon: Icons.tune,
+                      title: 'Standard-Auszahlungsmethode',
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                        Text(
+                          'Diese Methode wird standardmäßig für deine Einnahmen verwendet.',
+                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 10),
+                        _RadioRow(
+                          icon: Icons.account_balance_wallet_outlined,
+                          title: 'SIT Guthaben',
+                          subtitle: _walletEnabled ? 'Sofort verfügbar' : 'Aktiviere das Wallet, um es zu nutzen',
+                          groupValue: _defaultDestination,
+                          value: PayoutDestination.wallet,
+                          onChanged: (v) => _setDefaultDestination(PayoutDestination.wallet),
+                        ),
+                        const SizedBox(height: 8),
+                        _RadioRow(
+                          icon: Icons.account_balance_outlined,
+                          title: 'Bankkonto',
+                          subtitle: hasBank ? 'Auszahlung in 1–3 Werktagen' : 'Bitte zuerst ein Bankkonto hinzufügen',
+                          groupValue: _defaultDestination,
+                          value: PayoutDestination.bank,
+                          onChanged: hasBank ? (v) => _setDefaultDestination(PayoutDestination.bank) : null,
+                        ),
+                      ]),
+                    ),
+                    const SizedBox(height: 10),
+
+                    _InfoCard(
+                      title: 'Auszahlungen',
+                      text: 'Einnahmen werden nach abgeschlossener Buchung freigegeben.',
+                      subtext: 'Auszahlungen erfolgen nur auf verifizierte Auszahlungsmethoden. Bankauszahlungen dauern in der Regel 1–3 Werktage.',
+                    ),
+                    const SizedBox(height: 12),
                     Text(
-                      'Auszahlungen erfolgen nur auf verifizierte Auszahlungsmethoden.',
+                      'Du kannst dein SIT Guthaben jederzeit für Buchungen verwenden oder auf dein Bankkonto auszahlen.',
                       style: theme.textTheme.labelSmall?.copyWith(color: Colors.white70),
                     ),
                     const SizedBox(height: 14),
@@ -196,7 +337,7 @@ class _PayoutMethodsScreenState extends State<PayoutMethodsScreen> {
                         ),
                         onPressed: _openAddFlow,
                         icon: const Icon(Icons.add),
-                        label: const Text('Auszahlungsmethode hinzufügen'),
+                        label: const Text('+ Auszahlungsmethode hinzufügen'),
                       ),
                     ),
                   ]),
@@ -205,9 +346,14 @@ class _PayoutMethodsScreenState extends State<PayoutMethodsScreen> {
       ),
     ]);
   }
+
+  String _formatCurrency(double value) {
+    final v = value.isFinite ? value : 0.0;
+    return '${v.toStringAsFixed(2).replaceAll('.', ',')} €';
+  }
 }
 
-enum _AddPayoutChoice { bank, paypal }
+enum _AddPayoutChoice { bank, wallet }
 
 class _ChoiceTile extends StatelessWidget {
   final IconData icon;
@@ -251,6 +397,159 @@ class _ChoiceTile extends StatelessWidget {
             ]),
           ),
           const Icon(Icons.chevron_right, color: Colors.white70),
+        ]),
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final Widget child;
+  const _SectionCard({required this.icon, required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 18, offset: const Offset(0, 10))],
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: primary.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: primary.withValues(alpha: 0.30)),
+            ),
+            child: Icon(icon, color: Colors.white, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
+        ]),
+        const SizedBox(height: 10),
+        child,
+      ]),
+    );
+  }
+}
+
+class _Bullets extends StatelessWidget {
+  final List<String> items;
+  const _Bullets({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        for (final t in items) ...[
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const SizedBox(width: 2),
+            Container(
+              margin: const EdgeInsets.only(top: 6),
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.80), shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Text(t, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70))),
+          ]),
+          const SizedBox(height: 6),
+        ]
+      ],
+    );
+  }
+}
+
+class _MiniValueRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _MiniValueRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      child: Row(children: [
+        Expanded(child: Text(label, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800))),
+        Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900)),
+      ]),
+    );
+  }
+}
+
+class _RadioRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final PayoutDestination groupValue;
+  final PayoutDestination value;
+  final ValueChanged<PayoutDestination?>? onChanged;
+  const _RadioRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.groupValue,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final enabled = onChanged != null;
+    return InkWell(
+      onTap: enabled ? () => onChanged!(value) : null,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        ),
+        child: Row(children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: primary.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: primary.withValues(alpha: 0.28)),
+            ),
+            child: Icon(icon, color: enabled ? Colors.white : Colors.white38, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900, color: enabled ? Colors.white : Colors.white54)),
+              const SizedBox(height: 2),
+              Text(subtitle, style: theme.textTheme.labelSmall?.copyWith(color: enabled ? Colors.white70 : Colors.white38)),
+            ]),
+          ),
+          Radio<PayoutDestination>(
+            value: value,
+            groupValue: groupValue,
+            onChanged: onChanged,
+            activeColor: primary,
+          ),
         ]),
       ),
     );
@@ -360,10 +659,10 @@ class _PayoutMethodCard extends StatelessWidget {
 
   IconData get _icon {
     switch (method.type) {
-      case PayoutMethodType.paypal:
-        return Icons.paypal;
       case PayoutMethodType.sepa:
         return Icons.account_balance_outlined;
+      case PayoutMethodType.paypal:
+        return Icons.paypal;
     }
   }
 
@@ -627,74 +926,37 @@ class _AddBankAccountSheetState extends State<_AddBankAccountSheet> {
   }
 }
 
-class _AddPaypalSheet extends StatefulWidget {
-  final _OnSaved onSaved;
-  const _AddPaypalSheet({required this.onSaved});
-  @override
-  State<_AddPaypalSheet> createState() => _AddPaypalSheetState();
-}
-
-class _AddPaypalSheetState extends State<_AddPaypalSheet> {
-  final _emailCtrl = TextEditingController();
-  bool _saving = false;
-  String? _emailErr;
-
-  @override
-  void dispose() {
-    _emailCtrl.dispose();
-    super.dispose();
-  }
-
-  bool _isValidEmail(String v) => RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(v.trim());
-
-  Future<void> _save() async {
-    if (_saving) return;
-    final mail = _emailCtrl.text.trim();
-    setState(() {
-      _emailErr = mail.isEmpty ? 'E-Mail fehlt' : (_isValidEmail(mail) ? null : 'E-Mail ist ungültig');
-    });
-    if (_emailErr != null) return;
-
-    setState(() => _saving = true);
-    try {
-      final now = DateTime.now();
-      final method = PayoutMethod(
-        id: 'po_${now.microsecondsSinceEpoch}',
-        type: PayoutMethodType.paypal,
-        isDefault: false,
-        label: 'PayPal',
-        paypalEmail: mail,
-        createdAt: now,
-        updatedAt: now,
-      );
-      await widget.onSaved(method);
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
+class _EnableWalletSheet extends StatelessWidget {
+  final Future<void> Function(bool enabled) onEnabled;
+  const _EnableWalletSheet({required this.onEnabled});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SheetScaffold(
-      title: 'PayPal verbinden',
+      title: 'SIT Guthaben',
       body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        _SheetField(
-          label: 'PayPal E-Mail',
-          controller: _emailCtrl,
-          errorText: _emailErr,
-          keyboardType: TextInputType.emailAddress,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _save(),
+        Text(
+          'Aktiviere das SIT Wallet, um Einnahmen als Guthaben zu behalten und direkt für Buchungen zu verwenden.',
+          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
         ),
+        const SizedBox(height: 12),
+        _Bullets(items: const [
+          'Sofort verfügbar nach Buchungsabschluss',
+          'Ideal für schnelle Re-Buchungen',
+          'Bankauszahlung später möglich',
+        ]),
       ]),
       bottomBar: SizedBox(
         width: double.infinity,
         height: 50,
         child: FilledButton.icon(
-          onPressed: _saving ? null : _save,
+          onPressed: () async {
+            await onEnabled(true);
+            if (context.mounted) Navigator.of(context).maybePop();
+          },
           icon: const Icon(Icons.check),
-          label: Text(_saving ? 'Speichere…' : 'Speichern', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800)),
+          label: Text('Aktivieren', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800)),
         ),
       ),
     );

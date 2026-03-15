@@ -3,9 +3,32 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/models/payout_method.dart';
 
+enum PayoutDestination { wallet, bank }
+
 class PayoutMethodsService {
   static const String _key = 'payout_methods_v1';
   static const String _seededKey = 'payout_methods_seeded_v1';
+  static const String _defaultDestinationKey = 'payout_default_destination_v1';
+
+  static Future<PayoutDestination> getDefaultDestination() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_defaultDestinationKey);
+      return raw == PayoutDestination.bank.name ? PayoutDestination.bank : PayoutDestination.wallet;
+    } catch (e) {
+      debugPrint('[PayoutMethodsService] getDefaultDestination failed: $e');
+      return PayoutDestination.wallet;
+    }
+  }
+
+  static Future<void> setDefaultDestination(PayoutDestination dest) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_defaultDestinationKey, dest.name);
+    } catch (e) {
+      debugPrint('[PayoutMethodsService] setDefaultDestination failed: $e');
+    }
+  }
 
   static Future<List<PayoutMethod>> getPayoutMethods() async {
     try {
@@ -101,6 +124,10 @@ class PayoutMethodsService {
       if (raw != null && raw.isNotEmpty) {
         await prefs.setBool(_seededKey, true);
         return;
+      }
+
+      if (!prefs.containsKey(_defaultDestinationKey)) {
+        await prefs.setString(_defaultDestinationKey, PayoutDestination.wallet.name);
       }
 
       // Start empty (no automatic demo methods), so empty state can be previewed.

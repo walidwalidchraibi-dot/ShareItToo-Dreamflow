@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'dart:async';
 import 'package:lendify/theme.dart';
 import 'package:lendify/navigation/main_navigation.dart';
+import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/data_service.dart';
@@ -58,8 +59,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<LocalizationController>(
-      create: (_) => LocalizationController()..loadFromPrefs(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<LocalizationController>(create: (_) => LocalizationController()..loadFromPrefs()),
+        ChangeNotifierProvider<MainNavController>(create: (_) => MainNavController()),
+      ],
       child: Consumer<LocalizationController>(
         builder: (context, l10n, _) {
           return MaterialApp(

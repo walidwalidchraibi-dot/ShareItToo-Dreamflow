@@ -45,6 +45,11 @@ class MessageThread {
   final String itemTitle; // Titel des Artikels (für Anzeige)
   final String user1Id; // Mieter
   final String user2Id; // Vermieter
+  /// Per-user archive flag.
+  ///
+  /// If a userId is present here, the thread is hidden from that user's
+  /// message list (but still preserved in local storage).
+  final List<String> archivedForUserIds;
   final List<Message> messages;
   final DateTime createdAt;
   final DateTime? lastMessageAt;
@@ -56,6 +61,7 @@ class MessageThread {
     required this.itemTitle,
     required this.user1Id,
     required this.user2Id,
+    this.archivedForUserIds = const <String>[],
     required this.messages,
     required this.createdAt,
     this.lastMessageAt,
@@ -64,6 +70,7 @@ class MessageThread {
   MessageThread copyWith({
     List<Message>? messages,
     DateTime? lastMessageAt,
+    List<String>? archivedForUserIds,
   }) =>
       MessageThread(
         id: id,
@@ -72,6 +79,7 @@ class MessageThread {
         itemTitle: itemTitle,
         user1Id: user1Id,
         user2Id: user2Id,
+        archivedForUserIds: archivedForUserIds ?? this.archivedForUserIds,
         messages: messages ?? this.messages,
         createdAt: createdAt,
         lastMessageAt: lastMessageAt ?? this.lastMessageAt,
@@ -84,6 +92,7 @@ class MessageThread {
         'itemTitle': itemTitle,
         'user1Id': user1Id,
         'user2Id': user2Id,
+        'archivedForUserIds': archivedForUserIds,
         'messages': messages.map((m) => m.toJson()).toList(),
         'createdAt': createdAt.toIso8601String(),
         'lastMessageAt': lastMessageAt?.toIso8601String(),
@@ -91,6 +100,7 @@ class MessageThread {
 
   factory MessageThread.fromJson(Map<String, dynamic> json) {
     final messagesList = (json['messages'] as List?)?.map((e) => Message.fromJson(Map<String, dynamic>.from(e as Map))).toList() ?? <Message>[];
+    final archived = (json['archivedForUserIds'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[];
     return MessageThread(
       id: json['id'] as String,
       requestId: json['requestId'] as String,
@@ -98,6 +108,7 @@ class MessageThread {
       itemTitle: json['itemTitle'] as String,
       user1Id: json['user1Id'] as String,
       user2Id: json['user2Id'] as String,
+      archivedForUserIds: archived,
       messages: messagesList,
       createdAt: DateTime.parse(json['createdAt'] as String),
       lastMessageAt: json['lastMessageAt'] != null ? DateTime.parse(json['lastMessageAt'] as String) : null,

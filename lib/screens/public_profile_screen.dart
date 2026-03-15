@@ -20,6 +20,7 @@ class PublicProfileScreen extends StatefulWidget {
 class _PublicProfileScreenState extends State<PublicProfileScreen> {
   User? _user;
   List<Item> _items = [];
+  static const int _mockResponseTimeMin = 42;
 
   @override
   void initState() {
@@ -50,18 +51,19 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 children: [
                   ProfileHeaderCard(user: u, listingsCount: _items.length),
                   const SizedBox(height: 12),
-                  _ProfileQuickInfoLines(user: u, listingsCount: _items.length),
+                  _TrustAndSafetySection(user: u, responseTimeMinutes: _mockResponseTimeMin),
                   const SizedBox(height: 16),
                   if (u.showWork && (u.workTitle?.isNotEmpty ?? false)) _InfoTile(icon: Icons.work_outline, label: l10n.t('Beruf'), value: u.workTitle!),
                   if (u.showHobbies && (u.hobbies?.isNotEmpty ?? false)) _InfoTile(icon: Icons.interests, label: l10n.t('Hobbys'), value: u.hobbies!),
-                  if (u.showHomeLocation && ((u.homeLocation?.isNotEmpty ?? false) || (u.city != null))) _InfoTile(icon: Icons.home_outlined, label: l10n.t('Wohnort'), value: u.homeLocation ?? '${u.city}${u.country != null ? ', ${u.country}' : ''}'),
+                  if (u.showHomeLocation && ((u.homeLocation?.isNotEmpty ?? false) || (u.city != null)))
+                    _InfoTile(icon: Icons.location_on_outlined, label: l10n.t('Standort'), value: _sanitizeCity(u.homeLocation) ?? _sanitizeCity(u.city) ?? '-'),
                   if (u.showFavoriteSong && (u.favoriteSong?.isNotEmpty ?? false)) _InfoTile(icon: Icons.music_note_outlined, label: l10n.t('Lieblingssong'), value: u.favoriteSong!),
                   if (u.showBioPublic && (u.bio?.isNotEmpty ?? false)) _InfoTile(icon: Icons.info_outline, label: l10n.t('Über'), value: u.bio!),
                   const SizedBox(height: 16),
                   _ReviewsSection(user: u),
                   const SizedBox(height: 16),
                   if (_items.isNotEmpty) ...[
-                    Text('Andere Anzeigen von ${u.displayName}', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
+                    Text('Anzeigen von ${u.displayName}', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
                     const SizedBox(height: 8),
                     GridView.builder(
                       shrinkWrap: true,
@@ -80,6 +82,14 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
               ),
       ),
     );
+  }
+
+  static String? _sanitizeCity(String? raw) {
+    final v = raw?.trim();
+    if (v == null || v.isEmpty) return null;
+    // Keep only the city part (before comma/slash) to be privacy-friendly.
+    final cut = v.split(',').first.split('/').first.trim();
+    return cut.isEmpty ? null : cut;
   }
 }
 
@@ -189,13 +199,13 @@ class _ProfileQuickInfoLines extends StatelessWidget {
       Row(children: [
         const Icon(Icons.schedule, color: Colors.white70, size: 18),
         const SizedBox(width: 8),
-        Expanded(child: Text('${l10n.t('Durchschnittliche Reaktionszeit')}: ${responseTimeMin} Min', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)))
+        Expanded(child: Text('${l10n.t('Antwortet durchschnittlich in')} $responseTimeMin ${l10n.t('Minuten')}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)))
       ]),
       const SizedBox(height: 8),
       Row(children: [
-        const Icon(Icons.home_outlined, color: Colors.white70, size: 18),
+        const Icon(Icons.location_on_outlined, color: Colors.white70, size: 18),
         const SizedBox(width: 8),
-        Expanded(child: Text('${l10n.t('Wohnt in')}: $city', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)))
+        Expanded(child: Text('${l10n.t('Standort')}: $city', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)))
       ]),
       const SizedBox(height: 8),
       Row(children: [
@@ -210,6 +220,123 @@ class _ProfileQuickInfoLines extends StatelessWidget {
         Expanded(child: Text(user.isVerified ? l10n.t('Identität verifiziert') : l10n.t('Identität nicht verifiziert'), style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)))
       ]),
     ]);
+  }
+}
+
+class _TrustAndSafetySection extends StatelessWidget {
+  final User user;
+  final int responseTimeMinutes;
+
+  const _TrustAndSafetySection({required this.user, required this.responseTimeMinutes});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.watch<LocalizationController>();
+    final theme = Theme.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.20),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.t('Vertrauen & Sicherheit'), style: theme.textTheme.titleMedium?.copyWith(color: Colors.white)),
+          const SizedBox(height: 10),
+          _TrustRow(
+            icon: Icons.verified_user,
+            label: l10n.t('Identität'),
+            value: user.isVerified ? l10n.t('Verifiziert') : l10n.t('Nicht verifiziert'),
+            isPositive: user.isVerified,
+          ),
+          const SizedBox(height: 10),
+          _TrustRow(
+            icon: Icons.phone_outlined,
+            label: l10n.t('Telefon'),
+            value: user.phoneVerified ? l10n.t('Verifiziert') : l10n.t('Nicht verifiziert'),
+            isPositive: user.phoneVerified,
+          ),
+          const SizedBox(height: 10),
+          _TrustRow(
+            icon: Icons.alternate_email,
+            label: l10n.t('E-Mail'),
+            value: user.emailVerified ? l10n.t('Verifiziert') : l10n.t('Nicht verifiziert'),
+            isPositive: user.emailVerified,
+          ),
+          const SizedBox(height: 10),
+          _TrustRow(
+            icon: Icons.schedule,
+            label: l10n.t('Antwortzeit'),
+            value: '${l10n.t('Antwortet durchschnittlich in')} $responseTimeMinutes ${l10n.t('Minuten')}',
+            isPositive: true,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.location_on_outlined, color: Colors.white70, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${l10n.t('Standort')}: ${_PublicProfileScreenState._sanitizeCity(user.city) ?? '-'}',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                ),
+                child: Text(l10n.t('Nur Stadt'), style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TrustRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool isPositive;
+
+  const _TrustRow({required this.icon, required this.label, required this.value, required this.isPositive});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white70, size: 18),
+        const SizedBox(width: 10),
+        Expanded(child: Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white))),
+        const SizedBox(width: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: isPositive ? const Color(0xFF22C55E) : Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -243,6 +370,13 @@ class _ReviewsSection extends StatefulWidget {
 class _ReviewsSectionState extends State<_ReviewsSection> {
   List<ReviewWithUser> _reviews = const [];
   bool _loading = true;
+
+  static String _formatDateDe(DateTime dt) {
+    const months = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+    final d = dt.day.toString().padLeft(2, '0');
+    final m = months[(dt.month - 1).clamp(0, 11)];
+    return '$d. $m ${dt.year}';
+  }
 
   @override
   void initState() {
@@ -281,7 +415,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
         children: [
           Text(l10n.t('Bewertungen'), style: theme.textTheme.titleMedium?.copyWith(color: Colors.white)),
           const SizedBox(height: 8),
-          Text('Noch keine Bewertungen', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+          Text(l10n.t('Dieser Nutzer hat noch keine Bewertungen erhalten.'), style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70)),
         ],
       );
     }
@@ -338,8 +472,20 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (city != null && city.isNotEmpty)
-                    Text('$city, Deutschland', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          (city != null && city.isNotEmpty) ? _PublicProfileScreenState._sanitizeCity(city) ?? city : '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(_formatDateDe(entry.review.createdAt), style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
+                    ],
+                  ),
                   const SizedBox(height: 4),
                   Text(entry.review.comment, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white)),
                 ],
@@ -466,8 +612,20 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                                               Text(entry.review.rating.toStringAsFixed(1), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white)),
                                             ]),
                                             const SizedBox(height: 2),
-                                            if (city != null && city.isNotEmpty)
-                                              Text('$city, Deutschland', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    (city != null && city.isNotEmpty) ? _PublicProfileScreenState._sanitizeCity(city) ?? city : '',
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(_formatDateDe(entry.review.createdAt), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
+                                              ],
+                                            ),
                                             const SizedBox(height: 8),
                                             Text(entry.review.comment, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)),
                                           ],

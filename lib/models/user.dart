@@ -17,6 +17,12 @@ class User {
   final double avgRating;
   final int reviewCount;
   final DateTime createdAt;
+  /// When true, the account is considered deleted/deactivated.
+  ///
+  /// This is used for local-only MVP behavior and allows us to keep public
+  /// artifacts (e.g. reviews) while removing personal identifiers.
+  final bool isDeactivated;
+  final DateTime? deactivatedAt;
   final List<String> languages;
   final List<String> interests;
 
@@ -71,6 +77,8 @@ class User {
     required this.avgRating,
     required this.reviewCount,
     required this.createdAt,
+    this.isDeactivated = false,
+    this.deactivatedAt,
     this.languages = const [],
     this.interests = const [],
     this.workTitle,
@@ -118,6 +126,8 @@ class User {
     avgRating: (json['avgRating'] as num?)?.toDouble() ?? 0.0,
     reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 0,
     createdAt: _parseDateOrNow(json['createdAt']),
+    isDeactivated: json['isDeactivated'] ?? false,
+    deactivatedAt: _parseNullableDate(json['deactivatedAt']),
     languages: (json['languages'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     interests: (json['interests'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     workTitle: json['workTitle'],
@@ -172,6 +182,8 @@ class User {
     'avgRating': avgRating,
     'reviewCount': reviewCount,
     'createdAt': createdAt.toIso8601String(),
+    'isDeactivated': isDeactivated,
+    'deactivatedAt': deactivatedAt?.toIso8601String(),
     'languages': languages,
     'interests': interests,
     'workTitle': workTitle,
@@ -219,6 +231,8 @@ class User {
     double? avgRating,
     int? reviewCount,
     DateTime? createdAt,
+    bool? isDeactivated,
+    DateTime? deactivatedAt,
     List<String>? languages,
     List<String>? interests,
     String? workTitle,
@@ -264,6 +278,8 @@ class User {
         avgRating: avgRating ?? this.avgRating,
         reviewCount: reviewCount ?? this.reviewCount,
         createdAt: createdAt ?? this.createdAt,
+        isDeactivated: isDeactivated ?? this.isDeactivated,
+        deactivatedAt: deactivatedAt ?? this.deactivatedAt,
         languages: languages ?? this.languages,
         interests: interests ?? this.interests,
         workTitle: workTitle ?? this.workTitle,

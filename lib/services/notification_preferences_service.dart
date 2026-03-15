@@ -11,63 +11,71 @@ class NotificationPreferences {
   final bool showImportant;
   final bool showBookings;
   final bool showMessages;
-  final bool showReviews;
   final bool showPayments;
+  final bool showReviews;
   final bool showSecurity;
   final bool showSystem;
   final bool groupByCategory;
+  final bool unreadFirst;
 
   const NotificationPreferences({
     required this.showImportant,
     required this.showBookings,
     required this.showMessages,
-    required this.showReviews,
     required this.showPayments,
+    required this.showReviews,
     required this.showSecurity,
     required this.showSystem,
     required this.groupByCategory,
+    required this.unreadFirst,
   });
 
   factory NotificationPreferences.defaults() => const NotificationPreferences(
     showImportant: true,
     showBookings: true,
     showMessages: true,
-    showReviews: true,
     showPayments: true,
+    showReviews: true,
     showSecurity: true,
     showSystem: true,
     groupByCategory: true,
+    unreadFirst: true,
   );
 
   NotificationPreferences copyWith({
     bool? showImportant,
     bool? showBookings,
     bool? showMessages,
-    bool? showReviews,
     bool? showPayments,
+    bool? showReviews,
     bool? showSecurity,
     bool? showSystem,
     bool? groupByCategory,
+    bool? unreadFirst,
   }) => NotificationPreferences(
-    showImportant: showImportant ?? this.showImportant,
+    // Locked categories: always true.
+    showImportant: true,
     showBookings: showBookings ?? this.showBookings,
     showMessages: showMessages ?? this.showMessages,
-    showReviews: showReviews ?? this.showReviews,
     showPayments: showPayments ?? this.showPayments,
-    showSecurity: showSecurity ?? this.showSecurity,
+    showReviews: showReviews ?? this.showReviews,
+    // Locked categories: always true.
+    showSecurity: true,
     showSystem: showSystem ?? this.showSystem,
     groupByCategory: groupByCategory ?? this.groupByCategory,
+    unreadFirst: unreadFirst ?? this.unreadFirst,
   );
 
   Map<String, dynamic> toJson() => {
     'showImportant': showImportant,
     'showBookings': showBookings,
     'showMessages': showMessages,
-    'showReviews': showReviews,
     'showPayments': showPayments,
+    'showReviews': showReviews,
     'showSecurity': showSecurity,
     'showSystem': showSystem,
     'groupByCategory': groupByCategory,
+    'unreadFirst': unreadFirst,
   };
 
   factory NotificationPreferences.fromJson(Map<String, dynamic> json) {
@@ -79,20 +87,23 @@ class NotificationPreferences {
     }
 
     return NotificationPreferences(
-      showImportant: b('showImportant', d.showImportant),
+      // Locked categories: always enabled.
+      showImportant: true,
       showBookings: b('showBookings', d.showBookings),
       showMessages: b('showMessages', d.showMessages),
-      showReviews: b('showReviews', d.showReviews),
       showPayments: b('showPayments', d.showPayments),
-      showSecurity: b('showSecurity', d.showSecurity),
+      showReviews: b('showReviews', d.showReviews),
+      // Locked categories: always enabled.
+      showSecurity: true,
       showSystem: b('showSystem', d.showSystem),
       groupByCategory: b('groupByCategory', d.groupByCategory),
+      unreadFirst: b('unreadFirst', d.unreadFirst),
     );
   }
 }
 
 class NotificationPreferencesService {
-  static const _key = 'notification_preferences_v1';
+  static const _key = 'notification_preferences_v2';
 
   static Future<NotificationPreferences> get() async {
     try {
@@ -111,7 +122,9 @@ class NotificationPreferencesService {
   static Future<void> set(NotificationPreferences value) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_key, jsonEncode(value.toJson()));
+      // Sanitize to enforce locked categories.
+      final sanitized = value.copyWith(showImportant: true, showSecurity: true);
+      await prefs.setString(_key, jsonEncode(sanitized.toJson()));
     } catch (e) {
       debugPrint('[NotificationPreferencesService] set failed: $e');
     }
