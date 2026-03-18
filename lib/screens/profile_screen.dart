@@ -14,6 +14,7 @@ import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/screens/notifications_screen.dart';
 import 'package:lendify/screens/help_center_screen.dart';
 import 'package:lendify/screens/legal_screen.dart';
+import 'package:lendify/screens/language_screen.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
@@ -31,6 +32,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   User? _user;
   int _myListingsCount = 0;
+  int _completedBookingsCount = 0;
   bool _isLoading = true;
   bool _hasNewRequests = false;
   // Feedback state
@@ -197,10 +199,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final items = await DataService.getItems();
     final count = items.where((e) => e.ownerId == user.id).length;
     final hasNew = await DataService.hasNewOwnerRequests(user.id);
+    int completedBookings = 0;
+    try {
+      final renterCompleted = await DataService.getRentalRequestsForRenter(user.id, status: 'completed');
+      completedBookings = renterCompleted.length;
+    } catch (e) {
+      debugPrint('[Profile] Failed to compute completed bookings: $e');
+    }
     if (!mounted) return;
     setState(() {
       _user = user;
       _myListingsCount = count;
+      _completedBookingsCount = completedBookings;
       _isLoading = false;
       _hasNewRequests = hasNew;
     });
@@ -362,9 +372,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: ProfileHeaderCard(
                 user: userForDisplay,
                 listingsCount: _myListingsCount,
+                completedBookingsCount: _completedBookingsCount,
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          if (!_isLoading) _ResponseTimeCard(responseTimeMinutes: 42),
           const SizedBox(height: 16),
           // Primary actions (from JSON spec)
           Column(children: [
@@ -488,7 +501,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             break;
           case 'Sprache':
           case 'Language':
-            _openLanguageSheet();
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LanguageScreen()));
             break;
           case 'Abmelden':
           case 'Log out':
@@ -577,7 +590,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalScreen()));
         break;
       case '/language':
-        _openLanguageSheet();
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LanguageScreen()));
         break;
       case '/logout':
         _confirmLogout();
@@ -587,44 +600,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _openLanguageSheet() {
-    final l10n = context.read<LocalizationController>();
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.black.withValues(alpha: 0.7),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (context) {
-        final current = context.watch<LocalizationController>().language;
-        return SafeArea(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            RadioListTile<AppLanguage>(
-              value: AppLanguage.de,
-              groupValue: current,
-              activeColor: Theme.of(context).colorScheme.primary,
-              title: Text(l10n.t('Deutsch'), style: const TextStyle(color: Colors.white)),
-              onChanged: (_) async {
-                await context.read<LocalizationController>().setLanguage(AppLanguage.de);
-                if (!mounted) return;
-                Navigator.of(context).maybePop();
-              },
-            ),
-            RadioListTile<AppLanguage>(
-              value: AppLanguage.en,
-              groupValue: current,
-              activeColor: Theme.of(context).colorScheme.primary,
-              title: Text(l10n.t('English'), style: const TextStyle(color: Colors.white)),
-              onChanged: (_) async {
-                await context.read<LocalizationController>().setLanguage(AppLanguage.en);
-                if (!mounted) return;
-                Navigator.of(context).maybePop();
-              },
-            ),
-            const SizedBox(height: 8),
-          ]),
-        );
-      },
-    );
-  }
+  // Language selection moved to a dedicated screen (LanguageScreen).
 
   void _confirmLogout() {
     final l10n = context.read<LocalizationController>();
@@ -799,6 +775,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
         message: 'Bitte versuche es erneut.',
       );
     }
+  }
+}
+
+class _ResponseTimeCard extends StatelessWidget {
+  final int responseTimeMinutes;
+  const _ResponseTimeCard({required this.responseTimeMinutes});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.watch<LocalizationController>();
+    final minutes = responseTimeMinutes.clamp(1, 24 * 60);
+    final text = l10n.language == AppLanguage.de
+        ? 'Du antwortest durchschnittlich in $minutes Minuten'
+        : 'You reply on average in $minutes minutes';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.schedule, color: theme.colorScheme.primary.withValues(alpha: 0.95), size: 18),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, height: 1.25))),
+        ],
+      ),
+    );
   }
 }
 

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/screens/create_listing_screen.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 class SearchHeader extends StatelessWidget {
   final VoidCallback onFiltersPressed;
@@ -27,6 +28,11 @@ class SearchHeader extends StatelessWidget {
         return Row(children: [
           InkWell(
             onTap: () async {
+              final u = await DataService.getCurrentUser();
+              if (u == null) {
+                if (context.mounted) await AppPopup.showLoginRequired(context);
+                return;
+              }
               final created = await Navigator.of(context).push<Item?>(MaterialPageRoute(builder: (_) => const CreateListingScreen()));
               if (created != null && onListingCreated != null) {
                 await onListingCreated!(created);

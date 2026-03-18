@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/models/category.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart';
@@ -684,6 +685,14 @@ class DataService {
   }
 
   static Future<User?> getCurrentUser() async {
+    // Developer preview mode: allow simulating guest/first launch without touching persisted user data.
+    try {
+      final preview = await DeveloperPreviewController.readStateOnce();
+      if (preview == DeveloperUserState.firstLaunch || preview == DeveloperUserState.loggedOut) {
+        return null;
+      }
+    } catch (_) {}
+
     final prefs = await SharedPreferences.getInstance();
     final deleted = prefs.getBool(_accountDeletedKey) ?? false;
     if (deleted) {
@@ -729,7 +738,20 @@ class DataService {
       }
     }
 
-    final user = User.fromJson(map);
+    var user = User.fromJson(map);
+
+    // Developer preview mode: optionally force verification flag on the current user.
+    try {
+      final preview = await DeveloperPreviewController.readStateOnce();
+      if (preview == DeveloperUserState.verifiedUser && user.isVerified != true) {
+        user = user.copyWith(isVerified: true, emailVerified: true, phoneVerified: true);
+        mutated = true;
+      }
+      if (preview == DeveloperUserState.loggedIn && user.isVerified == true) {
+        user = user.copyWith(isVerified: false);
+        mutated = true;
+      }
+    } catch (_) {}
     if (mutated) {
       await prefs.setString(_currentUserKey, jsonEncode(user.toJson()));
     }
@@ -3287,6 +3309,179 @@ class DataService {
   }
 
   // ===== Message Threads =====
+
+  /// Returns the message thread linked to a rental request, if any.
+  static Future<MessageThread?> getMessageThreadByRequestId(String requestId) async {
+    if (requestId.trim().isEmpty) return null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+      if (raw == null || raw.isEmpty) return null;
+      final List<dynamic> list = jsonDecode(raw);
+      for (final e in list) {
+        try {
+          final thread = MessageThread.fromJson(Map<String, dynamic>.from(e as Map));
+          if (thread.requestId == requestId) return thread;
+        } catch (_) {}
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[DataService] getMessageThreadByRequestId error: $e');
+      return null;
+    }
+  }
+
+  /// Creates (if missing) and returns a message thread for an existing request.
+  ///
+  /// This is a local/demo helper to ensure the communication hub can always open
+  /// from booking screens.
+  static Future<MessageThread?> createOrGetThreadForRequest(String requestId) async {
+    try {
+      final existing = await getMessageThreadByRequestId(requestId);
+      if (existing != null) return existing;
+      final req = await getRentalRequestById(requestId);
+      if (req == null) return null;
+
+      // Mirror the internal creation used on accept.
+      await _createMessageThreadForRequest(req);
+      return await getMessageThreadByRequestId(requestId);
+    } catch (e) {
+      debugPrint('[DataService] createOrGetThreadForRequest failed: $e');
+      return null;
+    }
+  }
+
+  /// Updates the booking status snapshot stored on a thread.
+  ///
+  /// If a real [RentalRequest] exists for [requestId], prefer updating that
+  /// request via [updateRentalRequestStatus] instead.
+  static Future<void> updateMessageThreadBookingStatus({required String threadId, required String status}) async {
+    if (threadId.trim().isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+      if (raw == null || raw.isEmpty) return;
+      final List<dynamic> list = jsonDecode(raw);
+      bool mutated = false;
+      for (int i = 0; i < list.length; i++) {
+        if (list[i] is! Map) continue;
+        final map = Map<String, dynamic>.from(list[i] as Map);
+        if ((map['id'] ?? '').toString() != threadId) continue;
+        final thread = MessageThread.fromJson(map);
+        list[i] = thread.copyWith(bookingStatus: status).toJson();
+        mutated = true;
+        break;
+      }
+      if (mutated) await prefs.setString(_messageThreadsKey, jsonEncode(list));
+    } catch (e) {
+      debugPrint('[DataService] updateMessageThreadBookingStatus error: $e');
+    }
+  }
+
+  /// Appends a system message to a thread.
+  static Future<void> addSystemMessageToThread({required String threadId, required String text}) async {
+    if (threadId.trim().isEmpty) return;
+    final t = text.trim();
+    if (t.isEmpty) return;
+    try {
+      await addMessageToThread(threadId: threadId, senderId: 'system', text: t);
+    } catch (e) {
+      debugPrint('[DataService] addSystemMessageToThread error: $e');
+    }
+  }
+
+  // ===== Handover/Return lightweight state (local) =====
+
+  static const String _handoverReturnStateKey = 'handover_return_state_v1';
+
+  static Future<Map<String, dynamic>> _getHandoverReturnStateMap() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_handoverReturnStateKey);
+      if (raw == null || raw.isEmpty) return <String, dynamic>{};
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) return decoded.map((k, v) => MapEntry(k.toString(), v));
+      return <String, dynamic>{};
+    } catch (e) {
+      debugPrint('[DataService] _getHandoverReturnStateMap failed: $e');
+      return <String, dynamic>{};
+    }
+  }
+
+  static Future<void> _setHandoverReturnStateMap(Map<String, dynamic> map) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_handoverReturnStateKey, jsonEncode(map));
+    } catch (e) {
+      debugPrint('[DataService] _setHandoverReturnStateMap failed: $e');
+    }
+  }
+
+  /// Returns state for a request: {handoverActive, returnActive, handoverPhotos, returnPhotos}
+  static Future<Map<String, dynamic>> getHandoverReturnState(String requestId) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return const {};
+    final map = await _getHandoverReturnStateMap();
+    final entry = map[id];
+    if (entry is Map) {
+      final e = entry.map((k, v) => MapEntry(k.toString(), v));
+      return {
+        'handoverActive': e['handoverActive'] == true,
+        'returnActive': e['returnActive'] == true,
+        'handoverPhotos': (e['handoverPhotos'] is num) ? (e['handoverPhotos'] as num).toInt() : 0,
+        'returnPhotos': (e['returnPhotos'] is num) ? (e['returnPhotos'] as num).toInt() : 0,
+      };
+    }
+    return {'handoverActive': false, 'returnActive': false, 'handoverPhotos': 0, 'returnPhotos': 0};
+  }
+
+  static Future<void> setHandoverActive(String requestId, {required bool active}) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return;
+    final map = await _getHandoverReturnStateMap();
+    final existing = (map[id] is Map) ? Map<String, dynamic>.from(map[id] as Map) : <String, dynamic>{};
+    existing['handoverActive'] = active;
+    if (active) existing['returnActive'] = false;
+    existing['handoverPhotos'] = (existing['handoverPhotos'] is num) ? (existing['handoverPhotos'] as num).toInt() : 0;
+    existing['returnPhotos'] = (existing['returnPhotos'] is num) ? (existing['returnPhotos'] as num).toInt() : 0;
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+  }
+
+  static Future<void> setReturnActive(String requestId, {required bool active}) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return;
+    final map = await _getHandoverReturnStateMap();
+    final existing = (map[id] is Map) ? Map<String, dynamic>.from(map[id] as Map) : <String, dynamic>{};
+    existing['returnActive'] = active;
+    if (active) existing['handoverActive'] = false;
+    existing['handoverPhotos'] = (existing['handoverPhotos'] is num) ? (existing['handoverPhotos'] as num).toInt() : 0;
+    existing['returnPhotos'] = (existing['returnPhotos'] is num) ? (existing['returnPhotos'] as num).toInt() : 0;
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+  }
+
+  static Future<void> incrementHandoverPhotos(String requestId, {int max = 4}) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return;
+    final map = await _getHandoverReturnStateMap();
+    final existing = (map[id] is Map) ? Map<String, dynamic>.from(map[id] as Map) : <String, dynamic>{};
+    final cur = (existing['handoverPhotos'] is num) ? (existing['handoverPhotos'] as num).toInt() : 0;
+    existing['handoverPhotos'] = (cur + 1).clamp(0, max);
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+  }
+
+  static Future<void> incrementReturnPhotos(String requestId, {int max = 4}) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return;
+    final map = await _getHandoverReturnStateMap();
+    final existing = (map[id] is Map) ? Map<String, dynamic>.from(map[id] as Map) : <String, dynamic>{};
+    final cur = (existing['returnPhotos'] is num) ? (existing['returnPhotos'] as num).toInt() : 0;
+    existing['returnPhotos'] = (cur + 1).clamp(0, max);
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+  }
   /// Erstellt automatisch einen Message Thread wenn eine Anfrage angenommen wird
   static Future<void> _createMessageThreadForRequest(RentalRequest request) async {
     try {
@@ -3380,9 +3575,20 @@ class DataService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_messageThreadsKey);
-      if (raw == null || raw.isEmpty) return [];
+      if (raw == null || raw.isEmpty) {
+        try {
+          final seeded = _buildDemoMessageThreadsForUser(userId);
+          await prefs.setString(_messageThreadsKey, jsonEncode(seeded.map((t) => t.toJson()).toList()));
+        } catch (e) {
+          debugPrint('[DataService] seed demo threads failed: $e');
+          return [];
+        }
+      }
 
-      final List<dynamic> list = jsonDecode(raw);
+      final effectiveRaw = prefs.getString(_messageThreadsKey);
+      if (effectiveRaw == null || effectiveRaw.isEmpty) return [];
+
+      final List<dynamic> list = jsonDecode(effectiveRaw);
       final threads = <MessageThread>[];
 
       for (final e in list) {
@@ -3409,6 +3615,235 @@ class DataService {
       debugPrint('[DataService] getMessageThreadsForUser error: $e');
       return [];
     }
+  }
+
+  /// Returns threads that were archived by the user.
+  static Future<List<MessageThread>> getArchivedMessageThreadsForUser(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+      if (raw == null || raw.isEmpty) return [];
+      final List<dynamic> list = jsonDecode(raw);
+      final threads = <MessageThread>[];
+      for (final e in list) {
+        try {
+          final thread = MessageThread.fromJson(Map<String, dynamic>.from(e as Map));
+          if ((thread.user1Id == userId || thread.user2Id == userId) && thread.archivedForUserIds.contains(userId)) {
+            threads.add(thread);
+          }
+        } catch (err) {
+          debugPrint('[DataService] Skipped corrupted archived thread: $err');
+        }
+      }
+      threads.sort((a, b) {
+        final aTime = a.lastMessageAt ?? a.createdAt;
+        final bTime = b.lastMessageAt ?? b.createdAt;
+        return bTime.compareTo(aTime);
+      });
+      return threads;
+    } catch (e) {
+      debugPrint('[DataService] getArchivedMessageThreadsForUser error: $e');
+      return [];
+    }
+  }
+
+  static Future<void> archiveMessageThreadForUser({required String threadId, required String userId}) async {
+    if (threadId.isEmpty || userId.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+      if (raw == null || raw.isEmpty) return;
+      final List<dynamic> list = jsonDecode(raw);
+      bool mutated = false;
+      for (int i = 0; i < list.length; i++) {
+        if (list[i] is! Map) continue;
+        final map = Map<String, dynamic>.from(list[i] as Map);
+        if ((map['id'] ?? '').toString() != threadId) continue;
+        final thread = MessageThread.fromJson(map);
+        final archived = [...thread.archivedForUserIds];
+        if (!archived.contains(userId)) {
+          archived.add(userId);
+          list[i] = thread.copyWith(archivedForUserIds: archived).toJson();
+          mutated = true;
+        }
+        break;
+      }
+      if (mutated) await prefs.setString(_messageThreadsKey, jsonEncode(list));
+    } catch (e) {
+      debugPrint('[DataService] archiveMessageThreadForUser error: $e');
+    }
+  }
+
+  static Future<void> unarchiveMessageThreadForUser({required String threadId, required String userId}) async {
+    if (threadId.isEmpty || userId.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+      if (raw == null || raw.isEmpty) return;
+      final List<dynamic> list = jsonDecode(raw);
+      bool mutated = false;
+      for (int i = 0; i < list.length; i++) {
+        if (list[i] is! Map) continue;
+        final map = Map<String, dynamic>.from(list[i] as Map);
+        if ((map['id'] ?? '').toString() != threadId) continue;
+        final thread = MessageThread.fromJson(map);
+        final archived = [...thread.archivedForUserIds];
+        if (archived.remove(userId)) {
+          list[i] = thread.copyWith(archivedForUserIds: archived).toJson();
+          mutated = true;
+        }
+        break;
+      }
+      if (mutated) await prefs.setString(_messageThreadsKey, jsonEncode(list));
+    } catch (e) {
+      debugPrint('[DataService] unarchiveMessageThreadForUser error: $e');
+    }
+  }
+
+  /// Deletes a thread entirely from local storage.
+  ///
+  /// This is destructive and affects both participants (demo/local only).
+  static Future<void> deleteMessageThread({required String threadId}) async {
+    if (threadId.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+      if (raw == null || raw.isEmpty) return;
+      final List<dynamic> list = jsonDecode(raw);
+      final before = list.length;
+      list.removeWhere((e) => (e is Map) && ((e['id'] ?? '').toString() == threadId));
+      if (list.length != before) {
+        await prefs.setString(_messageThreadsKey, jsonEncode(list));
+      }
+    } catch (e) {
+      debugPrint('[DataService] deleteMessageThread error: $e');
+    }
+  }
+
+  static Future<int> getUnreadThreadCountForUser(String userId) async {
+    try {
+      final threads = await getMessageThreadsForUser(userId);
+      int count = 0;
+      for (final t in threads) {
+        final hasUnread = t.messages.any((m) => m.senderId != userId && !m.isRead);
+        if (hasUnread) count++;
+      }
+      return count;
+    } catch (e) {
+      debugPrint('[DataService] getUnreadThreadCountForUser error: $e');
+      return 0;
+    }
+  }
+
+  static List<MessageThread> _buildDemoMessageThreadsForUser(String userId) {
+    final now = DateTime.now();
+    final otherUsers = <String>['u2', 'u3', 'u6', 'u10', 'u14']..remove(userId);
+    final picks = otherUsers.take(3).toList();
+    if (picks.isEmpty) picks.add('u2');
+
+    Message msg({required String senderId, required String text, required DateTime at, bool isRead = true}) => Message(
+      id: 'msg_${at.microsecondsSinceEpoch}_${senderId == userId ? 'me' : 'them'}',
+      senderId: senderId,
+      text: text,
+      timestamp: at,
+      isRead: isRead,
+    );
+
+    MessageThread thread({
+      required String threadId,
+      required String otherUserId,
+      required String itemTitle,
+      String? bookingStatus,
+      DateTime? handoverAt,
+      DateTime? returnAt,
+      String? threadType,
+      required List<Message> messages,
+      required DateTime createdAt,
+      DateTime? lastAt,
+    }) => MessageThread(
+      id: threadId,
+      requestId: 'demo_req_$threadId',
+      itemId: 'demo_item_$threadId',
+      itemTitle: itemTitle,
+      user1Id: userId,
+      user2Id: otherUserId,
+      threadType: threadType,
+      bookingStatus: bookingStatus,
+      handoverAt: handoverAt,
+      returnAt: returnAt,
+      otherUserOnline: threadType == 'support' ? true : null,
+      otherUserLastActive: now.subtract(const Duration(minutes: 6)),
+      archivedForUserIds: const <String>[],
+      messages: messages,
+      createdAt: createdAt,
+      lastMessageAt: lastAt,
+    );
+
+    final t1Time = now.subtract(const Duration(hours: 2, minutes: 12));
+    final t2Time = now.subtract(const Duration(days: 1, hours: 3));
+    final t3Time = now.subtract(const Duration(days: 5, hours: 1));
+
+    final th1 = thread(
+      threadId: 'thread_demo_1',
+      otherUserId: picks[0],
+      itemTitle: 'Canon EOS R5 – Kamera',
+      createdAt: t1Time.subtract(const Duration(minutes: 20)),
+      lastAt: t1Time,
+      bookingStatus: 'accepted',
+      handoverAt: DateTime(now.year, now.month, now.day, 18, 0),
+      messages: [
+        msg(senderId: 'system', text: 'Starte einen Chat, um Übergabe und Rückgabe zu koordinieren.', at: t1Time.subtract(const Duration(minutes: 20)), isRead: true),
+        msg(senderId: picks[0], text: 'Hi! Passt dir heute 18:30 für die Übergabe?', at: t1Time.subtract(const Duration(minutes: 7)), isRead: false),
+        msg(senderId: userId, text: 'Ja, 18:30 ist perfekt. Ich bin pünktlich da.', at: t1Time.subtract(const Duration(minutes: 4)), isRead: true),
+        msg(senderId: picks[0], text: 'Super — ich schicke dir gleich die genaue Adresse.', at: t1Time, isRead: false),
+      ],
+    );
+
+    final th2 = thread(
+      threadId: 'thread_demo_2',
+      otherUserId: picks.length > 1 ? picks[1] : picks[0],
+      itemTitle: 'Bosch Bohrmaschine',
+      createdAt: t2Time.subtract(const Duration(hours: 1)),
+      lastAt: t2Time,
+      bookingStatus: 'pending',
+      messages: [
+        msg(senderId: 'system', text: 'Starte einen Chat, um Übergabe und Rückgabe zu koordinieren.', at: t2Time.subtract(const Duration(hours: 1)), isRead: true),
+        msg(senderId: userId, text: 'Hey! Ist die Bohrmaschine auch mit 10mm Steinbohrer verfügbar?', at: t2Time.subtract(const Duration(minutes: 18)), isRead: true),
+        msg(senderId: picks.length > 1 ? picks[1] : picks[0], text: 'Ja, ist dabei. Akku ist voll geladen 👍', at: t2Time, isRead: true),
+      ],
+    );
+
+    final th3 = thread(
+      threadId: 'thread_demo_3',
+      otherUserId: picks.length > 2 ? picks[2] : picks[0],
+      itemTitle: 'E‑Scooter (City)',
+      createdAt: t3Time.subtract(const Duration(hours: 2)),
+      lastAt: t3Time,
+      bookingStatus: 'completed',
+      returnAt: DateTime(now.year, now.month, now.day + 1, 12, 0),
+      messages: [
+        msg(senderId: 'system', text: 'Starte einen Chat, um Übergabe und Rückgabe zu koordinieren.', at: t3Time.subtract(const Duration(hours: 2)), isRead: true),
+        msg(senderId: picks.length > 2 ? picks[2] : picks[0], text: 'Wenn du willst, kann ich dir noch ein Schloss mitgeben.', at: t3Time.subtract(const Duration(minutes: 35)), isRead: true),
+        msg(senderId: userId, text: 'Mega, danke! Dann fühle ich mich sicherer.', at: t3Time, isRead: true),
+      ],
+    );
+
+    final supportTime = now.subtract(const Duration(minutes: 40));
+    final support = thread(
+      threadId: 'thread_support_1',
+      otherUserId: 'support',
+      threadType: 'support',
+      itemTitle: 'SIT Support',
+      bookingStatus: null,
+      createdAt: supportTime.subtract(const Duration(minutes: 2)),
+      lastAt: supportTime,
+      messages: [
+        msg(senderId: 'support', text: 'Hallo! Wie können wir helfen?', at: supportTime.subtract(const Duration(minutes: 2)), isRead: false),
+        msg(senderId: userId, text: 'Kurze Frage zur Rückgabe: kann ich auch früher abgeben?', at: supportTime, isRead: true),
+      ],
+    );
+
+    return [th1, th2, support, th3];
   }
 
   /// Findet einen Thread anhand der Thread-ID

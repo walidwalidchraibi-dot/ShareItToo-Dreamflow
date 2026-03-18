@@ -3,11 +3,17 @@ import 'package:flutter/material.dart';
 
 /// Shows a blurred-background bottom sheet with a glassy container.
 /// The [child] should include its own padding and (optionally) a sticky footer.
-Future<T?> showBlurBottomSheet<T>(BuildContext context, {required Widget child, double maxHeightFactor = 0.9}) {
+Future<T?> showBlurBottomSheet<T>(
+  BuildContext context, {
+  required Widget child,
+  double maxHeightFactor = 0.9,
+  bool useRootNavigator = true,
+}) {
   final media = MediaQuery.of(context);
   final maxH = media.size.height * maxHeightFactor;
   return showModalBottomSheet<T>(
     context: context,
+    useRootNavigator: useRootNavigator,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.35),
@@ -39,7 +45,7 @@ class _GlassSheet extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface.withValues(alpha: 0.92),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: SafeArea(top: false, child: Column(mainAxisSize: MainAxisSize.min, children: [

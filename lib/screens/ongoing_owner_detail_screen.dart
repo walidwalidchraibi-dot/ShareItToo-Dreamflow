@@ -606,9 +606,14 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               onMessage: (category == 'requests')
                   ? null
                   : () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => MessageThreadScreen(participantName: renter.displayName, avatarUrl: renter.photoURL),
-                      ));
+                       Navigator.of(context).push(MaterialPageRoute(
+                         builder: (_) => MessageThreadScreen(
+                           requestId: req.id,
+                           participantName: renter.displayName,
+                           avatarUrl: renter.photoURL,
+                           itemTitle: item.title,
+                         ),
+                       ));
                     },
             ),
           ]),

@@ -1,23 +1,82 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum AppLanguage { de, en }
+enum AppLanguage { de, en, es, fr, it, nl, pl, pt, tr, ar }
 
 class LocalizationController extends ChangeNotifier {
   static const _prefsKey = 'app_language_code';
   AppLanguage _language = AppLanguage.de;
 
   AppLanguage get language => _language;
-  String get code => _language == AppLanguage.de ? 'de' : 'en';
+  String get code {
+    switch (_language) {
+      case AppLanguage.de:
+        return 'de';
+      case AppLanguage.en:
+        return 'en';
+      case AppLanguage.es:
+        return 'es';
+      case AppLanguage.fr:
+        return 'fr';
+      case AppLanguage.it:
+        return 'it';
+      case AppLanguage.nl:
+        return 'nl';
+      case AppLanguage.pl:
+        return 'pl';
+      case AppLanguage.pt:
+        return 'pt';
+      case AppLanguage.tr:
+        return 'tr';
+      case AppLanguage.ar:
+        return 'ar';
+    }
+  }
+
+  static AppLanguage _fromCode(String? code) {
+    switch ((code ?? '').toLowerCase()) {
+      case 'de':
+      case 'de-de':
+        return AppLanguage.de;
+      case 'en':
+      case 'en-us':
+      case 'en-gb':
+        return AppLanguage.en;
+      case 'es':
+      case 'es-es':
+        return AppLanguage.es;
+      case 'fr':
+      case 'fr-fr':
+        return AppLanguage.fr;
+      case 'it':
+      case 'it-it':
+        return AppLanguage.it;
+      case 'nl':
+      case 'nl-nl':
+        return AppLanguage.nl;
+      case 'pl':
+      case 'pl-pl':
+        return AppLanguage.pl;
+      case 'pt':
+      case 'pt-pt':
+      case 'pt-br':
+        return AppLanguage.pt;
+      case 'tr':
+      case 'tr-tr':
+        return AppLanguage.tr;
+      case 'ar':
+      case 'ar-sa':
+        return AppLanguage.ar;
+      default:
+        return AppLanguage.de;
+    }
+  }
 
   Future<void> loadFromPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final code = prefs.getString(_prefsKey);
-      if (code == 'en') {
-        _language = AppLanguage.en;
-        notifyListeners();
-      }
+      _language = _fromCode(prefs.getString(_prefsKey));
+      notifyListeners();
     } catch (_) {
       // ignore
     }
@@ -36,6 +95,8 @@ class LocalizationController extends ChangeNotifier {
   }
 
   String t(String key) {
+    // Currently only DE and EN tables are maintained.
+    // For all non-DE languages we fall back to EN until translations are added.
     final table = _language == AppLanguage.de ? _de : _en;
     return table[key] ?? key;
   }
@@ -213,6 +274,9 @@ class LocalizationController extends ChangeNotifier {
     'Noch keine gespeicherten Elemente': 'Noch keine gespeicherten Elemente',
     'Noch keine Bewertungen': 'Noch keine Bewertungen',
     'Noch keine Bewertungen vorhanden.': 'Noch keine Bewertungen vorhanden.',
+    'Keine Bewertung': 'Keine Bewertung',
+    'Keine Bewertung vorhanden.': 'Keine Bewertung vorhanden.',
+    'Du antwortest durchschnittlich in': 'Du antwortest durchschnittlich in',
     'Zur Wunschliste hinzugefügt': 'Zur Wunschliste hinzugefügt',
 
     // Actions on details sheet
@@ -224,6 +288,10 @@ class LocalizationController extends ChangeNotifier {
     'Neue Anzeige erstellen': 'Neue Anzeige erstellen',
     'Starte eine neue Anzeige in wenigen Schritten.': 'Starte eine neue Anzeige in wenigen Schritten.',
     'Erstelle eine neue Anzeige': 'Erstelle eine neue Anzeige',
+
+    // Language screen
+    'language.title': 'Sprache auswählen',
+    'language.subtitle': 'Wähle eine Sprache aus. Die Änderung wird sofort übernommen und auf diesem Gerät gespeichert.',
   };
 
   static const Map<String, String> _en = {
@@ -399,6 +467,9 @@ class LocalizationController extends ChangeNotifier {
     'Noch keine gespeicherten Elemente': 'No saved items yet',
     'Noch keine Bewertungen': 'No reviews yet',
     'Noch keine Bewertungen vorhanden.': 'No reviews yet.',
+    'Keine Bewertung': 'No rating yet',
+    'Keine Bewertung vorhanden.': 'No rating available.',
+    'Du antwortest durchschnittlich in': 'You reply on average in',
     'Zur Wunschliste hinzugefügt': 'Added to wishlist',
 
     // Actions on details sheet
@@ -410,6 +481,10 @@ class LocalizationController extends ChangeNotifier {
     'Neue Anzeige erstellen': 'Create a new listing',
     'Starte eine neue Anzeige in wenigen Schritten.': 'Start a new listing in a few steps.',
     'Erstelle eine neue Anzeige': 'Create a new listing',
+
+    // Language screen
+    'language.title': 'Select language',
+    'language.subtitle': 'Choose a language. Changes apply immediately and are saved on this device.',
   };
 }
 

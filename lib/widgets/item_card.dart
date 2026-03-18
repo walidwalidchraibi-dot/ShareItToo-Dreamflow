@@ -8,12 +8,20 @@ import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
+import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/rating_badge.dart';
 
 class ItemCard extends StatelessWidget {
   final Item item;
   final bool compact;
 
   const ItemCard({super.key, required this.item, this.compact = false});
+
+  static double _deriveRating(Item item) {
+    final base = 4.4 + ((item.id.hashCode.abs() % 40) / 100); // 4.40 - 4.79
+    final boost = (item.timesLent.clamp(0, 30) / 300); // up to +0.10
+    return (base + boost).clamp(4.3, 5.0);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +67,7 @@ class ItemCard extends StatelessWidget {
                         child: Icon(
                           verified ? Icons.verified : Icons.verified_outlined,
                           size: iconSize,
-                          color: verified ? const Color(0xFF22C55E) : Colors.black45,
+                          color: verified ? BrandColors.success : Colors.black45,
                         ),
                       ),
                     );
@@ -67,6 +75,13 @@ class ItemCard extends StatelessWidget {
                 ),
                 // Wishlist heart on the RIGHT (manual selection flow)
                 Positioned(top: 8, right: 5, child: _WishlistHeartButton(itemId: item.id, size: iconSize)),
+
+                // Rating badge bottom-right on image
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: RatingBadge(rating: _deriveRating(item)),
+                ),
               ]),
             ),
             SizedBox(
@@ -112,12 +127,6 @@ class ItemCard extends StatelessWidget {
                           },
                         ),
                         const Spacer(),
-                        const Icon(Icons.star, size: 14, color: Color(0xFFFB923C)),
-                        const SizedBox(width: 2),
-                        Text(
-                          '4.8',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurface),
-                        ),
                       ],
                     ),
                   ],

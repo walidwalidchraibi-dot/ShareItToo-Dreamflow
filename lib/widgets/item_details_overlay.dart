@@ -1150,7 +1150,7 @@ class _DeliveryMetaChips extends StatelessWidget {
     }
     Widget chip(String text) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(999),

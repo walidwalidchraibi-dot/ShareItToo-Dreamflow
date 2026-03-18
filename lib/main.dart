@@ -8,6 +8,8 @@ import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/developer_preview_service.dart';
+import 'package:lendify/screens/onboarding_flow_screen.dart';
 
 Future<void> main() async {
   // Initialize bindings once in the same zone as runApp to avoid zone mismatch warnings.
@@ -51,11 +53,18 @@ Future<void> main() async {
   }
 
   debugPrint('[Main] runApp(MyApp)');
-  runApp(const MyApp());
+  DeveloperUserState? initialPreview;
+  try {
+    initialPreview = await DeveloperPreviewController.readStateOnce();
+  } catch (e) {
+    debugPrint('[Main] readStateOnce failed: $e');
+  }
+  runApp(MyApp(initialPreviewState: initialPreview));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final DeveloperUserState? initialPreviewState;
+  const MyApp({super.key, this.initialPreviewState});
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +72,9 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider<LocalizationController>(create: (_) => LocalizationController()..loadFromPrefs()),
         ChangeNotifierProvider<MainNavController>(create: (_) => MainNavController()),
+        ChangeNotifierProvider<DeveloperPreviewController>(
+          create: (_) => DeveloperPreviewController(initialState: initialPreviewState)..loadFromPrefs(),
+        ),
       ],
       child: Consumer<LocalizationController>(
         builder: (context, l10n, _) {
@@ -73,10 +85,31 @@ class MyApp extends StatelessWidget {
             darkTheme: buildDarkTheme(context),
             themeMode: ThemeMode.system,
             builder: (context, child) => AppGradientBackground(child: child ?? const SizedBox.shrink()),
-            home: const MainNavigation(),
+            home: const AppRoot(),
           );
         },
       ),
     );
+  }
+}
+
+class AppRoot extends StatelessWidget {
+  const AppRoot({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = context.watch<DeveloperPreviewController>();
+    if (!preview.hydrated) {
+      return const Scaffold(backgroundColor: Colors.transparent, body: SizedBox.shrink());
+    }
+    switch (preview.state) {
+      case DeveloperUserState.firstLaunch:
+        return FirstLaunchFlowScreen(onFinished: () => preview.setState(DeveloperUserState.loggedOut));
+      case DeveloperUserState.loggedOut:
+        return const LoggedOutLandingScreen();
+      case DeveloperUserState.loggedIn:
+      case DeveloperUserState.verifiedUser:
+        return const MainNavigation();
+    }
   }
 }

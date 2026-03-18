@@ -7,7 +7,9 @@ import 'package:provider/provider.dart';
 class ProfileHeaderCard extends StatelessWidget {
   final User user;
   final int listingsCount;
-  const ProfileHeaderCard({super.key, required this.user, required this.listingsCount});
+  /// Number of completed bookings (as renter). If null, we fall back to a demo estimate.
+  final int? completedBookingsCount;
+  const ProfileHeaderCard({super.key, required this.user, required this.listingsCount, this.completedBookingsCount});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +24,9 @@ class ProfileHeaderCard extends StatelessWidget {
       child: IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           SizedBox(
-            width: 140,
+            // Slightly narrower to move the divider left and free space for metrics.
+            // (User request) push divider further left to gain room for right-side stats.
+            width: 104,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -62,9 +66,9 @@ class ProfileHeaderCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           VerticalDivider(width: 1, thickness: 1, color: Colors.white54.withValues(alpha: 0.15)),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
             child: Center(
               child: Column(
@@ -73,7 +77,7 @@ class ProfileHeaderCard extends StatelessWidget {
                 children: [
                   _MetricLine(label: l10n.t('Bewertung'), value: _ratingText(context, user)),
                   const SizedBox(height: 8),
-                  _MetricLine(label: l10n.t('Buchungen'), value: _estimatedBookings(user).toString()),
+                  _MetricLine(label: l10n.t('Buchungen'), value: (completedBookingsCount ?? _estimatedBookings(user)).toString()),
                   const SizedBox(height: 8),
                   _MetricLine(label: l10n.t('Dabei seit'), value: _joinedMonthYear(user.createdAt)),
                   const SizedBox(height: 8),
@@ -90,7 +94,7 @@ class ProfileHeaderCard extends StatelessWidget {
   static String _ratingText(BuildContext context, User user) {
     final l10n = context.read<LocalizationController>();
     final c = user.reviewCount;
-    if (c <= 0) return l10n.t('Noch keine Bewertungen');
+    if (c <= 0) return l10n.t('Keine Bewertung');
     final label = c == 1 ? l10n.t('Bewertung') : l10n.t('Bewertungen');
     return '${user.avgRating.toStringAsFixed(1)} ★ ($c $label)';
   }
@@ -112,10 +116,32 @@ class _MetricLine extends StatelessWidget {
   const _MetricLine({required this.label, required this.value});
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      Expanded(child: Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70))),
-      const SizedBox(width: 8),
-      Text(value, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+    final textTheme = Theme.of(context).textTheme;
+    final labelStyle = textTheme.labelSmall?.copyWith(color: Colors.white70);
+    final valueStyle = textTheme.bodySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w700);
+    // Keep the value close to the label by using a fixed label column.
+    // This avoids pushing values to the far right edge.
+    return Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
+      SizedBox(
+        width: 74,
+        child: Text(
+          label,
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.ellipsis,
+          style: labelStyle,
+        ),
+      ),
+      const SizedBox(width: 4),
+      Expanded(
+        child: Text(
+          value,
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.ellipsis,
+          style: valueStyle,
+        ),
+      ),
     ]);
   }
 }

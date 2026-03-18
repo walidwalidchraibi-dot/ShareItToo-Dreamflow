@@ -24,7 +24,17 @@ import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/screens/explore_screen_pinned_header.dart';
 import 'package:lendify/widgets/scroll_edge_indicators.dart';
 import 'package:lendify/widgets/app_image.dart';
+import 'package:lendify/widgets/listing_carousel_card.dart';
+import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/screens/developer_preview_screen.dart';
+import 'package:lendify/widgets/rating_badge.dart';
+
+double _deriveStableListingRating(Item item) {
+  final base = 4.4 + ((item.id.hashCode.abs() % 40) / 100); // 4.40 - 4.79
+  final boost = (item.timesLent.clamp(0, 30) / 300); // up to +0.10
+  return (base + boost).clamp(4.3, 5.0);
+}
 
 class ExploreScreen extends StatefulWidget {
 const ExploreScreen({super.key});
@@ -36,6 +46,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final ScrollController _scrollController = ScrollController();
   final PageController _feedPager = PageController();
   final ScrollController _ctrlGuests = ScrollController();
+
+  int _devTapCount = 0;
+  Timer? _devTapReset;
 
 List<Item> _items = [];
 List<Category> _categories = [];
@@ -113,10 +126,24 @@ _loadData();
 
   @override
   void dispose() {
+    _devTapReset?.cancel();
     _scrollController.dispose();
     _feedPager.dispose();
     _ctrlGuests.dispose();
     super.dispose();
+  }
+
+  void _handleDevSecretTap() {
+    _devTapReset?.cancel();
+    _devTapReset = Timer(const Duration(milliseconds: 900), () {
+      if (mounted) setState(() => _devTapCount = 0);
+    });
+    setState(() => _devTapCount += 1);
+    if (_devTapCount >= 7) {
+      _devTapReset?.cancel();
+      _devTapCount = 0;
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DeveloperPreviewScreen()));
+    }
   }
 
 Future<void> _loadData() async {
@@ -607,6 +634,55 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                           padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
                         ),
                       ),
+                      if (items.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: LayoutBuilder(builder: (context, c) {
+                              // 2 full cards + 25% of the next card.
+                              const sidePad = 16.0;
+                              const gap = 12.0;
+                              final viewport = c.maxWidth;
+                              final cardW = ((viewport - sidePad * 2) - gap * 2) / 2.25;
+                              // Keep the featured (upper) cards compact.
+                              // Image is 4:3 => height = width * 3/4.
+                              // Tighten the horizontal featured cards so they end right under the price.
+                              // Image is 4:3 => height = width * 3/4.
+                              // Content below image is intentionally compact.
+                              final cardH = cardW * (3 / 4) + 84;
+                              final featured = items.take(10).toList();
+                              return SizedBox(
+                                height: cardH,
+                                child: ListView.separated(
+                                  padding: const EdgeInsets.symmetric(horizontal: sidePad),
+                                  scrollDirection: Axis.horizontal,
+                                  physics: const BouncingScrollPhysics(),
+                                  itemBuilder: (context, i) {
+                                    final it = featured[i];
+                                    final isFav = _savedIds.contains(it.id);
+                                    final dist = _distanceFromUserKm(it);
+                                    return SizedBox(
+                                      width: cardW,
+                                      child: InkWell(
+                                        onTap: () => ItemDetailsOverlay.showFullPage(context, item: it, fresh: true),
+                                        splashColor: Colors.transparent,
+                                        highlightColor: Colors.transparent,
+                                        child: ListingCarouselCard(
+                                          item: it,
+                                          isFavorite: isFav,
+                                          onFavoriteToggle: () => _toggleFavorite(it.id),
+                                          distanceKm: dist,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  separatorBuilder: (_, __) => const SizedBox(width: gap),
+                                  itemCount: featured.length,
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
                       if (items.isEmpty)
                         SliverFillRemaining(
                           hasScrollBody: false,
@@ -630,7 +706,10 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                               // Higher ratio => less height for the same width.
                               // Tuned to remove the remaining bottom "air" under "Preis pro Tag".
                               // Slightly higher ratio => slightly less tile height (tighter bottom edge).
-                              childAspectRatio: isDesktop ? 1.40 : (isTablet ? 1.32 : 1.26),
+                              // 4:3 image + trust row + price rows.
+                              // Slightly taller on phones to avoid bottom overflows in tight grid tiles
+                              // (e.g., with larger textScaleFactor).
+                              childAspectRatio: isDesktop ? 0.90 : (isTablet ? 0.87 : 0.84),
                             ),
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
@@ -640,6 +719,7 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                                   item: item,
                                   isFavorite: isFav,
                                   onFavoriteToggle: () => _toggleFavorite(item.id),
+                                  distanceKm: _distanceFromUserKm(item),
                                 );
                               },
                               childCount: items.length,
@@ -699,7 +779,11 @@ style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, f
 ],
 ),
 ),
-Transform.translate(offset: const Offset(0, 4), child: _HoverSpinAppLogo(size: 48)),
+ GestureDetector(
+   onTap: _handleDevSecretTap,
+   behavior: HitTestBehavior.opaque,
+   child: Transform.translate(offset: const Offset(0, 4), child: _HoverSpinAppLogo(size: 48)),
+ ),
 ],
 );
 }),
@@ -1163,6 +1247,7 @@ void dispose() { _cancelTimer(); super.dispose(); }
 
 @override
 Widget build(BuildContext context) {
+  final derivedRating = _deriveStableListingRating(widget.item);
   return MouseRegion(
     cursor: SystemMouseCursors.basic,
     child: GestureDetector(
@@ -1215,13 +1300,13 @@ borderRadius: BorderRadius.circular(18),
  final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
  return Text('${price.toStringAsFixed(0)} $suffix', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white));
  })),
- const Icon(Icons.star, size: 12, color: Color(0xFFFB923C)),
- const SizedBox(width: 2),
- Text('4.8', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white)),
  ]),
  ]),
  ),
  ),
+
+ // Rating on image (bottom-right)
+ Positioned(right: 8, bottom: 8, child: RatingBadge(rating: derivedRating)),
 if (widget.showFavorite)
 Positioned(
 top: 8,
@@ -1233,16 +1318,14 @@ mouseCursor: SystemMouseCursors.basic,
 child: Container(
 padding: const EdgeInsets.all(6),
 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
- child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: 16, color: widget.isFavorite ? Colors.pinkAccent : Colors.black54),
+ child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: 14, color: widget.isFavorite ? Colors.pinkAccent : Colors.black54),
 ),
 ),
 ),
 Positioned(
 top: 8,
 left: 8,
-child: _isVerified
-? const Icon(Icons.verified, size: 16, color: Color(0xFF22C55E))
-: Tooltip(message: context.watch<LocalizationController>().t('Nicht verifiziert'), child: const Icon(Icons.verified_outlined, size: 16, color: Colors.white70)),
+ child: Icon(Icons.verified, size: 16, color: _isVerified ? BrandColors.success : Colors.grey),
 ),
 ]),
 ),
@@ -1287,6 +1370,7 @@ void dispose() { _cancelTimer(); super.dispose(); }
 
 @override
 Widget build(BuildContext context) {
+  final derivedRating = _deriveStableListingRating(widget.item);
   return MouseRegion(
     cursor: SystemMouseCursors.basic,
     child: GestureDetector(
@@ -1338,14 +1422,14 @@ final perDay = widget.item.pricePerDay;
 final price = unit == 'week' ? perDay * 7 : perDay;
 final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
 return Text('${price.toStringAsFixed(0)} $suffix', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white));
-})),
-const Icon(Icons.star, size: 12, color: Color(0xFFFB923C)),
-const SizedBox(width: 2),
-Text('4.8', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white)),
-])
+ })),
+ ])
 ]),
 ),
 ),
+
+ // Rating on image (bottom-right)
+ Positioned(right: 8, bottom: 8, child: RatingBadge(rating: derivedRating)),
 // Favorite heart (top-right)
 Positioned(
 top: 8,
@@ -1355,9 +1439,9 @@ onTap: widget.onFavoriteToggle,
 borderRadius: BorderRadius.circular(16),
 mouseCursor: SystemMouseCursors.basic,
 child: Container(
-padding: EdgeInsets.all(iconSize * 0.35),
+ padding: EdgeInsets.all(iconSize * 0.28),
 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
-child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: iconSize, color: widget.isFavorite ? Colors.red : Colors.black54),
+ child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: iconSize * 0.86, color: widget.isFavorite ? Colors.red : Colors.black54),
 ),
 ),
 ),
@@ -1365,9 +1449,7 @@ child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: ic
 Positioned(
 top: 8,
 left: 8,
-child: _isVerified
-? Icon(Icons.verified, size: iconSize, color: const Color(0xFF22C55E))
-: Tooltip(message: context.watch<LocalizationController>().t('Nicht verifiziert'), child: Icon(Icons.verified_outlined, size: iconSize, color: Colors.grey)),
+ child: Icon(Icons.verified, size: iconSize, color: _isVerified ? BrandColors.success : Colors.grey),
 ),
 ]);
 }),
@@ -1477,9 +1559,9 @@ class _SmallGridCardState extends State<_SmallGridCard> {
                     borderRadius: BorderRadius.circular(16),
                     mouseCursor: SystemMouseCursors.basic,
                     child: Container(
-                      padding: EdgeInsets.all(iconSize * 0.35),
+                      padding: EdgeInsets.all(iconSize * 0.28),
                       decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
-                      child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: iconSize, color: widget.isFavorite ? Colors.pinkAccent : Colors.black54),
+                      child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: iconSize * 0.86, color: widget.isFavorite ? Colors.pinkAccent : Colors.black54),
                     ),
                   ),
                 ),
@@ -1487,9 +1569,7 @@ class _SmallGridCardState extends State<_SmallGridCard> {
                 Positioned(
                   top: 6,
                   left: 6,
-                  child: _isVerified
-                      ? Icon(Icons.verified, size: iconSize, color: const Color(0xFF22C55E))
-                      : Tooltip(message: context.watch<LocalizationController>().t('Nicht verifiziert'), child: Icon(Icons.verified_outlined, size: iconSize, color: Colors.grey)),
+                  child: Icon(Icons.verified, size: iconSize, color: _isVerified ? BrandColors.success : Colors.grey),
                 ),
               ]);
             }),
@@ -1508,67 +1588,186 @@ class _ExploreListingCard extends StatelessWidget {
   final Item item;
   final bool isFavorite;
   final VoidCallback onFavoriteToggle;
+  final double? distanceKm;
 
-  const _ExploreListingCard({required this.item, required this.isFavorite, required this.onFavoriteToggle});
+  const _ExploreListingCard({required this.item, required this.isFavorite, required this.onFavoriteToggle, required this.distanceKm});
+
+  bool get _isVerified => item.verificationStatus == 'approved' || item.verificationStatus == 'verified';
+
+  @override
+  Widget build(BuildContext context) {
+    // Guardrail: explore grid tiles can become very tight on small devices and/or
+    // with large accessibility text. We clamp scaling inside the card to prevent
+    // RenderFlex overflows while keeping the overall app text scaling intact.
+    final clampedMediaQuery = MediaQuery.of(context).copyWith(
+      textScaler: MediaQuery.textScalerOf(context).clamp(minScaleFactor: 1.0, maxScaleFactor: 1.18),
+    );
+
+    return MediaQuery(
+      data: clampedMediaQuery,
+      child: _ExploreListingCardContent(item: item, isFavorite: isFavorite, onFavoriteToggle: onFavoriteToggle, distanceKm: distanceKm),
+    );
+  }
+}
+
+class _ExploreListingCardContent extends StatelessWidget {
+  final Item item;
+  final bool isFavorite;
+  final VoidCallback onFavoriteToggle;
+  final double? distanceKm;
+
+  const _ExploreListingCardContent({required this.item, required this.isFavorite, required this.onFavoriteToggle, required this.distanceKm});
 
   bool get _isVerified => item.verificationStatus == 'approved' || item.verificationStatus == 'verified';
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
+    final cs = Theme.of(context).colorScheme;
+    final derivedRating = _deriveStableListingRating(item);
+    final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+
+    String? highlight;
+    if (item.timesLent >= 20) {
+      highlight = l10n.t('Beliebt');
+    } else if (derivedRating >= 4.8) {
+      highlight = l10n.t('Top bewertet');
+    } else if (item.status == 'active') {
+      highlight = l10n.t('Sofort verfügbar');
+    }
+
     return InkWell(
       onTap: () => ItemDetailsOverlay.showFullPage(context, item: item, fresh: true),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(20),
       mouseCursor: SystemMouseCursors.basic,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.30),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          color: BrandColors.glassSurface.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: BrandColors.glassStroke),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.22), blurRadius: 16, offset: const Offset(0, 10))],
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Stack(children: [
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: AppImage(url: item.photos.isNotEmpty ? item.photos.first : 'https://picsum.photos/seed/explore_listing/800/600', fit: BoxFit.cover),
-              ),
+          AspectRatio(
+            aspectRatio: 4 / 3,
+            child: Stack(fit: StackFit.expand, children: [
+              AppImage(url: item.photos.isNotEmpty ? item.photos.first : 'https://picsum.photos/seed/explore_listing/1200/900', fit: BoxFit.cover),
               Positioned(
-                top: 8,
-                left: 8,
-                child: _isVerified
-                    ? const Icon(Icons.verified, size: 16, color: Color(0xFF22C55E))
-                    : Tooltip(message: l10n.t('Nicht verifiziert'), child: const Icon(Icons.verified_outlined, size: 16, color: Colors.grey)),
-              ),
-              Positioned(
-                top: 6,
-                right: 6,
-                child: InkWell(
-                  onTap: onFavoriteToggle,
-                  borderRadius: BorderRadius.circular(16),
-                  mouseCursor: SystemMouseCursors.basic,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
-                    child: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, size: 16, color: isFavorite ? Colors.pinkAccent : Colors.black54),
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 68,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, BrandColors.imageScrim.withValues(alpha: 0.55)],
+                    ),
                   ),
                 ),
               ),
+              // Verified symbol only (top-left): green if verified, grey otherwise.
+              Positioned(
+                top: 10,
+                left: 10,
+                child: Icon(Icons.verified, size: 18, color: _isVerified ? BrandColors.success : Colors.grey),
+              ),
+              if (highlight != null)
+                Positioned(
+                  left: 10,
+                  bottom: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: cs.primary.withValues(alpha: 0.92),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                    ),
+                    child: Text(
+                      highlight,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: ((Theme.of(context).textTheme.labelSmall?.fontSize) ?? 11) * 0.78,
+                      ),
+                    ),
+                  ),
+                ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: onFavoriteToggle,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.92), shape: BoxShape.circle),
+                    child: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, size: 16, color: isFavorite ? BrandColors.danger : Colors.black54),
+                  ),
+                ),
+              ),
+
+              // Rating badge bottom-right on image
+              Positioned(right: 10, bottom: 10, child: RatingBadge(rating: derivedRating)),
             ]),
           ),
-          Padding(
-            // Slightly smaller bottom padding to keep the border tight under the price row.
-            padding: const EdgeInsets.fromLTRB(6, 6, 6, 2),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 2),
-              Row(children: [
-                Text('${item.pricePerDay.toStringAsFixed(0)} €', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white)),
-                const SizedBox(width: 4),
-                Text(l10n.t('pro Tag'), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70)),
-              ]),
-            ]),
+          // Details area: wrap in a LayoutBuilder + FittedBox scaleDown so this
+          // never overflows vertically (even with long locales or tight grid tiles).
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 9, 12, 7),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final body = Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                    Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: Colors.white)),
+                    const SizedBox(height: 4),
+                    SizedBox(
+                      height: (16 * textScale).clamp(16, 20).toDouble(),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(children: [
+                          const Icon(Icons.place_outlined, size: 14, color: Colors.white70),
+                          const SizedBox(width: 4),
+                          Text(distanceKm == null ? l10n.t('in deiner Nähe') : '${distanceKm!.toStringAsFixed(distanceKm! < 10 ? 1 : 0)} km', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.86), fontWeight: FontWeight.w700)),
+                          const SizedBox(width: 10),
+                          const Icon(Icons.loop, size: 14, color: Colors.white70),
+                          const SizedBox(width: 4),
+                          Text('${item.timesLent.clamp(0, 999)} ${l10n.t('Vermietungen')}', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.86), fontWeight: FontWeight.w700)),
+                        ]),
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text('${item.pricePerDay.toStringAsFixed(0)} €', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Text('/ ${l10n.t('Tag')}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.80), fontWeight: FontWeight.w700)),
+                      ),
+                    ]),
+                  ]);
+
+                  return FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.topLeft,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: constraints.maxWidth, maxWidth: constraints.maxWidth),
+                      child: body,
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
         ]),
       ),
@@ -1680,7 +1879,7 @@ Positioned(
 top: 8,
 left: 8,
 child: _isVerified
-? const Icon(Icons.verified, size: 16, color: Color(0xFF22C55E))
+ ? const Icon(Icons.verified, size: 16, color: BrandColors.success)
 : const Tooltip(message: 'Nicht verifiziert', child: Icon(Icons.verified_outlined, size: 16, color: Colors.grey)),
 ),
 ]),

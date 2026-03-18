@@ -19,6 +19,12 @@ class BrandColors {
   static const primary = Color(0xFF0EA5E9);
   static const success = Color(0xFF22C55E);
   static const danger = Color(0xFFF43F5E);
+  static const highlight = Color(0xFFFB923C);
+
+  // Premium surfaces
+  static const glassSurface = Color(0xFF0B1220);
+  static const glassStroke = Color(0x14FFFFFF);
+  static const imageScrim = Color(0xCC000000);
 
   // Social brand colors
   static const xBlue = Color(0xFF1DA1F2); // X/Twitter legacy blue for recognizability
@@ -29,7 +35,9 @@ class BrandColors {
 
 class AppTypography {
   static TextTheme textTheme(BuildContext context) {
-    final base = GoogleFonts.interTextTheme(Theme.of(context).textTheme);
+    // Ensure every TextStyle (including those we don't override explicitly)
+    // defaults to white to remain readable on our dark/blurred surfaces.
+    final base = GoogleFonts.interTextTheme(Theme.of(context).textTheme).apply(bodyColor: Colors.white, displayColor: Colors.white);
     const h = 1.25;
     return base.copyWith(
       // Force white as default text color to ensure readability on our dark blurred background

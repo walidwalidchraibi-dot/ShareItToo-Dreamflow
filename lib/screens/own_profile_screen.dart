@@ -460,7 +460,7 @@ class _ReviewsTabState extends State<_ReviewsTab> {
             Text('${avg.toStringAsFixed(1)} ($count)', style: theme.textTheme.titleMedium?.copyWith(color: Colors.white)),
           ]),
           const SizedBox(height: 12),
-          Text('Noch keine Bewertungen vorhanden.', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+          Text('Keine Bewertung vorhanden.', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70)),
         ],
       );
     }

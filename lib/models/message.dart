@@ -45,6 +45,27 @@ class MessageThread {
   final String itemTitle; // Titel des Artikels (für Anzeige)
   final String user1Id; // Mieter
   final String user2Id; // Vermieter
+  /// Optional: classify a thread as a special type (e.g. support).
+  ///
+  /// - 'support' => SIT support chat
+  /// - null/'booking' => regular booking/chat thread
+  final String? threadType;
+
+  /// Optional booking/request status snapshot for list rendering.
+  ///
+  /// When connected to a RentalRequest, the UI will prefer the live request
+  /// status; otherwise this value provides a stable demo fallback.
+  ///
+  /// Examples: 'pending', 'accepted', 'running', 'completed', 'cancelled'.
+  final String? bookingStatus;
+
+  /// Optional “USP” appointment line for the list: Übergabe/Rückgabe time.
+  final DateTime? handoverAt;
+  final DateTime? returnAt;
+
+  /// Optional presence snapshot (demo/local only).
+  final bool? otherUserOnline;
+  final DateTime? otherUserLastActive;
   /// Per-user archive flag.
   ///
   /// If a userId is present here, the thread is hidden from that user's
@@ -61,6 +82,12 @@ class MessageThread {
     required this.itemTitle,
     required this.user1Id,
     required this.user2Id,
+    this.threadType,
+    this.bookingStatus,
+    this.handoverAt,
+    this.returnAt,
+    this.otherUserOnline,
+    this.otherUserLastActive,
     this.archivedForUserIds = const <String>[],
     required this.messages,
     required this.createdAt,
@@ -71,6 +98,12 @@ class MessageThread {
     List<Message>? messages,
     DateTime? lastMessageAt,
     List<String>? archivedForUserIds,
+    String? threadType,
+    String? bookingStatus,
+    DateTime? handoverAt,
+    DateTime? returnAt,
+    bool? otherUserOnline,
+    DateTime? otherUserLastActive,
   }) =>
       MessageThread(
         id: id,
@@ -79,6 +112,12 @@ class MessageThread {
         itemTitle: itemTitle,
         user1Id: user1Id,
         user2Id: user2Id,
+        threadType: threadType ?? this.threadType,
+        bookingStatus: bookingStatus ?? this.bookingStatus,
+        handoverAt: handoverAt ?? this.handoverAt,
+        returnAt: returnAt ?? this.returnAt,
+        otherUserOnline: otherUserOnline ?? this.otherUserOnline,
+        otherUserLastActive: otherUserLastActive ?? this.otherUserLastActive,
         archivedForUserIds: archivedForUserIds ?? this.archivedForUserIds,
         messages: messages ?? this.messages,
         createdAt: createdAt,
@@ -92,6 +131,12 @@ class MessageThread {
         'itemTitle': itemTitle,
         'user1Id': user1Id,
         'user2Id': user2Id,
+        'threadType': threadType,
+        'bookingStatus': bookingStatus,
+        'handoverAt': handoverAt?.toIso8601String(),
+        'returnAt': returnAt?.toIso8601String(),
+        'otherUserOnline': otherUserOnline,
+        'otherUserLastActive': otherUserLastActive?.toIso8601String(),
         'archivedForUserIds': archivedForUserIds,
         'messages': messages.map((m) => m.toJson()).toList(),
         'createdAt': createdAt.toIso8601String(),
@@ -108,6 +153,12 @@ class MessageThread {
       itemTitle: json['itemTitle'] as String,
       user1Id: json['user1Id'] as String,
       user2Id: json['user2Id'] as String,
+      threadType: (json['threadType'] as String?),
+      bookingStatus: (json['bookingStatus'] as String?),
+      handoverAt: json['handoverAt'] != null ? DateTime.tryParse(json['handoverAt'].toString()) : null,
+      returnAt: json['returnAt'] != null ? DateTime.tryParse(json['returnAt'].toString()) : null,
+      otherUserOnline: json['otherUserOnline'] is bool ? (json['otherUserOnline'] as bool) : null,
+      otherUserLastActive: json['otherUserLastActive'] != null ? DateTime.tryParse(json['otherUserLastActive'].toString()) : null,
       archivedForUserIds: archived,
       messages: messagesList,
       createdAt: DateTime.parse(json['createdAt'] as String),

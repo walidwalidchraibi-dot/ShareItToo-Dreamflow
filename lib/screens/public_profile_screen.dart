@@ -55,8 +55,6 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                   const SizedBox(height: 16),
                   if (u.showWork && (u.workTitle?.isNotEmpty ?? false)) _InfoTile(icon: Icons.work_outline, label: l10n.t('Beruf'), value: u.workTitle!),
                   if (u.showHobbies && (u.hobbies?.isNotEmpty ?? false)) _InfoTile(icon: Icons.interests, label: l10n.t('Hobbys'), value: u.hobbies!),
-                  if (u.showHomeLocation && ((u.homeLocation?.isNotEmpty ?? false) || (u.city != null)))
-                    _InfoTile(icon: Icons.location_on_outlined, label: l10n.t('Standort'), value: _sanitizeCity(u.homeLocation) ?? _sanitizeCity(u.city) ?? '-'),
                   if (u.showFavoriteSong && (u.favoriteSong?.isNotEmpty ?? false)) _InfoTile(icon: Icons.music_note_outlined, label: l10n.t('Lieblingssong'), value: u.favoriteSong!),
                   if (u.showBioPublic && (u.bio?.isNotEmpty ?? false)) _InfoTile(icon: Icons.info_outline, label: l10n.t('Über'), value: u.bio!),
                   const SizedBox(height: 16),
@@ -194,18 +192,11 @@ class _ProfileQuickInfoLines extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
     final responseTimeMin = 42; // mock
-    final city = user.city ?? '-';
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         const Icon(Icons.schedule, color: Colors.white70, size: 18),
         const SizedBox(width: 8),
-        Expanded(child: Text('${l10n.t('Antwortet durchschnittlich in')} $responseTimeMin ${l10n.t('Minuten')}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)))
-      ]),
-      const SizedBox(height: 8),
-      Row(children: [
-        const Icon(Icons.location_on_outlined, color: Colors.white70, size: 18),
-        const SizedBox(width: 8),
-        Expanded(child: Text('${l10n.t('Standort')}: $city', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)))
+        Expanded(child: Text('Ø $responseTimeMin min', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)))
       ]),
       const SizedBox(height: 8),
       Row(children: [
@@ -270,30 +261,8 @@ class _TrustAndSafetySection extends StatelessWidget {
           _TrustRow(
             icon: Icons.schedule,
             label: l10n.t('Antwortzeit'),
-            value: '${l10n.t('Antwortet durchschnittlich in')} $responseTimeMinutes ${l10n.t('Minuten')}',
+            value: 'Ø $responseTimeMinutes min',
             isPositive: true,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              const Icon(Icons.location_on_outlined, color: Colors.white70, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '${l10n.t('Standort')}: ${_PublicProfileScreenState._sanitizeCity(user.city) ?? '-'}',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-                ),
-                child: Text(l10n.t('Nur Stadt'), style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
-              ),
-            ],
           ),
         ],
       ),

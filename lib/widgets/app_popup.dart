@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
+import 'package:lendify/screens/login_screen.dart';
+import 'package:lendify/screens/register_screen.dart';
+import 'package:lendify/theme.dart';
 
 /// Unified popup and toast utilities to keep a consistent, modern glass style
 /// across the entire app. Use these instead of SnackBar or small bottom sheets.
@@ -138,6 +141,39 @@ class AppPopup {
           ),
         );
       },
+    );
+  }
+
+  static Future<void> showLoginRequired(BuildContext context) async {
+    await show(
+      context,
+      icon: Icons.lock_outline,
+      title: 'Melde dich an, um fortzufahren',
+      message: 'Diese Aktion ist im Gastmodus deaktiviert.',
+      actions: [
+        Expanded(
+          child: _GlassActionButton(
+            icon: Icons.login,
+            label: 'Anmelden',
+            gradient: appBackgroundGradient,
+            onTap: () {
+              Navigator.of(context, rootNavigator: true).maybePop();
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+            },
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _GlassActionButton(
+            icon: Icons.person_add_alt_1,
+            label: 'Konto erstellen',
+            onTap: () {
+              Navigator.of(context, rootNavigator: true).maybePop();
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen()));
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -303,6 +339,39 @@ class AppPopup {
           ),
         );
       },
+    );
+  }
+}
+
+class _GlassActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Gradient? gradient;
+
+  const _GlassActionButton({required this.icon, required this.label, required this.onTap, this.gradient});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          gradient: gradient,
+          color: gradient == null ? Colors.white.withValues(alpha: 0.06) : null,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(icon, size: 18, color: Colors.white),
+          const SizedBox(width: 8),
+          Flexible(child: Text(label, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900))),
+        ]),
+      ),
     );
   }
 }

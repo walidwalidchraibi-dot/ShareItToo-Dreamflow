@@ -12,6 +12,8 @@ import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
+import 'package:lendify/services/developer_preview_service.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -72,6 +74,12 @@ class _MainNavigationState extends State<MainNavigation> {
           type: BottomNavigationBarType.fixed,
           currentIndex: _currentIndex,
           onTap: (index) {
+            final preview = context.read<DeveloperPreviewController>();
+            if (preview.isGuest && index != 0) {
+              AppPopup.showLoginRequired(context);
+              context.read<MainNavController>().setIndex(0);
+              return;
+            }
             context.read<MainNavController>().setIndex(index);
           },
           selectedItemColor: BrandColors.primary,
@@ -97,8 +105,8 @@ class _MainNavigationState extends State<MainNavigation> {
               label: l10n.t('Buchungen'),
             ),
             BottomNavigationBarItem(
-              icon: _navIcon(Icons.chat_bubble_outline, 3),
-              activeIcon: _HoveringNavIcon(icon: Icons.chat_bubble_outline, active: true),
+              icon: _MessagesNavIcon(active: _currentIndex == 3, userId: _currentUser?.id),
+              activeIcon: _MessagesNavIcon(active: true, userId: _currentUser?.id),
               label: l10n.t('Nachrichten'),
             ),
             BottomNavigationBarItem(
@@ -209,6 +217,41 @@ class _ProfileNavIcon extends StatelessWidget {
     final double size = 20;
     return MouseRegion(
       child: SitUserAvatar(url: photoUrl, radius: size / 2, borderColor: border, placeholderIcon: Icons.person_outline),
+    );
+  }
+}
+
+class _MessagesNavIcon extends StatelessWidget {
+  final bool active;
+  final String? userId;
+  const _MessagesNavIcon({required this.active, required this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    final base = _HoveringNavIcon(icon: Icons.chat_bubble_outline, active: active);
+    final uid = (userId ?? '').trim();
+    if (uid.isEmpty) return base;
+
+    return FutureBuilder<int>(
+      future: DataService.getUnreadThreadCountForUser(uid),
+      builder: (context, snap) {
+        final count = snap.data ?? 0;
+        if (count <= 0) return base;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            base,
+            const Positioned(
+              right: -2,
+              top: -2,
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle),
+                child: SizedBox(width: 10, height: 10),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

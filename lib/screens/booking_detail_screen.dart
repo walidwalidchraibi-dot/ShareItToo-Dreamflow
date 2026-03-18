@@ -526,9 +526,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             final (s, e) = _parseDateRange();
             final eff = _effectiveCategory(start: s, end: e);
             if (eff == 'pending') return null;
-            return () {
+              return () {
+              final reqId = (widget.booking['requestId'] ?? '').toString();
               Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => MessageThreadScreen(participantName: _listerName, avatarUrl: _listerAvatar),
+                builder: (_) => MessageThreadScreen(
+                  requestId: reqId.isNotEmpty ? reqId : null,
+                  participantName: _listerName,
+                  avatarUrl: _listerAvatar,
+                  itemTitle: (widget.booking['title'] as String?),
+                ),
               ));
             };
           }()),
@@ -1082,8 +1088,14 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           onMessage: isPending
               ? null
               : () {
+                  final reqId = (widget.booking['requestId'] ?? '').toString();
                   Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => MessageThreadScreen(participantName: _listerName, avatarUrl: _listerAvatar),
+                    builder: (_) => MessageThreadScreen(
+                      requestId: reqId.isNotEmpty ? reqId : null,
+                      participantName: _listerName,
+                      avatarUrl: _listerAvatar,
+                      itemTitle: (widget.booking['title'] as String?),
+                    ),
                   ));
                 },
             // Locations moved out of the info card for all sections
