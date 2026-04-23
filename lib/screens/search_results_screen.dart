@@ -14,8 +14,11 @@ class SearchResultsScreen extends StatefulWidget {
   final String queryText; // e.g., "Bohrmaschine in Stuttgart"
   final String? dateText; // e.g., "11. Jan – 18. Jan"
   final List<Item> results; // prefiltered search-relevant items
+  /// Optional origin used for distance sorting (e.g., parsed from the "Wo" field).
+  /// If null, the screen cannot sort by distance.
+  final ({double lat, double lng})? originCoords;
 
-  const SearchResultsScreen({super.key, required this.queryText, required this.results, this.dateText});
+  const SearchResultsScreen({super.key, required this.queryText, required this.results, this.dateText, this.originCoords});
 
   @override
   State<SearchResultsScreen> createState() => _SearchResultsScreenState();
@@ -171,7 +174,15 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       case 'Bewertung':
       case 'Entfernung':
       default:
-        // No extra data here; keep as-is
+        // Distance sorting only works if we were given an origin ("Wo").
+        final origin = widget.originCoords;
+        if (origin != null) {
+          list.sort((a, b) {
+            final da = DataService.estimateDistanceKm(a.lat, a.lng, origin.lat, origin.lng);
+            final db = DataService.estimateDistanceKm(b.lat, b.lng, origin.lat, origin.lng);
+            return da.compareTo(db);
+          });
+        }
         break;
     }
     return list;

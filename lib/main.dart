@@ -29,14 +29,14 @@ Future<void> main() async {
     return true; // handled
   };
 
-  // One-time purge: Remove demo items and keep only listings created by current user
-  // so the app logic runs exclusively on newly created listings.
+  // Ensure the app never starts with an empty listings feed.
+  // (Previously we purged demo items for testing, which makes Explore/My Listings look broken.)
   try {
-    debugPrint('[Main] ensureOnlyUserItemsOnce start');
-    await DataService.ensureOnlyUserItemsOnce();
-    debugPrint('[Main] ensureOnlyUserItemsOnce done');
+    debugPrint('[Main] ensureListingsSeededIfEmpty start');
+    await DataService.ensureListingsSeededIfEmpty();
+    debugPrint('[Main] ensureListingsSeededIfEmpty done');
   } catch (e, st) {
-    debugPrint('[Main] ensureOnlyUserItemsOnce failed: ' + e.toString());
+    debugPrint('[Main] ensureListingsSeededIfEmpty failed: ' + e.toString());
     debugPrint(st.toString());
   }
 
@@ -100,7 +100,8 @@ class AppRoot extends StatelessWidget {
   Widget build(BuildContext context) {
     final preview = context.watch<DeveloperPreviewController>();
     if (!preview.hydrated) {
-      return const Scaffold(backgroundColor: Colors.transparent, body: SizedBox.shrink());
+      // Startup hydration phase: show a premium brand loader instead of a generic spinner.
+      return const _StartupBrandLoader();
     }
     switch (preview.state) {
       case DeveloperUserState.firstLaunch:
@@ -111,5 +112,61 @@ class AppRoot extends StatelessWidget {
       case DeveloperUserState.verifiedUser:
         return const MainNavigation();
     }
+  }
+}
+
+class _StartupBrandLoader extends StatefulWidget {
+  const _StartupBrandLoader();
+
+  @override
+  State<_StartupBrandLoader> createState() => _StartupBrandLoaderState();
+}
+
+class _StartupBrandLoaderState extends State<_StartupBrandLoader> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat();
+  late final Animation<double> _turns = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic));
+  late final Animation<double> _scale = TweenSequence<double>([
+    TweenSequenceItem(tween: Tween<double>(begin: 0.75, end: 1.25).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 1),
+    TweenSequenceItem(tween: Tween<double>(begin: 1.25, end: 0.75).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 1),
+  ]).animate(_controller);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // Match the Explore page logo vibe, but slightly larger for the startup moment.
+    final baseSize = 84.0; // ~50% larger than the 56px header icon.
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Center(
+        child: Semantics(
+          label: 'ShareItToo lädt',
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              return Transform.scale(
+                scale: _scale.value,
+                child: RotationTransition(
+                  turns: _turns,
+                  child: Image.asset(
+                    'assets/images/icononly_transparent_nobuffer.png',
+                    width: baseSize,
+                    height: baseSize,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(Icons.all_inclusive, color: theme.colorScheme.onSurface, size: baseSize * 0.55),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
   }
 }

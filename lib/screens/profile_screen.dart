@@ -21,6 +21,9 @@ import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/box_chat_icon.dart';
+import 'package:lendify/services/developer_preview_service.dart';
+import 'package:lendify/widgets/profile_logged_out_banner.dart';
+import 'package:lendify/widgets/login_nudge_sheet.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -35,6 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _completedBookingsCount = 0;
   bool _isLoading = true;
   bool _hasNewRequests = false;
+  bool _isLoggedOutUser = false;
   // Feedback state
   final TextEditingController _feedbackCtrl = TextEditingController();
   final FocusNode _feedbackFocus = FocusNode();
@@ -176,7 +180,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _user = _placeholderUser();
     _load();
   }
 
@@ -188,23 +191,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _load() async {
-    User? maybeUser = await DataService.getCurrentUser();
-    if (maybeUser == null) {
-      final users = await DataService.getUsers();
-      if (users.isNotEmpty) {
-        maybeUser = users.first;
+    User? maybeUser;
+    try {
+      maybeUser = await DataService.getCurrentUser();
+    } catch (e, st) {
+      debugPrint('[Profile] Failed to load user: $e');
+      debugPrint(st.toString());
+      maybeUser = null;
+    }
+
+    final bool loggedOut = maybeUser == null;
+    final user = loggedOut ? _guestUser() : maybeUser!;
+
+    int count = 0;
+    bool hasNew = false;
+    if (!loggedOut) {
+      try {
+        final items = await DataService.getItems();
+        count = items.where((e) => e.ownerId == user.id).length;
+        hasNew = await DataService.hasNewOwnerRequests(user.id);
+      } catch (e) {
+        debugPrint('[Profile] Failed to load stats: $e');
       }
     }
-    final user = maybeUser ?? _placeholderUser();
-    final items = await DataService.getItems();
-    final count = items.where((e) => e.ownerId == user.id).length;
-    final hasNew = await DataService.hasNewOwnerRequests(user.id);
+
     int completedBookings = 0;
-    try {
-      final renterCompleted = await DataService.getRentalRequestsForRenter(user.id, status: 'completed');
-      completedBookings = renterCompleted.length;
-    } catch (e) {
-      debugPrint('[Profile] Failed to compute completed bookings: $e');
+    if (!loggedOut) {
+      try {
+        final renterCompleted = await DataService.getRentalRequestsForRenter(user.id, status: 'completed');
+        completedBookings = renterCompleted.length;
+      } catch (e) {
+        debugPrint('[Profile] Failed to compute completed bookings: $e');
+      }
     }
     if (!mounted) return;
     setState(() {
@@ -213,6 +231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _completedBookingsCount = completedBookings;
       _isLoading = false;
       _hasNewRequests = hasNew;
+      _isLoggedOutUser = loggedOut;
     });
   }
 
@@ -236,10 +255,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  User _guestUser() {
+    final now = DateTime.now();
+    return User(
+      id: 'guest-user',
+      displayName: 'Gast',
+      email: '',
+      city: '',
+      country: '',
+      preferredLanguage: 'de-DE',
+      isVerified: false,
+      isBanned: false,
+      role: 'guest',
+      avgRating: 0,
+      reviewCount: 0,
+      createdAt: now,
+      photoURL: null,
+      languages: const ['Deutsch'],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
-    final userForDisplay = _user ?? _placeholderUser();
+    final preview = context.watch<DeveloperPreviewController>();
+    final isGuest = preview.isGuest || _isLoggedOutUser;
+    final userForDisplay = _user ?? (isGuest ? _guestUser() : _placeholderUser());
     final verified = userForDisplay.isVerified;
     final bool _hasAnyNotifications = _hasNewRequests; // extend when adding more sources
     // JSON-like spec that defines the Profile menu structure
@@ -376,6 +417,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
+          if (isGuest) ...[
+            const SizedBox(height: 12),
+            const ProfileLoggedOutBanner(),
+          ],
           const SizedBox(height: 12),
           if (!_isLoading) _ResponseTimeCard(responseTimeMinutes: 42),
           const SizedBox(height: 16),
@@ -386,7 +431,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: () => _handleRoute(action['route'] as String),
+                    onPressed: () {
+                      final route = action['route'] as String;
+                      if (isGuest && _isLoginRequiredRoute(route)) {
+                        showGuestRestrictionSheet(context, gateContext: _guestGateContextForRoute(route));
+                        return;
+                      }
+                      _handleRoute(route);
+                    },
                     icon: _iconFromSpec(action['icon'] as String),
                     label: Text(l10n.t(action['labelKey'] as String)),
                   ),
@@ -399,7 +451,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.30), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
             child: Column(children: [
               for (int i = 0; i < (menuSpec['mainMenu'] as List).length; i++) ...[
-                _buildMenuFromSpec(menuSpec['mainMenu'][i] as Map<String, dynamic>, l10n),
+                _buildMenuFromSpec(menuSpec['mainMenu'][i] as Map<String, dynamic>, l10n, isGuest: isGuest),
                 if (i < (menuSpec['mainMenu'] as List).length - 1) _divider(),
               ],
             ]),
@@ -409,7 +461,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.30), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
             child: Column(children: [
               for (int i = 0; i < (menuSpec['secondaryMenu'] as List).length; i++) ...[
-                _buildMenuFromSpec(menuSpec['secondaryMenu'][i] as Map<String, dynamic>, l10n),
+                _buildMenuFromSpec(menuSpec['secondaryMenu'][i] as Map<String, dynamic>, l10n, isGuest: isGuest),
                 if (i < (menuSpec['secondaryMenu'] as List).length - 1) _divider(),
               ],
             ]),
@@ -433,7 +485,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // removed legacy _svgIcon helper after switching to composed icon
 
-  Widget _buildMenuItem(IconData icon, String title, {bool isDestructive = false, bool showDot = false, Widget? leadingOverride, VoidCallback? onTapOverride}) {
+  Widget _buildMenuItem(
+    IconData icon,
+    String title, {
+    bool isDestructive = false,
+    bool showDot = false,
+    bool locked = false,
+    Widget? leadingOverride,
+    VoidCallback? onTapOverride,
+  }) {
     final l10n = context.read<LocalizationController>();
     // Place the dot left (on the leading icon) for all items that request a dot
     final placeDotLeft = showDot;
@@ -452,12 +512,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ]),
     );
 
-    return ListTile(
+    final tile = ListTile(
       leading: placeDotLeft ? leadingWithDotLeft : baseLeading,
       title: Text(title, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: isDestructive ? Colors.red : Colors.white)),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (locked) ...[
+            const Icon(Icons.lock_outline, color: Colors.white54, size: 18),
+            const SizedBox(width: 8),
+          ],
           if (showDot && !placeDotLeft) ...[
             Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle)),
             const SizedBox(width: 8),
@@ -466,7 +530,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       onTap: () {
-        if (onTapOverride != null) { onTapOverride(); return; }
+        if (onTapOverride != null) {
+          onTapOverride();
+          return;
+        }
         switch (title) {
           case 'Meine Anzeigen':
           case 'My listings':
@@ -512,25 +579,78 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       },
     );
+
+    if (!locked) return tile;
+    return Opacity(opacity: 0.90, child: tile);
   }
 
   // Build a menu entry from the JSON-like spec
-  Widget _buildMenuFromSpec(Map<String, dynamic> spec, LocalizationController l10n) {
+  Widget _buildMenuFromSpec(Map<String, dynamic> spec, LocalizationController l10n, {required bool isGuest}) {
     final title = l10n.t(spec['labelKey'] as String);
+    final String? id = spec['id'] as String?;
     final iconName = (spec['icon'] as String?) ?? '';
     final showDot = (spec['showDot'] as bool?) ?? false;
     final isDestructive = (spec['destructive'] as bool?) ?? false;
     final iconData = _iconDataFromSpec(iconName);
     final leadingOverride = iconName == 'requests' ? const BoxChatIcon(size: 22, color: Colors.white70) : null;
     final String? route = spec['route'] as String?;
+
+    final bool locked = isGuest && route != null && _isLoginRequiredRoute(route);
     return _buildMenuItem(
       iconData,
       title,
       isDestructive: isDestructive,
       showDot: showDot,
+      locked: locked,
       leadingOverride: leadingOverride,
-      onTapOverride: route != null ? () => _handleRoute(route) : null,
+      onTapOverride: route != null
+          ? () {
+              if (locked) {
+                // Be explicit for menu IDs to avoid mismatches when routes/titles change.
+                final GuestGateContext gateContext = switch (id) {
+                  'rental_requests' => GuestGateContext.rentalRequest,
+                  'my_listings' => GuestGateContext.listing,
+                  'my_bookings' => GuestGateContext.booking,
+                  'account_settings' => GuestGateContext.accountSettings,
+                  'verify_now' => GuestGateContext.verification,
+                  'view_public_profile' => GuestGateContext.profile,
+                  _ => _guestGateContextForRoute(route),
+                };
+                showGuestRestrictionSheet(context, gateContext: gateContext);
+                // Intentionally kept as a compact guest gate sheet.
+                return;
+              }
+              _handleRoute(route);
+            }
+          : null,
     );
+  }
+
+  bool _isLoginRequiredRoute(String route) {
+    // We allow exploration in guest mode, but these features are tied to the user's account.
+    switch (route) {
+      case '/myListings':
+      case '/ownerRequests':
+      case '/bookings':
+      case '/accountSettings':
+      case '/myProfilePublic':
+      case '/verify':
+      case '/logout':
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  GuestGateContext _guestGateContextForRoute(String route) {
+    // Be defensive: some call sites may pass query-like strings.
+    if (route.startsWith('/verify')) return GuestGateContext.verification;
+    if (route.startsWith('/bookings')) return GuestGateContext.booking;
+    if (route.startsWith('/accountSettings')) return GuestGateContext.accountSettings;
+    if (route.startsWith('/myProfilePublic')) return GuestGateContext.profile;
+    if (route.startsWith('/myListings')) return GuestGateContext.listing;
+    if (route.startsWith('/ownerRequests')) return GuestGateContext.rentalRequest;
+    return GuestGateContext.generic;
   }
 
   // Map abstract icon names from the spec to Material icons

@@ -11,6 +11,7 @@ import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/sit_logo_header.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/blur_modal.dart';
+import 'package:lendify/widgets/social_auth_button.dart';
 import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -22,6 +23,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _cardKey = GlobalKey();
 
   final _emailCtrl = TextEditingController();
   final _pwCtrl = TextEditingController();
@@ -32,6 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _busy = false;
   bool _checkingSession = true;
   bool _pwVisible = false;
+  bool _peekBackdrop = false;
 
   void _exitToExplore() {
     try {
@@ -43,6 +46,18 @@ class _LoginScreenState extends State<LoginScreen> {
       MaterialPageRoute(builder: (_) => const MainNavigation()),
       (route) => false,
     );
+  }
+
+  Future<void> _continueAsGuest() async {
+    try {
+      await AuthService.clearSession();
+      if (!mounted) return;
+      await context.read<DeveloperPreviewController>().setState(DeveloperUserState.loggedOut);
+    } catch (e) {
+      debugPrint('[LoginScreen] continueAsGuest failed: $e');
+    }
+    if (!mounted) return;
+    _exitToExplore();
   }
 
   @override
@@ -87,6 +102,16 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailFocus.dispose();
     _pwFocus.dispose();
     super.dispose();
+  }
+
+  bool _isOutsideCard(Offset globalPosition) {
+    final ctx = _cardKey.currentContext;
+    if (ctx == null) return true;
+    final box = ctx.findRenderObject();
+    if (box is! RenderBox) return true;
+    final topLeft = box.localToGlobal(Offset.zero);
+    final rect = topLeft & box.size;
+    return !rect.contains(globalPosition);
   }
 
   String? _validateEmail(String? v) {
@@ -161,6 +186,29 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Future<void> _socialSignIn(AuthSocialProvider provider) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 380));
+      final result = await AuthService.signInWithSocialProvider(provider);
+      if (!mounted) return;
+      if (!result.ok) {
+        await AppPopup.toast(context, icon: Icons.wifi_off_outlined, title: 'Login fehlgeschlagen', message: 'Bitte versuche es erneut.');
+        return;
+      }
+      await context.read<DeveloperPreviewController>().setState(DeveloperUserState.loggedIn);
+      if (!mounted) return;
+      _goHome(replace: true);
+    } catch (e) {
+      debugPrint('[LoginScreen] socialSignIn failed: $e');
+      if (!mounted) return;
+      await AppPopup.toast(context, icon: Icons.wifi_off_outlined, title: 'Es ist ein Fehler aufgetreten.', message: 'Bitte versuche es erneut.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -171,158 +219,138 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Stack(
           children: [
+            Positioned.fill(child: IgnorePointer(child: _AuthBackdrop(peekClear: _peekBackdrop))),
             Positioned.fill(
-              child: IgnorePointer(
-                ignoring: _checkingSession,
-                child: CustomScrollView(
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                  slivers: [
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
-                      sliver: SliverToBoxAdapter(
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Row(children: [
-                            _GlassIconButton(icon: Icons.arrow_back, onTap: () => Navigator.of(context).maybePop()),
-                            Expanded(
-                              child: Center(
-                                child: Text('Anmelden', style: theme.textTheme.titleLarge?.copyWith(fontSize: 20, fontWeight: FontWeight.w800)),
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (e) {
+                  if (_checkingSession) return;
+                  if (_isOutsideCard(e.position)) setState(() => _peekBackdrop = true);
+                },
+                onPointerUp: (_) {
+                  if (_peekBackdrop) setState(() => _peekBackdrop = false);
+                },
+                onPointerCancel: (_) {
+                  if (_peekBackdrop) setState(() => _peekBackdrop = false);
+                },
+                child: IgnorePointer(
+                  ignoring: _checkingSession,
+                  child: CustomScrollView(
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    slivers: [
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+                        sliver: SliverToBoxAdapter(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Row(children: [
+                              _GlassIconButton(icon: Icons.arrow_back, onTap: () => Navigator.of(context).maybePop()),
+                              Expanded(
+                                child: Center(
+                                  child: Text('Anmelden', style: theme.textTheme.titleLarge?.copyWith(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white)),
+                                ),
+                              ),
+                              const SizedBox(width: 44),
+                            ]),
+                            const SizedBox(height: 22),
+                            Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 520),
+                                child: Text(
+                                  'Melde dich an, um Dinge zu teilen, zu mieten und deine Buchungen zu verwalten.',
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, height: 1.35, fontWeight: FontWeight.w900),
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 44),
+                            SizedBox(height: mathMax(18, media.size.height * 0.04)),
                           ]),
-                          const SizedBox(height: 22),
-                          Center(
-                            child: TextButton.icon(
-                              onPressed: _exitToExplore,
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                                backgroundColor: Colors.white.withValues(alpha: 0.10),
-                              ),
-                              icon: const Icon(Icons.exit_to_app, size: 18, color: Colors.white),
-                              label: Text(
-                                'Zurück zu Erkunden',
-                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, color: Colors.white),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Melde dich an, um Dinge zu teilen, zu mieten und deine Buchungen zu verwalten.',
-                            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.78), height: 1.45),
-                          ),
-                          SizedBox(height: mathMax(18, media.size.height * 0.04)),
-                        ]),
+                        ),
                       ),
-                    ),
 
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, mathMax(18, media.viewInsets.bottom == 0 ? 28 : 12)),
-                      sliver: SliverToBoxAdapter(
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 520),
-                            child: _GlassCard(
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                                child: Form(
-                                  key: _formKey,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      const SitLogoHeader(),
-                                      const SizedBox(height: 16),
-                                      _SITTextField(
-                                        label: 'E-Mail',
-                                        placeholder: 'deine@email.com',
-                                        controller: _emailCtrl,
-                                        focusNode: _emailFocus,
-                                        nextFocusNode: _pwFocus,
-                                        keyboardType: TextInputType.emailAddress,
-                                        textInputAction: TextInputAction.next,
-                                        validator: _validateEmail,
-                                        prefixIcon: Icons.alternate_email,
-                                        autocorrect: false,
-                                        enableSuggestions: false,
-                                        textCapitalization: TextCapitalization.none,
-                                      ),
-                                      const SizedBox(height: 12),
-                                      _SITTextField(
-                                        label: 'Passwort',
-                                        placeholder: '••••••••',
-                                        controller: _pwCtrl,
-                                        focusNode: _pwFocus,
-                                        keyboardType: TextInputType.visiblePassword,
-                                        textInputAction: TextInputAction.done,
-                                        validator: _validatePassword,
-                                        prefixIcon: Icons.lock_outline,
-                                        obscureText: !_pwVisible,
-                                        autocorrect: false,
-                                        enableSuggestions: false,
-                                        textCapitalization: TextCapitalization.none,
-                                        onSubmitted: (_) => _submit(),
-                                        suffix: _GlassSuffixIconButton(
-                                          icon: _pwVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                          onTap: () => setState(() => _pwVisible = !_pwVisible),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Align(
-                                        alignment: Alignment.centerRight,
-                                        child: _TextLink(
-                                          label: 'Passwort vergessen?',
-                                          onTap: _openResetFlow,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 14),
-                                      _PrimaryAuthButton(
-                                        busy: _busy,
-                                        label: _busy ? 'Anmelden…' : 'Anmelden',
-                                        icon: Icons.login,
-                                        onTap: _busy ? null : _submit,
-                                      ),
-                                      const SizedBox(height: 14),
-                                      const _OrDivider(),
-                                      const SizedBox(height: 12),
-                                      _SocialButton(
-                                        brand: _SocialBrand.google,
-                                        label: 'Mit Google anmelden',
-                                        onTap: () => AppPopup.toast(context, icon: Icons.info_outline, title: 'Google Login folgt', message: 'Sobald ein Backend verbunden ist.'),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      _SocialButton(
-                                        brand: _SocialBrand.apple,
-                                        label: 'Mit Apple anmelden',
-                                        onTap: () => AppPopup.toast(context, icon: Icons.info_outline, title: 'Apple Login folgt', message: 'Sobald ein Backend verbunden ist.'),
-                                      ),
-                                      const SizedBox(height: 14),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Text('Noch kein Konto? ', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.75))),
-                                          _TextLink(
-                                            label: 'Jetzt registrieren',
-                                            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen())),
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(16, 0, 16, mathMax(18, media.viewInsets.bottom == 0 ? 28 : 12)),
+                        sliver: SliverToBoxAdapter(
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 520),
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 140),
+                                curve: Curves.easeOut,
+                                opacity: _peekBackdrop ? 0.22 : 1.0,
+                                child: KeyedSubtree(
+                                  key: _cardKey,
+                                  child: _GlassCard(
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                                      child: Form(
+                                        key: _formKey,
+                                        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                                          const SitLogoHeader(),
+                                          const SizedBox(height: 16),
+                                          _SITTextField(
+                                            label: 'E-Mail',
+                                            placeholder: 'deine@email.com',
+                                            controller: _emailCtrl,
+                                            focusNode: _emailFocus,
+                                            nextFocusNode: _pwFocus,
+                                            keyboardType: TextInputType.emailAddress,
+                                            textInputAction: TextInputAction.next,
+                                            validator: _validateEmail,
+                                            prefixIcon: Icons.alternate_email,
+                                            autocorrect: false,
+                                            enableSuggestions: false,
+                                            textCapitalization: TextCapitalization.none,
                                           ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 14),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.verified_user_outlined, size: 16, color: Colors.white.withValues(alpha: 0.65)),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              'Deine Daten werden sicher verschlüsselt übertragen.',
-                                              textAlign: TextAlign.center,
-                                              style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.70), height: 1.35),
+                                          const SizedBox(height: 12),
+                                          _SITTextField(
+                                            label: 'Passwort',
+                                            placeholder: '••••••••',
+                                            controller: _pwCtrl,
+                                            focusNode: _pwFocus,
+                                            keyboardType: TextInputType.visiblePassword,
+                                            textInputAction: TextInputAction.done,
+                                            validator: _validatePassword,
+                                            prefixIcon: Icons.lock_outline,
+                                            obscureText: !_pwVisible,
+                                            autocorrect: false,
+                                            enableSuggestions: false,
+                                            textCapitalization: TextCapitalization.none,
+                                            onSubmitted: (_) => _submit(),
+                                            suffix: _GlassSuffixIconButton(
+                                              icon: _pwVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                              onTap: () => setState(() => _pwVisible = !_pwVisible),
                                             ),
                                           ),
-                                        ],
+                                          const SizedBox(height: 10),
+                                          Align(alignment: Alignment.centerRight, child: _TextLink(label: 'Passwort vergessen?', onTap: _openResetFlow)),
+                                          const SizedBox(height: 14),
+                                          _PrimaryAuthButton(busy: _busy, label: _busy ? 'Anmelden…' : 'Anmelden', icon: Icons.login, onTap: _busy ? null : _submit),
+                                          const SizedBox(height: 14),
+                                          const SocialAuthOrDivider(),
+                                          const SizedBox(height: 12),
+                                          SocialAuthButton(brand: SocialAuthBrand.google, label: 'Mit Google anmelden', onTap: _busy ? null : () => _socialSignIn(AuthSocialProvider.google)),
+                                          const SizedBox(height: 10),
+                                          SocialAuthButton(brand: SocialAuthBrand.apple, label: 'Mit Apple anmelden', onTap: _busy ? null : () => _socialSignIn(AuthSocialProvider.apple)),
+                                          const SizedBox(height: 14),
+                                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                            Text('Noch kein Konto? ', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.75))),
+                                            _TextLink(label: 'Jetzt registrieren', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen()))),
+                                          ]),
+                                          const SizedBox(height: 14),
+                                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                            Icon(Icons.verified_user_outlined, size: 16, color: Colors.white.withValues(alpha: 0.65)),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                'Deine Daten werden sicher verschlüsselt übertragen.',
+                                                textAlign: TextAlign.center,
+                                                style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.70), height: 1.35),
+                                              ),
+                                            ),
+                                          ]),
+                                        ]),
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -330,8 +358,33 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                    ),
+
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(16, 8, 16, 22 + media.padding.bottom),
+                        sliver: SliverToBoxAdapter(
+                          child: Center(
+                            child: _Pressable(
+                              onTap: _continueAsGuest,
+                              borderRadius: BorderRadius.circular(999),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+                                ),
+                                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                  Icon(Icons.person_outline, size: 18, color: Colors.white.withValues(alpha: 0.90)),
+                                  const SizedBox(width: 10),
+                                  Text('Ohne Anmeldung weiter', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+                                ]),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
+                ),
                 ),
               ),
             ),
@@ -357,6 +410,96 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+}
+
+class _AuthBackdrop extends StatelessWidget {
+  final bool peekClear;
+  const _AuthBackdrop({required this.peekClear});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final dark = theme.colorScheme.secondary;
+
+    final bands = peekClear
+        ? const <_BlurBandSpec>[
+            _BlurBandSpec(flex: 22, sigma: 0, tintOpacity: 0.05),
+            _BlurBandSpec(flex: 26, sigma: 0, tintOpacity: 0.06),
+            _BlurBandSpec(flex: 28, sigma: 0, tintOpacity: 0.07),
+            _BlurBandSpec(flex: 24, sigma: 0, tintOpacity: 0.08),
+          ]
+        : const <_BlurBandSpec>[
+            _BlurBandSpec(flex: 22, sigma: 0, tintOpacity: 0.12),
+            _BlurBandSpec(flex: 26, sigma: 8, tintOpacity: 0.17),
+            _BlurBandSpec(flex: 28, sigma: 14, tintOpacity: 0.22),
+            _BlurBandSpec(flex: 24, sigma: 20, tintOpacity: 0.28),
+          ];
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset('assets/images/register.png', fit: BoxFit.cover, alignment: Alignment.topCenter),
+        ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: peekClear ? 0.0 : 2.0, sigmaY: peekClear ? 0.0 : 2.0),
+            child: const SizedBox.expand(),
+          ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!.withValues(alpha: peekClear ? 0.14 : 0.36),
+                Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!.withValues(alpha: peekClear ? 0.12 : 0.28),
+              ],
+            ),
+          ),
+        ),
+        Column(
+          children: [
+            for (final band in bands)
+              Expanded(
+                flex: band.flex,
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: band.sigma.toDouble(), sigmaY: band.sigma.toDouble()),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(color: theme.colorScheme.surface.withValues(alpha: band.tintOpacity)),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  theme.colorScheme.surface.withValues(alpha: peekClear ? 0.12 : 0.40),
+                  theme.colorScheme.surface.withValues(alpha: peekClear ? 0.18 : 0.62),
+                ],
+                stops: const [0.55, 0.82, 1.0],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BlurBandSpec {
+  final int flex;
+  final int sigma;
+  final double tintOpacity;
+  const _BlurBandSpec({required this.flex, required this.sigma, required this.tintOpacity});
 }
 
 class _GlassIconButton extends StatelessWidget {
@@ -391,18 +534,14 @@ class _GlassSuffixIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Keep it “free-floating” inside the text field (no chip/background).
     return _Pressable(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
+      borderRadius: BorderRadius.circular(999),
+      child: SizedBox(
         width: 40,
         height: 40,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-        ),
-        child: Icon(icon, color: Colors.white.withValues(alpha: 0.80), size: 18),
+        child: Center(child: Icon(icon, color: Colors.white.withValues(alpha: 0.85), size: 20)),
       ),
     );
   }
@@ -415,15 +554,18 @@ class _GlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
+      // Match the Register form panel glass.
+      borderRadius: BorderRadius.circular(26),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        // Keep the overall card lightly blurred, like on Register.
+        // (Register applies stronger blur per text field.)
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.30), blurRadius: 28, offset: const Offset(0, 18))],
+            // Same tint + border as Register.
+            color: Colors.black.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
           ),
           child: child,
         ),
@@ -479,7 +621,7 @@ class _SITTextField extends StatelessWidget {
       autocorrect: autocorrect,
       enableSuggestions: enableSuggestions,
       textCapitalization: textCapitalization,
-      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600),
+      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
       validator: validator,
       onFieldSubmitted: (v) {
         if (nextFocusNode != null) {
@@ -506,7 +648,7 @@ class _SITTextField extends StatelessWidget {
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: BrandColors.logoAccent, width: 1.4)),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: BrandColors.danger.withValues(alpha: 0.9), width: 1.2)),
         focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: BrandColors.danger.withValues(alpha: 0.95), width: 1.3)),
-        errorStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.90), height: 1.25),
+        errorStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.92), height: 1.25, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -567,64 +709,6 @@ class _OrDivider extends StatelessWidget {
       const SizedBox(width: 10),
       Expanded(child: Container(height: 1, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.white.withValues(alpha: 0.22), Colors.white.withValues(alpha: 0.00)])))),
     ]);
-  }
-}
-
-enum _SocialBrand { google, apple }
-
-class _SocialButton extends StatelessWidget {
-  final _SocialBrand brand;
-  final String label;
-  final VoidCallback onTap;
-  const _SocialButton({required this.brand, required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final (Widget leading, Color fg) = switch (brand) {
-      _SocialBrand.google => (_SocialMark(text: 'G'), Colors.white),
-      _SocialBrand.apple => (const Icon(Icons.apple, color: Colors.white, size: 20), Colors.white),
-    };
-    return _Pressable(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Row(children: [
-          leading,
-          const SizedBox(width: 12),
-          Expanded(child: Text(label, style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13.5, fontWeight: FontWeight.w800, color: fg))),
-          Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white.withValues(alpha: 0.55)),
-        ]),
-      ),
-    );
-  }
-}
-
-class _SocialMark extends StatelessWidget {
-  final String text;
-  const _SocialMark({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: 30,
-      height: 30,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        color: Colors.black.withValues(alpha: 0.18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-      ),
-      alignment: Alignment.center,
-      child: Text(text, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w900, color: Colors.white)),
-    );
   }
 }
 

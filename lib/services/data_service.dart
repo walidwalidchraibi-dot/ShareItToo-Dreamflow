@@ -563,6 +563,18 @@ class DataService {
       return getItems();
     }
 
+    // If storage exists but is empty (e.g., after a one-time purge), reseed demo listings
+    // so the app doesn't appear broken on Explore/My Listings.
+    if (itemsList.isEmpty) {
+      try {
+        await resetItemsAndSeedFive(force: true);
+      } catch (e) {
+        debugPrint('[DataService] getItems reseed-on-empty failed: $e');
+        await _initializeSampleData();
+      }
+      return getItems();
+    }
+
     // Parse defensively: skip corrupted entries instead of failing the whole load
     final List<Item> parsed = [];
     bool mutated = false;
@@ -618,6 +630,30 @@ class DataService {
     await prefs.remove(_savedItemsKey);
 
     await prefs.setBool(_purgedToOwnedFlagKey, true);
+  }
+
+  /// Ensures the local store contains at least some listings.
+  ///
+  /// This is a safety net for cases where a previous debug build purged the demo
+  /// dataset (resulting in an empty Explore feed).
+  ///
+  /// - If items are missing: normal demo init will happen on first read.
+  /// - If items exist but are an empty list: we seed a small showcase dataset.
+  static Future<void> ensureListingsSeededIfEmpty() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_itemsKey);
+      if (raw == null || raw.isEmpty) return; // getItems()/getPublicItems() will init when needed.
+      final decoded = jsonDecode(raw);
+      if (decoded is List && decoded.isEmpty) {
+        debugPrint('[DataService] Items store empty -> seeding showcase listings');
+        // Also reset the old purge flag so we don't keep this state around.
+        await prefs.setBool(_purgedToOwnedFlagKey, false);
+        await resetItemsAndSeedFive(force: true);
+      }
+    } catch (e) {
+      debugPrint('[DataService] ensureListingsSeededIfEmpty failed: $e');
+    }
   }
 
   /// Clears all persisted listings and seeds exactly five showcase items

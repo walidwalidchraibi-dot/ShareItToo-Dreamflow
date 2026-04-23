@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/screens/create_listing_screen.dart';
-import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/login_nudge_sheet.dart';
 
 class SearchHeader extends StatelessWidget {
   final VoidCallback onFiltersPressed;
@@ -30,7 +30,7 @@ class SearchHeader extends StatelessWidget {
             onTap: () async {
               final u = await DataService.getCurrentUser();
               if (u == null) {
-                if (context.mounted) await AppPopup.showLoginRequired(context);
+                if (context.mounted) await showGuestRestrictionSheet(context, gateContext: GuestGateContext.listing);
                 return;
               }
               final created = await Navigator.of(context).push<Item?>(MaterialPageRoute(builder: (_) => const CreateListingScreen()));
@@ -86,7 +86,14 @@ class SearchHeader extends StatelessWidget {
           ),
           const SizedBox(width: gap),
           InkWell(
-            onTap: onFiltersPressed,
+            onTap: () async {
+              final u = await DataService.getCurrentUser();
+              if (u == null) {
+                if (context.mounted) await showGuestRestrictionSheet(context, gateContext: GuestGateContext.rentalRequest);
+                return;
+              }
+              onFiltersPressed();
+            },
             borderRadius: BorderRadius.circular(filterSize / 2),
             child: FutureBuilder<bool>(
               future: () async {

@@ -11,9 +11,13 @@ class ProfileHeaderCard extends StatelessWidget {
   final int? completedBookingsCount;
   const ProfileHeaderCard({super.key, required this.user, required this.listingsCount, this.completedBookingsCount});
 
+  bool get _isGuestUser => (user.role == 'guest') || (user.id == 'guest-user');
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
+    final isGuest = _isGuestUser;
+    final avatarUrl = isGuest ? null : (user.photoURL ?? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face');
     return Container(
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.20),
@@ -32,7 +36,7 @@ class ProfileHeaderCard extends StatelessWidget {
               children: [
                 Stack(children: [
                   SitUserAvatar(
-                    url: user.photoURL ?? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+                    url: avatarUrl,
                     radius: 36,
                     borderColor: Colors.white.withValues(alpha: 0.12),
                   ),
@@ -75,13 +79,13 @@ class ProfileHeaderCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _MetricLine(label: l10n.t('Bewertung'), value: _ratingText(context, user)),
+                  _MetricLine(label: l10n.t('Bewertung'), value: isGuest ? '—' : _ratingText(context, user)),
                   const SizedBox(height: 8),
-                  _MetricLine(label: l10n.t('Buchungen'), value: (completedBookingsCount ?? _estimatedBookings(user)).toString()),
+                  _MetricLine(label: l10n.t('Buchungen'), value: isGuest ? '—' : (completedBookingsCount ?? _estimatedBookings(user)).toString()),
                   const SizedBox(height: 8),
-                  _MetricLine(label: l10n.t('Dabei seit'), value: _joinedMonthYear(user.createdAt)),
+                  _MetricLine(label: l10n.t('Dabei seit'), value: isGuest ? '—' : _joinedMonthYear(user.createdAt)),
                   const SizedBox(height: 8),
-                  _MetricLine(label: l10n.t('Anzeigen'), value: listingsCount.toString()),
+                  _MetricLine(label: l10n.t('Anzeigen'), value: isGuest ? '—' : listingsCount.toString()),
                 ],
               ),
             ),

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
-import 'package:lendify/screens/login_screen.dart';
-import 'package:lendify/screens/register_screen.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/login_nudge_sheet.dart';
 
 /// Unified popup and toast utilities to keep a consistent, modern glass style
 /// across the entire app. Use these instead of SnackBar or small bottom sheets.
@@ -145,36 +144,8 @@ class AppPopup {
   }
 
   static Future<void> showLoginRequired(BuildContext context) async {
-    await show(
-      context,
-      icon: Icons.lock_outline,
-      title: 'Melde dich an, um fortzufahren',
-      message: 'Diese Aktion ist im Gastmodus deaktiviert.',
-      actions: [
-        Expanded(
-          child: _GlassActionButton(
-            icon: Icons.login,
-            label: 'Anmelden',
-            gradient: appBackgroundGradient,
-            onTap: () {
-              Navigator.of(context, rootNavigator: true).maybePop();
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
-            },
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _GlassActionButton(
-            icon: Icons.person_add_alt_1,
-            label: 'Konto erstellen',
-            onTap: () {
-              Navigator.of(context, rootNavigator: true).maybePop();
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen()));
-            },
-          ),
-        ),
-      ],
-    );
+    // Replaced legacy centered dialog with the standard premium bottom sheet.
+    await showGuestRestrictionSheet(context, gateContext: GuestGateContext.generic);
   }
 
   /// Lightweight variant that auto dismisses after [duration].

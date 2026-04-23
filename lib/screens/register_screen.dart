@@ -1,14 +1,17 @@
 import 'dart:ui';
 
+import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/navigation/main_navigation.dart';
-import 'package:lendify/theme.dart';
+import 'package:lendify/screens/legal_privacy_screen.dart';
+import 'package:lendify/screens/legal_terms_screen.dart';
 import 'package:lendify/services/auth_service.dart';
+import 'package:lendify/services/developer_preview_service.dart';
+import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
-import 'package:lendify/screens/login_screen.dart';
-import 'package:lendify/widgets/sit_logo_header.dart';
+import 'package:lendify/widgets/social_auth_button.dart';
+import 'package:provider/provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -18,105 +21,98 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // Hot-reload-safe: on Flutter Web, state objects can be rehydrated with
-  // previously absent fields, resulting in `null` where a FocusNode/controller
-  // is expected. Keep these nullable and lazily initialize on access.
-  TextEditingController? _nameCtrl;
-  TextEditingController? _emailCtrl;
-  TextEditingController? _pwCtrl;
-  TextEditingController? _pw2Ctrl;
+  final _formKey = GlobalKey<FormState>();
 
-  FocusNode? _nameFocus;
-  FocusNode? _emailFocus;
-  FocusNode? _pw1Focus;
-  FocusNode? _pw2Focus;
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _pwCtrl = TextEditingController();
+  final _pw2Ctrl = TextEditingController();
 
-  TextEditingController get _nameController => _nameCtrl ??= TextEditingController();
-  TextEditingController get _emailController => _emailCtrl ??= TextEditingController();
-  TextEditingController get _pw1Controller => _pwCtrl ??= TextEditingController();
-  TextEditingController get _pw2Controller => _pw2Ctrl ??= TextEditingController();
-
-  FocusNode get _nameFocusNode => _nameFocus ??= FocusNode();
-  FocusNode get _emailFocusNode => _emailFocus ??= FocusNode();
-  FocusNode get _pw1FocusNode => _pw1Focus ??= FocusNode();
-  FocusNode get _pw2FocusNode => _pw2Focus ??= FocusNode();
-
-  bool _pwListenersAttached = false;
-
-  void _ensurePasswordListeners() {
-    if (_pwListenersAttached) return;
-    _pw1Controller.addListener(_recomputePasswordState);
-    _pw2Controller.addListener(_recomputePasswordState);
-    _pwListenersAttached = true;
-  }
-
-  bool _pw1Visible = false;
-  bool _pw2Visible = false;
-  bool _pwLengthOk = false;
-  bool _pwMatchOk = false;
+  final _nameFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _pwFocus = FocusNode();
+  final _pw2Focus = FocusNode();
 
   bool _busy = false;
-  bool _pressingCta = false;
+  bool _pwVisible = false;
+  bool _pw2Visible = false;
 
-  @override
-  void dispose() {
-    _nameCtrl?.dispose();
-    _emailCtrl?.dispose();
-    _pwCtrl?.dispose();
-    _pw2Ctrl?.dispose();
-    _nameFocus?.dispose();
-    _emailFocus?.dispose();
-    _pw1Focus?.dispose();
-    _pw2Focus?.dispose();
-    super.dispose();
-  }
+  bool _didInteract = false;
 
   @override
   void initState() {
     super.initState();
-    _ensurePasswordListeners();
-    _recomputePasswordState();
+    void markDirty() {
+      if (!_didInteract) _didInteract = true;
+      if (mounted) setState(() {});
+    }
+
+    _nameCtrl.addListener(markDirty);
+    _emailCtrl.addListener(markDirty);
+    _pwCtrl.addListener(markDirty);
+    _pw2Ctrl.addListener(markDirty);
   }
 
-  void _recomputePasswordState() {
-    final pw1 = _pw1Controller.text;
-    final pw2 = _pw2Controller.text;
-    final lengthOk = pw1.length >= 8;
-    final matchOk = pw2.isNotEmpty && pw1 == pw2;
-    if (lengthOk == _pwLengthOk && matchOk == _pwMatchOk) return;
-    setState(() {
-      _pwLengthOk = lengthOk;
-      _pwMatchOk = matchOk;
-    });
+  void _openTerms() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalTermsScreen()));
+  }
+
+  void _openPrivacy() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalPrivacyScreen()));
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _pwCtrl.dispose();
+    _pw2Ctrl.dispose();
+    _nameFocus.dispose();
+    _emailFocus.dispose();
+    _pwFocus.dispose();
+    _pw2Focus.dispose();
+    super.dispose();
+  }
+
+  String? _validateName(String? v) {
+    final value = (v ?? '').trim();
+    if (value.isEmpty) return 'Bitte gib deinen Namen ein.';
+    if (value.length < 2) return 'Bitte gib einen gültigen Namen ein.';
+    return null;
+  }
+
+  String? _validateEmail(String? v) {
+    final value = (v ?? '').trim();
+    if (value.isEmpty) return 'Bitte gib eine gültige E-Mail-Adresse ein.';
+    final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value);
+    if (!ok) return 'Bitte gib eine gültige E-Mail-Adresse ein.';
+    return null;
+  }
+
+  String? _validatePassword(String? v) {
+    final value = (v ?? '');
+    if (value.trim().isEmpty) return 'Bitte gib dein Passwort ein.';
+    if (value.length < 8) return 'Das Passwort ist zu kurz.';
+    return null;
+  }
+
+  String? _validatePassword2(String? v) {
+    final value = (v ?? '');
+    if (value.trim().isEmpty) return 'Bitte bestätige dein Passwort.';
+    if (value != _pwCtrl.text) return 'Die Passwörter stimmen nicht überein.';
+    return null;
   }
 
   Future<void> _register() async {
     if (_busy) return;
+    FocusScope.of(context).unfocus();
+    final ok = _formKey.currentState?.validate() ?? false;
+    if (!ok) return;
+
     setState(() => _busy = true);
     try {
-      final email = _emailController.text.trim();
-      final pw = _pw1Controller.text;
-      final pw2 = _pw2Controller.text;
-      final okEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
-      if (!okEmail) {
-        await AppPopup.toast(context, icon: Icons.error_outline, title: 'Bitte gib eine gültige E-Mail-Adresse ein.');
-        return;
-      }
-      if (pw.trim().isEmpty) {
-        await AppPopup.toast(context, icon: Icons.error_outline, title: 'Bitte gib dein Passwort ein.');
-        return;
-      }
-      if (pw.length < 8) {
-        await AppPopup.toast(context, icon: Icons.error_outline, title: 'Das Passwort ist zu kurz.');
-        return;
-      }
-      if (pw2.isEmpty || pw2 != pw) {
-        await AppPopup.toast(context, icon: Icons.error_outline, title: 'Bitte bestätige dein Passwort.');
-        return;
-      }
-
       await Future<void>.delayed(const Duration(milliseconds: 600));
-      final result = await AuthService.registerLocalAccount(email: email, password: pw);
+      final result = await AuthService.registerLocalAccount(email: _emailCtrl.text.trim(), password: _pwCtrl.text);
       if (!mounted) return;
       if (!result.ok) {
         final msg = switch (result.failure) {
@@ -129,7 +125,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
 
       await context.read<DeveloperPreviewController>().setState(DeveloperUserState.loggedIn);
+      if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const MainNavigation()), (route) => false);
+    } catch (e) {
+      debugPrint('[RegisterScreen] register failed: $e');
+      if (!mounted) return;
+      await AppPopup.toast(context, icon: Icons.wifi_off_outlined, title: 'Es ist ein Fehler aufgetreten.', message: 'Bitte versuche es erneut.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _socialRegister(AuthSocialProvider provider) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 420));
+      final result = await AuthService.signInWithSocialProvider(provider);
+      if (!mounted) return;
+      if (!result.ok) {
+        await AppPopup.toast(context, icon: Icons.wifi_off_outlined, title: 'Registrierung fehlgeschlagen', message: 'Bitte versuche es erneut.');
+        return;
+      }
+      await context.read<DeveloperPreviewController>().setState(DeveloperUserState.loggedIn);
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const MainNavigation()), (route) => false);
+    } catch (e) {
+      debugPrint('[RegisterScreen] socialRegister failed: $e');
+      if (!mounted) return;
+      await AppPopup.toast(context, icon: Icons.wifi_off_outlined, title: 'Es ist ein Fehler aufgetreten.', message: 'Bitte versuche es erneut.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -137,260 +161,162 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Hot-reload safety: if controllers were re-created after state
-    // rehydration, ensure listeners exist.
-    _ensurePasswordListeners();
     final theme = Theme.of(context);
-    const onImageText = Colors.white;
+    final media = MediaQuery.of(context);
+
+    final nameOk = _validateName(_nameCtrl.text) == null;
+    final emailOk = _validateEmail(_emailCtrl.text) == null;
+    final pwOk = _validatePassword(_pwCtrl.text) == null;
+    final pw2Ok = _validatePassword2(_pw2Ctrl.text) == null;
+
     return Scaffold(
-      extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
-      appBar: _CenteredTitleAppBar(
-        title: 'Registrierung',
-        onBack: () => Navigator.of(context).maybePop(),
-      ),
-      body: Stack(children: [
-        const Positioned.fill(
-          child: IgnorePointer(
-            // Safety: BackdropFilter/DecoratedBox layers can sometimes win hit-testing
-            // on certain platforms/compositing paths. The backdrop must never block
-            // interactions with the form.
-            child: _RegisterBackdrop(),
-          ),
-        ),
-        Positioned.fill(
-          child: SafeArea(
-            top: false,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final topInset = MediaQuery.paddingOf(context).top;
-                // Move the whole content further up (~1.5cm) compared to the
-                // previous layout.
-                final extraTopBase = (constraints.maxHeight * 0.12).clamp(90.0, 160.0);
-                // Fine-tuning offsets (approx.): 1cm ~= 36px.
-                // User request:
-                //  - Move everything ~1cm further up
-                //  - Move the CTA button + everything below it ~3cm further down
-                const cmPx = 36.0;
-                // Additional request: move the whole page content (below the header/title)
-                // ~1.5cm further up.
-                const shiftUpExtraPx = cmPx * 1.5; // ~54px
-                final extraTop = (extraTopBase - 90.0 - 54.0 - cmPx - shiftUpExtraPx).clamp(0.0, 140.0);
-                return SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    topInset + kToolbarHeight + 12 + extraTop,
-                    16,
-                    // Ensure content below the CTA (trust text, login row, demo hint)
-                    // is never clipped by the system bottom inset (home indicator)
-                    // or the keyboard.
-                    32 + MediaQuery.paddingOf(context).bottom + MediaQuery.viewInsetsOf(context).bottom,
-                  ),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight - (topInset + kToolbarHeight + 12 + extraTop)),
-                    child: IntrinsicHeight(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                        const SitLogoHeader(showSlogan: false),
-                        const SizedBox(height: 18),
-                        Text(
-                          'In 60 Sekunden starten',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.titleLarge?.copyWith(color: onImageText, fontSize: 28, fontWeight: FontWeight.w900),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Mieten & vermieten – sicher, einfach und in deiner Nähe.',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyMedium?.copyWith(color: onImageText.withValues(alpha: 0.86), height: 1.35, fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 26),
-                        _FormFocusPanel(
-                          child: _RegisterFormCard(
-                            nameCtrl: _nameController,
-                            emailCtrl: _emailController,
-                            pw1Ctrl: _pw1Controller,
-                            pw2Ctrl: _pw2Controller,
-                            nameFocus: _nameFocusNode,
-                            emailFocus: _emailFocusNode,
-                            pw1Focus: _pw1FocusNode,
-                            pw2Focus: _pw2FocusNode,
-                            pw1Visible: _pw1Visible,
-                            pw2Visible: _pw2Visible,
-                            pwLengthOk: _pwLengthOk,
-                            pwMatchOk: _pwMatchOk,
-                            onTogglePw1: () => setState(() => _pw1Visible = !_pw1Visible),
-                            onTogglePw2: () => setState(() => _pw2Visible = !_pw2Visible),
+      body: Stack(
+        children: [
+          const Positioned.fill(child: IgnorePointer(child: _RegisterBackdrop())),
+          SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+                  child: Row(children: [
+                    _GlassIconButton(icon: Icons.arrow_back, onTap: () => Navigator.of(context).maybePop()),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text('In weniger als 60 Sekunden starten', textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white, height: 1.15)),
+                          const SizedBox(height: 6),
+                          Text('Mieten & vermieten – sicher, einfach und in deiner Nähe.', textAlign: TextAlign.center, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.76), height: 1.35, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 54),
+                  ]),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      const bottomBarHeight = _StickyAuthBar.kMinHeight;
+                      final bottomPadding = bottomBarHeight + 16 + media.padding.bottom;
+
+                      return SingleChildScrollView(
+                        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPadding),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 520),
+                            child: _GlassCard(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                                child: Form(
+                                  key: _formKey,
+                                  autovalidateMode: _didInteract ? AutovalidateMode.onUserInteraction : AutovalidateMode.disabled,
+                                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                                    SocialAuthButton(brand: SocialAuthBrand.google, label: 'Mit Google registrieren', onTap: _busy ? null : () => _socialRegister(AuthSocialProvider.google)),
+                                    const SizedBox(height: 10),
+                                    SocialAuthButton(brand: SocialAuthBrand.apple, label: 'Mit Apple registrieren', onTap: _busy ? null : () => _socialRegister(AuthSocialProvider.apple)),
+                                    const SizedBox(height: 14),
+                                    const SocialAuthOrDivider(),
+                                    const SizedBox(height: 14),
+                                    _SITTextField(
+                                      label: 'Name',
+                                      placeholder: 'Max Mustermann',
+                                      controller: _nameCtrl,
+                                      focusNode: _nameFocus,
+                                      nextFocusNode: _emailFocus,
+                                      keyboardType: TextInputType.name,
+                                      textInputAction: TextInputAction.next,
+                                      validator: _validateName,
+                                      prefixIcon: Icons.person_outline,
+                                      status: _didInteract && _nameCtrl.text.trim().isNotEmpty ? (nameOk ? _FieldStatus.success : _FieldStatus.error) : _FieldStatus.neutral,
+                                      autocorrect: true,
+                                      enableSuggestions: true,
+                                      textCapitalization: TextCapitalization.words,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    _SITTextField(
+                                      label: 'E-Mail',
+                                      placeholder: 'deine@email.com',
+                                      controller: _emailCtrl,
+                                      focusNode: _emailFocus,
+                                      nextFocusNode: _pwFocus,
+                                      keyboardType: TextInputType.emailAddress,
+                                      textInputAction: TextInputAction.next,
+                                      validator: _validateEmail,
+                                      prefixIcon: Icons.alternate_email,
+                                      status: _didInteract && _emailCtrl.text.trim().isNotEmpty ? (emailOk ? _FieldStatus.success : _FieldStatus.error) : _FieldStatus.neutral,
+                                      autocorrect: false,
+                                      enableSuggestions: false,
+                                      textCapitalization: TextCapitalization.none,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    _SITTextField(
+                                      label: 'Passwort',
+                                      placeholder: '••••••••',
+                                      controller: _pwCtrl,
+                                      focusNode: _pwFocus,
+                                      nextFocusNode: _pw2Focus,
+                                      keyboardType: TextInputType.visiblePassword,
+                                      textInputAction: TextInputAction.next,
+                                      validator: _validatePassword,
+                                      prefixIcon: Icons.lock_outline,
+                                      status: _didInteract && _pwCtrl.text.isNotEmpty ? (pwOk ? _FieldStatus.success : _FieldStatus.error) : _FieldStatus.neutral,
+                                      obscureText: !_pwVisible,
+                                      autocorrect: false,
+                                      enableSuggestions: false,
+                                      textCapitalization: TextCapitalization.none,
+                                      suffix: _GlassSuffixIconButton(icon: _pwVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined, onTap: () => setState(() => _pwVisible = !_pwVisible)),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    _HintRow(icon: Icons.check_circle_outline, ok: pwOk, text: 'Mind. 8 Zeichen'),
+                                    const SizedBox(height: 10),
+                                    _SITTextField(
+                                      label: 'Passwort wiederholen',
+                                      placeholder: '••••••••',
+                                      controller: _pw2Ctrl,
+                                      focusNode: _pw2Focus,
+                                      keyboardType: TextInputType.visiblePassword,
+                                      textInputAction: TextInputAction.done,
+                                      validator: _validatePassword2,
+                                      prefixIcon: Icons.lock_outline,
+                                      status: _didInteract && _pw2Ctrl.text.isNotEmpty ? (pw2Ok ? _FieldStatus.success : _FieldStatus.error) : _FieldStatus.neutral,
+                                      obscureText: !_pw2Visible,
+                                      autocorrect: false,
+                                      enableSuggestions: false,
+                                      textCapitalization: TextCapitalization.none,
+                                      onSubmitted: (_) => _register(),
+                                      suffix: _GlassSuffixIconButton(icon: _pw2Visible ? Icons.visibility_off_outlined : Icons.visibility_outlined, onTap: () => setState(() => _pw2Visible = !_pw2Visible)),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    _HintRow(icon: Icons.verified_outlined, ok: pw2Ok, text: 'Passwörter müssen übereinstimmen'),
+                                  ]),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 18 + (cmPx * 3)),
-                        _PrimaryCtaButton(
-                          icon: Icons.person_add_alt_1,
-                          label: _busy ? 'Bitte warten…' : 'Konto erstellen',
-                          enabled: !_busy,
-                          pressing: _pressingCta,
-                          onPressingChanged: (v) => setState(() => _pressingCta = v),
-                          onTap: _busy ? null : _register,
-                        ),
-                        const SizedBox(height: 14),
-                        const _TrustSection(),
-                        const Spacer(),
-                        const SizedBox(height: 18),
-                        _SecondaryActionRow(
-                          onLoginTap: () {
-                            Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Demo‑Modus – keine echte Registrierung',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.labelSmall?.copyWith(color: onImageText.withValues(alpha: 0.65), fontWeight: FontWeight.w700),
-                        ),
-                      ]),
-                    ),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+              ],
             ),
           ),
-        ),
-      ]),
-    );
-  }
-}
-
-class _RegisterFormCard extends StatelessWidget {
-  final TextEditingController nameCtrl;
-  final TextEditingController emailCtrl;
-  final TextEditingController pw1Ctrl;
-  final TextEditingController pw2Ctrl;
-  final FocusNode nameFocus;
-  final FocusNode emailFocus;
-  final FocusNode pw1Focus;
-  final FocusNode pw2Focus;
-  final bool pw1Visible;
-  final bool pw2Visible;
-  final bool pwLengthOk;
-  final bool pwMatchOk;
-  final VoidCallback onTogglePw1;
-  final VoidCallback onTogglePw2;
-  const _RegisterFormCard({
-    required this.nameCtrl,
-    required this.emailCtrl,
-    required this.pw1Ctrl,
-    required this.pw2Ctrl,
-    required this.nameFocus,
-    required this.emailFocus,
-    required this.pw1Focus,
-    required this.pw2Focus,
-    required this.pw1Visible,
-    required this.pw2Visible,
-    required this.pwLengthOk,
-    required this.pwMatchOk,
-    required this.onTogglePw1,
-    required this.onTogglePw2,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      _GlassTextField(
-        label: 'Name',
-        controller: nameCtrl,
-        focusNode: nameFocus,
-        nextFocus: emailFocus,
-        textInputAction: TextInputAction.next,
-        keyboardType: TextInputType.name,
-        autofillHints: const [AutofillHints.name],
-        prefixIcon: Icons.person_outline,
-      ),
-      const SizedBox(height: 12),
-      _GlassTextField(
-        label: 'E‑Mail',
-        controller: emailCtrl,
-        focusNode: emailFocus,
-        nextFocus: pw1Focus,
-        textInputAction: TextInputAction.next,
-        keyboardType: TextInputType.emailAddress,
-        autofillHints: const [AutofillHints.email],
-        prefixIcon: Icons.mail_outline,
-      ),
-      const SizedBox(height: 12),
-      _GlassTextField(
-        label: 'Passwort',
-        controller: pw1Ctrl,
-        focusNode: pw1Focus,
-        nextFocus: pw2Focus,
-        textInputAction: TextInputAction.next,
-        keyboardType: TextInputType.visiblePassword,
-        autofillHints: const [AutofillHints.newPassword],
-        prefixIcon: Icons.lock_outline,
-        obscureText: !pw1Visible,
-        onToggleObscure: onTogglePw1,
-        toggleObscureIcon: pw1Visible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-        assistiveBelow: _PasswordHintRow(text: 'Mind. 8 Zeichen', ok: pwLengthOk, showState: pw1Ctrl.text.isNotEmpty),
-      ),
-      const SizedBox(height: 10),
-      _GlassTextField(
-        label: 'Passwort wiederholen',
-        controller: pw2Ctrl,
-        focusNode: pw2Focus,
-        textInputAction: TextInputAction.done,
-        keyboardType: TextInputType.visiblePassword,
-        autofillHints: const [AutofillHints.newPassword],
-        prefixIcon: Icons.lock_outline,
-        obscureText: !pw2Visible,
-        onToggleObscure: onTogglePw2,
-        toggleObscureIcon: pw2Visible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-        assistiveBelow: _PasswordHintRow(text: 'Passwörter müssen übereinstimmen', ok: pwMatchOk, showState: pw2Ctrl.text.isNotEmpty, warnWhenNotOk: true),
-        suffixStatus: pw2Ctrl.text.isEmpty ? null : (pwMatchOk ? _FieldStatus.ok : _FieldStatus.warn),
-      ),
-    ]);
-  }
-}
-
-class _TrustSection extends StatelessWidget {
-  const _TrustSection();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    const onImageText = Colors.white;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        children: [
-          Text('Sicher. Transparent. Fair.', textAlign: TextAlign.center, style: theme.textTheme.bodyMedium?.copyWith(color: onImageText, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 4),
-          Text('Verifizierte Profile & sichere Übergaben', textAlign: TextAlign.center, style: theme.textTheme.bodySmall?.copyWith(color: onImageText.withValues(alpha: 0.86), height: 1.25, fontWeight: FontWeight.w700)),
-        ],
-      ),
-    );
-  }
-}
-
-class _FormFocusPanel extends StatelessWidget {
-  final Widget child;
-  const _FormFocusPanel({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
-      child: BackdropFilter(
-        // Keep focus on the text fields: the big panel is only lightly blurred.
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(26),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _StickyAuthBar(
+              busy: _busy,
+              onSubmit: _busy ? null : _register,
+              onOpenTerms: _openTerms,
+              onOpenPrivacy: _openPrivacy,
+              onLogin: () => Navigator.of(context).maybePop(),
+            ),
           ),
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-          child: child,
-        ),
+        ],
       ),
     );
   }
@@ -405,61 +331,28 @@ class _RegisterBackdrop extends StatelessWidget {
     final primary = theme.colorScheme.primary;
     final dark = theme.colorScheme.secondary;
 
-    // We keep this in 4 bands (top→bottom) to approximate a vertical blur ramp
-    // without expensive per-pixel blur shaders.
-    const bands = <_BlurBandSpec>[
-      _BlurBandSpec(flex: 22, sigma: 0, tintOpacity: 0.12),
-      _BlurBandSpec(flex: 26, sigma: 8, tintOpacity: 0.17),
-      _BlurBandSpec(flex: 28, sigma: 14, tintOpacity: 0.22),
-      _BlurBandSpec(flex: 24, sigma: 20, tintOpacity: 0.28),
-    ];
-
     return Stack(
       fit: StackFit.expand,
       children: [
         Image.asset('assets/images/register.png', fit: BoxFit.cover, alignment: Alignment.topCenter),
-
-        // Subtle overall blur to make the photo feel more premium (kept small for performance).
         ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
             child: const SizedBox.expand(),
           ),
         ),
-
-        // Soft brand tint to match SIT look and keep text readable.
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!.withValues(alpha: 0.36),
-                Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!.withValues(alpha: 0.28),
+                Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!.withValues(alpha: 0.34),
+                Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!.withValues(alpha: 0.26),
               ],
             ),
           ),
         ),
-
-        // Blur + fade increasing towards the bottom.
-        Column(
-          children: [
-            for (final band in bands)
-              Expanded(
-                flex: band.flex,
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: band.sigma.toDouble(), sigmaY: band.sigma.toDouble()),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(color: theme.colorScheme.surface.withValues(alpha: band.tintOpacity)),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-
-        // Extra bottom fade so the CTA area stays premium/clean.
         IgnorePointer(
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -468,7 +361,7 @@ class _RegisterBackdrop extends StatelessWidget {
                 end: Alignment.bottomCenter,
                 colors: [
                   Colors.transparent,
-                  theme.colorScheme.surface.withValues(alpha: 0.40),
+                  theme.colorScheme.surface.withValues(alpha: 0.38),
                   theme.colorScheme.surface.withValues(alpha: 0.62),
                 ],
                 stops: const [0.55, 0.82, 1.0],
@@ -481,373 +374,369 @@ class _RegisterBackdrop extends StatelessWidget {
   }
 }
 
-class _BlurBandSpec {
-  final int flex;
-  final int sigma;
-  final double tintOpacity;
-  const _BlurBandSpec({required this.flex, required this.sigma, required this.tintOpacity});
-}
-
-class _CenteredTitleAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final String title;
-  final VoidCallback onBack;
-  const _CenteredTitleAppBar({required this.title, required this.onBack});
-
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+class _GlassIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _GlassIconButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    const onImageText = Colors.white;
-    return AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      automaticallyImplyLeading: false,
-      titleSpacing: 0,
-      title: Stack(
+    return _Pressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 44,
+        height: 44,
         alignment: Alignment.center,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
-              onPressed: onBack,
-              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: onImageText.withValues(alpha: 0.92)),
-              tooltip: 'Zurück',
-            ),
-          ),
-          Text(title, textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(color: onImageText, fontWeight: FontWeight.w900)),
-        ],
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        ),
+        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }
 }
 
-enum _FieldStatus { ok, warn }
+class _GlassSuffixIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _GlassSuffixIconButton({required this.icon, required this.onTap});
 
-class _GlassTextField extends StatefulWidget {
+  @override
+  Widget build(BuildContext context) {
+    // Keep it “free-floating” inside the text field (no chip/background).
+    return _Pressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Center(child: Icon(icon, color: Colors.white.withValues(alpha: 0.85), size: 20)),
+      ),
+    );
+  }
+}
+
+class _GlassCard extends StatelessWidget {
+  final Widget child;
+  const _GlassCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(26),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+enum _FieldStatus { neutral, success, error }
+
+class _SITTextField extends StatelessWidget {
   final String label;
+  final String placeholder;
   final TextEditingController controller;
-  /// If null (can happen on Flutter Web after hot reload / state rehydration),
-  /// the widget will create and manage its own FocusNode to avoid runtime
-  /// crashes like: "type 'Null' is not a subtype of type 'FocusNode'".
-  final FocusNode? focusNode;
-  final FocusNode? nextFocus;
-  final TextInputAction textInputAction;
+  final FocusNode focusNode;
+  final FocusNode? nextFocusNode;
   final TextInputType keyboardType;
-  final List<String>? autofillHints;
+  final TextInputAction textInputAction;
+  final String? Function(String?) validator;
   final IconData prefixIcon;
+  final _FieldStatus status;
   final bool obscureText;
-  final VoidCallback? onToggleObscure;
-  final IconData? toggleObscureIcon;
-  final Widget? assistiveBelow;
-  final _FieldStatus? suffixStatus;
-  const _GlassTextField({
+  final Widget? suffix;
+  final bool autocorrect;
+  final bool enableSuggestions;
+  final TextCapitalization textCapitalization;
+  final ValueChanged<String>? onSubmitted;
+
+  const _SITTextField({
     required this.label,
+    required this.placeholder,
     required this.controller,
     required this.focusNode,
-    required this.textInputAction,
+    this.nextFocusNode,
     required this.keyboardType,
+    required this.textInputAction,
+    required this.validator,
     required this.prefixIcon,
-    this.nextFocus,
-    this.autofillHints,
+    this.status = _FieldStatus.neutral,
     this.obscureText = false,
-    this.onToggleObscure,
-    this.toggleObscureIcon,
-    this.assistiveBelow,
-    this.suffixStatus,
+    this.suffix,
+    this.autocorrect = false,
+    this.enableSuggestions = false,
+    this.textCapitalization = TextCapitalization.none,
+    this.onSubmitted,
   });
 
   @override
-  State<_GlassTextField> createState() => _GlassTextFieldState();
-}
-
-class _GlassTextFieldState extends State<_GlassTextField> {
-  bool _focused = false;
-  late FocusNode _effectiveFocusNode;
-  bool _ownsFocusNode = false;
-
-  FocusNode _resolveFocusNode(FocusNode? provided) {
-    if (provided != null) return provided;
-    _ownsFocusNode = true;
-    return FocusNode();
-  }
-
-  void _attach(FocusNode node) {
-    _effectiveFocusNode = node;
-    _effectiveFocusNode.addListener(_onFocusChange);
-  }
-
-  void _detachAndMaybeDispose() {
-    _effectiveFocusNode.removeListener(_onFocusChange);
-    if (_ownsFocusNode) {
-      _effectiveFocusNode.dispose();
-    }
-    _ownsFocusNode = false;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _attach(_resolveFocusNode(widget.focusNode));
-  }
-
-  @override
-  void didUpdateWidget(covariant _GlassTextField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final nextNode = widget.focusNode;
-    final oldNode = oldWidget.focusNode;
-    if (!identical(nextNode, oldNode)) {
-      _detachAndMaybeDispose();
-      _attach(_resolveFocusNode(nextNode));
-    }
-  }
-
-  @override
-  void dispose() {
-    _detachAndMaybeDispose();
-    super.dispose();
-  }
-
-  void _onFocusChange() {
-    if (!mounted) return;
-    setState(() => _focused = _effectiveFocusNode.hasFocus);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
-    const onImageText = Colors.white;
 
-    // Stronger blur where the user interacts to reduce background distraction.
-    final double fieldSigma = _focused ? 16.0 : 10.0;
+    final border = switch (status) {
+      _FieldStatus.success => BrandColors.success.withValues(alpha: 0.90),
+      _FieldStatus.error => BrandColors.danger.withValues(alpha: 0.95),
+      _FieldStatus.neutral => Colors.white.withValues(alpha: 0.12),
+    };
+    final focusedBorder = switch (status) {
+      _FieldStatus.success => BrandColors.success,
+      _FieldStatus.error => BrandColors.danger,
+      _FieldStatus.neutral => BrandColors.primary,
+    };
 
-    Color borderColor() {
-      if (!_focused) return Colors.white.withValues(alpha: 0.30);
-      return Color.lerp(primary, Colors.white, 0.25)!.withValues(alpha: 0.92);
-    }
-
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          // Blur only where the user types (not the whole form card).
-          filter: ImageFilter.blur(sigmaX: fieldSigma, sigmaY: fieldSigma),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            curve: Curves.easeOut,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: _focused ? 0.14 : 0.11),
-                  Colors.white.withValues(alpha: _focused ? 0.07 : 0.06),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: borderColor(), width: _focused ? 1.35 : 1.15),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: _focused ? 0.24 : 0.18), blurRadius: _focused ? 20 : 14, offset: const Offset(0, 10)),
-                if (_focused) BoxShadow(color: primary.withValues(alpha: 0.18), blurRadius: 26, offset: const Offset(0, 12)),
-              ],
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: TextField(
-              controller: widget.controller,
-              focusNode: _effectiveFocusNode,
-              keyboardType: widget.keyboardType,
-              textInputAction: widget.textInputAction,
-              autofillHints: widget.autofillHints,
-              obscureText: widget.obscureText,
-              enableSuggestions: !widget.obscureText,
-              autocorrect: !widget.obscureText,
-              style: theme.textTheme.bodyMedium?.copyWith(color: onImageText, fontSize: 14, fontWeight: FontWeight.w800),
-              decoration: InputDecoration(
-                labelText: widget.label,
-                floatingLabelBehavior: FloatingLabelBehavior.auto,
-                labelStyle: theme.textTheme.bodySmall?.copyWith(color: onImageText.withValues(alpha: 0.84), fontWeight: FontWeight.w800),
-                border: InputBorder.none,
-                prefixIcon: Icon(widget.prefixIcon, color: onImageText.withValues(alpha: 0.92), size: 20),
-                prefixIconConstraints: const BoxConstraints(minHeight: 44, minWidth: 44),
-                suffixIcon: _suffix(context),
-                contentPadding: const EdgeInsets.fromLTRB(0, 14, 0, 14),
-              ),
-              onSubmitted: (_) {
-                if (widget.textInputAction == TextInputAction.done) {
-                  FocusScope.of(context).unfocus();
-                } else if (widget.nextFocus != null) {
-                  widget.nextFocus!.requestFocus();
-                }
-              },
-            ),
-          ),
+    return TextFormField(
+      controller: controller,
+      focusNode: focusNode,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      obscureText: obscureText,
+      autocorrect: autocorrect,
+      enableSuggestions: enableSuggestions,
+      textCapitalization: textCapitalization,
+      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+      validator: validator,
+      onFieldSubmitted: (v) {
+        if (nextFocusNode != null) {
+          FocusScope.of(context).requestFocus(nextFocusNode);
+        } else {
+          onSubmitted?.call(v);
+        }
+      },
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: placeholder,
+        hintStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.42), fontWeight: FontWeight.w600),
+        labelStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.78), fontWeight: FontWeight.w700),
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(left: 12, right: 10),
+          child: Icon(prefixIcon, color: Colors.white.withValues(alpha: 0.78), size: 18),
         ),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+        suffixIcon: suffix == null ? null : Padding(padding: const EdgeInsets.only(right: 8), child: suffix),
+        filled: true,
+        fillColor: Colors.black.withValues(alpha: 0.10),
+        contentPadding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: border, width: 1.0)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: focusedBorder.withValues(alpha: 0.90), width: 1.35)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: BrandColors.danger.withValues(alpha: 0.9), width: 1.2)),
+        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: BrandColors.danger.withValues(alpha: 0.95), width: 1.3)),
+        errorStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.92), height: 1.25, fontWeight: FontWeight.w700),
       ),
-      if (widget.assistiveBelow != null) ...[
-        const SizedBox(height: 8),
-        widget.assistiveBelow!,
-      ],
-    ]);
-  }
-
-  Widget? _suffix(BuildContext context) {
-    const iconColor = Colors.white;
-
-    Widget? statusIcon;
-    if (widget.suffixStatus != null) {
-      statusIcon = switch (widget.suffixStatus!) {
-        _FieldStatus.ok => Icon(Icons.check_circle_rounded, color: BrandColors.success.withValues(alpha: 0.95), size: 18),
-        _FieldStatus.warn => Icon(Icons.error_outline_rounded, color: BrandColors.danger.withValues(alpha: 0.92), size: 18),
-      };
-    }
-
-    final toggle = (widget.onToggleObscure != null && widget.toggleObscureIcon != null)
-        ? IconButton(
-            onPressed: widget.onToggleObscure,
-            icon: Icon(widget.toggleObscureIcon, size: 18, color: iconColor.withValues(alpha: 0.82)),
-            tooltip: widget.obscureText ? 'Passwort anzeigen' : 'Passwort verbergen',
-          )
-        : null;
-
-    if (toggle == null && statusIcon == null) return null;
-
-    return Row(mainAxisSize: MainAxisSize.min, children: [
-      if (statusIcon != null) ...[statusIcon, const SizedBox(width: 6)],
-      if (toggle != null) toggle,
-    ]);
+    );
   }
 }
 
-class _PasswordHintRow extends StatelessWidget {
-  final String text;
-  final bool ok;
-  final bool showState;
-  final bool warnWhenNotOk;
-  const _PasswordHintRow({required this.text, required this.ok, required this.showState, this.warnWhenNotOk = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    const onImageText = Colors.white;
-    final showIcon = showState;
-    final Color color;
-    if (!showState) {
-      color = onImageText.withValues(alpha: 0.62);
-    } else if (ok) {
-      color = BrandColors.success.withValues(alpha: 0.95);
-    } else if (warnWhenNotOk) {
-      color = BrandColors.danger.withValues(alpha: 0.92);
-    } else {
-      color = onImageText.withValues(alpha: 0.62);
-    }
-
-    return Row(children: [
-      AnimatedOpacity(
-        opacity: showIcon ? 1 : 0,
-        duration: const Duration(milliseconds: 140),
-        child: Icon(ok ? Icons.check_rounded : Icons.close_rounded, size: 16, color: ok ? BrandColors.success.withValues(alpha: 0.95) : BrandColors.danger.withValues(alpha: 0.92)),
-      ),
-      const SizedBox(width: 8),
-      Expanded(child: Text(text, style: theme.textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w700))),
-    ]);
-  }
-}
-
-class _PrimaryCtaButton extends StatelessWidget {
+class _HintRow extends StatelessWidget {
   final IconData icon;
-  final String label;
-  final bool enabled;
-  final bool pressing;
-  final ValueChanged<bool> onPressingChanged;
-  final VoidCallback? onTap;
-  const _PrimaryCtaButton({
-    required this.icon,
-    required this.label,
-    required this.enabled,
-    required this.pressing,
-    required this.onPressingChanged,
-    required this.onTap,
-  });
+  final bool ok;
+  final String text;
+  const _HintRow({required this.icon, required this.ok, required this.text});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // SIT Blue CTA (high-conversion, consistent with primary brand color)
-    final primary = theme.colorScheme.primary;
-    final gradient = LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [
-        Color.lerp(primary, Colors.black, 0.10)!,
-        Color.lerp(primary, Colors.white, 0.18)!,
-      ],
+    final c = ok ? BrandColors.success.withValues(alpha: 0.95) : Colors.white.withValues(alpha: 0.55);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Row(children: [
+        Icon(icon, size: 14, color: c),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text, style: theme.textTheme.labelSmall?.copyWith(color: c, height: 1.2, fontWeight: FontWeight.w700))),
+      ]),
     );
+  }
+}
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: enabled ? (_) => onPressingChanged(true) : null,
-      onTapCancel: enabled ? () => onPressingChanged(false) : null,
-      onTapUp: enabled ? (_) => onPressingChanged(false) : null,
-      onTap: enabled ? onTap : null,
-      child: AnimatedScale(
-        scale: pressing ? 0.985 : 1,
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOut,
-        child: Container(
-          height: 60,
-          decoration: BoxDecoration(
-            gradient: enabled ? gradient : null,
-            color: enabled ? null : Colors.white.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: enabled
-                ? [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.26), blurRadius: 22, offset: const Offset(0, 12)),
-                    BoxShadow(color: primary.withValues(alpha: 0.18), blurRadius: 26, offset: const Offset(0, 14)),
-                  ]
-                : null,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Row(children: [
-            Icon(icon, color: Colors.white.withValues(alpha: enabled ? 0.98 : 0.70), size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white.withValues(alpha: enabled ? 0.98 : 0.70)),
+class _StickyAuthBar extends StatelessWidget {
+  static const kMinHeight = 148.0;
+  final bool busy;
+  final VoidCallback? onSubmit;
+  final VoidCallback onOpenTerms;
+  final VoidCallback onOpenPrivacy;
+  final VoidCallback onLogin;
+  const _StickyAuthBar({required this.busy, required this.onSubmit, required this.onOpenTerms, required this.onOpenPrivacy, required this.onLogin});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final media = MediaQuery.of(context);
+    return SafeArea(
+      top: false,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: kMinHeight),
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + (media.padding.bottom > 0 ? 0 : 6)),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.32),
+              border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _PrimaryCTAButton(busy: busy, label: busy ? 'Registrieren…' : 'Kostenlos registrieren', onTap: onSubmit),
+                    const SizedBox(height: 10),
+                    _LegalText(onOpenTerms: onOpenTerms, onOpenPrivacy: onOpenPrivacy),
+                    const SizedBox(height: 8),
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Text('Schon ein Konto? ', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.78))),
+                      _TextLink(label: 'Anmelden', onTap: onLogin),
+                    ]),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(width: 30),
-          ]),
+          ),
         ),
       ),
     );
   }
 }
 
-class _SecondaryActionRow extends StatelessWidget {
-  final VoidCallback onLoginTap;
-  const _SecondaryActionRow({required this.onLoginTap});
+class _PrimaryCTAButton extends StatelessWidget {
+  final bool busy;
+  final String label;
+  final VoidCallback? onTap;
+  const _PrimaryCTAButton({required this.busy, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const onImageText = Colors.white;
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Text('Schon ein Konto? ', style: theme.textTheme.bodySmall?.copyWith(color: onImageText.withValues(alpha: 0.78), height: 1.2, fontWeight: FontWeight.w700)),
-        GestureDetector(
-          onTap: onLoginTap,
-          child: Text(
-            'Anmelden',
-            style: theme.textTheme.bodySmall?.copyWith(color: onImageText, fontWeight: FontWeight.w900, decoration: TextDecoration.underline, decorationColor: onImageText),
-          ),
+    return _Pressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: onTap == null
+              ? LinearGradient(colors: [Colors.white.withValues(alpha: 0.10), Colors.white.withValues(alpha: 0.08)])
+              : LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.82)]),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: onTap == null ? Colors.white.withValues(alpha: 0.10) : theme.colorScheme.primary.withValues(alpha: 0.55)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: onTap == null ? 0.14 : 0.30), blurRadius: 26, offset: const Offset(0, 16))],
         ),
-      ],
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (busy) ...[
+              SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white.withValues(alpha: onTap == null ? 0.75 : 1.0))),
+              const SizedBox(width: 10),
+            ] else ...[
+              Icon(Icons.person_add_alt_1, color: Colors.white.withValues(alpha: onTap == null ? 0.75 : 1.0), size: 20),
+              const SizedBox(width: 10),
+            ],
+            Flexible(child: Text(label, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white))),
+          ],
+        ),
+      ),
     );
   }
 }
+
+class _LegalText extends StatelessWidget {
+  final VoidCallback onOpenTerms;
+  final VoidCallback onOpenPrivacy;
+  const _LegalText({required this.onOpenTerms, required this.onOpenPrivacy});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final base = theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.74), height: 1.35);
+    final link = theme.textTheme.labelSmall?.copyWith(
+      color: Colors.white,
+      height: 1.35,
+      fontWeight: FontWeight.w900,
+      decoration: TextDecoration.underline,
+      decorationColor: Colors.white.withValues(alpha: 0.85),
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: 'Mit dem Erstellen eines Kontos stimmst du unseren ', style: base),
+            TextSpan(text: 'AGB', style: link, recognizer: TapGestureRecognizer()..onTap = onOpenTerms),
+            TextSpan(text: ' und ', style: base),
+            TextSpan(text: 'Datenschutzbestimmungen', style: link, recognizer: TapGestureRecognizer()..onTap = onOpenPrivacy),
+            TextSpan(text: ' zu.', style: base),
+          ],
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+}
+
+class _TextLink extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _TextLink({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return _Pressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        child: Text(label, style: theme.textTheme.bodySmall?.copyWith(color: BrandColors.logoAccent, fontWeight: FontWeight.w900)),
+      ),
+    );
+  }
+}
+
+class _Pressable extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final BorderRadius borderRadius;
+  const _Pressable({required this.child, required this.onTap, required this.borderRadius});
+
+  @override
+  State<_Pressable> createState() => _PressableState();
+}
+
+class _PressableState extends State<_Pressable> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.onTap != null;
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: enabled ? (_) => setState(() => _down = true) : null,
+      onTapCancel: enabled ? () => setState(() => _down = false) : null,
+      onTapUp: enabled ? (_) => setState(() => _down = false) : null,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOut,
+        scale: _down ? 0.985 : 1.0,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 140),
+          opacity: enabled ? 1.0 : 0.55,
+          child: widget.child,
+        ),
+      ),
+    );
+  }
+}
+

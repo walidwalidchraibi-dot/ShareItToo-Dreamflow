@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lendify/theme.dart';
@@ -7,6 +8,7 @@ import 'package:lendify/screens/register_screen.dart';
 import 'package:lendify/screens/developer_preview_screen.dart';
 import 'package:lendify/navigation/main_navigation.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
+import 'package:lendify/services/developer_preview_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -183,6 +185,14 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
   bool get _wrapScaffold => widget.wrapScaffold ?? true;
 
   void _exitToExplore() {
+    // Make sure first-launch is considered complete if the user decides to
+    // continue without creating an account.
+    try {
+      context.read<DeveloperPreviewController>().setState(DeveloperUserState.loggedOut);
+    } catch (_) {
+      // Provider may not be available in some preview contexts.
+    }
+
     try {
       context.read<MainNavController>().setIndex(0);
     } catch (_) {
@@ -196,26 +206,27 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
 
   static const _slides = <_OnboardingSlideData>[
     _OnboardingSlideData(
-      // Backgrounds are now unified: we use the standard SIT blurred blue backdrop
-      // instead of per-slide images.
-      imagePath: null,
+      // Full-screen onboarding background (cover-style).
+      // Asset provided by user: Treffen
+      imagePath: 'assets/images/treffen.png',
       title: 'Teile Dinge in deiner Nähe',
       body: 'Miete Werkzeuge, Technik, Outdoor-Gear und vieles mehr – direkt von Menschen aus deiner Stadt.',
       bodyMaxLines: 2,
       titleAlign: TextAlign.center,
-      imageAlignment: Alignment(0, 0.85),
+      imageAlignment: Alignment.center,
     ),
     _OnboardingSlideData(
-      imagePath: null,
+      // Asset provided by user: Kind
+      imagePath: 'assets/images/Kind.png',
       title: 'Verdiene Geld mit Dingen, die du besitzt',
       body: 'Vermiete Werkzeuge, Technik, Outdoor-Gear, Küchenmaschinen, Fahrräder, Schmuck und vieles mehr – oder miete genau das, was dir gerade fehlt.',
       bodyMaxLines: 3,
       titleAlign: TextAlign.start,
-      // Focus more on the top of the image so faces/heads are visible.
-      imageAlignment: Alignment(0, -0.72),
+      imageAlignment: Alignment.center,
     ),
     _OnboardingSlideData(
-      imagePath: null,
+      // Asset provided by user: Übergabe
+      imagePath: 'assets/images/U_bergabe.png',
       title: 'Sicher. Transparent. Fair.',
       body: 'Verifizierte Profile, Bewertungen, ein integrierter Chat sowie eine bilddokumentierte Übergabe und Rückgabe geben dir Sicherheit – beim Mieten und Vermieten.',
       bodyMaxLines: 3,
@@ -225,7 +236,7 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
 
   /// Increase this when you replace onboarding background assets.
   /// It resets persisted image placement so new assets start fully visible.
-  static const int _backgroundAssetsVersion = 4;
+  static const int _backgroundAssetsVersion = 12;
 
   static const String _prefsKeyPrefixX = 'onboarding_image_align_x_';
   static const String _prefsKeyPrefixY = 'onboarding_image_align_y_';
@@ -308,8 +319,14 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
 
   void _schedulePersistPlacement(int slideIndex, Offset offset, double scale) {
     _persistDebounce?.cancel();
-    _persistDebounce = Timer(const Duration(milliseconds: 180), () async {
+    // Debounce storage writes (Flutter Web localStorage can hit QuotaExceeded).
+    _persistDebounce = Timer(const Duration(milliseconds: 650), () async {
       try {
+        // Avoid tiny write churn.
+        final prevX = _imageOffsetXMap[slideIndex] ?? 0.0;
+        final prevY = _imageOffsetYMap[slideIndex] ?? 0.0;
+        final prevScale = _imageScaleMap[slideIndex] ?? 1.0;
+        if ((prevX - offset.dx).abs() < 0.4 && (prevY - offset.dy).abs() < 0.4 && (prevScale - scale).abs() < 0.003) return;
         final prefs = await SharedPreferences.getInstance();
         await prefs.setDouble('$_prefsKeyPrefixOffsetX$slideIndex', offset.dx);
         await prefs.setDouble('$_prefsKeyPrefixOffsetY$slideIndex', offset.dy);
@@ -320,7 +337,29 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
     });
   }
 
-  void _togglePlacementMode() => setState(() => _placementMode = !_isPlacementMode);
+  Future<void> _persistPlacementNow(int slideIndex) async {
+    try {
+      _persistDebounce?.cancel();
+      final offset = Offset(_imageOffsetXMap[slideIndex] ?? 0.0, _imageOffsetYMap[slideIndex] ?? 0.0);
+      final scale = _imageScaleMap[slideIndex] ?? 1.0;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('$_prefsKeyPrefixOffsetX$slideIndex', offset.dx);
+      await prefs.setDouble('$_prefsKeyPrefixOffsetY$slideIndex', offset.dy);
+      await prefs.setDouble('$_prefsKeyPrefixScale$slideIndex', scale);
+    } catch (e) {
+      debugPrint('[Onboarding] Failed to persist image placement now: $e');
+    }
+  }
+
+  void _togglePlacementMode() {
+    final next = !_isPlacementMode;
+    setState(() => _placementMode = next);
+    if (!next) {
+      // Leaving placement mode: flush the last edits immediately so the user
+      // sees the same position next launch (no debounce delay).
+      unawaited(_persistPlacementNow(_currentPage));
+    }
+  }
 
   void _resetPlacementForSlide(int slideIndex) {
     setState(() {
@@ -333,7 +372,10 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
 
   void _nudgeScaleForSlide(int slideIndex, double delta) {
     final currentScale = (_imageScaleMap[slideIndex] ?? 1.0);
-    final nextScale = (currentScale + delta).clamp(0.25, 3.50);
+    // Single image layer only. We still allow zooming out for more placement
+    // room; any resulting gutters show the plain backdrop color (not a second
+    // image).
+    final nextScale = (currentScale + delta).clamp(0.25, 5.0);
     final offset = Offset(
       _imageOffsetXMap[slideIndex] ?? 0.0,
       _imageOffsetYMap[slideIndex] ?? 0.0,
@@ -341,6 +383,9 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
     setState(() => _imageScaleMap[slideIndex] = nextScale);
     _schedulePersistPlacement(slideIndex, offset, nextScale);
   }
+
+  void _zoomInCurrent() => _nudgeScaleForSlide(_currentPage, 0.08);
+  void _zoomOutCurrent() => _nudgeScaleForSlide(_currentPage, -0.08);
 
   @override
   void dispose() {
@@ -375,6 +420,11 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
   void _goRegister() => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen()));
   void _goLogin() => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
 
+  void _continueWithoutAccount() {
+    widget.onDone?.call();
+    _exitToExplore();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -388,6 +438,9 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
 
     final pageView = PageView(
       controller: _pageController,
+      // When placing images, the user needs drag/pinch to affect the background
+      // instead of the PageView swallowing horizontal drags.
+      physics: (_hasAnyBackgroundImages && _isPlacementMode) ? const NeverScrollableScrollPhysics() : null,
       onPageChanged: (i) => setState(() => _page = i),
       children: List.generate(_slides.length, (i) {
         final slide = _slides[i];
@@ -400,18 +453,28 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
         final legacyAlignX = _legacyAlignXMap[i];
         final legacyAlignY = _legacyAlignYMap[i];
         final scale = _imageScaleMap[i] ?? 1.0;
+        final canZoomOut = scale > 0.2501;
+
+        final effectivePlacementMode = _hasAnyBackgroundImages ? _isPlacementMode : false;
         return _OnboardingPage(
           controller: _pageController,
           index: i,
           isActive: i == _currentPage,
-           // Background images are disabled; we use the standard SIT blurred blue backdrop.
-           imagePath: null,
+          imagePath: slide.imagePath,
+          // User requested: show the onboarding assets in their *original*
+          // size/aspect (no forced cover crop). Placement mode can then zoom/
+          // pan for fine-tuning.
+          preserveOriginalSize: true,
           defaultImageAlignment: slide.imageAlignment,
           legacyAlignment: (legacyAlignX == null || legacyAlignY == null) ? null : Alignment(legacyAlignX, legacyAlignY),
           imageOffsetX: storedOffsetX,
           imageOffsetY: storedOffsetY,
           imageScale: scale,
-          placementMode: _hasAnyBackgroundImages ? _isPlacementMode : false,
+          placementMode: effectivePlacementMode,
+          canZoomOut: canZoomOut,
+          // When showing original size, avoid any automatic cropping.
+          avoidCropping: true,
+          baseFitCover: false,
           topOverlayPadding: _showTopBar ? 66 : 16,
           onPlacementChanged: (next) {
             setState(() {
@@ -439,7 +502,21 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
     final content = Stack(
       children: [
         Positioned.fill(child: pageView),
-        const Positioned.fill(child: IgnorePointer(child: _OnboardingReadabilityOverlays())),
+        // Zoom controls should only be available when the user explicitly
+        // enables image placement mode.
+        if (_hasAnyBackgroundImages && _isPlacementMode)
+          Positioned(
+            right: 16,
+            bottom: (_showBottomActions ? 132 : 24) + (_showPageIndicator ? 22 : 0),
+            child: SafeArea(
+              child: _OnboardingZoomControls(
+                visible: (_slides[_currentPage].imagePath ?? '').trim().isNotEmpty,
+                  canZoomOut: (_imageScaleMap[_currentPage] ?? 1.0) > 0.2501,
+                onZoomIn: _zoomInCurrent,
+                onZoomOut: _zoomOutCurrent,
+              ),
+            ),
+          ),
         SafeArea(
           child: Column(
             children: [
@@ -532,6 +609,8 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
                             ),
                             const SizedBox(height: 10),
                             _TextLinkCta(label: 'Schon ein Konto? Anmelden', onTap: _goLogin),
+                            const SizedBox(height: 8),
+                            _TextLinkCta(label: 'Weiter ohne Konto →', onTap: _continueWithoutAccount),
                           ]),
                   ),
                 ),
@@ -546,38 +625,147 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
   }
 }
 
-class _SplashScreen extends StatelessWidget {
-  const _SplashScreen();
+class _OnboardingZoomControls extends StatelessWidget {
+  final bool visible;
+  final bool canZoomOut;
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
+  const _OnboardingZoomControls({required this.visible, required this.canZoomOut, required this.onZoomIn, required this.onZoomOut});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      opacity: visible ? 1.0 : 0.0,
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.22),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text('Zoom', style: theme.textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+                const SizedBox(width: 10),
+                _ZoomButton(icon: Icons.remove, onTap: onZoomOut, enabled: canZoomOut),
+                const SizedBox(width: 8),
+                _ZoomButton(icon: Icons.add, onTap: onZoomIn),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ZoomButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool enabled;
+  const _ZoomButton({required this.icon, required this.onTap, this.enabled = true});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      splashFactory: NoSplash.splashFactory,
+      overlayColor: WidgetStateProperty.all(Colors.white.withValues(alpha: 0.06)),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 38,
+        height: 38,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: enabled ? 0.08 : 0.04),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: enabled ? 0.12 : 0.08)),
+        ),
+        child: Icon(icon, size: 18, color: Colors.white.withValues(alpha: enabled ? 1.0 : 0.55)),
+      ),
+    );
+  }
+}
+
+class _SplashScreen extends StatefulWidget {
+  const _SplashScreen();
+
+  @override
+  State<_SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<_SplashScreen> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..repeat();
+  late final Animation<double> _turns = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic));
+  late final Animation<double> _scale = TweenSequence<double>([
+    TweenSequenceItem(tween: Tween<double>(begin: 0.84, end: 1.08).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 1),
+    TweenSequenceItem(tween: Tween<double>(begin: 1.08, end: 0.84).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 1),
+  ]).animate(_controller);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const size = 92.0;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(
-              gradient: appBackgroundGradient,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-            ),
-            child: const Icon(Icons.all_inclusive, color: Colors.white, size: 34),
+        child: Semantics(
+          label: 'ShareItToo lädt',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedBuilder(
+                animation: _controller,
+                builder: (context, _) {
+                  return Transform.scale(
+                    scale: _scale.value,
+                    child: RotationTransition(
+                      turns: _turns,
+                      child: Image.asset(
+                        'assets/images/icononly_transparent_nobuffer.png',
+                        width: size,
+                        height: size,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: size,
+                          height: size,
+                          decoration: BoxDecoration(
+                            gradient: appBackgroundGradient,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                          ),
+                          child: const Icon(Icons.all_inclusive, color: Colors.white, size: 36),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 14),
+              Text('ShareItToo', style: theme.textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 0.2)),
+              const SizedBox(height: 6),
+              Text(
+                'SICHER. LOKAL. FLEXIBEL.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.82), fontWeight: FontWeight.w900, letterSpacing: 1.1),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
-          Text('ShareItToo', style: theme.textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: 140,
-            child: LinearProgressIndicator(
-              minHeight: 4,
-              backgroundColor: Colors.white.withValues(alpha: 0.10),
-              valueColor: const AlwaysStoppedAnimation<Color>(BrandColors.primary),
-            ),
-          ),
-        ]),
+        ),
       ),
     );
   }
@@ -588,12 +776,16 @@ class _OnboardingPage extends StatelessWidget {
   final int index;
   final bool isActive;
   final String? imagePath;
+  final bool preserveOriginalSize;
   final Alignment defaultImageAlignment;
   final Alignment? legacyAlignment;
   final double? imageOffsetX;
   final double? imageOffsetY;
   final double imageScale;
   final bool placementMode;
+  final bool canZoomOut;
+  final bool avoidCropping;
+  final bool baseFitCover;
   final double topOverlayPadding;
   final ValueChanged<Offset> onPlacementChanged;
   final ValueChanged<double> onScaleChanged;
@@ -604,7 +796,7 @@ class _OnboardingPage extends StatelessWidget {
   final String body;
   final int bodyMaxLines;
   final TextAlign titleAlign;
-  const _OnboardingPage({required this.controller, required this.index, required this.isActive, required this.imagePath, required this.defaultImageAlignment, required this.legacyAlignment, required this.imageOffsetX, required this.imageOffsetY, required this.imageScale, required this.placementMode, required this.topOverlayPadding, required this.onPlacementChanged, required this.onScaleChanged, required this.onResetPlacement, required this.onZoomIn, required this.onZoomOut, required this.title, required this.body, required this.bodyMaxLines, required this.titleAlign});
+  const _OnboardingPage({required this.controller, required this.index, required this.isActive, required this.imagePath, required this.preserveOriginalSize, required this.defaultImageAlignment, required this.legacyAlignment, required this.imageOffsetX, required this.imageOffsetY, required this.imageScale, required this.placementMode, required this.canZoomOut, required this.avoidCropping, required this.baseFitCover, required this.topOverlayPadding, required this.onPlacementChanged, required this.onScaleChanged, required this.onResetPlacement, required this.onZoomIn, required this.onZoomOut, required this.title, required this.body, required this.bodyMaxLines, required this.titleAlign});
 
   @override
   Widget build(BuildContext context) {
@@ -638,48 +830,78 @@ class _OnboardingPage extends StatelessWidget {
               scheduleMicrotask(() => onPlacementChanged(Offset(fallbackDx, fallbackDy)));
             }
 
-            return Stack(children: [
-              Positioned.fill(
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+              // Add horizontal bleed so the parallax shift never reveals
+              // empty/black gutters at the sides.
+              Positioned(
+                left: -48,
+                right: -48,
+                top: 0,
+                bottom: 0,
                 child: Transform.translate(
                   offset: Offset(backgroundShift, 0),
                   child: _OnboardingBackgroundImage(
                     imagePath: imagePath,
                     offset: Offset(dx ?? 0.0, dy ?? 0.0),
                     scale: imageScale,
+                    preserveOriginalSize: preserveOriginalSize,
+                    // Only capture gestures while placing images.
                     enabled: placementMode,
                     emphasis: t,
+                    avoidCropping: avoidCropping,
+                    baseFitCover: baseFitCover,
+                    placementMode: placementMode,
                     onOffsetChanged: onPlacementChanged,
                     onScaleChanged: onScaleChanged,
                   ),
                 ),
               ),
-          // Content (no cards; animated blur-wipe reveal)
-              SafeArea(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(16, topOverlayPadding, 16, 12),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    Align(
-                      alignment: Alignment.topCenter,
-                      child: Transform.translate(
-                        offset: Offset(textShift, 0),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 560),
-                          child: _BlurWipeReveal(
-                            isActive: isActive,
-                              child: _OnboardingTextContent(title: title, body: body, bodyMaxLines: bodyMaxLines, titleAlign: titleAlign),
+              // Readability overlays must sit ABOVE the background image but
+              // BELOW the foreground text. Previously this overlay was placed
+              // above the entire PageView, which tinted the text and made it
+              // look grey.
+              const Positioned.fill(child: IgnorePointer(child: _OnboardingReadabilityOverlays())),
+                // Foreground content.
+                // IMPORTANT: In placement mode, we must let touch gestures reach
+                // the background GestureDetector. Many layout widgets (Spacer,
+                // Column, etc.) still participate in hit-testing even when they
+                // look “transparent”, which would block pan/pinch.
+                SafeArea(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(16, topOverlayPadding, 16, 12),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            ignoring: placementMode,
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              child: Transform.translate(
+                                offset: Offset(textShift, 0),
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 560),
+                                  child: _BlurWipeReveal(isActive: isActive, child: _OnboardingTextContent(title: title, body: body, bodyMaxLines: bodyMaxLines, titleAlign: titleAlign)),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        if (placementMode)
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: _PlacementModePanel(canZoomOut: canZoomOut, onReset: onResetPlacement, onZoomIn: onZoomIn, onZoomOut: onZoomOut),
+                            ),
+                          ),
+                      ],
                     ),
-                    const Spacer(),
-                    if (placementMode) ...[
-                      const SizedBox(height: 12),
-                      _PlacementModePanel(onReset: onResetPlacement, onZoomIn: onZoomIn, onZoomOut: onZoomOut),
-                    ],
-                  ]),
+                  ),
                 ),
-              ),
-            ]);
+            ],
+            );
           },
         );
       },
@@ -795,11 +1017,15 @@ class _OnboardingBackgroundImage extends StatefulWidget {
   final String? imagePath;
   final Offset offset;
   final double? scale;
+  final bool preserveOriginalSize;
   final bool enabled;
   final double emphasis;
+  final bool avoidCropping;
+  final bool baseFitCover;
+  final bool placementMode;
   final ValueChanged<Offset> onOffsetChanged;
   final ValueChanged<double>? onScaleChanged;
-  const _OnboardingBackgroundImage({required this.imagePath, required this.offset, this.scale, required this.enabled, required this.emphasis, required this.onOffsetChanged, this.onScaleChanged});
+  const _OnboardingBackgroundImage({required this.imagePath, required this.offset, this.scale, required this.preserveOriginalSize, required this.enabled, required this.emphasis, required this.avoidCropping, required this.baseFitCover, required this.placementMode, required this.onOffsetChanged, this.onScaleChanged});
 
   @override
   State<_OnboardingBackgroundImage> createState() => _OnboardingBackgroundImageState();
@@ -808,55 +1034,90 @@ class _OnboardingBackgroundImage extends StatefulWidget {
 class _OnboardingBackgroundImageState extends State<_OnboardingBackgroundImage> {
   Offset? _lastFocal;
   double? _startScale;
-  Size? _assetSize;
-  ImageStream? _stream;
+  int? _startPointerCount;
+
+  ImageStream? _imageStream;
+  ImageStreamListener? _imageStreamListener;
+  Size? _assetPixelSize;
+  String? _resolvedPath;
 
   @override
   void initState() {
     super.initState();
-    _resolveAssetSize();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // IMPORTANT: createLocalImageConfiguration(context) depends on inherited
+    // widgets (e.g. MediaQuery). Accessing it in initState() can throw on web.
+    _resolveAssetSize(widget.imagePath);
   }
 
   @override
   void didUpdateWidget(covariant _OnboardingBackgroundImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.imagePath != widget.imagePath) {
-      _assetSize = null;
-      _resolveAssetSize();
-    }
-  }
-
-  void _resolveAssetSize() {
-    final path = widget.imagePath;
-    if (path == null || path.isEmpty) {
-      // No background set (yet).
-      return;
-    }
-    try {
-      final provider = AssetImage(path);
-      final stream = provider.resolve(const ImageConfiguration());
-      _stream = stream;
-      late final ImageStreamListener listener;
-      listener = ImageStreamListener((info, _) {
-        if (!mounted) return;
-        final img = info.image;
-        setState(() => _assetSize = Size(img.width.toDouble(), img.height.toDouble()));
-        stream.removeListener(listener);
-      }, onError: (e, st) {
-        debugPrint('[Onboarding] Failed to resolve asset size for $path: $e');
-        stream.removeListener(listener);
-      });
-      stream.addListener(listener);
-    } catch (e) {
-      debugPrint('[Onboarding] Failed to start resolving asset size: $e');
+      _assetPixelSize = null;
+      _resolvedPath = null;
+      // If dependencies are already available, resolve immediately. Otherwise
+      // didChangeDependencies will run shortly after.
+      _resolveAssetSize(widget.imagePath);
     }
   }
 
   @override
   void dispose() {
-    // Best-effort: listeners are removed after first image frame.
-    _stream = null;
+    _teardownImageStream();
     super.dispose();
+  }
+
+  void _teardownImageStream() {
+    final stream = _imageStream;
+    final listener = _imageStreamListener;
+    if (stream != null && listener != null) stream.removeListener(listener);
+    _imageStream = null;
+    _imageStreamListener = null;
+  }
+
+  void _resolveAssetSize(String? path) {
+    if (path == null || path.trim().isEmpty) return;
+    if (_resolvedPath == path && _assetPixelSize != null) return;
+    try {
+      _teardownImageStream();
+      final provider = AssetImage(path);
+      final stream = provider.resolve(createLocalImageConfiguration(context));
+      _imageStream = stream;
+      final listener = ImageStreamListener((info, _) {
+        final img = info.image;
+        final next = Size(img.width.toDouble(), img.height.toDouble());
+        if (!mounted) return;
+        setState(() {
+          _assetPixelSize = next;
+          _resolvedPath = path;
+        });
+      }, onError: (error, stackTrace) {
+        debugPrint('[Onboarding] Failed to resolve asset image size for $path: $error');
+      });
+      _imageStreamListener = listener;
+      stream.addListener(listener);
+    } catch (e) {
+      debugPrint('[Onboarding] Failed to start resolving asset image size for $path: $e');
+    }
+  }
+
+  Offset _clampOffset({required Offset offset, required Size viewport, required Size assetLogical, required double effectiveScale}) {
+    final scaledW = assetLogical.width * effectiveScale;
+    final scaledH = assetLogical.height * effectiveScale;
+
+    // If the image is smaller than the viewport, we still want to allow moving
+    // it within the available “gutters” (for placement freedom).
+    final maxDx = ((scaledW - viewport.width) / 2.0).abs();
+    final maxDy = ((scaledH - viewport.height) / 2.0).abs();
+
+    final clampedDx = offset.dx.clamp(-maxDx, maxDx);
+    final clampedDy = offset.dy.clamp(-maxDy, maxDy);
+    return Offset(clampedDx.isNaN ? 0.0 : clampedDx, clampedDy.isNaN ? 0.0 : clampedDy);
   }
 
   @override
@@ -869,77 +1130,108 @@ class _OnboardingBackgroundImageState extends State<_OnboardingBackgroundImage> 
         return const _SitBlurredBlueBackdrop();
       }
 
-      // User scale is persisted (1.0 = default). We additionally apply a
-      // computed base scale so the full asset is visible by default
-      // ("komplett zoomed out" / BoxFit.contain behavior) without cropping.
-      final userScale = (widget.scale ?? 1.0).clamp(0.25, 3.50);
-      final assetSize = _assetSize;
+      // User-controlled zoom (movable canvas).
+      // IMPORTANT: single background layer only (no second image behind).
+      // We still allow zooming out to give the user more placement freedom.
+      const minUserScale = 0.25;
+      const maxUserScale = 5.0;
+      final userScale = (widget.scale ?? 1.0).clamp(minUserScale, maxUserScale);
       final viewportW = constraints.maxWidth == 0 ? 1.0 : constraints.maxWidth;
       final viewportH = constraints.maxHeight == 0 ? 1.0 : constraints.maxHeight;
-      var containScale = 1.0;
-      if (assetSize != null && assetSize.width > 0 && assetSize.height > 0) {
-        containScale = (viewportW / assetSize.width).clamp(0.0, double.infinity);
-        containScale = _minDouble(containScale, viewportH / assetSize.height);
-        // If the asset is smaller than the viewport, don't auto-upscale.
-        containScale = _minDouble(containScale, 1.0);
-        // Give a tiny extra margin so edges never look clipped.
-        containScale *= 0.98;
-      }
-      final effectiveScale = (containScale * userScale).clamp(0.20, 3.80);
+      final viewport = Size(viewportW, viewportH);
 
-      final image = ColoredBox(
-        color: Colors.black,
-        child: AnimatedScale(
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
-          scale: 1.01 + (0.02 * widget.emphasis),
-          child: Transform.translate(
-            offset: widget.offset,
-            child: Transform.scale(
-              scale: effectiveScale,
-              alignment: Alignment.center,
-              child: Image.asset(path, fit: BoxFit.none, filterQuality: FilterQuality.high),
-            ),
-          ),
+      // Subtle “breathing” effect looks nice, but for slides that must never be
+      // cropped (Treffen), even a tiny overscale can clip edges.
+      final emphasisScale = widget.avoidCropping ? 1.0 : (1.01 + (0.02 * widget.emphasis));
+
+      final assetPx = _assetPixelSize;
+      if (assetPx == null) {
+        // While the asset dimensions are being resolved, render a stable cover
+        // background so the user never sees a tiny centered image.
+        return Image.asset(path, fit: BoxFit.cover, width: viewportW, height: viewportH, filterQuality: FilterQuality.high);
+      }
+
+      final dpr = MediaQuery.devicePixelRatioOf(context);
+      final assetLogical = Size(assetPx.width / dpr, assetPx.height / dpr);
+
+      // Base scale:
+      // - preserveOriginalSize: keep native logical size (no auto cover)
+      // - otherwise: cover the viewport (previous behavior)
+      final baseScale = widget.preserveOriginalSize || !widget.baseFitCover
+          ? 1.0
+          : math.max(viewportW / assetLogical.width, viewportH / assetLogical.height);
+      final effectiveScale = baseScale * userScale;
+
+      final clampedOffset = _clampOffset(offset: widget.offset, viewport: viewport, assetLogical: assetLogical, effectiveScale: effectiveScale);
+
+      final fitted = SizedBox(
+        width: assetLogical.width,
+        height: assetLogical.height,
+        child: Image.asset(path, filterQuality: FilterQuality.high, fit: BoxFit.fill),
+      );
+
+      final interactive = AnimatedScale(
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+        scale: emphasisScale,
+        child: Transform.translate(
+          offset: clampedOffset,
+          child: Transform.scale(scale: effectiveScale, alignment: Alignment.center, child: fitted),
         ),
       );
 
-      if (!widget.enabled) return image;
+      final image = SizedBox.expand(child: ClipRect(child: interactive));
+      final withBackdrop = Stack(
+        fit: StackFit.expand,
+        children: [
+          const DecoratedBox(decoration: BoxDecoration(color: Colors.black)),
+          image,
+        ],
+      );
+
+      if (!widget.enabled) return withBackdrop;
 
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
         onScaleStart: (d) {
           _lastFocal = d.localFocalPoint;
           _startScale = userScale;
+          _startPointerCount = d.pointerCount;
         },
         onScaleUpdate: (d) {
           final lastFocal = _lastFocal;
           final startScale = _startScale;
           if (lastFocal == null || startScale == null) return;
 
+          // Avoid fighting with PageView: only pan with 2 fingers (or when
+          // explicit placement mode is enabled). Pinch-to-zoom is always allowed.
+          final allowPan = widget.placementMode || (_startPointerCount ?? d.pointerCount) >= 2;
+
           // Scale: pinch to zoom (persisted user scale; containScale is applied on top)
-          final nextUserScale = (startScale * d.scale).clamp(0.25, 3.50);
+          final nextUserScale = (startScale * d.scale).clamp(minUserScale, maxUserScale);
           widget.onScaleChanged?.call(nextUserScale);
 
-          // Translation: move image freely with the same gesture.
-          final deltaPx = d.localFocalPoint - lastFocal;
-          _lastFocal = d.localFocalPoint;
+          // When scale changes, re-clamp the offset to make sure we never expose
+          // empty corners (single-layer background constraint).
+          final nextEffectiveScale = baseScale * nextUserScale;
+          final nextClampedCurrentOffset = _clampOffset(offset: widget.offset, viewport: viewport, assetLogical: assetLogical, effectiveScale: nextEffectiveScale);
+          if (nextClampedCurrentOffset != widget.offset) widget.onOffsetChanged(nextClampedCurrentOffset);
 
-          // Pixel offset: allow moving further than the viewport edges.
-          // We clamp to a generous range to prevent accidental extreme values.
-          final next = Offset(
-            (widget.offset.dx + deltaPx.dx).clamp(-viewportW * 2.0, viewportW * 2.0),
-            (widget.offset.dy + deltaPx.dy).clamp(-viewportH * 2.0, viewportH * 2.0),
-          );
-          widget.onOffsetChanged(next);
+          // Translation: move image freely with the same gesture.
+          if (allowPan) {
+            final deltaPx = d.localFocalPoint - lastFocal;
+            _lastFocal = d.localFocalPoint;
+
+            final proposed = Offset(widget.offset.dx + deltaPx.dx, widget.offset.dy + deltaPx.dy);
+            final next = _clampOffset(offset: proposed, viewport: viewport, assetLogical: assetLogical, effectiveScale: nextEffectiveScale);
+            widget.onOffsetChanged(next);
+          }
         },
-        child: image,
+        child: withBackdrop,
       );
     });
   }
 }
-
-double _minDouble(double a, double b) => a < b ? a : b;
 
 class _OnboardingReadabilityOverlays extends StatelessWidget {
   const _OnboardingReadabilityOverlays();
@@ -1077,18 +1369,17 @@ class _BlurWipeRevealState extends State<_BlurWipeReveal> with SingleTickerProvi
         final heightFactor = (0.10 + (0.90 * v)).clamp(0.0, 1.0);
         final sigma = lerpDouble(18, 0, v) ?? 0;
         final y = lerpDouble(44, 0, v) ?? 0;
-        final opacity = lerpDouble(0.0, 1.0, v) ?? 1.0;
 
-        return Opacity(
-          opacity: opacity,
-          child: Transform.translate(
-            offset: Offset(0, y),
-            child: ClipRect(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                heightFactor: heightFactor,
-                child: ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma), child: child),
-              ),
+        // The user explicitly wants this text to remain pure white even during
+        // the reveal animation. A fade-in (Opacity < 1.0) makes it look grey,
+        // so we only animate blur/wipe/translate.
+        return Transform.translate(
+          offset: Offset(0, y),
+          child: ClipRect(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              heightFactor: heightFactor,
+              child: ImageFiltered(imageFilter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma), child: child),
             ),
           ),
         );
@@ -1099,10 +1390,11 @@ class _BlurWipeRevealState extends State<_BlurWipeReveal> with SingleTickerProvi
 }
 
 class _PlacementModePanel extends StatelessWidget {
+  final bool canZoomOut;
   final VoidCallback onReset;
   final VoidCallback onZoomIn;
   final VoidCallback onZoomOut;
-  const _PlacementModePanel({required this.onReset, required this.onZoomIn, required this.onZoomOut});
+  const _PlacementModePanel({required this.canZoomOut, required this.onReset, required this.onZoomIn, required this.onZoomOut});
 
   @override
   Widget build(BuildContext context) {
@@ -1121,9 +1413,9 @@ class _PlacementModePanel extends StatelessWidget {
                 border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
               ),
               child: Row(children: [
-                const Icon(Icons.open_with, size: 16, color: Colors.white70),
+                const Icon(Icons.open_with, size: 16, color: Colors.white),
                 const SizedBox(width: 8),
-                Expanded(child: Text('Ziehen oder pinchen zum Zoomen', maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: Colors.white70, fontWeight: FontWeight.w700))),
+                Expanded(child: Text('Ziehen oder pinchen zum Zoomen', maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w700))),
               ]),
             ),
           ),
@@ -1131,7 +1423,7 @@ class _PlacementModePanel extends StatelessWidget {
       ),
       const SizedBox(width: 10),
       InkWell(
-        onTap: onZoomOut,
+        onTap: canZoomOut ? onZoomOut : null,
         splashFactory: NoSplash.splashFactory,
         overlayColor: WidgetStateProperty.all(Colors.white.withValues(alpha: 0.06)),
         borderRadius: BorderRadius.circular(16),
@@ -1140,11 +1432,11 @@ class _PlacementModePanel extends StatelessWidget {
           height: 44,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.08),
+            color: Colors.white.withValues(alpha: canZoomOut ? 0.08 : 0.04),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+            border: Border.all(color: Colors.white.withValues(alpha: canZoomOut ? 0.14 : 0.08)),
           ),
-          child: const Icon(Icons.remove, size: 18, color: Colors.white),
+          child: Icon(Icons.remove, size: 18, color: Colors.white.withValues(alpha: canZoomOut ? 1.0 : 0.55)),
         ),
       ),
       const SizedBox(width: 10),

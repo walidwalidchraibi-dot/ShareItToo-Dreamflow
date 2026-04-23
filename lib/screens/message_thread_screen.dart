@@ -12,6 +12,8 @@ import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/brand_logo_icon.dart';
+import 'package:lendify/widgets/modern_datetime_stepper_sheet.dart';
 import 'package:lendify/widgets/return_handover_stepper_sheet.dart';
 import 'package:lendify/widgets/user_avatar.dart';
 
@@ -63,6 +65,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   bool _isAtBottom = true;
   bool _showJumpToBottom = false;
   double _lastViewInsetBottom = 0;
+
+  // Keep these sizes centralized to make the composer compact without breaking touch targets.
+  static const double _composerIconSize = 20;
+  static const double _composerButtonSize = 38;
+  static const double _composerSendButtonSize = 44;
+  static const double _composerCornerRadius = 14;
+  static const double _composerFieldRadius = 18;
 
   @override
   void initState() {
@@ -460,6 +469,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     }
 
     final st = _deriveChatState();
+    final isSupport = st == _ChatState.support;
     final badge = _statusBadge(st);
     final actionLabels = _actionLabels(st);
     final messages = _thread?.messages ?? const <Message>[];
@@ -472,21 +482,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(showActions ? 162 : 128),
-        child: _ThreadAppBar(
-          avatarUrl: _avatarUrl(),
-          title: _displayName(),
-          subtitle: _itemTitle(),
-          badgeLabel: badge.label,
-          badgeBg: badge.bg,
-          badgeFg: badge.fg,
-          showActions: showActions,
-          primaryLabel: showActions ? actionLabels.primary : null,
-          secondaryLabel: showActions ? actionLabels.secondary : null,
-          onPrimary: showActions ? _applyPrimaryAction : null,
-          onSecondary: (showActions && actionLabels.secondary != null) ? _applySecondaryAction : null,
-        ),
+      appBar: _ThreadHeader(
+        isSupport: isSupport,
+        avatarUrl: _avatarUrl(),
+        title: isSupport ? 'SIT Support' : _displayName(),
+        subtitle: isSupport ? 'Hilfe & Sicherheit' : _itemTitle(),
+        verified: isSupport ? true : (_otherUser?.isVerified ?? false),
       ),
       body: SafeArea(
         top: false,
@@ -494,6 +495,25 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           children: [
             Column(
               children: [
+                if (!isSupport) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+                    child: _BookingInfoCard(
+                      itemTitle: _itemTitle(),
+                      request: _request,
+                      statusLabel: badge.label,
+                      statusBg: badge.bg,
+                      statusFg: badge.fg,
+                      showAddressPrivacyNote: showAddressHint,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: const _TrustBanner(),
+                  ),
+                ] else ...[
+                  const SizedBox(height: 12),
+                ],
                 Expanded(
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
@@ -508,10 +528,20 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                               },
                               child: ListView.builder(
                                 controller: _listController,
-                                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                                itemCount: messages.length + (showAddressHint ? 1 : 0) + (showInlineFlowCard ? 1 : 0),
+                                padding: const EdgeInsets.fromLTRB(16, 6, 16, 18),
+                                itemCount: _tipCardsCount(st: st) + messages.length + (showAddressHint ? 1 : 0) + (showInlineFlowCard ? 1 : 0),
                                 itemBuilder: (context, index) {
                                   int i = index;
+
+                                  final tipCount = _tipCardsCount(st: st);
+                                  if (i < tipCount) {
+                                    return Padding(
+                                      padding: EdgeInsets.only(bottom: i == tipCount - 1 ? 10 : 8),
+                                      child: _InlineSystemCard(icon: _tipIcon(i), text: _tipText(i, st: st)),
+                                    );
+                                  }
+                                  i -= tipCount;
+
                                   if (showAddressHint) {
                                     if (i == 0) {
                                       return Padding(
@@ -530,9 +560,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                       key: ValueKey('msg_${m.id}'),
                                       child: isSystem
                                           ? _SystemMessage(text: m.text)
-                                          : Align(
-                                              alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                                              child: _ChatBubble(text: m.text, me: isMe, time: _formatTime(m.timestamp)),
+                                          : _AvatarMessageRow(
+                                              isMe: isMe,
+                                              avatarUrl: isMe ? _currentUser?.photoURL : _avatarUrl(),
+                                              child: _ChatBubble(
+                                                text: m.text,
+                                                me: isMe,
+                                                time: _formatTime(m.timestamp),
+                                              ),
                                             ),
                                     );
                                   }
@@ -558,19 +593,31 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                               ),
                             ),
                 ),
-                _InputBar(
+                _TransactionComposer(
+                  showActions: showActions,
+                  primaryLabel: showActions ? actionLabels.primary : null,
+                  secondaryLabel: showActions ? actionLabels.secondary : null,
+                  onPrimary: showActions ? _applyPrimaryAction : null,
+                  onSecondary: (showActions && actionLabels.secondary != null) ? _applySecondaryAction : null,
+                  explanationText: _actionExplanation(st),
+                  onShareLocation: _shareLocation,
+                  onSendPhoto: _pickCamera,
+                  onChangeTime: _changeTime,
                   controller: _controller,
                   focusNode: _inputFocus,
                   onSend: _sendText,
-                  onCamera: _pickCamera,
-                  onAttachment: _pickFile,
+                  iconSize: _composerIconSize,
+                  buttonSize: _composerButtonSize,
+                  sendButtonSize: _composerSendButtonSize,
+                  cornerRadius: _composerCornerRadius,
+                  fieldRadius: _composerFieldRadius,
                 ),
               ],
             ),
             if (_showJumpToBottom)
               Positioned(
                 right: 16,
-                bottom: (MediaQuery.of(context).viewInsets.bottom > 0 ? MediaQuery.of(context).viewInsets.bottom : 0) + 84,
+                bottom: (MediaQuery.of(context).viewInsets.bottom > 0 ? MediaQuery.of(context).viewInsets.bottom : 0) + 72,
                 child: FloatingActionButton.small(
                   onPressed: () => _scrollToBottom(animate: true),
                   child: const Icon(Icons.arrow_downward),
@@ -605,35 +652,124 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   String _formatTime(DateTime time) => '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+
+  int _tipCardsCount({required _ChatState st}) => st == _ChatState.support ? 0 : 3;
+
+  IconData _tipIcon(int index) {
+    if (_deriveChatState() == _ChatState.support) return Icons.support_agent_rounded;
+    switch (index) {
+      case 0:
+        return Icons.verified_user_outlined;
+      case 1:
+        return Icons.schedule_rounded;
+      default:
+        return Icons.lock_outline;
+    }
+  }
+
+  String _tipText(int index, {required _ChatState st}) {
+    if (st == _ChatState.support) return '';
+    switch (index) {
+      case 0:
+        return 'Tipp: Nutze den Chat für alle Absprachen — so sind Details zur Buchung dokumentiert.';
+      case 1:
+        return 'Tipp: Sei pünktlich. Bei Verspätung kurz Bescheid geben und neue Uhrzeit bestätigen.';
+      default:
+        return 'Tipp: Aus Sicherheitsgründen wird die genaue Adresse ggf. erst kurz vor der Übergabe sichtbar.';
+    }
+  }
+
+  String _actionExplanation(_ChatState st) {
+    switch (st) {
+      case _ChatState.requestOpen:
+        return 'Bestätige die Anfrage, um die Buchung zu starten. Ablehnen ist jederzeit möglich.';
+      case _ChatState.confirmed:
+        return 'Starte die Übergabe erst, wenn ihr euch trefft und alles geprüft ist.';
+      case _ChatState.running:
+      case _ChatState.returnPlanned:
+        return 'Starte die Rückgabe, wenn der Artikel zurückgegeben wird (Fotos helfen bei Streitfällen).';
+      case _ChatState.completed:
+        return 'Teile eine kurze Bewertung — das stärkt Vertrauen in der Community.';
+      case _ChatState.support:
+        return '';
+    }
+  }
+
+  String _deriveResponseTimeLabel({required List<Message> messages, required String? otherUserId}) {
+    try {
+      if (otherUserId == null || messages.isEmpty) return 'Antwortzeit: < 1h';
+      final others = messages.where((m) => m.senderId == otherUserId).toList();
+      if (others.isEmpty) return 'Antwortzeit: < 1h';
+      others.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      final last = others.last.timestamp;
+      final mins = DateTime.now().difference(last).inMinutes;
+      if (mins < 10) return 'Antwortzeit: aktiv';
+      if (mins < 60) return 'Antwortzeit: ~${mins} min';
+      final h = (mins / 60).round();
+      return 'Antwortzeit: ~${h} h';
+    } catch (_) {
+      return 'Antwortzeit: < 1h';
+    }
+  }
+
+  Future<void> _shareLocation() async {
+    final t = _thread;
+    final me = _currentUser;
+    if (t == null || me == null) return;
+    try {
+      await DataService.addSystemMessageToThread(threadId: t.id, text: '${me.displayName} hat den Standort geteilt (Demo).');
+      await _load();
+      _scrollToBottom(animate: true);
+    } catch (e) {
+      debugPrint('[MessageThreadScreen] _shareLocation failed: $e');
+    }
+  }
+
+  Future<void> _changeTime() async {
+    final r = _request;
+    final t = _thread;
+    if (t == null) return;
+    final range = await ModernDateTimeStepperSheet.show(context, initialStart: r?.start, initialEnd: r?.end);
+    if (range == null) return;
+    try {
+      await DataService.addSystemMessageToThread(
+        threadId: t.id,
+        text: 'Zeitvorschlag: ${_formatDate(range.start)} – ${_formatDate(range.end)}',
+      );
+      await _load();
+      _scrollToBottom(animate: true);
+    } catch (e) {
+      debugPrint('[MessageThreadScreen] _changeTime failed: $e');
+    }
+  }
+
+  String _formatDate(DateTime dt) {
+    final d = dt.day.toString().padLeft(2, '0');
+    final m = dt.month.toString().padLeft(2, '0');
+    final y = dt.year;
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    return '$d.$m.$y $hh:$mm';
+  }
 }
 
-class _ThreadAppBar extends StatelessWidget {
+class _ThreadHeader extends StatelessWidget implements PreferredSizeWidget {
+  final bool isSupport;
   final String? avatarUrl;
   final String title;
   final String subtitle;
-  final String badgeLabel;
-  final Color badgeBg;
-  final Color badgeFg;
+  final bool verified;
 
-  final bool showActions;
-  final String? primaryLabel;
-  final String? secondaryLabel;
-  final VoidCallback? onPrimary;
-  final VoidCallback? onSecondary;
-
-  const _ThreadAppBar({
+  const _ThreadHeader({
+    required this.isSupport,
     required this.avatarUrl,
     required this.title,
     required this.subtitle,
-    required this.badgeLabel,
-    required this.badgeBg,
-    required this.badgeFg,
-    required this.showActions,
-    required this.primaryLabel,
-    required this.secondaryLabel,
-    required this.onPrimary,
-    required this.onSecondary,
+    required this.verified,
   });
+
+  @override
+  Size get preferredSize => const Size.fromHeight(72);
 
   @override
   Widget build(BuildContext context) {
@@ -641,60 +777,248 @@ class _ThreadAppBar extends StatelessWidget {
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      centerTitle: true,
       leading: IconButton(
         onPressed: () => Navigator.of(context).pop(true),
-        icon: const Icon(Icons.arrow_back),
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
       ),
-      title: Padding(
-        padding: const EdgeInsets.only(top: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SitUserAvatar(
-              url: avatarUrl,
-              radius: 18,
-              borderColor: Colors.white.withValues(alpha: 0.14),
-              placeholderIcon: Icons.person_outline,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              textAlign: TextAlign.center,
-            ),
-            if (subtitle.trim().isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.78), fontWeight: FontWeight.w600),
-                  textAlign: TextAlign.center,
+      titleSpacing: 8,
+      title: Row(
+        children: [
+          _HeaderAvatar(isSupport: isSupport, avatarUrl: avatarUrl),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                    if (verified) ...[
+                      const SizedBox(width: 6),
+                      Icon(Icons.verified_rounded, size: 16, color: BrandColors.success),
+                    ],
+                  ],
                 ),
-              ),
-            const SizedBox(height: 8),
-            _StatusBadge(label: badgeLabel, bg: badgeBg, fg: badgeFg),
-          ],
+                if (subtitle.trim().isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.72), fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderAvatar extends StatelessWidget {
+  final bool isSupport;
+  final String? avatarUrl;
+
+  const _HeaderAvatar({required this.isSupport, required this.avatarUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isSupport) {
+      return SitUserAvatar(
+        url: avatarUrl,
+        radius: 16,
+        borderColor: Colors.white.withValues(alpha: 0.16),
+        placeholderIcon: Icons.person_outline,
+      );
+    }
+
+    // Support: always show SIT symbol inside the avatar circle.
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18), width: 1.6),
+        color: Colors.white.withValues(alpha: 0.06),
+      ),
+      child: const Center(
+        child: BrandLogoIcon(
+          assetPath: 'assets/images/icononly_transparent_nobuffer.png',
+          fallback: Icons.support_agent_rounded,
+          fallbackColor: Colors.white,
+          size: 20,
         ),
       ),
-      bottom: showActions
-          ? PreferredSize(
-              preferredSize: const Size.fromHeight(64),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                child: _ActionBar(
-                  primaryLabel: primaryLabel ?? '',
-                  secondaryLabel: secondaryLabel,
-                  onPrimary: onPrimary,
-                  onSecondary: onSecondary,
+    );
+  }
+}
+
+class _MetaPill extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _MetaPill({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white.withValues(alpha: 0.85), size: 14),
+          const SizedBox(width: 6),
+          Text(text, style: TextStyle(color: Colors.white.withValues(alpha: 0.88), fontWeight: FontWeight.w800, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+}
+
+class _BookingInfoCard extends StatelessWidget {
+  final String itemTitle;
+  final RentalRequest? request;
+  final String statusLabel;
+  final Color statusBg;
+  final Color statusFg;
+  final bool showAddressPrivacyNote;
+
+  const _BookingInfoCard({
+    required this.itemTitle,
+    required this.request,
+    required this.statusLabel,
+    required this.statusBg,
+    required this.statusFg,
+    required this.showAddressPrivacyNote,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final r = request;
+    final dateText = (r == null)
+        ? 'Zeit: nicht verfügbar'
+        : '${_fmtDay(r.start)} · ${_fmtTime(r.start)} – ${_fmtTime(r.end)}';
+    final locationLine = (r == null)
+        ? 'Ort: Wird im Chat geklärt'
+        : 'Ort: ${(r.deliveryCity ?? '').trim().isNotEmpty ? r.deliveryCity!.trim() : 'Wird im Chat geklärt'}';
+    final privacyNote = showAddressPrivacyNote ? 'Genaue Adresse wird automatisch später freigegeben.' : 'Adressdaten sind geschützt.';
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.22),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 18, offset: const Offset(0, 10))],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.shopping_bag_outlined, color: Colors.white.withValues(alpha: 0.9), size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      itemTitle.isEmpty ? 'Buchung' : itemTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  _StatusBadge(label: statusLabel, bg: statusBg, fg: statusFg),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _InfoRow(icon: Icons.event_outlined, text: dateText),
+              const SizedBox(height: 8),
+              _InfoRow(icon: Icons.place_outlined, text: locationLine),
+              const SizedBox(height: 8),
+              _InfoRow(icon: Icons.privacy_tip_outlined, text: privacyNote),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _fmtDay(DateTime dt) {
+    final d = dt.day.toString().padLeft(2, '0');
+    final m = dt.month.toString().padLeft(2, '0');
+    return '$d.$m.${dt.year}';
+  }
+
+  String _fmtTime(DateTime dt) => '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _InfoRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: Colors.white.withValues(alpha: 0.78), size: 16),
+        const SizedBox(width: 10),
+        Expanded(child: Text(text, style: TextStyle(color: Colors.white.withValues(alpha: 0.86), fontWeight: FontWeight.w700, height: 1.35))),
+      ],
+    );
+  }
+}
+
+class _TrustBanner extends StatelessWidget {
+  const _TrustBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+          decoration: BoxDecoration(
+            color: cs.primary.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: cs.primary.withValues(alpha: 0.25)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.shield_outlined, color: Colors.white.withValues(alpha: 0.9), size: 18),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Zahlungsschutz aktiv: Zahlungen & Streitfälle werden über SIT abgesichert.',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, height: 1.3),
                 ),
               ),
-            )
-          : null,
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -708,7 +1032,7 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
@@ -859,7 +1183,8 @@ class _ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final bg = me ? cs.primary.withValues(alpha: 0.92) : Colors.white.withValues(alpha: 0.08);
-    final border = Colors.white.withValues(alpha: me ? 0.12 : 0.14);
+    final border = Colors.white.withValues(alpha: me ? 0.10 : 0.12);
+    final maxWidth = MediaQuery.of(context).size.width * 0.75;
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: BackdropFilter(
@@ -867,8 +1192,13 @@ class _ChatBubble extends StatelessWidget {
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 6),
           padding: const EdgeInsets.fromLTRB(12, 10, 10, 9),
-          constraints: const BoxConstraints(maxWidth: 340),
-          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(18), border: Border.all(color: border)),
+          constraints: BoxConstraints(maxWidth: maxWidth, minWidth: 64),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: border),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 14, offset: const Offset(0, 10))],
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -882,6 +1212,42 @@ class _ChatBubble extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AvatarMessageRow extends StatelessWidget {
+  final bool isMe;
+  final String? avatarUrl;
+  final Widget child;
+  const _AvatarMessageRow({required this.isMe, required this.avatarUrl, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final avatar = SitUserAvatar(
+      url: avatarUrl,
+      radius: 12,
+      borderColor: Colors.white.withValues(alpha: 0.12),
+      placeholderIcon: Icons.person_outline,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isMe) ...[
+            avatar,
+            const SizedBox(width: 8),
+          ],
+          Flexible(child: child),
+          if (isMe) ...[
+            const SizedBox(width: 8),
+            avatar,
+          ],
+        ],
       ),
     );
   }
@@ -1016,9 +1382,28 @@ class _InputBar extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final VoidCallback onSend;
-  final VoidCallback onCamera;
-  final VoidCallback onAttachment;
-  const _InputBar({required this.controller, required this.focusNode, required this.onSend, required this.onCamera, required this.onAttachment});
+  final VoidCallback onShareLocation;
+  final VoidCallback onSendPhoto;
+  final VoidCallback onChangeTime;
+  final double iconSize;
+  final double buttonSize;
+  final double sendButtonSize;
+  final double cornerRadius;
+  final double fieldRadius;
+
+  const _InputBar({
+    required this.controller,
+    required this.focusNode,
+    required this.onSend,
+    required this.onShareLocation,
+    required this.onSendPhoto,
+    required this.onChangeTime,
+    required this.iconSize,
+    required this.buttonSize,
+    required this.sendButtonSize,
+    required this.cornerRadius,
+    required this.fieldRadius,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1026,75 +1411,64 @@ class _InputBar extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.22),
           border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _PressScale(
-              onTap: onCamera,
-              child: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    minLines: 1,
+                    maxLines: 2,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => onSend(),
+                    style: const TextStyle(color: Colors.white, height: 1.25),
+                    decoration: InputDecoration(
+                      hintText: 'Nachricht schreiben…',
+                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontWeight: FontWeight.w600),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.06),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(fieldRadius), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(fieldRadius), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(fieldRadius), borderSide: BorderSide(color: cs.primary.withValues(alpha: 0.9))),
+                    ),
+                  ),
                 ),
-                child: const Center(child: Icon(Icons.photo_camera_outlined, color: Colors.white, size: 20)),
-              ),
+                const SizedBox(width: 10),
+                _PressScale(
+                  onTap: onSend,
+                  child: Container(
+                    width: sendButtonSize,
+                    height: sendButtonSize,
+                    decoration: BoxDecoration(
+                      color: cs.primary,
+                      borderRadius: BorderRadius.circular(cornerRadius + 2),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                    ),
+                    child: Center(child: Icon(Icons.send_rounded, color: Colors.white, size: iconSize)),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 10),
-            _PressScale(
-              onTap: onAttachment,
-              child: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                ),
-                child: const Center(child: Icon(Icons.attach_file, color: Colors.white, size: 20)),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                controller: controller,
-                focusNode: focusNode,
-                minLines: 1,
-                maxLines: 4,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => onSend(),
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Nachricht schreiben oder Details klären…',
-                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontWeight: FontWeight.w600),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.06),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: cs.primary.withValues(alpha: 0.9))),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            _PressScale(
-              onTap: onSend,
-              child: Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: cs.primary,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                ),
-                child: const Center(child: Icon(Icons.send_rounded, color: Colors.white, size: 20)),
-              ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _ComposerIconButton(icon: Icons.my_location_rounded, label: 'Standort', onTap: onShareLocation),
+                const SizedBox(width: 8),
+                _ComposerIconButton(icon: Icons.photo_camera_outlined, label: 'Foto', onTap: onSendPhoto),
+                const SizedBox(width: 8),
+                _ComposerIconButton(icon: Icons.schedule_rounded, label: 'Zeit', onTap: onChangeTime),
+              ],
             ),
           ],
         ),
@@ -1102,3 +1476,225 @@ class _InputBar extends StatelessWidget {
     );
   }
 }
+
+class _ComposerIconButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _ComposerIconButton({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return _PressScale(
+      onTap: onTap,
+      child: Semantics(
+        label: label,
+        button: true,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          child: Center(child: Icon(icon, color: Colors.white.withValues(alpha: 0.92), size: 18)),
+        ),
+      ),
+    );
+  }
+}
+
+class _TransactionComposer extends StatelessWidget {
+  final bool showActions;
+  final String? primaryLabel;
+  final String? secondaryLabel;
+  final VoidCallback? onPrimary;
+  final VoidCallback? onSecondary;
+  final String explanationText;
+  final VoidCallback onShareLocation;
+  final VoidCallback onSendPhoto;
+  final VoidCallback onChangeTime;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final VoidCallback onSend;
+  final double iconSize;
+  final double buttonSize;
+  final double sendButtonSize;
+  final double cornerRadius;
+  final double fieldRadius;
+
+  const _TransactionComposer({
+    required this.showActions,
+    required this.primaryLabel,
+    required this.secondaryLabel,
+    required this.onPrimary,
+    required this.onSecondary,
+    required this.explanationText,
+    required this.onShareLocation,
+    required this.onSendPhoto,
+    required this.onChangeTime,
+    required this.controller,
+    required this.focusNode,
+    required this.onSend,
+    required this.iconSize,
+    required this.buttonSize,
+    required this.sendButtonSize,
+    required this.cornerRadius,
+    required this.fieldRadius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.22),
+              border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (showActions) ...[
+                    _StickyTransactionCTA(
+                      primaryLabel: primaryLabel ?? '',
+                      secondaryLabel: secondaryLabel,
+                      onPrimary: onPrimary,
+                      onSecondary: onSecondary,
+                      explanationText: explanationText,
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  _InputBar(
+                    controller: controller,
+                    focusNode: focusNode,
+                    onSend: onSend,
+                    onShareLocation: onShareLocation,
+                    onSendPhoto: onSendPhoto,
+                    onChangeTime: onChangeTime,
+                    iconSize: iconSize,
+                    buttonSize: buttonSize,
+                    sendButtonSize: sendButtonSize,
+                    cornerRadius: cornerRadius,
+                    fieldRadius: fieldRadius,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StickyTransactionCTA extends StatelessWidget {
+  final String primaryLabel;
+  final String? secondaryLabel;
+  final VoidCallback? onPrimary;
+  final VoidCallback? onSecondary;
+  final String explanationText;
+
+  const _StickyTransactionCTA({
+    required this.primaryLabel,
+    required this.secondaryLabel,
+    required this.onPrimary,
+    required this.onSecondary,
+    required this.explanationText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.handshake_outlined, size: 18, color: Colors.white.withValues(alpha: 0.9)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Transaktion',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.92), fontWeight: FontWeight.w900),
+                  ),
+                ),
+                if (secondaryLabel != null)
+                  _PressScale(
+                    onTap: onSecondary,
+                    child: Container(
+                      height: 34,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                      ),
+                      child: Center(
+                        child: Text(
+                          secondaryLabel!,
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.92), fontWeight: FontWeight.w900, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _PressScale(
+              onTap: onPrimary,
+              child: Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [cs.primary, cs.primary.withValues(alpha: 0.72)]),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.bolt_rounded, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        primaryLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (explanationText.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                explanationText,
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontWeight: FontWeight.w700, height: 1.35, fontSize: 12),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+

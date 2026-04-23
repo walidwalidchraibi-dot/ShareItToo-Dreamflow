@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -103,6 +104,53 @@ class AuthService {
     }
   }
 
+  /// Demo-only social login.
+  ///
+  /// Until a real backend (Firebase/Supabase) is connected, we still want the
+  /// app to behave like a real product. This creates (or reuses) a synthetic
+  /// local account and stores a session.
+  static Future<AuthResult> signInWithSocialProvider(AuthSocialProvider provider) async {
+    await ensureSeeded();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final accounts = await _readAccounts(prefs);
+
+      final email = _socialEmailForProvider(provider);
+      final exists = accounts.any((a) => (a['email'] as String?)?.toLowerCase() == email);
+      if (!exists) {
+        accounts.add({
+          'email': email,
+          // Not used, but kept for schema symmetry.
+          'password': _randomPassword(),
+          'createdAt': DateTime.now().toIso8601String(),
+          'provider': provider.name,
+        });
+        await prefs.setString(_accountsKey, jsonEncode(accounts));
+      }
+
+      final session = {'email': email, 'createdAt': DateTime.now().toIso8601String(), 'provider': provider.name};
+      await prefs.setString(_sessionKey, jsonEncode(session));
+      return const AuthResult.success();
+    } catch (e) {
+      debugPrint('[AuthService] signInWithSocialProvider failed: $e');
+      return const AuthResult.failure(AuthFailure.network);
+    }
+  }
+
+  static String _socialEmailForProvider(AuthSocialProvider provider) {
+    // Stable emails to keep the demo experience consistent across restarts.
+    return switch (provider) {
+      AuthSocialProvider.google => 'google.demo@shareittoo.app',
+      AuthSocialProvider.apple => 'apple.demo@shareittoo.app',
+    };
+  }
+
+  static String _randomPassword() {
+    const chars = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#%&*?';
+    final rnd = Random();
+    return List<String>.generate(18, (_) => chars[rnd.nextInt(chars.length)]).join();
+  }
+
   static Future<List<Map<String, dynamic>>> _readAccounts(SharedPreferences prefs) async {
     try {
       final raw = prefs.getString(_accountsKey);
@@ -116,6 +164,8 @@ class AuthService {
     }
   }
 }
+
+enum AuthSocialProvider { google, apple }
 
 class AuthSession {
   final String email;

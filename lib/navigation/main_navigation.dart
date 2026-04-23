@@ -14,6 +14,7 @@ import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/login_nudge_sheet.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -75,8 +76,17 @@ class _MainNavigationState extends State<MainNavigation> {
           currentIndex: _currentIndex,
           onTap: (index) {
             final preview = context.read<DeveloperPreviewController>();
-            if (preview.isGuest && index != 0) {
-              AppPopup.showLoginRequired(context);
+            // Soft logged-out experience:
+            // - Guests can open the Profile tab to explore.
+            // - Other tabs remain locked in guest mode.
+            if (preview.isGuest && index != 0 && index != 4) {
+              final gateContext = switch (index) {
+                1 => GuestGateContext.favorites,
+                2 => GuestGateContext.booking,
+                3 => GuestGateContext.messages,
+                _ => GuestGateContext.generic,
+              };
+              showGuestRestrictionSheet(context, gateContext: gateContext);
               context.read<MainNavController>().setIndex(0);
               return;
             }

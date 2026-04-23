@@ -6,7 +6,6 @@ import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/screens/onboarding_flow_screen.dart';
 import 'package:lendify/screens/login_screen.dart';
 import 'package:lendify/screens/register_screen.dart';
-import 'package:lendify/screens/profile_logged_out_screen.dart';
 import 'package:lendify/screens/profile_screen.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 
@@ -126,7 +125,12 @@ class DeveloperPreviewScreen extends StatelessWidget {
               _QuickButton(
                 icon: Icons.person_outline,
                 label: 'Preview Profil (Logged Out)',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileLoggedOutScreen())),
+                onTap: () async {
+                  await context.read<DeveloperPreviewController>().setState(DeveloperUserState.loggedOut);
+                  if (context.mounted) {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
+                  }
+                },
               ),
               const SizedBox(height: 10),
               _QuickButton(

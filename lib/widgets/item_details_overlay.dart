@@ -26,6 +26,7 @@ import 'package:lendify/utils/cancellation_policy_text.dart';
 import 'package:lendify/utils/condition_labels.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 import 'package:lendify/widgets/image_gallery_overlay.dart';
+import 'package:lendify/widgets/login_nudge_sheet.dart';
 
 class ItemDetailsOverlay {
   static Future<void> show(BuildContext context, {required Item item, model.User? owner}) async {
@@ -635,7 +636,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
     final current = await DataService.getCurrentUser();
     if (current == null) {
       if (!mounted) return;
-      await AppPopup.toast(context, icon: Icons.person_outline, title: 'Bitte einloggen');
+      await showGuestRestrictionSheet(context, gateContext: GuestGateContext.rentalRequest);
       return;
     }
 
@@ -2256,7 +2257,11 @@ class _BottomActionBarState extends State<_BottomActionBar> {
     }
 
     final current = await DataService.getCurrentUser();
-    if (current == null || widget.range == null) {
+    if (current == null) {
+      if (context.mounted) await showGuestRestrictionSheet(context, gateContext: GuestGateContext.rentalRequest);
+      return;
+    }
+    if (widget.range == null) {
       widget.onReserve?.call();
       return;
     }

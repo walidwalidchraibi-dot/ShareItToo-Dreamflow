@@ -476,7 +476,10 @@ class _SearchSheetState extends State<_SearchSheet> {
   List<Item> _filteredResults() {
     final whatRaw = _whatCtrl.text.trim();
     final inferredCatFromWhat = _normalizeCoarseCategory(whatRaw);
-    final q = (inferredCatFromWhat != null && inferredCatFromWhat == _coarseCategory) ? '' : whatRaw.toLowerCase();
+    final effectiveCategory = _coarseCategory ?? inferredCatFromWhat;
+    // If the user only typed a category name into "Was", treat it as a category filter
+    // (so we show all items of that category), not a free-text query.
+    final q = (inferredCatFromWhat != null && inferredCatFromWhat == effectiveCategory) ? '' : whatRaw.toLowerCase();
     final w = _whereCtrl.text.trim().toLowerCase();
     return _nearby.where((it) {
       final inTitleOrTags = it.title.toLowerCase().contains(q) || it.tags.any((t) => t.toLowerCase().contains(q));
@@ -488,7 +491,7 @@ class _SearchSheetState extends State<_SearchSheet> {
       final matchesPriceMax = _priceMax == null || it.pricePerDay <= _priceMax!;
       
       // Category filter (STRICT: only the 11 coarse categories)
-      final matchesCategory = _coarseCategory == null || _coarseForItem(it) == _coarseCategory;
+      final matchesCategory = effectiveCategory == null || _coarseForItem(it) == effectiveCategory;
       
       return matchesWhat && inPlace && matchesPriceMin && matchesPriceMax && matchesCategory;
     }).toList();
@@ -571,7 +574,20 @@ class _SearchSheetState extends State<_SearchSheet> {
   }
 
   void _openResults() {
-    final items = _filteredResults();
+    final whereRaw = _whereCtrl.text.trim();
+    final origin = _resolveOriginCoords(whereRaw);
+
+    List<Item> items = _filteredResults();
+    // If user provided "Wo", show items starting from that location and further away.
+    // (i.e., sort ascending by distance instead of relying on the existing mixed order)
+    if (origin != null) {
+      items.sort((a, b) {
+        final da = DataService.estimateDistanceKm(a.lat, a.lng, origin.lat, origin.lng);
+        final db = DataService.estimateDistanceKm(b.lat, b.lng, origin.lat, origin.lng);
+        return da.compareTo(db);
+      });
+    }
+
     String buildQueryText() {
       final w = _whatCtrl.text.trim();
       final loc = _whereCtrl.text.trim();
@@ -594,9 +610,29 @@ class _SearchSheetState extends State<_SearchSheet> {
     // Push results as a full screen above the overlay so Back returns to KI-Suche
     Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
-        builder: (_) => SearchResultsScreen(queryText: query, dateText: date, results: items),
+        builder: (_) => SearchResultsScreen(queryText: query, dateText: date, results: items, originCoords: origin),
       ),
     );
+  }
+
+  ({double lat, double lng})? _resolveOriginCoords(String whereRaw) {
+    if (whereRaw.trim().isEmpty) return null;
+
+    // We only have demo cities locally (until Maps API is connected), so we resolve
+    // the freeform address to the closest matching known city token.
+    final extracted = DataService.deriveCityFromAddress(whereRaw);
+    final targetCity = extracted.isNotEmpty ? extracted : whereRaw;
+    final cities = DataService.getCities();
+
+    for (final e in cities.entries) {
+      if (e.key.toLowerCase() == targetCity.toLowerCase()) return (lat: e.value.$1, lng: e.value.$2);
+    }
+    for (final e in cities.entries) {
+      if (targetCity.toLowerCase().contains(e.key.toLowerCase()) || e.key.toLowerCase().contains(targetCity.toLowerCase())) {
+        return (lat: e.value.$1, lng: e.value.$2);
+      }
+    }
+    return null;
   }
 
   void _clearAll() {
