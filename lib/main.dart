@@ -40,16 +40,21 @@ Future<void> main() async {
     debugPrint(st.toString());
   }
 
-  // Wipe all locally stored rentals/bookings so you can retest from a clean state.
-  // This clears pending/accepted requests, their timelines/reminders, and saved
-  // availability selections. Safe to call when storage is already empty.
-  try {
-    debugPrint('[Main] Clear rentals/bookings start');
-    await DataService.clearAllRentalsAndBookings();
-    debugPrint('[Main] Clear rentals/bookings done');
-  } catch (e, st) {
-    debugPrint('[Main] Clear rentals/bookings failed: ' + e.toString());
-    debugPrint(st.toString());
+  // Destructive startup reset is disabled by default on normal startup.
+  // Only an explicit developer/debug toggle should enable this path.
+  const bool shouldRunDestructiveStartupReset = false;
+  if (shouldRunDestructiveStartupReset) {
+    try {
+      debugPrint('[Main] destructive startup reset enabled');
+      debugPrint('[Main] Clear rentals/bookings start');
+      await DataService.clearAllRentalsAndBookings();
+      debugPrint('[Main] Clear rentals/bookings done');
+    } catch (e, st) {
+      debugPrint('[Main] Clear rentals/bookings failed: ' + e.toString());
+      debugPrint(st.toString());
+    }
+  } else {
+    debugPrint('[Main] destructive startup reset skipped (disabled)');
   }
 
   debugPrint('[Main] runApp(MyApp)');
