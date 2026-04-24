@@ -76,6 +76,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   }
   bool get _canMessage => (widget.booking['status'] == 'Akzeptiert') || (widget.booking['status'] == 'Laufend');
 
+  bool get _canStartBookingHandover {
+    final status = ((widget.booking['status'] as String?) ?? '').trim();
+    return status == 'Akzeptiert' && !_isCompletedState && !_isOngoing;
+  }
+
+  bool get _canCompleteBookingReturn {
+    final status = ((widget.booking['status'] as String?) ?? '').trim();
+    return status == 'Laufend' && _isOngoing;
+  }
+
   String get _listerName => (widget.booking['listerName'] as String?) ?? 'Vermieter';
   String? get _listerAvatar => widget.booking['listerAvatar'] as String?;
 
@@ -2157,6 +2167,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         return;
       }
 
+      if (!_canStartBookingHandover) {
+        AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
+        return;
+      }
+
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
@@ -2229,6 +2244,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         return;
       }
 
+      if (!_canCompleteBookingReturn) {
+        AppPopup.toast(context, icon: Icons.info_outline, title: 'Rückgabe ist gerade nicht verfügbar');
+        return;
+      }
+
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'completed');
@@ -2273,6 +2293,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       return;
     }
     try {
+      if (!_canCompleteBookingReturn) {
+        AppPopup.toast(context, icon: Icons.info_outline, title: 'Rückgabe ist gerade nicht verfügbar');
+        return;
+      }
+
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'completed');

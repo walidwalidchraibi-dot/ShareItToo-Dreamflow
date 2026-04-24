@@ -13,6 +13,19 @@ class AddressPrivacy {
   static String privacyNoticePickup() =>
       'Die genaue Adresse wird erst nach Bestätigung der Anfrage gezeigt.';
 
+  static bool shouldRevealExactAddress({
+    required bool isAccepted,
+    required DateTime? handoverAt,
+    DateTime? now,
+  }) {
+    if (!isAccepted || handoverAt == null) return false;
+
+    final currentTime = now ?? DateTime.now();
+    final revealFrom = handoverAt.subtract(const Duration(hours: 6));
+
+    return !currentTime.isBefore(revealFrom);
+  }
+
   /// Returns an approximate address where the house number is rounded
   /// to a 10-range (e.g., 27 -> "20–30").
   ///

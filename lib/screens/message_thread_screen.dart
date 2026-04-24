@@ -228,6 +228,20 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return r.ownerId == me.id;
   }
 
+  bool _canStartHandover(RentalRequest? request) {
+    if (request == null) return false;
+    final status = request.status.toLowerCase().trim();
+    final handoverActive = _handoverReturnState['handoverActive'] == true;
+    return status == 'accepted' && !handoverActive;
+  }
+
+  bool _canStartReturn(RentalRequest? request) {
+    if (request == null) return false;
+    final status = request.status.toLowerCase().trim();
+    final returnActive = _handoverReturnState['returnActive'] == true;
+    return status == 'running' && !returnActive;
+  }
+
   Future<void> _applyPrimaryAction() async {
     final st = _deriveChatState();
     final me = _currentUser;
@@ -249,22 +263,27 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           }
           break;
         case _ChatState.confirmed:
-          // Übergabe starten => mark as running + activate handover
-          if (r != null && r.status != 'running') {
-            await DataService.updateRentalRequestStatus(requestId: r.id, status: 'running');
-          } else {
-            await DataService.updateMessageThreadBookingStatus(threadId: t.id, status: 'running');
+          if (!_canStartHandover(r)) {
+            if (mounted) {
+              AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
+            }
+            return;
           }
-          if (r != null) {
-            await DataService.setHandoverActive(r.id, active: true);
-          }
+          final handoverRequest = r!;
+          await DataService.updateRentalRequestStatus(requestId: handoverRequest.id, status: 'running');
+          await DataService.setHandoverActive(handoverRequest.id, active: true);
           await DataService.addSystemMessageToThread(threadId: t.id, text: 'Übergabe gestartet');
           break;
         case _ChatState.running:
         case _ChatState.returnPlanned:
-          if (r != null) {
-            await DataService.setReturnActive(r.id, active: true);
+          if (!_canStartReturn(r)) {
+            if (mounted) {
+              AppPopup.toast(context, icon: Icons.info_outline, title: 'Rückgabe ist gerade nicht verfügbar');
+            }
+            return;
           }
+          final returnRequest = r!;
+          await DataService.setReturnActive(returnRequest.id, active: true);
           await DataService.addSystemMessageToThread(threadId: t.id, text: 'Rückgabe gestartet');
           break;
         case _ChatState.completed:

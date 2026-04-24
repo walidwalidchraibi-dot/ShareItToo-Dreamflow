@@ -629,8 +629,15 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
           ),
           const SizedBox(height: 8),
           Builder(builder: (context) {
-            // For confirmed bookings (upcoming), always show the exact address
-            return _AddressInfoCardInline(icon: Icons.place_outlined, text: 'Abholort: $targetAddr');
+            final reveal = AddressPrivacy.shouldRevealExactAddress(
+              isAccepted: true,
+              handoverAt: req.start,
+            );
+            final text = reveal
+                ? 'Abholort: $targetAddr'
+                : AddressPrivacy.privacyNoticePickup();
+            final icon = reveal ? Icons.place_outlined : Icons.lock_outline;
+            return _AddressInfoCardInline(icon: icon, text: text);
           }),
         ],
         if (category == 'requests' && ownerDelivers) ...[
@@ -642,9 +649,10 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
           ),
           const SizedBox(height: 8),
           Builder(builder: (context) {
-            final now = DateTime.now();
-            // For pending/requests, also respect the 6h before start if available.
-            final reveal = now.isAfter(req.start.subtract(const Duration(hours: 6)));
+            final reveal = AddressPrivacy.shouldRevealExactAddress(
+              isAccepted: req.status.toLowerCase().trim() == 'accepted',
+              handoverAt: req.start,
+            );
             final text = reveal
                 ? 'Abholort: $targetAddr'
                 : AddressPrivacy.privacyNoticePickup();
@@ -943,6 +951,16 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     AppPopup.toast(context, icon: Icons.info_outline, title: msg);
   }
 
+  bool _canStartOwnerHandover(RentalRequest req) {
+    final status = req.status.toLowerCase().trim();
+    return status == 'accepted';
+  }
+
+  bool _canCompleteOwnerReturn(RentalRequest req) {
+    final status = req.status.toLowerCase().trim();
+    return status == 'running';
+  }
+
   Future<void> _confirmManualHandover(BuildContext context, RentalRequest req, Item item) async {
     await AppPopup.show(
       context,
@@ -958,6 +976,12 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
           onPressed: () async {
             Navigator.of(context, rootNavigator: true).maybePop();
               try {
+              if (!_canStartOwnerHandover(req)) {
+                if (mounted) {
+                  AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
+                }
+                return;
+              }
               await DataService.updateRentalRequestStatus(requestId: req.id, status: 'running');
               await DataService.addTimelineEvent(requestId: req.id, type: 'handover_manual_confirmed', note: 'Übergabe manuell bestätigt');
                 final bookingId = _computeBookingId(item, req);
@@ -977,6 +1001,12 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         ),
       ],
     );
+  }
+
+  RentalRequest? _requestForId(String requestId) {
+    final req = _req;
+    if (req != null && req.id == requestId) return req;
+    return null;
   }
 
   Future<void> _startQrScan(BuildContext context, {required String expectedCode, required String bookingId, required String requestId}) async {
@@ -1037,6 +1067,11 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         return;
       }
 
+      final request = _requestForId(requestId);
+      if (request == null || !_canStartOwnerHandover(request)) {
+        AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
+        return;
+      }
       await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
       await DataService.addTimelineEvent(requestId: requestId, type: 'handover_qr_confirmed', note: 'Übergabe per QR bestätigt');
       final message = 'Übergabe des Listings "${_item?.title ?? ''}" wurde vom Vermieter bestätigt.';
@@ -1066,6 +1101,10 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     );
     if (ok == true) {
       // Set completed, add timeline + notification, send receipt
+      if (!_canCompleteOwnerReturn(req)) {
+        AppPopup.toast(context, icon: Icons.info_outline, title: 'Rückgabe ist gerade nicht verfügbar');
+        return;
+      }
       await DataService.updateRentalRequestStatus(requestId: req.id, status: 'completed');
       await DataService.addTimelineEvent(requestId: req.id, type: 'completed', note: 'Rückgabe abgeschlossen');
       // Release/cancel ride compensation if present (return segment)

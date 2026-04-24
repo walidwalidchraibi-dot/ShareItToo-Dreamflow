@@ -74,6 +74,22 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     super.dispose();
   }
 
+  bool _canCancelUpcomingBooking(Map<String, dynamic> booking) {
+    final (start, end) = _parseDateRange((booking['dates'] as String?) ?? '');
+    final effective = _effectiveCategoryFor(booking, start, end);
+    final rawStatus = ((booking['rawStatus'] as String?) ?? '').toLowerCase().trim();
+    final requestId = (booking['requestId'] as String?)?.trim() ?? '';
+    return requestId.isNotEmpty && effective == 'upcoming' && rawStatus == 'accepted';
+  }
+
+  bool _canReviewCompletedBooking(Map<String, dynamic> booking) {
+    final rawStatus = ((booking['rawStatus'] as String?) ?? '').toLowerCase().trim();
+    final requestId = (booking['requestId'] as String?)?.trim() ?? '';
+    final itemId = (booking['itemId'] as String?)?.trim() ?? '';
+    final listerId = (booking['listerId'] as String?)?.trim() ?? '';
+    return rawStatus == 'completed' && requestId.isNotEmpty && itemId.isNotEmpty && listerId.isNotEmpty;
+  }
+
   bool _showingReminder = false;
   Future<void> _maybeShowReviewReminder() async {
     if (_showingReminder) return;
@@ -609,11 +625,15 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
         final (start, end) = _parseDateRange(booking['dates'] ?? '');
         final effective = _effectiveCategoryFor(booking, start, end);
         final rawStatus = booking['rawStatus'] as String?;
-        if (effective == 'upcoming' && rawStatus == 'accepted') {
+        if (_canCancelUpcomingBooking(booking)) {
           return Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               onPressed: () async {
+                if (!_canCancelUpcomingBooking(booking)) {
+                  AppPopup.toast(context, icon: Icons.info_outline, title: 'Stornierung ist gerade nicht verfügbar');
+                  return;
+                }
                 // Minimal confirmation text only
                 final policy = (booking['policy'] as String?) ?? 'flexible';
                 final policyName = DataService.policyName(policy);
@@ -643,7 +663,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                       onPressed: () async {
                         Navigator.of(context, rootNavigator: true).maybePop();
                         final id = booking['requestId'] as String?;
-                        if (id != null) {
+                        if (id != null && _canCancelUpcomingBooking(booking)) {
                           await DataService.updateRentalRequestStatusWithActor(requestId: id, status: 'cancelled', cancelledBy: 'renter');
                           if (!mounted) return;
                           await _load();
@@ -795,17 +815,16 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
         return null;
       case 'completed':
         // Show a tiny "Bewerten" button for completed bookings (not for declined/storniert)
-        if (rawStatus == 'completed') {
+        if (_canReviewCompletedBooking(booking)) {
           return _TinyTextButton(
             icon: Icons.star_rate_outlined,
             label: 'Bewerten',
             onPressed: () async {
               final current = await DataService.getCurrentUser();
-              if (current == null) return;
-              final requestId = booking['requestId'] as String?;
-              final itemId = booking['itemId'] as String?;
-              final listerId = booking['listerId'] as String?;
-              if (requestId == null || itemId == null || listerId == null) return;
+              if (current == null || !_canReviewCompletedBooking(booking)) return;
+              final requestId = booking['requestId'] as String;
+              final itemId = booking['itemId'] as String;
+              final listerId = booking['listerId'] as String;
               final ok = await ReviewPromptSheet.show(
                 context,
                 requestId: requestId,
