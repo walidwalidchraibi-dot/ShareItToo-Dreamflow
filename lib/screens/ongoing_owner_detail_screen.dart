@@ -189,6 +189,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final category = _categoryFor(req);
 
     final isCompleted = req.status == 'completed';
+    final isHeldForReview = req.needsReview;
     final title = item.title;
     final location = item.locationText ?? (item.city ?? '');
     // Derive responsibilities robustly from persisted request snapshot; fall back to
@@ -691,6 +692,10 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               _AmountRow(label: 'Auszahlung', value: '0,00 €', strong: true),
               const SizedBox(height: 2),
               Text('Keine Auszahlung, da vom Vermieter storniert.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
+            ] else if (isCompleted && isHeldForReview) ...[
+              _AmountRow(label: 'Zur Prüfung pausiert', value: 'Auszahlung zurückgestellt', strong: true),
+              const SizedBox(height: 2),
+              Text('Diese Rückgabe ist zur Prüfung markiert. Auszahlung und Belegfreigabe werden pausiert, bis der Fall geprüft wurde.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
             ] else if (isCompleted) ...[
               _AmountRow(label: 'Ausgezahlt (an Vermieter)', value: _formatEuro(totalPaid - fee), strong: true),
               Text('Ausgezahlt am ${_formatPayoutDate(req.end)}', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
@@ -699,7 +704,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               Text('Auszahlung am ${_formatPayoutDate(req.end)}', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
             ],
             const SizedBox(height: 8),
-            if ((category == 'ongoing' || category == 'completed') && !(req.status == 'cancelled' && (req.cancelledBy == 'owner')))
+            if (!isHeldForReview && (category == 'ongoing' || category == 'completed') && !(req.status == 'cancelled' && (req.cancelledBy == 'owner')))
               Align(
                 alignment: Alignment.center,
                 child: OutlinedButton.icon(
@@ -724,18 +729,23 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Abschluss-Zusammenfassung', style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
               const SizedBox(height: 10),
-              _FactRow(icon: req.status == 'cancelled' ? Icons.cancel_outlined : Icons.verified_outlined,
+              _FactRow(icon: req.status == 'cancelled' ? Icons.cancel_outlined : (isHeldForReview ? Icons.hourglass_top_outlined : Icons.verified_outlined),
                   label: 'Status',
                   value: () {
                     if (req.status == 'cancelled' && (req.cancelledBy == 'renter')) return 'Zurückgezogen';
                     if (req.status == 'cancelled') return 'Storniert';
+                    if (isHeldForReview) return 'Zur Prüfung pausiert';
                     return 'Abgeschlossen';
                   }(),
-                  color: req.status == 'cancelled' ? const Color(0xFFF43F5E) : Colors.blueGrey),
+                  color: req.status == 'cancelled' ? const Color(0xFFF43F5E) : (isHeldForReview ? const Color(0xFFF59E0B) : Colors.blueGrey)),
               const SizedBox(height: 8),
               _FactRow(icon: Icons.event_busy, label: req.status == 'cancelled' ? 'Storniert am' : 'Rückgabe bestätigt', value: _formatRange(req.start, req.end).split('–').last.trim()),
               const SizedBox(height: 8),
-              _FactRow(icon: Icons.receipt_long_outlined, label: 'Beleg', value: 'Erstattung gem. Richtlinien'),
+              _FactRow(icon: Icons.receipt_long_outlined, label: 'Beleg', value: isHeldForReview ? 'Belegfreigabe pausiert bis zur Prüfung' : 'Erstattung gem. Richtlinien'),
+              if (isHeldForReview) ...[
+                const SizedBox(height: 8),
+                Text('Diese Rückgabe ist zur Prüfung markiert. Auszahlung und Belegfreigabe werden pausiert, bis der Fall geprüft wurde.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
+              ],
             ]),
           ),
 
