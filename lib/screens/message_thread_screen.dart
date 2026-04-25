@@ -253,13 +253,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       switch (st) {
         case _ChatState.requestOpen:
           if (r == null) {
-            await DataService.updateMessageThreadBookingStatus(threadId: t.id, status: 'accepted');
-            await DataService.addSystemMessageToThread(threadId: t.id, text: 'Anfrage angenommen');
+            await _acceptRequestWithThreadSideEffects(threadId: t.id);
           } else {
             if (!_viewerIsOwner()) return;
-            await DataService.updateRentalRequestStatus(requestId: r.id, status: 'accepted');
-            await DataService.updateMessageThreadBookingStatus(threadId: t.id, status: 'accepted');
-            await DataService.addSystemMessageToThread(threadId: t.id, text: 'Anfrage angenommen');
+            await _acceptRequestWithThreadSideEffects(
+              threadId: t.id,
+              requestId: r.id,
+            );
           }
           break;
         case _ChatState.confirmed:
@@ -314,18 +314,40 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
     try {
       if (r == null) {
-        await DataService.updateMessageThreadBookingStatus(threadId: t.id, status: 'declined');
-        await DataService.addSystemMessageToThread(threadId: t.id, text: 'Anfrage abgelehnt');
+        await _declineRequestWithThreadSideEffects(threadId: t.id);
       } else {
-        await DataService.updateRentalRequestStatus(requestId: r.id, status: 'declined');
-        await DataService.updateMessageThreadBookingStatus(threadId: t.id, status: 'declined');
-        await DataService.addSystemMessageToThread(threadId: t.id, text: 'Anfrage abgelehnt');
+        await _declineRequestWithThreadSideEffects(
+          threadId: t.id,
+          requestId: r.id,
+        );
       }
     } catch (e) {
       debugPrint('[MessageThreadScreen] _applySecondaryAction failed: $e');
     } finally {
       await _load();
     }
+  }
+
+  Future<void> _acceptRequestWithThreadSideEffects({
+    required String threadId,
+    String? requestId,
+  }) async {
+    if (requestId != null) {
+      await DataService.updateRentalRequestStatus(requestId: requestId, status: 'accepted');
+    }
+    await DataService.updateMessageThreadBookingStatus(threadId: threadId, status: 'accepted');
+    await DataService.addSystemMessageToThread(threadId: threadId, text: 'Anfrage angenommen');
+  }
+
+  Future<void> _declineRequestWithThreadSideEffects({
+    required String threadId,
+    String? requestId,
+  }) async {
+    if (requestId != null) {
+      await DataService.updateRentalRequestStatus(requestId: requestId, status: 'declined');
+    }
+    await DataService.updateMessageThreadBookingStatus(threadId: threadId, status: 'declined');
+    await DataService.addSystemMessageToThread(threadId: threadId, text: 'Anfrage abgelehnt');
   }
 
   ({String primary, String? secondary}) _actionLabels(_ChatState st) {
