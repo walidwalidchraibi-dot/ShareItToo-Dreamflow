@@ -1100,40 +1100,52 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       mode: ReturnFlowMode.returnFlow,
     );
     if (ok == true) {
-      // Set completed, add timeline + notification, send receipt
-      if (!_canCompleteOwnerReturn(req)) {
-        AppPopup.toast(context, icon: Icons.info_outline, title: 'Rückgabe ist gerade nicht verfügbar');
-        return;
-      }
-      await DataService.updateRentalRequestStatus(requestId: req.id, status: 'completed');
-      await DataService.addTimelineEvent(requestId: req.id, type: 'completed', note: 'Rückgabe abgeschlossen');
-      // Release/cancel ride compensation if present (return segment)
-      try {
-        final grant = await DataService.getRideCompensationDecision(requestId: req.id, segment: 'return', consume: true);
-        if (grant != null) {
-          await DataService.addTimelineEvent(requestId: req.id, type: grant ? 'ride_comp_release_return' : 'ride_comp_cancel_return', note: grant ? 'Fahrtvergütung freigegeben (Rückgabe)' : 'Fahrtvergütung nicht ausgezahlt (Rückgabe)');
-        }
-      } catch (_) {}
-      await DataService.addNotification(title: 'Buchung abgeschlossen', body: 'Die Rückgabe für "${item.title}" wurde abgeschlossen. Beleg gesendet.');
-      if (!mounted) return;
-      AppPopup.toast(context, icon: Icons.receipt_long, title: 'Beleg gesendet');
-      await _load(); // refresh request
-      if (!mounted) return;
-      // Schedule a review reminder for the owner in 10 minutes instead of immediate prompt
-      try {
-        final owner = _owner;
-        if (owner != null) {
-          await DataService.scheduleReviewReminder(
-            requestId: req.id,
-            itemId: item.id,
-            reviewerId: owner.id,
-            reviewedUserId: renter.id,
-            direction: 'owner_to_renter',
-            dueAt: DateTime.now().add(const Duration(minutes: 10)),
-          );
-        }
-      } catch (_) {}
+      await _completeOwnerReturnWithSideEffects(
+        req: req,
+        item: item,
+        renter: renter,
+      );
     }
+  }
+
+  Future<void> _completeOwnerReturnWithSideEffects({
+    required RentalRequest req,
+    required Item item,
+    required User renter,
+  }) async {
+    // Set completed, add timeline + notification, send receipt
+    if (!_canCompleteOwnerReturn(req)) {
+      AppPopup.toast(context, icon: Icons.info_outline, title: 'Rückgabe ist gerade nicht verfügbar');
+      return;
+    }
+    await DataService.updateRentalRequestStatus(requestId: req.id, status: 'completed');
+    await DataService.addTimelineEvent(requestId: req.id, type: 'completed', note: 'Rückgabe abgeschlossen');
+    // Release/cancel ride compensation if present (return segment)
+    try {
+      final grant = await DataService.getRideCompensationDecision(requestId: req.id, segment: 'return', consume: true);
+      if (grant != null) {
+        await DataService.addTimelineEvent(requestId: req.id, type: grant ? 'ride_comp_release_return' : 'ride_comp_cancel_return', note: grant ? 'Fahrtvergütung freigegeben (Rückgabe)' : 'Fahrtvergütung nicht ausgezahlt (Rückgabe)');
+      }
+    } catch (_) {}
+    await DataService.addNotification(title: 'Buchung abgeschlossen', body: 'Die Rückgabe für "${item.title}" wurde abgeschlossen. Beleg gesendet.');
+    if (!mounted) return;
+    AppPopup.toast(context, icon: Icons.receipt_long, title: 'Beleg gesendet');
+    await _load(); // refresh request
+    if (!mounted) return;
+    // Schedule a review reminder for the owner in 10 minutes instead of immediate prompt
+    try {
+      final owner = _owner;
+      if (owner != null) {
+        await DataService.scheduleReviewReminder(
+          requestId: req.id,
+          itemId: item.id,
+          reviewerId: owner.id,
+          reviewedUserId: renter.id,
+          direction: 'owner_to_renter',
+          dueAt: DateTime.now().add(const Duration(minutes: 10)),
+        );
+      }
+    } catch (_) {}
   }
 
   Future<void> _startPickupFlowOwner(BuildContext context, RentalRequest req, Item item, User renter) async {
