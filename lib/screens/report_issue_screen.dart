@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/widgets/app_popup.dart';
 
@@ -13,15 +12,44 @@ class ReportIssueScreen extends StatefulWidget {
 }
 
 class _ReportIssueScreenState extends State<ReportIssueScreen> {
-  String? _selectedCode; // e.g., 'damage', 'delay', 'no_show', 'wrong_item', 'behavior', 'other'
+  String?
+      _selectedCode; // e.g., 'damage', 'delay', 'no_show', 'wrong_item', 'behavior', 'other'
   final TextEditingController _detailsCtrl = TextEditingController();
 
+  bool _isHardIssue(String code) =>
+      const {'damage', 'no_show', 'wrong_item', 'behavior'}.contains(code);
+
+  String _reviewReason(String code, String note) {
+    final base = switch (code) {
+      'damage' => 'Hard issue reported: damage',
+      'no_show' => 'Hard issue reported: no_show',
+      'wrong_item' => 'Hard issue reported: wrong_item',
+      'behavior' => 'Hard issue reported: behavior',
+      _ => 'Hard issue reported: other',
+    };
+    if (note.isEmpty) return base;
+    return '$base — $note';
+  }
+
   final List<_IssueType> _types = const [
-    _IssueType(code: 'damage', label: 'Schaden melden', icon: Icons.build_outlined),
-    _IssueType(code: 'delay', label: 'Verspätete Rückgabe', icon: Icons.pending_actions_outlined),
-    _IssueType(code: 'no_show', label: 'Nicht erschienen', icon: Icons.event_busy_outlined),
-    _IssueType(code: 'wrong_item', label: 'Falscher Artikel', icon: Icons.swap_horiz_outlined),
-    _IssueType(code: 'behavior', label: 'Unsicheres Verhalten', icon: Icons.report_gmailerrorred_outlined),
+    _IssueType(
+        code: 'damage', label: 'Schaden melden', icon: Icons.build_outlined),
+    _IssueType(
+        code: 'delay',
+        label: 'Verspätete Rückgabe',
+        icon: Icons.pending_actions_outlined),
+    _IssueType(
+        code: 'no_show',
+        label: 'Nicht erschienen',
+        icon: Icons.event_busy_outlined),
+    _IssueType(
+        code: 'wrong_item',
+        label: 'Falscher Artikel',
+        icon: Icons.swap_horiz_outlined),
+    _IssueType(
+        code: 'behavior',
+        label: 'Unsicheres Verhalten',
+        icon: Icons.report_gmailerrorred_outlined),
     _IssueType(code: 'other', label: 'Sonstiges', icon: Icons.more_horiz),
   ];
 
@@ -33,28 +61,42 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
 
   Future<void> _submit() async {
     if (_selectedCode == null) {
-      AppPopup.toast(context, icon: Icons.info_outline, title: 'Bitte ein Problem wählen');
+      AppPopup.toast(context,
+          icon: Icons.info_outline, title: 'Bitte ein Problem wählen');
       return;
     }
     final note = _detailsCtrl.text.trim();
+    final code = _selectedCode!;
     try {
       await DataService.addTimelineEvent(
         requestId: widget.requestId,
-        type: 'issue:$_selectedCode',
+        type: 'issue:$code',
         note: note.isEmpty ? 'Keine Details' : note,
       );
       await DataService.addNotification(
         title: 'Problem gemeldet',
-        body: 'Deine Meldung für "${widget.itemTitle ?? 'Buchung'}" wurde gespeichert.',
+        body:
+            'Deine Meldung für "${widget.itemTitle ?? 'Buchung'}" wurde gespeichert.',
       );
-      debugPrint('[issue] reported ${_selectedCode} for request ${widget.requestId}: $note');
+      if (_isHardIssue(code)) {
+        await DataService.markRentalRequestNeedsReview(
+          widget.requestId,
+          reason: _reviewReason(code, note),
+          source: 'report_issue_screen',
+        );
+      }
+      debugPrint(
+          '[issue] reported $code for request ${widget.requestId}: $note');
       if (!mounted) return;
-      AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Danke, wir haben es notiert');
+      AppPopup.toast(context,
+          icon: Icons.check_circle_outline,
+          title: 'Danke, wir haben es notiert');
       Navigator.of(context).maybePop();
     } catch (e) {
       debugPrint('[issue] submit failed: $e');
       if (!mounted) return;
-      AppPopup.toast(context, icon: Icons.error_outline, title: 'Meldung fehlgeschlagen');
+      AppPopup.toast(context,
+          icon: Icons.error_outline, title: 'Meldung fehlgeschlagen');
     }
   }
 
@@ -72,11 +114,14 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
           if (widget.itemTitle != null) ...[
             Text(
               widget.itemTitle!,
-              style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
           ],
-          Text('Wähle ein Problem', style: theme.textTheme.titleSmall?.copyWith(color: Colors.white70, fontWeight: FontWeight.w700)),
+          Text('Wähle ein Problem',
+              style: theme.textTheme.titleSmall?.copyWith(
+                  color: Colors.white70, fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -100,15 +145,20 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     key: ValueKey(_selectedCode),
                     children: [
-                      Text('Beschreibung (optional)', style: theme.textTheme.titleSmall?.copyWith(color: Colors.white70, fontWeight: FontWeight.w700)),
+                      Text('Beschreibung (optional)',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w700)),
                       const SizedBox(height: 8),
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.20),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.10)),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         child: TextField(
                           controller: _detailsCtrl,
                           maxLines: 4,
@@ -139,18 +189,30 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
 }
 
 class _IssueType {
-  final String code; final String label; final IconData icon;
-  const _IssueType({required this.code, required this.label, required this.icon});
+  final String code;
+  final String label;
+  final IconData icon;
+  const _IssueType(
+      {required this.code, required this.label, required this.icon});
 }
 
 class _IssueChip extends StatelessWidget {
-  final bool selected; final IconData icon; final String label; final VoidCallback onTap;
-  const _IssueChip({required this.selected, required this.icon, required this.label, required this.onTap});
+  final bool selected;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _IssueChip(
+      {required this.selected,
+      required this.icon,
+      required this.label,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
-    final bg = selected ? primary.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.05);
+    final bg = selected
+        ? primary.withValues(alpha: 0.15)
+        : Colors.white.withValues(alpha: 0.05);
     final border = selected ? primary.withValues(alpha: 0.4) : Colors.white12;
     final fg = selected ? primary : Colors.white70;
     return Material(
@@ -168,7 +230,8 @@ class _IssueChip extends StatelessWidget {
           child: Row(mainAxisSize: MainAxisSize.min, children: [
             Icon(icon, size: 16, color: fg),
             const SizedBox(width: 6),
-            Text(label, style: TextStyle(color: fg, fontWeight: FontWeight.w700)),
+            Text(label,
+                style: TextStyle(color: fg, fontWeight: FontWeight.w700)),
           ]),
         ),
       ),

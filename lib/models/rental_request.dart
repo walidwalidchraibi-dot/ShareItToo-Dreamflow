@@ -5,14 +5,17 @@ class RentalRequest {
   final String renterId; // user who requests to rent
   final DateTime start;
   final DateTime end;
-  final String status; // 'pending' | 'accepted' | 'declined' | 'running' | 'completed'
+  final String
+      status; // 'pending' | 'accepted' | 'declined' | 'running' | 'completed'
   final String? message;
   // Who cancelled the request when status == 'cancelled'.
   // Values: 'renter' | 'owner'. Null when not cancelled or legacy data.
   final String? cancelledBy;
   // Express delivery (2h) option
-  final bool expressRequested; // renter requested express delivery during booking
-  final String? expressStatus; // 'pending' | 'accepted' | 'declined' (null if not requested)
+  final bool
+      expressRequested; // renter requested express delivery during booking
+  final String?
+      expressStatus; // 'pending' | 'accepted' | 'declined' (null if not requested)
   final double expressFee; // default 5.0
   // Persist the chosen transport responsibilities at booking time so UI remains correct
   // even after transient UI selections are cleared.
@@ -29,9 +32,15 @@ class RentalRequest {
   final DateTime createdAt; // when the request was created
   final DateTime? expressRequestedAt; // when renter opted for express
   final DateTime? expressConfirmedAt; // when owner confirmed express
+  final bool needsReview;
+  final String? reviewReason;
+  final String? reviewSource;
+  final DateTime? reviewRequestedAt;
   // Snapshot of renter-facing total and subtitle at booking time to keep UI constant
-  final double? quotedTotalRenter; // what the renter saw as Gesamtbetrag at request time
-  final String? quotedSubtitle;    // the small info line under Gesamtbetrag at request time
+  final double?
+      quotedTotalRenter; // what the renter saw as Gesamtbetrag at request time
+  final String?
+      quotedSubtitle; // the small info line under Gesamtbetrag at request time
 
   RentalRequest({
     required this.id,
@@ -55,6 +64,10 @@ class RentalRequest {
     DateTime? createdAt,
     this.expressRequestedAt,
     this.expressConfirmedAt,
+    this.needsReview = false,
+    this.reviewReason,
+    this.reviewSource,
+    this.reviewRequestedAt,
     this.quotedTotalRenter,
     this.quotedSubtitle,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -69,6 +82,10 @@ class RentalRequest {
     double? expressFee,
     DateTime? expressConfirmedAt,
     DateTime? expressRequestedAt,
+    bool? needsReview,
+    String? reviewReason,
+    String? reviewSource,
+    DateTime? reviewRequestedAt,
     bool? ownerDeliversAtDropoffChosen,
     bool? ownerPicksUpAtReturnChosen,
     String? deliveryAddressLine,
@@ -77,7 +94,8 @@ class RentalRequest {
     double? deliveryLng,
     double? quotedTotalRenter,
     String? quotedSubtitle,
-  }) => RentalRequest(
+  }) =>
+      RentalRequest(
         id: id,
         itemId: itemId,
         ownerId: ownerId,
@@ -93,8 +111,14 @@ class RentalRequest {
         createdAt: this.createdAt,
         expressRequestedAt: expressRequestedAt ?? this.expressRequestedAt,
         expressConfirmedAt: expressConfirmedAt ?? this.expressConfirmedAt,
-        ownerDeliversAtDropoffChosen: ownerDeliversAtDropoffChosen ?? this.ownerDeliversAtDropoffChosen,
-        ownerPicksUpAtReturnChosen: ownerPicksUpAtReturnChosen ?? this.ownerPicksUpAtReturnChosen,
+        needsReview: needsReview ?? this.needsReview,
+        reviewReason: reviewReason ?? this.reviewReason,
+        reviewSource: reviewSource ?? this.reviewSource,
+        reviewRequestedAt: reviewRequestedAt ?? this.reviewRequestedAt,
+        ownerDeliversAtDropoffChosen:
+            ownerDeliversAtDropoffChosen ?? this.ownerDeliversAtDropoffChosen,
+        ownerPicksUpAtReturnChosen:
+            ownerPicksUpAtReturnChosen ?? this.ownerPicksUpAtReturnChosen,
         deliveryAddressLine: deliveryAddressLine ?? this.deliveryAddressLine,
         deliveryCity: deliveryCity ?? this.deliveryCity,
         deliveryLat: deliveryLat ?? this.deliveryLat,
@@ -116,8 +140,10 @@ class RentalRequest {
         expressRequested: (json['expressRequested'] as bool?) ?? false,
         expressStatus: json['expressStatus'] as String?,
         expressFee: (json['expressFee'] as num?)?.toDouble() ?? 5.0,
-        ownerDeliversAtDropoffChosen: (json['ownerDeliversAtDropoffChosen'] as bool?) ?? false,
-        ownerPicksUpAtReturnChosen: (json['ownerPicksUpAtReturnChosen'] as bool?) ?? false,
+        ownerDeliversAtDropoffChosen:
+            (json['ownerDeliversAtDropoffChosen'] as bool?) ?? false,
+        ownerPicksUpAtReturnChosen:
+            (json['ownerPicksUpAtReturnChosen'] as bool?) ?? false,
         deliveryAddressLine: json['deliveryAddressLine'] as String?,
         deliveryCity: json['deliveryCity'] as String?,
         deliveryLat: (json['deliveryLat'] as num?)?.toDouble(),
@@ -125,6 +151,10 @@ class RentalRequest {
         createdAt: _parseDt(json['createdAt']) ?? DateTime.now(),
         expressRequestedAt: _parseDt(json['expressRequestedAt']),
         expressConfirmedAt: _parseDt(json['expressConfirmedAt']),
+        needsReview: (json['needsReview'] as bool?) ?? false,
+        reviewReason: json['reviewReason'] as String?,
+        reviewSource: json['reviewSource'] as String?,
+        reviewRequestedAt: _parseDt(json['reviewRequestedAt']),
         quotedTotalRenter: (json['quotedTotalRenter'] as num?)?.toDouble(),
         quotedSubtitle: json['quotedSubtitle'] as String?,
       );
@@ -151,6 +181,10 @@ class RentalRequest {
         'createdAt': createdAt.toIso8601String(),
         'expressRequestedAt': expressRequestedAt?.toIso8601String(),
         'expressConfirmedAt': expressConfirmedAt?.toIso8601String(),
+        'needsReview': needsReview,
+        'reviewReason': reviewReason,
+        'reviewSource': reviewSource,
+        'reviewRequestedAt': reviewRequestedAt?.toIso8601String(),
         'quotedTotalRenter': quotedTotalRenter,
         'quotedSubtitle': quotedSubtitle,
       };
@@ -158,7 +192,11 @@ class RentalRequest {
 
 DateTime? _parseDt(Object? v) {
   if (v is String && v.isNotEmpty) {
-    try { return DateTime.parse(v); } catch (_) { return null; }
+    try {
+      return DateTime.parse(v);
+    } catch (_) {
+      return null;
+    }
   }
   return null;
 }

@@ -2725,6 +2725,46 @@ class DataService {
     if (mutated) await _saveAllRentalRequests(all);
   }
 
+  static Future<void> markRentalRequestNeedsReview(String requestId, {required String reason, required String source}) async {
+    final all = await _getAllRentalRequests();
+    bool mutated = false;
+    RentalRequest? updatedRequest;
+    final requestedAt = DateTime.now();
+    for (int i = 0; i < all.length; i++) {
+      if (all[i].id == requestId) {
+        all[i] = all[i].copyWith(
+          needsReview: true,
+          reviewReason: reason,
+          reviewSource: source,
+          reviewRequestedAt: requestedAt,
+        );
+        updatedRequest = all[i];
+        mutated = true;
+        break;
+      }
+    }
+    if (!mutated || updatedRequest == null) return;
+
+    await _saveAllRentalRequests(all);
+    try {
+      await addTimelineEvent(
+        requestId: requestId,
+        type: 'review_required',
+        note: 'Manuelle Prüfung markiert ($source): $reason',
+      );
+    } catch (e) {
+      debugPrint('[DataService] markRentalRequestNeedsReview timeline failed: $e');
+    }
+    try {
+      await addNotification(
+        title: 'Prüfung erforderlich',
+        body: 'Eine Buchung wurde zur manuellen Prüfung markiert.',
+      );
+    } catch (e) {
+      debugPrint('[DataService] markRentalRequestNeedsReview notification failed: $e');
+    }
+  }
+
   // Schedules a 30-minute timer for express confirmation. If the app is closed,
   // the sweep will enforce the timeout on next load.
   static void _scheduleExpressTimerIfNeeded(RentalRequest r) {

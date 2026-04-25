@@ -1138,7 +1138,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             if (!renterPicksUpSelf) return const SizedBox.shrink();
             final label = AddressPrivacy.nearbyShort(kindLabel: 'Abholung');
             final fullAddress = (widget.booking['location'] as String?) ?? '';
-            // For confirmed bookings (upcoming), always show the exact address
+            final requestStatus = ((widget.booking['statusRaw'] as String?) ?? (widget.booking['status'] as String?) ?? '').trim().toLowerCase();
+            final isAccepted = requestStatus == 'accepted' || requestStatus.contains('akzeptiert');
+            final revealExactAddress = AddressPrivacy.shouldRevealExactAddress(
+              handoverAt: start,
+              isAccepted: isAccepted,
+            );
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1148,8 +1153,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 ),
                 const SizedBox(height: 8),
                 _AddressInfoCard(
-                  icon: Icons.place_outlined,
-                  text: 'Abholort: $fullAddress',
+                  icon: revealExactAddress ? Icons.place_outlined : Icons.lock_outline,
+                  text: revealExactAddress && fullAddress.isNotEmpty
+                      ? 'Abholort: $fullAddress'
+                      : 'Die genaue Adresse wird rechtzeitig vor der Übergabe angezeigt.',
                 ),
               ],
             );
