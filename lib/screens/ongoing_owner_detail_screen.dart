@@ -1118,6 +1118,16 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       AppPopup.toast(context, icon: Icons.info_outline, title: 'Rückgabe ist gerade nicht verfügbar');
       return;
     }
+    final pausedForReview = await DataService.pauseReturnCompletionIfNeedsReview(
+      req.id,
+      source: 'ongoing_owner_detail_screen',
+    );
+    if (pausedForReview) {
+      if (!mounted) return;
+      AppPopup.toast(context, icon: Icons.info_outline, title: 'Diese Rückgabe ist zur Prüfung markiert. Der Abschluss wird pausiert, bis der Fall geprüft wurde.');
+      await _load();
+      return;
+    }
     await DataService.updateRentalRequestStatus(requestId: req.id, status: 'completed');
     await DataService.addTimelineEvent(requestId: req.id, type: 'completed', note: 'Rückgabe abgeschlossen');
     // Release/cancel ride compensation if present (return segment)

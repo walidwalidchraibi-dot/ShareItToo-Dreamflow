@@ -1855,9 +1855,20 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
 
     if (ok == true && mounted) {
+      final requestId = widget.booking['requestId'] as String?;
+      if (requestId != null && requestId.isNotEmpty) {
+        final pausedForReview = await DataService.pauseReturnCompletionIfNeedsReview(
+          requestId,
+          source: 'booking_detail_screen_stepper',
+        );
+        if (pausedForReview) {
+          if (!mounted) return;
+          AppPopup.toast(context, icon: Icons.info_outline, title: 'Diese Rückgabe ist zur Prüfung markiert. Der Abschluss wird pausiert, bis der Fall geprüft wurde.');
+          return;
+        }
+      }
       // Release/cancel ride compensation automatically if a decision was made for return segment
       try {
-        final requestId = widget.booking['requestId'] as String?;
         if (requestId != null && requestId.isNotEmpty) {
           final grant = await DataService.getRideCompensationDecision(requestId: requestId, segment: 'return', consume: true);
           if (grant != null) {
@@ -1871,7 +1882,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       final titleTxt = (widget.booking['title'] as String?) ?? '';
       final listerId = widget.booking['listerId'] as String?;
       final itemId = widget.booking['itemId'] as String?;
-      final requestId = widget.booking['requestId'] as String?;
       final viewerIsOwner = widget.viewerIsOwner;
       final whoToRateName = viewerIsOwner ? (widget.booking['renterName'] as String? ?? 'Mieter') : _listerName;
 
@@ -2258,6 +2268,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
+        final pausedForReview = await DataService.pauseReturnCompletionIfNeedsReview(
+          requestId,
+          source: 'booking_detail_screen_qr_return',
+        );
+        if (pausedForReview) {
+          if (!mounted) return;
+          AppPopup.toast(context, icon: Icons.info_outline, title: 'Diese Rückgabe ist zur Prüfung markiert. Der Abschluss wird pausiert, bis der Fall geprüft wurde.');
+          return;
+        }
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'completed');
         await DataService.addTimelineEvent(requestId: requestId, type: 'completed', note: 'Rückgabe abgeschlossen');
       }
@@ -2307,6 +2326,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
+        final pausedForReview = await DataService.pauseReturnCompletionIfNeedsReview(
+          requestId,
+          source: 'booking_detail_screen_manual_return',
+        );
+        if (pausedForReview) {
+          if (!mounted) return;
+          AppPopup.toast(context, icon: Icons.info_outline, title: 'Diese Rückgabe ist zur Prüfung markiert. Der Abschluss wird pausiert, bis der Fall geprüft wurde.');
+          return;
+        }
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'completed');
         await DataService.addTimelineEvent(requestId: requestId, type: 'completed', note: 'Rückgabe manuell bestätigt');
       }

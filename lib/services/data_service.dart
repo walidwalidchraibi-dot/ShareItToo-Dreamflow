@@ -2725,6 +2725,34 @@ class DataService {
     if (mutated) await _saveAllRentalRequests(all);
   }
 
+  static Future<bool> pauseReturnCompletionIfNeedsReview(String requestId, {required String source}) async {
+    try {
+      final request = await getRentalRequestById(requestId);
+      if (request == null || !request.needsReview) return false;
+      try {
+        await addTimelineEvent(
+          requestId: requestId,
+          type: 'return_completion_paused_review',
+          note: 'Rückgabeabschluss pausiert: Fall ist zur Prüfung markiert.',
+        );
+      } catch (e) {
+        debugPrint('[DataService] pauseReturnCompletionIfNeedsReview timeline failed: $e');
+      }
+      try {
+        await addNotification(
+          title: 'Prüfung erforderlich',
+          body: 'Diese Rückgabe ist zur Prüfung markiert. Der Abschluss bleibt pausiert.',
+        );
+      } catch (e) {
+        debugPrint('[DataService] pauseReturnCompletionIfNeedsReview notification failed: $e');
+      }
+      return true;
+    } catch (e) {
+      debugPrint('[DataService] pauseReturnCompletionIfNeedsReview failed: $e');
+      return false;
+    }
+  }
+
   static Future<void> markRentalRequestNeedsReview(String requestId, {required String reason, required String source}) async {
     final all = await _getAllRentalRequests();
     bool mutated = false;
