@@ -284,8 +284,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
             return;
           }
           final returnRequest = r!;
-          await DataService.setReturnActive(returnRequest.id, active: true);
-          await DataService.addSystemMessageToThread(threadId: t.id, text: 'Rückgabe gestartet');
+          await _startReturnWithThreadSideEffects(
+            threadId: t.id,
+            requestId: returnRequest.id,
+          );
           break;
         case _ChatState.completed:
           // Bewertung abgeben (demo flow)
@@ -327,6 +329,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     } finally {
       await _load();
     }
+  }
+
+  Future<void> _startReturnWithThreadSideEffects({
+    required String threadId,
+    required String requestId,
+  }) async {
+    await DataService.setReturnActive(requestId, active: true);
+    await DataService.addSystemMessageToThread(threadId: threadId, text: 'Rückgabe gestartet');
   }
 
   Future<void> _startHandoverWithThreadSideEffects({
