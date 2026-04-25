@@ -87,6 +87,7 @@ class InvoicesService {
     );
 
     final docs = <Invoice>[];
+    final isHeldForReview = req.needsReview;
 
     // Renter docs
     if (perspectiveUserId == renter.id) {
@@ -119,7 +120,7 @@ class InvoicesService {
     }
 
     // Owner docs
-    if (perspectiveUserId == owner.id) {
+    if (perspectiveUserId == owner.id && !isHeldForReview) {
       docs.add(_buildInvoice(
         baseId: 'payout_${req.id}',
         type: InvoiceType.payment,
