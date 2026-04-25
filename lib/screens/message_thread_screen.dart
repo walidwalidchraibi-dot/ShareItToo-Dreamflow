@@ -270,9 +270,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
             return;
           }
           final handoverRequest = r!;
-          await DataService.updateRentalRequestStatus(requestId: handoverRequest.id, status: 'running');
-          await DataService.setHandoverActive(handoverRequest.id, active: true);
-          await DataService.addSystemMessageToThread(threadId: t.id, text: 'Übergabe gestartet');
+          await _startHandoverWithThreadSideEffects(
+            threadId: t.id,
+            requestId: handoverRequest.id,
+          );
           break;
         case _ChatState.running:
         case _ChatState.returnPlanned:
@@ -326,6 +327,15 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     } finally {
       await _load();
     }
+  }
+
+  Future<void> _startHandoverWithThreadSideEffects({
+    required String threadId,
+    required String requestId,
+  }) async {
+    await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
+    await DataService.setHandoverActive(requestId, active: true);
+    await DataService.addSystemMessageToThread(threadId: threadId, text: 'Übergabe gestartet');
   }
 
   Future<void> _acceptRequestWithThreadSideEffects({
