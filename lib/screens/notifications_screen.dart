@@ -666,6 +666,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'itemId': it.id,
       'rawStatus': req.status,
       'cancelledBy': req.cancelledBy,
+      'needsReview': req.needsReview,
       'title': it.title,
       'dates': '${fmt(req.start)} – ${fmt(req.end)}',
       'location': it.locationText,

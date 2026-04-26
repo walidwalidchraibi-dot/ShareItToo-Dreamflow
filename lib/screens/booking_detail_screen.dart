@@ -652,18 +652,30 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             final double totalPaid = double.parse((rentalSubtotalLocal + feeLocal + dropFee + retFee + expressFee + expressFeePlatform).toStringAsFixed(2));
             final payoutEst = double.parse((rentalSubtotalLocal + dropFee + retFee + (expressAccepted ? 5.0 : 0.0)).toStringAsFixed(2));
             if (_isViewerOwnerSync()) {
+              final isHeldForReview = widget.booking['needsReview'] == true;
               // Owner view: show only payout, no details
               return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Expanded(child: Text('Vorauss. Auszahlung', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+                  Expanded(
+                    child: Text(
+                      isHeldForReview ? 'Zur Prüfung pausiert' : 'Vorauss. Auszahlung',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    ),
+                  ),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text(_formatEuro(payoutEst), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+                    Text(
+                      isHeldForReview ? 'Zur Prüfung pausiert' : _formatEuro(payoutEst),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
+                    ),
                   ]),
                 ]),
-                if (end != null) ...[
-                  const SizedBox(height: 2),
-                  Text('Auszahlung am ${_formatPayoutDate(end)}', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
-                ]
+                const SizedBox(height: 2),
+                Text(
+                  isHeldForReview
+                      ? 'Diese Rückgabe ist zur Prüfung markiert. Auszahlung und Zahlungsanzeige werden pausiert, bis der Fall geprüft wurde.'
+                      : 'Auszahlung am ${_formatPayoutDate(end)}',
+                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                ),
               ]);
             }
             // Renter view: detailed breakdown for laufend
@@ -1260,19 +1272,31 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             final double expressFeePlatform = expressFee > 0 ? double.parse((expressFee * 0.10).toStringAsFixed(2)) : 0.0;
             final totalRenter = (rentalSubtotal + fee + dropFee + retFee + expressFee + expressFeePlatform).clamp(0.0, double.infinity);
             if (_isViewerOwnerSync()) {
+              final isHeldForReview = widget.booking['needsReview'] == true;
               // Owner view: payout berücksichtigt Lieferung/Abholung/Priorität (keine Plattformgebühr)
               final payoutOwner = double.parse((rentalSubtotal + dropFee + retFee + (expressAccepted ? 5.0 : 0.0)).toStringAsFixed(2));
               return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Expanded(child: Text('Vorauss. Auszahlung', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+                  Expanded(
+                    child: Text(
+                      isHeldForReview ? 'Zur Prüfung pausiert' : 'Vorauss. Auszahlung',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    ),
+                  ),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text(_formatEuro(payoutOwner), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+                    Text(
+                      isHeldForReview ? 'Zur Prüfung pausiert' : _formatEuro(payoutOwner),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
+                    ),
                   ]),
                 ]),
-                if (end != null) ...[
-                  const SizedBox(height: 2),
-                  Text('Auszahlung am ${_formatPayoutDate(end)}', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
-                ]
+                const SizedBox(height: 2),
+                Text(
+                  isHeldForReview
+                      ? 'Diese Rückgabe ist zur Prüfung markiert. Auszahlung und Zahlungsanzeige werden pausiert, bis der Fall geprüft wurde.'
+                      : 'Auszahlung am ${_formatPayoutDate(end)}',
+                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                ),
               ]);
             }
             if (isPending || isUpcoming) {
