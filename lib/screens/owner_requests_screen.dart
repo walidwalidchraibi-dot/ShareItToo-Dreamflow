@@ -614,7 +614,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
         ]);
       case 'completed':
         // Show a small inline "Bewerten" action for completed rentals (not for cancelled/declined)
-        if (e.r.status == 'completed') {
+        if (e.r.status == 'completed' && !e.r.needsReview) {
           return _TinyTextButton(
             icon: Icons.star_rate_outlined,
             label: 'Bewerten',

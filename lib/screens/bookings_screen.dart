@@ -87,7 +87,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     final requestId = (booking['requestId'] as String?)?.trim() ?? '';
     final itemId = (booking['itemId'] as String?)?.trim() ?? '';
     final listerId = (booking['listerId'] as String?)?.trim() ?? '';
-    return rawStatus == 'completed' && requestId.isNotEmpty && itemId.isNotEmpty && listerId.isNotEmpty;
+    final needsReview = booking['needsReview'] == true;
+    return rawStatus == 'completed' && !needsReview && requestId.isNotEmpty && itemId.isNotEmpty && listerId.isNotEmpty;
   }
 
   bool _showingReminder = false;
