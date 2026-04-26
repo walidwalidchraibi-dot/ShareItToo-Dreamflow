@@ -2216,11 +2216,14 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
+        final isActive = await _guardActiveFlow(requestId, isReturn: false);
+        if (!isActive) return;
         final hasRequiredPhotos = await _guardRequiredHandoverPhotos(requestId);
         if (!hasRequiredPhotos) return;
         final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: false);
         if (!galleryAcknowledged) return;
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
+        await DataService.clearHandoverActive(requestId);
       }
       if (!mounted) return;
       setState(() { widget.booking['status'] = 'Laufend'; widget.booking['category'] = 'ongoing'; });
@@ -2297,6 +2300,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
+        final isActive = await _guardActiveFlow(requestId, isReturn: true);
+        if (!isActive) return;
         final hasRequiredPhotos = await _guardRequiredReturnPhotos(requestId);
         if (!hasRequiredPhotos) return;
         final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: true);
@@ -2311,6 +2316,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           return;
         }
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'completed');
+        await DataService.clearReturnActive(requestId);
         await DataService.addTimelineEvent(requestId: requestId, type: 'completed', note: 'Rückgabe abgeschlossen');
       }
       if (!mounted) return;
@@ -2359,8 +2365,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
+        final isActive = await _guardActiveFlow(requestId, isReturn: true);
+        if (!isActive) return;
         final hasRequiredPhotos = await _guardRequiredReturnPhotos(requestId);
         if (!hasRequiredPhotos) return;
+        final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: true);
+        if (!galleryAcknowledged) return;
         final pausedForReview = await DataService.pauseReturnCompletionIfNeedsReview(
           requestId,
           source: 'booking_detail_screen_manual_return',
@@ -2371,6 +2381,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           return;
         }
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'completed');
+        await DataService.clearReturnActive(requestId);
         await DataService.addTimelineEvent(requestId: requestId, type: 'completed', note: 'Rückgabe manuell bestätigt');
       }
       if (!mounted) return;
@@ -2455,6 +2466,23 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return acknowledged;
   }
 
+
+  Future<bool> _guardActiveFlow(String requestId, {required bool isReturn}) async {
+    final state = await DataService.getHandoverReturnState(requestId);
+    final isActive = isReturn ? state['returnActive'] == true : state['handoverActive'] == true;
+    if (isActive) return true;
+    if (mounted) {
+      AppPopup.toast(
+        context,
+        icon: Icons.info_outline,
+        title: isReturn
+            ? 'Bitte starte die Rückgabe zuerst im Chat.'
+            : 'Bitte starte die Übergabe zuerst im Chat.',
+      );
+    }
+    return false;
+  }
+
   Future<void> _confirmManualPickupAsRenter() async {
     await AppPopup.show(
       context,
@@ -2469,11 +2497,20 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             try {
               final id = widget.booking['requestId'] as String?;
               if (id != null && id.isNotEmpty) {
+                if (!_canStartBookingHandover) {
+                  if (mounted) {
+                    AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
+                  }
+                  return;
+                }
+                final isActive = await _guardActiveFlow(id, isReturn: false);
+                if (!isActive) return;
                 final hasRequiredPhotos = await _guardRequiredHandoverPhotos(id);
                 if (!hasRequiredPhotos) return;
                 final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(id, isReturn: false);
                 if (!galleryAcknowledged) return;
                 await DataService.updateRentalRequestStatus(requestId: id, status: 'running');
+                await DataService.clearHandoverActive(id);
               }
               if (!mounted) return;
               setState(() { widget.booking['status'] = 'Laufend'; widget.booking['category'] = 'ongoing'; });
@@ -2508,11 +2545,18 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     try {
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
+        if (!_canStartBookingHandover) {
+          AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
+          return;
+        }
+        final isActive = await _guardActiveFlow(requestId, isReturn: false);
+        if (!isActive) return;
         final hasRequiredPhotos = await _guardRequiredHandoverPhotos(requestId);
         if (!hasRequiredPhotos) return;
         final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: false);
         if (!galleryAcknowledged) return;
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
+        await DataService.clearHandoverActive(requestId);
       }
       if (!mounted) return;
       setState(() {

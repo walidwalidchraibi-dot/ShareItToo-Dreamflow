@@ -3572,6 +3572,14 @@ class DataService {
     await _setHandoverReturnStateMap(map);
   }
 
+  static Future<void> clearHandoverActive(String requestId) async {
+    await setHandoverActive(requestId, active: false);
+  }
+
+  static Future<void> clearReturnActive(String requestId) async {
+    await setReturnActive(requestId, active: false);
+  }
+
   static Future<void> incrementHandoverPhotos(String requestId, {int max = 4}) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
