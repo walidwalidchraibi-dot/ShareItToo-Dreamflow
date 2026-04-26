@@ -278,31 +278,47 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           }
           break;
         case _ChatState.confirmed:
-          if (!_canStartHandover(r)) {
+          final handoverRequest = r;
+          if (handoverRequest == null) return;
+          if (_handoverReturnState['handoverActive'] == true) {
+            await _openStepperForActiveFlow();
+            break;
+          }
+          if (!_canStartHandover(handoverRequest)) {
             if (mounted) {
               AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
             }
             return;
           }
-          final handoverRequest = r!;
           await _startHandoverWithThreadSideEffects(
             threadId: t.id,
             requestId: handoverRequest.id,
           );
+          await _load();
+          if (!mounted) return;
+          await _openStepperForActiveFlow();
           break;
         case _ChatState.running:
         case _ChatState.returnPlanned:
-          if (!_canStartReturn(r)) {
+          final returnRequest = r;
+          if (returnRequest == null) return;
+          if (_handoverReturnState['returnActive'] == true) {
+            await _openStepperForActiveFlow();
+            break;
+          }
+          if (!_canStartReturn(returnRequest)) {
             if (mounted) {
               AppPopup.toast(context, icon: Icons.info_outline, title: 'Rückgabe ist gerade nicht verfügbar');
             }
             return;
           }
-          final returnRequest = r!;
           await _startReturnWithThreadSideEffects(
             threadId: t.id,
             requestId: returnRequest.id,
           );
+          await _load();
+          if (!mounted) return;
+          await _openStepperForActiveFlow();
           break;
         case _ChatState.completed:
           // Bewertung abgeben (demo flow)
@@ -519,6 +535,59 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       debugPrint('[MessageThreadScreen] ReturnHandoverStepperSheet failed: $e');
     } finally {
       await _load();
+    }
+  }
+
+  Future<void> _openStepperForActiveFlow() async {
+    final r = _request;
+    final item = _item;
+    final other = _otherUser;
+    final me = _currentUser;
+    if (r == null || item == null || other == null || me == null) return;
+
+    final handoverActive = _handoverReturnState['handoverActive'] == true;
+    final returnActive = _handoverReturnState['returnActive'] == true;
+    if (!handoverActive && !returnActive) return;
+
+    final mode = handoverActive ? ReturnFlowMode.pickupFlow : ReturnFlowMode.returnFlow;
+    final bookingSeed = _computeBookingSeed(item, r);
+    final segment = mode == ReturnFlowMode.returnFlow ? HandoverCodeService.segmentReturn : HandoverCodeService.segmentPickup;
+    final presenterRole = mode == ReturnFlowMode.returnFlow ? HandoverCodeService.presenterRenter : HandoverCodeService.presenterOwner;
+    final confirmationCode = HandoverCodeService.codeForTitleAndStart(
+      title: item.title,
+      start: r.start,
+      bookingId: bookingSeed,
+      segment: segment,
+      presenterRole: presenterRole,
+    );
+
+    final ok = await ReturnHandoverStepperSheet.push(
+      context,
+      item: item,
+      request: r,
+      renterName: (_viewerIsOwner() ? other.displayName : me.displayName),
+      ownerName: (_viewerIsOwner() ? me.displayName : other.displayName),
+      handoverCode: confirmationCode,
+      viewerIsOwner: _viewerIsOwner(),
+      mode: mode,
+    );
+    if (ok?.confirmed == true) {
+      if (handoverActive) {
+        for (int i = 0; i < 4; i++) {
+          await DataService.incrementHandoverPhotos(r.id);
+        }
+        if (ok?.galleryUsed == true) {
+          await DataService.markHandoverGalleryUsed(r.id);
+        }
+      }
+      if (returnActive) {
+        for (int i = 0; i < 4; i++) {
+          await DataService.incrementReturnPhotos(r.id);
+        }
+        if (ok?.galleryUsed == true) {
+          await DataService.markReturnGalleryUsed(r.id);
+        }
+      }
     }
   }
 
