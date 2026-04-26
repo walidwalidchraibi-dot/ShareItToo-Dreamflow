@@ -930,6 +930,16 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     return 'BKG-${s.substring(0, 4)}-${s.substring(4, 8)}';
   }
 
+  String _confirmationCode(Item item, RentalRequest req, {required String segment, required String presenterRole}) {
+    return HandoverCodeService.codeForTitleAndStart(
+      title: item.title,
+      start: req.start,
+      bookingId: _computeBookingId(item, req),
+      segment: segment,
+      presenterRole: presenterRole,
+    );
+  }
+
   String _handoverCode(Item item, RentalRequest req) {
     return HandoverCodeService.codeFromTitleAndStart(title: item.title, start: req.start);
   }
@@ -1156,15 +1166,16 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     }
 
     try {
-      // Expected payload format: shareittoo:handover:<code>:<bookingId>
       final raw = scanned!.trim();
-      final okPrefix = raw.startsWith('shareittoo:handover:');
-      final parts = raw.split(':');
-      final code = parts.length >= 3 ? parts[2] : '';
-      final bkg = parts.length >= 4 ? parts[3] : '';
-      final matches = okPrefix && code == expectedCode && bkg == bookingId;
+      final matches = HandoverCodeService.isExpectedQrPayload(
+        raw,
+        segment: HandoverCodeService.segmentPickup,
+        presenterRole: HandoverCodeService.presenterRenter,
+        code: expectedCode,
+        bookingId: bookingId,
+      );
       if (!matches) {
-        AppPopup.toast(context, icon: Icons.error_outline, title: 'Ungültiger QR-Code');
+        AppPopup.toast(context, icon: Icons.error_outline, title: 'Dieser Code passt nicht zu diesem Übergabeschritt. Bitte den aktuellen Code erneut anzeigen oder scannen.');
         return;
       }
 
@@ -1209,7 +1220,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   }
 
   Future<void> _startReturnFlow(BuildContext context, RentalRequest req, Item item, User renter) async {
-    final code = _handoverCode(item, req);
+    final code = _confirmationCode(item, req, segment: HandoverCodeService.segmentReturn, presenterRole: HandoverCodeService.presenterRenter);
     final ok = await ReturnHandoverStepperSheet.push(
       context,
       item: item,
@@ -1294,7 +1305,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   }
 
   Future<void> _startPickupFlowOwner(BuildContext context, RentalRequest req, Item item, User renter) async {
-    final code = _handoverCode(item, req);
+    final code = _confirmationCode(item, req, segment: HandoverCodeService.segmentPickup, presenterRole: HandoverCodeService.presenterOwner);
     await ReturnHandoverStepperSheet.push(
       context,
       item: item,

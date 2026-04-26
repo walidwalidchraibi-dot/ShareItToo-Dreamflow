@@ -10,6 +10,7 @@ import 'package:lendify/models/message.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/handover_code.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/brand_logo_icon.dart';
@@ -460,13 +461,23 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         final mode = (_handoverReturnState['handoverActive'] == true)
             ? ReturnFlowMode.pickupFlow
             : ReturnFlowMode.returnFlow;
+        final bookingSeed = _computeBookingSeed(item, r);
+        final segment = mode == ReturnFlowMode.returnFlow ? HandoverCodeService.segmentReturn : HandoverCodeService.segmentPickup;
+        final presenterRole = mode == ReturnFlowMode.returnFlow ? HandoverCodeService.presenterRenter : HandoverCodeService.presenterOwner;
+        final confirmationCode = HandoverCodeService.codeForTitleAndStart(
+          title: item.title,
+          start: r.start,
+          bookingId: bookingSeed,
+          segment: segment,
+          presenterRole: presenterRole,
+        );
         final ok = await ReturnHandoverStepperSheet.push(
           context,
           item: item,
           request: r,
           renterName: (_viewerIsOwner() ? other.displayName : me.displayName),
           ownerName: (_viewerIsOwner() ? me.displayName : other.displayName),
-          handoverCode: 'SIT-${r.id}',
+          handoverCode: confirmationCode,
           viewerIsOwner: _viewerIsOwner(),
           mode: mode,
         );
@@ -807,6 +818,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     } catch (e) {
       debugPrint('[MessageThreadScreen] _changeTime failed: $e');
     }
+  }
+
+
+  String _computeBookingSeed(Item item, RentalRequest req) {
+    final seed = ((item.id.hashCode) ^ (req.id.hashCode) ^ (item.title.hashCode)).abs();
+    final s = seed.toString().padLeft(8, '0');
+    return 'BKG-${s.substring(0, 4)}-${s.substring(4, 8)}';
   }
 
   String _formatDate(DateTime dt) {

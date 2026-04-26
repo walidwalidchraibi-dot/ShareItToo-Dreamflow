@@ -735,13 +735,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
-                  child: Text(_handoverCode(), style: const TextStyle(letterSpacing: 2, fontWeight: FontWeight.w800, color: Colors.white)),
+                  child: Text(_pickupOwnerCode(), style: const TextStyle(letterSpacing: 2, fontWeight: FontWeight.w800, color: Colors.white)),
                 )
               ]),
               const SizedBox(height: 8),
               Center(
                 child: GestureDetector(
-                  onTap: () => _showQrOverlay(context, 'shareittoo:handover:${_handoverCode()}:$bookingId'),
+                  onTap: () => _showQrOverlay(context, HandoverCodeService.qrPayload(segment: HandoverCodeService.segmentPickup, presenterRole: HandoverCodeService.presenterOwner, code: _pickupOwnerCode(), bookingId: bookingId)),
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
@@ -755,7 +755,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                         color: Colors.white,
                         padding: const EdgeInsets.all(8),
                         child: QrImageView(
-                          data: 'shareittoo:handover:${_handoverCode()}:$bookingId',
+                          data: HandoverCodeService.qrPayload(segment: HandoverCodeService.segmentPickup, presenterRole: HandoverCodeService.presenterOwner, code: _pickupOwnerCode(), bookingId: bookingId),
                           version: QrVersions.auto,
                           size: 140,
                           backgroundColor: Colors.white,
@@ -1669,23 +1669,52 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   }
 
   String _computeBookingId() {
-    final seed = ((widget.booking['title']?.hashCode ?? 0) ^ (widget.booking['dates']?.hashCode ?? 0) ^ (widget.booking['location']?.hashCode ?? 0)).abs();
-    final s = seed.toString().padLeft(8, '0');
+    final itemId = (widget.booking['itemId'] as String?) ?? '';
+    final requestId = (widget.booking['requestId'] as String?) ?? '';
+    final title = (widget.booking['title'] as String?) ?? '';
+    if (itemId.isNotEmpty && requestId.isNotEmpty && title.isNotEmpty) {
+      final seed = ((itemId.hashCode) ^ (requestId.hashCode) ^ (title.hashCode)).abs();
+      final s = seed.toString().padLeft(8, '0');
+      return 'BKG-${s.substring(0, 4)}-${s.substring(4, 8)}';
+    }
+    final fallbackSeed = ((widget.booking['title']?.hashCode ?? 0) ^ (widget.booking['dates']?.hashCode ?? 0) ^ (widget.booking['location']?.hashCode ?? 0)).abs();
+    final s = fallbackSeed.toString().padLeft(8, '0');
     return 'BKG-${s.substring(0, 4)}-${s.substring(4, 8)}';
     }
 
-  String _handoverCode() {
-    // Unified generation: based on title + start datetime
-    final title = (widget.booking['title'] as String?) ?? '';
-    // Try ISO first, then fall back to parsing the human string
+  DateTime _handoverCodeStart() {
     DateTime? start = DateTime.tryParse((widget.booking['startIso'] as String?) ?? '');
     if (start == null) {
       final (s, _) = _CompletionSummaryCard._parseStaticDateRange(widget.booking);
       start = s;
     }
-    // If still null, use now to avoid crashes (code will then match both sides for this view)
-    start ??= DateTime.now();
-    return HandoverCodeService.codeFromTitleAndStart(title: title, start: start);
+    return start ?? DateTime.now();
+  }
+
+  String _confirmationCode({required String segment, required String presenterRole}) {
+    final title = (widget.booking['title'] as String?) ?? '';
+    return HandoverCodeService.codeForTitleAndStart(
+      title: title,
+      start: _handoverCodeStart(),
+      bookingId: _computeBookingId(),
+      segment: segment,
+      presenterRole: presenterRole,
+    );
+  }
+
+  String _pickupOwnerCode() => _confirmationCode(
+        segment: HandoverCodeService.segmentPickup,
+        presenterRole: HandoverCodeService.presenterOwner,
+      );
+
+  String _returnRenterCode() => _confirmationCode(
+        segment: HandoverCodeService.segmentReturn,
+        presenterRole: HandoverCodeService.presenterRenter,
+      );
+
+  String _handoverCode() {
+    final title = (widget.booking['title'] as String?) ?? '';
+    return HandoverCodeService.codeFromTitleAndStart(title: title, start: _handoverCodeStart());
   }
 
   double _parseEuro(String s) {
@@ -1874,7 +1903,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       request: req,
       renterName: renterName,
       ownerName: ownerName,
-      handoverCode: _handoverCode(),
+      handoverCode: _returnRenterCode(),
       viewerIsOwner: widget.viewerIsOwner,
       mode: ReturnFlowMode.returnFlow,
     );
@@ -2037,7 +2066,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       request: req,
       renterName: renterName,
       ownerName: ownerName,
-      handoverCode: _handoverCode(),
+      handoverCode: _pickupOwnerCode(),
       viewerIsOwner: widget.viewerIsOwner,
       mode: ReturnFlowMode.pickupFlow,
     );
@@ -2224,12 +2253,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
     try {
       final raw = scanned!.trim();
-      final okPrefix = raw.startsWith('shareittoo:handover:');
-      final parts = raw.split(':');
-      final bkg = parts.length >= 4 ? parts[3] : '';
-      final matches = okPrefix && bkg == _computeBookingId();
+      final matches = HandoverCodeService.isExpectedQrPayload(
+        raw,
+        segment: HandoverCodeService.segmentPickup,
+        presenterRole: HandoverCodeService.presenterOwner,
+        code: _pickupOwnerCode(),
+        bookingId: _computeBookingId(),
+      );
       if (!matches) {
-        AppPopup.toast(context, icon: Icons.error_outline, title: 'Ungültiger QR‑Code');
+        AppPopup.toast(context, icon: Icons.error_outline, title: 'Dieser Code passt nicht zu diesem Übergabeschritt. Bitte den aktuellen Code erneut anzeigen oder scannen.');
         return;
       }
 
@@ -2316,13 +2348,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
     try {
       final raw = scanned!.trim();
-      final parts = raw.split(':');
-      final okPrefix = raw.startsWith('shareittoo:handover:');
-      final code = parts.length >= 3 ? parts[2] : '';
-      final bkg = parts.length >= 4 ? parts[3] : '';
-      final matches = okPrefix && code == _handoverCode() && bkg == _computeBookingId();
+      final matches = HandoverCodeService.isExpectedQrPayload(
+        raw,
+        segment: HandoverCodeService.segmentReturn,
+        presenterRole: HandoverCodeService.presenterRenter,
+        code: _returnRenterCode(),
+        bookingId: _computeBookingId(),
+      );
       if (!matches) {
-        AppPopup.toast(context, icon: Icons.error_outline, title: 'Ungültiger QR‑Code');
+        AppPopup.toast(context, icon: Icons.error_outline, title: 'Dieser Code gehört nicht zu dieser Rückgabe. Bitte den aktuellen Rückgabe-Code verwenden.');
         return;
       }
 
@@ -2399,8 +2433,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       AppPopup.toast(context, icon: Icons.error_outline, title: 'Bitte Code eingeben');
       return;
     }
-    if (entered != _handoverCode()) {
-      AppPopup.toast(context, icon: Icons.error_outline, title: 'Falscher Code');
+    if (entered != _returnRenterCode()) {
+      AppPopup.toast(context, icon: Icons.error_outline, title: 'Dieser Code gehört nicht zu dieser Rückgabe. Bitte den aktuellen Rückgabe-Code verwenden.');
       return;
     }
     try {
@@ -2628,8 +2662,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       AppPopup.toast(context, icon: Icons.error_outline, title: 'Bitte Code eingeben');
       return;
     }
-    if (entered != _handoverCode()) {
-      AppPopup.toast(context, icon: Icons.error_outline, title: 'Falscher Code');
+    if (entered != _pickupOwnerCode()) {
+      AppPopup.toast(context, icon: Icons.error_outline, title: 'Dieser Code passt nicht zu diesem Übergabeschritt. Bitte den aktuellen Code erneut anzeigen oder scannen.');
       return;
     }
     try {

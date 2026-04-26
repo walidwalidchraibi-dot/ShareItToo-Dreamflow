@@ -10,6 +10,7 @@ import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/handover_code.dart';
 
 class ReturnHandoverStepResult {
   final bool confirmed;
@@ -815,8 +816,14 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
     final isReturn = widget.mode == ReturnFlowMode.returnFlow;
     final flowLabel = isReturn ? 'Rückgabe' : 'Übergabe';
     final bookingSeed = _computeBookingSeed(widget.item, widget.request);
-    final qrPrefix = isReturn ? 'shareittoo:handover:' : 'shareittoo:pickup:';
-    final qrData = '$qrPrefix${widget.handoverCode}:$bookingSeed';
+    final segment = isReturn ? HandoverCodeService.segmentReturn : HandoverCodeService.segmentPickup;
+    final presenterRole = isReturn ? HandoverCodeService.presenterRenter : HandoverCodeService.presenterOwner;
+    final qrData = HandoverCodeService.qrPayload(
+      segment: segment,
+      presenterRole: presenterRole,
+      code: widget.handoverCode,
+      bookingId: bookingSeed,
+    );
 
     // Owner:
     // - In pickup flow the owner SHOWS QR + Code to the renter
@@ -878,7 +885,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
                           setState(() => _otherPartyConfirmed = true);
                           await AppPopup.toast(context, icon: Icons.check_circle_outline, title: '$flowLabel per Code bestätigt');
                         } else {
-                          await AppPopup.toast(context, icon: Icons.error_outline, title: 'Falscher Code');
+                          await AppPopup.toast(context, icon: Icons.error_outline, title: isReturn ? 'Dieser Code gehört nicht zu dieser Rückgabe. Bitte den aktuellen Rückgabe-Code verwenden.' : 'Dieser Code passt nicht zu diesem Übergabeschritt. Bitte den aktuellen Code erneut anzeigen oder scannen.');
                         }
                       },
                       icon: const Icon(Icons.key),
@@ -1036,7 +1043,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
                     setState(() => _otherPartyConfirmed = true);
                     await AppPopup.toast(context, icon: Icons.check_circle_outline, title: '$flowLabel per Code bestätigt');
                   } else {
-                    await AppPopup.toast(context, icon: Icons.error_outline, title: 'Falscher Code');
+                    await AppPopup.toast(context, icon: Icons.error_outline, title: isReturn ? 'Dieser Code gehört nicht zu dieser Rückgabe. Bitte den aktuellen Rückgabe-Code verwenden.' : 'Dieser Code passt nicht zu diesem Übergabeschritt. Bitte den aktuellen Code erneut anzeigen oder scannen.');
                   }
                 },
                 icon: const Icon(Icons.key),
@@ -1100,13 +1107,17 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
 
     try {
       final raw = scanned!.trim();
-      final expectedPrefix = widget.mode == ReturnFlowMode.returnFlow ? 'shareittoo:handover:' : 'shareittoo:pickup:';
-      final parts = raw.split(':');
-      final okPrefix = raw.startsWith(expectedPrefix);
-      final bkg = parts.length >= 4 ? parts[3] : '';
-      final matches = okPrefix && bkg == _computeBookingSeed(widget.item, widget.request);
+      final expectedSegment = widget.mode == ReturnFlowMode.returnFlow ? HandoverCodeService.segmentReturn : HandoverCodeService.segmentPickup;
+      final expectedPresenterRole = widget.mode == ReturnFlowMode.returnFlow ? HandoverCodeService.presenterRenter : HandoverCodeService.presenterOwner;
+      final matches = HandoverCodeService.isExpectedQrPayload(
+        raw,
+        segment: expectedSegment,
+        presenterRole: expectedPresenterRole,
+        code: widget.handoverCode,
+        bookingId: _computeBookingSeed(widget.item, widget.request),
+      );
       if (!matches) {
-        await AppPopup.toast(context, icon: Icons.error_outline, title: 'Ungültiger QR‑Code');
+        await AppPopup.toast(context, icon: Icons.error_outline, title: widget.mode == ReturnFlowMode.returnFlow ? 'Dieser Code gehört nicht zu dieser Rückgabe. Bitte den aktuellen Rückgabe-Code verwenden.' : 'Dieser Code passt nicht zu diesem Übergabeschritt. Bitte den aktuellen Code erneut anzeigen oder scannen.');
         return;
       }
       setState(() => _otherPartyConfirmed = true);
