@@ -11,8 +11,14 @@ import 'package:lendify/widgets/app_popup.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:lendify/services/data_service.dart';
 
+class ReturnHandoverStepResult {
+  final bool confirmed;
+  final bool galleryUsed;
+  const ReturnHandoverStepResult({required this.confirmed, required this.galleryUsed});
+}
+
 class ReturnHandoverStepperSheet {
-  static Future<bool?> show(BuildContext context, {
+  static Future<ReturnHandoverStepResult?> show(BuildContext context, {
     required Item item,
     required RentalRequest request,
     required String renterName,
@@ -21,7 +27,7 @@ class ReturnHandoverStepperSheet {
     bool viewerIsOwner = false,
     ReturnFlowMode mode = ReturnFlowMode.returnFlow,
   }) async {
-    return await showModalBottomSheet<bool>(
+    return await showModalBottomSheet<ReturnHandoverStepResult>(
       context: context,
       isScrollControlled: true,
       useRootNavigator: true,
@@ -41,7 +47,7 @@ class ReturnHandoverStepperSheet {
   }
 
   // New: push full-screen page version
-  static Future<bool?> push(BuildContext context, {
+  static Future<ReturnHandoverStepResult?> push(BuildContext context, {
     required Item item,
     required RentalRequest request,
     required String renterName,
@@ -50,7 +56,7 @@ class ReturnHandoverStepperSheet {
     bool viewerIsOwner = false,
     ReturnFlowMode mode = ReturnFlowMode.returnFlow,
   }) async {
-    return Navigator.of(context).push<bool>(
+    return Navigator.of(context).push<ReturnHandoverStepResult>(
       MaterialPageRoute(
         builder: (_) => ReturnHandoverStepperPage(
           item: item,
@@ -121,6 +127,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
 
   // Step: photos
   List<PlatformFile> _checkoutPhotos = [];
+  bool _galleryUsedInCheckoutPhotos = false;
 
   // Step: damage report (return flow only)
   bool _hasDamage = false;
@@ -198,7 +205,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
     if (_step < _steps.length - 1) {
       setState(() => _step++);
     } else {
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pop(ReturnHandoverStepResult(confirmed: true, galleryUsed: _galleryUsedInCheckoutPhotos));
     }
   }
 
@@ -663,7 +670,10 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
       withData: true,
     );
     if (res != null) {
-      setState(() { addToList(res.files); });
+      setState(() {
+        _galleryUsedInCheckoutPhotos = _galleryUsedInCheckoutPhotos || res.files.isNotEmpty;
+        addToList(res.files);
+      });
     }
   }
 
@@ -725,9 +735,11 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 8),
-            const Text(
-              'Bitte mindestens 4 Fotos hinzufügen.',
-              style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700),
+            Text(
+              _galleryUsedInCheckoutPhotos
+                  ? 'Bitte mindestens 4 Fotos hinzufügen. Galerie-Fotos werden bei der Bestätigung offengelegt.'
+                  : 'Bitte mindestens 4 Fotos hinzufügen.',
+              style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 10),

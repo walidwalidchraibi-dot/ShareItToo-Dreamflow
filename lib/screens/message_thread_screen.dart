@@ -470,16 +470,22 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           viewerIsOwner: _viewerIsOwner(),
           mode: mode,
         );
-        if (ok == true) {
+        if (ok?.confirmed == true) {
           // Treat as completing 4/4 photos in the active segment.
           if (_handoverReturnState['handoverActive'] == true) {
             for (int i = 0; i < 4; i++) {
               await DataService.incrementHandoverPhotos(r.id);
             }
+            if (ok?.galleryUsed == true) {
+              await DataService.markHandoverGalleryUsed(r.id);
+            }
           }
           if (_handoverReturnState['returnActive'] == true) {
             for (int i = 0; i < 4; i++) {
               await DataService.incrementReturnPhotos(r.id);
+            }
+            if (ok?.galleryUsed == true) {
+              await DataService.markReturnGalleryUsed(r.id);
             }
           }
         }

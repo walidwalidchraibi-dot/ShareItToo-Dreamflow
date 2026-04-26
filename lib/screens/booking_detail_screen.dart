@@ -343,7 +343,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   reviewedUserId: listerId,
                   direction: 'renter_to_owner',
                 );
-                if (ok == true && mounted) {
+                if (ok?.confirmed == true && mounted) {
                   await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
                   await _viewListing();
                 }
@@ -2028,7 +2028,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
     // If the renter successfully confirmed via QR or manual code in the stepper,
     // mark the booking as running immediately.
-    if (ok == true) {
+    if (ok?.confirmed == true) {
       try {
         final requestId = widget.booking['requestId'] as String?;
         if (requestId != null && requestId.isNotEmpty) {
@@ -2218,6 +2218,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       if (requestId != null && requestId.isNotEmpty) {
         final hasRequiredPhotos = await _guardRequiredHandoverPhotos(requestId);
         if (!hasRequiredPhotos) return;
+        final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: false);
+        if (!galleryAcknowledged) return;
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
       }
       if (!mounted) return;
@@ -2297,6 +2299,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       if (requestId != null && requestId.isNotEmpty) {
         final hasRequiredPhotos = await _guardRequiredReturnPhotos(requestId);
         if (!hasRequiredPhotos) return;
+        final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: true);
+        if (!galleryAcknowledged) return;
         final pausedForReview = await DataService.pauseReturnCompletionIfNeedsReview(
           requestId,
           source: 'booking_detail_screen_qr_return',
@@ -2425,6 +2429,32 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return ok;
   }
 
+  Future<bool> _acknowledgeGalleryEvidenceIfNeeded(String requestId, {required bool isReturn}) async {
+    final galleryUsed = isReturn
+        ? await DataService.wasReturnGalleryUsed(requestId)
+        : await DataService.wasHandoverGalleryUsed(requestId);
+    if (!galleryUsed) return true;
+    if (!mounted) return false;
+    bool acknowledged = false;
+    await AppPopup.show(
+      context,
+      icon: Icons.photo_library_outlined,
+      title: 'Galerie-Fotos verwendet',
+      message: 'Hinweis: Mindestens ein Foto wurde aus der Galerie hinzugefügt. Bitte prüfe die Dokumentation bewusst, bevor du bestätigst.',
+      actions: [
+        OutlinedButton(onPressed: () => Navigator.of(context, rootNavigator: true).maybePop(), child: const Text('Abbrechen')),
+        FilledButton(
+          onPressed: () {
+            acknowledged = true;
+            Navigator.of(context, rootNavigator: true).maybePop();
+          },
+          child: const Text('Trotzdem bestätigen'),
+        ),
+      ],
+    );
+    return acknowledged;
+  }
+
   Future<void> _confirmManualPickupAsRenter() async {
     await AppPopup.show(
       context,
@@ -2441,6 +2471,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               if (id != null && id.isNotEmpty) {
                 final hasRequiredPhotos = await _guardRequiredHandoverPhotos(id);
                 if (!hasRequiredPhotos) return;
+                final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(id, isReturn: false);
+                if (!galleryAcknowledged) return;
                 await DataService.updateRentalRequestStatus(requestId: id, status: 'running');
               }
               if (!mounted) return;
@@ -2478,6 +2510,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       if (requestId != null && requestId.isNotEmpty) {
         final hasRequiredPhotos = await _guardRequiredHandoverPhotos(requestId);
         if (!hasRequiredPhotos) return;
+        final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: false);
+        if (!galleryAcknowledged) return;
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
       }
       if (!mounted) return;

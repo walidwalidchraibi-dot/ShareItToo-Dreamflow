@@ -3605,6 +3605,37 @@ class DataService {
     final state = await getHandoverReturnState(requestId);
     return (state['returnPhotos'] is num) ? (state['returnPhotos'] as num).toInt() : 0;
   }
+
+  static Future<void> markHandoverGalleryUsed(String requestId) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return;
+    final map = await _getHandoverReturnStateMap();
+    final existing = (map[id] is Map) ? Map<String, dynamic>.from(map[id] as Map) : <String, dynamic>{};
+    existing['handoverGalleryUsed'] = true;
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+  }
+
+  static Future<void> markReturnGalleryUsed(String requestId) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return;
+    final map = await _getHandoverReturnStateMap();
+    final existing = (map[id] is Map) ? Map<String, dynamic>.from(map[id] as Map) : <String, dynamic>{};
+    existing['returnGalleryUsed'] = true;
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+  }
+
+  static Future<bool> wasHandoverGalleryUsed(String requestId) async {
+    final state = await getHandoverReturnState(requestId);
+    return state['handoverGalleryUsed'] == true;
+  }
+
+  static Future<bool> wasReturnGalleryUsed(String requestId) async {
+    final state = await getHandoverReturnState(requestId);
+    return state['returnGalleryUsed'] == true;
+  }
+
   /// Erstellt automatisch einen Message Thread wenn eine Anfrage angenommen wird
   static Future<void> _createMessageThreadForRequest(RentalRequest request) async {
     try {

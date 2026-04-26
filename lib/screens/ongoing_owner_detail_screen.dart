@@ -990,6 +990,32 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     return false;
   }
 
+  Future<bool> _acknowledgeGalleryEvidenceIfNeeded(String requestId, {required bool isReturn}) async {
+    final galleryUsed = isReturn
+        ? await DataService.wasReturnGalleryUsed(requestId)
+        : await DataService.wasHandoverGalleryUsed(requestId);
+    if (!galleryUsed) return true;
+    if (!mounted) return false;
+    bool acknowledged = false;
+    await AppPopup.show(
+      context,
+      icon: Icons.photo_library_outlined,
+      title: 'Galerie-Fotos verwendet',
+      message: 'Hinweis: Mindestens ein Foto wurde aus der Galerie hinzugefügt. Bitte prüfe die Dokumentation bewusst, bevor du bestätigst.',
+      actions: [
+        OutlinedButton(onPressed: () => Navigator.of(context, rootNavigator: true).maybePop(), child: const Text('Abbrechen')),
+        FilledButton(
+          onPressed: () {
+            acknowledged = true;
+            Navigator.of(context, rootNavigator: true).maybePop();
+          },
+          child: const Text('Trotzdem bestätigen'),
+        ),
+      ],
+    );
+    return acknowledged;
+  }
+
   Future<void> _confirmManualHandover(BuildContext context, RentalRequest req, Item item) async {
     await AppPopup.show(
       context,
@@ -1013,6 +1039,8 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               }
               final hasRequiredPhotos = await _guardRequiredHandoverPhotos(req.id);
               if (!hasRequiredPhotos) return;
+              final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(req.id, isReturn: false);
+              if (!galleryAcknowledged) return;
               await DataService.updateRentalRequestStatus(requestId: req.id, status: 'running');
               await DataService.addTimelineEvent(requestId: req.id, type: 'handover_manual_confirmed', note: 'Übergabe manuell bestätigt');
                 final bookingId = _computeBookingId(item, req);
@@ -1105,6 +1133,8 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       }
       final hasRequiredPhotos = await _guardRequiredHandoverPhotos(requestId);
       if (!hasRequiredPhotos) return;
+      final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: false);
+      if (!galleryAcknowledged) return;
       await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
       await DataService.addTimelineEvent(requestId: requestId, type: 'handover_qr_confirmed', note: 'Übergabe per QR bestätigt');
       final message = 'Übergabe des Listings "${_item?.title ?? ''}" wurde vom Vermieter bestätigt.';
@@ -1132,7 +1162,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       viewerIsOwner: true,
       mode: ReturnFlowMode.returnFlow,
     );
-    if (ok == true) {
+    if (ok?.confirmed == true) {
       await _completeOwnerReturnWithSideEffects(
         req: req,
         item: item,
@@ -1155,6 +1185,8 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       req.id,
       source: 'ongoing_owner_detail_screen',
     );
+    final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(req.id, isReturn: true);
+    if (!galleryAcknowledged) return;
     if (pausedForReview) {
       if (!mounted) return;
       AppPopup.toast(context, icon: Icons.info_outline, title: 'Diese Rückgabe ist zur Prüfung markiert. Der Abschluss wird pausiert, bis der Fall geprüft wurde.');
