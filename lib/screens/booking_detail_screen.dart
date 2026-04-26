@@ -1506,6 +1506,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           _CompletionSummaryCard(
             booking: widget.booking,
             isOwnerView: _isViewerOwnerSync(),
+            needsReview: widget.booking['needsReview'] == true,
             payoutFormatter: _formatPayoutDate,
             euroFormatter: _formatEuro,
             serviceFee: _serviceFee,
@@ -3029,6 +3030,7 @@ class _CancellationPolicyCardState extends State<_CancellationPolicyCard> {
 class _CompletionSummaryCard extends StatelessWidget {
   final Map<String, dynamic> booking;
   final bool isOwnerView;
+  final bool needsReview;
   final String Function(DateTime) payoutFormatter;
   final String Function(double) euroFormatter;
   final double Function(double) serviceFee;
@@ -3036,6 +3038,7 @@ class _CompletionSummaryCard extends StatelessWidget {
   const _CompletionSummaryCard({
     required this.booking,
     required this.isOwnerView,
+    required this.needsReview,
     required this.payoutFormatter,
     required this.euroFormatter,
     required this.serviceFee,
@@ -3075,13 +3078,22 @@ class _CompletionSummaryCard extends StatelessWidget {
     } else {
       // Abgeschlossen
       rows.addAll([
-        _FactRow(icon: Icons.verified_outlined, label: 'Status', value: 'Abgeschlossen', color: Colors.blueGrey),
+        _FactRow(
+          icon: (isOwnerView && needsReview) ? Icons.hourglass_top_outlined : Icons.verified_outlined,
+          label: 'Status',
+          value: (isOwnerView && needsReview) ? 'Zur Prüfung pausiert' : 'Abgeschlossen',
+          color: (isOwnerView && needsReview) ? const Color(0xFFF59E0B) : Colors.blueGrey,
+        ),
         if (returnedAt != null)
           _FactRow(icon: Icons.assignment_turned_in_outlined, label: 'Rückgabe bestätigt', value: _fmtDate(returnedAt)),
-        if (isOwnerView)
+        if (isOwnerView && needsReview)
+          _FactRow(icon: Icons.payments_outlined, label: 'Auszahlung', value: 'Zur Prüfung pausiert'),
+        if (isOwnerView && !needsReview)
           _FactRow(icon: Icons.payments_outlined, label: 'Auszahlung', value: euroFormatter((totalPaid - fee).clamp(0.0, totalPaid))),
-        if (isOwnerView && payoutAt != null)
+        if (isOwnerView && !needsReview && payoutAt != null)
           _FactRow(icon: Icons.event_available_outlined, label: 'Ausgezahlt am', value: payoutFormatter(payoutAt)),
+        if (isOwnerView && needsReview)
+          _FactRow(icon: Icons.info_outline, label: 'Hinweis', value: 'Diese Rückgabe ist zur Prüfung markiert. Auszahlung und Abschlussanzeige werden pausiert, bis der Fall geprüft wurde.'),
       ]);
     }
 

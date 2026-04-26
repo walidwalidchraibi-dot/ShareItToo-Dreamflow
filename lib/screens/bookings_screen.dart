@@ -246,6 +246,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       'itemId': it.id,
       'rawStatus': r.status,
       'cancelledBy': r.cancelledBy,
+      'needsReview': r.needsReview,
       'title': it.title,
       'dates': '${fmt(r.start)} – ${fmt(r.end)}',
       'location': displayLocation,
