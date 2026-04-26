@@ -2599,60 +2599,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   }
 
   Future<void> _confirmManualPickupAsRenter() async {
-    await AppPopup.show(
+    await AppPopup.toast(
       context,
-      icon: Icons.help_outline,
-      title: 'Manuell bestätigen?',
-      message: 'Bestätigst du, dass du den Gegenstand abgeholt hast?',
-      actions: [
-        OutlinedButton(onPressed: () => Navigator.of(context, rootNavigator: true).maybePop(), child: const Text('Abbrechen')),
-        FilledButton(
-          onPressed: () async {
-            Navigator.of(context, rootNavigator: true).maybePop();
-            try {
-              final renterUserId = await _guardAuthenticatedRenter();
-              if (renterUserId == null) return;
-              final id = widget.booking['requestId'] as String?;
-              if (id != null && id.isNotEmpty) {
-                if (!_canStartBookingHandover) {
-                  if (mounted) {
-                    AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
-                  }
-                  return;
-                }
-                final isActive = await _guardActiveFlow(id, isReturn: false);
-                if (!isActive) return;
-                final hasRequiredPhotos = await _guardRequiredHandoverPhotos(id);
-                if (!hasRequiredPhotos) return;
-                final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(id, isReturn: false);
-                if (!galleryAcknowledged) return;
-                await DataService.updateRentalRequestStatus(requestId: id, status: 'running');
-                await DataService.recordRentalRequestConfirmation(
-                  requestId: id,
-                  isReturn: false,
-                  method: 'self_attestation',
-                  confirmedByRole: 'renter',
-                  confirmedByUserId: renterUserId,
-                );
-                await DataService.clearHandoverActive(id);
-              }
-              if (!mounted) return;
-              setState(() { widget.booking['status'] = 'Laufend'; widget.booking['category'] = 'ongoing'; });
-              // Prepare cross-party banner + notification
-              final bookingId = _computeBookingId();
-              final title = (widget.booking['title'] as String?) ?? '';
-              final message = 'Übergabe des Listings "${title}" wurde vom Mieter bestätigt.';
-              await DataService.addNotification(title: 'Übergabe bestätigt', body: message);
-              await DataService.setHandoverBanner(bookingId: bookingId, message: message);
-              AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Abholung bestätigt');
-            } catch (e) {
-              if (!mounted) return;
-              AppPopup.toast(context, icon: Icons.error_outline, title: 'Konnte nicht bestätigen');
-            }
-          },
-          child: const Text('Ja, bestätigt'),
-        ),
-      ],
+      icon: Icons.info_outline,
+      title: 'Eine Übergabe kann nur durch QR-Code oder den 6-stelligen Code der Gegenpartei bestätigt werden.',
     );
   }
 

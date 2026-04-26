@@ -1057,60 +1057,10 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   }
 
   Future<void> _confirmManualHandover(BuildContext context, RentalRequest req, Item item) async {
-    await AppPopup.show(
+    await AppPopup.toast(
       context,
-      icon: Icons.help_outline,
-      title: 'Übergabe manuell bestätigen?',
-      message: 'Haben Sie Ihr Gegenstand ordnungsgemäß übergeben?',
-      actions: [
-        OutlinedButton(
-          onPressed: () => Navigator.of(context, rootNavigator: true).maybePop(),
-          child: const Text('Nein'),
-        ),
-        FilledButton(
-          onPressed: () async {
-            Navigator.of(context, rootNavigator: true).maybePop();
-              try {
-              final ownerUserId = await _guardAuthenticatedOwner(req.ownerId);
-              if (ownerUserId == null) return;
-              if (!_canStartOwnerHandover(req)) {
-                if (mounted) {
-                  AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
-                }
-                return;
-              }
-              final isActive = await _guardActiveFlow(req.id, isReturn: false);
-              if (!isActive) return;
-              final hasRequiredPhotos = await _guardRequiredHandoverPhotos(req.id);
-              if (!hasRequiredPhotos) return;
-              final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(req.id, isReturn: false);
-              if (!galleryAcknowledged) return;
-              await DataService.updateRentalRequestStatus(requestId: req.id, status: 'running');
-              await DataService.recordRentalRequestConfirmation(
-                requestId: req.id,
-                isReturn: false,
-                method: 'self_attestation',
-                confirmedByRole: 'owner',
-                confirmedByUserId: ownerUserId,
-              );
-              await DataService.clearHandoverActive(req.id);
-              await DataService.addTimelineEvent(requestId: req.id, type: 'handover_manual_confirmed', note: 'Übergabe manuell bestätigt');
-                final bookingId = _computeBookingId(item, req);
-                final message = 'Übergabe des Listings "${item.title}" wurde vom Vermieter bestätigt.';
-                await DataService.addNotification(title: 'Übergabe bestätigt', body: message);
-                await DataService.setHandoverBanner(bookingId: bookingId, message: message);
-              if (!mounted) return;
-              AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Als übergeben markiert');
-              await _load();
-            } catch (e) {
-              debugPrint('[handover] manual confirm failed: $e');
-              if (!mounted) return;
-              AppPopup.toast(context, icon: Icons.error_outline, title: 'Konnte nicht bestätigen');
-            }
-          },
-          child: const Text('Ja'),
-        ),
-      ],
+      icon: Icons.info_outline,
+      title: 'Eine Übergabe kann nur durch QR-Code oder den 6-stelligen Code der Gegenpartei bestätigt werden.',
     );
   }
 
