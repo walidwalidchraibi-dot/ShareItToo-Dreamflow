@@ -323,9 +323,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         final effective = _effectiveCategory(start: s, end: e);
         final isTrulyCompleted = effective == 'completed' && !statusLc.contains('storniert') && !statusLc.contains('abgelehnt');
         final isRenterView = !_isViewerOwnerSync();
+        final isHeldForReview = widget.booking['needsReview'] == true;
 
         Widget? child;
-        if (isTrulyCompleted && isRenterView) {
+        if (isTrulyCompleted && isRenterView && !isHeldForReview) {
           child = SizedBox(
             height: 46,
             child: FilledButton.icon(

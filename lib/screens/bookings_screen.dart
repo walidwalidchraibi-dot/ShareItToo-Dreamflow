@@ -817,7 +817,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
         return null;
       case 'completed':
         // Show a tiny "Bewerten" button for completed bookings (not for declined/storniert)
-        if (_canReviewCompletedBooking(booking)) {
+        final isHeldForReview = booking['needsReview'] == true;
+        if (!isHeldForReview && _canReviewCompletedBooking(booking)) {
           return _TinyTextButton(
             icon: Icons.star_rate_outlined,
             label: 'Bewerten',
