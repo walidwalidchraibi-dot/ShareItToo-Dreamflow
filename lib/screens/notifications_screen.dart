@@ -14,6 +14,7 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/notification_preferences_service.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/app_popup.dart';
 import 'package:provider/provider.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -48,6 +49,11 @@ enum _NotifFilter { all, important, bookings, messages, payments, reviews, syste
 enum _DateBucket { today, yesterday, week, older }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  bool _isAllowedChatStatus(String? rawStatus) {
+    final status = (rawStatus ?? '').toLowerCase().trim();
+    return status == 'accepted' || status == 'running' || status == 'completed';
+  }
+
   _NotifFilter _filter = _NotifFilter.all;
   bool _loading = true;
   String? _currentUserId;
@@ -234,6 +240,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (entityType == 'thread') {
         final thread = await DataService.getMessageThreadById(entityId);
         if (thread == null) return;
+        final request = await DataService.getRentalRequestById(thread.requestId);
+        final isSupportThread = ((thread.threadType ?? '').toLowerCase() == 'support') || thread.user1Id == 'support' || thread.user2Id == 'support';
+        final allowed = isSupportThread || _isAllowedChatStatus(request?.status ?? thread.bookingStatus);
+        if (!allowed) {
+          if (!mounted) return;
+          await AppPopup.toast(context, icon: Icons.info_outline, title: 'Der Chat ist erst nach Annahme der Anfrage verfügbar.');
+          if (mounted) await _load();
+          return;
+        }
         final otherId = (thread.user1Id == uid) ? thread.user2Id : thread.user1Id;
         final other = await DataService.getUserById(otherId);
         if (!mounted) return;

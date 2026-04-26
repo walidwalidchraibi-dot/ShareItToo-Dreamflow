@@ -66,6 +66,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   bool _isAtBottom = true;
   bool _showJumpToBottom = false;
   double _lastViewInsetBottom = 0;
+  bool _chatBlockedBeforeAcceptance = false;
 
   // Keep these sizes centralized to make the composer compact without breaking touch targets.
   static const double _composerIconSize = 20;
@@ -89,6 +90,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     super.dispose();
   }
 
+  static const String _chatBlockedMessage = 'Der Chat ist erst nach Annahme der Anfrage verfügbar.';
+
+  bool _isAllowedChatStatus(String? rawStatus) {
+    final status = (rawStatus ?? '').toLowerCase().trim();
+    return status == 'accepted' || status == 'running' || status == 'completed';
+  }
+
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
@@ -103,18 +111,23 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       }
 
       MessageThread? thread;
+      RentalRequest? request;
+
       if ((widget.threadId ?? '').trim().isNotEmpty) {
         thread = await DataService.getMessageThreadById(widget.threadId!.trim());
       }
-      if (thread == null && (widget.requestId ?? '').trim().isNotEmpty) {
-        thread = await DataService.createOrGetThreadForRequest(widget.requestId!.trim());
-      }
-
-      RentalRequest? request;
       if (thread != null) {
         request = await DataService.getRentalRequestById(thread.requestId);
       } else if ((widget.requestId ?? '').trim().isNotEmpty) {
         request = await DataService.getRentalRequestById(widget.requestId!.trim());
+      }
+
+      final isSupportThread = ((thread?.threadType ?? '').toLowerCase() == 'support') || (thread?.user1Id == 'support') || (thread?.user2Id == 'support');
+      final shouldBlockChat = !isSupportThread && !_isAllowedChatStatus(request?.status ?? thread?.bookingStatus);
+
+      if (!shouldBlockChat && thread == null && (widget.requestId ?? '').trim().isNotEmpty) {
+        thread = await DataService.createOrGetThreadForRequest(widget.requestId!.trim());
+        request ??= await DataService.getRentalRequestById(widget.requestId!.trim());
       }
 
       Item? item;
@@ -144,11 +157,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         _item = item;
         _otherUser = other;
         _handoverReturnState = hr;
+        _chatBlockedBeforeAcceptance = shouldBlockChat;
         _isLoading = false;
       });
 
       // Mark as read + initial scroll.
-      if (thread != null) {
+      if (!shouldBlockChat && thread != null) {
         await DataService.markThreadMessagesAsRead(threadId: thread.id, userId: me.id);
         WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
       }
@@ -556,6 +570,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final handoverActive = _handoverReturnState['handoverActive'] == true;
     final returnActive = _handoverReturnState['returnActive'] == true;
     final showInlineFlowCard = (handoverActive || returnActive) && (_request != null);
+    final chatBlocked = _chatBlockedBeforeAcceptance;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -594,9 +609,20 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                 Expanded(
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
-                      : (messages.isEmpty && !showAddressHint && !showInlineFlowCard)
-                          ? const Center(child: Text('Noch keine Nachrichten', style: TextStyle(color: Colors.white70)))
-                          : NotificationListener<UserScrollNotification>(
+                      : chatBlocked
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 24),
+                                child: Text(
+                                  _chatBlockedMessage,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                            )
+                          : (messages.isEmpty && !showAddressHint && !showInlineFlowCard)
+                              ? const Center(child: Text('Noch keine Nachrichten', style: TextStyle(color: Colors.white70)))
+                              : NotificationListener<UserScrollNotification>(
                               onNotification: (n) {
                                 if (n.direction == ScrollDirection.forward && _inputFocus.hasFocus) {
                                   FocusScope.of(context).unfocus();
@@ -670,25 +696,26 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                               ),
                             ),
                 ),
-                _TransactionComposer(
-                  showActions: showActions,
-                  primaryLabel: showActions ? actionLabels.primary : null,
-                  secondaryLabel: showActions ? actionLabels.secondary : null,
-                  onPrimary: showActions ? _applyPrimaryAction : null,
-                  onSecondary: (showActions && actionLabels.secondary != null) ? _applySecondaryAction : null,
-                  explanationText: _actionExplanation(st),
-                  onShareLocation: _shareLocation,
-                  onSendPhoto: _pickCamera,
-                  onChangeTime: _changeTime,
-                  controller: _controller,
-                  focusNode: _inputFocus,
-                  onSend: _sendText,
-                  iconSize: _composerIconSize,
-                  buttonSize: _composerButtonSize,
-                  sendButtonSize: _composerSendButtonSize,
-                  cornerRadius: _composerCornerRadius,
-                  fieldRadius: _composerFieldRadius,
-                ),
+                if (!chatBlocked)
+                  _TransactionComposer(
+                    showActions: showActions,
+                    primaryLabel: showActions ? actionLabels.primary : null,
+                    secondaryLabel: showActions ? actionLabels.secondary : null,
+                    onPrimary: showActions ? _applyPrimaryAction : null,
+                    onSecondary: (showActions && actionLabels.secondary != null) ? _applySecondaryAction : null,
+                    explanationText: _actionExplanation(st),
+                    onShareLocation: _shareLocation,
+                    onSendPhoto: _pickCamera,
+                    onChangeTime: _changeTime,
+                    controller: _controller,
+                    focusNode: _inputFocus,
+                    onSend: _sendText,
+                    iconSize: _composerIconSize,
+                    buttonSize: _composerButtonSize,
+                    sendButtonSize: _composerSendButtonSize,
+                    cornerRadius: _composerCornerRadius,
+                    fieldRadius: _composerFieldRadius,
+                  ),
               ],
             ),
             if (_showJumpToBottom)
