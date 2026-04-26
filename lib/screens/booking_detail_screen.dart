@@ -1879,7 +1879,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       mode: ReturnFlowMode.returnFlow,
     );
 
-    if (ok == true && mounted) {
+    if (ok?.confirmed == true && mounted) {
+      final ownerUserId = await DataService.getCurrentUser();
+      final expectedOwnerId = (widget.booking['ownerId'] as String?)?.trim();
+      if (ownerUserId == null || expectedOwnerId == null || ownerUserId.id != expectedOwnerId) {
+        AppPopup.toast(context, icon: Icons.lock_outline, title: 'Diese Bestätigung ist nur für den Vermieter möglich.');
+        return;
+      }
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
         final pausedForReview = await DataService.pauseReturnCompletionIfNeedsReview(
@@ -1891,6 +1897,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           AppPopup.toast(context, icon: Icons.info_outline, title: 'Diese Rückgabe ist zur Prüfung markiert. Der Abschluss wird pausiert, bis der Fall geprüft wurde.');
           return;
         }
+      }
+      if (requestId != null && requestId.isNotEmpty) {
+        await DataService.recordRentalRequestConfirmation(
+          requestId: requestId,
+          isReturn: true,
+          method: 'stepper',
+          confirmedByRole: 'owner',
+          confirmedByUserId: ownerUserId.id,
+        );
       }
       // Release/cancel ride compensation automatically if a decision was made for return segment
       try {
@@ -2030,9 +2045,18 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     // mark the booking as running immediately.
     if (ok?.confirmed == true) {
       try {
+        final renterUserId = await _guardAuthenticatedRenter();
+        if (renterUserId == null) return;
         final requestId = widget.booking['requestId'] as String?;
         if (requestId != null && requestId.isNotEmpty) {
           await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
+          await DataService.recordRentalRequestConfirmation(
+            requestId: requestId,
+            isReturn: false,
+            method: 'stepper',
+            confirmedByRole: 'renter',
+            confirmedByUserId: renterUserId,
+          );
           // Release/cancel ride compensation for dropoff if decision exists
           try {
             final grant = await DataService.getRideCompensationDecision(requestId: requestId, segment: 'dropoff', consume: true);
@@ -2214,6 +2238,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         return;
       }
 
+      final renterUserId = await _guardAuthenticatedRenter();
+      if (renterUserId == null) return;
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
         final isActive = await _guardActiveFlow(requestId, isReturn: false);
@@ -2223,6 +2249,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: false);
         if (!galleryAcknowledged) return;
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
+        await DataService.recordRentalRequestConfirmation(
+          requestId: requestId,
+          isReturn: false,
+          method: 'qr',
+          confirmedByRole: 'renter',
+          confirmedByUserId: renterUserId,
+        );
         await DataService.clearHandoverActive(requestId);
       }
       if (!mounted) return;
@@ -2298,6 +2331,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         return;
       }
 
+      final ownerUserId = await DataService.getCurrentUser();
+      final expectedOwnerId = (widget.booking['ownerId'] as String?)?.trim();
+      if (ownerUserId == null || expectedOwnerId == null || ownerUserId.id != expectedOwnerId) {
+        AppPopup.toast(context, icon: Icons.lock_outline, title: 'Diese Bestätigung ist nur für den Vermieter möglich.');
+        return;
+      }
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
         final isActive = await _guardActiveFlow(requestId, isReturn: true);
@@ -2316,6 +2355,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           return;
         }
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'completed');
+        await DataService.recordRentalRequestConfirmation(
+          requestId: requestId,
+          isReturn: true,
+          method: 'qr',
+          confirmedByRole: 'owner',
+          confirmedByUserId: ownerUserId.id,
+        );
         await DataService.clearReturnActive(requestId);
         await DataService.addTimelineEvent(requestId: requestId, type: 'completed', note: 'Rückgabe abgeschlossen');
       }
@@ -2363,6 +2409,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         return;
       }
 
+      final ownerUserId = await DataService.getCurrentUser();
+      final expectedOwnerId = (widget.booking['ownerId'] as String?)?.trim();
+      if (ownerUserId == null || expectedOwnerId == null || ownerUserId.id != expectedOwnerId) {
+        AppPopup.toast(context, icon: Icons.lock_outline, title: 'Diese Bestätigung ist nur für den Vermieter möglich.');
+        return;
+      }
+
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
         final isActive = await _guardActiveFlow(requestId, isReturn: true);
@@ -2381,6 +2434,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           return;
         }
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'completed');
+        await DataService.recordRentalRequestConfirmation(
+          requestId: requestId,
+          isReturn: true,
+          method: 'manual',
+          confirmedByRole: 'owner',
+          confirmedByUserId: ownerUserId.id,
+        );
         await DataService.clearReturnActive(requestId);
         await DataService.addTimelineEvent(requestId: requestId, type: 'completed', note: 'Rückgabe manuell bestätigt');
       }
@@ -2483,6 +2543,27 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return false;
   }
 
+
+  String? _bookingRenterId() {
+    final renterId = (widget.booking['renterId'] as String?)?.trim();
+    if (renterId != null && renterId.isNotEmpty) return renterId;
+    final listerId = (widget.booking['listerId'] as String?)?.trim();
+    if (listerId != null && listerId.isNotEmpty) return listerId;
+    return null;
+  }
+
+  Future<String?> _guardAuthenticatedRenter() async {
+    final current = await DataService.getCurrentUser();
+    final expectedRenterId = _bookingRenterId();
+    if (current == null || expectedRenterId == null || current.id != expectedRenterId) {
+      if (mounted) {
+        AppPopup.toast(context, icon: Icons.lock_outline, title: 'Diese Bestätigung ist nur für den Mieter möglich.');
+      }
+      return null;
+    }
+    return current.id;
+  }
+
   Future<void> _confirmManualPickupAsRenter() async {
     await AppPopup.show(
       context,
@@ -2495,6 +2576,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           onPressed: () async {
             Navigator.of(context, rootNavigator: true).maybePop();
             try {
+              final renterUserId = await _guardAuthenticatedRenter();
+              if (renterUserId == null) return;
               final id = widget.booking['requestId'] as String?;
               if (id != null && id.isNotEmpty) {
                 if (!_canStartBookingHandover) {
@@ -2510,6 +2593,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(id, isReturn: false);
                 if (!galleryAcknowledged) return;
                 await DataService.updateRentalRequestStatus(requestId: id, status: 'running');
+                await DataService.recordRentalRequestConfirmation(
+                  requestId: id,
+                  isReturn: false,
+                  method: 'self_attestation',
+                  confirmedByRole: 'renter',
+                  confirmedByUserId: renterUserId,
+                );
                 await DataService.clearHandoverActive(id);
               }
               if (!mounted) return;
@@ -2543,6 +2633,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       return;
     }
     try {
+      final renterUserId = await _guardAuthenticatedRenter();
+      if (renterUserId == null) return;
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
         if (!_canStartBookingHandover) {
@@ -2556,6 +2648,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: false);
         if (!galleryAcknowledged) return;
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
+        await DataService.recordRentalRequestConfirmation(
+          requestId: requestId,
+          isReturn: false,
+          method: 'manual',
+          confirmedByRole: 'renter',
+          confirmedByUserId: renterUserId,
+        );
         await DataService.clearHandoverActive(requestId);
       }
       if (!mounted) return;

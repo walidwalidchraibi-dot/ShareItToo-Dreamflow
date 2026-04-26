@@ -1033,6 +1033,19 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     return false;
   }
 
+
+  Future<String?> _guardAuthenticatedOwner(String ownerId) async {
+    final current = await DataService.getCurrentUser();
+    final expectedOwnerId = ownerId.trim();
+    if (current == null || expectedOwnerId.isEmpty || current.id != expectedOwnerId) {
+      if (mounted) {
+        AppPopup.toast(context, icon: Icons.lock_outline, title: 'Diese Bestätigung ist nur für den Vermieter möglich.');
+      }
+      return null;
+    }
+    return current.id;
+  }
+
   Future<void> _confirmManualHandover(BuildContext context, RentalRequest req, Item item) async {
     await AppPopup.show(
       context,
@@ -1048,6 +1061,8 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
           onPressed: () async {
             Navigator.of(context, rootNavigator: true).maybePop();
               try {
+              final ownerUserId = await _guardAuthenticatedOwner(req.ownerId);
+              if (ownerUserId == null) return;
               if (!_canStartOwnerHandover(req)) {
                 if (mounted) {
                   AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
@@ -1061,6 +1076,13 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(req.id, isReturn: false);
               if (!galleryAcknowledged) return;
               await DataService.updateRentalRequestStatus(requestId: req.id, status: 'running');
+              await DataService.recordRentalRequestConfirmation(
+                requestId: req.id,
+                isReturn: false,
+                method: 'self_attestation',
+                confirmedByRole: 'owner',
+                confirmedByUserId: ownerUserId,
+              );
               await DataService.clearHandoverActive(req.id);
               await DataService.addTimelineEvent(requestId: req.id, type: 'handover_manual_confirmed', note: 'Übergabe manuell bestätigt');
                 final bookingId = _computeBookingId(item, req);
@@ -1147,7 +1169,13 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       }
 
       final request = _requestForId(requestId);
-      if (request == null || !_canStartOwnerHandover(request)) {
+      if (request == null) {
+        AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
+        return;
+      }
+      final ownerUserId = await _guardAuthenticatedOwner(request.ownerId);
+      if (ownerUserId == null) return;
+      if (!_canStartOwnerHandover(request)) {
         AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
         return;
       }
@@ -1158,6 +1186,13 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: false);
       if (!galleryAcknowledged) return;
       await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
+      await DataService.recordRentalRequestConfirmation(
+        requestId: requestId,
+        isReturn: false,
+        method: 'qr',
+        confirmedByRole: 'owner',
+        confirmedByUserId: ownerUserId,
+      );
       await DataService.clearHandoverActive(requestId);
       await DataService.addTimelineEvent(requestId: requestId, type: 'handover_qr_confirmed', note: 'Übergabe per QR bestätigt');
       final message = 'Übergabe des Listings "${_item?.title ?? ''}" wurde vom Vermieter bestätigt.';
@@ -1200,6 +1235,8 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     required User renter,
   }) async {
     // Set completed, add timeline + notification, send receipt
+    final ownerUserId = await _guardAuthenticatedOwner(req.ownerId);
+    if (ownerUserId == null) return;
     if (!_canCompleteOwnerReturn(req)) {
       AppPopup.toast(context, icon: Icons.info_outline, title: 'Rückgabe ist gerade nicht verfügbar');
       return;
@@ -1219,6 +1256,13 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       return;
     }
     await DataService.updateRentalRequestStatus(requestId: req.id, status: 'completed');
+    await DataService.recordRentalRequestConfirmation(
+      requestId: req.id,
+      isReturn: true,
+      method: 'stepper',
+      confirmedByRole: 'owner',
+      confirmedByUserId: ownerUserId,
+    );
     await DataService.clearReturnActive(req.id);
     await DataService.addTimelineEvent(requestId: req.id, type: 'completed', note: 'Rückgabe abgeschlossen');
     // Release/cancel ride compensation if present (return segment)

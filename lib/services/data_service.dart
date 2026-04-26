@@ -2679,6 +2679,37 @@ class DataService {
     if (mutated) await _saveAllRentalRequests(all);
   }
 
+  static Future<void> recordRentalRequestConfirmation({
+    required String requestId,
+    required bool isReturn,
+    required String method,
+    required String confirmedByRole,
+    required String confirmedByUserId,
+  }) async {
+    final id = requestId.trim();
+    final userId = confirmedByUserId.trim();
+    if (id.isEmpty || userId.isEmpty) return;
+    final all = await _getAllRentalRequests();
+    bool mutated = false;
+    final payload = <String, dynamic>{
+      'method': method,
+      'confirmedByRole': confirmedByRole,
+      'confirmedByUserId': userId,
+      'confirmedAt': DateTime.now().toIso8601String(),
+    };
+    for (int i = 0; i < all.length; i++) {
+      if (all[i].id == id) {
+        all[i] = all[i].copyWith(
+          handoverConfirmation: isReturn ? all[i].handoverConfirmation : payload,
+          returnConfirmation: isReturn ? payload : all[i].returnConfirmation,
+        );
+        mutated = true;
+        break;
+      }
+    }
+    if (mutated) await _saveAllRentalRequests(all);
+  }
+
   // Update times and express choice for an existing request (edit flow)
   static Future<void> updateRentalRequestTimes({required String requestId, required DateTime start, required DateTime end, bool? expressRequested}) async {
     final all = await _getAllRentalRequests();

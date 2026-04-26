@@ -36,6 +36,8 @@ class RentalRequest {
   final String? reviewReason;
   final String? reviewSource;
   final DateTime? reviewRequestedAt;
+  final Map<String, dynamic>? handoverConfirmation;
+  final Map<String, dynamic>? returnConfirmation;
   // Snapshot of renter-facing total and subtitle at booking time to keep UI constant
   final double?
       quotedTotalRenter; // what the renter saw as Gesamtbetrag at request time
@@ -68,6 +70,8 @@ class RentalRequest {
     this.reviewReason,
     this.reviewSource,
     this.reviewRequestedAt,
+    this.handoverConfirmation,
+    this.returnConfirmation,
     this.quotedTotalRenter,
     this.quotedSubtitle,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -86,6 +90,8 @@ class RentalRequest {
     String? reviewReason,
     String? reviewSource,
     DateTime? reviewRequestedAt,
+    Map<String, dynamic>? handoverConfirmation,
+    Map<String, dynamic>? returnConfirmation,
     bool? ownerDeliversAtDropoffChosen,
     bool? ownerPicksUpAtReturnChosen,
     String? deliveryAddressLine,
@@ -115,6 +121,8 @@ class RentalRequest {
         reviewReason: reviewReason ?? this.reviewReason,
         reviewSource: reviewSource ?? this.reviewSource,
         reviewRequestedAt: reviewRequestedAt ?? this.reviewRequestedAt,
+        handoverConfirmation: handoverConfirmation ?? this.handoverConfirmation,
+        returnConfirmation: returnConfirmation ?? this.returnConfirmation,
         ownerDeliversAtDropoffChosen:
             ownerDeliversAtDropoffChosen ?? this.ownerDeliversAtDropoffChosen,
         ownerPicksUpAtReturnChosen:
@@ -155,6 +163,8 @@ class RentalRequest {
         reviewReason: json['reviewReason'] as String?,
         reviewSource: json['reviewSource'] as String?,
         reviewRequestedAt: _parseDt(json['reviewRequestedAt']),
+        handoverConfirmation: _parseMap(json['handoverConfirmation']),
+        returnConfirmation: _parseMap(json['returnConfirmation']),
         quotedTotalRenter: (json['quotedTotalRenter'] as num?)?.toDouble(),
         quotedSubtitle: json['quotedSubtitle'] as String?,
       );
@@ -185,6 +195,8 @@ class RentalRequest {
         'reviewReason': reviewReason,
         'reviewSource': reviewSource,
         'reviewRequestedAt': reviewRequestedAt?.toIso8601String(),
+        'handoverConfirmation': handoverConfirmation,
+        'returnConfirmation': returnConfirmation,
         'quotedTotalRenter': quotedTotalRenter,
         'quotedSubtitle': quotedSubtitle,
       };
@@ -197,6 +209,13 @@ DateTime? _parseDt(Object? v) {
     } catch (_) {
       return null;
     }
+  }
+  return null;
+}
+
+Map<String, dynamic>? _parseMap(Object? v) {
+  if (v is Map) {
+    return v.map((k, val) => MapEntry(k.toString(), val));
   }
   return null;
 }
