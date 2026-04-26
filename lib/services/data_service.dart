@@ -3201,6 +3201,8 @@ class DataService {
     required DateTime dueAt,
   }) async {
     try {
+      final req = await getRentalRequestById(requestId);
+      if (req != null && req.needsReview) return;
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_reviewRemindersKey);
       List<dynamic> list = [];
@@ -3249,6 +3251,11 @@ class DataService {
       if (idx >= 0 && hit != null) {
         list.removeAt(idx);
         await prefs.setString(_reviewRemindersKey, jsonEncode(list));
+        final requestId = (hit['requestId'] ?? '').toString();
+        if (requestId.isNotEmpty) {
+          final req = await getRentalRequestById(requestId);
+          if (req != null && req.needsReview) return null;
+        }
         return hit;
       }
       return null;
