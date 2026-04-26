@@ -2604,6 +2604,26 @@ class DataService {
         ' ownerDeliversAtDropoffChosen='+ownerDelivers.toString()+
         ' ownerPicksUpAtReturnChosen='+ownerPicksUp.toString()+
         ' expressRequested='+toStore.expressRequested.toString());
+
+    try {
+      final item = await getItemById(toStore.itemId);
+      final renter = await getUserById(toStore.renterId);
+      if (item != null) {
+        await addStructuredNotification(
+          userId: toStore.ownerId,
+          category: 'bookings',
+          priority: 2,
+          title: 'Neue Mietanfrage',
+          body: 'Neue Anfrage von ${renter?.displayName ?? 'einem Mieter'} für „${item.title}“.',
+          entityType: 'booking',
+          entityId: toStore.id,
+          ctaLabel: 'Anfrage ansehen',
+        );
+      }
+    } catch (e) {
+      debugPrint('[DataService] pending-request notification failed: $e');
+    }
+
     // Start 30-minute express confirmation timer if applicable (runtime only)
     _scheduleExpressTimerIfNeeded(toStore);
     return toStore;
