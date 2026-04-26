@@ -249,7 +249,16 @@ class _PriceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final days = _daysCeil(request.start, request.end);
-    final total = DataService.computeTotalWithDiscounts(item: item, days: days).$1;
+    final fallbackRentalOnly = DataService.computeTotalWithDiscounts(item: item, days: days).$1;
+    double total = request.quotedTotalRenter ?? 0.0;
+    if (total <= 0) {
+      try {
+        total = DataService.priceBreakdownForRequest(item: item, req: request).totalRenter;
+      } catch (_) {
+        total = fallbackRentalOnly;
+      }
+    }
+    final quotedSubtitle = request.quotedSubtitle?.trim();
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
@@ -260,6 +269,10 @@ class _PriceCard extends StatelessWidget {
           Text('Preis (vom Mieter zu zahlen)', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
           const SizedBox(height: 4),
           Text('${total.toStringAsFixed(0)} €', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+          if (quotedSubtitle != null && quotedSubtitle.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(quotedSubtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60)),
+          ],
         ]))
       ]),
     );
