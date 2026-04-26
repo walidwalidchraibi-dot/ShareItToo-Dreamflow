@@ -343,7 +343,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   reviewedUserId: listerId,
                   direction: 'renter_to_owner',
                 );
-                if (ok?.confirmed == true && mounted) {
+                if (ok == true && mounted) {
                   await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
                   await _viewListing();
                 }
@@ -673,7 +673,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 Text(
                   isHeldForReview
                       ? 'Diese Rückgabe ist zur Prüfung markiert. Auszahlung und Zahlungsanzeige werden pausiert, bis der Fall geprüft wurde.'
-                      : 'Auszahlung am ${_formatPayoutDate(end)}',
+                      : (end != null ? 'Auszahlung am ${_formatPayoutDate(end)}' : 'Auszahlung nach Rückgabe'),
                   style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
                 ),
               ]);
@@ -1294,7 +1294,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 Text(
                   isHeldForReview
                       ? 'Diese Rückgabe ist zur Prüfung markiert. Auszahlung und Zahlungsanzeige werden pausiert, bis der Fall geprüft wurde.'
-                      : 'Auszahlung am ${_formatPayoutDate(end)}',
+                      : (end != null ? 'Auszahlung am ${_formatPayoutDate(end)}' : 'Auszahlung nach Rückgabe'),
                   style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
                 ),
               ]);
