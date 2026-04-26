@@ -2079,6 +2079,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         if (renterUserId == null) return;
         final requestId = widget.booking['requestId'] as String?;
         if (requestId != null && requestId.isNotEmpty) {
+          final isActive = await _guardActiveFlow(requestId, isReturn: false);
+          if (!isActive) return;
+          final hasRequiredPhotos = await _guardRequiredHandoverPhotos(requestId);
+          if (!hasRequiredPhotos) return;
+          final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: false);
+          if (!galleryAcknowledged) return;
           await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
           await DataService.recordRentalRequestConfirmation(
             requestId: requestId,
@@ -2087,6 +2093,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             confirmedByRole: 'renter',
             confirmedByUserId: renterUserId,
           );
+          await DataService.clearHandoverActive(requestId);
           // Release/cancel ride compensation for dropoff if decision exists
           try {
             final grant = await DataService.getRideCompensationDecision(requestId: requestId, segment: 'dropoff', consume: true);

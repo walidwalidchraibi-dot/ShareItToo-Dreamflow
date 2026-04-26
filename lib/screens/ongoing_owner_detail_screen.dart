@@ -1204,6 +1204,8 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     }
     final isActive = await _guardActiveFlow(req.id, isReturn: true);
     if (!isActive) return;
+    final hasRequiredPhotos = await _guardRequiredReturnPhotos(req.id);
+    if (!hasRequiredPhotos) return;
     final pausedForReview = await DataService.pauseReturnCompletionIfNeedsReview(
       req.id,
       source: 'ongoing_owner_detail_screen',
