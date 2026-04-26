@@ -3593,6 +3593,18 @@ class DataService {
     map[id] = existing;
     await _setHandoverReturnStateMap(map);
   }
+
+  static const int minimumRequiredPhotos = 4;
+
+  static Future<int> getHandoverPhotoCount(String requestId) async {
+    final state = await getHandoverReturnState(requestId);
+    return (state['handoverPhotos'] is num) ? (state['handoverPhotos'] as num).toInt() : 0;
+  }
+
+  static Future<int> getReturnPhotoCount(String requestId) async {
+    final state = await getHandoverReturnState(requestId);
+    return (state['returnPhotos'] is num) ? (state['returnPhotos'] as num).toInt() : 0;
+  }
   /// Erstellt automatisch einen Message Thread wenn eine Anfrage angenommen wird
   static Future<void> _createMessageThreadForRequest(RentalRequest request) async {
     try {

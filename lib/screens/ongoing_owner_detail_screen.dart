@@ -971,6 +971,25 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     return status == 'running';
   }
 
+
+  Future<bool> _guardRequiredHandoverPhotos(String requestId) async {
+    final handoverPhotos = await DataService.getHandoverPhotoCount(requestId);
+    if (handoverPhotos >= DataService.minimumRequiredPhotos) return true;
+    if (mounted) {
+      AppPopup.toast(context, icon: Icons.photo_camera_back_outlined, title: 'Bitte dokumentiere die Übergabe zuerst mit mindestens 4 Fotos.');
+    }
+    return false;
+  }
+
+  Future<bool> _guardRequiredReturnPhotos(String requestId) async {
+    final returnPhotos = await DataService.getReturnPhotoCount(requestId);
+    if (returnPhotos >= DataService.minimumRequiredPhotos) return true;
+    if (mounted) {
+      AppPopup.toast(context, icon: Icons.photo_camera_back_outlined, title: 'Bitte dokumentiere die Rückgabe zuerst mit mindestens 4 Fotos.');
+    }
+    return false;
+  }
+
   Future<void> _confirmManualHandover(BuildContext context, RentalRequest req, Item item) async {
     await AppPopup.show(
       context,
@@ -992,6 +1011,8 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                 }
                 return;
               }
+              final hasRequiredPhotos = await _guardRequiredHandoverPhotos(req.id);
+              if (!hasRequiredPhotos) return;
               await DataService.updateRentalRequestStatus(requestId: req.id, status: 'running');
               await DataService.addTimelineEvent(requestId: req.id, type: 'handover_manual_confirmed', note: 'Übergabe manuell bestätigt');
                 final bookingId = _computeBookingId(item, req);
@@ -1082,6 +1103,8 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
         return;
       }
+      final hasRequiredPhotos = await _guardRequiredHandoverPhotos(requestId);
+      if (!hasRequiredPhotos) return;
       await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
       await DataService.addTimelineEvent(requestId: requestId, type: 'handover_qr_confirmed', note: 'Übergabe per QR bestätigt');
       final message = 'Übergabe des Listings "${_item?.title ?? ''}" wurde vom Vermieter bestätigt.';

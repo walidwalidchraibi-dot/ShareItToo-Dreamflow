@@ -2216,6 +2216,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
+        final hasRequiredPhotos = await _guardRequiredHandoverPhotos(requestId);
+        if (!hasRequiredPhotos) return;
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
       }
       if (!mounted) return;
@@ -2293,6 +2295,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
+        final hasRequiredPhotos = await _guardRequiredReturnPhotos(requestId);
+        if (!hasRequiredPhotos) return;
         final pausedForReview = await DataService.pauseReturnCompletionIfNeedsReview(
           requestId,
           source: 'booking_detail_screen_qr_return',
@@ -2351,6 +2355,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
+        final hasRequiredPhotos = await _guardRequiredReturnPhotos(requestId);
+        if (!hasRequiredPhotos) return;
         final pausedForReview = await DataService.pauseReturnCompletionIfNeedsReview(
           requestId,
           source: 'booking_detail_screen_manual_return',
@@ -2392,6 +2398,33 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
   }
 
+
+  Future<bool> _hasRequiredHandoverPhotos(String requestId) async {
+    final handoverPhotos = await DataService.getHandoverPhotoCount(requestId);
+    return handoverPhotos >= DataService.minimumRequiredPhotos;
+  }
+
+  Future<bool> _hasRequiredReturnPhotos(String requestId) async {
+    final returnPhotos = await DataService.getReturnPhotoCount(requestId);
+    return returnPhotos >= DataService.minimumRequiredPhotos;
+  }
+
+  Future<bool> _guardRequiredHandoverPhotos(String requestId) async {
+    final ok = await _hasRequiredHandoverPhotos(requestId);
+    if (!ok && mounted) {
+      AppPopup.toast(context, icon: Icons.photo_camera_back_outlined, title: 'Bitte dokumentiere die Übergabe zuerst mit mindestens 4 Fotos.');
+    }
+    return ok;
+  }
+
+  Future<bool> _guardRequiredReturnPhotos(String requestId) async {
+    final ok = await _hasRequiredReturnPhotos(requestId);
+    if (!ok && mounted) {
+      AppPopup.toast(context, icon: Icons.photo_camera_back_outlined, title: 'Bitte dokumentiere die Rückgabe zuerst mit mindestens 4 Fotos.');
+    }
+    return ok;
+  }
+
   Future<void> _confirmManualPickupAsRenter() async {
     await AppPopup.show(
       context,
@@ -2406,6 +2439,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             try {
               final id = widget.booking['requestId'] as String?;
               if (id != null && id.isNotEmpty) {
+                final hasRequiredPhotos = await _guardRequiredHandoverPhotos(id);
+                if (!hasRequiredPhotos) return;
                 await DataService.updateRentalRequestStatus(requestId: id, status: 'running');
               }
               if (!mounted) return;
@@ -2441,6 +2476,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     try {
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
+        final hasRequiredPhotos = await _guardRequiredHandoverPhotos(requestId);
+        if (!hasRequiredPhotos) return;
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
       }
       if (!mounted) return;

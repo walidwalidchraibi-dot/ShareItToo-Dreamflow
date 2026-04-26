@@ -343,7 +343,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     required String threadId,
     required String requestId,
   }) async {
-    await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
     await DataService.setHandoverActive(requestId, active: true);
     await DataService.addSystemMessageToThread(threadId: threadId, text: 'Übergabe gestartet');
   }
