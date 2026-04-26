@@ -190,7 +190,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
     final current = await DataService.getCurrentUser();
     if (current == null) {
       if (!mounted) return;
-      await AppPopup.toast(context, icon: Icons.person_outline, title: 'Bitte zuerst anmelden');
+      await showGuestRestrictionSheet(context, gateContext: GuestGateContext.rentalRequest);
       return;
     }
 
