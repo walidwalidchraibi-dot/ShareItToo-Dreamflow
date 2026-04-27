@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -688,6 +689,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
         final pf = PlatformFile(name: shot.name, size: bytes.length, path: shot.path, bytes: bytes);
         setState(() {
           addToList([pf]);
+          if (kIsWeb) _galleryUsedInCheckoutPhotos = true;
         });
       }
     } catch (e) {
@@ -701,7 +703,9 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
       context,
       icon: Icons.add_a_photo,
       title: 'Fotos hinzufügen',
-      message: 'Quelle wählen',
+      message: kIsWeb
+          ? 'Im Browser kann dieselbe Auswahl Kamera oder Galerie öffnen.'
+          : 'Quelle wählen',
       showCloseIcon: false,
       useExploreBackground: true,
       actions: [
@@ -711,7 +715,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
             await _pickPhotosGallery(addToList, allowMultiple: multiple);
           },
           icon: const Icon(Icons.photo_library_outlined),
-          label: const Text('Galerie'),
+          label: Text(kIsWeb ? 'Bild hinzufügen' : 'Galerie'),
         ),
         FilledButton.icon(
           onPressed: () async {
@@ -719,7 +723,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
             await _pickPhotoCamera(addToList);
           },
           icon: const Icon(Icons.photo_camera),
-          label: const Text('Kamera'),
+          label: Text(kIsWeb ? 'Foto aufnehmen / auswählen' : 'Kamera'),
         ),
       ],
     );
@@ -739,7 +743,9 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
             Text(
               _galleryUsedInCheckoutPhotos
                   ? 'Bitte mindestens 4 Fotos hinzufügen. Galerie-Fotos werden bei der Bestätigung offengelegt.'
-                  : 'Bitte mindestens 4 Fotos hinzufügen.',
+                  : (kIsWeb
+                      ? 'Bitte mindestens 4 Fotos hinzufügen. Im Browser können Fotos nicht eindeutig als Live-Aufnahme verifiziert werden.'
+                      : 'Bitte mindestens 4 Fotos hinzufügen.'),
               style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
             ),
