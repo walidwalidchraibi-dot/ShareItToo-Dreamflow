@@ -54,11 +54,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _openTerms() {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalTermsScreen()));
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const LegalTermsScreen()));
   }
 
   void _openPrivacy() {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalPrivacyScreen()));
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const LegalPrivacyScreen()));
   }
 
   @override
@@ -112,51 +114,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _busy = true);
     try {
       await Future<void>.delayed(const Duration(milliseconds: 600));
-      final result = await AuthService.registerLocalAccount(email: _emailCtrl.text.trim(), password: _pwCtrl.text);
+      final result = await AuthService.registerLocalAccount(
+          email: _emailCtrl.text.trim(), password: _pwCtrl.text);
       if (!mounted) return;
       if (!result.ok) {
         final msg = switch (result.failure) {
           AuthFailure.emailInUse => 'Diese E-Mail ist bereits registriert.',
-          AuthFailure.network => 'Es ist ein Netzwerkfehler aufgetreten. Bitte versuche es erneut.',
+          AuthFailure.network =>
+            'Es ist ein Netzwerkfehler aufgetreten. Bitte versuche es erneut.',
           _ => 'Es ist ein Fehler aufgetreten. Bitte versuche es erneut.',
         };
         await AppPopup.toast(context, icon: Icons.error_outline, title: msg);
         return;
       }
 
-      await context.read<DeveloperPreviewController>().setState(DeveloperUserState.loggedIn);
+      await context
+          .read<DeveloperPreviewController>()
+          .setState(DeveloperUserState.loggedIn);
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const MainNavigation()), (route) => false);
+      Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainNavigation()),
+          (route) => false);
     } catch (e) {
       debugPrint('[RegisterScreen] register failed: $e');
       if (!mounted) return;
-      await AppPopup.toast(context, icon: Icons.wifi_off_outlined, title: 'Es ist ein Fehler aufgetreten.', message: 'Bitte versuche es erneut.');
+      await AppPopup.toast(context,
+          icon: Icons.wifi_off_outlined,
+          title: 'Es ist ein Fehler aufgetreten.',
+          message: 'Bitte versuche es erneut.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _socialRegister(AuthSocialProvider provider) async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    try {
-      await Future<void>.delayed(const Duration(milliseconds: 420));
-      final result = await AuthService.signInWithSocialProvider(provider);
-      if (!mounted) return;
-      if (!result.ok) {
-        await AppPopup.toast(context, icon: Icons.wifi_off_outlined, title: 'Registrierung fehlgeschlagen', message: 'Bitte versuche es erneut.');
-        return;
-      }
-      await context.read<DeveloperPreviewController>().setState(DeveloperUserState.loggedIn);
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const MainNavigation()), (route) => false);
-    } catch (e) {
-      debugPrint('[RegisterScreen] socialRegister failed: $e');
-      if (!mounted) return;
-      await AppPopup.toast(context, icon: Icons.wifi_off_outlined, title: 'Es ist ein Fehler aufgetreten.', message: 'Bitte versuche es erneut.');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    if (_busy || !mounted) return;
+    final providerLabel =
+        provider == AuthSocialProvider.google ? 'Google' : 'Apple';
+    await AppPopup.toast(
+      context,
+      icon: Icons.info_outline,
+      title: '$providerLabel-Anmeldung noch nicht verfügbar',
+      message: 'Bitte nutze aktuell die Registrierung per E-Mail.',
+    );
   }
 
   @override
@@ -173,22 +173,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          const Positioned.fill(child: IgnorePointer(child: _RegisterBackdrop())),
+          const Positioned.fill(
+              child: IgnorePointer(child: _RegisterBackdrop())),
           SafeArea(
             child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
                   child: Row(children: [
-                    _GlassIconButton(icon: Icons.arrow_back, onTap: () => Navigator.of(context).maybePop()),
+                    _GlassIconButton(
+                        icon: Icons.arrow_back,
+                        onTap: () => Navigator.of(context).maybePop()),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text('In weniger als 60 Sekunden starten', textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white, height: 1.15)),
+                          Text('In weniger als 60 Sekunden starten',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  height: 1.15)),
                           const SizedBox(height: 6),
-                          Text('Mieten & vermieten – sicher, einfach und in deiner Nähe.', textAlign: TextAlign.center, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.76), height: 1.35, fontWeight: FontWeight.w600)),
+                          Text(
+                              'Mieten & vermieten – sicher, einfach und in deiner Nähe.',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.76),
+                                  height: 1.35,
+                                  fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
@@ -199,99 +214,169 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       const bottomBarHeight = _StickyAuthBar.kMinHeight;
-                      final bottomPadding = bottomBarHeight + 16 + media.padding.bottom;
+                      final bottomPadding =
+                          bottomBarHeight + 16 + media.padding.bottom;
 
                       return SingleChildScrollView(
-                        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
                         padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPadding),
                         child: Center(
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 520),
                             child: _GlassCard(
                               child: Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 14, 16, 14),
                                 child: Form(
                                   key: _formKey,
-                                  autovalidateMode: _didInteract ? AutovalidateMode.onUserInteraction : AutovalidateMode.disabled,
-                                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                                    SocialAuthButton(brand: SocialAuthBrand.google, label: 'Mit Google registrieren', onTap: _busy ? null : () => _socialRegister(AuthSocialProvider.google)),
-                                    const SizedBox(height: 10),
-                                    SocialAuthButton(brand: SocialAuthBrand.apple, label: 'Mit Apple registrieren', onTap: _busy ? null : () => _socialRegister(AuthSocialProvider.apple)),
-                                    const SizedBox(height: 14),
-                                    const SocialAuthOrDivider(),
-                                    const SizedBox(height: 14),
-                                    _SITTextField(
-                                      label: 'Name',
-                                      placeholder: 'Max Mustermann',
-                                      controller: _nameCtrl,
-                                      focusNode: _nameFocus,
-                                      nextFocusNode: _emailFocus,
-                                      keyboardType: TextInputType.name,
-                                      textInputAction: TextInputAction.next,
-                                      validator: _validateName,
-                                      prefixIcon: Icons.person_outline,
-                                      status: _didInteract && _nameCtrl.text.trim().isNotEmpty ? (nameOk ? _FieldStatus.success : _FieldStatus.error) : _FieldStatus.neutral,
-                                      autocorrect: true,
-                                      enableSuggestions: true,
-                                      textCapitalization: TextCapitalization.words,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    _SITTextField(
-                                      label: 'E-Mail',
-                                      placeholder: 'deine@email.com',
-                                      controller: _emailCtrl,
-                                      focusNode: _emailFocus,
-                                      nextFocusNode: _pwFocus,
-                                      keyboardType: TextInputType.emailAddress,
-                                      textInputAction: TextInputAction.next,
-                                      validator: _validateEmail,
-                                      prefixIcon: Icons.alternate_email,
-                                      status: _didInteract && _emailCtrl.text.trim().isNotEmpty ? (emailOk ? _FieldStatus.success : _FieldStatus.error) : _FieldStatus.neutral,
-                                      autocorrect: false,
-                                      enableSuggestions: false,
-                                      textCapitalization: TextCapitalization.none,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    _SITTextField(
-                                      label: 'Passwort',
-                                      placeholder: '••••••••',
-                                      controller: _pwCtrl,
-                                      focusNode: _pwFocus,
-                                      nextFocusNode: _pw2Focus,
-                                      keyboardType: TextInputType.visiblePassword,
-                                      textInputAction: TextInputAction.next,
-                                      validator: _validatePassword,
-                                      prefixIcon: Icons.lock_outline,
-                                      status: _didInteract && _pwCtrl.text.isNotEmpty ? (pwOk ? _FieldStatus.success : _FieldStatus.error) : _FieldStatus.neutral,
-                                      obscureText: !_pwVisible,
-                                      autocorrect: false,
-                                      enableSuggestions: false,
-                                      textCapitalization: TextCapitalization.none,
-                                      suffix: _GlassSuffixIconButton(icon: _pwVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined, onTap: () => setState(() => _pwVisible = !_pwVisible)),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    _HintRow(icon: Icons.check_circle_outline, ok: pwOk, text: 'Mind. 8 Zeichen'),
-                                    const SizedBox(height: 10),
-                                    _SITTextField(
-                                      label: 'Passwort wiederholen',
-                                      placeholder: '••••••••',
-                                      controller: _pw2Ctrl,
-                                      focusNode: _pw2Focus,
-                                      keyboardType: TextInputType.visiblePassword,
-                                      textInputAction: TextInputAction.done,
-                                      validator: _validatePassword2,
-                                      prefixIcon: Icons.lock_outline,
-                                      status: _didInteract && _pw2Ctrl.text.isNotEmpty ? (pw2Ok ? _FieldStatus.success : _FieldStatus.error) : _FieldStatus.neutral,
-                                      obscureText: !_pw2Visible,
-                                      autocorrect: false,
-                                      enableSuggestions: false,
-                                      textCapitalization: TextCapitalization.none,
-                                      onSubmitted: (_) => _register(),
-                                      suffix: _GlassSuffixIconButton(icon: _pw2Visible ? Icons.visibility_off_outlined : Icons.visibility_outlined, onTap: () => setState(() => _pw2Visible = !_pw2Visible)),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    _HintRow(icon: Icons.verified_outlined, ok: pw2Ok, text: 'Passwörter müssen übereinstimmen'),
-                                  ]),
+                                  autovalidateMode: _didInteract
+                                      ? AutovalidateMode.onUserInteraction
+                                      : AutovalidateMode.disabled,
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        SocialAuthButton(
+                                            brand: SocialAuthBrand.google,
+                                            label: 'Mit Google registrieren',
+                                            onTap: _busy
+                                                ? null
+                                                : () => _socialRegister(
+                                                    AuthSocialProvider.google)),
+                                        const SizedBox(height: 10),
+                                        SocialAuthButton(
+                                            brand: SocialAuthBrand.apple,
+                                            label: 'Mit Apple registrieren',
+                                            onTap: _busy
+                                                ? null
+                                                : () => _socialRegister(
+                                                    AuthSocialProvider.apple)),
+                                        const SizedBox(height: 14),
+                                        const SocialAuthOrDivider(),
+                                        const SizedBox(height: 14),
+                                        _SITTextField(
+                                          label: 'Name',
+                                          placeholder: 'Max Mustermann',
+                                          controller: _nameCtrl,
+                                          focusNode: _nameFocus,
+                                          nextFocusNode: _emailFocus,
+                                          keyboardType: TextInputType.name,
+                                          textInputAction: TextInputAction.next,
+                                          validator: _validateName,
+                                          prefixIcon: Icons.person_outline,
+                                          status: _didInteract &&
+                                                  _nameCtrl.text
+                                                      .trim()
+                                                      .isNotEmpty
+                                              ? (nameOk
+                                                  ? _FieldStatus.success
+                                                  : _FieldStatus.error)
+                                              : _FieldStatus.neutral,
+                                          autocorrect: true,
+                                          enableSuggestions: true,
+                                          textCapitalization:
+                                              TextCapitalization.words,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        _SITTextField(
+                                          label: 'E-Mail',
+                                          placeholder: 'deine@email.com',
+                                          controller: _emailCtrl,
+                                          focusNode: _emailFocus,
+                                          nextFocusNode: _pwFocus,
+                                          keyboardType:
+                                              TextInputType.emailAddress,
+                                          textInputAction: TextInputAction.next,
+                                          validator: _validateEmail,
+                                          prefixIcon: Icons.alternate_email,
+                                          status: _didInteract &&
+                                                  _emailCtrl.text
+                                                      .trim()
+                                                      .isNotEmpty
+                                              ? (emailOk
+                                                  ? _FieldStatus.success
+                                                  : _FieldStatus.error)
+                                              : _FieldStatus.neutral,
+                                          autocorrect: false,
+                                          enableSuggestions: false,
+                                          textCapitalization:
+                                              TextCapitalization.none,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        _SITTextField(
+                                          label: 'Passwort',
+                                          placeholder: '••••••••',
+                                          controller: _pwCtrl,
+                                          focusNode: _pwFocus,
+                                          nextFocusNode: _pw2Focus,
+                                          keyboardType:
+                                              TextInputType.visiblePassword,
+                                          textInputAction: TextInputAction.next,
+                                          validator: _validatePassword,
+                                          prefixIcon: Icons.lock_outline,
+                                          status: _didInteract &&
+                                                  _pwCtrl.text.isNotEmpty
+                                              ? (pwOk
+                                                  ? _FieldStatus.success
+                                                  : _FieldStatus.error)
+                                              : _FieldStatus.neutral,
+                                          obscureText: !_pwVisible,
+                                          autocorrect: false,
+                                          enableSuggestions: false,
+                                          textCapitalization:
+                                              TextCapitalization.none,
+                                          suffix: _GlassSuffixIconButton(
+                                              icon: _pwVisible
+                                                  ? Icons
+                                                      .visibility_off_outlined
+                                                  : Icons.visibility_outlined,
+                                              onTap: () => setState(() =>
+                                                  _pwVisible = !_pwVisible)),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        _HintRow(
+                                            icon: Icons.check_circle_outline,
+                                            ok: pwOk,
+                                            text: 'Mind. 8 Zeichen'),
+                                        const SizedBox(height: 10),
+                                        _SITTextField(
+                                          label: 'Passwort wiederholen',
+                                          placeholder: '••••••••',
+                                          controller: _pw2Ctrl,
+                                          focusNode: _pw2Focus,
+                                          keyboardType:
+                                              TextInputType.visiblePassword,
+                                          textInputAction: TextInputAction.done,
+                                          validator: _validatePassword2,
+                                          prefixIcon: Icons.lock_outline,
+                                          status: _didInteract &&
+                                                  _pw2Ctrl.text.isNotEmpty
+                                              ? (pw2Ok
+                                                  ? _FieldStatus.success
+                                                  : _FieldStatus.error)
+                                              : _FieldStatus.neutral,
+                                          obscureText: !_pw2Visible,
+                                          autocorrect: false,
+                                          enableSuggestions: false,
+                                          textCapitalization:
+                                              TextCapitalization.none,
+                                          onSubmitted: (_) => _register(),
+                                          suffix: _GlassSuffixIconButton(
+                                              icon: _pw2Visible
+                                                  ? Icons
+                                                      .visibility_off_outlined
+                                                  : Icons.visibility_outlined,
+                                              onTap: () => setState(() =>
+                                                  _pw2Visible = !_pw2Visible)),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        _HintRow(
+                                            icon: Icons.verified_outlined,
+                                            ok: pw2Ok,
+                                            text:
+                                                'Passwörter müssen übereinstimmen'),
+                                      ]),
                                 ),
                               ),
                             ),
@@ -334,7 +419,8 @@ class _RegisterBackdrop extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.asset('assets/images/register.png', fit: BoxFit.cover, alignment: Alignment.topCenter),
+        Image.asset('assets/images/register.png',
+            fit: BoxFit.cover, alignment: Alignment.topCenter),
         ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
@@ -347,8 +433,10 @@ class _RegisterBackdrop extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!.withValues(alpha: 0.34),
-                Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!.withValues(alpha: 0.26),
+                Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!
+                    .withValues(alpha: 0.34),
+                Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!
+                    .withValues(alpha: 0.26),
               ],
             ),
           ),
@@ -413,7 +501,9 @@ class _GlassSuffixIconButton extends StatelessWidget {
       child: SizedBox(
         width: 40,
         height: 40,
-        child: Center(child: Icon(icon, color: Colors.white.withValues(alpha: 0.85), size: 20)),
+        child: Center(
+            child: Icon(icon,
+                color: Colors.white.withValues(alpha: 0.85), size: 20)),
       ),
     );
   }
@@ -505,7 +595,8 @@ class _SITTextField extends StatelessWidget {
       autocorrect: autocorrect,
       enableSuggestions: enableSuggestions,
       textCapitalization: textCapitalization,
-      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+      style: theme.textTheme.bodyMedium?.copyWith(
+          fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
       validator: validator,
       onFieldSubmitted: (v) {
         if (nextFocusNode != null) {
@@ -517,22 +608,43 @@ class _SITTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         hintText: placeholder,
-        hintStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.42), fontWeight: FontWeight.w600),
-        labelStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.78), fontWeight: FontWeight.w700),
+        hintStyle: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white.withValues(alpha: 0.42),
+            fontWeight: FontWeight.w600),
+        labelStyle: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white.withValues(alpha: 0.78),
+            fontWeight: FontWeight.w700),
         prefixIcon: Padding(
           padding: const EdgeInsets.only(left: 12, right: 10),
-          child: Icon(prefixIcon, color: Colors.white.withValues(alpha: 0.78), size: 18),
+          child: Icon(prefixIcon,
+              color: Colors.white.withValues(alpha: 0.78), size: 18),
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-        suffixIcon: suffix == null ? null : Padding(padding: const EdgeInsets.only(right: 8), child: suffix),
+        suffixIcon: suffix == null
+            ? null
+            : Padding(padding: const EdgeInsets.only(right: 8), child: suffix),
         filled: true,
         fillColor: Colors.black.withValues(alpha: 0.10),
         contentPadding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: border, width: 1.0)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: focusedBorder.withValues(alpha: 0.90), width: 1.35)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: BrandColors.danger.withValues(alpha: 0.9), width: 1.2)),
-        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: BrandColors.danger.withValues(alpha: 0.95), width: 1.3)),
-        errorStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.92), height: 1.25, fontWeight: FontWeight.w700),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(color: border, width: 1.0)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(
+                color: focusedBorder.withValues(alpha: 0.90), width: 1.35)),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(
+                color: BrandColors.danger.withValues(alpha: 0.9), width: 1.2)),
+        focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(
+                color: BrandColors.danger.withValues(alpha: 0.95), width: 1.3)),
+        errorStyle: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white.withValues(alpha: 0.92),
+            height: 1.25,
+            fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -547,13 +659,18 @@ class _HintRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final c = ok ? BrandColors.success.withValues(alpha: 0.95) : Colors.white.withValues(alpha: 0.55);
+    final c = ok
+        ? BrandColors.success.withValues(alpha: 0.95)
+        : Colors.white.withValues(alpha: 0.55);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Row(children: [
         Icon(icon, size: 14, color: c),
         const SizedBox(width: 8),
-        Expanded(child: Text(text, style: theme.textTheme.labelSmall?.copyWith(color: c, height: 1.2, fontWeight: FontWeight.w700))),
+        Expanded(
+            child: Text(text,
+                style: theme.textTheme.labelSmall?.copyWith(
+                    color: c, height: 1.2, fontWeight: FontWeight.w700))),
       ]),
     );
   }
@@ -566,7 +683,12 @@ class _StickyAuthBar extends StatelessWidget {
   final VoidCallback onOpenTerms;
   final VoidCallback onOpenPrivacy;
   final VoidCallback onLogin;
-  const _StickyAuthBar({required this.busy, required this.onSubmit, required this.onOpenTerms, required this.onOpenPrivacy, required this.onLogin});
+  const _StickyAuthBar(
+      {required this.busy,
+      required this.onSubmit,
+      required this.onOpenTerms,
+      required this.onOpenPrivacy,
+      required this.onLogin});
 
   @override
   Widget build(BuildContext context) {
@@ -579,10 +701,12 @@ class _StickyAuthBar extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
             constraints: const BoxConstraints(minHeight: kMinHeight),
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + (media.padding.bottom > 0 ? 0 : 6)),
+            padding: EdgeInsets.fromLTRB(
+                16, 12, 16, 12 + (media.padding.bottom > 0 ? 0 : 6)),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.32),
-              border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+              border: Border(
+                  top: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
             ),
             child: Center(
               child: ConstrainedBox(
@@ -591,12 +715,19 @@ class _StickyAuthBar extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _PrimaryCTAButton(busy: busy, label: busy ? 'Registrieren…' : 'Kostenlos registrieren', onTap: onSubmit),
+                    _PrimaryCTAButton(
+                        busy: busy,
+                        label:
+                            busy ? 'Registrieren…' : 'Kostenlos registrieren',
+                        onTap: onSubmit),
                     const SizedBox(height: 10),
-                    _LegalText(onOpenTerms: onOpenTerms, onOpenPrivacy: onOpenPrivacy),
+                    _LegalText(
+                        onOpenTerms: onOpenTerms, onOpenPrivacy: onOpenPrivacy),
                     const SizedBox(height: 8),
                     Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Text('Schon ein Konto? ', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.78))),
+                      Text('Schon ein Konto? ',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.78))),
                       _TextLink(label: 'Anmelden', onTap: onLogin),
                     ]),
                   ],
@@ -614,7 +745,8 @@ class _PrimaryCTAButton extends StatelessWidget {
   final bool busy;
   final String label;
   final VoidCallback? onTap;
-  const _PrimaryCTAButton({required this.busy, required this.label, required this.onTap});
+  const _PrimaryCTAButton(
+      {required this.busy, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -627,24 +759,57 @@ class _PrimaryCTAButton extends StatelessWidget {
         height: 56,
         decoration: BoxDecoration(
           gradient: onTap == null
-              ? LinearGradient(colors: [Colors.white.withValues(alpha: 0.10), Colors.white.withValues(alpha: 0.08)])
-              : LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.82)]),
+              ? LinearGradient(colors: [
+                  Colors.white.withValues(alpha: 0.10),
+                  Colors.white.withValues(alpha: 0.08)
+                ])
+              : LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.primary.withValues(alpha: 0.82)
+                    ]),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: onTap == null ? Colors.white.withValues(alpha: 0.10) : theme.colorScheme.primary.withValues(alpha: 0.55)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: onTap == null ? 0.14 : 0.30), blurRadius: 26, offset: const Offset(0, 16))],
+          border: Border.all(
+              color: onTap == null
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : theme.colorScheme.primary.withValues(alpha: 0.55)),
+          boxShadow: [
+            BoxShadow(
+                color:
+                    Colors.black.withValues(alpha: onTap == null ? 0.14 : 0.30),
+                blurRadius: 26,
+                offset: const Offset(0, 16))
+          ],
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (busy) ...[
-              SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white.withValues(alpha: onTap == null ? 0.75 : 1.0))),
+              SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white
+                          .withValues(alpha: onTap == null ? 0.75 : 1.0))),
               const SizedBox(width: 10),
             ] else ...[
-              Icon(Icons.person_add_alt_1, color: Colors.white.withValues(alpha: onTap == null ? 0.75 : 1.0), size: 20),
+              Icon(Icons.person_add_alt_1,
+                  color: Colors.white
+                      .withValues(alpha: onTap == null ? 0.75 : 1.0),
+                  size: 20),
               const SizedBox(width: 10),
             ],
-            Flexible(child: Text(label, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white))),
+            Flexible(
+                child: Text(label,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white))),
           ],
         ),
       ),
@@ -660,7 +825,8 @@ class _LegalText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final base = theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.74), height: 1.35);
+    final base = theme.textTheme.labelSmall
+        ?.copyWith(color: Colors.white.withValues(alpha: 0.74), height: 1.35);
     final link = theme.textTheme.labelSmall?.copyWith(
       color: Colors.white,
       height: 1.35,
@@ -673,10 +839,18 @@ class _LegalText extends StatelessWidget {
       child: Text.rich(
         TextSpan(
           children: [
-            TextSpan(text: 'Mit dem Erstellen eines Kontos stimmst du unseren ', style: base),
-            TextSpan(text: 'AGB', style: link, recognizer: TapGestureRecognizer()..onTap = onOpenTerms),
+            TextSpan(
+                text: 'Mit dem Erstellen eines Kontos stimmst du unseren ',
+                style: base),
+            TextSpan(
+                text: 'AGB',
+                style: link,
+                recognizer: TapGestureRecognizer()..onTap = onOpenTerms),
             TextSpan(text: ' und ', style: base),
-            TextSpan(text: 'Datenschutzbestimmungen', style: link, recognizer: TapGestureRecognizer()..onTap = onOpenPrivacy),
+            TextSpan(
+                text: 'Datenschutzbestimmungen',
+                style: link,
+                recognizer: TapGestureRecognizer()..onTap = onOpenPrivacy),
             TextSpan(text: ' zu.', style: base),
           ],
         ),
@@ -699,7 +873,9 @@ class _TextLink extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-        child: Text(label, style: theme.textTheme.bodySmall?.copyWith(color: BrandColors.logoAccent, fontWeight: FontWeight.w900)),
+        child: Text(label,
+            style: theme.textTheme.bodySmall?.copyWith(
+                color: BrandColors.logoAccent, fontWeight: FontWeight.w900)),
       ),
     );
   }
@@ -709,7 +885,8 @@ class _Pressable extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
   final BorderRadius borderRadius;
-  const _Pressable({required this.child, required this.onTap, required this.borderRadius});
+  const _Pressable(
+      {required this.child, required this.onTap, required this.borderRadius});
 
   @override
   State<_Pressable> createState() => _PressableState();
@@ -739,4 +916,3 @@ class _PressableState extends State<_Pressable> {
     );
   }
 }
-

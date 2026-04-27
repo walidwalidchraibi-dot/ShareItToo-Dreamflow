@@ -52,7 +52,9 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await AuthService.clearSession();
       if (!mounted) return;
-      await context.read<DeveloperPreviewController>().setState(DeveloperUserState.loggedOut);
+      await context
+          .read<DeveloperPreviewController>()
+          .setState(DeveloperUserState.loggedOut);
     } catch (e) {
       debugPrint('[LoginScreen] continueAsGuest failed: $e');
     }
@@ -76,7 +78,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
 
       if (session != null) {
-        if (preview.state != DeveloperUserState.loggedIn && preview.state != DeveloperUserState.verifiedUser) {
+        if (preview.state != DeveloperUserState.loggedIn &&
+            preview.state != DeveloperUserState.verifiedUser) {
           await preview.setState(DeveloperUserState.loggedIn);
         }
         if (!mounted) return;
@@ -85,8 +88,10 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       // If the preview says "logged in" but there is no session, keep the user here.
-      if (preview.state == DeveloperUserState.loggedIn || preview.state == DeveloperUserState.verifiedUser) {
-        debugPrint('[LoginScreen] preview state indicates logged-in but no session found; staying on login.');
+      if (preview.state == DeveloperUserState.loggedIn ||
+          preview.state == DeveloperUserState.verifiedUser) {
+        debugPrint(
+            '[LoginScreen] preview state indicates logged-in but no session found; staying on login.');
       }
     } catch (e) {
       debugPrint('[LoginScreen] bootstrap failed: $e');
@@ -141,26 +146,37 @@ class _LoginScreenState extends State<LoginScreen> {
       // Simulate realistic latency.
       await Future<void>.delayed(const Duration(milliseconds: 520));
 
-      final result = await AuthService.signInWithEmailPassword(email: _emailCtrl.text, password: _pwCtrl.text);
+      final result = await AuthService.signInWithEmailPassword(
+          email: _emailCtrl.text, password: _pwCtrl.text);
       if (!mounted) return;
 
       if (!result.ok) {
         final msg = switch (result.failure) {
-          AuthFailure.invalidCredentials => 'E-Mail oder Passwort ist nicht korrekt.',
-          AuthFailure.network => 'Es ist ein Netzwerkfehler aufgetreten. Bitte versuche es erneut.',
+          AuthFailure.invalidCredentials =>
+            'E-Mail oder Passwort ist nicht korrekt.',
+          AuthFailure.network =>
+            'Es ist ein Netzwerkfehler aufgetreten. Bitte versuche es erneut.',
           _ => 'Es ist ein Fehler aufgetreten. Bitte versuche es erneut.',
         };
-        await AppPopup.toast(context, icon: Icons.error_outline, title: msg, message: 'Tipp: Demo-Login: ${AuthService.demoEmail}');
+        await AppPopup.toast(context,
+            icon: Icons.error_outline,
+            title: msg,
+            message: 'Tipp: Demo-Login: ${AuthService.demoEmail}');
         return;
       }
 
-      await context.read<DeveloperPreviewController>().setState(DeveloperUserState.loggedIn);
+      await context
+          .read<DeveloperPreviewController>()
+          .setState(DeveloperUserState.loggedIn);
       if (!mounted) return;
       _goHome(replace: true);
     } catch (e) {
       debugPrint('[LoginScreen] submit failed: $e');
       if (!mounted) return;
-      await AppPopup.toast(context, icon: Icons.wifi_off_outlined, title: 'Es ist ein Netzwerkfehler aufgetreten.', message: 'Bitte versuche es erneut.');
+      await AppPopup.toast(context,
+          icon: Icons.wifi_off_outlined,
+          title: 'Es ist ein Netzwerkfehler aufgetreten.',
+          message: 'Bitte versuche es erneut.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -187,26 +203,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _socialSignIn(AuthSocialProvider provider) async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    try {
-      await Future<void>.delayed(const Duration(milliseconds: 380));
-      final result = await AuthService.signInWithSocialProvider(provider);
-      if (!mounted) return;
-      if (!result.ok) {
-        await AppPopup.toast(context, icon: Icons.wifi_off_outlined, title: 'Login fehlgeschlagen', message: 'Bitte versuche es erneut.');
-        return;
-      }
-      await context.read<DeveloperPreviewController>().setState(DeveloperUserState.loggedIn);
-      if (!mounted) return;
-      _goHome(replace: true);
-    } catch (e) {
-      debugPrint('[LoginScreen] socialSignIn failed: $e');
-      if (!mounted) return;
-      await AppPopup.toast(context, icon: Icons.wifi_off_outlined, title: 'Es ist ein Fehler aufgetreten.', message: 'Bitte versuche es erneut.');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    if (_busy || !mounted) return;
+    final providerLabel =
+        provider == AuthSocialProvider.google ? 'Google' : 'Apple';
+    await AppPopup.toast(
+      context,
+      icon: Icons.info_outline,
+      title: '$providerLabel-Anmeldung noch nicht verfügbar',
+      message: 'Bitte nutze aktuell die Anmeldung per E-Mail.',
+    );
   }
 
   @override
@@ -219,13 +224,16 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            Positioned.fill(child: IgnorePointer(child: _AuthBackdrop(peekClear: _peekBackdrop))),
+            Positioned.fill(
+                child: IgnorePointer(
+                    child: _AuthBackdrop(peekClear: _peekBackdrop))),
             Positioned.fill(
               child: Listener(
                 behavior: HitTestBehavior.translucent,
                 onPointerDown: (e) {
                   if (_checkingSession) return;
-                  if (_isOutsideCard(e.position)) setState(() => _peekBackdrop = true);
+                  if (_isOutsideCard(e.position))
+                    setState(() => _peekBackdrop = true);
                 },
                 onPointerUp: (_) {
                   if (_peekBackdrop) setState(() => _peekBackdrop = false);
@@ -236,39 +244,61 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: IgnorePointer(
                   ignoring: _checkingSession,
                   child: CustomScrollView(
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     slivers: [
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
                         sliver: SliverToBoxAdapter(
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Row(children: [
-                              _GlassIconButton(icon: Icons.arrow_back, onTap: () => Navigator.of(context).maybePop()),
-                              Expanded(
-                                child: Center(
-                                  child: Text('Anmelden', style: theme.textTheme.titleLarge?.copyWith(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white)),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(children: [
+                                  _GlassIconButton(
+                                      icon: Icons.arrow_back,
+                                      onTap: () =>
+                                          Navigator.of(context).maybePop()),
+                                  Expanded(
+                                    child: Center(
+                                      child: Text('Anmelden',
+                                          style: theme.textTheme.titleLarge
+                                              ?.copyWith(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: Colors.white)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 44),
+                                ]),
+                                const SizedBox(height: 22),
+                                Center(
+                                  child: ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(maxWidth: 520),
+                                    child: Text(
+                                      'Melde dich an, um Dinge zu teilen, zu mieten und deine Buchungen zu verwalten.',
+                                      textAlign: TextAlign.center,
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                              color: Colors.white,
+                                              height: 1.35,
+                                              fontWeight: FontWeight.w900),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 44),
-                            ]),
-                            const SizedBox(height: 22),
-                            Center(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 520),
-                                child: Text(
-                                  'Melde dich an, um Dinge zu teilen, zu mieten und deine Buchungen zu verwalten.',
-                                  textAlign: TextAlign.center,
-                                  style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, height: 1.35, fontWeight: FontWeight.w900),
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: mathMax(18, media.size.height * 0.04)),
-                          ]),
+                                SizedBox(
+                                    height:
+                                        mathMax(18, media.size.height * 0.04)),
+                              ]),
                         ),
                       ),
-
                       SliverPadding(
-                        padding: EdgeInsets.fromLTRB(16, 0, 16, mathMax(18, media.viewInsets.bottom == 0 ? 28 : 12)),
+                        padding: EdgeInsets.fromLTRB(
+                            16,
+                            0,
+                            16,
+                            mathMax(
+                                18, media.viewInsets.bottom == 0 ? 28 : 12)),
                         sliver: SliverToBoxAdapter(
                           child: Center(
                             child: ConstrainedBox(
@@ -281,74 +311,153 @@ class _LoginScreenState extends State<LoginScreen> {
                                   key: _cardKey,
                                   child: _GlassCard(
                                     child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                                      padding: const EdgeInsets.fromLTRB(
+                                          16, 16, 16, 16),
                                       child: Form(
                                         key: _formKey,
-                                        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                                          const SitLogoHeader(),
-                                          const SizedBox(height: 16),
-                                          _SITTextField(
-                                            label: 'E-Mail',
-                                            placeholder: 'deine@email.com',
-                                            controller: _emailCtrl,
-                                            focusNode: _emailFocus,
-                                            nextFocusNode: _pwFocus,
-                                            keyboardType: TextInputType.emailAddress,
-                                            textInputAction: TextInputAction.next,
-                                            validator: _validateEmail,
-                                            prefixIcon: Icons.alternate_email,
-                                            autocorrect: false,
-                                            enableSuggestions: false,
-                                            textCapitalization: TextCapitalization.none,
-                                          ),
-                                          const SizedBox(height: 12),
-                                          _SITTextField(
-                                            label: 'Passwort',
-                                            placeholder: '••••••••',
-                                            controller: _pwCtrl,
-                                            focusNode: _pwFocus,
-                                            keyboardType: TextInputType.visiblePassword,
-                                            textInputAction: TextInputAction.done,
-                                            validator: _validatePassword,
-                                            prefixIcon: Icons.lock_outline,
-                                            obscureText: !_pwVisible,
-                                            autocorrect: false,
-                                            enableSuggestions: false,
-                                            textCapitalization: TextCapitalization.none,
-                                            onSubmitted: (_) => _submit(),
-                                            suffix: _GlassSuffixIconButton(
-                                              icon: _pwVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                              onTap: () => setState(() => _pwVisible = !_pwVisible),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 10),
-                                          Align(alignment: Alignment.centerRight, child: _TextLink(label: 'Passwort vergessen?', onTap: _openResetFlow)),
-                                          const SizedBox(height: 14),
-                                          _PrimaryAuthButton(busy: _busy, label: _busy ? 'Anmelden…' : 'Anmelden', icon: Icons.login, onTap: _busy ? null : _submit),
-                                          const SizedBox(height: 14),
-                                          const SocialAuthOrDivider(),
-                                          const SizedBox(height: 12),
-                                          SocialAuthButton(brand: SocialAuthBrand.google, label: 'Mit Google anmelden', onTap: _busy ? null : () => _socialSignIn(AuthSocialProvider.google)),
-                                          const SizedBox(height: 10),
-                                          SocialAuthButton(brand: SocialAuthBrand.apple, label: 'Mit Apple anmelden', onTap: _busy ? null : () => _socialSignIn(AuthSocialProvider.apple)),
-                                          const SizedBox(height: 14),
-                                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                            Text('Noch kein Konto? ', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.75))),
-                                            _TextLink(label: 'Jetzt registrieren', onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen()))),
-                                          ]),
-                                          const SizedBox(height: 14),
-                                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                            Icon(Icons.verified_user_outlined, size: 16, color: Colors.white.withValues(alpha: 0.65)),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                'Deine Daten werden sicher verschlüsselt übertragen.',
-                                                textAlign: TextAlign.center,
-                                                style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.70), height: 1.35),
+                                        child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              const SitLogoHeader(),
+                                              const SizedBox(height: 16),
+                                              _SITTextField(
+                                                label: 'E-Mail',
+                                                placeholder: 'deine@email.com',
+                                                controller: _emailCtrl,
+                                                focusNode: _emailFocus,
+                                                nextFocusNode: _pwFocus,
+                                                keyboardType:
+                                                    TextInputType.emailAddress,
+                                                textInputAction:
+                                                    TextInputAction.next,
+                                                validator: _validateEmail,
+                                                prefixIcon:
+                                                    Icons.alternate_email,
+                                                autocorrect: false,
+                                                enableSuggestions: false,
+                                                textCapitalization:
+                                                    TextCapitalization.none,
                                               ),
-                                            ),
-                                          ]),
-                                        ]),
+                                              const SizedBox(height: 12),
+                                              _SITTextField(
+                                                label: 'Passwort',
+                                                placeholder: '••••••••',
+                                                controller: _pwCtrl,
+                                                focusNode: _pwFocus,
+                                                keyboardType: TextInputType
+                                                    .visiblePassword,
+                                                textInputAction:
+                                                    TextInputAction.done,
+                                                validator: _validatePassword,
+                                                prefixIcon: Icons.lock_outline,
+                                                obscureText: !_pwVisible,
+                                                autocorrect: false,
+                                                enableSuggestions: false,
+                                                textCapitalization:
+                                                    TextCapitalization.none,
+                                                onSubmitted: (_) => _submit(),
+                                                suffix: _GlassSuffixIconButton(
+                                                  icon: _pwVisible
+                                                      ? Icons
+                                                          .visibility_off_outlined
+                                                      : Icons
+                                                          .visibility_outlined,
+                                                  onTap: () => setState(() =>
+                                                      _pwVisible = !_pwVisible),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 10),
+                                              Align(
+                                                  alignment:
+                                                      Alignment.centerRight,
+                                                  child: _TextLink(
+                                                      label:
+                                                          'Passwort vergessen?',
+                                                      onTap: _openResetFlow)),
+                                              const SizedBox(height: 14),
+                                              _PrimaryAuthButton(
+                                                  busy: _busy,
+                                                  label: _busy
+                                                      ? 'Anmelden…'
+                                                      : 'Anmelden',
+                                                  icon: Icons.login,
+                                                  onTap:
+                                                      _busy ? null : _submit),
+                                              const SizedBox(height: 14),
+                                              const SocialAuthOrDivider(),
+                                              const SizedBox(height: 12),
+                                              SocialAuthButton(
+                                                  brand: SocialAuthBrand.google,
+                                                  label: 'Mit Google anmelden',
+                                                  onTap: _busy
+                                                      ? null
+                                                      : () => _socialSignIn(
+                                                          AuthSocialProvider
+                                                              .google)),
+                                              const SizedBox(height: 10),
+                                              SocialAuthButton(
+                                                  brand: SocialAuthBrand.apple,
+                                                  label: 'Mit Apple anmelden',
+                                                  onTap: _busy
+                                                      ? null
+                                                      : () => _socialSignIn(
+                                                          AuthSocialProvider
+                                                              .apple)),
+                                              const SizedBox(height: 14),
+                                              Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Text('Noch kein Konto? ',
+                                                        style: theme
+                                                            .textTheme.bodySmall
+                                                            ?.copyWith(
+                                                                color: Colors
+                                                                    .white
+                                                                    .withValues(
+                                                                        alpha:
+                                                                            0.75))),
+                                                    _TextLink(
+                                                        label:
+                                                            'Jetzt registrieren',
+                                                        onTap: () => Navigator
+                                                                .of(context)
+                                                            .push(MaterialPageRoute(
+                                                                builder: (_) =>
+                                                                    const RegisterScreen()))),
+                                                  ]),
+                                              const SizedBox(height: 14),
+                                              Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                        Icons
+                                                            .verified_user_outlined,
+                                                        size: 16,
+                                                        color: Colors.white
+                                                            .withValues(
+                                                                alpha: 0.65)),
+                                                    const SizedBox(width: 8),
+                                                    Expanded(
+                                                      child: Text(
+                                                        'Deine Daten werden sicher verschlüsselt übertragen.',
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: theme.textTheme
+                                                            .labelSmall
+                                                            ?.copyWith(
+                                                                color: Colors
+                                                                    .white
+                                                                    .withValues(
+                                                                        alpha:
+                                                                            0.70),
+                                                                height: 1.35),
+                                                      ),
+                                                    ),
+                                                  ]),
+                                            ]),
                                       ),
                                     ),
                                   ),
@@ -358,33 +467,45 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-
                       SliverPadding(
-                        padding: EdgeInsets.fromLTRB(16, 8, 16, 22 + media.padding.bottom),
+                        padding: EdgeInsets.fromLTRB(
+                            16, 8, 16, 22 + media.padding.bottom),
                         sliver: SliverToBoxAdapter(
                           child: Center(
                             child: _Pressable(
                               onTap: _continueAsGuest,
                               borderRadius: BorderRadius.circular(999),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.08),
                                   borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+                                  border: Border.all(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.14)),
                                 ),
-                                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                  Icon(Icons.person_outline, size: 18, color: Colors.white.withValues(alpha: 0.90)),
-                                  const SizedBox(width: 10),
-                                  Text('Ohne Anmeldung weiter', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
-                                ]),
+                                child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.person_outline,
+                                          size: 18,
+                                          color: Colors.white
+                                              .withValues(alpha: 0.90)),
+                                      const SizedBox(width: 10),
+                                      Text('Ohne Anmeldung weiter',
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w900)),
+                                    ]),
                               ),
                             ),
                           ),
                         ),
                       ),
-                  ],
-                ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -394,11 +515,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Center(
                     child: _GlassCard(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 14),
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: BrandColors.logoAccent)),
+                          const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: BrandColors.logoAccent)),
                           const SizedBox(width: 12),
-                          Text('Session prüfen…', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
+                          Text('Session prüfen…',
+                              style: theme.textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700)),
                         ]),
                       ),
                     ),
@@ -439,10 +568,12 @@ class _AuthBackdrop extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.asset('assets/images/register.png', fit: BoxFit.cover, alignment: Alignment.topCenter),
+        Image.asset('assets/images/register.png',
+            fit: BoxFit.cover, alignment: Alignment.topCenter),
         ClipRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: peekClear ? 0.0 : 2.0, sigmaY: peekClear ? 0.0 : 2.0),
+            filter: ImageFilter.blur(
+                sigmaX: peekClear ? 0.0 : 2.0, sigmaY: peekClear ? 0.0 : 2.0),
             child: const SizedBox.expand(),
           ),
         ),
@@ -452,8 +583,10 @@ class _AuthBackdrop extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!.withValues(alpha: peekClear ? 0.14 : 0.36),
-                Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!.withValues(alpha: peekClear ? 0.12 : 0.28),
+                Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!
+                    .withValues(alpha: peekClear ? 0.14 : 0.36),
+                Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!
+                    .withValues(alpha: peekClear ? 0.12 : 0.28),
               ],
             ),
           ),
@@ -465,9 +598,13 @@ class _AuthBackdrop extends StatelessWidget {
                 flex: band.flex,
                 child: ClipRect(
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: band.sigma.toDouble(), sigmaY: band.sigma.toDouble()),
+                    filter: ImageFilter.blur(
+                        sigmaX: band.sigma.toDouble(),
+                        sigmaY: band.sigma.toDouble()),
                     child: DecoratedBox(
-                      decoration: BoxDecoration(color: theme.colorScheme.surface.withValues(alpha: band.tintOpacity)),
+                      decoration: BoxDecoration(
+                          color: theme.colorScheme.surface
+                              .withValues(alpha: band.tintOpacity)),
                     ),
                   ),
                 ),
@@ -482,8 +619,10 @@ class _AuthBackdrop extends StatelessWidget {
                 end: Alignment.bottomCenter,
                 colors: [
                   Colors.transparent,
-                  theme.colorScheme.surface.withValues(alpha: peekClear ? 0.12 : 0.40),
-                  theme.colorScheme.surface.withValues(alpha: peekClear ? 0.18 : 0.62),
+                  theme.colorScheme.surface
+                      .withValues(alpha: peekClear ? 0.12 : 0.40),
+                  theme.colorScheme.surface
+                      .withValues(alpha: peekClear ? 0.18 : 0.62),
                 ],
                 stops: const [0.55, 0.82, 1.0],
               ),
@@ -499,7 +638,8 @@ class _BlurBandSpec {
   final int flex;
   final int sigma;
   final double tintOpacity;
-  const _BlurBandSpec({required this.flex, required this.sigma, required this.tintOpacity});
+  const _BlurBandSpec(
+      {required this.flex, required this.sigma, required this.tintOpacity});
 }
 
 class _GlassIconButton extends StatelessWidget {
@@ -541,7 +681,9 @@ class _GlassSuffixIconButton extends StatelessWidget {
       child: SizedBox(
         width: 40,
         height: 40,
-        child: Center(child: Icon(icon, color: Colors.white.withValues(alpha: 0.85), size: 20)),
+        child: Center(
+            child: Icon(icon,
+                color: Colors.white.withValues(alpha: 0.85), size: 20)),
       ),
     );
   }
@@ -621,7 +763,8 @@ class _SITTextField extends StatelessWidget {
       autocorrect: autocorrect,
       enableSuggestions: enableSuggestions,
       textCapitalization: textCapitalization,
-      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+      style: theme.textTheme.bodyMedium?.copyWith(
+          fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
       validator: validator,
       onFieldSubmitted: (v) {
         if (nextFocusNode != null) {
@@ -633,22 +776,44 @@ class _SITTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         hintText: placeholder,
-        hintStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.42), fontWeight: FontWeight.w600),
-        labelStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.78), fontWeight: FontWeight.w700),
+        hintStyle: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white.withValues(alpha: 0.42),
+            fontWeight: FontWeight.w600),
+        labelStyle: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white.withValues(alpha: 0.78),
+            fontWeight: FontWeight.w700),
         prefixIcon: Padding(
           padding: const EdgeInsets.only(left: 12, right: 10),
-          child: Icon(prefixIcon, color: Colors.white.withValues(alpha: 0.78), size: 18),
+          child: Icon(prefixIcon,
+              color: Colors.white.withValues(alpha: 0.78), size: 18),
         ),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-        suffixIcon: suffix == null ? null : Padding(padding: const EdgeInsets.only(right: 8), child: suffix),
+        suffixIcon: suffix == null
+            ? null
+            : Padding(padding: const EdgeInsets.only(right: 8), child: suffix),
         filled: true,
         fillColor: Colors.black.withValues(alpha: 0.12),
         contentPadding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: BrandColors.logoAccent, width: 1.4)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: BrandColors.danger.withValues(alpha: 0.9), width: 1.2)),
-        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: BrandColors.danger.withValues(alpha: 0.95), width: 1.3)),
-        errorStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.92), height: 1.25, fontWeight: FontWeight.w700),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide:
+                BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide:
+                const BorderSide(color: BrandColors.logoAccent, width: 1.4)),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(
+                color: BrandColors.danger.withValues(alpha: 0.9), width: 1.2)),
+        focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(
+                color: BrandColors.danger.withValues(alpha: 0.95), width: 1.3)),
+        errorStyle: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white.withValues(alpha: 0.92),
+            height: 1.25,
+            fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -659,7 +824,11 @@ class _PrimaryAuthButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback? onTap;
-  const _PrimaryAuthButton({required this.busy, required this.label, required this.icon, required this.onTap});
+  const _PrimaryAuthButton(
+      {required this.busy,
+      required this.label,
+      required this.icon,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -672,24 +841,55 @@ class _PrimaryAuthButton extends StatelessWidget {
         height: 54,
         decoration: BoxDecoration(
           gradient: onTap == null
-              ? LinearGradient(colors: [Colors.white.withValues(alpha: 0.10), Colors.white.withValues(alpha: 0.08)])
-              : LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.85)]),
+              ? LinearGradient(colors: [
+                  Colors.white.withValues(alpha: 0.10),
+                  Colors.white.withValues(alpha: 0.08)
+                ])
+              : LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.primary.withValues(alpha: 0.85)
+                    ]),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: onTap == null ? Colors.white.withValues(alpha: 0.10) : theme.colorScheme.primary.withValues(alpha: 0.55)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: onTap == null ? 0.12 : 0.26), blurRadius: 24, offset: const Offset(0, 16))],
+          border: Border.all(
+              color: onTap == null
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : theme.colorScheme.primary.withValues(alpha: 0.55)),
+          boxShadow: [
+            BoxShadow(
+                color:
+                    Colors.black.withValues(alpha: onTap == null ? 0.12 : 0.26),
+                blurRadius: 24,
+                offset: const Offset(0, 16))
+          ],
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (busy) ...[
-              SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white.withValues(alpha: onTap == null ? 0.75 : 1.0))),
+              SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white
+                          .withValues(alpha: onTap == null ? 0.75 : 1.0))),
               const SizedBox(width: 10),
             ] else ...[
-              Icon(icon, color: Colors.white.withValues(alpha: onTap == null ? 0.75 : 1.0), size: 20),
+              Icon(icon,
+                  color: Colors.white
+                      .withValues(alpha: onTap == null ? 0.75 : 1.0),
+                  size: 20),
               const SizedBox(width: 10),
             ],
-            Text(label, style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white)),
+            Text(label,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white)),
           ],
         ),
       ),
@@ -703,11 +903,27 @@ class _OrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Row(children: [
-      Expanded(child: Container(height: 1, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.white.withValues(alpha: 0.00), Colors.white.withValues(alpha: 0.22)])))),
+      Expanded(
+          child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [
+                Colors.white.withValues(alpha: 0.00),
+                Colors.white.withValues(alpha: 0.22)
+              ])))),
       const SizedBox(width: 10),
-      Text('ODER', style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.70), letterSpacing: 0.8)),
+      Text('ODER',
+          style: theme.textTheme.labelSmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.70), letterSpacing: 0.8)),
       const SizedBox(width: 10),
-      Expanded(child: Container(height: 1, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.white.withValues(alpha: 0.22), Colors.white.withValues(alpha: 0.00)])))),
+      Expanded(
+          child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [
+                Colors.white.withValues(alpha: 0.22),
+                Colors.white.withValues(alpha: 0.00)
+              ])))),
     ]);
   }
 }
@@ -725,7 +941,9 @@ class _TextLink extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-        child: Text(label, style: theme.textTheme.bodySmall?.copyWith(color: BrandColors.logoAccent, fontWeight: FontWeight.w900)),
+        child: Text(label,
+            style: theme.textTheme.bodySmall?.copyWith(
+                color: BrandColors.logoAccent, fontWeight: FontWeight.w900)),
       ),
     );
   }
@@ -735,7 +953,8 @@ class _Pressable extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
   final BorderRadius borderRadius;
-  const _Pressable({required this.child, required this.onTap, required this.borderRadius});
+  const _Pressable(
+      {required this.child, required this.onTap, required this.borderRadius});
 
   @override
   State<_Pressable> createState() => _PressableState();
@@ -813,7 +1032,8 @@ class _PasswordResetSheetState extends State<_PasswordResetSheet> {
         context,
         icon: Icons.mark_email_read_outlined,
         title: 'E-Mail gesendet',
-        message: 'Wenn ein Konto existiert, erhältst du gleich einen Link zum Zurücksetzen.',
+        message:
+            'Wenn ein Konto existiert, erhältst du gleich einen Link zum Zurücksetzen.',
       );
     } catch (e) {
       debugPrint('[PasswordReset] submit failed: $e');
@@ -830,12 +1050,16 @@ class _PasswordResetSheetState extends State<_PasswordResetSheet> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text(
           'Gib deine E-Mail ein. Wir senden dir einen sicheren Link, um dein Passwort zurückzusetzen.',
-          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.78), height: 1.45),
+          style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.white.withValues(alpha: 0.78), height: 1.45),
         ),
         const SizedBox(height: 14),
         _SITResetField(controller: _emailCtrl, validator: _validateEmail),
         const SizedBox(height: 16),
-        _PrimarySheetButton(busy: _busy, label: _busy ? 'Senden…' : 'Link senden', onTap: _busy ? null : _submit),
+        _PrimarySheetButton(
+            busy: _busy,
+            label: _busy ? 'Senden…' : 'Link senden',
+            onTap: _busy ? null : _submit),
         const SizedBox(height: 8),
       ]),
     );
@@ -857,18 +1081,34 @@ class _SITResetField extends StatelessWidget {
       autocorrect: false,
       enableSuggestions: false,
       textCapitalization: TextCapitalization.none,
-      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+      style: theme.textTheme.bodyMedium?.copyWith(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.onSurface),
       validator: validator,
       decoration: InputDecoration(
         labelText: 'E-Mail',
         hintText: 'deine@email.com',
         filled: true,
         fillColor: Colors.white.withValues(alpha: 0.06),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: BrandColors.logoAccent, width: 1.4)),
-        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: BrandColors.danger.withValues(alpha: 0.9), width: 1.2)),
-        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: BrandColors.danger.withValues(alpha: 0.95), width: 1.3)),
-        errorStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.95), height: 1.25),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide:
+                BorderSide(color: Colors.white.withValues(alpha: 0.12))),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide:
+                const BorderSide(color: BrandColors.logoAccent, width: 1.4)),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(
+                color: BrandColors.danger.withValues(alpha: 0.9), width: 1.2)),
+        focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(
+                color: BrandColors.danger.withValues(alpha: 0.95), width: 1.3)),
+        errorStyle: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white.withValues(alpha: 0.95), height: 1.25),
       ),
     );
   }
@@ -878,7 +1118,8 @@ class _PrimarySheetButton extends StatelessWidget {
   final bool busy;
   final String label;
   final VoidCallback? onTap;
-  const _PrimarySheetButton({required this.busy, required this.label, required this.onTap});
+  const _PrimarySheetButton(
+      {required this.busy, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -890,18 +1131,33 @@ class _PrimarySheetButton extends StatelessWidget {
         height: 52,
         decoration: BoxDecoration(
           gradient: onTap == null
-              ? LinearGradient(colors: [Colors.white.withValues(alpha: 0.12), Colors.white.withValues(alpha: 0.10)])
-              : LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.85)]),
+              ? LinearGradient(colors: [
+                  Colors.white.withValues(alpha: 0.12),
+                  Colors.white.withValues(alpha: 0.10)
+                ])
+              : LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.primary.withValues(alpha: 0.85)
+                    ]),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
         ),
         alignment: Alignment.center,
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           if (busy) ...[
-            const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+            const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white)),
             const SizedBox(width: 10),
           ],
-          Text(label, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900)),
+          Text(label,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w900)),
         ]),
       ),
     );

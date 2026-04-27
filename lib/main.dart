@@ -29,15 +29,18 @@ Future<void> main() async {
     return true; // handled
   };
 
-  // Ensure the app never starts with an empty listings feed.
-  // (Previously we purged demo items for testing, which makes Explore/My Listings look broken.)
-  try {
-    debugPrint('[Main] ensureListingsSeededIfEmpty start');
-    await DataService.ensureListingsSeededIfEmpty();
-    debugPrint('[Main] ensureListingsSeededIfEmpty done');
-  } catch (e, st) {
-    debugPrint('[Main] ensureListingsSeededIfEmpty failed: ' + e.toString());
-    debugPrint(st.toString());
+  const bool enableShowcaseSeedOnStartup = false;
+  if (enableShowcaseSeedOnStartup) {
+    try {
+      debugPrint('[Main] ensureListingsSeededIfEmpty start');
+      await DataService.ensureListingsSeededIfEmpty();
+      debugPrint('[Main] ensureListingsSeededIfEmpty done');
+    } catch (e, st) {
+      debugPrint('[Main] ensureListingsSeededIfEmpty failed: ' + e.toString());
+      debugPrint(st.toString());
+    }
+  } else {
+    debugPrint('[Main] ensureListingsSeededIfEmpty skipped (disabled)');
   }
 
   // Destructive startup reset is disabled by default on normal startup.
@@ -75,10 +78,14 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider<LocalizationController>(create: (_) => LocalizationController()..loadFromPrefs()),
-        ChangeNotifierProvider<MainNavController>(create: (_) => MainNavController()),
+        ChangeNotifierProvider<LocalizationController>(
+            create: (_) => LocalizationController()..loadFromPrefs()),
+        ChangeNotifierProvider<MainNavController>(
+            create: (_) => MainNavController()),
         ChangeNotifierProvider<DeveloperPreviewController>(
-          create: (_) => DeveloperPreviewController(initialState: initialPreviewState)..loadFromPrefs(),
+          create: (_) =>
+              DeveloperPreviewController(initialState: initialPreviewState)
+                ..loadFromPrefs(),
         ),
       ],
       child: Consumer<LocalizationController>(
@@ -89,7 +96,8 @@ class MyApp extends StatelessWidget {
             theme: buildLightTheme(context),
             darkTheme: buildDarkTheme(context),
             themeMode: ThemeMode.system,
-            builder: (context, child) => AppGradientBackground(child: child ?? const SizedBox.shrink()),
+            builder: (context, child) =>
+                AppGradientBackground(child: child ?? const SizedBox.shrink()),
             home: const AppRoot(),
           );
         },
@@ -110,7 +118,8 @@ class AppRoot extends StatelessWidget {
     }
     switch (preview.state) {
       case DeveloperUserState.firstLaunch:
-        return FirstLaunchFlowScreen(onFinished: () => preview.setState(DeveloperUserState.loggedOut));
+        return FirstLaunchFlowScreen(
+            onFinished: () => preview.setState(DeveloperUserState.loggedOut));
       case DeveloperUserState.loggedOut:
         return const LoggedOutLandingScreen();
       case DeveloperUserState.loggedIn:
@@ -127,12 +136,22 @@ class _StartupBrandLoader extends StatefulWidget {
   State<_StartupBrandLoader> createState() => _StartupBrandLoaderState();
 }
 
-class _StartupBrandLoaderState extends State<_StartupBrandLoader> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat();
-  late final Animation<double> _turns = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic));
+class _StartupBrandLoaderState extends State<_StartupBrandLoader>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 900))
+    ..repeat();
+  late final Animation<double> _turns = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic));
   late final Animation<double> _scale = TweenSequence<double>([
-    TweenSequenceItem(tween: Tween<double>(begin: 0.75, end: 1.25).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 1),
-    TweenSequenceItem(tween: Tween<double>(begin: 1.25, end: 0.75).chain(CurveTween(curve: Curves.easeInOutCubic)), weight: 1),
+    TweenSequenceItem(
+        tween: Tween<double>(begin: 0.75, end: 1.25)
+            .chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 1),
+    TweenSequenceItem(
+        tween: Tween<double>(begin: 1.25, end: 0.75)
+            .chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 1),
   ]).animate(_controller);
 
   @override
@@ -164,7 +183,9 @@ class _StartupBrandLoaderState extends State<_StartupBrandLoader> with SingleTic
                     width: baseSize,
                     height: baseSize,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Icon(Icons.all_inclusive, color: theme.colorScheme.onSurface, size: baseSize * 0.55),
+                    errorBuilder: (_, __, ___) => Icon(Icons.all_inclusive,
+                        color: theme.colorScheme.onSurface,
+                        size: baseSize * 0.55),
                   ),
                 ),
               );

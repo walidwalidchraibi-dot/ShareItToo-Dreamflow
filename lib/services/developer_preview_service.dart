@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum DeveloperUserState { firstLaunch, loggedOut, loggedIn, verifiedUser }
 
+const bool kDeveloperPreviewEnabled = false;
+
 class DeveloperPreviewController extends ChangeNotifier {
   static const String _prefsKey = 'dev_preview_user_state_v1';
 
@@ -13,12 +15,21 @@ class DeveloperPreviewController extends ChangeNotifier {
   bool get hydrated => _hydrated;
   DeveloperUserState get state => _state;
 
-  bool get isGuest => _state == DeveloperUserState.loggedOut || _state == DeveloperUserState.firstLaunch;
+  bool get isGuest =>
+      _state == DeveloperUserState.loggedOut ||
+      _state == DeveloperUserState.firstLaunch;
   bool get isVerified => _state == DeveloperUserState.verifiedUser;
 
-  DeveloperPreviewController({DeveloperUserState? initialState}) : _state = initialState ?? DeveloperUserState.firstLaunch;
+  DeveloperPreviewController({DeveloperUserState? initialState})
+      : _state = initialState ?? DeveloperUserState.firstLaunch;
 
   Future<void> loadFromPrefs() async {
+    if (!kDeveloperPreviewEnabled) {
+      _hydrated = true;
+      _state = DeveloperUserState.firstLaunch;
+      notifyListeners();
+      return;
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_prefsKey);
@@ -33,6 +44,7 @@ class DeveloperPreviewController extends ChangeNotifier {
   }
 
   Future<void> setState(DeveloperUserState next) async {
+    if (!kDeveloperPreviewEnabled) return;
     _state = next;
     notifyListeners();
     try {
@@ -48,15 +60,16 @@ class DeveloperPreviewController extends ChangeNotifier {
   ///
   /// Useful on Web when local storage quota is exceeded.
   Future<void> resetLocalStorageToFirstLaunch() async {
+    if (!kDeveloperPreviewEnabled) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
       _state = DeveloperUserState.firstLaunch;
       notifyListeners();
-      // Best effort: persist the new state (may still fail if quota issues persist)
       await prefs.setString(_prefsKey, _state.name);
     } catch (e) {
-      debugPrint('[DeveloperPreview] resetLocalStorageToFirstLaunch failed: $e');
+      debugPrint(
+          '[DeveloperPreview] resetLocalStorageToFirstLaunch failed: $e');
       _state = DeveloperUserState.firstLaunch;
       notifyListeners();
     }
@@ -71,6 +84,7 @@ class DeveloperPreviewController extends ChangeNotifier {
   }
 
   static Future<DeveloperUserState?> readStateOnce() async {
+    if (!kDeveloperPreviewEnabled) return null;
     try {
       final prefs = await SharedPreferences.getInstance();
       return _parse(prefs.getString(_prefsKey));
