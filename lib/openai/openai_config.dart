@@ -4,22 +4,42 @@ import 'package:flutter/foundation.dart';
 
 /// OpenAI Configuration and API wrapper
 class OpenAIConfig {
+  static const bool aiHelpersEnabled = false;
   static const _apiKey = String.fromEnvironment('OPENAI_PROXY_API_KEY');
   static const _endpoint = String.fromEnvironment('OPENAI_PROXY_ENDPOINT');
 
-  static bool get _enabled => _endpoint.trim().isNotEmpty && _endpoint.trim().toLowerCase().startsWith('http');
+  static bool get _enabled =>
+      _endpoint.trim().isNotEmpty &&
+      _endpoint.trim().toLowerCase().startsWith('http');
+  static bool get isAvailable => aiHelpersEnabled && _enabled;
 
   /// Parse natural language search query into structured fields
   /// Returns {what: String?, where: String?, whenStart: String?, whenEnd: String?, priceMin: double?, priceMax: double?, category: String?}
   static Future<Map<String, dynamic>> parseSearchQuery(String userInput) async {
     if (userInput.trim().isEmpty) {
-      return {'what': null, 'where': null, 'whenStart': null, 'whenEnd': null, 'priceMin': null, 'priceMax': null, 'category': null};
+      return {
+        'what': null,
+        'where': null,
+        'whenStart': null,
+        'whenEnd': null,
+        'priceMin': null,
+        'priceMax': null,
+        'category': null
+      };
     }
 
     // Guard: Skip API call when endpoint or key are not provided in env (Dreamflow: no backend connected yet)
-    if (!_enabled) {
+    if (!isAvailable) {
       debugPrint('OpenAI: endpoint missing, returning empty parse result');
-      return {'what': null, 'where': null, 'whenStart': null, 'whenEnd': null, 'priceMin': null, 'priceMax': null, 'category': null};
+      return {
+        'what': null,
+        'where': null,
+        'whenStart': null,
+        'whenEnd': null,
+        'priceMin': null,
+        'priceMax': null,
+        'category': null
+      };
     }
 
     try {
@@ -34,7 +54,8 @@ class OpenAIConfig {
           'messages': [
             {
               'role': 'system',
-              'content': '''Du bist ein intelligenter Parser für eine Miet-App. Extrahiere aus der natürlichen Sprache des Nutzers die folgenden Felder UND korrigiere Tippfehler in sinnvolle, echte Begriffe:
+              'content':
+                  '''Du bist ein intelligenter Parser für eine Miet-App. Extrahiere aus der natürlichen Sprache des Nutzers die folgenden Felder UND korrigiere Tippfehler in sinnvolle, echte Begriffe:
 
 REGELN:
 1. "was" = der gesuchte Gegenstand (z.B. "Auto", "Bohrmaschine", "Fahrrad")
@@ -99,7 +120,15 @@ Felder die nicht erkannt werden können → null'''
         final content = data['choices']?[0]?['message']?['content'];
         if (content == null) {
           debugPrint('OpenAI: No content in response');
-          return {'what': null, 'where': null, 'whenStart': null, 'whenEnd': null, 'priceMin': null, 'priceMax': null, 'category': null};
+          return {
+            'what': null,
+            'where': null,
+            'whenStart': null,
+            'whenEnd': null,
+            'priceMin': null,
+            'priceMax': null,
+            'category': null
+          };
         }
 
         try {
@@ -110,21 +139,49 @@ Felder die nicht erkannt werden können → null'''
             'where': parsed['where'],
             'whenStart': parsed['whenStart'],
             'whenEnd': parsed['whenEnd'],
-            'priceMin': parsed['priceMin'] is num ? (parsed['priceMin'] as num).toDouble() : null,
-            'priceMax': parsed['priceMax'] is num ? (parsed['priceMax'] as num).toDouble() : null,
+            'priceMin': parsed['priceMin'] is num
+                ? (parsed['priceMin'] as num).toDouble()
+                : null,
+            'priceMax': parsed['priceMax'] is num
+                ? (parsed['priceMax'] as num).toDouble()
+                : null,
             'category': parsed['category'],
           };
         } catch (e) {
           debugPrint('OpenAI: Failed to parse JSON: $e');
-          return {'what': null, 'where': null, 'whenStart': null, 'whenEnd': null, 'priceMin': null, 'priceMax': null, 'category': null};
+          return {
+            'what': null,
+            'where': null,
+            'whenStart': null,
+            'whenEnd': null,
+            'priceMin': null,
+            'priceMax': null,
+            'category': null
+          };
         }
       } else {
         debugPrint('OpenAI API error: ${response.statusCode} ${response.body}');
-        return {'what': null, 'where': null, 'whenStart': null, 'whenEnd': null, 'priceMin': null, 'priceMax': null, 'category': null};
+        return {
+          'what': null,
+          'where': null,
+          'whenStart': null,
+          'whenEnd': null,
+          'priceMin': null,
+          'priceMax': null,
+          'category': null
+        };
       }
     } catch (e) {
       debugPrint('OpenAI: Exception during API call: $e');
-      return {'what': null, 'where': null, 'whenStart': null, 'whenEnd': null, 'priceMin': null, 'priceMax': null, 'category': null};
+      return {
+        'what': null,
+        'where': null,
+        'whenStart': null,
+        'whenEnd': null,
+        'priceMin': null,
+        'priceMax': null,
+        'category': null
+      };
     }
   }
 
@@ -138,13 +195,22 @@ Felder die nicht erkannt werden können → null'''
     required String location,
   }) async {
     if (title.trim().isEmpty) {
-      return {'dailyPrice': 10.0, 'weeklyPrice': 50.0, 'reasoning': 'Bitte Titel eingeben für Preisvorschlag'};
+      return {
+        'dailyPrice': 10.0,
+        'weeklyPrice': 50.0,
+        'reasoning': 'Bitte Titel eingeben für Preisvorschlag'
+      };
     }
 
     // Guard: Skip API call when endpoint or key are not provided
-    if (_endpoint.trim().isEmpty || !_endpoint.trim().toLowerCase().startsWith('http')) {
+    if (_endpoint.trim().isEmpty ||
+        !_endpoint.trim().toLowerCase().startsWith('http')) {
       debugPrint('OpenAI price: endpoint missing, using defaults');
-      return {'dailyPrice': 10.0, 'weeklyPrice': 50.0, 'reasoning': 'KI nicht konfiguriert'};
+      return {
+        'dailyPrice': 10.0,
+        'weeklyPrice': 50.0,
+        'reasoning': 'KI nicht konfiguriert'
+      };
     }
 
     try {
@@ -159,7 +225,8 @@ Felder die nicht erkannt werden können → null'''
           'messages': [
             {
               'role': 'system',
-              'content': '''Du bist ein intelligenter Mietpreis-Algorithmus für die ShareItToo Mietplattform.
+              'content':
+                  '''Du bist ein intelligenter Mietpreis-Algorithmus für die ShareItToo Mietplattform.
 Deine Aufgabe ist es, realistische Mietpreise für beliebige Gegenstände zu berechnen – sowohl Tagespreise als auch Wochenpreise – basierend auf realen Marktbedingungen in Deutschland.
 
 EINGABEPARAMETER:
@@ -200,7 +267,8 @@ ANTWORTFORMAT (NUR JSON):
             },
             {
               'role': 'user',
-              'content': 'Titel: $title\nBeschreibung: $description\nKategorie: $category\nZustand: $condition\nOrt: $location',
+              'content':
+                  'Titel: $title\nBeschreibung: $description\nKategorie: $category\nZustand: $condition\nOrt: $location',
             }
           ],
           'response_format': {'type': 'json_object'},
@@ -213,28 +281,49 @@ ANTWORTFORMAT (NUR JSON):
         final content = data['choices']?[0]?['message']?['content'];
         if (content == null) {
           debugPrint('OpenAI: No content in price response');
-          return {'dailyPrice': 10.0, 'weeklyPrice': 50.0, 'reasoning': 'Fehler bei Preisberechnung'};
+          return {
+            'dailyPrice': 10.0,
+            'weeklyPrice': 50.0,
+            'reasoning': 'Fehler bei Preisberechnung'
+          };
         }
 
         try {
           final parsed = jsonDecode(content) as Map<String, dynamic>;
           debugPrint('OpenAI price suggestion: $parsed');
           return {
-            'dailyPrice': (parsed['dailyPrice'] is num) ? (parsed['dailyPrice'] as num).toDouble() : 10.0,
-            'weeklyPrice': (parsed['weeklyPrice'] is num) ? (parsed['weeklyPrice'] as num).toDouble() : 50.0,
-            'reasoning': parsed['reasoning']?.toString() ?? 'KI-basierte Preisempfehlung',
+            'dailyPrice': (parsed['dailyPrice'] is num)
+                ? (parsed['dailyPrice'] as num).toDouble()
+                : 10.0,
+            'weeklyPrice': (parsed['weeklyPrice'] is num)
+                ? (parsed['weeklyPrice'] as num).toDouble()
+                : 50.0,
+            'reasoning': parsed['reasoning']?.toString() ??
+                'KI-basierte Preisempfehlung',
           };
         } catch (e) {
           debugPrint('OpenAI: Failed to parse price JSON: $e');
-          return {'dailyPrice': 10.0, 'weeklyPrice': 50.0, 'reasoning': 'Fehler bei Parsing'};
+          return {
+            'dailyPrice': 10.0,
+            'weeklyPrice': 50.0,
+            'reasoning': 'Fehler bei Parsing'
+          };
         }
       } else {
         debugPrint('OpenAI price API error: ${response.statusCode}');
-        return {'dailyPrice': 10.0, 'weeklyPrice': 50.0, 'reasoning': 'API-Fehler'};
+        return {
+          'dailyPrice': 10.0,
+          'weeklyPrice': 50.0,
+          'reasoning': 'API-Fehler'
+        };
       }
     } catch (e) {
       debugPrint('OpenAI price: Exception: $e');
-      return {'dailyPrice': 10.0, 'weeklyPrice': 50.0, 'reasoning': 'Netzwerkfehler'};
+      return {
+        'dailyPrice': 10.0,
+        'weeklyPrice': 50.0,
+        'reasoning': 'Netzwerkfehler'
+      };
     }
   }
 
@@ -249,7 +338,8 @@ ANTWORTFORMAT (NUR JSON):
     required String strategy, // 'quick' | 'premium'
   }) async {
     // Guard: Skip API call when endpoint or key are not provided
-    if (_endpoint.trim().isEmpty || !_endpoint.trim().toLowerCase().startsWith('http')) {
+    if (_endpoint.trim().isEmpty ||
+        !_endpoint.trim().toLowerCase().startsWith('http')) {
       debugPrint('OpenAI discount: endpoint missing, using defaults');
       return {
         'tiers': [
@@ -272,7 +362,8 @@ ANTWORTFORMAT (NUR JSON):
           'messages': [
             {
               'role': 'system',
-              'content': '''Du bist ein Mietpreis-Algorithmus für ShareItToo. Erstelle eine Rabattstaffel für längere Mietdauern.
+              'content':
+                  '''Du bist ein Mietpreis-Algorithmus für ShareItToo. Erstelle eine Rabattstaffel für längere Mietdauern.
 
 EINGABE:
 - Artikel: $title
@@ -295,7 +386,8 @@ REGELN:
             },
             {
               'role': 'user',
-              'content': 'Artikel: $title\nBeschreibung: $description\nKategorie: $category\nZustand: $condition\nOrt: $location\nStrategie: ${strategy == 'quick' ? 'Schnell vermieten' : 'Maximaler Gewinn'}',
+              'content':
+                  'Artikel: $title\nBeschreibung: $description\nKategorie: $category\nZustand: $condition\nOrt: $location\nStrategie: ${strategy == 'quick' ? 'Schnell vermieten' : 'Maximaler Gewinn'}',
             }
           ],
           'response_format': {'type': 'json_object'},
@@ -371,8 +463,10 @@ REGELN:
     required List<Map<String, dynamic>> tiers,
   }) async {
     // Guard: Skip API call when endpoint or key are not provided
-    if (_endpoint.trim().isEmpty || !_endpoint.trim().toLowerCase().startsWith('http')) {
-      debugPrint('OpenAI availability tip: endpoint missing, using default tip');
+    if (_endpoint.trim().isEmpty ||
+        !_endpoint.trim().toLowerCase().startsWith('http')) {
+      debugPrint(
+          'OpenAI availability tip: endpoint missing, using default tip');
       return 'Tipp 💡: Länger mieten = günstiger. Z.B. ab 3/5/8 Tagen: -10/-20/-30%';
     }
 
@@ -388,7 +482,8 @@ REGELN:
           'messages': [
             {
               'role': 'system',
-              'content': '''Du bist ein freundlicher Assistent für die Verfügbarkeitsauswahl in einer Miet-App (ShareItToo).
+              'content':
+                  '''Du bist ein freundlicher Assistent für die Verfügbarkeitsauswahl in einer Miet-App (ShareItToo).
 Formuliere einen sehr kurzen, motivierenden Hinweis (max. 120 Zeichen) über Mietrabatte bei längerer Dauer.
 
 Vorgaben:
@@ -404,7 +499,14 @@ Gib NUR ein JSON-Objekt zurück:
             },
             {
               'role': 'user',
-              'content': 'Artikel: ' + title + '\nOrt: ' + location + '\nPreis/Tag: ' + pricePerDay.toString() + '\nTiers: ' + jsonEncode(tiers),
+              'content': 'Artikel: ' +
+                  title +
+                  '\nOrt: ' +
+                  location +
+                  '\nPreis/Tag: ' +
+                  pricePerDay.toString() +
+                  '\nTiers: ' +
+                  jsonEncode(tiers),
             }
           ],
           'response_format': {'type': 'json_object'},
@@ -444,11 +546,15 @@ Gib NUR ein JSON-Objekt zurück:
   ///
   /// Returns a list of category name strings (from the provided taxonomy) ordered by likelihood.
   /// If OpenAI is not configured, returns an empty list.
-  static Future<List<String>> suggestCategories({required String userInput, required List<String> availableCategories, int maxResults = 5}) async {
+  static Future<List<String>> suggestCategories(
+      {required String userInput,
+      required List<String> availableCategories,
+      int maxResults = 5}) async {
     if (userInput.trim().isEmpty) return const [];
     if (availableCategories.isEmpty) return const [];
-    if (!_enabled) {
-      debugPrint('OpenAI: endpoint missing, returning empty category suggestions');
+    if (!isAvailable) {
+      debugPrint(
+          'OpenAI: endpoint missing, returning empty category suggestions');
       return const [];
     }
 
@@ -469,7 +575,8 @@ Gib NUR ein JSON-Objekt zurück:
           'messages': [
             {
               'role': 'system',
-              'content': '''Du hilfst bei der Kategorie-Zuordnung in einer Miet-App.
+              'content':
+                  '''Du hilfst bei der Kategorie-Zuordnung in einer Miet-App.
 
 Aufgabe:
 - Der Nutzer beschreibt einen Artikel (z.B. "Gitarre", "Auto", "DJ Controller", "Anhänger", "GoPro").
@@ -498,7 +605,8 @@ Antworte im Format:
       );
 
       if (response.statusCode != 200) {
-        debugPrint('OpenAI category suggestion error: ${response.statusCode} ${response.body}');
+        debugPrint(
+            'OpenAI category suggestion error: ${response.statusCode} ${response.body}');
         return const [];
       }
 
