@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
+import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/screens/onboarding_flow_screen.dart';
 
 Future<void> main() async {
@@ -109,13 +110,7 @@ class MyApp extends StatelessWidget {
 class AppRoot extends StatelessWidget {
   const AppRoot({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    final preview = context.watch<DeveloperPreviewController>();
-    if (!preview.hydrated) {
-      // Startup hydration phase: show a premium brand loader instead of a generic spinner.
-      return const _StartupBrandLoader();
-    }
+  Widget _buildPreviewRoute(DeveloperPreviewController preview) {
     switch (preview.state) {
       case DeveloperUserState.firstLaunch:
         return FirstLaunchFlowScreen(
@@ -126,6 +121,28 @@ class AppRoot extends StatelessWidget {
       case DeveloperUserState.verifiedUser:
         return const MainNavigation();
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = context.watch<DeveloperPreviewController>();
+    if (!preview.hydrated) {
+      // Startup hydration phase: show a premium brand loader instead of a generic spinner.
+      return const _StartupBrandLoader();
+    }
+
+    return FutureBuilder<AuthSession?>(
+      future: AuthService.readSession(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const _StartupBrandLoader();
+        }
+        if (snapshot.data != null) {
+          return const MainNavigation();
+        }
+        return _buildPreviewRoute(preview);
+      },
+    );
   }
 }
 

@@ -13,7 +13,7 @@ import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/services/developer_preview_service.dart';
-import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/widgets/login_nudge_sheet.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -74,22 +74,26 @@ class _MainNavigationState extends State<MainNavigation> {
           elevation: 0,
           type: BottomNavigationBarType.fixed,
           currentIndex: _currentIndex,
-          onTap: (index) {
+          onTap: (index) async {
             final preview = context.read<DeveloperPreviewController>();
+            final session = await AuthService.readSession();
+            final isGuest = session == null && preview.isGuest;
             // Soft logged-out experience:
             // - Guests can open the Profile tab to explore.
             // - Other tabs remain locked in guest mode.
-            if (preview.isGuest && index != 0 && index != 4) {
+            if (isGuest && index != 0 && index != 4) {
               final gateContext = switch (index) {
                 1 => GuestGateContext.favorites,
                 2 => GuestGateContext.booking,
                 3 => GuestGateContext.messages,
                 _ => GuestGateContext.generic,
               };
+              if (!context.mounted) return;
               showGuestRestrictionSheet(context, gateContext: gateContext);
               context.read<MainNavController>().setIndex(0);
               return;
             }
+            if (!context.mounted) return;
             context.read<MainNavController>().setIndex(index);
           },
           selectedItemColor: BrandColors.primary,
