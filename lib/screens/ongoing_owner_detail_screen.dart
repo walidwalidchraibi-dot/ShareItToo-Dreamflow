@@ -131,7 +131,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         final cat = _categoryFor(r);
         // Show for all "completed" bucket items that are not cancelled/declined
         final isTrulyCompleted = (cat == 'completed') && r.status != 'cancelled' && r.status != 'declined';
-        if (!isTrulyCompleted) return const SizedBox.shrink();
+        if (!isTrulyCompleted || r.needsReview) return const SizedBox.shrink();
         return SafeArea(
           top: false,
           child: Padding(
@@ -162,7 +162,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       case 'upcoming':
         return 'Kommende Anmietung';
       case 'completed':
-        return 'Abgeschlossene Anmietung';
+        return r.needsReview ? 'Anmietung in Prüfung' : 'Abgeschlossene Anmietung';
       case 'ongoing':
       default:
         return 'Laufende Anmietung';
@@ -727,7 +727,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
             ),
             padding: const EdgeInsets.all(12),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Abschluss-Zusammenfassung', style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+              Text(isHeldForReview ? 'Prüfstatus' : 'Abschluss-Zusammenfassung', style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
               const SizedBox(height: 10),
               _FactRow(icon: req.status == 'cancelled' ? Icons.cancel_outlined : (isHeldForReview ? Icons.hourglass_top_outlined : Icons.verified_outlined),
                   label: 'Status',
@@ -742,6 +742,10 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               _FactRow(icon: Icons.event_busy, label: req.status == 'cancelled' ? 'Storniert am' : 'Rückgabe bestätigt', value: _formatRange(req.start, req.end).split('–').last.trim()),
               const SizedBox(height: 8),
               _FactRow(icon: Icons.receipt_long_outlined, label: 'Beleg', value: isHeldForReview ? 'Belegfreigabe pausiert bis zur Prüfung' : 'Erstattung gem. Richtlinien'),
+              if (isHeldForReview) ...[
+                const SizedBox(height: 8),
+                _FactRow(icon: Icons.info_outline, label: 'Hinweis', value: 'Dieser Fall wird aktuell geprüft. Abschluss und Bewertung sind erst danach möglich.'),
+              ],
               if (isHeldForReview) ...[
                 const SizedBox(height: 8),
                 Text('Diese Rückgabe ist zur Prüfung markiert. Auszahlung und Belegfreigabe werden pausiert, bis der Fall geprüft wurde.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),

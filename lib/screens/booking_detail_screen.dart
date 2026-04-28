@@ -237,7 +237,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       case 'pending':
         return 'Ausstehende Buchung';
       case 'completed':
-        return 'Abgeschlossene Buchung';
+        return widget.booking['needsReview'] == true ? 'Buchung in Prüfung' : 'Abgeschlossene Buchung';
       default:
         return 'Buchung';
     }
@@ -3309,10 +3309,10 @@ class _CompletionSummaryCard extends StatelessWidget {
       // Abgeschlossen
       rows.addAll([
         _FactRow(
-          icon: (isOwnerView && needsReview) ? Icons.hourglass_top_outlined : Icons.verified_outlined,
+          icon: needsReview ? Icons.hourglass_top_outlined : Icons.verified_outlined,
           label: 'Status',
-          value: (isOwnerView && needsReview) ? 'Zur Prüfung pausiert' : 'Abgeschlossen',
-          color: (isOwnerView && needsReview) ? const Color(0xFFF59E0B) : Colors.blueGrey,
+          value: needsReview ? 'Zur Prüfung pausiert' : 'Abgeschlossen',
+          color: needsReview ? const Color(0xFFF59E0B) : Colors.blueGrey,
         ),
         if (returnedAt != null)
           _FactRow(icon: Icons.assignment_turned_in_outlined, label: 'Rückgabe bestätigt', value: _fmtDate(returnedAt)),
@@ -3322,8 +3322,8 @@ class _CompletionSummaryCard extends StatelessWidget {
           _FactRow(icon: Icons.payments_outlined, label: 'Auszahlung', value: euroFormatter((totalPaid - fee).clamp(0.0, totalPaid))),
         if (isOwnerView && !needsReview && payoutAt != null)
           _FactRow(icon: Icons.event_available_outlined, label: 'Ausgezahlt am', value: payoutFormatter(payoutAt)),
-        if (isOwnerView && needsReview)
-          _FactRow(icon: Icons.info_outline, label: 'Hinweis', value: 'Diese Rückgabe ist zur Prüfung markiert. Auszahlung und Abschlussanzeige werden pausiert, bis der Fall geprüft wurde.'),
+        if (needsReview)
+          _FactRow(icon: Icons.info_outline, label: 'Hinweis', value: 'Dieser Fall wird aktuell geprüft. Abschluss und Bewertung sind erst danach möglich.'),
       ]);
     }
 
@@ -3335,7 +3335,7 @@ class _CompletionSummaryCard extends StatelessWidget {
       ),
       padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Abschluss-Zusammenfassung', style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+        Text(needsReview ? 'Prüfstatus' : 'Abschluss-Zusammenfassung', style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
         const SizedBox(height: 10),
         ..._withDividers(rows),
       ]),

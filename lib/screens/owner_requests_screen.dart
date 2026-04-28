@@ -473,6 +473,9 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
         if (s == 'cancelled' && (e.r.cancelledBy == 'renter')) {
           label = 'Zurückgezogen';
           color = const Color(0xFFF43F5E);
+        } else if (e.r.needsReview) {
+          label = 'Zur Prüfung';
+          color = const Color(0xFFF59E0B);
         } else {
           label = cancelled ? 'Storniert' : 'Abgeschlossen';
           color = cancelled ? const Color(0xFFF43F5E) : const Color(0xFF22C55E);

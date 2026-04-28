@@ -317,7 +317,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       case 'running':
         return 'Laufend';
       case 'completed':
-        return 'Abgeschlossen';
+        return r.needsReview ? 'Zur Prüfung' : 'Abgeschlossen';
       case 'declined':
         return 'Abgelehnt';
       case 'cancelled':
@@ -756,6 +756,9 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
         } else if (wasDeclined) {
           label = 'Abgelehnt';
           color = Colors.grey; // neutral grey for declined
+        } else if (booking?['needsReview'] == true) {
+          label = 'Zur Prüfung';
+          color = const Color(0xFFF59E0B);
         } else {
           label = 'Abgeschlossen';
           color = const Color(0xFF22C55E);
