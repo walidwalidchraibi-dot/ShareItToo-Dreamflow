@@ -6,6 +6,7 @@ import 'package:lendify/navigation/main_navigation.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/screens/register_screen.dart';
 import 'package:lendify/services/auth_service.dart';
+import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/sit_logo_header.dart';
@@ -51,6 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _continueAsGuest() async {
     try {
       await AuthService.clearSession();
+      await DataService.clearCurrentUser();
       if (!mounted) return;
       await context
           .read<DeveloperPreviewController>()
@@ -165,6 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
+      await DataService.syncCurrentUserForSessionEmail(_emailCtrl.text.trim());
       await context
           .read<DeveloperPreviewController>()
           .setState(DeveloperUserState.loggedIn);

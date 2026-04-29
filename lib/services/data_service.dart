@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/models/category.dart';
 import 'package:lendify/models/item.dart';
@@ -857,8 +858,28 @@ class DataService {
       // When the user has deleted their account, do not re-seed demo data.
       return null;
     }
-    final userJson = prefs.getString(_currentUserKey);
-    if (userJson == null) {
+
+    Future<String?> safeReadCurrentUser() async {
+      try {
+        return prefs.getString(_currentUserKey);
+      } catch (e) {
+        debugPrint('[DataService] currentUser malformed; clearing persisted value: $e');
+        try {
+          await prefs.remove(_currentUserKey);
+        } catch (_) {}
+        return null;
+      }
+    }
+
+    String? userJson = await safeReadCurrentUser();
+    if (userJson == null || userJson.isEmpty) {
+      final session = await AuthService.readSession();
+      if (session != null) {
+        await syncCurrentUserForSessionEmail(session.email);
+        userJson = await safeReadCurrentUser();
+      }
+    }
+    if (userJson == null || userJson.isEmpty) {
       if (!_allowDemoSeedDataInRuntime) {
         debugPrint(
             '[DataService] getCurrentUser skipped demo init (demo seed disabled)');
@@ -869,7 +890,7 @@ class DataService {
       } catch (e) {
         debugPrint('[DataService] getCurrentUser init demo failed: $e');
       }
-      final again = prefs.getString(_currentUserKey);
+      final again = await safeReadCurrentUser();
       if (again == null || again.isEmpty) return null;
       return User.fromJson(jsonDecode(again) as Map<String, dynamic>);
     }
@@ -1026,6 +1047,33 @@ class DataService {
   static Future<void> setCurrentUser(User user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_currentUserKey, jsonEncode(user.toJson()));
+  }
+
+  static Future<void> clearCurrentUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_currentUserKey);
+  }
+
+  static Future<void> syncCurrentUserForSessionEmail(String email) async {
+    final normalized = email.trim().toLowerCase();
+    if (normalized.isEmpty) return;
+
+    final users = await getUsers();
+    User? match;
+    for (final user in users) {
+      if (user.email.trim().toLowerCase() == normalized) {
+        match = user;
+        break;
+      }
+    }
+
+    match ??= normalized == 'demo@shareittoo.app' && users.isNotEmpty
+        ? users.first
+        : null;
+
+    if (match != null) {
+      await setCurrentUser(match);
+    }
   }
 
   static Future<void> clearCurrentUserAndMarkDeleted() async {
@@ -1599,8 +1647,9 @@ class DataService {
     await prefs.setString(
         _reviewsKey, jsonEncode(reviews.map((r) => r.toJson()).toList()));
 
-    await prefs.setString(
-        _currentUserKey, jsonEncode(usersWithCounts.first.toJson()));
+    // Sample-data bootstrap must not auto-auth a current user.
+    // currentUser should only be established by real login/session hydration.
+    await prefs.remove(_currentUserKey);
     // Ensure wishlists are initialized once demo data is set up.
     try {
       await _ensureDefaultWishlists();

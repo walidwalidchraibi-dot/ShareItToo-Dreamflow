@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/screens/own_profile_screen.dart';
 import 'package:lendify/screens/my_listings_screen.dart';
@@ -39,6 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = true;
   bool _hasNewRequests = false;
   bool _isLoggedOutUser = false;
+  bool _hasActiveSession = false;
   // Feedback state
   final TextEditingController _feedbackCtrl = TextEditingController();
   final FocusNode _feedbackFocus = FocusNode();
@@ -192,7 +194,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _load() async {
     User? maybeUser;
+    bool hasSession = false;
     try {
+      hasSession = await AuthService.readSession() != null;
       maybeUser = await DataService.getCurrentUser();
     } catch (e, st) {
       debugPrint('[Profile] Failed to load user: $e');
@@ -200,7 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       maybeUser = null;
     }
 
-    final bool loggedOut = maybeUser == null;
+    final bool loggedOut = !hasSession || maybeUser == null;
     final user = loggedOut ? _guestUser() : maybeUser!;
 
     int count = 0;
@@ -232,6 +236,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _isLoading = false;
       _hasNewRequests = hasNew;
       _isLoggedOutUser = loggedOut;
+      _hasActiveSession = hasSession;
     });
   }
 
@@ -278,8 +283,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
-    final preview = context.watch<DeveloperPreviewController>();
-    final isGuest = preview.isGuest || _isLoggedOutUser;
+    context.watch<DeveloperPreviewController>();
+    final isGuest = !_hasActiveSession || _isLoggedOutUser;
     final userForDisplay = _user ?? (isGuest ? _guestUser() : _placeholderUser());
     final verified = userForDisplay.isVerified;
     final bool _hasAnyNotifications = _hasNewRequests; // extend when adding more sources
@@ -588,6 +593,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildMenuFromSpec(Map<String, dynamic> spec, LocalizationController l10n, {required bool isGuest}) {
     final title = l10n.t(spec['labelKey'] as String);
     final String? id = spec['id'] as String?;
+    if (isGuest && id == 'logout') {
+      return const SizedBox.shrink();
+    }
     final iconName = (spec['icon'] as String?) ?? '';
     final showDot = (spec['showDot'] as bool?) ?? false;
     final isDestructive = (spec['destructive'] as bool?) ?? false;
@@ -732,10 +740,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
           content: Text(l10n.t('Du kannst dich jederzeit wieder anmelden.')),
           actions: [
             TextButton(onPressed: () => Navigator.of(context).maybePop(), child: Text(l10n.t('Abbrechen'))),
-            FilledButton(onPressed: () {
-              Navigator.of(context)..pop()..maybePop();
+            FilledButton(onPressed: () async {
+              Navigator.of(context).pop();
+              await AuthService.clearSession();
+              await DataService.clearCurrentUser();
+              await context.read<DeveloperPreviewController>().setState(DeveloperUserState.loggedOut);
+              if (!mounted) return;
+              setState(() {
+                _user = _guestUser();
+                _myListingsCount = 0;
+                _completedBookingsCount = 0;
+                _hasNewRequests = false;
+                _isLoggedOutUser = true;
+                _hasActiveSession = false;
+              });
               final l10n = context.read<LocalizationController>();
-              AppPopup.toast(context, icon: Icons.logout, title: l10n.t('Abgemeldet (Demo)'));
+              AppPopup.toast(context, icon: Icons.logout, title: l10n.t('Abgemeldet'));
             }, child: Text(l10n.t('Abmelden'))),
           ],
         );

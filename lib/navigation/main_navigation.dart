@@ -124,14 +124,28 @@ class _MainNavigationState extends State<MainNavigation> {
               label: l10n.t('Nachrichten'),
             ),
             BottomNavigationBarItem(
-              icon: Stack(clipBehavior: Clip.none, children: [
-                _ProfileNavIcon(photoUrl: _currentUser?.photoURL, active: _currentIndex == 4),
-                const Positioned(right: -2, top: -2, child: DecoratedBox(decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle), child: SizedBox(width: 8, height: 8))),
-              ]),
-              activeIcon: Stack(clipBehavior: Clip.none, children: [
-                _ProfileNavIcon(photoUrl: _currentUser?.photoURL, active: true),
-                const Positioned(right: -2, top: -2, child: DecoratedBox(decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle), child: SizedBox(width: 8, height: 8))),
-              ]),
+              icon: FutureBuilder<AuthSession?>(
+                future: AuthService.readSession(),
+                builder: (context, snap) {
+                  final hasSession = snap.data != null;
+                  final photoUrl = hasSession ? _currentUser?.photoURL : null;
+                  return Stack(clipBehavior: Clip.none, children: [
+                    _ProfileNavIcon(photoUrl: photoUrl, active: _currentIndex == 4),
+                    const Positioned(right: -2, top: -2, child: DecoratedBox(decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle), child: SizedBox(width: 8, height: 8))),
+                  ]);
+                },
+              ),
+              activeIcon: FutureBuilder<AuthSession?>(
+                future: AuthService.readSession(),
+                builder: (context, snap) {
+                  final hasSession = snap.data != null;
+                  final photoUrl = hasSession ? _currentUser?.photoURL : null;
+                  return Stack(clipBehavior: Clip.none, children: [
+                    _ProfileNavIcon(photoUrl: photoUrl, active: true),
+                    const Positioned(right: -2, top: -2, child: DecoratedBox(decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle), child: SizedBox(width: 8, height: 8))),
+                  ]);
+                },
+              ),
               label: l10n.t('Profil'),
             ),
           ],

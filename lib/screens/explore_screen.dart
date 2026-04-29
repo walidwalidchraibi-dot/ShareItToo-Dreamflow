@@ -196,7 +196,7 @@ final extrasTop = <Item>[];
    _coarseByCatId = coarseMap;
    _usersById = {for (final u in users) u.id: u};
    _currentUserName = user?.displayName;
-   _currentUserCity = user?.city ?? 'Berlin';
+   _currentUserCity = user?.city;
    _savedIds = saved;
    _extraGuests = extrasGuests;
    _extraTopBooked = extrasTop;
@@ -735,7 +735,10 @@ child: Padding(
 padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
 child: Builder(builder: (context) {
 final l10n = context.watch<LocalizationController>();
-final userName = _currentUserName != null ? _currentUserName!.split(' ').first : 'Walid';
+final hasRealUserName = (_currentUserName ?? '').trim().isNotEmpty;
+final greeting = hasRealUserName
+    ? 'Hi ${_currentUserName!.trim().split(' ').first}! 👋'
+    : l10n.t('Hallo 👋');
 return Row(
 crossAxisAlignment: CrossAxisAlignment.start,
 children: [
@@ -745,11 +748,10 @@ crossAxisAlignment: CrossAxisAlignment.start,
 children: [
 InkWell(
 onTap: () {
-setState(() => _currentUserName = 'Walid');
 Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
 },
 child: Text(
-'Hi $userName! 👋',
+greeting,
 style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
 ),
 ),
