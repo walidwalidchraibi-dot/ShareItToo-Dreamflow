@@ -134,16 +134,9 @@ _loadData();
   }
 
   void _handleDevSecretTap() {
+    // Developer Preview is intentionally unreachable from the normal product flow.
     _devTapReset?.cancel();
-    _devTapReset = Timer(const Duration(milliseconds: 900), () {
-      if (mounted) setState(() => _devTapCount = 0);
-    });
-    setState(() => _devTapCount += 1);
-    if (_devTapCount >= 7) {
-      _devTapReset?.cancel();
-      _devTapCount = 0;
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DeveloperPreviewScreen()));
-    }
+    if (mounted) setState(() => _devTapCount = 0);
   }
 
 Future<void> _loadData() async {
@@ -780,7 +773,7 @@ style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, f
 ),
 ),
  GestureDetector(
-   onTap: _handleDevSecretTap,
+   onTap: null,
    behavior: HitTestBehavior.opaque,
    child: Transform.translate(offset: const Offset(0, 4), child: _HoverSpinAppLogo(size: 48)),
  ),
