@@ -50,6 +50,45 @@ class _MainNavigationState extends State<MainNavigation> {
 
   Widget _navIcon(IconData icon, int index) => _HoveringNavIcon(icon: icon, active: _currentIndex == index);
 
+
+  Widget _buildProfileNavIcon({required bool active}) {
+    return FutureBuilder<AuthSession?>(
+      future: AuthService.readSession(),
+      builder: (context, sessionSnap) {
+        final hasSession = sessionSnap.data != null;
+        if (!hasSession) {
+          return Stack(clipBehavior: Clip.none, children: [
+            KeyedSubtree(
+              key: ValueKey('profile_guest_${active ? 'active' : 'idle'}'),
+              child: _ProfileNavIcon(photoUrl: null, active: active),
+            ),
+            const Positioned(right: -2, top: -2, child: DecoratedBox(decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle), child: SizedBox(width: 8, height: 8))),
+          ]);
+        }
+        return FutureBuilder<model.User?>(
+          future: DataService.getCurrentUser(),
+          builder: (context, userSnap) {
+            final user = userSnap.data;
+            final rawPhotoUrl = user?.photoURL?.trim();
+            final photoUrl = rawPhotoUrl != null && rawPhotoUrl.isNotEmpty
+                ? rawPhotoUrl
+                : null;
+            final keySuffix = photoUrl == null
+                ? 'profile_guest_${active ? 'active' : 'idle'}'
+                : 'profile_${user?.id ?? 'unknown'}_${photoUrl}_${active ? 'active' : 'idle'}';
+            return Stack(clipBehavior: Clip.none, children: [
+              KeyedSubtree(
+                key: ValueKey(keySuffix),
+                child: _ProfileNavIcon(photoUrl: photoUrl, active: active),
+              ),
+              const Positioned(right: -2, top: -2, child: DecoratedBox(decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle), child: SizedBox(width: 8, height: 8))),
+            ]);
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
@@ -124,28 +163,8 @@ class _MainNavigationState extends State<MainNavigation> {
               label: l10n.t('Nachrichten'),
             ),
             BottomNavigationBarItem(
-              icon: FutureBuilder<AuthSession?>(
-                future: AuthService.readSession(),
-                builder: (context, snap) {
-                  final hasSession = snap.data != null;
-                  final photoUrl = hasSession ? _currentUser?.photoURL : null;
-                  return Stack(clipBehavior: Clip.none, children: [
-                    _ProfileNavIcon(photoUrl: photoUrl, active: _currentIndex == 4),
-                    const Positioned(right: -2, top: -2, child: DecoratedBox(decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle), child: SizedBox(width: 8, height: 8))),
-                  ]);
-                },
-              ),
-              activeIcon: FutureBuilder<AuthSession?>(
-                future: AuthService.readSession(),
-                builder: (context, snap) {
-                  final hasSession = snap.data != null;
-                  final photoUrl = hasSession ? _currentUser?.photoURL : null;
-                  return Stack(clipBehavior: Clip.none, children: [
-                    _ProfileNavIcon(photoUrl: photoUrl, active: true),
-                    const Positioned(right: -2, top: -2, child: DecoratedBox(decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle), child: SizedBox(width: 8, height: 8))),
-                  ]);
-                },
-              ),
+              icon: _buildProfileNavIcon(active: _currentIndex == 4),
+              activeIcon: _buildProfileNavIcon(active: true),
               label: l10n.t('Profil'),
             ),
           ],

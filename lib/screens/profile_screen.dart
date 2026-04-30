@@ -25,6 +25,8 @@ import 'package:lendify/widgets/box_chat_icon.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/widgets/profile_logged_out_banner.dart';
 import 'package:lendify/widgets/login_nudge_sheet.dart';
+import 'package:lendify/navigation/main_navigation.dart';
+import 'package:lendify/navigation/main_nav_controller.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -754,6 +756,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _isLoggedOutUser = true;
                 _hasActiveSession = false;
               });
+              if (!mounted) return;
+              context.read<MainNavController>().setIndex(4);
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const MainNavigation()),
+                (route) => false,
+              );
               final l10n = context.read<LocalizationController>();
               AppPopup.toast(context, icon: Icons.logout, title: l10n.t('Abgemeldet'));
             }, child: Text(l10n.t('Abmelden'))),
