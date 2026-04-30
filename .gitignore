@@ -45,3 +45,4 @@ app.*.map.json
 /android/app/release
 
 *.hologram.dart
+tool/.qa_seed_backups/
