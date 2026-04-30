@@ -74,26 +74,36 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final preview = context.read<DeveloperPreviewController>();
 
-      // Only skip this screen when there is a real persisted session.
-      // (DeveloperPreview state can briefly be out of sync while hydrating.)
+      // Only skip this screen when there is a real persisted session that can
+      // still be resolved to a current user in the local dataset.
       final session = await AuthService.readSession();
       if (!mounted) return;
 
       if (session != null) {
-        if (preview.state != DeveloperUserState.loggedIn &&
-            preview.state != DeveloperUserState.verifiedUser) {
-          await preview.setState(DeveloperUserState.loggedIn);
-        }
+        await DataService.syncCurrentUserForSessionEmail(session.email);
+        final resolvedUser = await DataService.getCurrentUser();
         if (!mounted) return;
-        _goHome(replace: true);
-        return;
+
+        if (resolvedUser != null) {
+          if (preview.state != DeveloperUserState.loggedIn &&
+              preview.state != DeveloperUserState.verifiedUser) {
+            await preview.setState(DeveloperUserState.loggedIn);
+          }
+          if (!mounted) return;
+          _goHome(replace: true);
+          return;
+        }
+
+        debugPrint(
+            '[LoginScreen] stale session found for ${session.email}; clearing and staying on login.');
+        await AuthService.clearSession();
       }
 
-      // If the preview says "logged in" but there is no session, keep the user here.
+      // If the preview says "logged in" but there is no valid session, keep the user here.
       if (preview.state == DeveloperUserState.loggedIn ||
           preview.state == DeveloperUserState.verifiedUser) {
         debugPrint(
-            '[LoginScreen] preview state indicates logged-in but no session found; staying on login.');
+            '[LoginScreen] preview state indicates logged-in but no valid session found; staying on login.');
       }
     } catch (e) {
       debugPrint('[LoginScreen] bootstrap failed: $e');
