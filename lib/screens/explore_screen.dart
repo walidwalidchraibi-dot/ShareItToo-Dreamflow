@@ -15,7 +15,6 @@ import 'package:lendify/widgets/filters_overlay.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/screens/owner_requests_screen.dart';
 import 'package:lendify/screens/bookings_screen.dart';
-import 'package:lendify/screens/profile_screen.dart';
 import 'package:lendify/screens/my_listings_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
@@ -29,6 +28,7 @@ import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/screens/developer_preview_screen.dart';
 import 'package:lendify/widgets/rating_badge.dart';
+import 'package:lendify/navigation/main_nav_controller.dart';
 
 double _deriveStableListingRating(Item item) {
   final base = 4.4 + ((item.id.hashCode.abs() % 40) / 100); // 4.40 - 4.79
@@ -743,17 +743,19 @@ return Row(
 crossAxisAlignment: CrossAxisAlignment.start,
 children: [
 Expanded(
+child: InkWell(
+onTap: () {
+context.read<MainNavController>().setIndex(4);
+},
+borderRadius: BorderRadius.circular(16),
+child: Padding(
+padding: const EdgeInsets.symmetric(vertical: 4),
 child: Column(
 crossAxisAlignment: CrossAxisAlignment.start,
 children: [
-InkWell(
-onTap: () {
-Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
-},
-child: Text(
+Text(
 greeting,
 style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
-),
 ),
 const SizedBox(height: 4),
 Row(children: [
@@ -772,6 +774,8 @@ style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, f
 ),
 ]),
 ],
+),
+),
 ),
 ),
  GestureDetector(
