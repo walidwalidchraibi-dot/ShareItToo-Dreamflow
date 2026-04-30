@@ -77,7 +77,6 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
     //     zu können. Das erreichen wir mit rechter Innen‑Padding: rightPad = 60 - itemWidth.
     //
     // Diese Kombination garantiert die exakte Ausrichtung über alle Displaybreiten.
-    final double cutoffPx = math.max(0.0, itemWidth - 60.0);
     final double rightPadPx = math.max(0.0, 60.0 - itemWidth);
 
     return SizedBox(
@@ -90,11 +89,7 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
         child: ListView.separated(
           controller: _scrollController,
           scrollDirection: Axis.horizontal,
-            // Stoppe etwas FRÜHER nach links, sodass der letzte Kreis unter dem
-            // Filter‑Kreis steht. Ein positives cutoff reduziert die maxScrollExtent.
-            physics: TrailingCutoffScrollPhysics(
-              cutoff: cutoffPx,
-            ),
+          physics: const ClampingScrollPhysics(),
           // Align left edge with the surrounding card content
           padding: EdgeInsets.only(
             left: horizontalPadding,
