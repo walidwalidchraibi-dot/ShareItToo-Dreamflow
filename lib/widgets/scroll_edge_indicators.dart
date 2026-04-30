@@ -61,19 +61,15 @@ class _ScrollEdgeIndicatorsState extends State<ScrollEdgeIndicators>
   bool _active = true; // kept true so arrows stay visible
   Timer? _hideTimer;
   late final AnimationController _flashController;
-  late final Animation<double> _flashOpacity;
+  bool _edgeRecomputeScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _flashController = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
-    _flashOpacity = const AlwaysStoppedAnimation<double>(1.0);
     widget.scrollController?.addListener(_handleScrollChanged);
     widget.pageController?.addListener(_handleScrollChanged);
-    // Compute initial state on next frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _recomputeEdges();
-    });
+    _scheduleEdgeRecompute();
   }
 
   @override
@@ -82,12 +78,12 @@ class _ScrollEdgeIndicatorsState extends State<ScrollEdgeIndicators>
     if (oldWidget.scrollController != widget.scrollController) {
       oldWidget.scrollController?.removeListener(_handleScrollChanged);
       widget.scrollController?.addListener(_handleScrollChanged);
-      WidgetsBinding.instance.addPostFrameCallback((_) => _recomputeEdges());
+      _scheduleEdgeRecompute();
     }
     if (oldWidget.pageController != widget.pageController) {
       oldWidget.pageController?.removeListener(_handleScrollChanged);
       widget.pageController?.addListener(_handleScrollChanged);
-      WidgetsBinding.instance.addPostFrameCallback((_) => _recomputeEdges());
+      _scheduleEdgeRecompute();
     }
   }
 
@@ -102,31 +98,38 @@ class _ScrollEdgeIndicatorsState extends State<ScrollEdgeIndicators>
 
   void _handleScrollChanged() {
     _setActive();
-    _recomputeEdges();
+    _scheduleEdgeRecompute();
+  }
+
+  void _scheduleEdgeRecompute() {
+    if (_edgeRecomputeScheduled || !mounted) return;
+    _edgeRecomputeScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _edgeRecomputeScheduled = false;
+      if (!mounted) return;
+      _recomputeEdges();
+    });
   }
 
   void _setActive() {
     if (!_active) setState(() => _active = true);
   }
 
-  void _scheduleHide() {
-    // No-op: keep arrows visible at all times
-  }
-
   void _recomputeEdges() {
+    if (!mounted) return;
+
     if (widget.pageController != null) {
       final ctrl = widget.pageController!;
       final count = widget.pageCount ?? 1;
-      final pos = ctrl.positions.isNotEmpty ? ctrl.position : null;
+      if (!ctrl.hasClients || ctrl.positions.isEmpty) return;
+      final pos = ctrl.position;
+      if (!pos.hasViewportDimension) return;
       double page = 0;
-      if (pos != null) {
-        // page can be null briefly; guard with pixels/viewport
-        final raw = ctrl.page;
-        if (raw != null) {
-          page = raw;
-        } else if (pos.viewportDimension > 0) {
-          page = pos.pixels / pos.viewportDimension;
-        }
+      final raw = ctrl.page;
+      if (raw != null) {
+        page = raw;
+      } else if (pos.viewportDimension > 0) {
+        page = pos.pixels / pos.viewportDimension;
       }
       final canLeft = page > 0.01;
       final canRight = page < (count - 1) - 0.01;
