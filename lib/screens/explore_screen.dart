@@ -6,6 +6,7 @@ import 'package:lendify/models/category.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/widgets/search_header.dart';
 import 'package:lendify/widgets/category_icon_row.dart';
 import 'package:lendify/widgets/home_banner_card.dart';
@@ -144,8 +145,10 @@ try {
 final items = await DataService.getPublicItems();
 final categories = await DataService.getCategories();
 final users = await DataService.getUsers();
+final session = await AuthService.readSession();
 final user = await DataService.getCurrentUser();
 final saved = await DataService.getSavedItemIds();
+final hasRealSession = session != null;
 
 // Build extra curated items with unique images for Guests row
 List<Item> buildExtras(int count, String seedPrefix) {
@@ -195,8 +198,8 @@ final extrasTop = <Item>[];
    _categories = categories;
    _coarseByCatId = coarseMap;
    _usersById = {for (final u in users) u.id: u};
-   _currentUserName = user?.displayName;
-   _currentUserCity = user?.city;
+   _currentUserName = hasRealSession ? user?.displayName : null;
+   _currentUserCity = hasRealSession ? user?.city : null;
    _savedIds = saved;
    _extraGuests = extrasGuests;
    _extraTopBooked = extrasTop;
