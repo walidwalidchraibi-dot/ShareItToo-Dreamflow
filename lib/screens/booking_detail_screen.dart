@@ -659,13 +659,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Expanded(
                     child: Text(
-                      isHeldForReview ? 'Zur Prüfung pausiert' : 'Vorauss. Auszahlung',
+                      isHeldForReview ? 'Wird geprüft' : 'Vorauss. Auszahlung',
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                     ),
                   ),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     Text(
-                      isHeldForReview ? 'Zur Prüfung pausiert' : _formatEuro(payoutEst),
+                      isHeldForReview ? 'Wird geprüft' : _formatEuro(payoutEst),
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
                     ),
                   ]),
@@ -673,7 +673,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 const SizedBox(height: 2),
                 Text(
                   isHeldForReview
-                      ? 'Diese Rückgabe ist zur Prüfung markiert. Auszahlung und Zahlungsanzeige werden pausiert, bis der Fall geprüft wurde.'
+                      ? 'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.'
                       : (end != null ? 'Auszahlung am ${_formatPayoutDate(end)}' : 'Auszahlung nach Rückgabe'),
                   style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
                 ),
@@ -1280,13 +1280,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Expanded(
                     child: Text(
-                      isHeldForReview ? 'Zur Prüfung pausiert' : 'Vorauss. Auszahlung',
+                      isHeldForReview ? 'Wird geprüft' : 'Vorauss. Auszahlung',
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                     ),
                   ),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     Text(
-                      isHeldForReview ? 'Zur Prüfung pausiert' : _formatEuro(payoutOwner),
+                      isHeldForReview ? 'Wird geprüft' : _formatEuro(payoutOwner),
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
                     ),
                   ]),
@@ -1294,7 +1294,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 const SizedBox(height: 2),
                 Text(
                   isHeldForReview
-                      ? 'Diese Rückgabe ist zur Prüfung markiert. Auszahlung und Zahlungsanzeige werden pausiert, bis der Fall geprüft wurde.'
+                      ? 'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.'
                       : (end != null ? 'Auszahlung am ${_formatPayoutDate(end)}' : 'Auszahlung nach Rückgabe'),
                   style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
                 ),
@@ -1924,7 +1924,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         );
         if (pausedForReview) {
           if (!mounted) return;
-          AppPopup.toast(context, icon: Icons.info_outline, title: 'Diese Rückgabe ist zur Prüfung markiert. Der Abschluss wird pausiert, bis der Fall geprüft wurde.');
+          AppPopup.toast(context, icon: Icons.info_outline, title: 'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.');
           return;
         }
       }
@@ -2393,7 +2393,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         );
         if (pausedForReview) {
           if (!mounted) return;
-          AppPopup.toast(context, icon: Icons.info_outline, title: 'Diese Rückgabe ist zur Prüfung markiert. Der Abschluss wird pausiert, bis der Fall geprüft wurde.');
+          AppPopup.toast(context, icon: Icons.info_outline, title: 'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.');
           return;
         }
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'completed');
@@ -2472,7 +2472,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         );
         if (pausedForReview) {
           if (!mounted) return;
-          AppPopup.toast(context, icon: Icons.info_outline, title: 'Diese Rückgabe ist zur Prüfung markiert. Der Abschluss wird pausiert, bis der Fall geprüft wurde.');
+          AppPopup.toast(context, icon: Icons.info_outline, title: 'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.');
           return;
         }
         await DataService.updateRentalRequestStatus(requestId: requestId, status: 'completed');
@@ -3311,19 +3311,19 @@ class _CompletionSummaryCard extends StatelessWidget {
         _FactRow(
           icon: needsReview ? Icons.hourglass_top_outlined : Icons.verified_outlined,
           label: 'Status',
-          value: needsReview ? 'Zur Prüfung pausiert' : 'Abgeschlossen',
+          value: needsReview ? 'Wird geprüft' : 'Abgeschlossen',
           color: needsReview ? const Color(0xFFF59E0B) : Colors.blueGrey,
         ),
         if (returnedAt != null)
           _FactRow(icon: Icons.assignment_turned_in_outlined, label: 'Rückgabe bestätigt', value: _fmtDate(returnedAt)),
         if (isOwnerView && needsReview)
-          _FactRow(icon: Icons.payments_outlined, label: 'Auszahlung', value: 'Zur Prüfung pausiert'),
+          _FactRow(icon: Icons.payments_outlined, label: 'Auszahlung', value: 'Wird geprüft'),
         if (isOwnerView && !needsReview)
           _FactRow(icon: Icons.payments_outlined, label: 'Auszahlung', value: euroFormatter((totalPaid - fee).clamp(0.0, totalPaid))),
         if (isOwnerView && !needsReview && payoutAt != null)
           _FactRow(icon: Icons.event_available_outlined, label: 'Ausgezahlt am', value: payoutFormatter(payoutAt)),
         if (needsReview)
-          _FactRow(icon: Icons.info_outline, label: 'Hinweis', value: 'Dieser Fall wird aktuell geprüft. Abschluss und Bewertung sind erst danach möglich.'),
+          _FactRow(icon: Icons.info_outline, label: 'Hinweis', value: 'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.'),
       ]);
     }
 

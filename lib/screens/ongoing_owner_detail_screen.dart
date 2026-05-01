@@ -693,9 +693,9 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               const SizedBox(height: 2),
               Text('Keine Auszahlung, da vom Vermieter storniert.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
             ] else if (isCompleted && isHeldForReview) ...[
-              _AmountRow(label: 'Zur Prüfung pausiert', value: 'Auszahlung zurückgestellt', strong: true),
+              _AmountRow(label: 'Wird geprüft', value: 'Wird nach Prüfung abgeschlossen', strong: true),
               const SizedBox(height: 2),
-              Text('Diese Rückgabe ist zur Prüfung markiert. Auszahlung und Belegfreigabe werden pausiert, bis der Fall geprüft wurde.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
+              Text('Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
             ] else if (isCompleted) ...[
               _AmountRow(label: 'Ausgezahlt (an Vermieter)', value: _formatEuro(totalPaid - fee), strong: true),
               Text('Ausgezahlt am ${_formatPayoutDate(req.end)}', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
@@ -734,21 +734,21 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                   value: () {
                     if (req.status == 'cancelled' && (req.cancelledBy == 'renter')) return 'Zurückgezogen';
                     if (req.status == 'cancelled') return 'Storniert';
-                    if (isHeldForReview) return 'Zur Prüfung pausiert';
+                    if (isHeldForReview) return 'Wird geprüft';
                     return 'Abgeschlossen';
                   }(),
                   color: req.status == 'cancelled' ? const Color(0xFFF43F5E) : (isHeldForReview ? const Color(0xFFF59E0B) : Colors.blueGrey)),
               const SizedBox(height: 8),
               _FactRow(icon: Icons.event_busy, label: req.status == 'cancelled' ? 'Storniert am' : 'Rückgabe bestätigt', value: _formatRange(req.start, req.end).split('–').last.trim()),
               const SizedBox(height: 8),
-              _FactRow(icon: Icons.receipt_long_outlined, label: 'Beleg', value: isHeldForReview ? 'Belegfreigabe pausiert bis zur Prüfung' : 'Erstattung gem. Richtlinien'),
+              _FactRow(icon: Icons.receipt_long_outlined, label: 'Beleg', value: isHeldForReview ? 'Wird nach Prüfung bereitgestellt' : 'Erstattung gem. Richtlinien'),
               if (isHeldForReview) ...[
                 const SizedBox(height: 8),
-                _FactRow(icon: Icons.info_outline, label: 'Hinweis', value: 'Dieser Fall wird aktuell geprüft. Abschluss und Bewertung sind erst danach möglich.'),
+                _FactRow(icon: Icons.info_outline, label: 'Hinweis', value: 'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.'),
               ],
               if (isHeldForReview) ...[
                 const SizedBox(height: 8),
-                Text('Diese Rückgabe ist zur Prüfung markiert. Auszahlung und Belegfreigabe werden pausiert, bis der Fall geprüft wurde.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
+                Text('Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
               ],
             ]),
           ),
