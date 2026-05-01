@@ -17,7 +17,8 @@ import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/widgets/login_nudge_sheet.dart';
 
 class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+  final int initialIndex;
+  const MainNavigation({super.key, this.initialIndex = 0});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
@@ -30,6 +31,11 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex.clamp(0, _screens.length - 1);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<MainNavController>().setIndex(_currentIndex);
+    });
     _loadUser();
   }
 

@@ -16,7 +16,8 @@ import 'package:lendify/widgets/social_auth_button.dart';
 import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final int? returnTabIndex;
+  const LoginScreen({super.key, this.returnTabIndex});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -196,7 +197,13 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _goHome({required bool replace}) {
-    final route = MaterialPageRoute(builder: (_) => const MainNavigation());
+    final targetIndex = widget.returnTabIndex;
+    if (targetIndex != null) {
+      try {
+        context.read<MainNavController>().setIndex(targetIndex);
+      } catch (_) {}
+    }
+    final route = MaterialPageRoute(builder: (_) => MainNavigation(initialIndex: targetIndex ?? 0));
     if (replace) {
       Navigator.of(context).pushAndRemoveUntil(route, (r) => false);
     } else {
@@ -438,7 +445,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                                 .of(context)
                                                             .push(MaterialPageRoute(
                                                                 builder: (_) =>
-                                                                    const RegisterScreen()))),
+                                                                    RegisterScreen(returnTabIndex: widget.returnTabIndex)))),
                                                   ]),
                                               const SizedBox(height: 14),
                                               Row(

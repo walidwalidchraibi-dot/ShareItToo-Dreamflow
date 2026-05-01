@@ -14,7 +14,8 @@ import 'package:lendify/widgets/social_auth_button.dart';
 import 'package:provider/provider.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  final int? returnTabIndex;
+  const RegisterScreen({super.key, this.returnTabIndex});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -132,8 +133,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           .read<DeveloperPreviewController>()
           .setState(DeveloperUserState.loggedIn);
       if (!mounted) return;
+      final targetIndex = widget.returnTabIndex;
       Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainNavigation()),
+          MaterialPageRoute(builder: (_) => MainNavigation(initialIndex: targetIndex ?? 0)),
           (route) => false);
     } catch (e) {
       debugPrint('[RegisterScreen] register failed: $e');

@@ -59,6 +59,19 @@ Future<void> showGuestRestrictionSheet(
 /// (We keep it so older call sites don't break.)
 Future<void> showLoginNudgeSheet(BuildContext context) => showGuestRestrictionSheet(context, gateContext: GuestGateContext.generic);
 
+int? _returnTabForGuestGate(GuestGateContext gateContext) {
+  switch (gateContext) {
+    case GuestGateContext.favorites:
+      return 1;
+    case GuestGateContext.booking:
+      return 2;
+    case GuestGateContext.messages:
+      return 3;
+    default:
+      return null;
+  }
+}
+
 class GuestRestrictionSheet extends StatelessWidget {
   final GuestGateContext gateContext;
   final GuestGateContent? overrideContent;
@@ -152,6 +165,7 @@ class GuestRestrictionSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final c = _content(context);
+    final returnTab = _returnTabForGuestGate(gateContext);
     debugPrint('[GuestGate] resolved content title="${c.title}" for gateContext=$gateContext');
 
     return Padding(
@@ -169,11 +183,11 @@ class GuestRestrictionSheet extends StatelessWidget {
             _CtaZone(
               onRegister: () {
                 Navigator.of(context).maybePop();
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen()));
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => RegisterScreen(returnTabIndex: returnTab)));
               },
               onLogin: () {
                 Navigator.of(context).maybePop();
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => LoginScreen(returnTabIndex: returnTab)));
               },
             ),
             const SizedBox(height: 10),
