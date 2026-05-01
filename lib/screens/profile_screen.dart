@@ -421,6 +421,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 user: userForDisplay,
                 listingsCount: _myListingsCount,
                 completedBookingsCount: _completedBookingsCount,
+                onPrimaryTap: isGuest
+                    ? () => showGuestRestrictionSheet(context, gateContext: GuestGateContext.profile)
+                    : () => _handleRoute('/myProfilePublic'),
               ),
             ),
           ),

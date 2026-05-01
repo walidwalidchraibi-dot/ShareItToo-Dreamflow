@@ -9,7 +9,8 @@ class ProfileHeaderCard extends StatelessWidget {
   final int listingsCount;
   /// Number of completed bookings (as renter). If null, we fall back to a demo estimate.
   final int? completedBookingsCount;
-  const ProfileHeaderCard({super.key, required this.user, required this.listingsCount, this.completedBookingsCount});
+  final VoidCallback? onPrimaryTap;
+  const ProfileHeaderCard({super.key, required this.user, required this.listingsCount, this.completedBookingsCount, this.onPrimaryTap});
 
   bool get _isGuestUser => (user.role == 'guest') || (user.id == 'guest-user');
 
@@ -27,13 +28,16 @@ class ProfileHeaderCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-          SizedBox(
-            // Slightly narrower to move the divider left and free space for metrics.
-            // (User request) push divider further left to gain room for right-side stats.
-            width: 104,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onPrimaryTap,
+            child: SizedBox(
+              // Slightly narrower to move the divider left and free space for metrics.
+              // (User request) push divider further left to gain room for right-side stats.
+              width: 104,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 Stack(children: [
                   SitUserAvatar(
                     url: avatarUrl,
@@ -67,7 +71,8 @@ class ProfileHeaderCard extends StatelessWidget {
                   user.isVerified ? l10n.t('Verifiziert') : l10n.t('Nicht verifiziert'),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
                 ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 8),
