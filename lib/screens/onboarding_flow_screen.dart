@@ -293,12 +293,6 @@ class _LoggedOutLandingScreenState extends State<LoggedOutLandingScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 10),
-                            // Skip link
-                            _OnboardingTextLink(
-                              label: 'Weiter ohne Konto →',
-                              onTap: _continueWithoutAccount,
-                            ),
                           ] else ...[
                             // Page 3: Anmelden + Konto erstellen buttons
                             _OnboardingPrimaryButton(
