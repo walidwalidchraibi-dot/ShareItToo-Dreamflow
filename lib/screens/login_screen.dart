@@ -332,15 +332,38 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: _GlassCard(
                                     child: Padding(
                                       padding: const EdgeInsets.fromLTRB(
-                                          16, 16, 16, 16),
+                                          18, 18, 18, 18),
                                       child: Form(
                                         key: _formKey,
                                         child: Column(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.stretch,
                                             children: [
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white.withValues(alpha: 0.06),
+                                                  borderRadius: BorderRadius.circular(999),
+                                                  border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(Icons.shield_outlined, size: 16, color: Colors.white.withValues(alpha: 0.82)),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      'Sicher anmelden',
+                                                      style: theme.textTheme.labelMedium?.copyWith(
+                                                        color: Colors.white.withValues(alpha: 0.86),
+                                                        fontWeight: FontWeight.w800,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(height: 14),
                                               const SitLogoHeader(),
-                                              const SizedBox(height: 16),
+                                              const SizedBox(height: 18),
                                               _SITTextField(
                                                 label: 'E-Mail',
                                                 placeholder: 'deine@email.com',
@@ -404,9 +427,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                                   icon: Icons.login,
                                                   onTap:
                                                       _busy ? null : _submit),
-                                              const SizedBox(height: 14),
+                                              const SizedBox(height: 16),
                                               const SocialAuthOrDivider(),
-                                              const SizedBox(height: 12),
+                                              const SizedBox(height: 14),
                                               SocialAuthButton(
                                                   brand: SocialAuthBrand.google,
                                                   label: 'Mit Google anmelden',
@@ -424,7 +447,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                       : () => _socialSignIn(
                                                           AuthSocialProvider
                                                               .apple)),
-                                              const SizedBox(height: 14),
+                                              const SizedBox(height: 16),
                                               Row(
                                                   mainAxisAlignment:
                                                       MainAxisAlignment.center,
@@ -447,7 +470,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                                 builder: (_) =>
                                                                     RegisterScreen(returnTabIndex: widget.returnTabIndex)))),
                                                   ]),
-                                              const SizedBox(height: 14),
+                                              const SizedBox(height: 16),
                                               Row(
                                                   mainAxisAlignment:
                                                       MainAxisAlignment.center,
@@ -499,11 +522,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 12),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.08),
+                                  color: Colors.black.withValues(alpha: 0.24),
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
                                       color:
                                           Colors.white.withValues(alpha: 0.14)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.16),
+                                      blurRadius: 18,
+                                      offset: const Offset(0, 10),
+                                    ),
+                                  ],
                                 ),
                                 child: Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -588,7 +618,7 @@ class _AuthBackdrop extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.asset('assets/images/register.png',
+        Image.asset('assets/images/Register_Login_Hintergrund.png',
             fit: BoxFit.cover, alignment: Alignment.topCenter),
         ClipRect(
           child: BackdropFilter(
@@ -604,9 +634,9 @@ class _AuthBackdrop extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!
-                    .withValues(alpha: peekClear ? 0.14 : 0.36),
+                    .withValues(alpha: peekClear ? 0.16 : 0.40),
                 Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!
-                    .withValues(alpha: peekClear ? 0.12 : 0.28),
+                    .withValues(alpha: peekClear ? 0.14 : 0.32),
               ],
             ),
           ),

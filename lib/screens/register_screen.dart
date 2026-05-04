@@ -9,6 +9,7 @@ import 'package:lendify/screens/legal_terms_screen.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/sit_logo_header.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/social_auth_button.dart';
 import 'package:provider/provider.dart';
@@ -222,14 +223,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return SingleChildScrollView(
                         keyboardDismissBehavior:
                             ScrollViewKeyboardDismissBehavior.onDrag,
-                        padding: EdgeInsets.fromLTRB(16, 4, 16, bottomPadding),
+                        padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
                         child: Center(
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 520),
                             child: _GlassCard(
                               child: Padding(
                                 padding:
-                                    const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                                    const EdgeInsets.fromLTRB(18, 18, 18, 18),
                                 child: Form(
                                   key: _formKey,
                                   autovalidateMode: _didInteract
@@ -239,6 +240,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.stretch,
                                       children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(alpha: 0.06),
+                                            borderRadius: BorderRadius.circular(999),
+                                            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.auto_awesome_outlined, size: 16, color: Colors.white.withValues(alpha: 0.82)),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Schnell & sicher starten',
+                                                style: theme.textTheme.labelMedium?.copyWith(
+                                                  color: Colors.white.withValues(alpha: 0.86),
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 14),
+                                        const SitLogoHeader(),
+                                        const SizedBox(height: 18),
                                         SocialAuthButton(
                                             brand: SocialAuthBrand.google,
                                             label: 'Mit Google registrieren',
@@ -421,7 +447,7 @@ class _RegisterBackdrop extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.asset('assets/images/register.png',
+        Image.asset('assets/images/Register_Login_Hintergrund.png',
             fit: BoxFit.cover, alignment: Alignment.topCenter),
         ClipRect(
           child: BackdropFilter(
@@ -436,9 +462,9 @@ class _RegisterBackdrop extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!
-                    .withValues(alpha: 0.34),
+                    .withValues(alpha: 0.38),
                 Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!
-                    .withValues(alpha: 0.26),
+                    .withValues(alpha: 0.30),
               ],
             ),
           ),
