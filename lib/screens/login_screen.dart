@@ -296,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     constraints:
                                         const BoxConstraints(maxWidth: 520),
                                     child: Text(
-                                      'Melde dich an, um Dinge zu teilen, zu mieten und deine Buchungen zu verwalten.',
+                                      'Melde dich an, um zu mieten, zu teilen und deine Buchungen zu verwalten.',
                                       textAlign: TextAlign.center,
                                       style: theme.textTheme.titleMedium
                                           ?.copyWith(
@@ -452,7 +452,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                   mainAxisAlignment:
                                                       MainAxisAlignment.center,
                                                   children: [
-                                                    Text('Noch kein Konto? ',
+                                                    Text('Neu bei SIT? ',
                                                         style: theme
                                                             .textTheme.bodySmall
                                                             ?.copyWith(
@@ -463,7 +463,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                                             0.75))),
                                                     _TextLink(
                                                         label:
-                                                            'Jetzt registrieren',
+                                                            'Konto erstellen',
                                                         onTap: () => Navigator
                                                                 .of(context)
                                                             .push(MaterialPageRoute(
@@ -485,7 +485,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                                     const SizedBox(width: 8),
                                                     Expanded(
                                                       child: Text(
-                                                        'Deine Daten werden sicher verschlüsselt übertragen.',
+                                                        'Deine Anmeldung wird sicher übertragen.',
                                                         textAlign:
                                                             TextAlign.center,
                                                         style: theme.textTheme
@@ -543,7 +543,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           color: Colors.white
                                               .withValues(alpha: 0.90)),
                                       const SizedBox(width: 10),
-                                      Text('Ohne Anmeldung weiter',
+                                      Text('Erst mal umschauen',
                                           style: theme.textTheme.bodyMedium
                                               ?.copyWith(
                                                   color: Colors.white,

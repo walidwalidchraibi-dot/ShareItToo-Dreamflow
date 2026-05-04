@@ -192,16 +192,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text('In weniger als 60 Sekunden starten',
+                          Text('Dein SIT-Konto erstellen',
                               textAlign: TextAlign.center,
                               style: theme.textTheme.titleLarge?.copyWith(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w900,
                                   color: Colors.white,
                                   height: 1.15)),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 4),
                           Text(
-                              'Mieten & vermieten – sicher, einfach und in deiner Nähe.',
+                              'Miete und vermiete Dinge sicher in deiner Nähe.',
                               textAlign: TextAlign.center,
                               style: theme.textTheme.bodyMedium?.copyWith(
                                   color: Colors.white.withValues(alpha: 0.76),
@@ -753,7 +753,7 @@ class _StickyAuthBar extends StatelessWidget {
                         onOpenTerms: onOpenTerms, onOpenPrivacy: onOpenPrivacy),
                     const SizedBox(height: 8),
                     Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Text('Schon ein Konto? ',
+                      Text('Schon bei SIT? ',
                           style: theme.textTheme.bodySmall?.copyWith(
                               color: Colors.white.withValues(alpha: 0.78))),
                       _TextLink(label: 'Anmelden', onTap: onLogin),

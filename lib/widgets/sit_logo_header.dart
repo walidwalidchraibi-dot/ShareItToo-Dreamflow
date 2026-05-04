@@ -48,7 +48,7 @@ class SitLogoHeader extends StatelessWidget {
             Transform.translate(
               offset: const Offset(0, -8),
               child: Text(
-                'SICHER. LOKAL. FLEXIBEL.',
+                'SICHER. LOKAL. VERTRAUT.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.labelSmall?.copyWith(fontSize: 12.5, fontWeight: FontWeight.w900, color: resolvedSlogan, letterSpacing: 1.1),
               ),

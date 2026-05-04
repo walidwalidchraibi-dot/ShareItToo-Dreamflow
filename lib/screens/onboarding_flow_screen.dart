@@ -58,15 +58,15 @@ class _LoggedOutLandingScreenState extends State<LoggedOutLandingScreen> {
   ];
 
   static const _slideTitles = <String>[
-    'Teile Dinge in deiner Nähe',
-    'Verdiene Geld mit Dingen, die du besitzt',
-    'Sicher. Transparent. Fair.',
+    'Miete Dinge – einfach & sicher in deiner Nähe',
+    'Verdiene Geld mit Dingen, die sonst rumliegen',
+    'Mieten ohne Stress – mit klaren Regeln',
   ];
 
   static const _slideDescriptions = <String>[
-    'Miete Werkzeuge, Technik, Outdoor-Gear und vieles mehr – direkt von Menschen aus deiner Stadt.',
-    'Vermiete Werkzeuge, Technik, Outdoor-Gear, Küchenmaschinen, Fahrräder, Schmuck und vieles mehr.',
-    'Verifizierte Profile, Bewertungen, ein integrierter Chat sowie eine bilddokumentierte Übergabe und Rückgabe geben dir Sicherheit.',
+    'Von Werkzeug bis Freizeit – finde, was du brauchst, direkt in deiner Umgebung.',
+    'Vermiete einfach, was du nicht brauchst – sicher und ohne Aufwand.',
+    'Fotos, Chat und klare Abläufe geben dir Sicherheit bei jeder Miete.',
   ];
 
   void _handleSecretTap() {
@@ -327,7 +327,7 @@ class _LoggedOutLandingScreenState extends State<LoggedOutLandingScreen> {
                                 ),
                                 const SizedBox(width: 20),
                                 _OnboardingTextLink(
-                                  label: 'Weiter ohne Konto →',
+                                  label: 'Erst mal umschauen →',
                                   onTap: _continueWithoutAccount,
                                 ),
                               ],
@@ -655,7 +655,7 @@ class _SplashScreenState extends State<_SplashScreen> with SingleTickerProviderS
               Text('ShareItToo', style: theme.textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 0.2)),
               const SizedBox(height: 6),
               Text(
-                'SICHER. LOKAL. FLEXIBEL.',
+                'SICHER. LOKAL. VERTRAUT.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.82), fontWeight: FontWeight.w900, letterSpacing: 1.1),
               ),
