@@ -44,7 +44,7 @@ class DataService {
   static const String _wishlistAssignKey = 'wishlist_assign_v1';
   static const String _messageThreadsKey = 'message_threads_v1';
   static const String _demoNotifSeedFlagPrefix = 'demo_notif_seeded_for_';
-  static const String _qaMessagesAndNotifsSeedFlagPrefix = 'qa_messages_notifs_seeded_v1_for_';
+  static const String _qaMessagesAndNotifsSeedFlagPrefix = 'qa_messages_notifs_seeded_v2_for_';
 
   // Security
   static const String _securitySettingsKey = 'security_settings_v1';
@@ -1158,9 +1158,9 @@ class DataService {
       );
       final pendingRequest = RentalRequest(
         id: 'qa_req_pending_$userId',
-        itemId: pendingItem.id,
-        ownerId: pendingItem.ownerId,
-        renterId: pendingItem.ownerId == userId ? renterA.id : userId,
+        itemId: acceptedItem.id,
+        ownerId: acceptedItem.ownerId,
+        renterId: userId,
         start: now.add(const Duration(days: 4)),
         end: now.add(const Duration(days: 6, hours: 8)),
         status: 'pending',
@@ -1169,10 +1169,23 @@ class DataService {
         quotedTotalRenter: 58.0,
         quotedSubtitle: 'Anfrage noch offen',
       );
+      final ownerPendingRequest = RentalRequest(
+        id: 'qa_req_owner_pending_$userId',
+        itemId: pendingItem.id,
+        ownerId: pendingItem.ownerId,
+        renterId: pendingItem.ownerId == userId ? renterA.id : ownerB.id,
+        start: now.add(const Duration(days: 3, hours: 6)),
+        end: now.add(const Duration(days: 5, hours: 12)),
+        status: 'pending',
+        message: 'Ich könnte am Samstag am späten Nachmittag abholen, wenn das für dich passt.',
+        createdAt: now.subtract(const Duration(hours: 1, minutes: 35)),
+        quotedTotalRenter: 67.0,
+        quotedSubtitle: 'eingehende Mietanfrage',
+      );
 
       final requests = await _getAllRentalRequests();
       requests.removeWhere((r) => r.id.startsWith('qa_req_') && (r.renterId == userId || r.ownerId == userId));
-      requests.addAll([acceptedRequest, runningRequest, completedRequest, needsReviewRequest, pendingRequest]);
+      requests.addAll([acceptedRequest, runningRequest, completedRequest, needsReviewRequest, pendingRequest, ownerPendingRequest]);
       await _saveAllRentalRequests(requests);
 
       final rawThreads = prefs.getString(_messageThreadsKey);
@@ -3611,6 +3624,7 @@ class DataService {
   static Future<List<RentalRequest>> getRentalRequestsForOwner(String ownerId,
       {String? status}) async {
     await _sweepExpressTimeouts();
+    await _ensureQaMessagesAndNotificationsForUserOnce(ownerId);
     final all = await _getAllRentalRequests();
     final filtered = all
         .where((r) =>
@@ -4179,6 +4193,7 @@ class DataService {
   static Future<List<RentalRequest>> getRentalRequestsForRenter(String renterId,
       {String? status}) async {
     await _sweepExpressTimeouts();
+    await _ensureQaMessagesAndNotificationsForUserOnce(renterId);
     final all = await _getAllRentalRequests();
     final filtered = all
         .where((r) =>
