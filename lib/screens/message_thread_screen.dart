@@ -1165,13 +1165,84 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
     if (result == null || !mounted) return;
 
-    final label = result.mainCategoryLabel;
-    final detail = result.subCategory.trim().isNotEmpty ? ' • ${result.subCategory}' : '';
-    AppPopup.toast(
-      context,
-      icon: Icons.support_agent_outlined,
-      title: 'Support-Fall lokal vorbereitet: $label$detail',
-    );
+    final mainCategory = result.mainCategory;
+    final subCategory = result.subCategory;
+    final userDescription = result.userDescription;
+
+    final supportContext = <String, dynamic>{
+      'mainCategory': mainCategory,
+      'subCategory': subCategory,
+      'userDescription': userDescription,
+      'itemTitle': _itemTitle(),
+      'itemId': _item?.id ?? '',
+      'requestId': _request?.id ?? '',
+      'threadId': _thread?.id ?? '',
+      'bookingStatus': _request?.status ?? _thread?.bookingStatus ?? '',
+      'otherUserName': _displayName(),
+      'currentUserRole': _viewerIsOwner() ? 'owner' : 'renter',
+      'source': 'booking_chat',
+      'createdAt': DateTime.now().toIso8601String(),
+    };
+
+    debugPrint('[MessageThreadScreen] Support context prepared: $supportContext');
+
+    try {
+      final me = _currentUser;
+      if (me == null) {
+        AppPopup.toast(context, icon: Icons.error_outline, title: 'Nicht eingeloggt');
+        return;
+      }
+
+      final threads = await DataService.getMessageThreadsForUser(me.id);
+      MessageThread? supportThread = threads.cast<MessageThread?>().firstWhere(
+        (t) => t != null && ((t.threadType ?? '').toLowerCase() == 'support' || t.user1Id == 'support' || t.user2Id == 'support'),
+        orElse: () => null,
+      );
+
+      supportThread ??= await DataService.createSupportThread(userId: me.id);
+
+      if (supportThread == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Support-Fall vorbereitet. Support-Route fehlt noch.'),
+              backgroundColor: BrandColors.primary,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
+      final mainLabel = _supportMainCategoryLabel(mainCategory);
+      final descText = userDescription.isNotEmpty ? '\n\nBeschreibung:\n$userDescription' : '';
+      final contextMessage = '''📋 Support-Anfrage zu: ${_itemTitle().isNotEmpty ? _itemTitle() : 'Buchung'}
+Buchung: ${_request?.id ?? 'N/A'}
+Kategorie: $mainLabel
+Unterkategorie: $subCategory$descText''';
+
+      await DataService.addSystemMessageToThread(
+        threadId: supportThread.id,
+        text: contextMessage,
+      );
+
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => MessageThreadScreen(
+              threadId: supportThread!.id,
+              participantName: 'SIT Support',
+              itemTitle: 'Support',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('[MessageThreadScreen] _contactSupport failed: $e');
+      if (mounted) {
+        AppPopup.toast(context, icon: Icons.error_outline, title: 'Support nicht verfügbar');
+      }
+    }
   }
   
   String _supportMainCategoryLabel(String category) {

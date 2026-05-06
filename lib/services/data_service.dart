@@ -5552,6 +5552,54 @@ class DataService {
     return [th1, th2, support, th3];
   }
 
+  /// Erstellt einen neuen Support-Thread für einen User
+  static Future<MessageThread?> createSupportThread({required String userId}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+      final List<dynamic> list = raw != null && raw.isNotEmpty ? jsonDecode(raw) : [];
+
+      final now = DateTime.now();
+      final threadId = 'thread_support_${now.microsecondsSinceEpoch}';
+
+      final supportThread = MessageThread(
+        id: threadId,
+        requestId: '',
+        itemId: '',
+        itemTitle: 'SIT Support',
+        user1Id: userId,
+        user2Id: 'support',
+        threadType: 'support',
+        bookingStatus: null,
+        handoverAt: null,
+        returnAt: null,
+        otherUserOnline: true,
+        otherUserLastActive: now,
+        archivedForUserIds: const <String>[],
+        messages: [
+          Message(
+            id: 'msg_${now.microsecondsSinceEpoch}_welcome',
+            senderId: 'support',
+            text: 'Hallo! Wie können wir dir helfen?',
+            timestamp: now,
+            isRead: false,
+          ),
+        ],
+        createdAt: now,
+        lastMessageAt: now,
+      );
+
+      list.add(supportThread.toJson());
+      await prefs.setString(_messageThreadsKey, jsonEncode(list));
+
+      debugPrint('[DataService] createSupportThread: created $threadId');
+      return supportThread;
+    } catch (e) {
+      debugPrint('[DataService] createSupportThread error: $e');
+      return null;
+    }
+  }
+
   /// Findet einen Thread anhand der Thread-ID
   static Future<MessageThread?> getMessageThreadById(String threadId) async {
     try {
