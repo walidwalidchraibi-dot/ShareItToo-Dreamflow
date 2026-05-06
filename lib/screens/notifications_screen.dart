@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lendify/screens/booking_detail_screen.dart';
+import 'package:lendify/screens/notification_detail_screen.dart';
 import 'package:lendify/screens/notification_settings_screen.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/payment_methods_screen.dart';
@@ -206,21 +207,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
     }
 
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NotificationDetailScreen(
+          notification: n,
+          onCta: () {
+            Navigator.of(context).maybePop();
+            Future.microtask(() => _openNotificationTarget(n));
+          },
+        ),
+      ),
+    );
+    if (mounted) await _load();
+  }
+
+  Future<void> _openNotificationTarget(Map<String, dynamic> n) async {
+    final uid = _currentUserId;
+    if (uid == null) return;
+
     final category = (n['category'] ?? '').toString();
     final entityType = (n['entityType'] ?? '').toString();
     final entityId = (n['entityId'] ?? '').toString();
-
-    // If the notification has no deep-link target, show a detail popup.
-    if (entityType.isEmpty || entityId.isEmpty) {
-      if (!mounted) return;
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) => _NotificationDetailsSheet(notification: n),
-      );
-      return;
-    }
 
     try {
       if (entityType == 'booking') {
@@ -272,23 +280,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return;
       }
 
-      // Security/verification: open the verification flow.
       if (entityType == 'verification' || category == 'security') {
         if (!mounted) return;
         await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VerificationIntroScreen()));
         return;
       }
-
-      // Fallback: show details for any unhandled entityType (e.g. 'system').
-      if (!mounted) return;
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) => _NotificationDetailsSheet(notification: n),
-      );
     } catch (e) {
-      debugPrint('[NotificationsScreen] openNotification failed: $e');
+      debugPrint('[NotificationsScreen] openNotificationTarget failed: $e');
     }
   }
 
