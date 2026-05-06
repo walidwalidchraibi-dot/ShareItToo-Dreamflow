@@ -1362,36 +1362,28 @@ class _ChatBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final bg = me ? cs.primary.withValues(alpha: 0.92) : Colors.white.withValues(alpha: 0.08);
-    final border = Colors.white.withValues(alpha: me ? 0.10 : 0.12);
-    final maxWidth = MediaQuery.of(context).size.width * 0.75;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          padding: const EdgeInsets.fromLTRB(12, 10, 10, 9),
-          constraints: BoxConstraints(maxWidth: maxWidth, minWidth: 64),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: border),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 14, offset: const Offset(0, 10))],
+    final bg = me ? cs.primary.withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.08);
+    final maxWidth = MediaQuery.of(context).size.width * 0.72;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.fromLTRB(12, 9, 10, 7),
+      constraints: BoxConstraints(maxWidth: maxWidth, minWidth: 60),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(text, style: const TextStyle(color: Colors.white, height: 1.3, fontSize: 14)),
+          const SizedBox(height: 3),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Text(time, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 10, fontWeight: FontWeight.w500)),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(text, style: const TextStyle(color: Colors.white, height: 1.35)),
-              const SizedBox(height: 6),
-              Align(
-                alignment: Alignment.bottomRight,
-                child: Text(time, style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 10, fontWeight: FontWeight.w700)),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
