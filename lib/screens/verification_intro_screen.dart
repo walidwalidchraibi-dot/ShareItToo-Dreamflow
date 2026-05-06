@@ -35,7 +35,7 @@ class VerificationIntroScreen extends StatelessWidget {
             _StepTile(icon: Icons.face_retouching_natural_outlined, title: '2. Selfie-Abgleich', subtitle: 'Kurzes Selfie zur Überprüfung, dass du es wirklich bist.'),
             _StepTile(icon: Icons.account_balance_wallet_outlined, title: '3. Zahlungsprofil', subtitle: 'Zahlungsmethode hinzufügen (für Auszahlungen/Absicherungen).'),
             _StepTile(icon: Icons.sms_outlined, title: '4. Telefonnummer bestätigen', subtitle: 'Wir senden dir einen Code per SMS.'),
-            _StepTile(icon: Icons.home_work_outlined, title: '5. Adresse bestätigen', subtitle: 'Anschrift angeben, um lokale Angebote zu verbessern.'),
+            _StepTile(icon: Icons.home_work_outlined, title: '5. Adresse bestätigen', subtitle: 'Adresse bestätigen, damit Übergaben sicherer geplant werden können.'),
             const SizedBox(height: 24),
             Row(children: [
               Expanded(

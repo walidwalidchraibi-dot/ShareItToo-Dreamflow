@@ -159,15 +159,23 @@ class _TrustRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
-    final style = Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.86), fontWeight: FontWeight.w700);
+    final baseStyle = Theme.of(context).textTheme.labelSmall;
+    final style = baseStyle?.copyWith(
+      color: Colors.white.withValues(alpha: 0.86),
+      fontWeight: FontWeight.w800,
+      // Featured cards are narrow (3 per viewport) — keep KM + rentals always visible.
+      fontSize: (baseStyle?.fontSize ?? 11) * 0.92,
+      letterSpacing: -0.1,
+    );
+    const iconSize = 12.0;
 
     final parts = <Widget>[
-      const Icon(Icons.place_outlined, size: 14, color: Colors.white70),
-      const SizedBox(width: 4),
+      const Icon(Icons.place_outlined, size: iconSize, color: Colors.white70),
+      const SizedBox(width: 3),
       Text(distanceKm == null ? l10n.t('in deiner Nähe') : '${distanceKm!.toStringAsFixed(distanceKm! < 10 ? 1 : 0)} km', style: style),
-      const SizedBox(width: 10),
-      const Icon(Icons.loop, size: 14, color: Colors.white70),
-      const SizedBox(width: 4),
+      const SizedBox(width: 6),
+      const Icon(Icons.loop, size: iconSize, color: Colors.white70),
+      const SizedBox(width: 3),
       Text('${rentals.clamp(0, 999)}', style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
     ];
 

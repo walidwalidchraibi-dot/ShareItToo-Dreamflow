@@ -17,22 +17,21 @@ class WishlistMosaicCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final cardBg = cs.surface.withValues(alpha: 0.72);
-    final border = cs.onSurface.withValues(alpha: 0.06);
+    final isEmpty = count == 0;
+    final cardBg = cs.surface.withValues(alpha: isEmpty ? 0.45 : 0.72);
+    final border = cs.onSurface.withValues(alpha: isEmpty ? 0.05 : 0.06);
     // Make wishlist titles slightly smaller per request while keeping strong weight
-    final titleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: cs.primary);
-    final metaStyle = Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.68));
+    final titleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: cs.primary);
+    final metaStyle = Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.55));
 
     Widget content = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _Mosaic(urls: photoUrls, empty: count == 0),
-      const SizedBox(height: 10),
+      _Mosaic(urls: photoUrls, empty: isEmpty, totalCount: count),
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle),
-          const SizedBox(height: 8),
-          Text('$count Artikel', style: metaStyle),
-          const SizedBox(height: 10),
+          const SizedBox(height: 4),
+          Text(isEmpty ? 'Noch leer' : '$count Artikel', style: metaStyle),
         ]),
       ),
     ]);
@@ -45,7 +44,18 @@ class WishlistMosaicCard extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
-          decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(16), border: Border.all(color: border)),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: border),
+            boxShadow: isEmpty ? null : [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
           clipBehavior: Clip.antiAlias,
           child: content,
         ),
@@ -57,24 +67,49 @@ class WishlistMosaicCard extends StatelessWidget {
 class _Mosaic extends StatelessWidget {
   final List<String> urls;
   final bool empty;
-  const _Mosaic({required this.urls, required this.empty});
+  final int totalCount;
+  const _Mosaic({required this.urls, required this.empty, required this.totalCount});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final radius = 16.0;
+    final radius = 18.0;
 
     if (empty) {
-      // Single calm placeholder
+      // Compact calm placeholder with heart icon
       return AspectRatio(
-        aspectRatio: 1,
+        aspectRatio: 1.18, // Slightly more compact for empty cards
         child: Container(
-          decoration: BoxDecoration(color: cs.onSurface.withValues(alpha: 0.06), borderRadius: BorderRadius.only(topLeft: Radius.circular(radius), topRight: Radius.circular(radius))),
+          decoration: BoxDecoration(
+            color: cs.onSurface.withValues(alpha: 0.035),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(radius),
+              topRight: Radius.circular(radius),
+            ),
+          ),
           child: Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.favorite_border, color: cs.onSurface.withValues(alpha: 0.42), size: 28),
-              const SizedBox(height: 6),
-              Text('Noch keine Artikel', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.56))),
+              Icon(
+                Icons.favorite_border_rounded,
+                color: cs.onSurface.withValues(alpha: 0.2),
+                size: 20,
+              ),
+              const SizedBox(height: 5),
+              Text(
+                'Noch keine Artikel',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: cs.onSurface.withValues(alpha: 0.35),
+                  fontSize: 10,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Tippe auf ♡ beim Erkunden',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: cs.onSurface.withValues(alpha: 0.28),
+                  fontSize: 9,
+                ),
+              ),
             ]),
           ),
         ),
@@ -82,30 +117,79 @@ class _Mosaic extends StatelessWidget {
     }
 
     final list = urls.where((e) => e.trim().isNotEmpty).toList(growable: false);
-    final a = list.isNotEmpty ? list[0] : '';
-    final b = list.length > 1 ? list[1] : '';
-    final c = list.length > 2 ? list[2] : '';
-    final d = list.length > 3 ? list[3] : '';
-
-    Widget tile(String url, {BorderRadius? r}) => url.isEmpty
-        ? Container(decoration: BoxDecoration(color: cs.onSurface.withValues(alpha: 0.06), borderRadius: r))
-        : AppImage(url: url, borderRadius: r);
+    final int slots = totalCount.clamp(1, 3);
+    final photos = list.take(slots).toList(growable: false);
+    final int hiddenCount = totalCount > slots ? totalCount - slots : 0;
 
     return AspectRatio(
-      aspectRatio: 1,
-      child: Row(children: [
-        Expanded(child: Column(children: [
-          Expanded(child: tile(a, r: BorderRadius.only(topLeft: Radius.circular(radius)))),
-          const SizedBox(height: 2),
-          Expanded(child: tile(c)),
-        ])),
-        const SizedBox(width: 2),
-        Expanded(child: Column(children: [
-          Expanded(child: tile(b, r: BorderRadius.only(topRight: Radius.circular(radius)))),
-          const SizedBox(height: 2),
-          Expanded(child: tile(d, r: BorderRadius.only(bottomRight: Radius.circular(radius)))),
-        ])),
-      ]),
+      aspectRatio: 1.18,
+      child: ClipRRect(
+        borderRadius: BorderRadius.only(topLeft: Radius.circular(radius), topRight: Radius.circular(radius)),
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: cs.onSurface.withValues(alpha: 0.06)),
+          child: Builder(builder: (context) {
+            final count = slots;
+            if (count == 0) {
+              // Fallback if we somehow have a non-empty list without valid images
+              return Padding(
+                padding: const EdgeInsets.all(10),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: cs.onSurface.withValues(alpha: 0.10),
+                  ),
+                ),
+              );
+            }
+
+            final gap = count == 1 ? 0.0 : 4.0;
+            final padding = count == 1 ? EdgeInsets.zero : const EdgeInsets.all(4);
+
+            Widget tile(String? url, {bool showExtra = false}) {
+              final borderRadius = BorderRadius.circular(count == 1 ? 18 : 12);
+              Widget image = ClipRRect(
+                borderRadius: borderRadius,
+                child: Stack(fit: StackFit.expand, children: [
+                  if (url != null && url.isNotEmpty)
+                    AppImage(url: url, fit: BoxFit.cover)
+                  else
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [cs.onSurface.withValues(alpha: 0.12), cs.onSurface.withValues(alpha: 0.08)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(Icons.inventory_2_outlined, color: Colors.white.withValues(alpha: 0.55), size: 24),
+                    ),
+                  if (showExtra && hiddenCount > 0)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      child: Center(
+                        child: Text(
+                          '+$hiddenCount',
+                          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                ]),
+              );
+              return image;
+            }
+
+            return Padding(
+              padding: padding,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (int i = 0; i < count; i++) ...[
+                    Expanded(child: tile(i < photos.length ? photos[i] : null, showExtra: i == count - 1 && hiddenCount > 0)),
+                    if (i < count - 1) SizedBox(width: gap),
+                  ],
+                ],
+              ),
+            );
+          }),
+        ),
+      ),
     );
   }
 }
