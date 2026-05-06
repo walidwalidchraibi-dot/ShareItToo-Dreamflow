@@ -422,12 +422,15 @@ class _SettingsSwitchRow extends StatelessWidget {
               ],
             ]),
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: theme.colorScheme.primary,
-            inactiveThumbColor: Colors.white.withValues(alpha: 0.65),
-            inactiveTrackColor: Colors.white.withValues(alpha: 0.18),
+          Transform.scale(
+            scale: 0.8,
+            child: Switch(
+              value: value,
+              onChanged: onChanged,
+              activeColor: theme.colorScheme.primary,
+              inactiveThumbColor: Colors.white.withValues(alpha: 0.6),
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.14),
+            ),
           ),
         ]),
       ),
@@ -446,33 +449,33 @@ class _SettingsActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Material(
-      color: Colors.white.withValues(alpha: 0.06),
-      borderRadius: BorderRadius.circular(16),
+      color: Colors.white.withValues(alpha: 0.04),
+      borderRadius: BorderRadius.circular(10),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         onTap: onTap,
         child: Container(
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-          padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
+          padding: const EdgeInsets.fromLTRB(7, 5, 7, 5),
           child: Row(children: [
             Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-              child: Icon(icon, color: theme.colorScheme.onSurface.withValues(alpha: 0.92), size: 18),
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(7)),
+              child: Icon(icon, color: Colors.white70, size: 14),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                Text(title, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, fontSize: 12)),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 3),
-                  Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.35)),
+                  const SizedBox(height: 1),
+                  Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white54, fontSize: 10, height: 1.25)),
                 ],
               ]),
             ),
-            const SizedBox(width: 10),
-            const Icon(Icons.chevron_right, color: Colors.white70),
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right, color: Colors.white54, size: 18),
           ]),
         ),
       ),
