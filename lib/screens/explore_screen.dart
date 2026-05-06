@@ -627,19 +627,19 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                         child: _SectionHeader(
                           title: title,
                           // Keep the title very close to the pinned categories row.
-                          padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                         ),
                       ),
                       if (items.isNotEmpty)
                         SliverToBoxAdapter(
                           child: Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.only(bottom: 14),
                             child: LayoutBuilder(builder: (context, c) {
                               // 2 full cards + 25% of the next card.
                               const sidePad = 16.0;
-                              const gap = 12.0;
+                              const gap = 10.0;
                               final viewport = c.maxWidth;
-                              final cardW = ((viewport - sidePad * 2) - gap * 2) / 2.25;
+                              final cardW = (viewport - sidePad * 2 - gap * 2) / 3;
                               // Keep the featured (upper) cards compact.
                               // Image is 4:3 => height = width * 3/4.
                               // Tighten the horizontal featured cards so they end right under the price.
@@ -650,7 +650,7 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                               return SizedBox(
                                 height: cardH,
                                 child: ListView.separated(
-                                  padding: const EdgeInsets.symmetric(horizontal: sidePad),
+                                  padding: const EdgeInsets.fromLTRB(sidePad, 0, sidePad, 0),
                                   scrollDirection: Axis.horizontal,
                                   physics: const BouncingScrollPhysics(),
                                   itemBuilder: (context, i) {
@@ -691,12 +691,12 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                         )
                       else
                         SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 24, 32),
                           sliver: SliverGrid(
                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: isDesktop ? 4 : (isTablet ? 3 : 2),
-                              mainAxisSpacing: 10,
-                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 12,
+                              crossAxisSpacing: 12,
                               // Make cards more compact vertically so the tile ends right below
                               // the price row (matching "Meine Anzeigen" density).
                               // Higher ratio => less height for the same width.
@@ -705,7 +705,7 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                               // 4:3 image + trust row + price rows.
                               // Slightly taller on phones to avoid bottom overflows in tight grid tiles
                               // (e.g., with larger textScaleFactor).
-                              childAspectRatio: isDesktop ? 0.90 : (isTablet ? 0.87 : 0.84),
+                              childAspectRatio: isDesktop ? 0.90 : (isTablet ? 0.87 : 0.80),
                             ),
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
@@ -1732,13 +1732,28 @@ class _ExploreListingCardContent extends StatelessWidget {
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
                         child: Row(children: [
-                          const Icon(Icons.place_outlined, size: 14, color: Colors.white70),
-                          const SizedBox(width: 4),
-                          Text(distanceKm == null ? l10n.t('in deiner Nähe') : '${distanceKm!.toStringAsFixed(distanceKm! < 10 ? 1 : 0)} km', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.86), fontWeight: FontWeight.w700)),
-                          const SizedBox(width: 10),
-                          const Icon(Icons.loop, size: 14, color: Colors.white70),
-                          const SizedBox(width: 4),
-                          Text('${item.timesLent.clamp(0, 999)} ${l10n.t('Vermietungen')}', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.86), fontWeight: FontWeight.w700)),
+                          Builder(
+                            builder: (context) {
+                              final baseStyle = Theme.of(context).textTheme.labelSmall;
+                              final style = baseStyle?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.86),
+                                fontWeight: FontWeight.w800,
+                                fontSize: (baseStyle?.fontSize ?? 11) * 0.92,
+                                letterSpacing: -0.1,
+                              );
+
+                              const iconSize = 12.0;
+                              return Row(children: [
+                                const Icon(Icons.place_outlined, size: iconSize, color: Colors.white70),
+                                const SizedBox(width: 3),
+                                Text(distanceKm == null ? l10n.t('in deiner Nähe') : '${distanceKm!.toStringAsFixed(distanceKm! < 10 ? 1 : 0)} km', style: style),
+                                const SizedBox(width: 6),
+                                const Icon(Icons.loop, size: iconSize, color: Colors.white70),
+                                const SizedBox(width: 3),
+                                Text('${item.timesLent.clamp(0, 999)} ${l10n.t('Vermietungen')}', style: style),
+                              ]);
+                            },
+                          ),
                         ]),
                       ),
                     ),

@@ -1,4 +1,4 @@
-import 'dart:ui' as ui;
+import 'dart:ui' as ui show ImageFilter;
 import 'package:flutter/material.dart';
 
 class PinnedCategoriesHeader extends SliverPersistentHeaderDelegate {
@@ -7,15 +7,13 @@ class PinnedCategoriesHeader extends SliverPersistentHeaderDelegate {
 
   // Thickness adjustments (~1 mm ≈ 6 dp) applied on top and bottom
   // Keep this very tight so the first feed title sits close to the category row.
-  static const double _topGapAfterSeparator = 4;
+  static const double _topGapAfterSeparator = 16; // +12dp (~3mm) mehr Abstand von Icons oberhalb
   static const double _iconsHeight = 84; // CategoryIconRow reduced by ~1mm from bottom
-  static const double _separatorHeight = 1;
-  static const double _bottomPad = 0; // was 6, reduced by ~6
+  static const double _bottomPad = 0;
 
   static const double _totalHeight =
       _topGapAfterSeparator +
       _iconsHeight +
-      _separatorHeight +
       _bottomPad;
 
   @override
@@ -25,21 +23,10 @@ class PinnedCategoriesHeader extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final line = Container(
-      height: _separatorHeight,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [
-          Colors.white.withValues(alpha: 0.04),
-          Colors.white.withValues(alpha: 0.12),
-          Colors.white.withValues(alpha: 0.04),
-        ]),
-      ),
-    );
-
     return Stack(children: [
       // Paint the same global background as the app so content below is fully hidden
       Positioned.fill(child: _PinnedHeaderBackgroundReplica()),
-      // Foreground content: separators + icons
+      // Foreground content: icons + smooth gradient transition
       Column(
         mainAxisAlignment: MainAxisAlignment.start,
         mainAxisSize: MainAxisSize.max,
@@ -48,8 +35,6 @@ class PinnedCategoriesHeader extends SliverPersistentHeaderDelegate {
           const SizedBox(height: _topGapAfterSeparator),
           // Icons row provided by caller
           Material(color: Colors.transparent, child: SizedBox(height: _iconsHeight, child: builder(context))),
-          // Bottom separator (pinned)
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: line),
           const SizedBox(height: _bottomPad),
         ],
       ),
@@ -63,14 +48,9 @@ class PinnedCategoriesHeader extends SliverPersistentHeaderDelegate {
 class _PinnedHeaderBackgroundReplica extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Stack(children: [
-      Positioned.fill(
-        child: ImageFiltered(
-          imageFilter: ui.ImageFilter.blur(sigmaX: 36, sigmaY: 36),
-          child: Image.asset('assets/images/fulllogo.jpg', fit: BoxFit.cover),
-        ),
-      ),
-      Positioned.fill(child: Container(color: Colors.black.withValues(alpha: 0.30))),
-    ]);
+    return ImageFiltered(
+      imageFilter: ui.ImageFilter.blur(sigmaX: 36, sigmaY: 36),
+      child: Image.asset('assets/images/fulllogo.jpg', fit: BoxFit.cover),
+    );
   }
 }
