@@ -637,6 +637,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final showAddressHint = _showAddressHint();
     final showCompactActionArea = _showsDreamflowCompactActions(st);
     final primaryEnabled = _isPrimaryActionEnabled(st);
+    final handoverTimeRequested = _findRequestedTime(messages, isHandover: true);
+    final returnTimeRequested = _findRequestedTime(messages, isHandover: false);
+    final handoverPending = handoverTimeRequested != null && st == _ChatState.confirmed;
+    final returnPending = returnTimeRequested != null && (st == _ChatState.confirmed || st == _ChatState.running || st == _ChatState.returnPlanned);
 
     final handoverActive = _handoverReturnState['handoverActive'] == true;
     final returnActive = _handoverReturnState['returnActive'] == true;
@@ -780,6 +784,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                     primaryHintText: _primaryActionHint(st),
                     handoverStatusText: _handoverStatusText(st),
                     returnStatusText: _returnStatusText(st),
+                    handoverPending: handoverPending,
+                    returnPending: returnPending,
+                    counterpartyName: _displayName(),
                     onHandoverTime: _changeHandoverTime,
                     onReturnTime: _changeReturnTime,
                     onShareLocation: _shareLocation,
@@ -841,6 +848,21 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final hh = dt.hour.toString().padLeft(2, '0');
     final mm = dt.minute.toString().padLeft(2, '0');
     return '$d.$m. $hh:$mm';
+  }
+
+  String? _findRequestedTime(List<Message> messages, {required bool isHandover}) {
+    final terms = isHandover
+        ? const ['Übergabezeit angefragt', 'Übergabezeit vorgeschlagen']
+        : const ['Rückgabezeit angefragt', 'Rückgabezeit vorgeschlagen'];
+    for (final m in messages.reversed) {
+      if (m.senderId != 'system') continue;
+      final hit = terms.any((term) => m.text.contains(term));
+      if (!hit) continue;
+      final match = RegExp(r'(\d{1,2}:\d{2})').firstMatch(m.text);
+      if (match != null) return match.group(1);
+      return 'angefragt';
+    }
+    return null;
   }
 
   int _tipCardsCount({required _ChatState st}) => st == _ChatState.support ? 0 : 3;
@@ -922,22 +944,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   String _handoverStatusText(_ChatState st) {
     final proposed = _thread?.handoverAt ?? _request?.start;
-    if (_handoverReturnState['handoverActive'] == true) return 'Läuft';
-    if (proposed != null) {
-      final prefix = st == _ChatState.confirmed ? 'Geplant' : 'Zuletzt';
-      return '$prefix: ${_formatDateTimeShort(proposed)}';
-    }
-    return 'Noch offen';
+    if (_handoverReturnState['handoverActive'] == true) return '';
+    if (proposed != null && st != _ChatState.confirmed) return _formatDateTimeShort(proposed);
+    return '';
   }
 
   String _returnStatusText(_ChatState st) {
     final proposed = _thread?.returnAt ?? _request?.end;
-    if (_handoverReturnState['returnActive'] == true) return 'Läuft';
-    if (proposed != null) {
-      final prefix = (st == _ChatState.running || st == _ChatState.returnPlanned) ? 'Geplant' : 'Zuletzt';
-      return '$prefix: ${_formatDateTimeShort(proposed)}';
-    }
-    return 'Noch offen';
+    if (_handoverReturnState['returnActive'] == true) return '';
+    if (proposed != null && st == _ChatState.completed) return _formatDateTimeShort(proposed);
+    return '';
   }
 
   String _deriveResponseTimeLabel({required List<Message> messages, required String? otherUserId}) {
@@ -1774,6 +1790,9 @@ class _TransactionComposer extends StatelessWidget {
   final String primaryHintText;
   final String handoverStatusText;
   final String returnStatusText;
+  final bool handoverPending;
+  final bool returnPending;
+  final String? counterpartyName;
   final VoidCallback onHandoverTime;
   final VoidCallback onReturnTime;
   final VoidCallback onShareLocation;
@@ -1800,6 +1819,9 @@ class _TransactionComposer extends StatelessWidget {
     required this.primaryHintText,
     required this.handoverStatusText,
     required this.returnStatusText,
+    required this.handoverPending,
+    required this.returnPending,
+    required this.counterpartyName,
     required this.onHandoverTime,
     required this.onReturnTime,
     required this.onShareLocation,
@@ -1838,12 +1860,15 @@ class _TransactionComposer extends StatelessWidget {
                       _DreamflowCompactActionArea(
                         handoverStatusText: handoverStatusText,
                         returnStatusText: returnStatusText,
+                        handoverPending: handoverPending,
+                        returnPending: returnPending,
                         onHandoverTime: onHandoverTime,
                         onReturnTime: onReturnTime,
                         primaryLabel: primaryLabel ?? '',
                         onPrimary: onPrimary,
                         primaryEnabled: primaryEnabled,
                         hintText: primaryHintText,
+                        counterpartyName: counterpartyName,
                       )
                     else
                       _StickyTransactionCTA(
@@ -1882,162 +1907,232 @@ class _TransactionComposer extends StatelessWidget {
 class _DreamflowCompactActionArea extends StatelessWidget {
   final String handoverStatusText;
   final String returnStatusText;
+  final bool handoverPending;
+  final bool returnPending;
   final VoidCallback onHandoverTime;
   final VoidCallback onReturnTime;
   final String primaryLabel;
   final VoidCallback? onPrimary;
   final bool primaryEnabled;
   final String hintText;
+  final String? counterpartyName;
 
   const _DreamflowCompactActionArea({
     required this.handoverStatusText,
     required this.returnStatusText,
+    required this.handoverPending,
+    required this.returnPending,
     required this.onHandoverTime,
     required this.onReturnTime,
     required this.primaryLabel,
     required this.onPrimary,
     required this.primaryEnabled,
     required this.hintText,
+    required this.counterpartyName,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+    const cardboardBrown = Color(0xFFB8956C);
+    final isActive = primaryEnabled && onPrimary != null;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (handoverPending || returnPending)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
               children: [
                 Expanded(
-                  child: _CompactTimeActionButton(
-                    label: 'Übergabezeit',
-                    statusText: handoverStatusText,
-                    icon: Icons.schedule_rounded,
-                    onTap: onHandoverTime,
-                  ),
+                  child: handoverPending
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.hourglass_empty_rounded, color: Colors.orange.withValues(alpha: 0.8), size: 10),
+                            const SizedBox(width: 3),
+                            Text(
+                              'wartet auf Bestätigung',
+                              style: TextStyle(color: Colors.orange.withValues(alpha: 0.8), fontWeight: FontWeight.w500, fontSize: 9),
+                            ),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
                 ),
-                const SizedBox(width: 10),
                 Expanded(
-                  child: _CompactTimeActionButton(
-                    label: 'Rückgabezeit',
-                    statusText: returnStatusText,
-                    icon: Icons.event_repeat_rounded,
-                    onTap: onReturnTime,
-                  ),
+                  child: returnPending
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.hourglass_empty_rounded, color: Colors.orange.withValues(alpha: 0.8), size: 10),
+                            const SizedBox(width: 3),
+                            Text(
+                              'wartet auf Bestätigung',
+                              style: TextStyle(color: Colors.orange.withValues(alpha: 0.8), fontWeight: FontWeight.w500, fontSize: 9),
+                            ),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            _PressScale(
-              onTap: primaryEnabled ? onPrimary : null,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 180),
-                opacity: primaryEnabled ? 1 : 0.72,
+          ),
+        Row(
+          children: [
+            Expanded(
+              child: _PressScale(
+                onTap: onHandoverTime,
                 child: Container(
-                  height: 48,
+                  height: 40,
                   decoration: BoxDecoration(
-                    color: primaryEnabled ? cs.primary : Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: primaryEnabled ? Colors.white.withValues(alpha: 0.14) : Colors.white.withValues(alpha: 0.08)),
+                    color: handoverPending ? cs.primary.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: handoverPending ? cs.primary.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.08),
+                    ),
                   ),
-                  child: Row(
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(primaryEnabled ? Icons.bolt_rounded : Icons.lock_outline_rounded, color: Colors.white, size: 18),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          primaryLabel,
+                      if (handoverStatusText.isNotEmpty && !handoverPending) ...[
+                        Text(
+                          handoverStatusText,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.52), fontWeight: FontWeight.w500, fontSize: 9),
                         ),
+                        const SizedBox(height: 1),
+                      ],
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.inventory_2_rounded, color: cardboardBrown, size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Übergabezeit',
+                            style: TextStyle(
+                              color: handoverPending ? cs.primary : Colors.white.withValues(alpha: 0.8),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-            if (hintText.trim().isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                hintText,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.72),
-                  fontWeight: FontWeight.w700,
-                  height: 1.35,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CompactTimeActionButton extends StatelessWidget {
-  final String label;
-  final String statusText;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _CompactTimeActionButton({
-    required this.label,
-    required this.statusText,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return _PressScale(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 16, color: Colors.white.withValues(alpha: 0.92)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _PressScale(
+                onTap: onReturnTime,
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: returnPending ? cs.primary.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: returnPending ? cs.primary.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.08),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (returnStatusText.isNotEmpty && !returnPending) ...[
+                        Text(
+                          returnStatusText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.52), fontWeight: FontWeight.w500, fontSize: 9),
+                        ),
+                        const SizedBox(height: 1),
+                      ],
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Icon(Icons.inventory_2_rounded, color: cardboardBrown, size: 16),
+                              Positioned(
+                                right: -4,
+                                bottom: -2,
+                                child: Container(
+                                  width: 11,
+                                  height: 11,
+                                  decoration: BoxDecoration(
+                                    color: cs.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.undo_rounded, color: Colors.white, size: 7),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Rückgabezeit',
+                            style: TextStyle(
+                              color: returnPending ? cs.primary : Colors.white.withValues(alpha: 0.8),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              statusText,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontWeight: FontWeight.w700, fontSize: 11.5, height: 1.25),
+              ),
             ),
           ],
         ),
-      ),
+        if (primaryLabel.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: _PressScale(
+              onTap: isActive ? onPrimary : null,
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: isActive ? LinearGradient(colors: [cs.primary, cs.primary.withValues(alpha: 0.85)]) : null,
+                  color: isActive ? null : Colors.grey.shade700,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.bolt_rounded, color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.5), size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      primaryLabel,
+                      style: TextStyle(
+                        color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.5),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+        if (!primaryEnabled && primaryLabel.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            counterpartyName != null && counterpartyName!.isNotEmpty
+                ? 'Erst möglich, wenn $counterpartyName deine Übergabezeit bestätigt.'
+                : hintText,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontWeight: FontWeight.w500, height: 1.3, fontSize: 9),
+          ),
+        ],
+      ],
     );
   }
 }
