@@ -41,29 +41,165 @@ class _MessagesScreenState extends State<MessagesScreen> {
   Future<void> _loadData() async {
     try {
       final user = await DataService.getCurrentUser();
+      final users = await DataService.getUsers();
+      final items = await DataService.getItems();
+
       if (user == null) {
-        if (mounted) setState(() => _isLoading = false);
+        final demo = _buildDemoMessageState();
+        if (!mounted) return;
+        setState(() {
+          _currentUser = demo.user;
+          _activeThreads = demo.activeThreads;
+          _archivedThreads = demo.archivedThreads;
+          _usersCache = demo.users;
+          _itemsCache = demo.items;
+          _isLoading = false;
+        });
         return;
       }
 
       final threads = await DataService.getMessageThreadsForUser(user.id);
       final archived = await DataService.getArchivedMessageThreadsForUser(user.id);
-      final users = await DataService.getUsers();
-      final items = await DataService.getItems();
+      final usersById = {for (final u in users) u.id: u};
+      final itemsById = {for (final i in items) i.id: i};
 
       if (!mounted) return;
+      if (threads.isEmpty && archived.isEmpty) {
+        final demo = _buildDemoMessageState(baseUser: user, users: usersById, items: itemsById);
+        setState(() {
+          _currentUser = demo.user;
+          _activeThreads = demo.activeThreads;
+          _archivedThreads = demo.archivedThreads;
+          _usersCache = demo.users;
+          _itemsCache = demo.items;
+          _isLoading = false;
+        });
+        return;
+      }
+
       setState(() {
         _currentUser = user;
         _activeThreads = threads;
         _archivedThreads = archived;
-        _usersCache = {for (final u in users) u.id: u};
-        _itemsCache = {for (final i in items) i.id: i};
+        _usersCache = usersById;
+        _itemsCache = itemsById;
         _isLoading = false;
       });
     } catch (e) {
       debugPrint('MessagesScreen._loadData failed: $e');
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  ({User user, List<MessageThread> activeThreads, List<MessageThread> archivedThreads, Map<String, User> users, Map<String, Item> items}) _buildDemoMessageState({
+    User? baseUser,
+    Map<String, User>? users,
+    Map<String, Item>? items,
+  }) {
+    final now = DateTime.now();
+    final me = baseUser ?? User(
+      id: 'demo_me',
+      displayName: 'Du',
+      email: 'demo@shareittoo.local',
+      preferredLanguage: 'de',
+      isVerified: true,
+      isBanned: false,
+      role: 'user',
+      avgRating: 0,
+      reviewCount: 0,
+      createdAt: now.subtract(const Duration(days: 90)),
+    );
+
+    final owner = User(
+      id: 'demo_owner',
+      displayName: 'Mila Berger',
+      email: 'mila@example.com',
+      city: 'Berlin',
+      preferredLanguage: 'de',
+      isVerified: true,
+      isBanned: false,
+      role: 'user',
+      avgRating: 4.9,
+      reviewCount: 18,
+      createdAt: now.subtract(const Duration(days: 220)),
+    );
+
+    final item = Item(
+      id: 'mock_item_camera',
+      ownerId: owner.id,
+      title: 'Sony Alpha 7 III',
+      description: 'Demoartikel für Nachrichtenvorschau',
+      categoryId: 'electronics',
+      subcategory: 'kameras',
+      tags: const ['kamera', 'foto'],
+      pricePerDay: 24,
+      currency: 'EUR',
+      photos: const [],
+      locationText: 'Berlin, Mitte',
+      lat: 52.52,
+      lng: 13.405,
+      geohash: 'u33dc0',
+      condition: 'good',
+      createdAt: now.subtract(const Duration(days: 12)),
+      isActive: true,
+      verificationStatus: 'verified',
+      city: 'Berlin',
+      country: 'Deutschland',
+    );
+
+    final bookingThread = MessageThread(
+      id: 'mock_thread_booking',
+      requestId: 'mock_request_booking',
+      itemId: item.id,
+      itemTitle: item.title,
+      user1Id: me.id,
+      user2Id: owner.id,
+      bookingStatus: 'running',
+      handoverAt: now.add(const Duration(hours: 3)),
+      returnAt: now.add(const Duration(days: 2, hours: 2)),
+      otherUserOnline: true,
+      messages: [
+        Message(
+          id: 'mock_msg_1',
+          senderId: owner.id,
+          text: 'Perfekt — bring bitte nur kurz deinen Ausweis zur Übergabe mit.',
+          timestamp: now.subtract(const Duration(minutes: 12)),
+          isRead: false,
+        ),
+      ],
+      createdAt: now.subtract(const Duration(days: 1)),
+      lastMessageAt: now.subtract(const Duration(minutes: 12)),
+    );
+
+    final supportThread = MessageThread(
+      id: 'mock_thread_support',
+      requestId: 'mock_request_support',
+      itemId: 'support',
+      itemTitle: 'Support',
+      user1Id: me.id,
+      user2Id: 'support',
+      threadType: 'support',
+      otherUserOnline: true,
+      messages: [
+        Message(
+          id: 'mock_msg_2',
+          senderId: 'support',
+          text: 'Wir haben deine letzte Frage gesehen und melden uns gleich.',
+          timestamp: now.subtract(const Duration(hours: 2)),
+          isRead: true,
+        ),
+      ],
+      createdAt: now.subtract(const Duration(days: 2)),
+      lastMessageAt: now.subtract(const Duration(hours: 2)),
+    );
+
+    return (
+      user: me,
+      activeThreads: [bookingThread, supportThread],
+      archivedThreads: const [],
+      users: {...?users, me.id: me, owner.id: owner},
+      items: {...?items, item.id: item},
+    );
   }
 
   bool get _hasUser => _currentUser != null;
@@ -317,6 +453,17 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Future<void> _openThread(MessageThread thread, User? otherUser) async {
+    if (thread.id.startsWith('mock_')) {
+      if (!mounted) return;
+      AppPopup.toast(
+        context,
+        icon: Icons.visibility_outlined,
+        title: 'Demo-Vorschau',
+        message: 'Diese Unterhaltung ist nur für die UI-Vorschau eingeblendet.',
+      );
+      return;
+    }
+
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => MessageThreadScreen(
@@ -338,6 +485,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
   Future<void> _openThreadOptions(MessageThread thread) async {
     final userId = _currentUser?.id;
     if (userId == null) return;
+    if (thread.id.startsWith('mock_')) {
+      if (mounted) {
+        AppPopup.toast(context, icon: Icons.info_outline, title: 'Nur Vorschau', message: 'Archivieren, Löschen und Blockieren bleiben bei den Demo-Chats deaktiviert.');
+      }
+      return;
+    }
 
     final choice = await showModalBottomSheet<String>(
       context: context,

@@ -132,7 +132,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (!mounted) return;
       setState(() {
         _currentUserId = userId;
-        _feed = feed;
+        _feed = _withPreparedMocks(feed);
         _prefs = prefs;
       });
     } catch (e) {
@@ -140,6 +140,58 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  List<Map<String, dynamic>> _withPreparedMocks(List<Map<String, dynamic>> feed) {
+    final result = [...feed];
+    final now = DateTime.now();
+
+    bool hasCategory(String key) => result.any((e) => _deriveSitCategory(e) == key);
+
+    if (result.isEmpty || !hasCategory('messages')) {
+      result.add({
+        'id': 'mock_message_ping',
+        'category': 'messages',
+        'entityType': 'thread',
+        'entityId': 'mock_thread_booking',
+        'title': 'Neue Nachricht zur Sony Alpha 7 III',
+        'body': 'Mila hat dir gerade zur Übergabe geschrieben.',
+        'ts': now.subtract(const Duration(minutes: 18)).toIso8601String(),
+        'read': false,
+        'critical': false,
+      });
+    }
+
+    if (result.isEmpty || !hasCategory('bookings')) {
+      result.add({
+        'id': 'mock_booking_update',
+        'category': 'bookings',
+        'entityType': 'booking',
+        'entityId': 'mock_booking',
+        'title': 'Übergabe heute um 18:30',
+        'body': 'Bestätige kurz die Uhrzeit, damit alles bereit ist.',
+        'ts': now.subtract(const Duration(hours: 3)).toIso8601String(),
+        'read': false,
+        'critical': false,
+      });
+    }
+
+    if (result.isEmpty || !hasCategory('support')) {
+      result.add({
+        'id': 'mock_support_case',
+        'category': 'support',
+        'entityType': 'support',
+        'entityId': 'mock_support',
+        'title': 'Support-Fall aktualisiert',
+        'body': 'Wir haben neue Infos zu deinem gemeldeten Thema.',
+        'ts': now.subtract(const Duration(days: 1, hours: 1)).toIso8601String(),
+        'read': true,
+        'critical': false,
+      });
+    }
+
+    result.sort(_compareNotifications);
+    return result;
   }
 
   Future<void> _markAllRead() async {
