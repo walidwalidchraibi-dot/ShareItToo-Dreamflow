@@ -46,6 +46,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     final titleStyle = theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800);
     final bodyStyle = theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.86));
     final captionStyle = theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.70), height: 1.35);
+    final topInset = MediaQuery.paddingOf(context).top;
 
     return Stack(
       children: [
@@ -65,11 +66,15 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             surfaceTintColor: Colors.transparent,
             title: const SizedBox.shrink(),
             centerTitle: true,
-            leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, size: 22),
+              color: Colors.white.withValues(alpha: 0.92),
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
             actions: [
               IconButton(
                 tooltip: 'Zurücksetzen',
-                icon: const Icon(Icons.refresh, color: Colors.white),
+                icon: Icon(Icons.refresh_rounded, size: 20, color: Colors.white.withValues(alpha: 0.82)),
                 onPressed: () async {
                   await NotificationPreferencesService.reset();
                   if (!mounted) return;
@@ -82,12 +87,12 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           body: _loading
               ? const Center(child: CircularProgressIndicator())
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 14, 16, 24),
+                  padding: EdgeInsets.fromLTRB(16, topInset + kToolbarHeight - 2, 16, 20),
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 6, 4, 12),
+                      padding: const EdgeInsets.fromLTRB(4, 2, 4, 10),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text('Benachrichtigungseinstellungen', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                           const SizedBox(height: 6),
@@ -187,7 +192,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                           _SimpleToggleRow(
                             icon: Icons.view_agenda_outlined,
                             title: 'Nach Kategorien gruppieren',
-                            subtitle: 'Benachrichtigungen im Feed nach Kategorien gruppieren (z. B. Buchungen, Nachrichten, Zahlungen).',
+                            subtitle: 'Sortiert Benachrichtigungen nach Themen.',
                             value: _prefs.groupByCategory,
                             onChanged: (v) => _save(_prefs.copyWith(groupByCategory: v)),
                             accent: accent,
@@ -203,7 +208,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                           _SimpleToggleRow(
                             icon: Icons.low_priority,
                             title: 'Ungelesene zuerst anzeigen',
-                            subtitle: 'Neue Benachrichtigungen werden im Feed zuerst angezeigt.',
+                            subtitle: 'Zeigt neue Benachrichtigungen zuerst.',
                             value: _prefs.unreadFirst,
                             onChanged: (v) => _save(_prefs.copyWith(unreadFirst: v)),
                             accent: accent,
@@ -215,8 +220,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                     _HintCard(
                       title: 'Hinweis',
                       lines: const [
-                        'Diese Einstellungen wirken sofort auf den In‑App‑Benachrichtigungsfeed.',
-                        'Push‑ und E‑Mail‑Benachrichtigungen werden in zukünftigen Updates hinzugefügt.',
+                        'Diese Einstellungen gelten für den In-App-Benachrichtigungsfeed. Push- und E-Mail-Benachrichtigungen folgen später.',
                       ],
                       accent: accent,
                       titleStyle: titleStyle,
@@ -250,7 +254,7 @@ class _Section extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -300,6 +304,10 @@ class _SettingToggleTile extends StatelessWidget {
     final bodyColor = Colors.white.withValues(alpha: active ? 0.78 : 0.56);
     final captionColor = Colors.white.withValues(alpha: active ? 0.66 : 0.46);
 
+    final switchInactiveTrack = Colors.white.withValues(alpha: 0.12);
+    final switchInactiveThumb = Colors.white.withValues(alpha: 0.86);
+    final switchOutline = Colors.white.withValues(alpha: 0.14);
+
     final badgeBorder = active ? Colors.white.withValues(alpha: 0.14) : Colors.white.withValues(alpha: 0.10);
     final badgeGradient = active
         ? [accent.withValues(alpha: 0.42), accent.withValues(alpha: 0.12)]
@@ -314,8 +322,8 @@ class _SettingToggleTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: badgeGradient),
                 borderRadius: BorderRadius.circular(14),
@@ -323,7 +331,7 @@ class _SettingToggleTile extends StatelessWidget {
               ),
               child: Stack(
                 children: [
-                  Positioned.fill(child: Icon(icon, color: badgeIconColor, size: 20)),
+                  Positioned.fill(child: Icon(icon, color: badgeIconColor, size: 19)),
                   if (locked)
                     Positioned(
                       right: 6,
@@ -342,9 +350,17 @@ class _SettingToggleTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: titleColor)),
-                  const SizedBox(height: 4),
-                  Text(description, style: theme.textTheme.bodyMedium?.copyWith(color: bodyColor)),
+                  Text(
+                    title,
+                    softWrap: true,
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: titleColor),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    description,
+                    softWrap: true,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: bodyColor, height: 1.30),
+                  ),
                   if (examples.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text('Beispiele: ${examples.join(' • ')}', style: theme.textTheme.labelSmall?.copyWith(color: captionColor, height: 1.35)),
@@ -352,18 +368,21 @@ class _SettingToggleTile extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 10),
             Padding(
-              padding: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.only(left: 12),
               child: Switch.adaptive(
                 value: value,
                 thumbColor: WidgetStateProperty.resolveWith((states) {
                   if (states.contains(WidgetState.selected)) return Colors.white;
-                  return Colors.white.withValues(alpha: 0.92);
+                  return switchInactiveThumb;
                 }),
                 trackColor: WidgetStateProperty.resolveWith((states) {
                   if (states.contains(WidgetState.selected)) return accent.withValues(alpha: 0.55);
-                  return Colors.white.withValues(alpha: 0.18);
+                  return switchInactiveTrack;
+                }),
+                trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) return Colors.transparent;
+                  return switchOutline;
                 }),
                 onChanged: enabled ? onChanged : null,
               ),
@@ -387,28 +406,33 @@ class _SimpleToggleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    final switchInactiveTrack = Colors.white.withValues(alpha: 0.12);
+    final switchInactiveThumb = Colors.white.withValues(alpha: 0.86);
+    final switchOutline = Colors.white.withValues(alpha: 0.14);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [accent.withValues(alpha: 0.34), accent.withValues(alpha: 0.10)]),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
             ),
-            child: Icon(icon, color: Colors.white, size: 20),
+            child: Icon(icon, color: Colors.white, size: 19),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                Text(title, softWrap: true, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 3),
-                Text(subtitle, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.78))),
+                Text(subtitle, softWrap: true, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.78), height: 1.30)),
               ],
             ),
           ),
