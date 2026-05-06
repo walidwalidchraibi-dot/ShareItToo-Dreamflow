@@ -635,6 +635,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final messages = _thread?.messages ?? const <Message>[];
     final showActions = _shouldShowActions(st);
     final showAddressHint = _showAddressHint();
+    final showCompactActionArea = _showsDreamflowCompactActions(st);
+    final primaryEnabled = _isPrimaryActionEnabled(st);
 
     final handoverActive = _handoverReturnState['handoverActive'] == true;
     final returnActive = _handoverReturnState['returnActive'] == true;
@@ -768,11 +770,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                 if (!chatBlocked)
                   _TransactionComposer(
                     showActions: showActions,
+                    showCompactActionArea: showCompactActionArea,
                     primaryLabel: showActions ? actionLabels.primary : null,
                     secondaryLabel: showActions ? actionLabels.secondary : null,
                     onPrimary: showActions ? _applyPrimaryAction : null,
                     onSecondary: (showActions && actionLabels.secondary != null) ? _applySecondaryAction : null,
+                    primaryEnabled: primaryEnabled,
                     explanationText: _actionExplanation(st),
+                    primaryHintText: _primaryActionHint(st),
+                    handoverStatusText: _handoverStatusText(st),
+                    returnStatusText: _returnStatusText(st),
+                    onHandoverTime: _changeHandoverTime,
+                    onReturnTime: _changeReturnTime,
                     onShareLocation: _shareLocation,
                     onSendPhoto: _pickCamera,
                     onChangeTime: _changeTime,
@@ -826,6 +835,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   String _formatTime(DateTime time) => '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 
+  String _formatDateTimeShort(DateTime dt) {
+    final d = dt.day.toString().padLeft(2, '0');
+    final m = dt.month.toString().padLeft(2, '0');
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    return '$d.$m. $hh:$mm';
+  }
+
   int _tipCardsCount({required _ChatState st}) => st == _ChatState.support ? 0 : 3;
 
   IconData _tipIcon(int index) {
@@ -868,6 +885,61 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     }
   }
 
+  bool _showsDreamflowCompactActions(_ChatState st) {
+    return st == _ChatState.confirmed ||
+        st == _ChatState.running ||
+        st == _ChatState.returnPlanned;
+  }
+
+  bool _isPrimaryActionEnabled(_ChatState st) {
+    switch (st) {
+      case _ChatState.requestOpen:
+        return _viewerIsOwner();
+      case _ChatState.confirmed:
+        return _canStartHandover(_request);
+      case _ChatState.running:
+      case _ChatState.returnPlanned:
+        return _canStartReturn(_request);
+      case _ChatState.completed:
+        return true;
+      case _ChatState.support:
+        return false;
+    }
+  }
+
+  String _primaryActionHint(_ChatState st) {
+    if (_isPrimaryActionEnabled(st)) return _actionExplanation(st);
+    switch (st) {
+      case _ChatState.confirmed:
+        return 'Erst möglich, wenn die Zeit bestätigt ist.';
+      case _ChatState.running:
+      case _ChatState.returnPlanned:
+        return 'Erst möglich, wenn die Rückgabezeit bestätigt ist.';
+      default:
+        return _actionExplanation(st);
+    }
+  }
+
+  String _handoverStatusText(_ChatState st) {
+    final proposed = _thread?.handoverAt ?? _request?.start;
+    if (_handoverReturnState['handoverActive'] == true) return 'Läuft';
+    if (proposed != null) {
+      final prefix = st == _ChatState.confirmed ? 'Geplant' : 'Zuletzt';
+      return '$prefix: ${_formatDateTimeShort(proposed)}';
+    }
+    return 'Noch offen';
+  }
+
+  String _returnStatusText(_ChatState st) {
+    final proposed = _thread?.returnAt ?? _request?.end;
+    if (_handoverReturnState['returnActive'] == true) return 'Läuft';
+    if (proposed != null) {
+      final prefix = (st == _ChatState.running || st == _ChatState.returnPlanned) ? 'Geplant' : 'Zuletzt';
+      return '$prefix: ${_formatDateTimeShort(proposed)}';
+    }
+    return 'Noch offen';
+  }
+
   String _deriveResponseTimeLabel({required List<Message> messages, required String? otherUserId}) {
     try {
       if (otherUserId == null || messages.isEmpty) return 'Antwortzeit: < 1h';
@@ -899,6 +971,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   Future<void> _changeTime() async {
+    await _changeTimeProposal(kind: 'Zeitvorschlag');
+  }
+
+  Future<void> _changeHandoverTime() async {
+    await _changeTimeProposal(kind: 'Übergabezeit');
+  }
+
+  Future<void> _changeReturnTime() async {
+    await _changeTimeProposal(kind: 'Rückgabezeit');
+  }
+
+  Future<void> _changeTimeProposal({required String kind}) async {
     final r = _request;
     final t = _thread;
     if (t == null) return;
@@ -907,12 +991,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     try {
       await DataService.addSystemMessageToThread(
         threadId: t.id,
-        text: 'Zeitvorschlag: ${_formatDate(range.start)} – ${_formatDate(range.end)}',
+        text: '$kind vorgeschlagen: ${_formatDate(range.start)} – ${_formatDate(range.end)}',
       );
       await _load();
       _scrollToBottom(animate: true);
     } catch (e) {
-      debugPrint('[MessageThreadScreen] _changeTime failed: $e');
+      debugPrint('[MessageThreadScreen] _changeTimeProposal failed: $e');
     }
   }
 
@@ -1680,11 +1764,18 @@ class _ComposerIconButton extends StatelessWidget {
 
 class _TransactionComposer extends StatelessWidget {
   final bool showActions;
+  final bool showCompactActionArea;
   final String? primaryLabel;
   final String? secondaryLabel;
   final VoidCallback? onPrimary;
   final VoidCallback? onSecondary;
+  final bool primaryEnabled;
   final String explanationText;
+  final String primaryHintText;
+  final String handoverStatusText;
+  final String returnStatusText;
+  final VoidCallback onHandoverTime;
+  final VoidCallback onReturnTime;
   final VoidCallback onShareLocation;
   final VoidCallback onSendPhoto;
   final VoidCallback onChangeTime;
@@ -1699,11 +1790,18 @@ class _TransactionComposer extends StatelessWidget {
 
   const _TransactionComposer({
     required this.showActions,
+    required this.showCompactActionArea,
     required this.primaryLabel,
     required this.secondaryLabel,
     required this.onPrimary,
     required this.onSecondary,
+    required this.primaryEnabled,
     required this.explanationText,
+    required this.primaryHintText,
+    required this.handoverStatusText,
+    required this.returnStatusText,
+    required this.onHandoverTime,
+    required this.onReturnTime,
     required this.onShareLocation,
     required this.onSendPhoto,
     required this.onChangeTime,
@@ -1736,13 +1834,26 @@ class _TransactionComposer extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (showActions) ...[
-                    _StickyTransactionCTA(
-                      primaryLabel: primaryLabel ?? '',
-                      secondaryLabel: secondaryLabel,
-                      onPrimary: onPrimary,
-                      onSecondary: onSecondary,
-                      explanationText: explanationText,
-                    ),
+                    if (showCompactActionArea)
+                      _DreamflowCompactActionArea(
+                        handoverStatusText: handoverStatusText,
+                        returnStatusText: returnStatusText,
+                        onHandoverTime: onHandoverTime,
+                        onReturnTime: onReturnTime,
+                        primaryLabel: primaryLabel ?? '',
+                        onPrimary: onPrimary,
+                        primaryEnabled: primaryEnabled,
+                        hintText: primaryHintText,
+                      )
+                    else
+                      _StickyTransactionCTA(
+                        primaryLabel: primaryLabel ?? '',
+                        secondaryLabel: secondaryLabel,
+                        onPrimary: onPrimary,
+                        onSecondary: onSecondary,
+                        explanationText: explanationText,
+                        primaryEnabled: primaryEnabled,
+                      ),
                     const SizedBox(height: 10),
                   ],
                   _InputBar(
@@ -1768,12 +1879,176 @@ class _TransactionComposer extends StatelessWidget {
   }
 }
 
+class _DreamflowCompactActionArea extends StatelessWidget {
+  final String handoverStatusText;
+  final String returnStatusText;
+  final VoidCallback onHandoverTime;
+  final VoidCallback onReturnTime;
+  final String primaryLabel;
+  final VoidCallback? onPrimary;
+  final bool primaryEnabled;
+  final String hintText;
+
+  const _DreamflowCompactActionArea({
+    required this.handoverStatusText,
+    required this.returnStatusText,
+    required this.onHandoverTime,
+    required this.onReturnTime,
+    required this.primaryLabel,
+    required this.onPrimary,
+    required this.primaryEnabled,
+    required this.hintText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _CompactTimeActionButton(
+                    label: 'Übergabezeit',
+                    statusText: handoverStatusText,
+                    icon: Icons.schedule_rounded,
+                    onTap: onHandoverTime,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _CompactTimeActionButton(
+                    label: 'Rückgabezeit',
+                    statusText: returnStatusText,
+                    icon: Icons.event_repeat_rounded,
+                    onTap: onReturnTime,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _PressScale(
+              onTap: primaryEnabled ? onPrimary : null,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 180),
+                opacity: primaryEnabled ? 1 : 0.72,
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: primaryEnabled ? cs.primary : Colors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: primaryEnabled ? Colors.white.withValues(alpha: 0.14) : Colors.white.withValues(alpha: 0.08)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(primaryEnabled ? Icons.bolt_rounded : Icons.lock_outline_rounded, color: Colors.white, size: 18),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          primaryLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (hintText.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                hintText,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.72),
+                  fontWeight: FontWeight.w700,
+                  height: 1.35,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactTimeActionButton extends StatelessWidget {
+  final String label;
+  final String statusText;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _CompactTimeActionButton({
+    required this.label,
+    required this.statusText,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _PressScale(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 16, color: Colors.white.withValues(alpha: 0.92)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              statusText,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontWeight: FontWeight.w700, fontSize: 11.5, height: 1.25),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _StickyTransactionCTA extends StatelessWidget {
   final String primaryLabel;
   final String? secondaryLabel;
   final VoidCallback? onPrimary;
   final VoidCallback? onSecondary;
   final String explanationText;
+  final bool primaryEnabled;
 
   const _StickyTransactionCTA({
     required this.primaryLabel,
@@ -1781,6 +2056,7 @@ class _StickyTransactionCTA extends StatelessWidget {
     required this.onPrimary,
     required this.onSecondary,
     required this.explanationText,
+    required this.primaryEnabled,
   });
 
   @override
@@ -1831,11 +2107,13 @@ class _StickyTransactionCTA extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             _PressScale(
-              onTap: onPrimary,
+              onTap: primaryEnabled ? onPrimary : null,
               child: Container(
                 height: 50,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [cs.primary, cs.primary.withValues(alpha: 0.72)]),
+                  gradient: primaryEnabled
+                      ? LinearGradient(colors: [cs.primary, cs.primary.withValues(alpha: 0.72)])
+                      : LinearGradient(colors: [Colors.white.withValues(alpha: 0.10), Colors.white.withValues(alpha: 0.06)]),
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
                 ),
