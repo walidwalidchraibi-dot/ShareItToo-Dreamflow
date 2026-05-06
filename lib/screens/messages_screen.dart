@@ -85,7 +85,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               child: _MessagesSearchBar(onTap: _openSearch),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: _FilterTabs(
                 filter: _filter,
                 counts: counts,
@@ -100,7 +100,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       : threads.isEmpty
                           ? _EmptyState(onCta: () => Navigator.of(context).maybePop())
                           : ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                              padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
                               itemCount: threads.length,
                               separatorBuilder: (_, __) => const SizedBox(height: 12),
                               itemBuilder: (context, index) {
@@ -438,31 +438,21 @@ class _FilterTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-          ),
-          padding: const EdgeInsets.all(6),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _FilterPill(label: 'Alle', count: counts[_MessagesFilter.all] ?? 0, selected: filter == _MessagesFilter.all, onTap: () => onChanged(_MessagesFilter.all)),
-                _FilterPill(label: 'Buchungen', count: counts[_MessagesFilter.bookings] ?? 0, selected: filter == _MessagesFilter.bookings, onTap: () => onChanged(_MessagesFilter.bookings)),
-                _FilterPill(label: 'Aktiv', count: counts[_MessagesFilter.active] ?? 0, selected: filter == _MessagesFilter.active, onTap: () => onChanged(_MessagesFilter.active)),
-                _FilterPill(label: 'Archiv', count: counts[_MessagesFilter.archived] ?? 0, selected: filter == _MessagesFilter.archived, onTap: () => onChanged(_MessagesFilter.archived)),
-                _FilterPill(label: 'Support', count: counts[_MessagesFilter.support] ?? 0, selected: filter == _MessagesFilter.support, onTap: () => onChanged(_MessagesFilter.support)),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      clipBehavior: Clip.none,
+      child: Row(children: [
+        _FilterPill(label: 'Alle', count: counts[_MessagesFilter.all] ?? 0, selected: filter == _MessagesFilter.all, onTap: () => onChanged(_MessagesFilter.all)),
+        const SizedBox(width: 8),
+        _FilterPill(label: 'Buchungen', count: counts[_MessagesFilter.bookings] ?? 0, selected: filter == _MessagesFilter.bookings, onTap: () => onChanged(_MessagesFilter.bookings)),
+        const SizedBox(width: 8),
+        _FilterPill(label: 'Aktiv', count: counts[_MessagesFilter.active] ?? 0, selected: filter == _MessagesFilter.active, onTap: () => onChanged(_MessagesFilter.active)),
+        const SizedBox(width: 8),
+        _FilterPill(label: 'Archiv', count: counts[_MessagesFilter.archived] ?? 0, selected: filter == _MessagesFilter.archived, onTap: () => onChanged(_MessagesFilter.archived)),
+        const SizedBox(width: 8),
+        _FilterPill(label: 'Support', count: counts[_MessagesFilter.support] ?? 0, selected: filter == _MessagesFilter.support, onTap: () => onChanged(_MessagesFilter.support)),
+      ]),
     );
   }
 }
@@ -481,31 +471,31 @@ class _FilterPill extends StatelessWidget {
     final text = selected ? Colors.white : Colors.white70;
     final glow = selected;
 
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOut,
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: border),
-              boxShadow: glow ? [BoxShadow(color: BrandColors.primary.withValues(alpha: 0.22), blurRadius: 18, spreadRadius: 0)] : const [],
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Text(label, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: text, fontWeight: selected ? FontWeight.w800 : FontWeight.w700)),
-              if (count > 0) ...[
-                const SizedBox(width: 8),
-                _UnreadBadge(count: count, emphasized: selected),
-              ],
-            ]),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: border),
+            boxShadow: glow ? [BoxShadow(color: BrandColors.primary.withValues(alpha: 0.22), blurRadius: 18, spreadRadius: 0)] : const [],
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(color: text, fontWeight: selected ? FontWeight.w800 : FontWeight.w700),
+            ),
+            if (count > 0) ...[
+              const SizedBox(width: 8),
+              _UnreadBadge(count: count, emphasized: selected),
+            ],
+          ]),
         ),
       ),
     );
