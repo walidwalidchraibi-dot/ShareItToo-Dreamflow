@@ -754,9 +754,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
               Positioned(
                 right: 16,
                 bottom: (MediaQuery.of(context).viewInsets.bottom > 0 ? MediaQuery.of(context).viewInsets.bottom : 0) + 72,
-                child: FloatingActionButton.small(
-                  onPressed: () => _scrollToBottom(animate: true),
-                  child: const Icon(Icons.arrow_downward),
+                child: _ScrollToBottomGlassButton(
+                  onTap: () => _scrollToBottom(animate: true),
                 ),
               ),
           ],
@@ -3617,6 +3616,48 @@ class _StickyTransactionCTA extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _ScrollToBottomGlassButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _ScrollToBottomGlassButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return _PressScale(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Icon(
+                Icons.arrow_downward_rounded,
+                size: 18,
+                color: Colors.white.withValues(alpha: 0.92),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
