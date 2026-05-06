@@ -9,8 +9,9 @@ class ProfileHeaderCard extends StatelessWidget {
   final int listingsCount;
   /// Number of completed bookings (as renter). If null, we fall back to a demo estimate.
   final int? completedBookingsCount;
-  final VoidCallback? onPrimaryTap;
-  const ProfileHeaderCard({super.key, required this.user, required this.listingsCount, this.completedBookingsCount, this.onPrimaryTap});
+  /// Callback when the card is tapped (e.g., navigate to public profile).
+  final VoidCallback? onTap;
+  const ProfileHeaderCard({super.key, required this.user, required this.listingsCount, this.completedBookingsCount, this.onTap});
 
   bool get _isGuestUser => (user.role == 'guest') || (user.id == 'guest-user');
 
@@ -20,8 +21,8 @@ class ProfileHeaderCard extends StatelessWidget {
     final isGuest = _isGuestUser;
     final avatarUrl = isGuest ? null : (user.photoURL ?? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face');
     return GestureDetector(
+      onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      onTap: onPrimaryTap,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.20),
@@ -30,75 +31,73 @@ class ProfileHeaderCard extends StatelessWidget {
         ),
         padding: const EdgeInsets.all(16),
         child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 104,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Stack(children: [
-                      SitUserAvatar(
-                        url: avatarUrl,
-                        radius: 36,
-                        borderColor: Colors.white.withValues(alpha: 0.12),
-                      ),
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                          padding: const EdgeInsets.all(4),
-                          child: Icon(
-                            user.isVerified ? Icons.verified : Icons.verified_outlined,
-                            size: 16,
-                            color: user.isVerified ? const Color(0xFF22C55E) : Colors.black45,
-                          ),
-                        ),
-                      ),
-                    ]),
-                    const SizedBox(height: 8),
-                    Text(
-                      user.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user.isVerified ? l10n.t('Verifiziert') : l10n.t('Nicht verifiziert'),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              VerticalDivider(width: 1, thickness: 1, color: Colors.white54.withValues(alpha: 0.15)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _MetricLine(label: l10n.t('Bewertung'), value: isGuest ? '—' : _ratingText(context, user)),
-                      const SizedBox(height: 8),
-                      _MetricLine(label: l10n.t('Buchungen'), value: isGuest ? '—' : (completedBookingsCount ?? _estimatedBookings(user)).toString()),
-                      const SizedBox(height: 8),
-                      _MetricLine(label: l10n.t('Dabei seit'), value: isGuest ? '—' : _joinedMonthYear(user.createdAt)),
-                      const SizedBox(height: 8),
-                      _MetricLine(label: l10n.t('Anzeigen'), value: isGuest ? '—' : listingsCount.toString()),
-                    ],
+        child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          SizedBox(
+            // Slightly narrower to move the divider left and free space for metrics.
+            // (User request) push divider further left to gain room for right-side stats.
+            width: 104,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Stack(children: [
+                  SitUserAvatar(
+                    url: avatarUrl,
+                    radius: 36,
+                    borderColor: Colors.white.withValues(alpha: 0.12),
                   ),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        user.isVerified ? Icons.verified : Icons.verified_outlined,
+                        size: 16,
+                        color: user.isVerified ? const Color(0xFF22C55E) : Colors.black45,
+                      ),
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 8),
+                Text(
+                  user.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  user.isVerified ? l10n.t('Verifiziert') : l10n.t('Nicht verifiziert'),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
+                ),
+              ],
+            ),
           ),
-        ),
+          const SizedBox(width: 8),
+          VerticalDivider(width: 1, thickness: 1, color: Colors.white54.withValues(alpha: 0.15)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _MetricLine(label: l10n.t('Bewertung'), value: isGuest ? '—' : _ratingText(context, user)),
+                  const SizedBox(height: 8),
+                  _MetricLine(label: l10n.t('Buchungen'), value: isGuest ? '—' : (completedBookingsCount ?? _estimatedBookings(user)).toString()),
+                  const SizedBox(height: 8),
+                  _MetricLine(label: l10n.t('Dabei seit'), value: isGuest ? '—' : _joinedMonthYear(user.createdAt)),
+                  const SizedBox(height: 8),
+                  _MetricLine(label: l10n.t('Anzeigen'), value: isGuest ? '—' : listingsCount.toString()),
+                ],
+              ),
+            ),
+          ),
+        ]),
       ),
-    );
+    ));
   }
 
   static String _ratingText(BuildContext context, User user) {
