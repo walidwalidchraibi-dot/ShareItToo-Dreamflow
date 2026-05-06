@@ -16,6 +16,7 @@ import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/brand_logo_icon.dart';
 import 'package:lendify/widgets/modern_datetime_stepper_sheet.dart';
 import 'package:lendify/widgets/return_handover_stepper_sheet.dart';
+import 'package:lendify/widgets/sit_glass_time_picker.dart';
 import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/screens/booking_detail_screen.dart';
 import 'package:lendify/services/blocked_users_service.dart';
@@ -3381,20 +3382,6 @@ class _GlassIconButton extends StatelessWidget {
 }
 
 /// Auswahloption für Zeitabstimmung
-class SitGlassTimePicker {
-  static Future<TimeOfDay?> show(
-    BuildContext context, {
-    required String title,
-    required TimeOfDay initialTime,
-  }) {
-    return showTimePicker(
-      context: context,
-      helpText: title,
-      initialTime: initialTime,
-    );
-  }
-}
-
 class _TimeOptionTile extends StatelessWidget {
   final IconData icon;
   final String label;
