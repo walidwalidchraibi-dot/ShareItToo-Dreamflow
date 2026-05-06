@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -61,82 +63,11 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
     }
   }
 
-  Future<void> _pickWhoCanWrite() async {
-    final current = _settings?.whoCanWrite ?? MessagesSettings.defaults().whoCanWrite;
-    final picked = await showModalBottomSheet<WhoCanWrite>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.55),
-      builder: (context) {
-        return _SelectorSheet<WhoCanWrite>(
-          title: 'Wer kann mir schreiben',
-          value: current,
-          items: const [WhoCanWrite.everyone, WhoCanWrite.acceptedRequestOnly],
-          label: (v) => switch (v) {
-            WhoCanWrite.everyone => 'Jeder',
-            WhoCanWrite.acceptedRequestOnly => 'Nur nach angenommener Anfrage',
-          },
-        );
-      },
-    );
-    if (picked == null || !mounted) return;
-    setState(() => _settings = (_settings ?? MessagesSettings.defaults()).copyWith(whoCanWrite: picked));
-  }
-
-  Future<void> _pickMediaAutoDownload() async {
-    final current = _settings?.mediaAutoDownload ?? MessagesSettings.defaults().mediaAutoDownload;
-    final picked = await showModalBottomSheet<MediaAutoDownload>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.55),
-      builder: (context) {
-        return _SelectorSheet<MediaAutoDownload>(
-          title: 'Medien automatisch herunterladen',
-          value: current,
-          items: const [MediaAutoDownload.wifi, MediaAutoDownload.always, MediaAutoDownload.never],
-          label: (v) => switch (v) {
-            MediaAutoDownload.wifi => 'WLAN',
-            MediaAutoDownload.always => 'Immer',
-            MediaAutoDownload.never => 'Nie',
-          },
-        );
-      },
-    );
-    if (picked == null || !mounted) return;
-    setState(() => _settings = (_settings ?? MessagesSettings.defaults()).copyWith(mediaAutoDownload: picked));
-  }
-
-  Future<void> _pickPreferredLanguage() async {
-    final current = _settings?.preferredLanguageCode ?? MessagesSettings.defaults().preferredLanguageCode;
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.55),
-      builder: (context) {
-        return _SelectorSheet<String>(
-          title: 'Bevorzugte Sprache',
-          value: current,
-          items: const ['auto', 'de', 'en'],
-          label: (v) => switch (v) {
-            'auto' => 'Automatisch',
-            'de' => 'Deutsch',
-            'en' => 'Englisch',
-            _ => v,
-          },
-        );
-      },
-    );
-    if (picked == null || !mounted) return;
-    setState(() => _settings = (_settings ?? MessagesSettings.defaults()).copyWith(preferredLanguageCode: picked));
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final s = _settings;
+    final muteAll = s?.muteAll ?? false;
 
     final header = widget.presentation == MessagesSettingsPresentation.sheet
         ? Padding(
@@ -148,204 +79,204 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
           )
         : const SizedBox(height: 10);
 
-    final footer = SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-        child: Row(children: [
-          Expanded(
-            child: SizedBox(
-              height: 48,
-              child: OutlinedButton(
-                onPressed: _saving
-                    ? null
-                    : () {
-                        if (widget.presentation == MessagesSettingsPresentation.sheet) {
-                          Navigator.of(context).maybePop();
-                        } else {
-                          (widget.onCancel ?? () => Navigator.of(context).maybePop()).call();
-                        }
-                      },
-                style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                child: const Text('Abbrechen'),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: SizedBox(
-              height: 48,
-              child: ElevatedButton(
-                onPressed: (_saving || _loading) ? null : _save,
-                style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                child: _saving
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Änderungen speichern'),
-              ),
-            ),
-          ),
-        ]),
-      ),
-    );
-
     return Column(children: [
       header,
       const Divider(height: 1, thickness: 1, color: Colors.white24),
       Expanded(
         child: _loading
             ? const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
-            : SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  _SettingsSection(
-                    title: 'Benachrichtigungen',
-                    child: Column(children: [
-                      _SettingsSwitchRow(
-                        icon: Icons.notifications_off,
-                        title: 'Alle stummschalten',
-                        subtitle: 'Deaktiviert alle Chat-Benachrichtigungen in der App',
-                        value: s?.muteAll ?? false,
-                        onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(muteAll: v)),
+            : Stack(
+                children: [
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 160),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      // 1. Benachrichtigungen
+                      _SettingsSection(
+                        title: 'Benachrichtigungen',
+                        icon: Icons.notifications_outlined,
+                        child: Column(children: [
+                          _SettingsSwitchRow(
+                            icon: Icons.mark_chat_unread_outlined,
+                            title: 'Neue Nachrichten',
+                            subtitle: 'Benachrichtigt dich bei neuen Chat-Nachrichten.',
+                            value: s?.newMessagesNotif ?? true,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(newMessagesNotif: v)),
+                            disabled: muteAll,
+                          ),
+                          const SizedBox(height: 4),
+                          _SettingsSwitchRow(
+                            icon: Icons.schedule_outlined,
+                            title: 'Übergabe- & Rückgabe-Erinnerungen',
+                            subtitle: 'Erinnert dich rechtzeitig an Übergabe und Rückgabe.',
+                            value: s?.handoverReturnReminders ?? true,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(handoverReturnReminders: v)),
+                            disabled: muteAll,
+                          ),
+                          const SizedBox(height: 4),
+                          _SettingsSwitchRow(
+                            icon: Icons.pending_actions_outlined,
+                            title: 'Offene Zeitbestätigungen',
+                            subtitle: 'Erinnert dich, wenn eine vorgeschlagene Zeit noch bestätigt werden muss.',
+                            value: s?.openTimeConfirmations ?? true,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(openTimeConfirmations: v)),
+                            disabled: muteAll,
+                          ),
+                          const SizedBox(height: 4),
+                          _SettingsSwitchRow(
+                            icon: Icons.support_agent_outlined,
+                            title: 'Support-Fall Updates',
+                            subtitle: 'Benachrichtigt dich, wenn es Neuigkeiten zu einem Support-Fall gibt.',
+                            value: s?.supportCaseUpdates ?? true,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(supportCaseUpdates: v)),
+                            disabled: muteAll,
+                          ),
+                          const SizedBox(height: 4),
+                          _SettingsSwitchRow(
+                            icon: Icons.notifications_off_outlined,
+                            title: 'Alle stummschalten',
+                            subtitle: 'Deaktiviert alle Chat-Benachrichtigungen.',
+                            value: muteAll,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(muteAll: v)),
+                          ),
+                        ]),
                       ),
                       const SizedBox(height: 10),
-                      _SettingsSwitchRow(
-                        icon: Icons.done_all,
-                        title: 'Lesebestätigungen senden',
-                        subtitle: 'Andere sehen, ob du eine Nachricht gelesen hast',
-                        value: s?.sendReadReceipts ?? true,
-                        onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(sendReadReceipts: v)),
+
+                      // 2. Privatsphäre & Sicherheit
+                      _SettingsSection(
+                        title: 'Privatsphäre & Sicherheit',
+                        icon: Icons.shield_outlined,
+                        emphasized: true,
+                        child: Column(children: [
+                          _SettingsSwitchRow(
+                            icon: Icons.done_all,
+                            title: 'Lesebestätigungen senden',
+                            subtitle: 'Andere sehen, ob du eine Nachricht gelesen hast.',
+                            value: s?.sendReadReceipts ?? true,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(sendReadReceipts: v)),
+                          ),
+                          const SizedBox(height: 4),
+                          _SettingsSwitchRow(
+                            icon: Icons.visibility_outlined,
+                            title: 'Chat-Vorschau anzeigen',
+                            subtitle: 'Zeigt die letzte Nachricht in der Chat-Liste.',
+                            value: s?.showChatPreview ?? true,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(showChatPreview: v)),
+                          ),
+                          const SizedBox(height: 4),
+                          _SettingsActionRow(
+                            icon: Icons.block,
+                            title: 'Blockierte Nutzer verwalten',
+                            subtitle: 'Du bestimmst, wen du blockiert hast.',
+                            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BlockedUsersScreen())),
+                          ),
+                          const SizedBox(height: 4),
+                          _SettingsActionRow(
+                            icon: Icons.report_outlined,
+                            title: 'Nutzer oder Chat melden',
+                            subtitle: 'Hilf uns, die Community sicher zu halten.',
+                            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportUserScreen())),
+                          ),
+                          const SizedBox(height: 6),
+                          _SettingsInfoRow(
+                            icon: Icons.info_outline,
+                            text: 'Chats sind nur bei angenommenen und laufenden Buchungen aktiv.',
+                          ),
+                        ]),
                       ),
                       const SizedBox(height: 10),
-                      _SettingsSwitchRow(
-                        icon: Icons.visibility,
-                        title: 'Chat-Vorschau anzeigen',
-                        subtitle: 'Letzte Nachricht in der Chat-Liste anzeigen',
-                        value: s?.showChatPreview ?? true,
-                        onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(showChatPreview: v)),
+
+                      // 3. Übergabe & Belege
+                      _SettingsSection(
+                        title: 'Übergabe & Belege',
+                        icon: Icons.inventory_2_outlined,
+                        highlightTint: theme.colorScheme.primary.withValues(alpha: 0.08),
+                        child: Column(children: [
+                          _SettingsSwitchRow(
+                            icon: Icons.photo_library_outlined,
+                            title: 'Übergabefotos in Galerie speichern',
+                            subtitle: 'Speichert Belege schneller auf deinem Gerät.',
+                            value: s?.autoSaveHandoverPhotos ?? true,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(autoSaveHandoverPhotos: v)),
+                          ),
+                          const SizedBox(height: 4),
+                          _SettingsSwitchRow(
+                            icon: Icons.save_outlined,
+                            title: 'Belege lokal speichern',
+                            subtitle: 'Sichert wichtige Nachweise für Übergabe und Rückgabe.',
+                            value: s?.saveReceiptsLocally ?? true,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(saveReceiptsLocally: v)),
+                          ),
+                          const SizedBox(height: 6),
+                          _SettingsInfoRow(
+                            icon: Icons.photo_camera_outlined,
+                            text: 'Für Übergabe und Rückgabe sind mindestens 4 Fotos erforderlich.',
+                          ),
+                          const SizedBox(height: 4),
+                          _SettingsSwitchRow(
+                            icon: Icons.qr_code_2,
+                            title: 'QR-/Code-Hinweise anzeigen',
+                            subtitle: 'Zeigt Hinweise, falls QR-Code oder 6-stelliger Code benötigt wird.',
+                            value: s?.showQrCodeHints ?? true,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(showQrCodeHints: v)),
+                          ),
+                        ]),
                       ),
+                      const SizedBox(height: 10),
+
+                      // 4. Chat-Verhalten
+                      _SettingsSection(
+                        title: 'Chat-Verhalten',
+                        icon: Icons.forum_outlined,
+                        child: Column(children: [
+                          _SettingsSwitchRow(
+                            icon: Icons.visibility_off_outlined,
+                            title: 'Abgeschlossene Chats ausblenden',
+                            subtitle: 'Reduziert die Liste auf aktive Vorgänge.',
+                            value: s?.hideCompletedChats ?? false,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(hideCompletedChats: v)),
+                          ),
+                          const SizedBox(height: 4),
+                          _SettingsSwitchRow(
+                            icon: Icons.archive_outlined,
+                            title: 'Chats automatisch archivieren',
+                            subtitle: 'Ordnet abgeschlossene Chats automatisch ein.',
+                            value: s?.autoArchiveChats ?? false,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(autoArchiveChats: v)),
+                          ),
+                          const SizedBox(height: 6),
+                          _SettingsInfoRow(
+                            icon: Icons.info_outline,
+                            text: 'Abgeschlossene Chats bleiben über Buchungsdetails erreichbar.',
+                          ),
+                        ]),
+                      ),
+                      const SizedBox(height: 12),
                     ]),
                   ),
-                  const SizedBox(height: 16),
-                  _SettingsSection(
-                    title: 'Privatsphäre & Sicherheit',
-                    emphasized: true,
-                    child: Column(children: [
-                      _SettingsSelectorRow(
-                        icon: Icons.lock,
-                        title: 'Wer kann mir schreiben',
-                        valueText: (s?.whoCanWrite ?? WhoCanWrite.acceptedRequestOnly) == WhoCanWrite.acceptedRequestOnly ? 'Nur nach angenommener Anfrage' : 'Jeder',
-                        emphasizedValue: (s?.whoCanWrite ?? WhoCanWrite.acceptedRequestOnly) == WhoCanWrite.acceptedRequestOnly,
-                        onTap: _pickWhoCanWrite,
-                      ),
-                      const SizedBox(height: 10),
-                      _SettingsActionRow(
-                        icon: Icons.block,
-                        title: 'Blockierte Nutzer verwalten',
-                        subtitle: 'Du bestimmst, wer dir schreiben kann',
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BlockedUsersScreen())),
-                      ),
-                      const SizedBox(height: 10),
-                      _SettingsActionRow(
-                        icon: Icons.report,
-                        title: 'Nutzer melden',
-                        subtitle: 'Hilf uns, die Community sicher zu halten',
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportUserScreen())),
-                      ),
-                    ]),
+                  // Floating glassy footer
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: _GlassyFooter(
+                      saving: _saving,
+                      loading: _loading,
+                      onCancel: () {
+                        if (widget.presentation == MessagesSettingsPresentation.sheet) {
+                          Navigator.of(context).maybePop();
+                        } else {
+                          (widget.onCancel ?? () => Navigator.of(context).maybePop()).call();
+                        }
+                      },
+                      onSave: _save,
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  _SettingsSection(
-                    title: 'Übergaben & Sicherheit',
-                    emphasized: true,
-                    highlightTint: theme.colorScheme.primary.withValues(alpha: 0.10),
-                    child: Column(children: [
-                      _SettingsSwitchRow(
-                        icon: Icons.photo_library,
-                        title: 'Übergabefotos automatisch speichern',
-                        subtitle: 'Sichert Belege schneller in deiner Galerie',
-                        value: s?.autoSaveHandoverPhotos ?? true,
-                        onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(autoSaveHandoverPhotos: v)),
-                      ),
-                      const SizedBox(height: 10),
-                      _SettingsSwitchRow(
-                        icon: Icons.notifications_active,
-                        title: 'Erinnerungen für Übergabe & Rückgabe',
-                        subtitle: 'Hilft dir, Termine nicht zu verpassen',
-                        value: s?.handoverReminders ?? true,
-                        onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(handoverReminders: v)),
-                      ),
-                      const SizedBox(height: 10),
-                      const _SettingsInfoRow(icon: Icons.info_outline, title: 'Mind. 4 Fotos erforderlich', subtitle: 'Für eine saubere Dokumentation bei Übergabe & Rückgabe'),
-                    ]),
-                  ),
-                  const SizedBox(height: 16),
-                  _SettingsSection(
-                    title: 'Chat-Verhalten',
-                    child: Column(children: [
-                      _SettingsSwitchRow(
-                        icon: Icons.archive_outlined,
-                        title: 'Chats automatisch archivieren',
-                        subtitle: 'Ordnet abgeschlossene Chats automatisch ein',
-                        value: s?.autoArchiveChats ?? false,
-                        onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(autoArchiveChats: v)),
-                      ),
-                      const SizedBox(height: 10),
-                      _SettingsSwitchRow(
-                        icon: Icons.visibility_off,
-                        title: 'Chats nach Abschluss ausblenden',
-                        subtitle: 'Reduziert die Liste auf aktive Vorgänge',
-                        value: s?.hideCompletedChats ?? false,
-                        onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(hideCompletedChats: v)),
-                      ),
-                      const SizedBox(height: 10),
-                      _SettingsSelectorRow(
-                        icon: Icons.download_for_offline,
-                        title: 'Medien automatisch herunterladen',
-                        valueText: _mediaLabel(s?.mediaAutoDownload ?? MediaAutoDownload.wifi),
-                        onTap: _pickMediaAutoDownload,
-                      ),
-                    ]),
-                  ),
-                  const SizedBox(height: 16),
-                  _SettingsSection(
-                    title: 'Sprache & Kommunikation',
-                    child: Column(children: [
-                      _SettingsSwitchRow(
-                        icon: Icons.translate,
-                        title: 'Chat automatisch übersetzen',
-                        subtitle: 'Hilft bei internationalen Übergaben',
-                        value: s?.autoTranslateChat ?? false,
-                        onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(autoTranslateChat: v)),
-                      ),
-                      const SizedBox(height: 10),
-                      _SettingsSelectorRow(
-                        icon: Icons.language,
-                        title: 'Bevorzugte Sprache',
-                        valueText: _languageLabel(s?.preferredLanguageCode ?? 'auto'),
-                        onTap: _pickPreferredLanguage,
-                      ),
-                    ]),
-                  ),
-                ]),
+                ],
               ),
       ),
-      const Divider(height: 1, thickness: 1, color: Colors.white24),
-      footer,
     ]);
   }
-
-  String _mediaLabel(MediaAutoDownload v) => switch (v) {
-    MediaAutoDownload.wifi => 'WLAN',
-    MediaAutoDownload.always => 'Immer',
-    MediaAutoDownload.never => 'Nie',
-  };
-
-  String _languageLabel(String code) => switch (code) {
-    'auto' => 'Automatisch',
-    'de' => 'Deutsch',
-    'en' => 'Englisch',
-    _ => code,
-  };
 }
 
 /// Premium bottom-sheet wrapper for Nachrichten-Einstellungen (local-only MVP).
@@ -356,32 +287,116 @@ class MessagesSettingsSheet extends StatelessWidget {
   Widget build(BuildContext context) => const MessagesSettingsView(presentation: MessagesSettingsPresentation.sheet);
 }
 
-class _SettingsSection extends StatelessWidget {
-  final String title;
-  final Widget child;
-  final bool emphasized;
-  final Color? highlightTint;
-  const _SettingsSection({required this.title, required this.child, this.emphasized = false, this.highlightTint});
+/// Glassy floating footer with Abbrechen/Speichern buttons
+class _GlassyFooter extends StatelessWidget {
+  final bool saving;
+  final bool loading;
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+  const _GlassyFooter({required this.saving, required this.loading, required this.onCancel, required this.onSave});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final tint = highlightTint ?? Colors.white.withValues(alpha: emphasized ? 0.08 : 0.06);
-    return Container(
-      decoration: BoxDecoration(
-        color: tint,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: emphasized ? 0.16 : 0.10)),
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              ),
+              padding: const EdgeInsets.all(6),
+              child: Row(children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 42,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                        child: TextButton(
+                          onPressed: saving ? null : onCancel,
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.white.withValues(alpha: 0.06),
+                            foregroundColor: Colors.white.withValues(alpha: 0.85),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                            ),
+                          ),
+                          child: const Text('Abbrechen', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: SizedBox(
+                    height: 42,
+                    child: TextButton(
+                      onPressed: (saving || loading) ? null : onSave,
+                      style: TextButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: saving
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Änderungen speichern', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
-          Expanded(child: Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
-          if (emphasized) Icon(Icons.shield_moon, color: theme.colorScheme.primary.withValues(alpha: 0.95), size: 18),
-        ]),
-        const SizedBox(height: 10),
-        child,
-      ]),
+    );
+  }
+}
+
+class _SettingsSection extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Widget child;
+  final bool emphasized;
+  final Color? highlightTint;
+  const _SettingsSection({required this.title, required this.icon, required this.child, this.emphasized = false, this.highlightTint});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tint = highlightTint ?? Colors.white.withValues(alpha: emphasized ? 0.06 : 0.04);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+        child: Container(
+          decoration: BoxDecoration(
+            color: tint,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withValues(alpha: emphasized ? 0.14 : 0.08)),
+          ),
+          padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              Icon(icon, color: emphasized ? theme.colorScheme.primary : Colors.white70, size: 15),
+              const SizedBox(width: 6),
+              Expanded(child: Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.2, fontSize: 12))),
+            ]),
+            const SizedBox(height: 6),
+            child,
+          ]),
+        ),
+      ),
     );
   }
 }
@@ -392,33 +407,36 @@ class _SettingsSwitchRow extends StatelessWidget {
   final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
-  const _SettingsSwitchRow({required this.icon, required this.title, this.subtitle, required this.value, required this.onChanged});
+  final bool disabled;
+  const _SettingsSwitchRow({required this.icon, required this.title, this.subtitle, required this.value, required this.onChanged, this.disabled = false});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+    final opacity = disabled ? 0.4 : 1.0;
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        padding: const EdgeInsets.fromLTRB(7, 5, 4, 5),
         child: Row(children: [
           Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-            child: Icon(icon, color: theme.colorScheme.onSurface.withValues(alpha: 0.92), size: 18),
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(7)),
+            child: Icon(icon, color: Colors.white70, size: 14),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Text(title, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, fontSize: 12)),
               if (subtitle != null) ...[
-                const SizedBox(height: 3),
-                Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.35)),
+                const SizedBox(height: 1),
+                Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white54, fontSize: 10, height: 1.25)),
               ],
             ]),
           ),
@@ -426,7 +444,7 @@ class _SettingsSwitchRow extends StatelessWidget {
             scale: 0.8,
             child: Switch(
               value: value,
-              onChanged: onChanged,
+              onChanged: disabled ? null : onChanged,
               activeColor: theme.colorScheme.primary,
               inactiveThumbColor: Colors.white.withValues(alpha: 0.6),
               inactiveTrackColor: Colors.white.withValues(alpha: 0.14),
@@ -483,163 +501,35 @@ class _SettingsActionRow extends StatelessWidget {
   }
 }
 
-class _SettingsSelectorRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String valueText;
-  final bool emphasizedValue;
-  final VoidCallback onTap;
-  const _SettingsSelectorRow({required this.icon, required this.title, required this.valueText, this.emphasizedValue = false, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Material(
-      color: Colors.white.withValues(alpha: 0.06),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-          child: Row(children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-              child: Icon(icon, color: theme.colorScheme.onSurface.withValues(alpha: 0.92), size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800))),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                valueText,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(color: emphasizedValue ? theme.colorScheme.primary : Colors.white70, fontWeight: emphasizedValue ? FontWeight.w900 : FontWeight.w700),
-              ),
-            ),
-            const SizedBox(width: 6),
-            const Icon(Icons.expand_more, color: Colors.white70),
-          ]),
-        ),
-      ),
-    );
-  }
-}
-
 class _SettingsInfoRow extends StatelessWidget {
   final IconData icon;
-  final String title;
-  final String subtitle;
-  const _SettingsInfoRow({required this.icon, required this.title, required this.subtitle});
+  final String text;
+  const _SettingsInfoRow({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        color: theme.colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.18)),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      child: Row(children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-          child: Icon(icon, color: theme.colorScheme.primary.withValues(alpha: 0.95), size: 18),
+      padding: const EdgeInsets.fromLTRB(7, 5, 7, 5),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 1),
+          child: Icon(icon, color: theme.colorScheme.primary.withValues(alpha: 0.8), size: 14),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 7),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 3),
-            Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.35)),
-          ]),
+          child: Text(
+            text,
+            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, fontSize: 10, height: 1.35),
+            softWrap: true,
+          ),
         ),
       ]),
-    );
-  }
-}
-
-class _SelectorSheet<T> extends StatelessWidget {
-  final String title;
-  final T value;
-  final List<T> items;
-  final String Function(T value) label;
-  const _SelectorSheet({required this.title, required this.value, required this.items, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SafeArea(
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 720),
-          margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface.withValues(alpha: 0.94),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          ),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 8, 10),
-              child: Row(children: [
-                Expanded(child: Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
-                IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.close, color: Colors.white)),
-              ]),
-            ),
-            const Divider(height: 1, thickness: 1, color: Colors.white24),
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  final selected = item == value;
-                  return Material(
-                    color: Colors.white.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(16),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () => Navigator.of(context).maybePop(item),
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: selected ? theme.colorScheme.primary.withValues(alpha: 0.65) : Colors.white.withValues(alpha: 0.10)),
-                        ),
-                        child: Row(children: [
-                          Expanded(child: Text(label(item), style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800))),
-                          const SizedBox(width: 12),
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 160),
-                            width: 22,
-                            height: 22,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: selected ? theme.colorScheme.primary : Colors.transparent,
-                              border: Border.all(color: selected ? theme.colorScheme.primary : Colors.white.withValues(alpha: 0.28), width: 2),
-                            ),
-                          ),
-                        ]),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ]),
-        ),
-      ),
     );
   }
 }

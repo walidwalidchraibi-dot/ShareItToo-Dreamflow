@@ -3,9 +3,10 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lendify/screens/booking_detail_screen.dart';
+import 'package:lendify/screens/help_center_screen.dart';
+import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/notification_detail_screen.dart';
 import 'package:lendify/screens/notification_settings_screen.dart';
-import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/payment_methods_screen.dart';
 import 'package:lendify/screens/verification_intro_screen.dart';
 import 'package:lendify/models/item.dart';
@@ -15,7 +16,6 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/notification_preferences_service.dart';
 import 'package:lendify/theme.dart';
-import 'package:lendify/widgets/app_popup.dart';
 import 'package:provider/provider.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -45,21 +45,57 @@ class NotificationsScreen extends StatefulWidget {
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-enum _NotifFilter { all, important, bookings, messages, payments, reviews, system }
+enum _NotifFilter { all, important, bookings, handover, messages, support, payments, reviews, system }
 
 enum _DateBucket { today, yesterday, week, older }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
-  bool _isAllowedChatStatus(String? rawStatus) {
-    final status = (rawStatus ?? '').toLowerCase().trim();
-    return status == 'accepted' || status == 'running' || status == 'completed';
+enum _MenuAction { settings, markAllRead, unreadOnly, contactSupport, help }
+
+String _deriveSitCategory(Map<String, dynamic> notification) {
+  String lower(Object? value) => value == null ? '' : value.toString().toLowerCase();
+  final raw = lower(notification['category']);
+  final title = lower(notification['title']);
+  final body = lower(notification['body']);
+  final entityType = lower(notification['entityType']);
+
+  bool matchesAny(Iterable<String> needles) => needles.any((needle) => title.contains(needle) || body.contains(needle));
+
+  if (raw == 'important' || raw == 'security') return 'important';
+  if (raw == 'payments') return 'payments';
+  if (raw == 'reviews') return 'reviews';
+  if (raw == 'support') return 'support';
+  if (raw == 'system' || raw == 'platform') return 'system';
+
+  if (raw == 'bookings') {
+    if (matchesAny(const ['übergabe', 'rückgabe', 'handover', 'qr-code', 'qr code'])) return 'handover';
+    return 'bookings';
   }
 
+  if (raw == 'messages') {
+    final bool looksLikeSupport = entityType == 'support' || matchesAny(const ['support-fall', 'supportfall', 'support', 'ticket', 'hilfe']);
+    if (looksLikeSupport) return 'support';
+    if (title.startsWith('tipp') || matchesAny(const ['tipp', 'schnelle abstimmung', 'hinweis'])) return 'system';
+    return 'messages';
+  }
+
+  if (entityType == 'verification') return 'important';
+
+  if (matchesAny(const ['verifizier', 'sicherheit'])) return 'important';
+  if (matchesAny(const ['zahlung', 'rechnung'])) return 'payments';
+  if (matchesAny(const ['bewertung'])) return 'reviews';
+  if (matchesAny(const ['übergabe', 'rückgabe'])) return 'handover';
+  if (matchesAny(const ['nachricht', 'chat'])) return 'messages';
+
+  return 'system';
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
   _NotifFilter _filter = _NotifFilter.all;
   bool _loading = true;
   String? _currentUserId;
   List<Map<String, dynamic>> _feed = [];
   NotificationPreferences _prefs = NotificationPreferences.defaults();
+  bool _showUnreadOnly = false;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -113,61 +149,70 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     await _load();
   }
 
-  List<Map<String, dynamic>> get _filtered {
-    Set<String>? cats;
-    switch (_filter) {
-      case _NotifFilter.all:
-        cats = null;
+  void _handleMenuSelection(_MenuAction action, int unreadCount) async {
+    switch (action) {
+      case _MenuAction.settings:
+        await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()));
+        if (mounted) await _load();
         break;
-      case _NotifFilter.important:
-        cats = {'important', 'security'};
+      case _MenuAction.markAllRead:
+        if (unreadCount == 0) {
+          _showSnack('Alles ist bereits gelesen.');
+          return;
+        }
+        await _markAllRead();
         break;
-      case _NotifFilter.bookings:
-        cats = {'bookings'};
+      case _MenuAction.unreadOnly:
+        setState(() => _showUnreadOnly = !_showUnreadOnly);
+        _showSnack(_showUnreadOnly ? 'Zeige nur ungelesene Benachrichtigungen.' : 'Zeige wieder alle Benachrichtigungen.');
         break;
-      case _NotifFilter.messages:
-        cats = {'messages'};
+      case _MenuAction.contactSupport:
+        await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpCenterScreen()));
         break;
-      case _NotifFilter.payments:
-        cats = {'payments'};
-        break;
-      case _NotifFilter.reviews:
-        cats = {'reviews'};
-        break;
-      case _NotifFilter.system:
-        cats = {'platform'};
+      case _MenuAction.help:
+        await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpCenterScreen()));
         break;
     }
+  }
 
-    bool enabled(String category) {
-      switch (category) {
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
+    );
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final String? filterKey = _filter == _NotifFilter.all ? null : _categoryKeyForFilter(_filter);
+
+    bool allowedByPrefs(Map<String, dynamic> entry) {
+      final cat = _deriveSitCategory(entry);
+      switch (cat) {
         case 'important':
-          return _prefs.showImportant;
+          return _prefs.showImportant || _prefs.showSecurity;
         case 'bookings':
+        case 'handover':
           return _prefs.showBookings;
         case 'messages':
+        case 'support':
           return _prefs.showMessages;
-        case 'reviews':
-          return _prefs.showReviews;
-        // 'platform' is used for system messages in the current structured model.
-        case 'platform':
-          return _prefs.showSystem;
-        // Future expansion (payments/security) – keep these keys supported so we can
-        // add structured notifications without breaking settings.
         case 'payments':
           return _prefs.showPayments;
-        case 'security':
-          return _prefs.showSecurity;
+        case 'reviews':
+          return _prefs.showReviews;
         case 'system':
-          return _prefs.showSystem;
         default:
-          return true;
+          return _prefs.showSystem;
       }
     }
 
-    final base = _feed.where((e) => enabled((e['category'] ?? '').toString())).toList();
-    if (cats == null) return base;
-    return base.where((e) => cats!.contains((e['category'] ?? '').toString())).toList();
+    var base = _feed.where(allowedByPrefs).toList();
+    if (_showUnreadOnly) {
+      base = base.where((e) => e['read'] != true).toList();
+    }
+    if (filterKey == null) return base;
+    return base.where((e) => _deriveSitCategory(e) == filterKey).toList();
   }
 
   String _categoryKeyForFilter(_NotifFilter f) {
@@ -176,14 +221,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return 'important';
       case _NotifFilter.bookings:
         return 'bookings';
+      case _NotifFilter.handover:
+        return 'handover';
       case _NotifFilter.messages:
         return 'messages';
+      case _NotifFilter.support:
+        return 'support';
       case _NotifFilter.payments:
         return 'payments';
       case _NotifFilter.reviews:
         return 'reviews';
       case _NotifFilter.system:
-        return 'platform';
+        return 'system';
       case _NotifFilter.all:
         return 'all';
     }
@@ -194,7 +243,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (uid == null) return;
 
     final id = (n['id'] ?? '').toString();
-    if (id.isNotEmpty) {
+    final bool isMock = id.startsWith('mock_');
+    if (id.isNotEmpty && !isMock) {
       // Mark read immediately to make the UI feel responsive.
       await DataService.markNotificationRead(userId: uid, notificationId: id);
       if (mounted) {
@@ -208,30 +258,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     if (!mounted) return;
+
+    // Always open a full-screen detail page (no popups / bottom sheets).
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => NotificationDetailScreen(
           notification: n,
-          onCta: () {
-            Navigator.of(context).maybePop();
-            Future.microtask(() => _openNotificationTarget(n));
-          },
+          onCta: () => _handleNotificationCta(n),
         ),
       ),
     );
     if (mounted) await _load();
   }
 
-  Future<void> _openNotificationTarget(Map<String, dynamic> n) async {
+  Future<void> _handleNotificationCta(Map<String, dynamic> n) async {
     final uid = _currentUserId;
-    if (uid == null) return;
+    if (uid == null || !mounted) return;
 
     final category = (n['category'] ?? '').toString();
     final entityType = (n['entityType'] ?? '').toString();
     final entityId = (n['entityId'] ?? '').toString();
+    final sitCategory = _deriveSitCategory(n);
 
     try {
-      if (entityType == 'booking') {
+      if (entityType == 'booking' && entityId.isNotEmpty && !entityId.startsWith('mock')) {
         final req = await DataService.getRentalRequestById(entityId);
         if (req == null) return;
         final item = await DataService.getItemById(req.itemId);
@@ -241,22 +291,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         final booking = _toBookingMap(req, item, owner, deliverySel);
         if (!mounted) return;
         await Navigator.of(context).push(MaterialPageRoute(builder: (_) => BookingDetailScreen(booking: booking, viewerIsOwner: uid == req.ownerId)));
-        if (mounted) await _load();
         return;
       }
 
-      if (entityType == 'thread') {
+      if (entityType == 'thread' && entityId.isNotEmpty && !entityId.startsWith('mock')) {
         final thread = await DataService.getMessageThreadById(entityId);
         if (thread == null) return;
-        final request = await DataService.getRentalRequestById(thread.requestId);
-        final isSupportThread = ((thread.threadType ?? '').toLowerCase() == 'support') || thread.user1Id == 'support' || thread.user2Id == 'support';
-        final allowed = isSupportThread || _isAllowedChatStatus(request?.status ?? thread.bookingStatus);
-        if (!allowed) {
-          if (!mounted) return;
-          await AppPopup.toast(context, icon: Icons.info_outline, title: 'Der Chat ist erst nach Annahme der Anfrage verfügbar.');
-          if (mounted) await _load();
-          return;
-        }
         final otherId = (thread.user1Id == uid) ? thread.user2Id : thread.user1Id;
         final other = await DataService.getUserById(otherId);
         if (!mounted) return;
@@ -270,23 +310,36 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ),
         );
-        if (mounted) await _load();
         return;
       }
 
-      if (entityType == 'payment') {
+      if (entityType == 'payment' || sitCategory == 'payments') {
         if (!mounted) return;
         await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()));
         return;
       }
 
-      if (entityType == 'verification' || category == 'security') {
+      if (entityType == 'verification' || category == 'security' || sitCategory == 'important') {
         if (!mounted) return;
         await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VerificationIntroScreen()));
         return;
       }
+
+      if (sitCategory == 'support') {
+        if (!mounted) return;
+        await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpCenterScreen()));
+        return;
+      }
+
+      if (sitCategory == 'reviews') {
+        _showSnack('Bewertungen sind bald hier verfügbar.');
+        return;
+      }
+
+      // System / Welcome / Tips: CTA is an acknowledgement.
+      _showSnack('Alles klar.');
     } catch (e) {
-      debugPrint('[NotificationsScreen] openNotificationTarget failed: $e');
+      debugPrint('[NotificationsScreen] CTA handling failed: $e');
     }
   }
 
@@ -315,13 +368,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return _NotifFilter.important;
       case 'bookings':
         return _NotifFilter.bookings;
+      case 'handover':
+      case 'return':
+        return _NotifFilter.handover;
       case 'messages':
         return _NotifFilter.messages;
+      case 'support':
+        return _NotifFilter.support;
       case 'payments':
         return _NotifFilter.payments;
       case 'reviews':
         return _NotifFilter.reviews;
+      case 'system':
       case 'platform':
+        return _NotifFilter.system;
+      case 'all':
+        return _NotifFilter.all;
       default:
         return _NotifFilter.system;
     }
@@ -333,15 +395,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return 'Wichtig';
       case 'bookings':
         return 'Buchungen';
+      case 'handover':
+        return 'Übergabe & Rückgabe';
       case 'messages':
         return 'Nachrichten';
+      case 'support':
+        return 'Support-Fälle';
       case 'payments':
         return 'Zahlungen';
       case 'security':
         return 'Wichtig';
       case 'reviews':
         return 'Bewertungen';
+      case 'system':
       case 'platform':
+        return 'System';
+      case 'all':
+        return 'Alle';
       default:
         return 'System';
     }
@@ -394,25 +464,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return bt.compareTo(at);
   }
 
-  Map<String, List<Map<String, dynamic>>> _groupByCategory(List<Map<String, dynamic>> list) {
+  Map<String, List<Map<String, dynamic>>> _groupBySitCategory(List<Map<String, dynamic>> list) {
     final out = <String, List<Map<String, dynamic>>>{
       'important': [],
       'bookings': [],
+      'handover': [],
       'messages': [],
+      'support': [],
       'payments': [],
       'reviews': [],
-      'platform': [],
+      'system': [],
     };
 
     for (final n in list) {
-      final raw = (n['category'] ?? '').toString();
-      final key = switch (raw) {
-        'security' => 'important',
-        'system' => 'platform',
-        _ => raw,
-      };
-      if (!out.containsKey(key)) continue;
-      out[key]!.add(n);
+      final key = _deriveSitCategory(n);
+      (out[key] ??= <Map<String, dynamic>>[]).add(n);
     }
 
     for (final e in out.entries) {
@@ -506,35 +572,92 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             centerTitle: true,
             leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
             actions: [
-              IconButton(
-                tooltip: 'Einstellungen',
-                icon: const Icon(Icons.settings_outlined, color: Colors.white),
-                onPressed: () async {
-                  await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()));
-                  if (mounted) await _load();
-                },
-              ),
-              IconButton(
-                tooltip: 'Alle als gelesen markieren',
-                icon: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const Icon(Icons.done_all, color: Colors.white),
-                    if (unreadCount > 0)
-                      Positioned(
-                        right: -2,
-                        top: -2,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: PopupMenuButton<_MenuAction>(
+                  tooltip: 'Mehr Optionen',
+                  // Match the exact overflow menu styling used in MessageThreadScreen.
+                  color: Colors.grey.shade900,
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  offset: const Offset(0, 8),
+                  icon: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(Icons.more_vert, color: Colors.white.withValues(alpha: 0.85), size: 22),
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
+                          ),
                         ),
-                      ),
+                    ],
+                  ),
+                  onSelected: (action) => _handleMenuSelection(action, unreadCount),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: _MenuAction.settings,
+                      height: 42,
+                      child: Row(children: [
+                        Icon(Icons.tune_rounded, size: 18, color: Colors.white.withValues(alpha: 0.85)),
+                        const SizedBox(width: 10),
+                        const Text('Benachrichtigungseinstellungen', style: TextStyle(fontSize: 13)),
+                      ]),
+                    ),
+                    PopupMenuItem(
+                      value: _MenuAction.markAllRead,
+                      height: 42,
+                      child: Row(children: [
+                        Icon(Icons.done_all_rounded, size: 18, color: Colors.white.withValues(alpha: 0.85)),
+                        const SizedBox(width: 10),
+                        const Text('Alle als gelesen markieren', style: TextStyle(fontSize: 13)),
+                      ]),
+                    ),
+                    const PopupMenuDivider(height: 8),
+                    CheckedPopupMenuItem<_MenuAction>(
+                      value: _MenuAction.unreadOnly,
+                      checked: _showUnreadOnly,
+                      height: 42,
+                      child: Row(children: [
+                        Icon(Icons.mark_email_unread_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)),
+                        const SizedBox(width: 10),
+                        const Text('Nur ungelesene anzeigen', style: TextStyle(fontSize: 13)),
+                      ]),
+                    ),
+                    const PopupMenuDivider(height: 8),
+                    PopupMenuItem(
+                      value: _MenuAction.contactSupport,
+                      height: 42,
+                      child: Row(children: [
+                        ClipOval(
+                          child: Image.asset(
+                            'assets/images/icononly_transparent_nobuffer.png',
+                            width: 18,
+                            height: 18,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Icon(Icons.support_agent_rounded, size: 18, color: theme.colorScheme.primary),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text('Support kontaktieren', style: TextStyle(color: theme.colorScheme.primary, fontSize: 13)),
+                      ]),
+                    ),
+                    PopupMenuItem(
+                      value: _MenuAction.help,
+                      height: 42,
+                      child: Row(children: [
+                        Icon(Icons.help_outline_rounded, size: 18, color: Colors.white.withValues(alpha: 0.85)),
+                        const SizedBox(width: 10),
+                        const Text('Hilfe zu Benachrichtigungen', style: TextStyle(fontSize: 13)),
+                      ]),
+                    ),
                   ],
                 ),
-                onPressed: unreadCount == 0 ? null : _markAllRead,
               ),
-              const SizedBox(width: 6),
             ],
           ),
           body: RefreshIndicator(
@@ -565,8 +688,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   List<Widget> _buildCategoryGroupedSlivers(ThemeData theme, List<Map<String, dynamic>> visible) {
-    final grouped = _groupByCategory(visible);
-    const order = ['important', 'bookings', 'messages', 'payments', 'reviews', 'platform'];
+    final grouped = _groupBySitCategory(visible);
+    const order = ['important', 'bookings', 'handover', 'messages', 'support', 'payments', 'reviews', 'system'];
     return [
       for (final key in order)
         if (grouped[key] != null && grouped[key]!.isNotEmpty) ...[
@@ -584,16 +707,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   SliverList _notifSliverList(ThemeData theme, List<Map<String, dynamic>> list) {
     return SliverList.separated(
       itemCount: list.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final n = list[index];
         final critical = n['critical'] == true;
         final archivable = !critical && (n['category']?.toString() == 'platform');
-        final card = _NotificationCard(
-          notification: n,
-          onTap: () => _openNotification(n),
-          onAction: (actionId) => _handleQuickAction(notification: n, actionId: actionId),
-        );
+        final card = _NotificationCard(notification: n, onTap: () => _openNotification(n));
         if (!archivable) return card;
         return Dismissible(
           key: ValueKey('notif_${n['id']}'),
@@ -620,45 +739,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.error_outline;
       case 'bookings':
         return Icons.calendar_month_outlined;
+      case 'handover':
+        return Icons.swap_horiz;
       case 'messages':
         return Icons.chat_bubble_outline;
+      case 'support':
+        return Icons.support_agent;
       case 'payments':
         return Icons.payments_outlined;
       case 'reviews':
         return Icons.star_outline;
+      case 'system':
       case 'platform':
       default:
         return Icons.info_outline;
-    }
-  }
-
-  Future<void> _handleQuickAction({required Map<String, dynamic> notification, required String actionId}) async {
-    final uid = _currentUserId;
-    if (uid == null) return;
-    try {
-      if (actionId == 'reply') {
-        await _openNotification(notification);
-        return;
-      }
-
-      final entityType = (notification['entityType'] ?? '').toString();
-      final entityId = (notification['entityId'] ?? '').toString();
-      if (entityType == 'booking' && entityId.isNotEmpty) {
-        if (actionId == 'accept') {
-          await DataService.updateRentalRequestStatus(requestId: entityId, status: 'accepted');
-          await _load();
-          return;
-        }
-        if (actionId == 'decline') {
-          await DataService.updateRentalRequestStatus(requestId: entityId, status: 'declined');
-          await _load();
-          return;
-        }
-      }
-
-      await _openNotification(notification);
-    } catch (e) {
-      debugPrint('[NotificationsScreen] quickAction failed: $e');
     }
   }
 
@@ -679,7 +773,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'itemId': it.id,
       'rawStatus': req.status,
       'cancelledBy': req.cancelledBy,
-      'needsReview': req.needsReview,
       'title': it.title,
       'dates': '${fmt(req.start)} – ${fmt(req.end)}',
       'location': it.locationText,
@@ -730,7 +823,11 @@ class _FilterBar extends StatelessWidget {
           const SizedBox(width: 8),
           _FilterPill(label: 'Buchungen', selected: filter == _NotifFilter.bookings, onTap: () => onChanged(_NotifFilter.bookings)),
           const SizedBox(width: 8),
+          _FilterPill(label: 'Übergabe', selected: filter == _NotifFilter.handover, onTap: () => onChanged(_NotifFilter.handover)),
+          const SizedBox(width: 8),
           _FilterPill(label: 'Nachrichten', selected: filter == _NotifFilter.messages, onTap: () => onChanged(_NotifFilter.messages)),
+          const SizedBox(width: 8),
+          _FilterPill(label: 'Support', selected: filter == _NotifFilter.support, onTap: () => onChanged(_NotifFilter.support)),
           const SizedBox(width: 8),
           _FilterPill(label: 'Zahlungen', selected: filter == _NotifFilter.payments, onTap: () => onChanged(_NotifFilter.payments)),
           const SizedBox(width: 8),
@@ -837,96 +934,84 @@ class _DateHeader extends StatelessWidget {
 class _NotificationCard extends StatelessWidget {
   final Map<String, dynamic> notification;
   final VoidCallback onTap;
-  final ValueChanged<String> onAction;
-  const _NotificationCard({required this.notification, required this.onTap, required this.onAction});
+  const _NotificationCard({required this.notification, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = theme.colorScheme.primary;
-    final cat = (notification['category'] ?? 'platform').toString();
     final title = (notification['title'] ?? '').toString();
     final body = (notification['body'] ?? '').toString();
     final tsStr = (notification['ts'] ?? '').toString();
     final ts = DateTime.tryParse(tsStr);
     final timeLabel = ts == null ? '' : _relativeTime(ts);
     final read = notification['read'] == true;
-    final actions = (notification['actions'] is List) ? List<Map<String, dynamic>>.from(notification['actions'] as List) : <Map<String, dynamic>>[];
-
-    final (icon, tint) = _meta(cat, accent);
-    final hasDeepLink = (notification['entityType']?.toString().isNotEmpty ?? false) && (notification['entityId']?.toString().isNotEmpty ?? false);
-    final bool showChevron = hasDeepLink || body.trim().isNotEmpty;
+    final bool showChevron = body.trim().isNotEmpty || (notification['entityType']?.toString().isNotEmpty ?? false);
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 180),
-      opacity: read ? 0.78 : 1.0,
+      opacity: read ? 0.74 : 1.0,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
           child: Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: read ? 0.055 : 0.075),
+              color: Colors.white.withValues(alpha: read ? 0.04 : 0.08),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: read ? Colors.white.withValues(alpha: 0.10) : accent.withValues(alpha: 0.22)),
+              border: Border.all(color: read ? Colors.white.withValues(alpha: 0.06) : accent.withValues(alpha: 0.18)),
             ),
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [tint.withValues(alpha: 0.60), tint.withValues(alpha: 0.18)]),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                      ),
-                      child: Icon(icon, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: read ? FontWeight.w700 : FontWeight.w900),
-                                ),
-                              ),
-                              if (!read) ...[
-                                const SizedBox(width: 8),
-                                Container(width: 9, height: 9, decoration: BoxDecoration(color: accent, shape: BoxShape.circle)),
-                              ],
-                              if (showChevron) ...[
-                                const SizedBox(width: 6),
-                                Icon(Icons.chevron_right, color: Colors.white.withValues(alpha: 0.7)),
-                              ],
-                            ],
+                          Expanded(
+                            child: Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: read ? FontWeight.w700 : FontWeight.w900),
+                            ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(body, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.86))),
-                          if (timeLabel.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Text(timeLabel, style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.70))),
-                          ],
+                          if (!read)
+                            Container(
+                              width: 7.5,
+                              height: 7.5,
+                              margin: const EdgeInsets.only(left: 8),
+                              decoration: BoxDecoration(color: accent.withValues(alpha: 0.9), shape: BoxShape.circle),
+                            ),
                         ],
                       ),
-                    ),
-                  ],
+                      if (body.trim().isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          body,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.85)),
+                        ),
+                      ],
+                      if (timeLabel.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          timeLabel,
+                          style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.6), fontSize: 11),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-                if (actions.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  _QuickActionsRow(actions: actions, onAction: onAction),
+                if (showChevron) ...[
+                  const SizedBox(width: 10),
+                  Icon(Icons.chevron_right, color: Colors.white.withValues(alpha: 0.7)),
                 ],
               ],
             ),
@@ -934,25 +1019,6 @@ class _NotificationCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  static (IconData, Color) _meta(String category, Color accent) {
-    switch (category) {
-      case 'important':
-      case 'security':
-        return (Icons.error_outline, BrandColors.danger);
-      case 'bookings':
-        return (Icons.calendar_month_outlined, accent);
-      case 'messages':
-        return (Icons.chat_bubble_outline, const Color(0xFF22C55E));
-      case 'payments':
-        return (Icons.payments_outlined, const Color(0xFF8B5CF6));
-      case 'reviews':
-        return (Icons.star_outline, const Color(0xFF3B82F6));
-      case 'platform':
-      default:
-        return (Icons.info_outline, const Color(0xFF64748B));
-    }
   }
 
   static String _relativeTime(DateTime ts) {
@@ -966,59 +1032,6 @@ class _NotificationCard extends StatelessWidget {
     if (weeks < 5) return 'vor ${weeks} W.';
     final months = (diff.inDays / 30).floor();
     return 'vor ${months} Mon.';
-  }
-}
-
-class _QuickActionsRow extends StatelessWidget {
-  final List<Map<String, dynamic>> actions;
-  final ValueChanged<String> onAction;
-  const _QuickActionsRow({required this.actions, required this.onAction});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final accent = theme.colorScheme.primary;
-    final visible = actions
-        .where((e) => (e['id'] ?? '').toString().isNotEmpty && (e['label'] ?? '').toString().isNotEmpty)
-        .take(2)
-        .toList();
-    if (visible.isEmpty) return const SizedBox.shrink();
-
-    Widget button({required String label, required String id, required bool primary}) {
-      final bg = primary ? accent.withValues(alpha: 0.22) : Colors.white.withValues(alpha: 0.08);
-      final border = primary ? accent.withValues(alpha: 0.35) : Colors.white.withValues(alpha: 0.12);
-      return Expanded(
-        child: SizedBox(
-          height: 40,
-          child: OutlinedButton(
-            onPressed: () => onAction(id),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: bg,
-              side: BorderSide(color: border),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-            ),
-            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
-          ),
-        ),
-      );
-    }
-
-    if (visible.length == 1) {
-      final a = visible.first;
-      return Row(children: [button(label: (a['label'] ?? '').toString(), id: (a['id'] ?? '').toString(), primary: true)]);
-    }
-
-    final a = visible[0];
-    final b = visible[1];
-    return Row(
-      children: [
-        button(label: (a['label'] ?? '').toString(), id: (a['id'] ?? '').toString(), primary: true),
-        const SizedBox(width: 10),
-        button(label: (b['label'] ?? '').toString(), id: (b['id'] ?? '').toString(), primary: false),
-      ],
-    );
   }
 }
 
@@ -1056,81 +1069,3 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _NotificationDetailsSheet extends StatelessWidget {
-  final Map<String, dynamic> notification;
-  const _NotificationDetailsSheet({required this.notification});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final title = (notification['title'] ?? '').toString();
-    final body = (notification['body'] ?? '').toString();
-    final tsStr = (notification['ts'] ?? '').toString();
-    final ts = DateTime.tryParse(tsStr);
-    final timeLabel = ts == null ? '' : _NotificationCard._relativeTime(ts);
-
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-            color: Colors.black.withValues(alpha: 0.55),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 5,
-                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(99)),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          tooltip: 'Schließen',
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          icon: Icon(Icons.close, color: Colors.white.withValues(alpha: 0.85)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
-                    if (timeLabel.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(timeLabel, style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.72))),
-                    ],
-                    const SizedBox(height: 12),
-                    Text(body, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.88), height: 1.45)),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.of(context).maybePop(),
-                            style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: BorderSide(color: Colors.white.withValues(alpha: 0.16))),
-                            child: const Text('OK'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

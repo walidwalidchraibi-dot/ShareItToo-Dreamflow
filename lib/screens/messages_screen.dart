@@ -7,8 +7,11 @@ import 'package:lendify/models/user.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/messages_search_screen.dart';
 import 'package:lendify/screens/messages_settings_screen.dart';
+import 'package:lendify/models/item.dart';
+import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/user_avatar.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -26,6 +29,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   List<MessageThread> _archivedThreads = [];
   User? _currentUser;
   Map<String, User> _usersCache = {};
+  Map<String, Item> _itemsCache = {};
   bool _isLoading = true;
 
   @override
@@ -45,6 +49,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       final threads = await DataService.getMessageThreadsForUser(user.id);
       final archived = await DataService.getArchivedMessageThreadsForUser(user.id);
       final users = await DataService.getUsers();
+      final items = await DataService.getItems();
 
       if (!mounted) return;
       setState(() {
@@ -52,6 +57,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
         _activeThreads = threads;
         _archivedThreads = archived;
         _usersCache = {for (final u in users) u.id: u};
+        _itemsCache = {for (final i in items) i.id: i};
         _isLoading = false;
       });
     } catch (e) {
@@ -73,7 +79,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
         leading: IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
         title: const Text('Nachrichten'),
         actions: [
-          IconButton(onPressed: _openSearch, icon: const Icon(Icons.search)),
           IconButton(onPressed: _openMessageSettings, icon: const Icon(Icons.settings)),
         ],
       ),
@@ -109,9 +114,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                 final lastMsg = thread.messages.isNotEmpty ? thread.messages.last : null;
                                 final hasUnread = _hasUnread(thread);
                                 final status = _derivedStatus(thread);
-                                final presence = _presenceText(thread, other);
-                                final uspLine = _uspLine(thread);
                                 final highlight = status.rank <= 1; // running/accepted
+                                final isSupport = (thread.threadType ?? '').toLowerCase() == 'support' || thread.user1Id == 'support' || thread.user2Id == 'support';
+                                final item = _itemsCache[thread.itemId];
                                 return _ThreadDismissible(
                                   dismissKey: ValueKey('thread_${thread.id}_${_filter.name}'),
                                   thread: thread,
@@ -132,16 +137,17 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                     await _loadData();
                                   },
                                   child: _ChatThreadTile(
-                                    name: other?.displayName ?? (thread.threadType == 'support' ? 'SIT Support' : 'Unbekannt'),
-                                    itemTitle: thread.threadType == 'support' ? 'Support' : thread.itemTitle,
-                                    avatarUrl: other?.photoURL,
+                                    name: isSupport ? 'SIT Support' : (other?.displayName ?? 'Unbekannt'),
+                                    itemTitle: isSupport ? '' : thread.itemTitle,
+                                    itemImageUrl: item?.photos.isNotEmpty == true ? item!.photos.first : null,
+                                    avatarUrl: isSupport ? null : other?.photoURL,
+                                    isSupport: isSupport,
+                                    isVerified: other?.isVerified ?? false,
                                     hasUnread: hasUnread,
                                     timeLabel: _formatTime(lastMsg?.timestamp ?? thread.lastMessageAt ?? thread.createdAt),
                                     statusLabel: status.label,
                                     statusTone: status.tone,
                                     lastMessage: lastMsg?.text ?? '',
-                                    presenceText: presence,
-                                    uspLine: uspLine,
                                     highlighted: highlight,
                                     onTap: () => _openThread(thread, other),
                                     onLongPress: () => _openThreadOptions(thread),
@@ -359,8 +365,22 @@ class _MessagesScreenState extends State<MessagesScreen> {
         await DataService.deleteMessageThread(threadId: thread.id);
         break;
       case 'block':
-        // Local-only stub: we just toast via debugPrint for now.
-        debugPrint('[Messages] block user requested for thread ${thread.id}');
+        // Determine the other user in this thread
+        final otherUserId = thread.user1Id == userId ? thread.user2Id : thread.user1Id;
+        if (otherUserId.isEmpty || otherUserId == 'support') {
+          if (mounted) {
+            AppPopup.toast(context, icon: Icons.info_outline, title: 'Kann Support nicht blockieren');
+          }
+          return;
+        }
+        // Block the user via BlockedUsersService
+        await BlockedUsersService.blockUser(otherUserId);
+        // Archive the thread so it disappears from active list
+        await DataService.archiveMessageThreadForUser(threadId: thread.id, userId: userId);
+        debugPrint('[Messages] User $otherUserId blocked and thread ${thread.id} archived');
+        if (mounted) {
+          AppPopup.toast(context, icon: Icons.block, title: 'Nutzer blockiert', message: 'Du erhältst keine Nachrichten mehr von dieser Person.');
+        }
         break;
     }
     await _loadData();
@@ -438,6 +458,7 @@ class _FilterTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Chips einzeln frei schwebend - kein äußerer Container mehr
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
@@ -525,14 +546,15 @@ enum _StatusTone { neutral, info, warning, success }
 class _ChatThreadTile extends StatelessWidget {
   final String name;
   final String itemTitle;
+  final String? itemImageUrl;
   final String lastMessage;
   final String timeLabel;
   final String? avatarUrl;
+  final bool isSupport;
+  final bool isVerified;
   final bool hasUnread;
   final String statusLabel;
   final _StatusTone statusTone;
-  final String? presenceText;
-  final String? uspLine;
   final bool highlighted;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
@@ -540,14 +562,15 @@ class _ChatThreadTile extends StatelessWidget {
   const _ChatThreadTile({
     required this.name,
     required this.itemTitle,
+    this.itemImageUrl,
     required this.avatarUrl,
+    this.isSupport = false,
+    this.isVerified = false,
     required this.hasUnread,
     required this.timeLabel,
     required this.statusLabel,
     required this.statusTone,
     required this.lastMessage,
-    required this.presenceText,
-    required this.uspLine,
     required this.highlighted,
     required this.onTap,
     required this.onLongPress,
@@ -555,8 +578,9 @@ class _ChatThreadTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = (avatarUrl ?? '').trim();
-    final hasAvatar = url.isNotEmpty;
+    final avatarUrlTrimmed = (avatarUrl ?? '').trim();
+    final hasAvatar = avatarUrlTrimmed.isNotEmpty && !isSupport;
+    final hasItemImage = (itemImageUrl ?? '').trim().isNotEmpty;
 
     Color statusColor;
     switch (statusTone) {
@@ -564,13 +588,13 @@ class _ChatThreadTile extends StatelessWidget {
         statusColor = BrandColors.success;
         break;
       case _StatusTone.warning:
-        statusColor = BrandColors.logoAccent;
+        statusColor = Colors.amber.shade300;
         break;
       case _StatusTone.info:
         statusColor = BrandColors.primary;
         break;
       case _StatusTone.neutral:
-        statusColor = Colors.white70;
+        statusColor = Colors.grey;
         break;
     }
 
@@ -579,7 +603,7 @@ class _ChatThreadTile extends StatelessWidget {
     final glow = highlighted ? <BoxShadow>[BoxShadow(color: BrandColors.primary.withValues(alpha: 0.18), blurRadius: 22, spreadRadius: 0)] : const <BoxShadow>[];
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(14),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: Material(
@@ -587,105 +611,209 @@ class _ChatThreadTile extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             onLongPress: onLongPress,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
             child: Ink(
-              decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(18), border: Border.all(color: border), boxShadow: glow),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      SitUserAvatar(
-                        url: hasAvatar ? url : null,
-                        radius: 28,
-                        borderColor: Colors.white.withValues(alpha: 0.14),
-                        placeholderIcon: Icons.person_outline,
-                      ),
+              decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(14), border: Border.all(color: border), boxShadow: glow),
+              padding: const EdgeInsets.all(10),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                // Linkes Bild: Item-Bild quadratisch mit User-Avatar überlagert
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    if (isSupport)
+                      _SupportAvatar(size: 48)
+                    else
+                      _ItemImageTile(imageUrl: hasItemImage ? itemImageUrl : null, size: 48),
+                    // Rundes User-Profilbild rechts unten überlagert
+                    if (!isSupport)
                       Positioned(
-                        right: -1,
-                        bottom: -1,
+                        right: -4,
+                        bottom: -10,
                         child: Container(
-                          width: 14,
-                          height: 14,
                           decoration: BoxDecoration(
-                            color: presenceText == 'Online' ? BrandColors.success : Colors.white.withValues(alpha: 0.18),
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.black.withValues(alpha: 0.35), width: 2),
+                            border: Border.all(color: Colors.black.withValues(alpha: 0.5), width: 2),
+                          ),
+                          child: SitUserAvatar(
+                            url: hasAvatar ? avatarUrlTrimmed : null,
+                            radius: 15,
+                            borderColor: Colors.transparent,
+                            placeholderIcon: Icons.person,
                           ),
                         ),
                       ),
-                      if (hasUnread)
-                        const Positioned(
-                          right: -2,
-                          top: -2,
-                          child: DecoratedBox(decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle), child: SizedBox(width: 10, height: 10)),
+                    // Ungelesen-Badge
+                    if (hasUnread)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: BrandColors.logoAccent,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.black, width: 1.5),
+                          ),
                         ),
-                    ],
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 10),
+                // Mittlerer Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Zeile 1: Name + Verifiziert-Icon (links), Uhrzeit + Status-Chip (rechts)
                       Row(children: [
+                        // Name + Verifiziert-Icon
                         Expanded(
-                          child: RichText(
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            text: TextSpan(
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
-                              children: [
-                                TextSpan(text: name),
-                                TextSpan(
-                                  text: ' • $itemTitle',
-                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.white70, fontWeight: FontWeight.w500),
-                                ),
-                              ],
+                          child: Row(children: [
+                            Flexible(
+                              child: Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
+                                    ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 4),
+                            // Verifiziert-Symbol (nicht bei Support)
+                            if (!isSupport)
+                              Icon(
+                                Icons.verified,
+                                size: 14,
+                                color: isVerified ? BrandColors.success : Colors.grey.withValues(alpha: 0.5),
+                              ),
+                          ]),
                         ),
-                        const SizedBox(width: 10),
-                        Text(timeLabel, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70, fontWeight: FontWeight.w700)),
-                      ]),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 10,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          _StatusChip(label: statusLabel, color: statusColor),
-                          if (presenceText != null)
-                            Text(presenceText!, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white60, fontWeight: FontWeight.w700)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        lastMessage,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.35, fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w600),
-                      ),
-                      if (uspLine != null) ...[
-                        const SizedBox(height: 10),
-                        Row(children: [
-                          Icon(Icons.event_available, size: 16, color: BrandColors.primary.withValues(alpha: 0.9)),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              uspLine!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
-                            ),
+                        const SizedBox(width: 8),
+                        // Status-Chip + Uhrzeit (rechts ausgerichtet)
+                        Row(mainAxisSize: MainAxisSize.min, children: [
+                          // Status-Chip nur bei Nicht-Support
+                          if (!isSupport) ...[
+                            _StatusChip(label: statusLabel, color: statusColor),
+                            const SizedBox(width: 6),
+                          ],
+                          Text(
+                            timeLabel,
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: Colors.white60,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                ),
                           ),
                         ]),
+                      ]),
+                      // Zeile 2: Item-Titel mit Punkt davor (nur wenn vorhanden)
+                      if (itemTitle.trim().isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          '· $itemTitle',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                        ),
                       ],
-                    ]),
+                      // Zeile 3: Letzte Nachricht (1 Zeile)
+                      const SizedBox(height: 3),
+                      Text(
+                        lastMessage,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.white54,
+                              fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w500,
+                              fontSize: 12,
+                            ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  const Padding(
-                    padding: EdgeInsets.only(top: 6),
-                    child: Icon(Icons.chevron_right, color: Colors.white38),
-                  ),
-                ]),
+                ),
+                const SizedBox(width: 4),
+                Icon(Icons.chevron_right, color: Colors.white.withValues(alpha: 0.25), size: 18),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Quadratisches Item-Bild für Chat-Card
+class _ItemImageTile extends StatelessWidget {
+  final String? imageUrl;
+  final double size;
+  const _ItemImageTile({this.imageUrl, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final url = (imageUrl ?? '').trim();
+    final hasImage = url.isNotEmpty;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: size,
+        height: size,
+        color: Colors.white.withValues(alpha: 0.08),
+        child: hasImage
+            ? Image.network(
+                url,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _placeholder(),
+              )
+            : _placeholder(),
+      ),
+    );
+  }
+
+  Widget _placeholder() => Center(
+        child: Icon(Icons.image_outlined, color: Colors.white.withValues(alpha: 0.3), size: 22),
+      );
+}
+
+/// SIT-Logo als Avatar für Support-Chats (rund)
+class _SupportAvatar extends StatelessWidget {
+  final double size;
+  const _SupportAvatar({this.size = 56});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: BrandColors.primary.withValues(alpha: 0.18),
+        border: Border.all(color: BrandColors.primary.withValues(alpha: 0.3), width: 2),
+      ),
+      child: ClipOval(
+        child: Center(
+          child: Transform.translate(
+            offset: const Offset(0, 2.1), // 0.8mm nach unten für optische Zentrierung
+            child: Image.asset(
+              'assets/images/icononly_transparent_nobuffer.png',
+              width: size * 0.8,
+              height: size * 0.8,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Icon(
+                Icons.support_agent_rounded,
+                color: Colors.white.withValues(alpha: 0.8),
+                size: size * 0.5,
               ),
             ),
           ),
@@ -703,13 +831,13 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
+        color: color.withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.24)),
+        border: Border.all(color: color.withValues(alpha: 0.55), width: 1.2),
       ),
-      child: Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+      child: Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w800, fontSize: 10)),
     );
   }
 }

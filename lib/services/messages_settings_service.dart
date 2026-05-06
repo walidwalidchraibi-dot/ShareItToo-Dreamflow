@@ -14,10 +14,16 @@ class MessagesSettings {
   final bool muteAll;
   final bool sendReadReceipts;
   final bool showChatPreview;
+  final bool newMessagesNotif;
+  final bool handoverReturnReminders;
+  final bool openTimeConfirmations;
+  final bool supportCaseUpdates;
 
   final WhoCanWrite whoCanWrite;
   final bool autoSaveHandoverPhotos;
   final bool handoverReminders;
+  final bool saveReceiptsLocally;
+  final bool showQrCodeHints;
 
   final bool autoArchiveChats;
   final bool hideCompletedChats;
@@ -30,9 +36,15 @@ class MessagesSettings {
     required this.muteAll,
     required this.sendReadReceipts,
     required this.showChatPreview,
+    required this.newMessagesNotif,
+    required this.handoverReturnReminders,
+    required this.openTimeConfirmations,
+    required this.supportCaseUpdates,
     required this.whoCanWrite,
     required this.autoSaveHandoverPhotos,
     required this.handoverReminders,
+    required this.saveReceiptsLocally,
+    required this.showQrCodeHints,
     required this.autoArchiveChats,
     required this.hideCompletedChats,
     required this.mediaAutoDownload,
@@ -44,9 +56,15 @@ class MessagesSettings {
     muteAll: false,
     sendReadReceipts: true,
     showChatPreview: true,
+    newMessagesNotif: true,
+    handoverReturnReminders: true,
+    openTimeConfirmations: true,
+    supportCaseUpdates: true,
     whoCanWrite: WhoCanWrite.acceptedRequestOnly,
     autoSaveHandoverPhotos: true,
     handoverReminders: true,
+    saveReceiptsLocally: true,
+    showQrCodeHints: true,
     autoArchiveChats: false,
     hideCompletedChats: false,
     mediaAutoDownload: MediaAutoDownload.wifi,
@@ -58,9 +76,15 @@ class MessagesSettings {
     bool? muteAll,
     bool? sendReadReceipts,
     bool? showChatPreview,
+    bool? newMessagesNotif,
+    bool? handoverReturnReminders,
+    bool? openTimeConfirmations,
+    bool? supportCaseUpdates,
     WhoCanWrite? whoCanWrite,
     bool? autoSaveHandoverPhotos,
     bool? handoverReminders,
+    bool? saveReceiptsLocally,
+    bool? showQrCodeHints,
     bool? autoArchiveChats,
     bool? hideCompletedChats,
     MediaAutoDownload? mediaAutoDownload,
@@ -70,9 +94,15 @@ class MessagesSettings {
     muteAll: muteAll ?? this.muteAll,
     sendReadReceipts: sendReadReceipts ?? this.sendReadReceipts,
     showChatPreview: showChatPreview ?? this.showChatPreview,
+    newMessagesNotif: newMessagesNotif ?? this.newMessagesNotif,
+    handoverReturnReminders: handoverReturnReminders ?? this.handoverReturnReminders,
+    openTimeConfirmations: openTimeConfirmations ?? this.openTimeConfirmations,
+    supportCaseUpdates: supportCaseUpdates ?? this.supportCaseUpdates,
     whoCanWrite: whoCanWrite ?? this.whoCanWrite,
     autoSaveHandoverPhotos: autoSaveHandoverPhotos ?? this.autoSaveHandoverPhotos,
     handoverReminders: handoverReminders ?? this.handoverReminders,
+    saveReceiptsLocally: saveReceiptsLocally ?? this.saveReceiptsLocally,
+    showQrCodeHints: showQrCodeHints ?? this.showQrCodeHints,
     autoArchiveChats: autoArchiveChats ?? this.autoArchiveChats,
     hideCompletedChats: hideCompletedChats ?? this.hideCompletedChats,
     mediaAutoDownload: mediaAutoDownload ?? this.mediaAutoDownload,
@@ -84,9 +114,15 @@ class MessagesSettings {
     'muteAll': muteAll,
     'sendReadReceipts': sendReadReceipts,
     'showChatPreview': showChatPreview,
+    'newMessagesNotif': newMessagesNotif,
+    'handoverReturnReminders': handoverReturnReminders,
+    'openTimeConfirmations': openTimeConfirmations,
+    'supportCaseUpdates': supportCaseUpdates,
     'whoCanWrite': whoCanWrite.name,
     'autoSaveHandoverPhotos': autoSaveHandoverPhotos,
     'handoverReminders': handoverReminders,
+    'saveReceiptsLocally': saveReceiptsLocally,
+    'showQrCodeHints': showQrCodeHints,
     'autoArchiveChats': autoArchiveChats,
     'hideCompletedChats': hideCompletedChats,
     'mediaAutoDownload': mediaAutoDownload.name,
@@ -132,9 +168,15 @@ class MessagesSettings {
       muteAll: b('muteAll', d.muteAll),
       sendReadReceipts: b('sendReadReceipts', d.sendReadReceipts),
       showChatPreview: b('showChatPreview', d.showChatPreview),
+      newMessagesNotif: b('newMessagesNotif', d.newMessagesNotif),
+      handoverReturnReminders: b('handoverReturnReminders', d.handoverReturnReminders),
+      openTimeConfirmations: b('openTimeConfirmations', d.openTimeConfirmations),
+      supportCaseUpdates: b('supportCaseUpdates', d.supportCaseUpdates),
       whoCanWrite: who('whoCanWrite', d.whoCanWrite),
       autoSaveHandoverPhotos: b('autoSaveHandoverPhotos', d.autoSaveHandoverPhotos),
       handoverReminders: b('handoverReminders', d.handoverReminders),
+      saveReceiptsLocally: b('saveReceiptsLocally', d.saveReceiptsLocally),
+      showQrCodeHints: b('showQrCodeHints', d.showQrCodeHints),
       autoArchiveChats: b('autoArchiveChats', d.autoArchiveChats),
       hideCompletedChats: b('hideCompletedChats', d.hideCompletedChats),
       mediaAutoDownload: media('mediaAutoDownload', d.mediaAutoDownload),

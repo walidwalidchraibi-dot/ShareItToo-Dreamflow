@@ -92,7 +92,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                     Padding(
                       padding: const EdgeInsets.fromLTRB(4, 2, 4, 10),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Benachrichtigungseinstellungen', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                           const SizedBox(height: 6),
@@ -102,14 +102,13 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                     ),
                     _Section(
                       title: 'Feed steuern',
-                      description: 'Wähle aus, welche Ereignisse im In‑App‑Feed „Benachrichtigungen“ erscheinen.',
+                      description: 'Wähle, welche Kategorien im Benachrichtigungsfeed angezeigt werden.',
                       child: Column(
                         children: [
                           _SettingToggleTile(
                             icon: Icons.error_outline,
                             title: 'Wichtig',
-                            description: 'Kritische Hinweise und wichtige Ereignisse.',
-                            examples: const ['dringende Buchungsupdates', 'wichtige Systemmeldungen'],
+                            description: 'Zeigt dringende Hinweise und wichtige Ereignisse.',
                             value: true,
                             enabled: false,
                             onChanged: null,
@@ -118,9 +117,18 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                           const _Divider(),
                           _SettingToggleTile(
                             icon: Icons.calendar_month_outlined,
-                            title: 'Buchungen / Anmietungen',
-                            description: 'Anfragen, Annahmen und Statusänderungen.',
-                            examples: const ['neue Buchungsanfrage', 'Buchung akzeptiert', 'Übergabe steht bevor'],
+                            title: 'Buchungen',
+                            description: 'Anfragen, Annahmen, Stornierungen und Statusänderungen.',
+                            value: _prefs.showBookings,
+                            enabled: true,
+                            onChanged: (v) => _save(_prefs.copyWith(showBookings: v)),
+                            accent: accent,
+                          ),
+                          const _Divider(),
+                          _SettingToggleTile(
+                            icon: Icons.swap_horiz_rounded,
+                            title: 'Übergabe & Rückgabe',
+                            description: 'Erinnerungen, Zeitbestätigungen, QR-Code und Rückgabehinweise.',
                             value: _prefs.showBookings,
                             enabled: true,
                             onChanged: (v) => _save(_prefs.copyWith(showBookings: v)),
@@ -130,8 +138,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                           _SettingToggleTile(
                             icon: Icons.chat_bubble_outline,
                             title: 'Nachrichten',
-                            description: 'Neue Chats und neue Nachrichten.',
-                            examples: const ['neue Chatnachricht', 'neue Unterhaltung gestartet'],
+                            description: 'Neue Chat-Nachrichten und Antworten.',
                             value: _prefs.showMessages,
                             enabled: true,
                             onChanged: (v) => _save(_prefs.copyWith(showMessages: v)),
@@ -139,10 +146,19 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                           ),
                           const _Divider(),
                           _SettingToggleTile(
+                            icon: Icons.support_agent_outlined,
+                            title: 'Support-Fälle',
+                            description: 'Updates zu gemeldeten Problemen und Support-Anfragen.',
+                            value: true,
+                            enabled: false,
+                            onChanged: null,
+                            accent: accent,
+                          ),
+                          const _Divider(),
+                          _SettingToggleTile(
                             icon: Icons.payments_outlined,
                             title: 'Zahlungen',
-                            description: 'Zahlungen, Auszahlungen und Zahlungsprobleme.',
-                            examples: const ['Zahlung erhalten', 'Auszahlung gesendet', 'Zahlung fehlgeschlagen'],
+                            description: 'Zahlungen, Rückerstattungen, Auszahlungen und Gebühren.',
                             value: _prefs.showPayments,
                             enabled: true,
                             onChanged: (v) => _save(_prefs.copyWith(showPayments: v)),
@@ -152,8 +168,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                           _SettingToggleTile(
                             icon: Icons.star_outline,
                             title: 'Bewertungen',
-                            description: 'Neue Bewertungen und Review‑Erinnerungen.',
-                            examples: const ['neue Bewertung erhalten', 'Erinnerung zur Bewertung'],
+                            description: 'Neue Bewertungen und Erinnerungen zur Bewertung.',
                             value: _prefs.showReviews,
                             enabled: true,
                             onChanged: (v) => _save(_prefs.copyWith(showReviews: v)),
@@ -161,10 +176,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                           ),
                           const _Divider(),
                           _SettingToggleTile(
-                            icon: Icons.shield_outlined,
-                            title: 'Sicherheit',
-                            description: 'Verdächtige Aktivitäten und Verifizierungsstatus.',
-                            examples: const ['neuer Login erkannt', 'Identität verifiziert', 'Sicherheitswarnung'],
+                            icon: Icons.verified_user_outlined,
+                            title: 'Sicherheit & Verifizierung',
+                            description: 'Verifizierung, Sicherheitschecks und wichtige Schutz-Hinweise.',
                             value: true,
                             enabled: false,
                             onChanged: null,
@@ -174,8 +188,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                           _SettingToggleTile(
                             icon: Icons.info_outline,
                             title: 'System',
-                            description: 'Plattform‑Updates und Wartungshinweise.',
-                            examples: const ['neue Funktionen', 'geplante Wartung', 'wichtige Plattforminformationen'],
+                            description: 'Plattform-Updates und Wartungshinweise.',
                             value: _prefs.showSystem,
                             enabled: true,
                             onChanged: (v) => _save(_prefs.copyWith(showSystem: v)),
@@ -278,7 +291,6 @@ class _SettingToggleTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.description,
-    required this.examples,
     required this.value,
     required this.enabled,
     required this.onChanged,
@@ -288,7 +300,6 @@ class _SettingToggleTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String description;
-  final List<String> examples;
   final bool value;
   final bool enabled;
   final ValueChanged<bool>? onChanged;
@@ -302,11 +313,6 @@ class _SettingToggleTile extends StatelessWidget {
 
     final titleColor = active ? Colors.white : Colors.white.withValues(alpha: 0.70);
     final bodyColor = Colors.white.withValues(alpha: active ? 0.78 : 0.56);
-    final captionColor = Colors.white.withValues(alpha: active ? 0.66 : 0.46);
-
-    final switchInactiveTrack = Colors.white.withValues(alpha: 0.12);
-    final switchInactiveThumb = Colors.white.withValues(alpha: 0.86);
-    final switchOutline = Colors.white.withValues(alpha: 0.14);
 
     final badgeBorder = active ? Colors.white.withValues(alpha: 0.14) : Colors.white.withValues(alpha: 0.10);
     final badgeGradient = active
@@ -314,12 +320,16 @@ class _SettingToggleTile extends StatelessWidget {
         : [Colors.white.withValues(alpha: 0.11), Colors.white.withValues(alpha: 0.04)];
     final badgeIconColor = active ? Colors.white : Colors.white.withValues(alpha: 0.68);
 
+    final switchInactiveTrack = Colors.white.withValues(alpha: 0.12);
+    final switchInactiveThumb = Colors.white.withValues(alpha: 0.86);
+    final switchOutline = Colors.white.withValues(alpha: 0.14);
+
     return Opacity(
       opacity: locked ? 0.82 : 1,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
               width: 36,
@@ -329,21 +339,19 @@ class _SettingToggleTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: badgeBorder),
               ),
-              child: Stack(
-                children: [
-                  Positioned.fill(child: Icon(icon, color: badgeIconColor, size: 19)),
-                  if (locked)
-                    Positioned(
-                      right: 6,
-                      bottom: 6,
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(6)),
-                        child: Icon(Icons.lock_outline, size: 12, color: Colors.white.withValues(alpha: 0.85)),
-                      ),
+              child: Stack(children: [
+                Positioned.fill(child: Icon(icon, color: badgeIconColor, size: 19)),
+                if (locked)
+                  Positioned(
+                    right: 6,
+                    bottom: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(6)),
+                      child: Icon(Icons.lock_outline, size: 12, color: Colors.white.withValues(alpha: 0.85)),
                     ),
-                ],
-              ),
+                  ),
+              ]),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -361,10 +369,6 @@ class _SettingToggleTile extends StatelessWidget {
                     softWrap: true,
                     style: theme.textTheme.bodyMedium?.copyWith(color: bodyColor, height: 1.30),
                   ),
-                  if (examples.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text('Beispiele: ${examples.join(' • ')}', style: theme.textTheme.labelSmall?.copyWith(color: captionColor, height: 1.35)),
-                  ],
                 ],
               ),
             ),
@@ -440,11 +444,15 @@ class _SimpleToggleRow extends StatelessWidget {
             value: value,
             thumbColor: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.selected)) return Colors.white;
-              return Colors.white.withValues(alpha: 0.92);
+              return switchInactiveThumb;
             }),
             trackColor: WidgetStateProperty.resolveWith((states) {
               if (states.contains(WidgetState.selected)) return accent.withValues(alpha: 0.55);
-              return Colors.white.withValues(alpha: 0.18);
+              return switchInactiveTrack;
+            }),
+            trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) return Colors.transparent;
+              return switchOutline;
             }),
             onChanged: onChanged,
           ),
@@ -471,7 +479,7 @@ class _HintCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: [accent.withValues(alpha: 0.14), Colors.white.withValues(alpha: 0.06)]),
         borderRadius: BorderRadius.circular(18),
@@ -482,13 +490,13 @@ class _HintCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [accent.withValues(alpha: 0.90), accent.withValues(alpha: 0.28)]),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.info_outline, color: Colors.white, size: 20),
+            child: const Icon(Icons.info_outline, color: Colors.white, size: 19),
           ),
           const SizedBox(width: 12),
           Expanded(
