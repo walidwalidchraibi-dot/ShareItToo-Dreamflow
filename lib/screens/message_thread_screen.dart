@@ -19,6 +19,7 @@ import 'package:lendify/widgets/return_handover_stepper_sheet.dart';
 import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/screens/booking_detail_screen.dart';
 import 'package:lendify/services/blocked_users_service.dart';
+import 'package:lendify/screens/support_flow_screen.dart';
 
 /// Chat detail screen (Communication Hub).
 ///
@@ -1143,11 +1144,32 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   Future<void> _contactSupport() async {
-    if (!mounted) return;
+    final flowContext = SupportFlowContext.fromChat(
+      itemTitle: _itemTitle(),
+      itemId: _item?.id ?? '',
+      requestId: _request?.id ?? '',
+      bookingStatus: _request?.status ?? _thread?.bookingStatus ?? '',
+      viewerIsOwner: _viewerIsOwner(),
+      otherUserName: _displayName(),
+      threadId: _thread?.id,
+      itemImageUrl: _item?.photos.isNotEmpty == true ? _item!.photos.first : null,
+      otherUserImageUrl: _otherUser?.photoURL,
+    );
+
+    final result = await Navigator.of(context).push<SupportFlowResult?>(
+      MaterialPageRoute(
+        builder: (_) => SupportFlowScreen(context: flowContext),
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    final label = result.mainCategoryLabel;
+    final detail = result.subCategory.trim().isNotEmpty ? ' • ${result.subCategory}' : '';
     AppPopup.toast(
       context,
       icon: Icons.support_agent_outlined,
-      title: 'Support wird in dieser Vorschau nicht geöffnet',
+      title: 'Support-Fall lokal vorbereitet: $label$detail',
     );
   }
   
