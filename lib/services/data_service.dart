@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart' show DateTimeRange;
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
@@ -44,6 +44,7 @@ class DataService {
   static const String _wishlistAssignKey = 'wishlist_assign_v1';
   static const String _messageThreadsKey = 'message_threads_v1';
   static const String _demoNotifSeedFlagPrefix = 'demo_notif_seeded_for_';
+  static const String _qaMessagesAndNotifsSeedFlagPrefix = 'qa_messages_notifs_seeded_v1_for_';
 
   // Security
   static const String _securitySettingsKey = 'security_settings_v1';
@@ -1041,6 +1042,344 @@ class DataService {
     } catch (e) {
       debugPrint(
           '[DataService] _ensureDemoNotificationsForUserOnce failed: $e');
+    }
+  }
+
+  static Future<void> _ensureQaMessagesAndNotificationsForUserOnce(String userId) async {
+    if (userId.isEmpty || !kDebugMode) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = '$_qaMessagesAndNotifsSeedFlagPrefix$userId';
+      final done = prefs.getBool(key) ?? false;
+      if (done) return;
+
+      final me = await getCurrentUser();
+      if (me == null || me.id != userId) return;
+
+      final users = await getUsers();
+      final items = await getItems();
+      if (users.isEmpty || items.isEmpty) return;
+
+      final otherUsers = users.where((u) => u.id != userId).toList();
+      if (otherUsers.isEmpty) return;
+
+      final User ownerA = otherUsers[0];
+      final User ownerB = otherUsers.length > 1 ? otherUsers[1] : otherUsers[0];
+      final User ownerC = otherUsers.length > 2 ? otherUsers[2] : otherUsers[0];
+      final User renterA = otherUsers.length > 3 ? otherUsers[3] : ownerB;
+
+      Item? firstOwnedBy(String ownerId) {
+        for (final item in items) {
+          if (item.ownerId == ownerId) return item;
+        }
+        return null;
+      }
+
+      Item? firstOwnedByWithPhoto(String ownerId) {
+        for (final item in items) {
+          if (item.ownerId == ownerId && item.photos.isNotEmpty) return item;
+        }
+        return firstOwnedBy(ownerId);
+      }
+
+      final acceptedItem = firstOwnedByWithPhoto(ownerA.id) ?? items.first;
+      final runningItem = firstOwnedByWithPhoto(ownerB.id) ?? acceptedItem;
+      final completedItem = firstOwnedBy(ownerC.id) ?? runningItem;
+      final pendingItem = firstOwnedBy(me.id) ?? acceptedItem;
+
+      final now = DateTime.now();
+      final acceptedRequest = RentalRequest(
+        id: 'qa_req_accepted_$userId',
+        itemId: acceptedItem.id,
+        ownerId: acceptedItem.ownerId,
+        renterId: userId,
+        start: now.add(const Duration(days: 2, hours: 4)),
+        end: now.add(const Duration(days: 5, hours: 2)),
+        status: 'accepted',
+        message: 'Ich freue mich auf die Miete und richte alles sauber für die Übergabe her.',
+        deliveryAddressLine: 'Torstraße 17',
+        deliveryCity: 'Berlin',
+        createdAt: now.subtract(const Duration(days: 1, hours: 4)),
+        quotedTotalRenter: 89.0,
+        quotedSubtitle: 'inkl. SIT-Servicegebühr',
+      );
+      final runningRequest = RentalRequest(
+        id: 'qa_req_running_$userId',
+        itemId: runningItem.id,
+        ownerId: runningItem.ownerId,
+        renterId: userId,
+        start: now.subtract(const Duration(days: 1, hours: 2)),
+        end: now.add(const Duration(days: 2, hours: 6)),
+        status: 'running',
+        message: 'Die Kamera ist schon unterwegs in deinen Drehplan eingebaut.',
+        deliveryAddressLine: 'Rosenthaler Straße 44',
+        deliveryCity: 'Berlin',
+        createdAt: now.subtract(const Duration(days: 3)),
+        handoverConfirmation: {
+          'confirmedAt': now.subtract(const Duration(days: 1, hours: 3)).toIso8601String(),
+          'method': 'manual',
+        },
+        quotedTotalRenter: 126.0,
+        quotedSubtitle: 'inkl. Schutz & Service',
+      );
+      final completedRequest = RentalRequest(
+        id: 'qa_req_completed_$userId',
+        itemId: completedItem.id,
+        ownerId: completedItem.ownerId,
+        renterId: userId,
+        start: now.subtract(const Duration(days: 10)),
+        end: now.subtract(const Duration(days: 7, hours: 3)),
+        status: 'completed',
+        message: 'Danke nochmal — das Licht hat für das Shooting perfekt funktioniert.',
+        createdAt: now.subtract(const Duration(days: 12)),
+        returnConfirmation: {
+          'confirmedAt': now.subtract(const Duration(days: 7, hours: 2)).toIso8601String(),
+          'method': 'manual',
+        },
+        quotedTotalRenter: 74.0,
+        quotedSubtitle: 'historischer Testfall',
+      );
+      final needsReviewRequest = RentalRequest(
+        id: 'qa_req_review_$userId',
+        itemId: completedItem.id,
+        ownerId: completedItem.ownerId,
+        renterId: userId,
+        start: now.subtract(const Duration(days: 6)),
+        end: now.subtract(const Duration(days: 4, hours: 4)),
+        status: 'completed',
+        message: 'Der Vorgang ist beendet, aber ein Detail wartet noch auf Prüfung.',
+        createdAt: now.subtract(const Duration(days: 6, hours: 8)),
+        needsReview: true,
+        reviewReason: 'Zusätzliche Prüfung nach Rückgabe',
+        reviewSource: 'qa_demo_seed',
+        reviewRequestedAt: now.subtract(const Duration(days: 4, hours: 2)),
+        quotedTotalRenter: 61.0,
+        quotedSubtitle: 'mit Review-Hold Testfall',
+      );
+      final pendingRequest = RentalRequest(
+        id: 'qa_req_pending_$userId',
+        itemId: pendingItem.id,
+        ownerId: pendingItem.ownerId,
+        renterId: pendingItem.ownerId == userId ? renterA.id : userId,
+        start: now.add(const Duration(days: 4)),
+        end: now.add(const Duration(days: 6, hours: 8)),
+        status: 'pending',
+        message: 'Wäre Abholung am Freitag gegen 18:30 für dich passend?',
+        createdAt: now.subtract(const Duration(hours: 2, minutes: 20)),
+        quotedTotalRenter: 58.0,
+        quotedSubtitle: 'Anfrage noch offen',
+      );
+
+      final requests = await _getAllRentalRequests();
+      requests.removeWhere((r) => r.id.startsWith('qa_req_') && (r.renterId == userId || r.ownerId == userId));
+      requests.addAll([acceptedRequest, runningRequest, completedRequest, needsReviewRequest, pendingRequest]);
+      await _saveAllRentalRequests(requests);
+
+      final rawThreads = prefs.getString(_messageThreadsKey);
+      final List<dynamic> threadList = rawThreads != null && rawThreads.isNotEmpty ? (jsonDecode(rawThreads) as List) : <dynamic>[];
+      threadList.removeWhere((e) {
+        if (e is! Map) return false;
+        final id = (e['id'] ?? '').toString();
+        return id.startsWith('qa_thread_') || id.startsWith('qa_support_thread_');
+      });
+
+      MessageThread buildThread({
+        required String id,
+        required String requestId,
+        required String itemId,
+        required String itemTitle,
+        required String user1Id,
+        required String user2Id,
+        String? threadType,
+        String? bookingStatus,
+        DateTime? handoverAt,
+        DateTime? returnAt,
+        bool? otherUserOnline,
+        DateTime? otherUserLastActive,
+        List<String> archivedForUserIds = const <String>[],
+        required List<Message> messages,
+        required DateTime createdAt,
+        DateTime? lastMessageAt,
+      }) => MessageThread(
+        id: id,
+        requestId: requestId,
+        itemId: itemId,
+        itemTitle: itemTitle,
+        user1Id: user1Id,
+        user2Id: user2Id,
+        threadType: threadType,
+        bookingStatus: bookingStatus,
+        handoverAt: handoverAt,
+        returnAt: returnAt,
+        otherUserOnline: otherUserOnline,
+        otherUserLastActive: otherUserLastActive,
+        archivedForUserIds: archivedForUserIds,
+        messages: messages,
+        createdAt: createdAt,
+        lastMessageAt: lastMessageAt,
+      );
+
+      final acceptedMsgs = <Message>[
+        Message(id: 'qa_msg_acc_1', senderId: 'system', text: 'Buchung bestätigt — ihr könnt jetzt die Übergabe planen.', timestamp: now.subtract(const Duration(hours: 9)), isRead: true),
+        Message(id: 'qa_msg_acc_2', senderId: ownerA.id, text: 'Hi Walid, ich habe alles vorbereitet. Passt dir Donnerstag 18:30 für die Übergabe?', timestamp: now.subtract(const Duration(hours: 8, minutes: 40)), isRead: true),
+        Message(id: 'qa_msg_acc_3', senderId: userId, text: 'Ja, perfekt. Ich bin pünktlich da.', timestamp: now.subtract(const Duration(hours: 8, minutes: 12)), isRead: true),
+        Message(id: 'qa_msg_acc_4', senderId: ownerA.id, text: 'Super — die Adresse bleibt bis kurz vor der Übergabe geschützt sichtbar. Ich schicke dir rechtzeitig die letzten Details.', timestamp: now.subtract(const Duration(hours: 7, minutes: 50)), isRead: false),
+      ];
+      final runningMsgs = <Message>[
+        Message(id: 'qa_msg_run_1', senderId: 'system', text: 'Übergabe bestätigt — dieser Chat eignet sich für Rückgabezeit und kurze Abstimmung.', timestamp: now.subtract(const Duration(days: 1, hours: 4)), isRead: true),
+        Message(id: 'qa_msg_run_2', senderId: ownerB.id, text: 'Zeitvorschlag Rückgabe: Samstag 11:00 vor dem Studioeingang.', timestamp: now.subtract(const Duration(hours: 20)), isRead: true),
+        Message(id: 'qa_msg_run_3', senderId: userId, text: 'Klappt. Ich bin 10 Minuten früher da.', timestamp: now.subtract(const Duration(hours: 19, minutes: 42)), isRead: true),
+        Message(id: 'qa_msg_run_4', senderId: 'system', text: 'Hinweis: Teile sensible Adressdaten nur im vorgesehenen Übergabe-Kontext. Der Kernprozess bleibt über ShareItToo dokumentiert.', timestamp: now.subtract(const Duration(hours: 19, minutes: 10)), isRead: true),
+        Message(id: 'qa_msg_run_5', senderId: ownerB.id, text: 'Falls du unterwegs festhängst, gib einfach kurz Bescheid. Ich kann notfalls 15 Minuten warten, damit die Rückgabe trotzdem sauber dokumentiert bleibt und wir keine Hektik kurz vor Schluss haben.', timestamp: now.subtract(const Duration(hours: 18, minutes: 55)), isRead: false),
+      ];
+      final completedMsgs = <Message>[
+        Message(id: 'qa_msg_compl_1', senderId: 'system', text: 'Diese Miete ist abgeschlossen. Bewertungen und Dokumentation bleiben weiterhin einsehbar.', timestamp: now.subtract(const Duration(days: 7, hours: 3)), isRead: true),
+        Message(id: 'qa_msg_compl_2', senderId: ownerC.id, text: 'Danke dir — alles kam vollständig zurück.', timestamp: now.subtract(const Duration(days: 7, hours: 2, minutes: 40)), isRead: true),
+        Message(id: 'qa_msg_compl_3', senderId: userId, text: 'Top, danke für die unkomplizierte Übergabe.', timestamp: now.subtract(const Duration(days: 7, hours: 2, minutes: 10)), isRead: true),
+      ];
+      final supportMsgs = <Message>[
+        Message(id: 'qa_msg_sup_1', senderId: 'support', text: 'Hallo Walid, wir haben dein Support-Thema aufgenommen.', timestamp: now.subtract(const Duration(hours: 6)), isRead: true),
+        Message(id: 'qa_msg_sup_2', senderId: userId, text: 'Danke. Ich wollte nur prüfen, ob die neue Benachrichtigungsansicht sauber reagiert.', timestamp: now.subtract(const Duration(hours: 5, minutes: 30)), isRead: true),
+        Message(id: 'qa_msg_sup_3', senderId: 'support', text: 'Perfekt — dieser QA-Fall ist bewusst lokal markiert und verschickt nichts extern.', timestamp: now.subtract(const Duration(hours: 5, minutes: 8)), isRead: false),
+      ];
+      final archivedMsgs = <Message>[
+        Message(id: 'qa_msg_arch_1', senderId: ownerA.id, text: 'Das ist ein archivierter Testfall mit langem Vorschautext, damit die Listenansicht Zeilenumbruch, Abschneiden und Status-Kontext sauber zeigt, auch wenn ein Artikelbild gerade nicht vorhanden ist.', timestamp: now.subtract(const Duration(days: 2, hours: 5)), isRead: true),
+      ];
+
+      final acceptedThread = buildThread(
+        id: 'qa_thread_accepted_$userId',
+        requestId: acceptedRequest.id,
+        itemId: acceptedItem.id,
+        itemTitle: acceptedItem.title,
+        user1Id: userId,
+        user2Id: acceptedItem.ownerId,
+        bookingStatus: 'accepted',
+        handoverAt: acceptedRequest.start.subtract(const Duration(hours: 1)),
+        returnAt: acceptedRequest.end.subtract(const Duration(hours: 2)),
+        otherUserOnline: true,
+        messages: acceptedMsgs,
+        createdAt: now.subtract(const Duration(days: 1)),
+        lastMessageAt: acceptedMsgs.last.timestamp,
+      );
+      final runningThread = buildThread(
+        id: 'qa_thread_running_$userId',
+        requestId: runningRequest.id,
+        itemId: runningItem.id,
+        itemTitle: runningItem.title,
+        user1Id: userId,
+        user2Id: runningItem.ownerId,
+        bookingStatus: 'running',
+        handoverAt: runningRequest.start.subtract(const Duration(hours: 1)),
+        returnAt: runningRequest.end.subtract(const Duration(hours: 3)),
+        otherUserOnline: false,
+        otherUserLastActive: now.subtract(const Duration(minutes: 14)),
+        messages: runningMsgs,
+        createdAt: now.subtract(const Duration(days: 3, hours: 1)),
+        lastMessageAt: runningMsgs.last.timestamp,
+      );
+      final completedThread = buildThread(
+        id: 'qa_thread_completed_$userId',
+        requestId: completedRequest.id,
+        itemId: completedItem.id,
+        itemTitle: completedItem.title,
+        user1Id: userId,
+        user2Id: completedItem.ownerId,
+        bookingStatus: 'completed',
+        otherUserOnline: false,
+        otherUserLastActive: now.subtract(const Duration(days: 6)),
+        messages: completedMsgs,
+        createdAt: now.subtract(const Duration(days: 8)),
+        lastMessageAt: completedMsgs.last.timestamp,
+      );
+      final supportThread = buildThread(
+        id: 'qa_support_thread_$userId',
+        requestId: 'qa_support_request_$userId',
+        itemId: 'support',
+        itemTitle: 'Support',
+        user1Id: userId,
+        user2Id: 'support',
+        threadType: 'support',
+        otherUserOnline: true,
+        messages: supportMsgs,
+        createdAt: now.subtract(const Duration(hours: 7)),
+        lastMessageAt: supportMsgs.last.timestamp,
+      );
+      final archivedThread = buildThread(
+        id: 'qa_thread_archived_$userId',
+        requestId: needsReviewRequest.id,
+        itemId: 'qa_missing_item_$userId',
+        itemTitle: 'Objektiv ohne Bildvorschau',
+        user1Id: userId,
+        user2Id: needsReviewRequest.ownerId,
+        bookingStatus: 'completed',
+        otherUserOnline: false,
+        otherUserLastActive: now.subtract(const Duration(days: 2, hours: 1)),
+        archivedForUserIds: [userId],
+        messages: archivedMsgs,
+        createdAt: now.subtract(const Duration(days: 2, hours: 6)),
+        lastMessageAt: archivedMsgs.last.timestamp,
+      );
+
+      threadList.addAll([
+        acceptedThread.toJson(),
+        runningThread.toJson(),
+        completedThread.toJson(),
+        supportThread.toJson(),
+        archivedThread.toJson(),
+      ]);
+      await prefs.setString(_messageThreadsKey, jsonEncode(threadList));
+
+      final rawNotifs = prefs.getString(_notificationsKey);
+      final List<dynamic> notifList = rawNotifs != null && rawNotifs.isNotEmpty ? (jsonDecode(rawNotifs) as List) : <dynamic>[];
+      notifList.removeWhere((e) {
+        if (e is! Map) return false;
+        return ((e['id'] ?? '').toString().startsWith('qa_notif_')) || (((e['entityId'] ?? '').toString().startsWith('qa_')) && (e['userId']?.toString() == userId));
+      });
+
+      Map<String, dynamic> qaNotif({
+        required String id,
+        required String category,
+        required int priority,
+        required String title,
+        required String body,
+        required String entityType,
+        required String entityId,
+        required DateTime ts,
+        bool read = false,
+        bool critical = false,
+        String? ctaLabel,
+      }) => {
+        'id': id,
+        'userId': userId,
+        'category': category,
+        'priority': priority,
+        'title': title,
+        'body': body,
+        'entityType': entityType,
+        'entityId': entityId,
+        'ctaLabel': ctaLabel,
+        'critical': critical,
+        'archived': false,
+        'ts': ts.toIso8601String(),
+        'read': read,
+      };
+
+      notifList.addAll([
+        qaNotif(id: 'qa_notif_pending_$userId', category: 'bookings', priority: 2, title: 'Neue Mietanfrage eingegangen', body: 'Eine neue Anfrage wartet auf Prüfung und enthält bereits einen konkreten Zeitwunsch.', entityType: 'booking', entityId: pendingRequest.id, ts: now.subtract(const Duration(hours: 2, minutes: 10)), read: false, ctaLabel: 'Anfrage öffnen'),
+        qaNotif(id: 'qa_notif_accepted_$userId', category: 'bookings', priority: 2, title: 'Anfrage bestätigt', body: 'Die Buchung für „${acceptedItem.title}“ ist bestätigt. Prüfe die Abstimmung im Chat.', entityType: 'booking', entityId: acceptedRequest.id, ts: now.subtract(const Duration(hours: 8, minutes: 30)), read: false, ctaLabel: 'Buchung öffnen'),
+        qaNotif(id: 'qa_notif_message_$userId', category: 'messages', priority: 3, title: 'Neue Nachricht erhalten', body: 'Mila hat dir zur Rückgabe noch eine kurze Nachricht geschickt.', entityType: 'thread', entityId: runningThread.id, ts: now.subtract(const Duration(hours: 1, minutes: 12)), read: false, ctaLabel: 'Chat öffnen'),
+        qaNotif(id: 'qa_notif_handover_$userId', category: 'bookings', priority: 2, title: 'Übergabe-Erinnerung', body: 'Die bestätigte Übergabe für „${acceptedItem.title}“ startet heute Abend.', entityType: 'booking', entityId: acceptedRequest.id, ts: now.subtract(const Duration(hours: 5, minutes: 40)), read: true, ctaLabel: 'Details ansehen'),
+        qaNotif(id: 'qa_notif_return_$userId', category: 'bookings', priority: 2, title: 'Rückgabe im Blick behalten', body: 'Deine laufende Miete endet bald. Prüfe die geplante Rückgabezeit im Detail.', entityType: 'booking', entityId: runningRequest.id, ts: now.subtract(const Duration(hours: 3, minutes: 5)), read: false, ctaLabel: 'Rückgabe prüfen'),
+        qaNotif(id: 'qa_notif_payment_$userId', category: 'payments', priority: 2, title: 'Auszahlung & Zahlungsmittel', body: 'Dieser lokale QA-Fall zeigt dir die Zahlungs- und Auszahlungseinstiege ohne echte Bewegung.', entityType: 'payment', entityId: 'payment_methods', ts: now.subtract(const Duration(days: 1, hours: 2)), read: true, ctaLabel: 'Zahlungen öffnen'),
+        qaNotif(id: 'qa_notif_security_$userId', category: 'security', priority: 1, title: 'Verifizierung prüfen', body: 'Teste hier die Sicherheits- und Verifizierungsoberfläche mit einer klaren CTA.', entityType: 'verification', entityId: 'qa_verification', ts: now.subtract(const Duration(days: 1, hours: 6)), read: false, critical: true, ctaLabel: 'Sicherheit öffnen'),
+        qaNotif(id: 'qa_notif_support_$userId', category: 'support', priority: 3, title: 'Support-Status aktualisiert', body: 'Der lokale QA-Supportfall hat neue Informationen für dich bereit.', entityType: 'support', entityId: 'qa_support_case', ts: now.subtract(const Duration(hours: 4, minutes: 15)), read: true, ctaLabel: 'Support öffnen'),
+        qaNotif(id: 'qa_notif_review_$userId', category: 'reviews', priority: 4, title: 'Vorgang wartet auf Prüfung', body: 'Ein abgeschlossener Testfall bleibt vorerst im Review-Hold, damit du diese Oberfläche prüfen kannst.', entityType: 'booking', entityId: needsReviewRequest.id, ts: now.subtract(const Duration(days: 2, hours: 3)), read: false, ctaLabel: 'Fall öffnen'),
+      ]);
+
+      await prefs.setString(_notificationsKey, jsonEncode(notifList));
+      await prefs.setBool(key, true);
+    } catch (e) {
+      debugPrint('[DataService] _ensureQaMessagesAndNotificationsForUserOnce failed: $e');
     }
   }
 
@@ -4016,6 +4355,7 @@ class DataService {
       // On first install we want the Notifications screen to never feel empty.
       try {
         await _ensureDemoNotificationsForUserOnce(userId);
+        await _ensureQaMessagesAndNotificationsForUserOnce(userId);
       } catch (_) {/* ignore */}
 
       final prefs = await SharedPreferences.getInstance();
@@ -4860,6 +5200,7 @@ class DataService {
   static Future<List<MessageThread>> getMessageThreadsForUser(
       String userId) async {
     try {
+      await _ensureQaMessagesAndNotificationsForUserOnce(userId);
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_messageThreadsKey);
       if (raw == null || raw.isEmpty) {
