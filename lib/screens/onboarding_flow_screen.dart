@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/screens/login_screen.dart';
 import 'package:lendify/screens/register_screen.dart';
-import 'package:lendify/screens/developer_preview_screen.dart';
 import 'package:lendify/navigation/main_navigation.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/services/developer_preview_service.dart';
@@ -46,8 +45,6 @@ class LoggedOutLandingScreen extends StatefulWidget {
 }
 
 class _LoggedOutLandingScreenState extends State<LoggedOutLandingScreen> {
-  int _tapCount = 0;
-  Timer? _resetTimer;
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
@@ -68,19 +65,6 @@ class _LoggedOutLandingScreenState extends State<LoggedOutLandingScreen> {
     'Vermiete einfach, was du nicht brauchst – sicher und ohne Aufwand.',
     'Fotos, Chat und klare Abläufe geben dir Sicherheit bei jeder Miete.',
   ];
-
-  void _handleSecretTap() {
-    _resetTimer?.cancel();
-    _resetTimer = Timer(const Duration(milliseconds: 900), () {
-      if (mounted) setState(() => _tapCount = 0);
-    });
-    setState(() => _tapCount += 1);
-    if (_tapCount >= 7) {
-      _resetTimer?.cancel();
-      _tapCount = 0;
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DeveloperPreviewScreen()));
-    }
-  }
 
   void _goNext() {
     if (_currentPage < 2) {
@@ -115,7 +99,6 @@ class _LoggedOutLandingScreenState extends State<LoggedOutLandingScreen> {
 
   @override
   void dispose() {
-    _resetTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -198,11 +181,7 @@ class _LoggedOutLandingScreenState extends State<LoggedOutLandingScreen> {
                 // ═══════════════════════════════════════════════════════════
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _handleSecretTap,
-                    child: const SitLogoHeader(showSlogan: true),
-                  ),
+                  child: const SitLogoHeader(showSlogan: true),
                 ),
                 // ═══════════════════════════════════════════════════════════
                 // MIDDLE: PageView with text content

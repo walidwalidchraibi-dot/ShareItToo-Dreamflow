@@ -173,8 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
         };
         await AppPopup.toast(context,
             icon: Icons.error_outline,
-            title: msg,
-            message: 'Tipp: Demo-Login: ${AuthService.demoEmail}');
+            title: msg);
         return;
       }
 

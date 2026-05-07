@@ -281,56 +281,26 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           }
           break;
         case _ChatState.confirmed:
-          // Übergabe starten => open the full handover stepper (photos, QR, code)
-          if (r != null && _item != null && _otherUser != null && me != null) {
-            final ok = await ReturnHandoverStepperSheet.push(
-              context,
-              item: _item!,
-              request: r,
-              renterName: _viewerIsOwner() ? _otherUser!.displayName : me.displayName,
-              ownerName: _viewerIsOwner() ? me.displayName : _otherUser!.displayName,
-              handoverCode: 'SIT-${r.id.hashCode.abs().toString().padLeft(6, '0').substring(0, 6)}',
-              viewerIsOwner: _viewerIsOwner(),
-              mode: ReturnFlowMode.pickupFlow,
-            );
-            if (ok == true) {
-              // Only set status to running after successful stepper completion
-              if (r.status != 'running') {
-                await DataService.updateRentalRequestStatus(requestId: r.id, status: 'running');
-              } else {
-                await DataService.updateMessageThreadBookingStatus(threadId: t.id, status: 'running');
-              }
-              await DataService.setHandoverActive(r.id, active: true);
-              await DataService.addSystemMessageToThread(threadId: t.id, text: 'Übergabe abgeschlossen');
-            }
-          } else {
-            // Fallback: if missing data, show toast
+          if (r == null) {
             AppPopup.toast(context, icon: Icons.error_outline, title: 'Übergabe-Daten fehlen');
+            break;
+          }
+          await DataService.setHandoverActive(r.id, active: true);
+          await DataService.addSystemMessageToThread(threadId: t.id, text: 'Übergabe gestartet');
+          if (mounted) {
+            AppPopup.toast(context, icon: Icons.qr_code_2, title: 'Übergabe gestartet', message: 'Bestätige die Übergabe jetzt im Buchungsdetail per QR-Code oder manuellem Code.');
           }
           break;
         case _ChatState.running:
         case _ChatState.returnPlanned:
-          // Rückgabe starten => open the full return stepper (photos, QR, code, damage)
-          if (r != null && _item != null && _otherUser != null && me != null) {
-            final ok = await ReturnHandoverStepperSheet.push(
-              context,
-              item: _item!,
-              request: r,
-              renterName: _viewerIsOwner() ? _otherUser!.displayName : me.displayName,
-              ownerName: _viewerIsOwner() ? me.displayName : _otherUser!.displayName,
-              handoverCode: 'SIT-${r.id.hashCode.abs().toString().padLeft(6, '0').substring(0, 6)}',
-              viewerIsOwner: _viewerIsOwner(),
-              mode: ReturnFlowMode.returnFlow,
-            );
-            if (ok == true) {
-              // Set return active + completed status after successful stepper
-              await DataService.setReturnActive(r.id, active: true);
-              await DataService.updateRentalRequestStatus(requestId: r.id, status: 'completed');
-              await DataService.addSystemMessageToThread(threadId: t.id, text: 'Rückgabe abgeschlossen');
-            }
-          } else {
-            // Fallback: if missing data, show toast
+          if (r == null) {
             AppPopup.toast(context, icon: Icons.error_outline, title: 'Rückgabe-Daten fehlen');
+            break;
+          }
+          await DataService.setReturnActive(r.id, active: true);
+          await DataService.addSystemMessageToThread(threadId: t.id, text: 'Rückgabe gestartet');
+          if (mounted) {
+            AppPopup.toast(context, icon: Icons.assignment_return_outlined, title: 'Rückgabe gestartet', message: 'Bestätige die Rückgabe jetzt im Buchungsdetail per QR-Code oder manuellem Code.');
           }
           break;
         case _ChatState.completed:

@@ -915,11 +915,6 @@ class DataService {
 
     final isDeactivated = map['isDeactivated'] == true;
     if (!isDeactivated) {
-      // Personalize the display name for the current user to "Walid Chraibi"
-      if (map['displayName'] != 'Walid Chraibi') {
-        map['displayName'] = 'Walid Chraibi';
-        mutated = true;
-      }
       final id = map['id']?.toString();
       if (id != null) {
         final override = _seedForId(id);
