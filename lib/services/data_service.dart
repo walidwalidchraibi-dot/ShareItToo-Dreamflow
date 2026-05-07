@@ -3619,7 +3619,6 @@ class DataService {
   static Future<List<RentalRequest>> getRentalRequestsForOwner(String ownerId,
       {String? status}) async {
     await _sweepExpressTimeouts();
-    await _ensureQaMessagesAndNotificationsForUserOnce(ownerId);
     final all = await _getAllRentalRequests();
     final filtered = all
         .where((r) =>
@@ -4188,7 +4187,6 @@ class DataService {
   static Future<List<RentalRequest>> getRentalRequestsForRenter(String renterId,
       {String? status}) async {
     await _sweepExpressTimeouts();
-    await _ensureQaMessagesAndNotificationsForUserOnce(renterId);
     final all = await _getAllRentalRequests();
     final filtered = all
         .where((r) =>
@@ -4365,8 +4363,7 @@ class DataService {
       // On first install we want the Notifications screen to never feel empty.
       try {
         await _ensureDemoNotificationsForUserOnce(userId);
-        await _ensureQaMessagesAndNotificationsForUserOnce(userId);
-      } catch (_) {/* ignore */}
+        } catch (_) {/* ignore */}
 
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_notificationsKey);
@@ -5210,7 +5207,6 @@ class DataService {
   static Future<List<MessageThread>> getMessageThreadsForUser(
       String userId) async {
     try {
-      await _ensureQaMessagesAndNotificationsForUserOnce(userId);
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_messageThreadsKey);
       if (raw == null || raw.isEmpty) {
