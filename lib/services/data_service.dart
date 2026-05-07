@@ -1040,8 +1040,10 @@ class DataService {
     }
   }
 
+  static const bool _launchQaSeedingEnabled = false;
+
   static Future<void> _ensureQaMessagesAndNotificationsForUserOnce(String userId) async {
-    if (userId.isEmpty || !kDebugMode) return;
+    if (userId.isEmpty || !kDebugMode || !_launchQaSeedingEnabled) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = '$_qaMessagesAndNotifsSeedFlagPrefix$userId';

@@ -12,6 +12,10 @@ class AuthService {
   static const _accountsKey = 'auth_accounts_v1';
   static const _sessionKey = 'auth_session_v1';
   static const _seedKey = 'auth_seeded_v1';
+  static const Set<String> _legacySyntheticSocialEmails = {
+    'google.demo@shareittoo.app',
+    'apple.demo@shareittoo.app',
+  };
 
   static const demoEmail = 'demo@shareittoo.app';
   static const demoPassword = 'shareittoo';
@@ -45,7 +49,12 @@ class AuthService {
       if (decoded is! Map<String, dynamic>) return null;
       final email = decoded['email'];
       if (email is! String || email.isEmpty) return null;
-      return AuthSession(email: email, createdAt: DateTime.tryParse(decoded['createdAt']?.toString() ?? ''));
+      final normalizedEmail = email.trim().toLowerCase();
+      if (_legacySyntheticSocialEmails.contains(normalizedEmail)) {
+        await prefs.remove(_sessionKey);
+        return null;
+      }
+      return AuthSession(email: normalizedEmail, createdAt: DateTime.tryParse(decoded['createdAt']?.toString() ?? ''));
     } catch (e) {
       debugPrint('[AuthService] readSession failed: $e');
       return null;
