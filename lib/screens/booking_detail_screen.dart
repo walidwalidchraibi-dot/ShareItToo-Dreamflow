@@ -1918,24 +1918,17 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
-        final pausedForReview = await DataService.pauseReturnCompletionIfNeedsReview(
-          requestId,
-          source: 'booking_detail_screen_stepper',
-        );
-        if (pausedForReview) {
-          if (!mounted) return;
-          AppPopup.toast(context, icon: Icons.info_outline, title: 'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.');
-          return;
-        }
-      }
-      if (requestId != null && requestId.isNotEmpty) {
-        await DataService.recordRentalRequestConfirmation(
+        final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: true);
+        if (!galleryAcknowledged) return;
+        final transitioned = await _finalizeReturnTransition(
           requestId: requestId,
-          isReturn: true,
-          method: 'stepper',
-          confirmedByRole: 'owner',
           confirmedByUserId: ownerUserId.id,
+          method: 'stepper',
+          confirmationContextVerified: ok?.confirmed == true,
+          galleryAcknowledged: galleryAcknowledged,
+          reviewPauseSource: 'booking_detail_screen_stepper',
         );
+        if (!transitioned) return;
       }
       // Release/cancel ride compensation automatically if a decision was made for return segment
       try {
@@ -1946,9 +1939,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           }
         }
       } catch (_) {}
-      setState(() {
-        widget.booking['status'] = 'Abgeschlossen';
-      });
+      if (requestId != null && requestId.isNotEmpty) {
+        await _syncBookingLifecycleFromRequest(requestId!);
+      }
       final titleTxt = (widget.booking['title'] as String?) ?? '';
       final listerId = widget.booking['listerId'] as String?;
       final itemId = widget.booking['itemId'] as String?;
@@ -2079,21 +2072,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         if (renterUserId == null) return;
         final requestId = widget.booking['requestId'] as String?;
         if (requestId != null && requestId.isNotEmpty) {
-          final isActive = await _guardActiveFlow(requestId, isReturn: false);
-          if (!isActive) return;
-          final hasRequiredPhotos = await _guardRequiredHandoverPhotos(requestId);
-          if (!hasRequiredPhotos) return;
           final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: false);
           if (!galleryAcknowledged) return;
-          await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
-          await DataService.recordRentalRequestConfirmation(
+          final transitioned = await _finalizePickupTransition(
             requestId: requestId,
-            isReturn: false,
-            method: 'stepper',
-            confirmedByRole: 'renter',
             confirmedByUserId: renterUserId,
+            method: 'stepper',
+            confirmationContextVerified: ok?.confirmed == true,
+            galleryAcknowledged: galleryAcknowledged,
           );
-          await DataService.clearHandoverActive(requestId);
+          if (!transitioned) return;
           // Release/cancel ride compensation for dropoff if decision exists
           try {
             final grant = await DataService.getRideCompensationDecision(requestId: requestId, segment: 'dropoff', consume: true);
@@ -2103,10 +2091,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           } catch (_) {}
         }
         if (!mounted) return;
-        setState(() {
-          widget.booking['status'] = 'Laufend';
-          widget.booking['category'] = 'ongoing';
-        });
+        await _syncBookingLifecycleFromRequest(requestId!);
         final bookingId = _computeBookingId();
         final title = (widget.booking['title'] as String?) ?? '';
         final message = 'Übergabe des Listings "$title" wurde bestätigt.';
@@ -2282,24 +2267,21 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       if (renterUserId == null) return;
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
-        final isActive = await _guardActiveFlow(requestId, isReturn: false);
-        if (!isActive) return;
-        final hasRequiredPhotos = await _guardRequiredHandoverPhotos(requestId);
-        if (!hasRequiredPhotos) return;
         final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: false);
         if (!galleryAcknowledged) return;
-        await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
-        await DataService.recordRentalRequestConfirmation(
+        final transitioned = await _finalizePickupTransition(
           requestId: requestId,
-          isReturn: false,
-          method: 'qr',
-          confirmedByRole: 'renter',
           confirmedByUserId: renterUserId,
+          method: 'qr',
+          confirmationContextVerified: true,
+          galleryAcknowledged: galleryAcknowledged,
         );
-        await DataService.clearHandoverActive(requestId);
+        if (!transitioned) return;
       }
       if (!mounted) return;
-      setState(() { widget.booking['status'] = 'Laufend'; widget.booking['category'] = 'ongoing'; });
+      if (requestId != null && requestId.isNotEmpty) {
+        await _syncBookingLifecycleFromRequest(requestId!);
+      }
       final title = (widget.booking['title'] as String?) ?? '';
       await DataService.addNotification(title: 'Übergabe bestätigt', body: 'Übergabe des Listings "$title" bestätigt.');
       AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Übergabe per QR bestätigt');
@@ -2381,34 +2363,22 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
-        final isActive = await _guardActiveFlow(requestId, isReturn: true);
-        if (!isActive) return;
-        final hasRequiredPhotos = await _guardRequiredReturnPhotos(requestId);
-        if (!hasRequiredPhotos) return;
         final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: true);
         if (!galleryAcknowledged) return;
-        final pausedForReview = await DataService.pauseReturnCompletionIfNeedsReview(
-          requestId,
-          source: 'booking_detail_screen_qr_return',
-        );
-        if (pausedForReview) {
-          if (!mounted) return;
-          AppPopup.toast(context, icon: Icons.info_outline, title: 'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.');
-          return;
-        }
-        await DataService.updateRentalRequestStatus(requestId: requestId, status: 'completed');
-        await DataService.recordRentalRequestConfirmation(
+        final transitioned = await _finalizeReturnTransition(
           requestId: requestId,
-          isReturn: true,
-          method: 'qr',
-          confirmedByRole: 'owner',
           confirmedByUserId: ownerUserId.id,
+          method: 'qr',
+          confirmationContextVerified: true,
+          galleryAcknowledged: galleryAcknowledged,
+          reviewPauseSource: 'booking_detail_screen_qr_return',
         );
-        await DataService.clearReturnActive(requestId);
-        await DataService.addTimelineEvent(requestId: requestId, type: 'completed', note: 'Rückgabe abgeschlossen');
+        if (!transitioned) return;
       }
       if (!mounted) return;
-      setState(() { widget.booking['status'] = 'Abgeschlossen'; widget.booking['category'] = 'completed'; });
+      if (requestId != null && requestId.isNotEmpty) {
+        await _syncBookingLifecycleFromRequest(requestId!);
+      }
       final title = (widget.booking['title'] as String?) ?? '';
       await DataService.addNotification(title: 'Buchung abgeschlossen', body: 'Die Rückgabe für "$title" wurde abgeschlossen. Beleg gesendet.');
       AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Rückgabe per QR bestätigt');
@@ -2460,34 +2430,20 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
-        final isActive = await _guardActiveFlow(requestId, isReturn: true);
-        if (!isActive) return;
-        final hasRequiredPhotos = await _guardRequiredReturnPhotos(requestId);
-        if (!hasRequiredPhotos) return;
         final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: true);
         if (!galleryAcknowledged) return;
-        final pausedForReview = await DataService.pauseReturnCompletionIfNeedsReview(
-          requestId,
-          source: 'booking_detail_screen_manual_return',
-        );
-        if (pausedForReview) {
-          if (!mounted) return;
-          AppPopup.toast(context, icon: Icons.info_outline, title: 'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.');
-          return;
-        }
-        await DataService.updateRentalRequestStatus(requestId: requestId, status: 'completed');
-        await DataService.recordRentalRequestConfirmation(
+        final transitioned = await _finalizeReturnTransition(
           requestId: requestId,
-          isReturn: true,
-          method: 'manual',
-          confirmedByRole: 'owner',
           confirmedByUserId: ownerUserId.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: galleryAcknowledged,
+          reviewPauseSource: 'booking_detail_screen_manual_return',
         );
-        await DataService.clearReturnActive(requestId);
-        await DataService.addTimelineEvent(requestId: requestId, type: 'completed', note: 'Rückgabe manuell bestätigt');
+        if (!transitioned) return;
       }
       if (!mounted) return;
-      setState(() { widget.booking['status'] = 'Abgeschlossen'; widget.booking['category'] = 'completed'; });
+      await _syncBookingLifecycleFromRequest(requestId!);
       final title = (widget.booking['title'] as String?) ?? '';
       await DataService.addNotification(title: 'Buchung abgeschlossen', body: 'Die Rückgabe für "$title" wurde abgeschlossen. Beleg gesendet.');
       AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Rückgabe per Code bestätigt');
@@ -2586,6 +2542,78 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   }
 
 
+
+Future<void> _syncBookingLifecycleFromRequest(String requestId) async {
+  final request = await DataService.getRentalRequestById(requestId);
+  if (!mounted || request == null) return;
+  final mapped = switch (request.status) {
+    'running' => ('Laufend', 'ongoing'),
+    'completed' => ('Abgeschlossen', 'completed'),
+    'accepted' => ('Akzeptiert', 'upcoming'),
+    _ => (((widget.booking['status'] as String?) ?? ''), ((widget.booking['category'] as String?) ?? '')),
+  };
+  setState(() {
+    widget.booking['rawStatus'] = request.status;
+    if (mapped.$1.isNotEmpty) widget.booking['status'] = mapped.$1;
+    if (mapped.$2.isNotEmpty) widget.booking['category'] = mapped.$2;
+    widget.booking['needsReview'] = request.needsReview;
+  });
+}
+
+Future<bool> _finalizePickupTransition({
+  required String requestId,
+  required String confirmedByUserId,
+  required String method,
+  required bool confirmationContextVerified,
+  required bool galleryAcknowledged,
+}) async {
+  final result = await DataService.confirmPickupTransition(
+    requestId: requestId,
+    confirmedByUserId: confirmedByUserId,
+    method: method,
+    confirmationContextVerified: confirmationContextVerified,
+    galleryAcknowledged: galleryAcknowledged,
+  );
+  if (!result.success) {
+    if (mounted && result.errorMessage != null) {
+      AppPopup.toast(context, icon: Icons.info_outline, title: result.errorMessage!);
+    }
+    return false;
+  }
+  await _syncBookingLifecycleFromRequest(requestId!);
+  return true;
+}
+
+Future<bool> _finalizeReturnTransition({
+  required String requestId,
+  required String confirmedByUserId,
+  required String method,
+  required bool confirmationContextVerified,
+  required bool galleryAcknowledged,
+  required String reviewPauseSource,
+}) async {
+  final result = await DataService.confirmReturnTransition(
+    requestId: requestId,
+    confirmedByUserId: confirmedByUserId,
+    method: method,
+    confirmationContextVerified: confirmationContextVerified,
+    galleryAcknowledged: galleryAcknowledged,
+    reviewPauseSource: reviewPauseSource,
+  );
+  if (!result.success) {
+    if (mounted && result.errorMessage != null) {
+      AppPopup.toast(
+        context,
+        icon: result.pausedForReview ? Icons.info_outline : Icons.error_outline,
+        title: result.errorMessage!,
+      );
+    }
+    return false;
+  }
+  await _syncBookingLifecycleFromRequest(requestId!);
+  return true;
+}
+
   String? _bookingRenterId() {
     final renterId = (widget.booking['renterId'] as String?)?.trim();
     if (renterId != null && renterId.isNotEmpty) return renterId;
@@ -2633,27 +2661,21 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           AppPopup.toast(context, icon: Icons.info_outline, title: 'Übergabe ist gerade nicht verfügbar');
           return;
         }
-        final isActive = await _guardActiveFlow(requestId, isReturn: false);
-        if (!isActive) return;
-        final hasRequiredPhotos = await _guardRequiredHandoverPhotos(requestId);
-        if (!hasRequiredPhotos) return;
         final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(requestId, isReturn: false);
         if (!galleryAcknowledged) return;
-        await DataService.updateRentalRequestStatus(requestId: requestId, status: 'running');
-        await DataService.recordRentalRequestConfirmation(
+        final transitioned = await _finalizePickupTransition(
           requestId: requestId,
-          isReturn: false,
-          method: 'manual',
-          confirmedByRole: 'renter',
           confirmedByUserId: renterUserId,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: galleryAcknowledged,
         );
-        await DataService.clearHandoverActive(requestId);
+        if (!transitioned) return;
       }
       if (!mounted) return;
-      setState(() {
-        widget.booking['status'] = 'Laufend';
-        widget.booking['category'] = 'ongoing';
-      });
+      if (requestId != null && requestId.isNotEmpty) {
+        await _syncBookingLifecycleFromRequest(requestId!);
+      }
       final bookingId = _computeBookingId();
       final title = (widget.booking['title'] as String?) ?? '';
       final message = 'Übergabe des Listings "$title" wurde vom Mieter bestätigt.';

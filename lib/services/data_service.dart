@@ -16,6 +16,28 @@ import 'package:lendify/models/message.dart';
 import 'package:lendify/models/security.dart';
 import 'package:lendify/utils/total_subtitle.dart';
 
+
+class RentalRequestTransitionResult {
+  final bool success;
+  final bool pausedForReview;
+  final String? errorMessage;
+
+  const RentalRequestTransitionResult._({
+    required this.success,
+    required this.pausedForReview,
+    this.errorMessage,
+  });
+
+  const RentalRequestTransitionResult.success()
+      : this._(success: true, pausedForReview: false);
+
+  const RentalRequestTransitionResult.failure(String message)
+      : this._(success: false, pausedForReview: false, errorMessage: message);
+
+  const RentalRequestTransitionResult.paused(String message)
+      : this._(success: false, pausedForReview: true, errorMessage: message);
+}
+
 class DataService {
   static const bool _allowDemoSeedDataInRuntime = false;
   static const String _categoriesKey = 'categories';
@@ -3946,6 +3968,7 @@ class DataService {
     if (mutated) await _saveAllRentalRequests(all);
   }
 
+
   static Future<void> recordRentalRequestConfirmation({
     required String requestId,
     required bool isReturn,
@@ -3976,6 +3999,145 @@ class DataService {
       }
     }
     if (mutated) await _saveAllRentalRequests(all);
+  }
+
+  static Future<RentalRequestTransitionResult> confirmPickupTransition({
+    required String requestId,
+    required String confirmedByUserId,
+    required String method,
+    required bool confirmationContextVerified,
+    required bool galleryAcknowledged,
+  }) async {
+    final id = requestId.trim();
+    final userId = confirmedByUserId.trim();
+    if (id.isEmpty || userId.isEmpty) {
+      return const RentalRequestTransitionResult.failure(
+        'Übergabe-Bestätigung konnte nicht verarbeitet werden.',
+      );
+    }
+    final request = await getRentalRequestById(id);
+    if (request == null) {
+      return const RentalRequestTransitionResult.failure(
+        'Übergabe-Daten fehlen.',
+      );
+    }
+    if (request.renterId != userId) {
+      return const RentalRequestTransitionResult.failure(
+        'Diese Bestätigung ist nur für den Mieter möglich.',
+      );
+    }
+    if (!confirmationContextVerified) {
+      return const RentalRequestTransitionResult.failure(
+        'Übergabe-Bestätigung konnte nicht verifiziert werden.',
+      );
+    }
+    final state = await getHandoverReturnState(id);
+    if (state['handoverActive'] != true) {
+      return const RentalRequestTransitionResult.failure(
+        'Bitte starte die Übergabe zuerst im Chat.',
+      );
+    }
+    final handoverPhotos = await getHandoverPhotoCount(id);
+    if (handoverPhotos < minimumRequiredPhotos) {
+      return const RentalRequestTransitionResult.failure(
+        'Bitte dokumentiere die Übergabe zuerst mit mindestens 4 Fotos.',
+      );
+    }
+    final galleryUsed = await wasHandoverGalleryUsed(id);
+    if (galleryUsed && !galleryAcknowledged) {
+      return const RentalRequestTransitionResult.failure(
+        'Bitte bestätige bewusst die Galerie-Dokumentation, bevor du fortfährst.',
+      );
+    }
+
+    await updateRentalRequestStatus(requestId: id, status: 'running');
+    await recordRentalRequestConfirmation(
+      requestId: id,
+      isReturn: false,
+      method: method,
+      confirmedByRole: 'renter',
+      confirmedByUserId: userId,
+    );
+    await clearHandoverActive(id);
+    return const RentalRequestTransitionResult.success();
+  }
+
+  static Future<RentalRequestTransitionResult> confirmReturnTransition({
+    required String requestId,
+    required String confirmedByUserId,
+    required String method,
+    required bool confirmationContextVerified,
+    required bool galleryAcknowledged,
+    required String reviewPauseSource,
+  }) async {
+    final id = requestId.trim();
+    final userId = confirmedByUserId.trim();
+    if (id.isEmpty || userId.isEmpty) {
+      return const RentalRequestTransitionResult.failure(
+        'Rückgabe-Bestätigung konnte nicht verarbeitet werden.',
+      );
+    }
+    final request = await getRentalRequestById(id);
+    if (request == null) {
+      return const RentalRequestTransitionResult.failure(
+        'Rückgabe-Daten fehlen.',
+      );
+    }
+    if (request.ownerId != userId) {
+      return const RentalRequestTransitionResult.failure(
+        'Diese Bestätigung ist nur für den Vermieter möglich.',
+      );
+    }
+    if (!confirmationContextVerified) {
+      return const RentalRequestTransitionResult.failure(
+        'Rückgabe-Bestätigung konnte nicht verifiziert werden.',
+      );
+    }
+    final state = await getHandoverReturnState(id);
+    if (state['returnActive'] != true) {
+      return const RentalRequestTransitionResult.failure(
+        'Bitte starte die Rückgabe zuerst im Chat.',
+      );
+    }
+    final returnPhotos = await getReturnPhotoCount(id);
+    if (returnPhotos < minimumRequiredPhotos) {
+      return const RentalRequestTransitionResult.failure(
+        'Bitte dokumentiere die Rückgabe zuerst mit mindestens 4 Fotos.',
+      );
+    }
+    final galleryUsed = await wasReturnGalleryUsed(id);
+    if (galleryUsed && !galleryAcknowledged) {
+      return const RentalRequestTransitionResult.failure(
+        'Bitte bestätige bewusst die Galerie-Dokumentation, bevor du fortfährst.',
+      );
+    }
+    final pausedForReview = await pauseReturnCompletionIfNeedsReview(
+      id,
+      source: reviewPauseSource,
+    );
+    if (pausedForReview) {
+      return const RentalRequestTransitionResult.paused(
+        'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.',
+      );
+    }
+
+    await updateRentalRequestStatus(requestId: id, status: 'completed');
+    await recordRentalRequestConfirmation(
+      requestId: id,
+      isReturn: true,
+      method: method,
+      confirmedByRole: 'owner',
+      confirmedByUserId: userId,
+    );
+    await clearReturnActive(id);
+    await addTimelineEvent(
+      requestId: id,
+      type: 'completed',
+      note: method == 'manual'
+          ? 'Rückgabe manuell bestätigt'
+          : 'Rückgabe abgeschlossen',
+    );
+    return const RentalRequestTransitionResult.success();
   }
 
   // Update times and express choice for an existing request (edit flow)

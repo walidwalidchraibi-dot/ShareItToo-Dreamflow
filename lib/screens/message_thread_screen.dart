@@ -21,6 +21,7 @@ import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/screens/booking_detail_screen.dart';
 import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:lendify/screens/public_profile_screen.dart';
 
 /// Chat detail screen (Communication Hub).
 ///
@@ -1079,15 +1080,30 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return days[(weekday - 1) % 7];
   }
 
-  Future<void> _viewProfile() async {
-    final other = _otherUser;
-    if (other == null) {
-      AppPopup.toast(context, icon: Icons.info_outline, title: 'Profil nicht verfügbar');
-      return;
-    }
-    // TODO: Navigation zu PublicProfileScreen
-    AppPopup.toast(context, icon: Icons.person_outline, title: 'Profil ansehen (Demo)');
+
+Future<void> _viewProfile() async {
+  final other = _otherUser;
+  final thread = _thread;
+  final isSupport = thread != null &&
+      (((thread.threadType ?? '').toLowerCase() == 'support') ||
+          thread.user1Id == 'support' ||
+          thread.user2Id == 'support');
+  if (isSupport) {
+    AppPopup.toast(
+      context,
+      icon: Icons.info_outline,
+      title: 'Für Support ist kein öffentliches Profil verfügbar.',
+    );
+    return;
   }
+  if (other == null || other.id.trim().isEmpty) {
+    AppPopup.toast(context, icon: Icons.info_outline, title: 'Profil nicht verfügbar');
+    return;
+  }
+  await Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => PublicProfileScreen(userId: other.id)),
+  );
+}
 
   Future<void> _muteNotifications() async {
     // TODO: Echte Stummschaltungs-Logik
