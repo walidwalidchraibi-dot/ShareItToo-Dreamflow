@@ -3438,7 +3438,10 @@ class DataService {
     final classic = await getReviewsForUser(userId);
     final multi = await getMultiReviewsForUser(userId);
     final users = await getUsers();
+    final items = await getItems();
     final byId = {for (final u in users) u.id: u};
+    final itemsById = {for (final item in items) item.id: item};
+    final multiBySyntheticId = <String, MultiCriteriaReview>{};
 
     // Convert multi-criteria into flat Review objects for existing UIs
     List<Review> folded = List<Review>.from(classic);
@@ -3447,8 +3450,10 @@ class DataService {
           .where((c) => (c.note?.trim().isNotEmpty ?? false))
           .map((c) => _criterionLabel(c.key) + ': ' + c.note!.trim())
           .join(' \u00B7 ');
+      final syntheticId = 'mc_${m.id}';
+      multiBySyntheticId[syntheticId] = m;
       folded.add(Review(
-        id: 'mc_${m.id}',
+        id: syntheticId,
         reviewerId: m.reviewerId,
         reviewedUserId: m.reviewedUserId,
         rating: m.average,
@@ -3460,7 +3465,12 @@ class DataService {
 
     return [
       for (final r in folded)
-        ReviewWithUser(review: r, reviewer: byId[r.reviewerId])
+        ReviewWithUser(
+          review: r,
+          reviewer: byId[r.reviewerId],
+          item: itemsById[multiBySyntheticId[r.id]?.itemId ?? ''],
+          requestId: multiBySyntheticId[r.id]?.requestId,
+        )
     ];
   }
 
@@ -4520,15 +4530,37 @@ class DataService {
     }
   }
 
+
+  static bool _isVisibleDemoNotification(Map<String, dynamic> notification) {
+    String lower(Object? value) => value == null ? '' : value.toString().trim().toLowerCase();
+    final title = lower(notification['title']);
+    final body = lower(notification['body']);
+    final entityType = lower(notification['entityType']);
+    final entityId = lower(notification['entityId']);
+
+    const seededPrefixes = <String>{
+      'welcome_',
+      'security_tip_',
+      'review_tip_',
+      'chat_tip_',
+      'demo_message_',
+    };
+    if (seededPrefixes.any(entityId.startsWith)) return true;
+
+    if (entityType == 'system' && title == 'willkommen bei shareittoo') return true;
+    if (entityType == 'system' && title == 'sicherheits‑check') return true;
+    if (entityType == 'system' && title == 'bewertungen sammeln') return true;
+    if (entityType == 'system' && title == 'tipp: schnelle abstimmung') return true;
+    if (entityType == 'system' && title == 'neue nachricht' && body == 'du hast eine neue nachricht – antworte direkt aus dem feed.') return true;
+    if (entityType == 'payment' && title == 'zahlungsmethode hinzufügen' && entityId == 'payment_methods') return true;
+
+    return false;
+  }
+
   static Future<List<Map<String, dynamic>>> getNotificationFeedForUser(
       String userId,
       {bool includeArchived = false}) async {
     try {
-      // On first install we want the Notifications screen to never feel empty.
-      try {
-        await _ensureDemoNotificationsForUserOnce(userId);
-        } catch (_) {/* ignore */}
-
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_notificationsKey);
       if (raw == null || raw.isEmpty) return [];
@@ -4541,6 +4573,7 @@ class DataService {
         final uid = (m['userId'] ?? userId).toString();
         if (uid != userId) continue;
         final norm = _normalizeNotification(m, userId: userId);
+        if (_isVisibleDemoNotification(norm)) continue;
         if (norm['archived'] == true && !includeArchived) continue;
         out.add(norm);
         // Sanitize storage by ensuring normalized entries exist

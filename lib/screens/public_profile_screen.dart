@@ -385,6 +385,68 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
   List<ReviewWithUser> _reviews = const [];
   bool _loading = true;
 
+
+  Widget _buildReviewBookingContext(ThemeData theme, ReviewWithUser entry) {
+    final item = entry.item;
+    final itemTitle = item?.title.trim() ?? '';
+    final hasTitle = itemTitle.isNotEmpty;
+    final title = hasTitle ? itemTitle : 'Bewertung zu einer abgeschlossenen Buchung';
+    final imageUrl = (item != null && item.photos.isNotEmpty && item.photos.first.trim().isNotEmpty)
+        ? item.photos.first.trim()
+        : null;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: imageUrl != null
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(Icons.inventory_2_outlined, color: Colors.white.withValues(alpha: 0.70), size: 18),
+                  )
+                : Icon(Icons.inventory_2_outlined, color: Colors.white.withValues(alpha: 0.70), size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  hasTitle ? 'Buchung abgeschlossen' : 'Abgeschlossene Buchung',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   static String _formatDateDe(DateTime dt) {
     const months = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
     final d = dt.day.toString().padLeft(2, '0');
@@ -502,6 +564,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                   ),
                   const SizedBox(height: 4),
                   Text(entry.review.comment, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white)),
+                  _buildReviewBookingContext(theme, entry),
                 ],
               ),
             ),
@@ -642,6 +705,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                                             ),
                                             const SizedBox(height: 8),
                                             Text(entry.review.comment, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)),
+                                            _buildReviewBookingContext(Theme.of(context), entry),
                                           ],
                                         ),
                                       ),

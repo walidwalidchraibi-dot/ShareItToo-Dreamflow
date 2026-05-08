@@ -1,3 +1,4 @@
+import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart';
 
 /// Simple review model persisted in local storage for the demo.
@@ -41,6 +42,13 @@ class Review {
 class ReviewWithUser {
   final Review review;
   final User? reviewer;
+  final Item? item;
+  final String? requestId;
 
-  const ReviewWithUser({required this.review, required this.reviewer});
+  const ReviewWithUser({
+    required this.review,
+    required this.reviewer,
+    this.item,
+    this.requestId,
+  });
 }
