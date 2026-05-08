@@ -18,9 +18,10 @@ import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/services/maps_service.dart';
 import 'package:lendify/screens/bookings_screen.dart';
+import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/sit_overflow_menu.dart';
-import 'package:lendify/screens/report_issue_screen.dart';
+import 'package:lendify/screens/support_flow_screen.dart';
 import 'package:lendify/utils/total_subtitle.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
 import 'package:lendify/utils/condition_labels.dart';
@@ -744,11 +745,25 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                   await _toggleWishlistFromMenu();
                   break;
                 case 'report':
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ReportIssueScreen(requestId: 'listing:${item.id}', itemTitle: item.title),
-                    ),
+                  final current = await DataService.getCurrentUser();
+                  if (current == null || !mounted) break;
+                  final flowContext = SupportFlowContext.fromBookingDetail(
+                    itemTitle: item.title,
+                    itemId: item.id,
+                    requestId: 'listing:${item.id}',
+                    bookingStatus: 'listing',
+                    viewerIsOwner: item.ownerId == current.id,
+                    otherUserName: null,
+                    itemImageUrl: item.photos.isNotEmpty ? item.photos.first : null,
                   );
+                  final result = await Navigator.of(context).push<SupportFlowResult?>(MaterialPageRoute(builder: (_) => SupportFlowScreen(context: flowContext)));
+                  if (result == null || !mounted) break;
+                  final supportThread = await DataService.createSupportThread(userId: current.id);
+                  if (supportThread == null) break;
+                  final descText = result.userDescription.isNotEmpty ? '\n\nBeschreibung:\n${result.userDescription}' : '';
+                  await DataService.addSystemMessageToThread(threadId: supportThread.id, text: "📋 Support-Anfrage zu Anzeige: ${item.title}\nReferenz: listing:${item.id}\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText");
+                  if (!mounted) break;
+                  await Navigator.of(context).push(MaterialPageRoute(builder: (_) => MessageThreadScreen(threadId: supportThread.id, participantName: 'SIT Support', itemTitle: 'Support')));
                   break;
               }
             },

@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/message.dart';
@@ -217,7 +219,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         _handoverReturnState = hr;
         _messageSettings = normalizedSettings;
         _isLoading = false;
-        _showOriginalIncoming = false;
+        _showOriginalIncoming = normalizedSettings.showOriginalMessages;
       });
 
       // Mark as read + initial scroll.
@@ -639,8 +641,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     if (!mounted) return;
     setState(() {
       _messageSettings = normalized;
-      if (!wasActive && normalized.autoTranslateChat) _showOriginalIncoming = false;
-      if (!normalized.autoTranslateChat) _showOriginalIncoming = false;
+      _showOriginalIncoming = normalized.autoTranslateChat ? normalized.showOriginalMessages : false;
+      if (!wasActive && normalized.autoTranslateChat && !normalized.showOriginalMessages) {
+        _showOriginalIncoming = false;
+      }
     });
   }
 
@@ -687,20 +691,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         showOriginalEnabled: showingOriginal,
         showLanguagesOnlyWhenTranslationOn: true,
         onTranslationToggle: (enabled) async {
-          setState(() => _showOriginalIncoming = false);
-          if (enabled) await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: true, preferredLanguageCode: currentLang));
-          if (!enabled) await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: false));
+          if (enabled) await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: true, showOriginalMessages: false, preferredLanguageCode: currentLang));
+          if (!enabled) await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: false, showOriginalMessages: false));
         },
-        onShowOriginalToggle: (show) {
-          setState(() => _showOriginalIncoming = show);
+        onShowOriginalToggle: (show) async {
+          await _updateTranslationSettings(_messageSettings.copyWith(showOriginalMessages: show));
         },
       ),
     );
 
     if (selected != null && selected.trim().isNotEmpty) {
       final normalized = selected.trim();
-      setState(() => _showOriginalIncoming = false);
-      await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: true, preferredLanguageCode: normalized));
+      await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: true, showOriginalMessages: false, preferredLanguageCode: normalized));
     }
   }
 
@@ -1532,12 +1534,57 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final t = _thread;
     final me = _currentUser;
     if (t == null || me == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Standort teilen?'),
+        content: const Text('Möchtest du deinen Standort wirklich teilen?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Teilen')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     try {
-      await DataService.addSystemMessageToThread(threadId: t.id, text: '${me.displayName} hat den Standort geteilt (Demo).');
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          await AppPopup.toast(context, icon: Icons.location_off_outlined, title: 'Standort konnte nicht freigegeben werden');
+        }
+        return;
+      }
+
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          await AppPopup.toast(context, icon: Icons.location_off_outlined, title: 'Standortdienste sind nicht aktiv');
+        }
+        return;
+      }
+
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.medium);
+      final lat = pos.latitude.toStringAsFixed(6);
+      final lng = pos.longitude.toStringAsFixed(6);
+      final mapsUrl = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+      final label = '${me.displayName} hat einen Standort geteilt';
+      await DataService.addSystemMessageToThread(
+        threadId: t.id,
+        text: '📍 LOCATION_SHARE|$label|$lat|$lng|$mapsUrl',
+      );
       await _load();
       _scrollToBottom(animate: true);
     } catch (e) {
       debugPrint('[MessageThreadScreen] _shareLocation failed: $e');
+      if (mounted) {
+        await AppPopup.toast(context, icon: Icons.location_off_outlined, title: 'Standort konnte nicht ermittelt werden');
+      }
     }
   }
 
@@ -1817,17 +1864,71 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return '$d.$m.$y $hh:$mm';
   }
 
-  /// Übergabezeit vorschlagen
-  Future<void> _proposeHandoverTime() async {
+  Future<String?> _showTimeRequestActionDialog({
+    required String flowLabel,
+    required bool canAccept,
+  }) {
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('$flowLabel verwalten'),
+        content: Text(canAccept
+            ? 'Möchtest du die $flowLabel annehmen oder ändern?'
+            : 'Möchtest du die $flowLabel ändern oder neu anfragen?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Abbrechen')),
+          if (canAccept)
+            FilledButton(onPressed: () => Navigator.of(ctx).pop('accept'), child: const Text('Annehmen')),
+          OutlinedButton(
+            onPressed: () => Navigator.of(ctx).pop('change'),
+            child: Text(canAccept ? 'Ändern' : 'Neu anfragen'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleTimeProposal({
+    required bool isReturn,
+  }) async {
     final t = _thread;
-    if (t == null) return;
+    final req = _request;
+    final me = _currentUser;
+    if (t == null || req == null || me == null) return;
 
     final now = DateTime.now();
-    final initialTime = _request?.start ?? now.add(const Duration(hours: 2));
+    final initialTime = isReturn ? (req.end) : (req.start);
+    final state = await DataService.getHandoverReturnState(req.id);
+    final requestedLabel = ((state[isReturn ? 'returnTimeRequested' : 'handoverTimeRequested'] as String?) ?? '').trim();
+    final requestedBy = ((state[isReturn ? 'returnTimeRequestedByUserId' : 'handoverTimeRequestedByUserId'] as String?) ?? '').trim();
+    final confirmed = state[isReturn ? 'returnTimeConfirmed' : 'handoverTimeConfirmed'] == true;
+    final flowLabel = isReturn ? 'Rückgabezeit' : 'Übergabezeit';
+
+    if (requestedLabel.isNotEmpty && !confirmed) {
+      final action = await _showTimeRequestActionDialog(
+        flowLabel: flowLabel,
+        canAccept: requestedBy.isNotEmpty && requestedBy != me.id,
+      );
+      if (action == null || !mounted) return;
+      if (action == 'accept') {
+        await DataService.confirmFlowTime(
+          requestId: req.id,
+          isReturn: isReturn,
+          confirmedByUserId: me.id,
+        );
+        await DataService.addSystemMessageToThread(
+          threadId: t.id,
+          text: '${isReturn ? '🔄' : '📦'} $flowLabel bestätigt: $requestedLabel Uhr',
+        );
+        await _load();
+        _scrollToBottom(animate: true);
+        return;
+      }
+    }
 
     final picked = await SitGlassTimePicker.show(
       context,
-      title: 'Übergabezeit wählen',
+      title: isReturn ? 'Rückgabezeit wählen' : 'Übergabezeit wählen',
       initialTime: TimeOfDay.fromDateTime(initialTime),
     );
 
@@ -1843,14 +1944,35 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
     final dayName = _weekdayName(proposedTime.weekday);
     final timeStr = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+    final label = '$dayName, $timeStr';
+    final changeVerb = requestedLabel.isNotEmpty ? 'geändert' : 'angefragt';
 
+    await DataService.requestFlowTime(
+      requestId: req.id,
+      isReturn: isReturn,
+      label: label,
+      time: proposedTime,
+      requestedByUserId: me.id,
+    );
+    await DataService.addSystemMessageToThread(
+      threadId: t.id,
+      text: '${isReturn ? '🔄' : '📦'} $flowLabel $changeVerb: $label Uhr',
+    );
+    await _load();
+    _scrollToBottom(animate: true);
+    if (!mounted) return;
+    AppPopup.toast(
+      context,
+      icon: Icons.schedule,
+      title: '$flowLabel gesendet',
+      message: 'Warte auf die Annahme von ${_displayName()}, bevor du ${isReturn ? 'die Rückgabe' : 'die Übergabe'} starten kannst.',
+    );
+  }
+
+  /// Übergabezeit vorschlagen
+  Future<void> _proposeHandoverTime() async {
     try {
-      await DataService.addSystemMessageToThread(
-        threadId: t.id,
-        text: '📦 Übergabezeit angefragt: $dayName, $timeStr Uhr',
-      );
-      await _load();
-      _scrollToBottom(animate: true);
+      await _handleTimeProposal(isReturn: false);
     } catch (e) {
       debugPrint('[MessageThreadScreen] _proposeHandoverTime failed: $e');
       if (mounted) AppPopup.toast(context, icon: Icons.error_outline, title: 'Fehler beim Senden');
@@ -1859,38 +1981,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   /// Rückgabezeit vorschlagen
   Future<void> _proposeReturnTime() async {
-    final t = _thread;
-    if (t == null) return;
-
-    final now = DateTime.now();
-    final initialTime = _request?.end ?? now.add(const Duration(days: 1));
-
-    final picked = await SitGlassTimePicker.show(
-      context,
-      title: 'Rückgabezeit wählen',
-      initialTime: TimeOfDay.fromDateTime(initialTime),
-    );
-
-    if (picked == null || !mounted) return;
-
-    final proposedTime = DateTime(
-      initialTime.year,
-      initialTime.month,
-      initialTime.day,
-      picked.hour,
-      picked.minute,
-    );
-
-    final dayName = _weekdayName(proposedTime.weekday);
-    final timeStr = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-
     try {
-      await DataService.addSystemMessageToThread(
-        threadId: t.id,
-        text: '🔄 Rückgabezeit angefragt: $dayName, $timeStr Uhr',
-      );
-      await _load();
-      _scrollToBottom(animate: true);
+      await _handleTimeProposal(isReturn: true);
     } catch (e) {
       debugPrint('[MessageThreadScreen] _proposeReturnTime failed: $e');
       if (mounted) AppPopup.toast(context, icon: Icons.error_outline, title: 'Fehler beim Senden');
@@ -3663,13 +3755,18 @@ class _TransactionComposerState extends State<_TransactionComposer> {
                         child: _CombinedActionRow(
                           showHandoverTimeButton: showHandoverTimeButton && !widget.handoverConfirmed,
                           showReturnTimeButton: showReturnTimeButton,
-                          showPrimaryAction: showActions && !(widget.handoverConfirmed && widget.chatState == _ChatState.confirmed),
+                          showPrimaryAction: showActions && !((widget.chatState == _ChatState.confirmed && widget.handoverConfirmed) ||
+                              ((widget.chatState == _ChatState.running || widget.chatState == _ChatState.returnPlanned) && widget.returnConfirmed)),
                           handoverTimeRequested: widget.handoverTimeRequested,
                           returnTimeRequested: widget.returnTimeRequested,
                           handoverConfirmed: widget.handoverConfirmed,
                           returnConfirmed: widget.returnConfirmed,
                           primaryLabel: widget.primaryLabel ?? '',
-                          primaryEnabled: widget.handoverConfirmed || widget.chatState != _ChatState.confirmed,
+                          primaryEnabled: widget.chatState == _ChatState.confirmed
+                              ? widget.handoverConfirmed
+                              : ((widget.chatState == _ChatState.running || widget.chatState == _ChatState.returnPlanned)
+                                  ? widget.returnConfirmed
+                                  : true),
                           counterpartyName: widget.counterpartyName,
                           onProposeHandover: widget.onProposeHandoverTime,
                           onProposeReturn: widget.onProposeReturnTime,
@@ -5003,6 +5100,83 @@ class _SitSendIcon extends StatelessWidget {
     return Transform.translate(
       offset: const Offset(0.6, 0.2),
       child: Icon(Icons.send_rounded, size: size, color: color),
+    );
+  }
+}
+
+
+class _LocationShareData {
+  final String label;
+  final String latitude;
+  final String longitude;
+  final String mapsUrl;
+  const _LocationShareData({required this.label, required this.latitude, required this.longitude, required this.mapsUrl});
+}
+
+_LocationShareData? _parseLocationShareMessage(String raw) {
+  final text = raw.trim();
+  if (!text.startsWith('📍 LOCATION_SHARE|')) return null;
+  final parts = text.split('|');
+  if (parts.length < 5) return null;
+  return _LocationShareData(
+    label: parts[1],
+    latitude: parts[2],
+    longitude: parts[3],
+    mapsUrl: parts[4],
+  );
+}
+
+class _LocationShareMessage extends StatelessWidget {
+  final _LocationShareData data;
+  const _LocationShareMessage({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.center,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.all(12),
+        constraints: const BoxConstraints(maxWidth: 320),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.24),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        ),
+        child: InkWell(
+          onTap: () async {
+            final uri = Uri.tryParse(data.mapsUrl);
+            if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: const [
+                  Icon(Icons.map_rounded, color: Colors.white, size: 18),
+                  SizedBox(width: 8),
+                  Text('Google Maps', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Container(
+                height: 92,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(colors: [Color(0xFF1F2937), Color(0xFF0F766E)]),
+                ),
+                child: const Center(child: Icon(Icons.place_rounded, color: Colors.white, size: 34)),
+              ),
+              const SizedBox(height: 10),
+              Text(data.label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text('${data.latitude}, ${data.longitude}', style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 12)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

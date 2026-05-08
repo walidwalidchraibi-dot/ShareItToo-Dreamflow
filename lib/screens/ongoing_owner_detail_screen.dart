@@ -18,7 +18,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:lendify/widgets/app_image.dart';
-import 'package:lendify/screens/report_issue_screen.dart';
+import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:lendify/widgets/sit_glass_time_picker.dart';
 import 'dart:convert';
 import 'dart:ui' show ImageFilter;
 import 'package:lendify/services/address_privacy.dart';
@@ -67,6 +68,97 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
 
   List<String> get _photos => (_item?.photos ?? const <String>[]);
 
+  Future<void> _openSupportFlow({required RentalRequest req, required Item item}) async {
+    final current = await DataService.getCurrentUser();
+    if (!mounted || current == null) return;
+    final flowContext = SupportFlowContext.fromOwnerRequestDetail(
+      itemTitle: item.title,
+      itemId: item.id,
+      requestId: req.id,
+      bookingStatus: req.status,
+      otherUserName: _renter?.displayName,
+      itemImageUrl: _photos.isNotEmpty ? _photos.first : null,
+      otherUserImageUrl: _renter?.photoURL,
+    );
+    final result = await Navigator.of(context).push<SupportFlowResult?>(
+      MaterialPageRoute(builder: (_) => SupportFlowScreen(context: flowContext)),
+    );
+    if (result == null || !mounted) return;
+    final supportThread = await DataService.createSupportThread(userId: current.id);
+    if (supportThread == null) {
+      AppPopup.toast(context, icon: Icons.error_outline, title: 'Support nicht verfügbar');
+      return;
+    }
+    final descText = result.userDescription.isNotEmpty ? '\n\nBeschreibung:\n${result.userDescription}' : '';
+    await DataService.addSystemMessageToThread(
+      threadId: supportThread.id,
+      text: "📋 Support-Anfrage zu: ${item.title}\nBuchung: ${req.id}\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText",
+    );
+    if (!mounted) return;
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => MessageThreadScreen(threadId: supportThread.id, participantName: 'SIT Support', itemTitle: 'Support')));
+  }
+
+  Future<void> _manageBookingTime({required RentalRequest req, required bool isReturn}) async {
+    final current = await DataService.getCurrentUser();
+    if (current == null) return;
+    final thread = await DataService.createOrGetThreadForRequest(req.id);
+    if (thread == null || !mounted) return;
+    final state = await DataService.getHandoverReturnState(req.id);
+    final key = isReturn ? 'return' : 'handover';
+    final requestedLabel = ((state['${key}TimeRequested'] as String?) ?? '').trim();
+    final requestedBy = ((state['${key}TimeRequestedByUserId'] as String?) ?? '').trim();
+    final confirmed = state['${key}TimeConfirmed'] == true;
+    final flowLabel = isReturn ? 'Rückgabezeit' : 'Übergabezeit';
+    if (requestedLabel.isNotEmpty && !confirmed) {
+      final action = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('$flowLabel verwalten'),
+          content: Text(requestedBy.isNotEmpty && requestedBy != current.id
+              ? 'Möchtest du die $flowLabel annehmen oder ändern?'
+              : 'Möchtest du die $flowLabel ändern oder neu anfragen?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Abbrechen')),
+            if (requestedBy.isNotEmpty && requestedBy != current.id)
+              FilledButton(onPressed: () => Navigator.of(ctx).pop('accept'), child: const Text('Annehmen')),
+            OutlinedButton(onPressed: () => Navigator.of(ctx).pop('change'), child: Text(requestedBy.isNotEmpty && requestedBy != current.id ? 'Ändern' : 'Neu anfragen')),
+          ],
+        ),
+      );
+      if (action == null || !mounted) return;
+      if (action == 'accept') {
+        await DataService.confirmFlowTime(requestId: req.id, isReturn: isReturn, confirmedByUserId: current.id);
+        await DataService.addSystemMessageToThread(threadId: thread.id, text: '${isReturn ? '🔄' : '📦'} $flowLabel bestätigt: $requestedLabel Uhr');
+        AppPopup.toast(context, icon: Icons.check_circle_outline, title: '$flowLabel bestätigt');
+        await _load();
+        return;
+      }
+    }
+    final initial = isReturn ? req.end : req.start;
+    final picked = await SitGlassTimePicker.show(context, title: isReturn ? 'Rückgabezeit wählen' : 'Übergabezeit wählen', initialTime: TimeOfDay.fromDateTime(initial));
+    if (picked == null || !mounted) return;
+    final proposed = DateTime(initial.year, initial.month, initial.day, picked.hour, picked.minute);
+    const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+    final label = '${days[(proposed.weekday - 1) % 7]}, ${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+    await DataService.requestFlowTime(requestId: req.id, isReturn: isReturn, label: label, time: proposed, requestedByUserId: current.id);
+    await DataService.addSystemMessageToThread(threadId: thread.id, text: '${isReturn ? '🔄' : '📦'} $flowLabel ${requestedLabel.isNotEmpty ? 'geändert' : 'angefragt'}: $label Uhr');
+    AppPopup.toast(context, icon: Icons.schedule, title: '$flowLabel gesendet');
+    await _load();
+  }
+
+  Future<bool> _timeConfirmedForStart({required RentalRequest req, required bool isReturn}) async {
+    final state = await DataService.getHandoverReturnState(req.id);
+    final confirmed = state[isReturn ? 'returnTimeConfirmed' : 'handoverTimeConfirmed'] == true;
+    final requested = ((state[isReturn ? 'returnTimeRequested' : 'handoverTimeRequested'] as String?) ?? '').trim();
+    if (requested.isNotEmpty && !confirmed) {
+      if (mounted) {
+        AppPopup.toast(context, icon: Icons.schedule, title: isReturn ? 'Rückgabezeit noch nicht bestätigt' : 'Übergabezeit noch nicht bestätigt');
+      }
+      return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final req = _req; final item = _item; final renter = _renter;
@@ -114,9 +206,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                     );
                     break;
                   case 'issue':
-                    Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => ReportIssueScreen(requestId: req.id, itemTitle: item.title),
-                    ));
+                    await _openSupportFlow(req: req, item: item);
                     break;
                   default:
                 }
@@ -813,20 +903,38 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               const SizedBox(height: 8),
 
               if (category == 'upcoming') ...[
+                _InlineTimeActionButton(
+                  icon: Icons.inventory_2_rounded,
+                  label: 'Übergabezeit',
+                  onTap: () => _manageBookingTime(req: req, isReturn: false),
+                ),
+                const SizedBox(height: 10),
                 Row(children: [
                   Expanded(
                     child: FilledButton.icon(
-                      onPressed: () => _startPickupFlowOwner(context, req, item, renter),
+                      onPressed: () async {
+                        if (!await _timeConfirmedForStart(req: req, isReturn: false)) return;
+                        await _startPickupFlowOwner(context, req, item, renter);
+                      },
                       icon: const Icon(Icons.qr_code_scanner),
                       label: const Text('Übergabe starten'),
                     ),
                   ),
                 ]),
-              ] else if (category == 'ongoing') ...[
+              ] else if (category == 'ongoing' && !req.needsReview) ...[
+                _InlineTimeActionButton(
+                  icon: Icons.undo_rounded,
+                  label: 'Rückgabezeit',
+                  onTap: () => _manageBookingTime(req: req, isReturn: true),
+                ),
+                const SizedBox(height: 10),
                 Row(children: [
                   Expanded(
                     child: FilledButton.icon(
-                      onPressed: () => _startReturnFlow(context, req, item, renter),
+                      onPressed: () async {
+                        if (!await _timeConfirmedForStart(req: req, isReturn: true)) return;
+                        await _startReturnFlow(context, req, item, renter);
+                      },
                       icon: const Icon(Icons.qr_code_scanner),
                       label: const Text('Rückgabe starten'),
                     ),
@@ -1677,6 +1785,39 @@ class _StepChip extends StatelessWidget {
         const SizedBox(width: 6),
         Text(label, style: TextStyle(color: fg, fontWeight: FontWeight.w700)),
       ]),
+    );
+  }
+}
+
+
+class _InlineTimeActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _InlineTimeActionButton({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: const Color(0xFFB8956C)),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
     );
   }
 }

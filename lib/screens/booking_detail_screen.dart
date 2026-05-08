@@ -20,7 +20,8 @@ import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/widgets/review_prompt_sheet.dart';
 import 'package:lendify/services/address_privacy.dart';
 import 'package:lendify/widgets/approx_location_map.dart';
-import 'package:lendify/screens/report_issue_screen.dart';
+import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:lendify/widgets/sit_glass_time_picker.dart';
 import 'package:lendify/widgets/sit_overflow_menu.dart';
 import 'package:lendify/services/handover_code.dart';
 import 'package:lendify/utils/total_subtitle.dart';
@@ -209,6 +210,137 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     super.dispose();
   }
 
+  Future<void> _openSupportFlow({
+    required String requestId,
+    required String itemTitle,
+  }) async {
+    final current = await DataService.getCurrentUser();
+    if (!mounted || current == null) return;
+    final flowContext = SupportFlowContext.fromBookingDetail(
+      itemTitle: itemTitle,
+      itemId: (widget.booking['itemId'] as String?) ?? '',
+      requestId: requestId,
+      bookingStatus: (widget.booking['status'] as String?) ?? '',
+      viewerIsOwner: widget.viewerIsOwner,
+      otherUserName: widget.viewerIsOwner
+          ? ((widget.booking['renterName'] as String?) ?? 'Mieter')
+          : _listerName,
+      itemImageUrl: _photos.isNotEmpty ? _photos.first : null,
+      otherUserImageUrl: widget.viewerIsOwner ? (widget.booking['renterAvatar'] as String?) : _listerAvatar,
+    );
+    final result = await Navigator.of(context).push<SupportFlowResult?>(
+      MaterialPageRoute(builder: (_) => SupportFlowScreen(context: flowContext)),
+    );
+    if (result == null || !mounted) return;
+    final supportThread = await DataService.createSupportThread(userId: current.id);
+    if (supportThread == null) {
+      AppPopup.toast(context, icon: Icons.error_outline, title: 'Support nicht verfügbar');
+      return;
+    }
+    final descText = result.userDescription.isNotEmpty ? '\n\nBeschreibung:\n${result.userDescription}' : '';
+    await DataService.addSystemMessageToThread(
+      threadId: supportThread.id,
+      text: "📋 Support-Anfrage zu: ${itemTitle.isNotEmpty ? itemTitle : 'Buchung'}\nBuchung: $requestId\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText",
+    );
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MessageThreadScreen(
+          threadId: supportThread!.id,
+          participantName: 'SIT Support',
+          itemTitle: 'Support',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _manageBookingTime({required bool isReturn}) async {
+    final requestId = (widget.booking['requestId'] as String?)?.trim() ?? '';
+    if (requestId.isEmpty || !mounted) return;
+    final current = await DataService.getCurrentUser();
+    if (current == null) return;
+    final thread = await DataService.createOrGetThreadForRequest(requestId);
+    if (thread == null) {
+      AppPopup.toast(context, icon: Icons.error_outline, title: 'Zeitabstimmung gerade nicht verfügbar');
+      return;
+    }
+    final state = await DataService.getHandoverReturnState(requestId);
+    final key = isReturn ? 'return' : 'handover';
+    final requestedLabel = ((state['${key}TimeRequested'] as String?) ?? '').trim();
+    final requestedBy = ((state['${key}TimeRequestedByUserId'] as String?) ?? '').trim();
+    final confirmed = state['${key}TimeConfirmed'] == true;
+    final flowLabel = isReturn ? 'Rückgabezeit' : 'Übergabezeit';
+    if (requestedLabel.isNotEmpty && !confirmed) {
+      final action = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('$flowLabel verwalten'),
+          content: Text(requestedBy.isNotEmpty && requestedBy != current.id
+              ? 'Möchtest du die $flowLabel annehmen oder ändern?'
+              : 'Möchtest du die $flowLabel ändern oder neu anfragen?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Abbrechen')),
+            if (requestedBy.isNotEmpty && requestedBy != current.id)
+              FilledButton(onPressed: () => Navigator.of(ctx).pop('accept'), child: const Text('Annehmen')),
+            OutlinedButton(onPressed: () => Navigator.of(ctx).pop('change'), child: Text(requestedBy.isNotEmpty && requestedBy != current.id ? 'Ändern' : 'Neu anfragen')),
+          ],
+        ),
+      );
+      if (action == null || !mounted) return;
+      if (action == 'accept') {
+        await DataService.confirmFlowTime(requestId: requestId, isReturn: isReturn, confirmedByUserId: current.id);
+        await DataService.addSystemMessageToThread(
+          threadId: thread.id,
+          text: '${isReturn ? '🔄' : '📦'} $flowLabel bestätigt: $requestedLabel Uhr',
+        );
+        AppPopup.toast(context, icon: Icons.check_circle_outline, title: '$flowLabel bestätigt');
+        return;
+      }
+    }
+    final (start, end) = _parseDateRange();
+    final initial = isReturn ? (end ?? DateTime.now().add(const Duration(days: 1))) : (start ?? DateTime.now().add(const Duration(hours: 2)));
+    final picked = await SitGlassTimePicker.show(
+      context,
+      title: isReturn ? 'Rückgabezeit wählen' : 'Übergabezeit wählen',
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (picked == null || !mounted) return;
+    final proposed = DateTime(initial.year, initial.month, initial.day, picked.hour, picked.minute);
+    const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+    final label = '${days[(proposed.weekday - 1) % 7]}, ${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+    await DataService.requestFlowTime(requestId: requestId, isReturn: isReturn, label: label, time: proposed, requestedByUserId: current.id);
+    await DataService.addSystemMessageToThread(
+      threadId: thread.id,
+      text: '${isReturn ? '🔄' : '📦'} $flowLabel ${requestedLabel.isNotEmpty ? 'geändert' : 'angefragt'}: $label Uhr',
+    );
+    if (!mounted) return;
+    AppPopup.toast(
+      context,
+      icon: Icons.schedule,
+      title: '$flowLabel gesendet',
+      message: 'Die ${isReturn ? 'Rückgabezeit' : 'Übergabezeit'} wurde geändert. Warte auf die Annahme von ${widget.viewerIsOwner ? ((widget.booking['renterName'] as String?) ?? 'der Gegenpartei') : _listerName}, bevor du die ${isReturn ? 'Rückgabe' : 'Übergabe'} starten kannst.',
+    );
+  }
+
+  Future<bool> _timeConfirmedForStart({required bool isReturn}) async {
+    final requestId = (widget.booking['requestId'] as String?)?.trim() ?? '';
+    if (requestId.isEmpty) return true;
+    final state = await DataService.getHandoverReturnState(requestId);
+    final confirmed = state[isReturn ? 'returnTimeConfirmed' : 'handoverTimeConfirmed'] == true;
+    final requested = ((state[isReturn ? 'returnTimeRequested' : 'handoverTimeRequested'] as String?) ?? '').trim();
+    if (requested.isNotEmpty && !confirmed) {
+      if (mounted) {
+        AppPopup.toast(
+          context,
+          icon: Icons.schedule,
+          title: isReturn ? 'Rückgabezeit noch nicht bestätigt' : 'Übergabezeit noch nicht bestätigt',
+        );
+      }
+      return false;
+    }
+    return true;
+  }
+
   Future<void> _viewListing() async {
     final ctx = context;
     final title = (widget.booking['title'] as String?)?.toLowerCase() ?? '';
@@ -248,6 +380,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   String _effectiveCategory({DateTime? start, DateTime? end}) {
     final rawCat = (widget.booking['category'] as String?)?.toLowerCase() ?? '';
     final rawStatus = ((widget.booking['status'] as String?) ?? '').toLowerCase();
+    if (widget.booking['needsReview'] == true) {
+      return 'completed';
+    }
     if (rawCat == 'pending' || rawStatus == 'pending' || rawStatus.contains('ausstehend') || rawStatus.contains('angefragt')) {
       return 'pending';
     }
@@ -303,9 +438,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     _toast('Keine Buchungs-ID');
                   } else {
                     if (mounted) {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => ReportIssueScreen(requestId: requestId, itemTitle: title),
-                      ));
+                      await _openSupportFlow(requestId: requestId, itemTitle: title);
                     }
                   }
                   break;
@@ -911,12 +1044,22 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           ),
           const SizedBox(height: 12),
         ],
-        if (!widget.viewerIsOwner)
+        if (!widget.viewerIsOwner && widget.booking['needsReview'] != true) ...[
+          _InlineTimeActionButton(
+            icon: Icons.undo_rounded,
+            label: 'Rückgabezeit',
+            onTap: () => _manageBookingTime(isReturn: true),
+          ),
+          const SizedBox(height: 10),
           FilledButton.icon(
-            onPressed: _startOwnerReturnFlow,
+            onPressed: () async {
+              if (!await _timeConfirmedForStart(isReturn: true)) return;
+              await _startOwnerReturnFlow();
+            },
             icon: const Icon(Icons.qr_code_scanner),
             label: Text(isOverdue ? 'Rückgabe jetzt starten' : 'Rückgabe starten'),
           ),
+        ],
         // Hinweis: "Problem melden" nur in abgeschlossenen Buchungen anzeigen (siehe weiter unten in isCompleted‑Block)
       ],
     );
@@ -1203,7 +1346,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           }),
 
         // Ongoing (Laufend): Karte für Rückgabe, falls der Mieter selbst zurückbringt
-        if (_isOngoing)
+        if (_isOngoing && widget.booking['needsReview'] != true)
           Builder(builder: (context) {
             final renterReturnsSelf = (widget.booking['ownerPicksUpAtReturnChosen'] == true) ? false : true;
             if (!renterReturnsSelf) return const SizedBox.shrink();
@@ -1528,6 +1671,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
         const SizedBox(height: 12),
         if (isCompleted) ...[
+          if (widget.booking['needsReview'] == true) ...[
+            _HeldBookingNoticeCard(),
+            const SizedBox(height: 12),
+          ],
           _CompletionSummaryCard(
             booking: widget.booking,
             isOwnerView: _isViewerOwnerSync(),
@@ -1545,12 +1692,22 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
         const SizedBox(height: 16),
         // Bottom primary action for upcoming bookings: move here per request
-        if (isUpcoming)
+        if (isUpcoming && widget.booking['needsReview'] != true) ...[
+          _InlineTimeActionButton(
+            icon: Icons.inventory_2_rounded,
+            label: 'Übergabezeit',
+            onTap: () => _manageBookingTime(isReturn: false),
+          ),
+          const SizedBox(height: 10),
           FilledButton.icon(
-            onPressed: _startPickupFlow,
+            onPressed: () async {
+              if (!await _timeConfirmedForStart(isReturn: false)) return;
+              await _startPickupFlow();
+            },
             icon: const Icon(Icons.qr_code_scanner),
             label: const Text('Übergabe starten'),
           ),
+        ],
         // Removed bottom "Anzeige ansehen" per request
       ],
     );
@@ -3597,6 +3754,59 @@ class _StepChip extends StatelessWidget {
         const SizedBox(width: 6),
         Text(label, style: TextStyle(color: fg, fontWeight: FontWeight.w700)),
       ]),
+    );
+  }
+}
+
+
+class _InlineTimeActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _InlineTimeActionButton({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: const Color(0xFFB8956C)),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class _HeldBookingNoticeCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.20),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      child: const Text(
+        'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab.',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, height: 1.4),
+      ),
     );
   }
 }

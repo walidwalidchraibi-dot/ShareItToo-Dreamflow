@@ -213,7 +213,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
 
   void _back() {
     if (_step == 0) {
-      Navigator.of(context).pop(false);
+      Navigator.of(context).pop(const ReturnHandoverStepResult(confirmed: false, galleryUsed: false));
     } else {
       setState(() => _step--);
     }
@@ -290,7 +290,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
                             children: [
                               // Close should abort the whole process and exit
                               IconButton(
-                                onPressed: () => Navigator.of(context).pop(false),
+                                onPressed: () => Navigator.of(context).pop(const ReturnHandoverStepResult(confirmed: false, galleryUsed: false)),
                                 icon: const Icon(Icons.close, color: Colors.white),
                               ),
                               Expanded(

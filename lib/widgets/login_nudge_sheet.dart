@@ -125,9 +125,9 @@ class GuestRestrictionSheet extends StatelessWidget {
             final theme = Theme.of(context);
             return BoxChatIcon(size: 28, color: theme.colorScheme.primary);
           },
-          title: 'Mietanfrage senden',
-          description: 'Melde dich an oder registriere dich kostenlos, um eine Mietanfrage zu senden und den Status zu verfolgen.',
-          benefits: ['Mietanfragen senden & verwalten', 'Status‑Updates in Echtzeit', 'Sicher mit dem Vermieter chatten'],
+          title: 'Anmietungen ansehen',
+          description: 'Melde dich an oder registriere dich, um deine Anmietungen und eingehenden Anfragen zu verwalten.',
+          benefits: ['Anmietungen verwalten', 'Eingehende Anfragen sehen', 'Sicher mit Mietern und Vermietern chatten'],
         );
       case GuestGateContext.favorites:
         return const GuestGateContent(

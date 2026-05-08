@@ -5130,13 +5130,29 @@ class DataService {
             : 0,
         'returnPhotos':
             (e['returnPhotos'] is num) ? (e['returnPhotos'] as num).toInt() : 0,
+        'handoverTimeRequested': (e['handoverTimeRequested'] as String?) ?? '',
+        'returnTimeRequested': (e['returnTimeRequested'] as String?) ?? '',
+        'handoverTimeIso': (e['handoverTimeIso'] as String?) ?? '',
+        'returnTimeIso': (e['returnTimeIso'] as String?) ?? '',
+        'handoverTimeRequestedByUserId': (e['handoverTimeRequestedByUserId'] as String?) ?? '',
+        'returnTimeRequestedByUserId': (e['returnTimeRequestedByUserId'] as String?) ?? '',
+        'handoverTimeConfirmed': e['handoverTimeConfirmed'] == true,
+        'returnTimeConfirmed': e['returnTimeConfirmed'] == true,
       };
     }
     return {
       'handoverActive': false,
       'returnActive': false,
       'handoverPhotos': 0,
-      'returnPhotos': 0
+      'returnPhotos': 0,
+      'handoverTimeRequested': '',
+      'returnTimeRequested': '',
+      'handoverTimeIso': '',
+      'returnTimeIso': '',
+      'handoverTimeRequestedByUserId': '',
+      'returnTimeRequestedByUserId': '',
+      'handoverTimeConfirmed': false,
+      'returnTimeConfirmed': false,
     };
   }
 
@@ -5268,6 +5284,70 @@ class DataService {
   static Future<bool> wasReturnGalleryUsed(String requestId) async {
     final state = await getHandoverReturnState(requestId);
     return state['returnGalleryUsed'] == true;
+  }
+
+  static Future<void> requestFlowTime({
+    required String requestId,
+    required bool isReturn,
+    required String label,
+    required DateTime time,
+    required String requestedByUserId,
+  }) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return;
+    final map = await _getHandoverReturnStateMap();
+    final existing = (map[id] is Map)
+        ? Map<String, dynamic>.from(map[id] as Map)
+        : <String, dynamic>{};
+    final prefix = isReturn ? 'return' : 'handover';
+    existing['${prefix}TimeRequested'] = label;
+    existing['${prefix}TimeIso'] = time.toIso8601String();
+    existing['${prefix}TimeRequestedByUserId'] = requestedByUserId;
+    existing['${prefix}TimeConfirmed'] = false;
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+  }
+
+  static Future<void> confirmFlowTime({
+    required String requestId,
+    required bool isReturn,
+    required String confirmedByUserId,
+  }) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return;
+    final map = await _getHandoverReturnStateMap();
+    final existing = (map[id] is Map)
+        ? Map<String, dynamic>.from(map[id] as Map)
+        : <String, dynamic>{};
+    final prefix = isReturn ? 'return' : 'handover';
+    final iso = (existing['${prefix}TimeIso'] as String?) ?? '';
+    final parsed = iso.isNotEmpty ? DateTime.tryParse(iso) : null;
+    existing['${prefix}TimeConfirmed'] = true;
+    existing['${prefix}TimeConfirmedByUserId'] = confirmedByUserId;
+    existing['${prefix}TimeConfirmedAt'] = DateTime.now().toIso8601String();
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+
+    if (parsed != null) {
+      final req = await getRentalRequestById(id);
+      if (req != null) {
+        if (isReturn) {
+          await updateRentalRequestTimes(
+            requestId: id,
+            start: req.start,
+            end: DateTime(req.end.year, req.end.month, req.end.day, parsed.hour, parsed.minute),
+            expressRequested: req.expressRequested,
+          );
+        } else {
+          await updateRentalRequestTimes(
+            requestId: id,
+            start: DateTime(req.start.year, req.start.month, req.start.day, parsed.hour, parsed.minute),
+            end: req.end,
+            expressRequested: req.expressRequested,
+          );
+        }
+      }
+    }
   }
 
   /// Erstellt automatisch einen Message Thread wenn eine Anfrage angenommen wird
@@ -5707,12 +5787,24 @@ class DataService {
     return [th1, th2, support, th3];
   }
 
-  /// Erstellt einen neuen Support-Thread für einen User
+  /// Erstellt einen neuen Support-Thread für einen User oder verwendet den bestehenden erneut.
   static Future<MessageThread?> createSupportThread({required String userId}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_messageThreadsKey);
       final List<dynamic> list = raw != null && raw.isNotEmpty ? jsonDecode(raw) : [];
+
+      for (final entry in list) {
+        if (entry is! Map) continue;
+        final thread = MessageThread.fromJson(Map<String, dynamic>.from(entry));
+        final isSupport = (thread.threadType ?? '').toLowerCase() == 'support';
+        final belongsToUser = (thread.user1Id == userId && thread.user2Id == 'support') ||
+            (thread.user2Id == userId && thread.user1Id == 'support');
+        if (isSupport && belongsToUser) {
+          debugPrint('[DataService] createSupportThread: reusing ${thread.id}');
+          return thread;
+        }
+      }
 
       final now = DateTime.now();
       final threadId = 'thread_support_${now.microsecondsSinceEpoch}';

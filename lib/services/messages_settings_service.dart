@@ -55,6 +55,7 @@ class MessagesSettings {
   final MediaAutoDownload mediaAutoDownload;
 
   final bool autoTranslateChat;
+  final bool showOriginalMessages;
   final String preferredLanguageCode;
 
   const MessagesSettings({
@@ -74,6 +75,7 @@ class MessagesSettings {
     required this.hideCompletedChats,
     required this.mediaAutoDownload,
     required this.autoTranslateChat,
+    required this.showOriginalMessages,
     required this.preferredLanguageCode,
   });
 
@@ -94,6 +96,7 @@ class MessagesSettings {
     hideCompletedChats: false,
     mediaAutoDownload: MediaAutoDownload.wifi,
     autoTranslateChat: false,
+    showOriginalMessages: false,
     preferredLanguageCode: 'auto',
   );
 
@@ -114,6 +117,7 @@ class MessagesSettings {
     bool? hideCompletedChats,
     MediaAutoDownload? mediaAutoDownload,
     bool? autoTranslateChat,
+    bool? showOriginalMessages,
     String? preferredLanguageCode,
   }) => MessagesSettings(
     muteAll: muteAll ?? this.muteAll,
@@ -132,6 +136,7 @@ class MessagesSettings {
     hideCompletedChats: hideCompletedChats ?? this.hideCompletedChats,
     mediaAutoDownload: mediaAutoDownload ?? this.mediaAutoDownload,
     autoTranslateChat: autoTranslateChat ?? this.autoTranslateChat,
+    showOriginalMessages: showOriginalMessages ?? this.showOriginalMessages,
     preferredLanguageCode: preferredLanguageCode ?? this.preferredLanguageCode,
   );
 
@@ -152,6 +157,7 @@ class MessagesSettings {
     'hideCompletedChats': hideCompletedChats,
     'mediaAutoDownload': mediaAutoDownload.name,
     'autoTranslateChat': autoTranslateChat,
+    'showOriginalMessages': showOriginalMessages,
     'preferredLanguageCode': preferredLanguageCode,
   };
 
@@ -206,6 +212,7 @@ class MessagesSettings {
       hideCompletedChats: b('hideCompletedChats', d.hideCompletedChats),
       mediaAutoDownload: media('mediaAutoDownload', d.mediaAutoDownload),
       autoTranslateChat: b('autoTranslateChat', d.autoTranslateChat),
+      showOriginalMessages: b('showOriginalMessages', d.showOriginalMessages),
       preferredLanguageCode: s('preferredLanguageCode', d.preferredLanguageCode),
     );
   }

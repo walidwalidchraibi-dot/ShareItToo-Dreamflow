@@ -4,6 +4,8 @@ import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/models/review.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/screens/message_thread_screen.dart';
+import 'package:lendify/screens/support_flow_screen.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_card.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
@@ -37,12 +39,55 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     });
   }
 
+  Future<void> _openProfileSupportFlow(String issueType) async {
+    final u = _user;
+    final current = await DataService.getCurrentUser();
+    if (u == null || current == null || !mounted) return;
+    final flowContext = SupportFlowContext(
+      itemTitle: u.displayName,
+      itemId: 'profile:${u.id}',
+      requestId: 'profile:${u.id}',
+      bookingStatus: 'profile',
+      source: SupportFlowSource.bookingDetail,
+      role: current.id == u.id ? SupportFlowRole.owner : SupportFlowRole.renter,
+      otherUserName: u.displayName,
+      otherUserImageUrl: u.photoURL,
+    );
+    final result = await Navigator.of(context).push<SupportFlowResult?>(
+      MaterialPageRoute(builder: (_) => SupportFlowScreen(context: flowContext)),
+    );
+    if (result == null || !mounted) return;
+    final supportThread = await DataService.createSupportThread(userId: current.id);
+    if (supportThread == null) return;
+    final descText = result.userDescription.isNotEmpty ? '\n\nBeschreibung:\n${result.userDescription}' : '';
+    await DataService.addSystemMessageToThread(
+      threadId: supportThread.id,
+      text: '📋 Support-Anfrage zu Profil: ${u.displayName}\nReferenz: profile:${u.id}\nTyp: $issueType\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText',
+    );
+    if (!mounted) return;
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => MessageThreadScreen(threadId: supportThread.id, participantName: 'SIT Support', itemTitle: 'Support')));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
     final u = _user;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.t('Öffentliches Profil'), style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white))),
+      appBar: AppBar(
+        title: Text(l10n.t('Öffentliches Profil'), style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'report_profile') await _openProfileSupportFlow('Profil melden');
+              if (value == 'report_problem') await _openProfileSupportFlow('Problem melden');
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'report_profile', child: Text('Profil melden')),
+              PopupMenuItem(value: 'report_problem', child: Text('Problem melden')),
+            ],
+          ),
+        ],
+      ),
       body: SafeArea(
         child: u == null
             ? const Center(child: CircularProgressIndicator())
