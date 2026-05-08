@@ -7,6 +7,31 @@ enum WhoCanWrite { everyone, acceptedRequestOnly }
 
 enum MediaAutoDownload { wifi, always, never }
 
+class TranslationLanguageOption {
+  final String code;
+  final String label;
+  const TranslationLanguageOption({required this.code, required this.label});
+}
+
+const List<TranslationLanguageOption> translationLanguageOptions = [
+  TranslationLanguageOption(code: 'ar', label: 'Arabisch'),
+  TranslationLanguageOption(code: 'de', label: 'Deutsch'),
+  TranslationLanguageOption(code: 'en', label: 'Englisch'),
+  TranslationLanguageOption(code: 'fr', label: 'Französisch'),
+];
+
+String translationLanguageLabel(String code) {
+  final normalized = code.trim().toLowerCase();
+  for (final opt in translationLanguageOptions) {
+    if (normalized == opt.code || normalized.startsWith('${opt.code}-')) return opt.label;
+  }
+  final fallback = translationLanguageOptions.firstWhere(
+    (o) => o.code == 'de',
+    orElse: () => translationLanguageOptions.first,
+  );
+  return fallback.label;
+}
+
 /// Local-only message/chat settings for the in-app communication hub.
 ///
 /// Stored via SharedPreferences (no backend connected).

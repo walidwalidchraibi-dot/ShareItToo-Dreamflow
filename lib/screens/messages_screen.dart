@@ -23,6 +23,8 @@ class MessagesScreen extends StatefulWidget {
 
 enum _MessagesFilter { all, bookings, active, archived, support }
 
+const String _translationDemoThreadId = 'demo_translation_thread';
+
 class _MessagesScreenState extends State<MessagesScreen> {
   _MessagesFilter _filter = _MessagesFilter.all;
   List<MessageThread> _activeThreads = [];
@@ -64,18 +66,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
       final itemsById = {for (final i in items) i.id: i};
 
       if (!mounted) return;
-      if (threads.isEmpty && archived.isEmpty) {
-        final demo = _buildDemoMessageState(baseUser: user, users: usersById, items: itemsById);
-        setState(() {
-          _currentUser = demo.user;
-          _activeThreads = demo.activeThreads;
-          _archivedThreads = demo.archivedThreads;
-          _usersCache = demo.users;
-          _itemsCache = demo.items;
-          _isLoading = false;
-        });
-        return;
-      }
 
       setState(() {
         _currentUser = user;
@@ -202,6 +192,117 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
+  ({MessageThread thread, User other, Item item}) _buildTranslationDemoThread(User me) {
+    final now = DateTime.now();
+    final other = User(
+      id: 'demo_translation_partner',
+      displayName: 'Lucía Ortega',
+      email: 'lucia.ortega@example.com',
+      preferredLanguage: 'es',
+      isVerified: true,
+      isBanned: false,
+      role: 'user',
+      avgRating: 4.7,
+      reviewCount: 42,
+      createdAt: now.subtract(const Duration(days: 180)),
+    );
+
+    final item = Item(
+      id: 'demo_translation_item',
+      ownerId: other.id,
+      title: 'DJI Mini 4 Pro Drohne',
+      description: 'Demo-Artikel für Übersetzungs-Tests',
+      categoryId: 'electronics',
+      subcategory: 'drones',
+      tags: const ['drohne', 'camera'],
+      pricePerDay: 39,
+      currency: 'EUR',
+      photos: const [],
+      locationText: 'Berlin, Prenzlauer Berg',
+      lat: 52.54,
+      lng: 13.41,
+      geohash: 'u33dc1',
+      condition: 'excellent',
+      createdAt: now.subtract(const Duration(days: 5)),
+      isActive: true,
+      verificationStatus: 'verified',
+      city: 'Berlin',
+      country: 'Deutschland',
+    );
+
+    final messages = [
+      Message(
+        id: 'demo_tr_1',
+        senderId: other.id,
+        text: 'Hola! Ich schreibe kurz auf Spanisch, damit du die Übersetzung testen kannst.',
+        timestamp: now.subtract(const Duration(minutes: 35)),
+        isRead: false,
+      ),
+      Message(
+        id: 'demo_tr_2',
+        senderId: me.id,
+        text: 'Hi Lucía! Ich aktiviere gleich die Übersetzung.',
+        timestamp: now.subtract(const Duration(minutes: 33)),
+        isRead: true,
+      ),
+      Message(
+        id: 'demo_tr_3',
+        senderId: other.id,
+        text: 'Could you share the exact pickup spot in English?',
+        timestamp: now.subtract(const Duration(minutes: 29)),
+        isRead: false,
+      ),
+      Message(
+        id: 'demo_tr_4',
+        senderId: me.id,
+        text: 'Klar, Treffpunkt ist am Parkeingang Ecke Kastanienallee.',
+        timestamp: now.subtract(const Duration(minutes: 27)),
+        isRead: true,
+      ),
+      Message(
+        id: 'demo_tr_5',
+        senderId: other.id,
+        text: 'Perfecto, gracias. ¿Puedes confirmar la hora a las 18:00?',
+        timestamp: now.subtract(const Duration(minutes: 24)),
+        isRead: false,
+      ),
+    ];
+
+    final thread = MessageThread(
+      id: _translationDemoThreadId,
+      requestId: 'demo_translation_request',
+      itemId: item.id,
+      itemTitle: item.title,
+      user1Id: me.id,
+      user2Id: other.id,
+      bookingStatus: 'running',
+      handoverAt: now.add(const Duration(hours: 4)),
+      returnAt: now.add(const Duration(days: 2, hours: 4)),
+      otherUserOnline: true,
+      messages: messages,
+      createdAt: now.subtract(const Duration(days: 1)),
+      lastMessageAt: messages.last.timestamp,
+    );
+
+    return (thread: thread, other: other, item: item);
+  }
+
+  ({List<MessageThread> activeThreads, Map<String, User> users, Map<String, Item> items}) _withTranslationDemoThread({
+    required User user,
+    required List<MessageThread> activeThreads,
+    required Map<String, User> users,
+    required Map<String, Item> items,
+  }) {
+    final exists = false && activeThreads.any((t) => false);
+    if (exists) return (activeThreads: activeThreads, users: users, items: items);
+
+    final demo = _buildTranslationDemoThread(user);
+    final updatedThreads = [demo.thread, ...activeThreads];
+    final updatedUsers = {...users, demo.other.id: demo.other};
+    final updatedItems = {...items, demo.item.id: demo.item};
+    return (activeThreads: updatedThreads, users: updatedUsers, items: updatedItems);
+  }
+
   bool get _hasUser => _currentUser != null;
 
   @override
@@ -245,7 +346,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
                               itemCount: threads.length,
                               separatorBuilder: (_, __) => const SizedBox(height: 12),
                               itemBuilder: (context, index) {
-                                final thread = threads[index];
+                                 final thread = threads[index];
+                                 final isDemoTranslation = false;
                                 final other = _otherUser(thread);
                                 final lastMsg = thread.messages.isNotEmpty ? thread.messages.last : null;
                                 final hasUnread = _hasUnread(thread);
@@ -253,42 +355,51 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                 final highlight = status.rank <= 1; // running/accepted
                                 final isSupport = (thread.threadType ?? '').toLowerCase() == 'support' || thread.user1Id == 'support' || thread.user2Id == 'support';
                                 final item = _itemsCache[thread.itemId];
-                                return _ThreadDismissible(
-                                  dismissKey: ValueKey('thread_${thread.id}_${_filter.name}'),
-                                  thread: thread,
-                                  onArchiveToggle: () async {
-                                    if (_currentUser == null) return;
-                                    final isArchived = thread.archivedForUserIds.contains(_currentUser!.id);
-                                    if (isArchived) {
-                                      await DataService.unarchiveMessageThreadForUser(threadId: thread.id, userId: _currentUser!.id);
-                                    } else {
-                                      await DataService.archiveMessageThreadForUser(threadId: thread.id, userId: _currentUser!.id);
-                                    }
-                                    await _loadData();
-                                  },
-                                  onDelete: () async {
-                                    final ok = await _confirmDelete();
-                                    if (!ok) return;
-                                    await DataService.deleteMessageThread(threadId: thread.id);
-                                    await _loadData();
-                                  },
-                                  child: _ChatThreadTile(
-                                    name: isSupport ? 'SIT Support' : (other?.displayName ?? 'Unbekannt'),
-                                    itemTitle: isSupport ? '' : thread.itemTitle,
-                                    itemImageUrl: item?.photos.isNotEmpty == true ? item!.photos.first : null,
-                                    avatarUrl: isSupport ? null : other?.photoURL,
-                                    isSupport: isSupport,
-                                    isVerified: other?.isVerified ?? false,
-                                    hasUnread: hasUnread,
-                                    timeLabel: _formatTime(lastMsg?.timestamp ?? thread.lastMessageAt ?? thread.createdAt),
-                                    statusLabel: status.label,
-                                    statusTone: status.tone,
-                                    lastMessage: lastMsg?.text ?? '',
-                                    highlighted: highlight,
-                                    onTap: () => _openThread(thread, other),
-                                    onLongPress: () => _openThreadOptions(thread),
-                                  ),
-                                );
+                                  return _ThreadDismissible(
+                                    enabled: !isDemoTranslation,
+                                    dismissKey: ValueKey('thread_${thread.id}_${_filter.name}'),
+                                    thread: thread,
+                                    onArchiveToggle: () async {
+                                      if (_currentUser == null) return;
+                                      if (isDemoTranslation) {
+                                        if (mounted) AppPopup.toast(context, icon: Icons.visibility_outlined, title: 'Demo-Chat', message: 'Archivieren ist für die Demo deaktiviert.');
+                                        return;
+                                      }
+                                      final isArchived = thread.archivedForUserIds.contains(_currentUser!.id);
+                                      if (isArchived) {
+                                        await DataService.unarchiveMessageThreadForUser(threadId: thread.id, userId: _currentUser!.id);
+                                      } else {
+                                        await DataService.archiveMessageThreadForUser(threadId: thread.id, userId: _currentUser!.id);
+                                      }
+                                      await _loadData();
+                                    },
+                                    onDelete: () async {
+                                      if (isDemoTranslation) {
+                                        if (mounted) AppPopup.toast(context, icon: Icons.visibility_outlined, title: 'Demo-Chat', message: 'Löschen ist für die Demo deaktiviert.');
+                                        return;
+                                      }
+                                      final ok = await _confirmDelete();
+                                      if (!ok) return;
+                                      await DataService.deleteMessageThread(threadId: thread.id);
+                                      await _loadData();
+                                    },
+                                    child: _ChatThreadTile(
+                                      name: isSupport ? 'SIT Support' : (other?.displayName ?? 'Unbekannt'),
+                                      itemTitle: isSupport ? '' : thread.itemTitle,
+                                      itemImageUrl: item?.photos.isNotEmpty == true ? item!.photos.first : null,
+                                      avatarUrl: isSupport ? null : other?.photoURL,
+                                      isSupport: isSupport,
+                                      isVerified: other?.isVerified ?? false,
+                                      hasUnread: hasUnread,
+                                      timeLabel: _formatTime(lastMsg?.timestamp ?? thread.lastMessageAt ?? thread.createdAt),
+                                      statusLabel: status.label,
+                                      statusTone: status.tone,
+                                      lastMessage: lastMsg?.text ?? '',
+                                      highlighted: highlight,
+                                      onTap: () => _openThread(thread, other),
+                                      onLongPress: () => _openThreadOptions(thread),
+                                    ),
+                                  );
                               },
                             ),
             ),
@@ -487,7 +598,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     if (userId == null) return;
     if (thread.id.startsWith('mock_')) {
       if (mounted) {
-        AppPopup.toast(context, icon: Icons.info_outline, title: 'Nur Vorschau', message: 'Archivieren, Löschen und Blockieren bleiben bei den Demo-Chats deaktiviert.');
+        AppPopup.toast(context, icon: Icons.visibility_outlined, title: 'Demo-Chat', message: 'Verwalten ist für die Demo deaktiviert.');
       }
       return;
     }
@@ -1001,6 +1112,7 @@ class _ThreadDismissible extends StatelessWidget {
   final Widget child;
   final Future<void> Function() onArchiveToggle;
   final Future<void> Function() onDelete;
+  final bool enabled;
 
   const _ThreadDismissible({
     required this.dismissKey,
@@ -1008,10 +1120,12 @@ class _ThreadDismissible extends StatelessWidget {
     required this.child,
     required this.onArchiveToggle,
     required this.onDelete,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (!enabled) return child;
     return Dismissible(
       key: dismissKey,
       direction: DismissDirection.endToStart,

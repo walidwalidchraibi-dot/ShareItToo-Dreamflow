@@ -2,10 +2,13 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:lendify/screens/blocked_users_screen.dart';
 import 'package:lendify/screens/report_user_screen.dart';
+import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/messages_settings_service.dart';
+import 'package:lendify/widgets/translation_language_dialog.dart';
 
 enum MessagesSettingsPresentation { sheet, page }
 
@@ -38,12 +41,34 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
   Future<void> _load() async {
     try {
       final value = await MessagesSettingsService.get();
+      final normalized = _normalizeTranslationDefaults(value);
+      if (normalized.preferredLanguageCode != value.preferredLanguageCode) {
+        await MessagesSettingsService.set(normalized);
+      }
       if (!mounted) return;
-      setState(() => _settings = value);
+      setState(() => _settings = normalized);
     } catch (e) {
       debugPrint('MessagesSettingsView._load failed: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  MessagesSettings _normalizeTranslationDefaults(MessagesSettings value) {
+    final fallback = _appLanguageCode();
+    final code = value.preferredLanguageCode.trim();
+    if (code.isEmpty || code == 'auto') {
+      return value.copyWith(preferredLanguageCode: fallback);
+    }
+    return value;
+  }
+
+  String _appLanguageCode() {
+    try {
+      final code = context.read<LocalizationController>().code.trim();
+      return code.isEmpty ? 'de' : code;
+    } catch (_) {
+      return 'de';
     }
   }
 
@@ -61,6 +86,36 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  String _languageLabel(String code) {
+    return translationLanguageLabel(code);
+  }
+
+  String _effectiveTranslationLanguageCode(MessagesSettings? value) {
+    final raw = value?.preferredLanguageCode.trim() ?? '';
+    if (raw.isEmpty || raw == 'auto') return _appLanguageCode();
+    return raw;
+  }
+
+  Future<void> _pickTranslationLanguage() async {
+    if (!(_settings?.autoTranslateChat ?? false)) return;
+    final current = _effectiveTranslationLanguageCode(_settings);
+
+    final selected = await showDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
+      builder: (_) => TranslationLanguageDialog(
+        title: 'Übersetzungssprache',
+        initialCode: current,
+        options: translationLanguageOptions,
+      ),
+    );
+
+    if (!mounted || selected == null) return;
+    final base = _settings ?? MessagesSettings.defaults();
+    setState(() => _settings = base.copyWith(preferredLanguageCode: selected));
   }
 
   @override
@@ -186,7 +241,32 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
                       ),
                       const SizedBox(height: 10),
 
-                      // 3. Übergabe & Belege
+                      // 3. Übersetzung
+                      _SettingsSection(
+                        title: 'Übersetzung',
+                        icon: Icons.translate_outlined,
+                        child: Column(children: [
+                          _SettingsSwitchRow(
+                            icon: Icons.g_translate,
+                            title: 'Nachrichten automatisch übersetzen',
+                            subtitle: 'Zeigt Chat-Nachrichten in deiner Sprache. Gilt nur für dich.',
+                            value: s?.autoTranslateChat ?? false,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(autoTranslateChat: v)),
+                          ),
+                          const SizedBox(height: 4),
+                          _SettingsSelectorRow(
+                            icon: Icons.language_outlined,
+                            title: 'Übersetzungssprache',
+                            subtitle: 'Standard: App-/Setup-Sprache. Kann für dich geändert werden.',
+                            valueLabel: _languageLabel(_effectiveTranslationLanguageCode(s)),
+                            onTap: _pickTranslationLanguage,
+                            disabled: !(s?.autoTranslateChat ?? false),
+                          ),
+                        ]),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // 4. Übergabe & Belege
                       _SettingsSection(
                         title: 'Übergabe & Belege',
                         icon: Icons.inventory_2_outlined,
@@ -224,7 +304,7 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
                       ),
                       const SizedBox(height: 10),
 
-                      // 4. Chat-Verhalten
+                      // 5. Chat-Verhalten
                       _SettingsSection(
                         title: 'Chat-Verhalten',
                         icon: Icons.forum_outlined,
@@ -451,6 +531,59 @@ class _SettingsSwitchRow extends StatelessWidget {
             ),
           ),
         ]),
+      ),
+    );
+  }
+}
+
+class _SettingsSelectorRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final String valueLabel;
+  final VoidCallback onTap;
+  final bool disabled;
+  const _SettingsSelectorRow({required this.icon, required this.title, this.subtitle, required this.valueLabel, required this.onTap, this.disabled = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final opacity = disabled ? 0.5 : 1.0;
+    return Opacity(
+      opacity: opacity,
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: disabled ? null : onTap,
+          child: Container(
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
+            padding: const EdgeInsets.fromLTRB(7, 5, 7, 5),
+            child: Row(children: [
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(7)),
+                child: Icon(icon, color: Colors.white70, size: 14),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                  Text(title, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, fontSize: 12)),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 1),
+                    Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white54, fontSize: 10, height: 1.25)),
+                  ],
+                ]),
+              ),
+              const SizedBox(width: 6),
+              Text(valueLabel, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right, color: Colors.white54, size: 18),
+            ]),
+          ),
+        ),
       ),
     );
   }

@@ -10,11 +10,18 @@ import 'package:flutter/foundation.dart';
 /// This avoids showing any solid background or border so the icon matches
 /// outlined Material icons visually.
 class SanitizedSvgIcon extends StatelessWidget {
-  const SanitizedSvgIcon(this.assetPath, {super.key, this.size = 20, this.color});
+  const SanitizedSvgIcon(
+    this.assetPath, {
+    super.key,
+    this.size = 20,
+    this.color,
+    this.stripLightFills = false,
+  });
 
   final String assetPath;
   final double size;
   final Color? color;
+  final bool stripLightFills;
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +59,11 @@ class SanitizedSvgIcon extends StatelessWidget {
   Future<String> _loadAndSanitize(String path) async {
     try {
       final raw = await rootBundle.loadString(path);
-      return _removeLargeBackgroundRects(raw);
+      var sanitized = _removeLargeBackgroundRects(raw);
+      if (stripLightFills) {
+        sanitized = _removeLightFillPaths(sanitized);
+      }
+      return sanitized;
     } catch (e) {
       debugPrint('SanitizedSvgIcon: error loading $path: $e');
       rethrow;
@@ -114,6 +125,65 @@ class SanitizedSvgIcon extends StatelessWidget {
     } catch (e) {
       debugPrint('SanitizedSvgIcon: sanitization failed: $e');
       return svg; // fall back to original if something goes wrong
+    }
+  }
+
+  // Additional filter: strip paths that are likely canvas backgrounds
+  // (very light fills such as white/near-white). This is opt-in so other
+  // icons remain unaffected.
+  String _removeLightFillPaths(String svg) {
+    try {
+      const lightHexes = [
+        '#FFFFFF',
+        '#FFF',
+        '#FEFEFE',
+        '#FEFDFD',
+        '#FDFDFD',
+        '#F9FCFD',
+        '#F4F3F3',
+        '#F3F3F3',
+        '#F4F3F2',
+      ];
+
+      var sanitized = svg;
+      for (final hex in lightHexes) {
+        final escaped = hex.replaceAll('#', r'\#');
+        final selfClosing = RegExp(
+          '<path[^>]*fill\s*=\s*"$escaped"[^>]*?/\s*>',
+          caseSensitive: false,
+          multiLine: true,
+        );
+        final block = RegExp(
+          '<path[^>]*fill\s*=\s*"$escaped"[^>]*?>[\s\S]*?<\/path>',
+          caseSensitive: false,
+          multiLine: true,
+        );
+        sanitized = sanitized.replaceAll(selfClosing, '');
+        sanitized = sanitized.replaceAll(block, '');
+      }
+
+      // Generic catch for literal "white"
+      sanitized = sanitized.replaceAll(
+        RegExp(
+          '<path[^>]*fill\s*=\s*"\s*white\s*"[^>]*?>[\s\S]*?<\/path>',
+          caseSensitive: false,
+          multiLine: true,
+        ),
+        '',
+      );
+      sanitized = sanitized.replaceAll(
+        RegExp(
+          '<path[^>]*fill\s*=\s*"\s*white\s*"[^>]*?/\s*>',
+          caseSensitive: false,
+          multiLine: true,
+        ),
+        '',
+      );
+
+      return sanitized;
+    } catch (e) {
+      debugPrint('SanitizedSvgIcon: light fill strip failed: $e');
+      return svg;
     }
   }
 }

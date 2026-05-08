@@ -4,24 +4,32 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/message.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/localization_service.dart';
+import 'package:lendify/services/messages_settings_service.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/brand_logo_icon.dart';
+import 'package:lendify/widgets/sanitized_svg_icon.dart';
 import 'package:lendify/widgets/modern_datetime_stepper_sheet.dart';
 import 'package:lendify/widgets/return_handover_stepper_sheet.dart';
 import 'package:lendify/widgets/sit_glass_time_picker.dart';
 import 'package:lendify/widgets/user_avatar.dart';
+import 'package:lendify/widgets/translation_language_dialog.dart';
 import 'package:lendify/screens/booking_detail_screen.dart';
+import 'package:lendify/screens/ongoing_owner_detail_screen.dart';
+import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
-import 'package:lendify/screens/public_profile_screen.dart';
+
+const String _translationDemoThreadId = 'demo_translation_thread';
 
 /// Chat detail screen (Communication Hub).
 ///
@@ -83,6 +91,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Item? _item;
   RentalRequest? _request;
   Map<String, dynamic> _handoverReturnState = const {};
+  MessagesSettings _messageSettings = MessagesSettings.defaults();
+  bool _showOriginalIncoming = false;
 
   bool _isAtBottom = true;
   bool _showJumpToBottom = false;
@@ -102,7 +112,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     _listController.addListener(_onScroll);
     _inputFocus.addListener(_onInputFocusChange);
   }
-  
+
   void _onInputFocusChange() {
     if (_inputFocus.hasFocus && _isAtBottom) {
       // Kurze Verzögerung für Tastatur-Animation
@@ -124,7 +134,30 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _load() async {
     setState(() => _isLoading = true);
     try {
+      final requestedThreadId = (widget.threadId ?? '').trim();
       final me = await DataService.getCurrentUser();
+
+      if (requestedThreadId == _translationDemoThreadId) {
+        final demo = _buildTranslationDemoState(me);
+        final rawSettings = await MessagesSettingsService.get();
+        final normalizedSettings = _normalizeTranslationDefaults(rawSettings);
+        if (normalizedSettings.preferredLanguageCode != rawSettings.preferredLanguageCode) {
+          await MessagesSettingsService.set(normalizedSettings);
+        }
+        if (!mounted) return;
+        setState(() {
+          _currentUser = demo.user;
+          _thread = demo.thread;
+          _otherUser = demo.otherUser;
+          _item = demo.item;
+          _request = null;
+          _handoverReturnState = const {};
+          _messageSettings = normalizedSettings;
+          _isLoading = false;
+        });
+        return;
+      }
+
       if (me == null) {
         if (!mounted) return;
         setState(() {
@@ -135,8 +168,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       }
 
       MessageThread? thread;
-      if ((widget.threadId ?? '').trim().isNotEmpty) {
-        thread = await DataService.getMessageThreadById(widget.threadId!.trim());
+      if (requestedThreadId.isNotEmpty) {
+        thread = await DataService.getMessageThreadById(requestedThreadId);
       }
       if (thread == null && (widget.requestId ?? '').trim().isNotEmpty) {
         thread = await DataService.createOrGetThreadForRequest(widget.requestId!.trim());
@@ -168,6 +201,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         hr = await DataService.getHandoverReturnState(reqId);
       }
 
+      final rawSettings = await MessagesSettingsService.get();
+      final normalizedSettings = _normalizeTranslationDefaults(rawSettings);
+      if (normalizedSettings.preferredLanguageCode != rawSettings.preferredLanguageCode) {
+        await MessagesSettingsService.set(normalizedSettings);
+      }
+
       if (!mounted) return;
       setState(() {
         _currentUser = me;
@@ -176,7 +215,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         _item = item;
         _otherUser = other;
         _handoverReturnState = hr;
+        _messageSettings = normalizedSettings;
         _isLoading = false;
+        _showOriginalIncoming = false;
       });
 
       // Mark as read + initial scroll.
@@ -214,6 +255,452 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         // For demo threads without a backing request.
         if (returnActive) return _ChatState.returnPlanned;
         return _ChatState.confirmed;
+    }
+  }
+
+  MessagesSettings _normalizeTranslationDefaults(MessagesSettings value) {
+    final fallback = _appLanguageCode();
+    final code = value.preferredLanguageCode.trim();
+    if (code.isEmpty || code == 'auto') {
+      return value.copyWith(preferredLanguageCode: fallback);
+    }
+    return value;
+  }
+
+  String _appLanguageCode() {
+    try {
+      final code = context.read<LocalizationController>().code.trim();
+      return code.isEmpty ? 'de' : code;
+    } catch (_) {
+      return 'de';
+    }
+  }
+
+  String _effectiveTranslationLanguageCode() {
+    final raw = _messageSettings.preferredLanguageCode.trim();
+    if (raw.isEmpty || raw == 'auto') return _appLanguageCode();
+    return raw;
+  }
+
+  String _languageLabel(String code) {
+    return translationLanguageLabel(code);
+  }
+
+  String _translationLabel(String code, bool placeholder) {
+    final base = placeholder ? 'Übersetzung vorbereitet' : 'Übersetzt';
+    return '$base · ${_languageLabel(code)}';
+  }
+
+  ({User user, User otherUser, Item item, MessageThread thread}) _buildTranslationDemoState(User? baseUser) {
+    final now = DateTime.now();
+    final me = baseUser ??
+        User(
+          id: 'demo_me',
+          displayName: 'Du',
+          email: 'demo@shareittoo.local',
+          preferredLanguage: 'de',
+          isVerified: true,
+          isBanned: false,
+          role: 'user',
+          avgRating: 0,
+          reviewCount: 0,
+          createdAt: now.subtract(const Duration(days: 30)),
+        );
+
+    final other = User(
+      id: 'demo_translation_partner',
+      displayName: 'Lucía Ortega',
+      email: 'lucia.ortega@example.com',
+      preferredLanguage: 'es',
+      isVerified: true,
+      isBanned: false,
+      role: 'user',
+      avgRating: 4.7,
+      reviewCount: 42,
+      createdAt: now.subtract(const Duration(days: 180)),
+    );
+
+    final item = Item(
+      id: 'demo_translation_item',
+      ownerId: other.id,
+      title: 'DJI Mini 4 Pro Drohne',
+      description: 'Demo-Artikel für Übersetzungs-Tests',
+      categoryId: 'electronics',
+      subcategory: 'drones',
+      tags: const ['drohne', 'camera'],
+      pricePerDay: 39,
+      currency: 'EUR',
+      photos: const [],
+      locationText: 'Berlin, Prenzlauer Berg',
+      lat: 52.54,
+      lng: 13.41,
+      geohash: 'u33dc1',
+      condition: 'excellent',
+      createdAt: now.subtract(const Duration(days: 5)),
+      isActive: true,
+      verificationStatus: 'verified',
+      city: 'Berlin',
+      country: 'Deutschland',
+    );
+
+    final messages = [
+      Message(
+        id: 'demo_tr_1',
+        senderId: other.id,
+        text: 'Hola! Ich schreibe kurz auf Spanisch, damit du die Übersetzung testen kannst.',
+        timestamp: now.subtract(const Duration(minutes: 35)),
+      ),
+      Message(
+        id: 'demo_tr_2',
+        senderId: me.id,
+        text: 'Hi Lucía! Ich aktiviere gleich die Übersetzung.',
+        timestamp: now.subtract(const Duration(minutes: 33)),
+        isRead: true,
+      ),
+      Message(
+        id: 'demo_tr_3',
+        senderId: other.id,
+        text: 'Could you share the exact pickup spot in English?',
+        timestamp: now.subtract(const Duration(minutes: 29)),
+      ),
+      Message(
+        id: 'demo_tr_4',
+        senderId: me.id,
+        text: 'Klar, Treffpunkt ist am Parkeingang Ecke Kastanienallee.',
+        timestamp: now.subtract(const Duration(minutes: 27)),
+        isRead: true,
+      ),
+      Message(
+        id: 'demo_tr_5',
+        senderId: other.id,
+        text: 'Perfecto, gracias. ¿Puedes confirmar la hora a las 18:00?',
+        timestamp: now.subtract(const Duration(minutes: 24)),
+      ),
+    ];
+
+    final thread = MessageThread(
+      id: _translationDemoThreadId,
+      requestId: 'demo_translation_request',
+      itemId: item.id,
+      itemTitle: item.title,
+      user1Id: me.id,
+      user2Id: other.id,
+      bookingStatus: 'running',
+      handoverAt: now.add(const Duration(hours: 4)),
+      returnAt: now.add(const Duration(days: 2, hours: 4)),
+      otherUserOnline: true,
+      messages: messages,
+      createdAt: now.subtract(const Duration(days: 1)),
+      lastMessageAt: messages.last.timestamp,
+    );
+
+    return (user: me, otherUser: other, item: item, thread: thread);
+  }
+
+  List<Message> _demoTranslationMessages() {
+    final demo = _buildTranslationDemoState(_currentUser);
+    return demo.thread.messages;
+  }
+
+  _TranslationDisplay _translationFor(Message message, {required bool isMe}) {
+    final target = _effectiveTranslationLanguageCode();
+    final translationActive = _messageSettings.autoTranslateChat;
+    final showOriginal = translationActive && !isMe && _showOriginalIncoming;
+
+    final canTranslate = translationActive && !isMe && message.senderId != 'system' && message.text.trim().isNotEmpty;
+    if (!canTranslate) {
+      return _TranslationDisplay(
+        original: message.text,
+        translated: null,
+        languageCode: target,
+        placeholder: false,
+        showOriginalUnderTranslation: false,
+      );
+    }
+
+    final translated = _localTranslate(message.text, target);
+    final placeholder = translated.trim().toLowerCase() == message.text.trim().toLowerCase();
+    return _TranslationDisplay(
+      original: message.text,
+      translated: placeholder ? null : translated,
+      languageCode: target,
+      placeholder: placeholder,
+      showOriginalUnderTranslation: showOriginal,
+    );
+  }
+
+  String _localTranslate(String text, String targetLang) {
+    final lang = targetLang.toLowerCase();
+    if (lang.startsWith('en')) return _translateWithDictionary(text, _toEnglish);
+    if (lang.startsWith('de')) return _translateWithDictionary(_preprocessSpanishToGerman(text), _toGerman);
+    if (lang.startsWith('fr')) return _translateWithDictionary(text, _toFrench);
+    if (lang.startsWith('ar')) return _translateWithDictionary(text, _toArabic);
+    return text;
+  }
+
+  String _preprocessSpanishToGerman(String text) {
+    var normalized = text;
+
+    // Common time phrasing: "a las 18:00" -> "um 18:00"
+    normalized = normalized.replaceAllMapped(RegExp(r'a\s+las\s+(\d{1,2}:\d{2})', caseSensitive: false), (m) => 'um ${m[1]}');
+
+    // Full sentence pattern: "¿Puedes confirmar la hora a las 18:00?" -> "Kannst du die Uhrzeit um 18:00 bestätigen?"
+    normalized = normalized.replaceAllMapped(
+      RegExp(r'¿?\s*puedes\s+confirmar\s+la\s+hora\s+a\s+las\s+(\d{1,2}:\d{2})\??', caseSensitive: false),
+      (m) => 'Kannst du die Uhrzeit um ${m[1]} bestätigen?',
+    );
+
+    return normalized;
+  }
+
+  String _translateWithDictionary(String text, Map<String, String> dict) {
+    return text.replaceAllMapped(RegExp(r'\b[\wÄÖÜäöüß]+\b', caseSensitive: false), (match) {
+      final word = match.group(0)!;
+      final lower = word.toLowerCase();
+      final replacement = dict[lower];
+      if (replacement == null) return word;
+      return _preserveCase(word, replacement);
+    });
+  }
+
+  String _preserveCase(String original, String replacement) {
+    if (original.toUpperCase() == original) return replacement.toUpperCase();
+    if (original.isNotEmpty && original[0].toUpperCase() == original[0]) {
+      return replacement.isNotEmpty ? replacement[0].toUpperCase() + replacement.substring(1) : replacement;
+    }
+    return replacement;
+  }
+
+  static const Map<String, String> _toEnglish = {
+    'hallo': 'hello',
+    'hi': 'hi',
+    'danke': 'thank you',
+    'gracias': 'thank you',
+    'bitte': 'please',
+    'guten': 'good',
+    'gut': 'good',
+    'abend': 'evening',
+    'nacht': 'night',
+    'tag': 'day',
+    'wie': 'how',
+    'geht': 'are',
+    'es': 'it',
+    'dir': 'you',
+    'mir': 'me',
+    'ja': 'yes',
+    'nein': 'no',
+    'okay': 'okay',
+    'ok': 'ok',
+    'super': 'great',
+    'alles': 'everything',
+    'klar': 'clear',
+    'wann': 'when',
+    'wo': 'where',
+    'warum': 'why',
+    'wer': 'who',
+    'was': 'what',
+    'kann': 'can',
+    'können': 'can',
+    'wir': 'we',
+    'treffen': 'meet',
+    'heute': 'today',
+    'morgen': 'tomorrow',
+    'gestern': 'yesterday',
+    'uhr': 'o\'clock',
+    'perfecto': 'perfect',
+    'perfekt': 'perfect',
+    'confirmar': 'confirm',
+    'bestätigen': 'confirm',
+    'hora': 'time',
+  };
+
+  static const Map<String, String> _toGerman = {
+    'hola': 'hallo',
+    'hello': 'hallo',
+    'hi': 'hallo',
+    'thanks': 'danke',
+    'thank': 'danke',
+    'please': 'bitte',
+    'good': 'gut',
+    'morning': 'morgen',
+    'evening': 'abend',
+    'night': 'nacht',
+    'day': 'tag',
+    'how': 'wie',
+    'are': 'sind',
+    'you': 'du',
+    'me': 'mir',
+    'yes': 'ja',
+    'no': 'nein',
+    'okay': 'okay',
+    'ok': 'ok',
+    'great': 'super',
+    'when': 'wann',
+    'where': 'wo',
+    'why': 'warum',
+    'who': 'wer',
+    'what': 'was',
+    'can': 'kann',
+    'we': 'wir',
+    'meet': 'treffen',
+    'today': 'heute',
+    'tomorrow': 'morgen',
+    'yesterday': 'gestern',
+    "o'clock": 'uhr',
+    'gracias': 'danke',
+    'perfecto': 'perfekt',
+    'perfect': 'perfekt',
+    'puedes': 'kannst du',
+    'puede': 'kann',
+    'puedo': 'kann ich',
+    'podemos': 'können wir',
+    'pueden': 'können sie',
+    'confirmar': 'bestätigen',
+    'confirm': 'bestätigen',
+    'hora': 'uhrzeit',
+    'horario': 'uhrzeit',
+    'la': 'die',
+    'el': 'der',
+    'las': 'die',
+    'los': 'die',
+    'un': 'ein',
+    'una': 'eine',
+    'por': 'für',
+    'favor': 'bitte',
+  };
+
+  static const Map<String, String> _toFrench = {
+    'hallo': 'bonjour',
+    'hello': 'bonjour',
+    'hi': 'salut',
+    'danke': 'merci',
+    'gracias': 'merci',
+    'thanks': 'merci',
+    'thank': 'merci',
+    'bitte': "s'il vous plaît",
+    'please': "s'il vous plaît",
+    'good': 'bon',
+    'guten': 'bon',
+    'gut': 'bon',
+    'abend': 'soir',
+    'nacht': 'nuit',
+    'tag': 'jour',
+    'how': 'comment',
+    'are': 'es',
+    'you': 'toi',
+    'we': 'nous',
+    'meet': 'rencontrer',
+    'treffen': 'rencontrer',
+    'today': 'aujourd\'hui',
+    'heute': 'aujourd\'hui',
+    'tomorrow': 'demain',
+    'morgen': 'demain',
+    'yesterday': 'hier',
+    'gestern': 'hier',
+    'perfect': 'parfait',
+    'perfecto': 'parfait',
+    'confirmar': 'confirmer',
+    'hora': 'heure',
+  };
+
+  static const Map<String, String> _toArabic = {
+    'hallo': 'مرحبا',
+    'hello': 'مرحبا',
+    'hi': 'مرحبا',
+    'danke': 'شكرا',
+    'gracias': 'شكرا',
+    'thanks': 'شكرا',
+    'thank': 'شكرا',
+    'bitte': 'من فضلك',
+    'please': 'من فضلك',
+    'good': 'جيد',
+    'guten': 'جيد',
+    'gut': 'جيد',
+    'great': 'رائع',
+    'perfect': 'ممتاز',
+    'perfecto': 'ممتاز',
+    'meet': 'نلتقي',
+    'treffen': 'نلتقي',
+    'today': 'اليوم',
+    'heute': 'اليوم',
+    'tomorrow': 'غدًا',
+    'morgen': 'غدًا',
+    'yesterday': 'أمس',
+    'gestern': 'أمس',
+    'confirmar': 'أكد',
+    'hora': 'الساعة',
+    'uhr': 'الساعة',
+  };
+
+  Future<void> _updateTranslationSettings(MessagesSettings next) async {
+    final normalized = _normalizeTranslationDefaults(next);
+    final wasActive = _messageSettings.autoTranslateChat;
+    await MessagesSettingsService.set(normalized);
+    if (!mounted) return;
+    setState(() {
+      _messageSettings = normalized;
+      if (!wasActive && normalized.autoTranslateChat) _showOriginalIncoming = false;
+      if (!normalized.autoTranslateChat) _showOriginalIncoming = false;
+    });
+  }
+
+  Future<String?> _pickTranslationLanguageFromChat() async {
+    final current = _effectiveTranslationLanguageCode();
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.4),
+      builder: (_) => TranslationLanguageDialog(
+        title: 'Übersetzungssprache',
+        initialCode: current,
+        options: translationLanguageOptions,
+      ),
+    );
+  }
+
+  Future<void> _ensureTranslationEnabledFromChat() async {
+    var next = _messageSettings.copyWith(autoTranslateChat: true);
+    final lang = await _pickTranslationLanguageFromChat();
+    if (lang != null && lang.trim().isNotEmpty) {
+      next = next.copyWith(preferredLanguageCode: lang.trim());
+    }
+    await _updateTranslationSettings(next);
+  }
+
+  Future<void> _showTranslationMenu(Message message, {required bool isMe}) async {
+    if (isMe || message.senderId == 'system') return;
+    final translationActive = _messageSettings.autoTranslateChat;
+    final showingOriginal = _showOriginalIncoming;
+    final currentLang = _effectiveTranslationLanguageCode();
+
+    final selected = await showDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.35),
+      builder: (_) => TranslationLanguageDialog(
+        title: 'Übersetzung',
+        initialCode: currentLang,
+        options: translationLanguageOptions,
+        showTranslationToggle: true,
+        translationEnabled: translationActive,
+        showOriginalToggle: true,
+        showOriginalEnabled: showingOriginal,
+        showLanguagesOnlyWhenTranslationOn: true,
+        onTranslationToggle: (enabled) async {
+          setState(() => _showOriginalIncoming = false);
+          if (enabled) await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: true, preferredLanguageCode: currentLang));
+          if (!enabled) await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: false));
+        },
+        onShowOriginalToggle: (show) {
+          setState(() => _showOriginalIncoming = show);
+        },
+      ),
+    );
+
+    if (selected != null && selected.trim().isNotEmpty) {
+      final normalized = selected.trim();
+      setState(() => _showOriginalIncoming = false);
+      await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: true, preferredLanguageCode: normalized));
     }
   }
 
@@ -259,6 +746,100 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final r = _request;
     if (me == null || r == null) return false;
     return r.ownerId == me.id;
+  }
+
+  /// Resolves the other participant's userId for profile navigation.
+  String? _otherPartyUserId() {
+    final meId = _currentUser?.id;
+    final t = _thread;
+    final r = _request;
+    final item = _item;
+
+    final isSupportThread = ((t?.threadType ?? '').toLowerCase() == 'support') || (t?.user1Id.toLowerCase() == 'support') || (t?.user2Id.toLowerCase() == 'support');
+    if (isSupportThread) return null;
+
+    String? sanitize(String? raw) {
+      final trimmed = raw?.trim();
+      if (trimmed == null || trimmed.isEmpty) return null;
+      final lower = trimmed.toLowerCase();
+      if (lower == 'support' || lower == 'system') return null;
+      if (meId != null && trimmed == meId) return null;
+      return trimmed;
+    }
+
+    String? threadCounterparty() {
+      if (t == null) return null;
+      if (meId != null) {
+        if (t.user1Id == meId) return t.user2Id;
+        if (t.user2Id == meId) return t.user1Id;
+      }
+      if (t.user1Id != t.user2Id) return t.user2Id;
+      return t.user1Id;
+    }
+
+    final candidates = <String?>[
+      threadCounterparty(),
+      if (t != null) t.user1Id,
+      if (t != null) t.user2Id,
+    ];
+
+    if (r != null) {
+      if (meId != null) {
+        if (r.ownerId == meId) {
+          candidates.add(r.renterId);
+        } else if (r.renterId == meId) {
+          candidates.add(r.ownerId);
+        } else {
+          candidates.addAll([r.renterId, r.ownerId]);
+        }
+      } else {
+        candidates.addAll([r.renterId, r.ownerId]);
+      }
+    }
+
+    if (item != null) candidates.add(item.ownerId);
+    if (_otherUser != null) candidates.add(_otherUser!.id);
+
+    if (t != null) {
+      for (final msg in t.messages) {
+        candidates.add(msg.senderId);
+      }
+    }
+
+    final seen = <String>{};
+    for (final raw in candidates) {
+      final valid = sanitize(raw);
+      if (valid != null && !seen.contains(valid)) {
+        seen.add(valid);
+        return valid;
+      }
+      if (valid != null) seen.add(valid);
+    }
+
+    return null;
+  }
+
+  Future<String?> _resolveOtherPartyUserId() async {
+    final quick = _otherPartyUserId();
+    if (quick != null) return quick;
+
+    final name = _displayName().trim();
+    if (name.isEmpty || name.toLowerCase() == 'chat') return null;
+
+    try {
+      final users = await DataService.getUsers();
+      final meId = _currentUser?.id;
+      for (final u in users) {
+        if (u.id == meId) continue;
+        final disp = u.displayName.trim();
+        if (disp.isEmpty) continue;
+        if (disp.toLowerCase() == name.toLowerCase()) return u.id.trim();
+      }
+    } catch (e) {
+      debugPrint('[MessageThreadScreen] _resolveOtherPartyUserId fallback failed: $e');
+    }
+
+    return null;
   }
 
   Future<void> _applyPrimaryAction() async {
@@ -384,6 +965,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final text = _controller.text.trim();
     if (me == null || t == null || text.isEmpty) return;
     _controller.clear();
+    if (t.id == _translationDemoThreadId) {
+      final msg = Message(id: 'demo_local_${DateTime.now().millisecondsSinceEpoch}', senderId: me.id, text: text, timestamp: DateTime.now(), isRead: true);
+      setState(() {
+        _thread = t.copyWith(messages: [...t.messages, msg], lastMessageAt: msg.timestamp);
+      });
+      _scrollToBottom(animate: true);
+      return;
+    }
     try {
       await DataService.addMessageToThread(threadId: t.id, senderId: me.id, text: text);
       await _load();
@@ -397,6 +986,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _pickCamera() async {
     final t = _thread;
     if (t == null) return;
+    if (t.id == _translationDemoThreadId) {
+      if (mounted) AppPopup.toast(context, icon: Icons.visibility_outlined, title: 'Demo-Chat', message: 'Anhänge sind in der Demo deaktiviert.');
+      return;
+    }
     try {
       final picker = ImagePicker();
       final file = await picker.pickImage(source: ImageSource.camera, imageQuality: 82);
@@ -421,6 +1014,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _pickFile() async {
     final t = _thread;
     if (t == null) return;
+    if (t.id == _translationDemoThreadId) {
+      if (mounted) AppPopup.toast(context, icon: Icons.visibility_outlined, title: 'Demo-Chat', message: 'Anhänge sind in der Demo deaktiviert.');
+      return;
+    }
     try {
       final result = await FilePicker.platform.pickFiles(withData: false);
       if (result == null || result.files.isEmpty) return;
@@ -510,7 +1107,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final insets = mediaQuery.viewInsets.bottom;
     final screenHeight = mediaQuery.size.height;
     final viewPadding = mediaQuery.viewPadding.bottom;
-    
+
     // DEBUG: Log keyboard state für Diagnose
     if (insets != _lastViewInsetBottom) {
       debugPrint('[KEYBOARD_DEBUG] viewInsets.bottom: $insets (was: $_lastViewInsetBottom)');
@@ -518,7 +1115,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       debugPrint('[KEYBOARD_DEBUG] viewPadding.bottom: $viewPadding');
       debugPrint('[KEYBOARD_DEBUG] inputFocused: ${_inputFocus.hasFocus}');
       debugPrint('[KEYBOARD_DEBUG] isWeb: ${kIsWeb}');
-      
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final opened = insets > 0 && _lastViewInsetBottom == 0;
         _lastViewInsetBottom = insets;
@@ -533,7 +1130,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final messages = _thread?.messages ?? const <Message>[];
     final showActions = _shouldShowActions(st);
     final showAddressHint = _showAddressHint();
-    
+
     // Chat-Gating: Nur accepted/running erlaubt
     final isChatActive = _isChatActiveForState(st);
 
@@ -563,7 +1160,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           children: [
             Column(
               children: [
-  
+
                 if (!isSupport) ...[
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -584,15 +1181,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                 Expanded(
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
-                      : (messages.isEmpty && !showAddressHint && !showInlineFlowCard)
-                          ? Center(
-                              child: Text(
-                                isChatActive ? 'Noch keine Nachrichten' : _chatBlockedReason(st),
-                                style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
-                                textAlign: TextAlign.center,
-                              ),
-                            )
-                          : NotificationListener<UserScrollNotification>(
+                      : NotificationListener<UserScrollNotification>(
                               onNotification: (n) {
                                 if (n.direction == ScrollDirection.forward && _inputFocus.hasFocus) {
                                   FocusScope.of(context).unfocus();
@@ -603,26 +1192,35 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                 builder: (context) {
                                   // A) Hinweistext nur als Empty-State:
                                   // Prüfen ob echte Nachrichten existieren (nicht von System)
-                                  final hasRealMessages = messages.any((m) => m.senderId != 'system');
-                                  // Filtere Intro-Hinweistext wenn echte Nachrichten vorhanden
-                                  final filteredMessages = hasRealMessages
-                                      ? messages.where((m) {
-                                          // Intro-Hinweis ausblenden sobald echte Nachrichten da sind
-                                          if (m.senderId == 'system' && 
-                                              (m.text.contains('Starte einen Chat') || 
-                                               m.text.contains('um eine Uhrzeit für Übergabe'))) {
-                                            return false;
-                                          }
-                                          return true;
-                                        }).toList()
-                                      : messages;
-                                  
+                                   final hasRealMessages = messages.any((m) => m.senderId != 'system');
+                                   final filteredMessages = hasRealMessages
+                                       ? messages.where((m) {
+                                           if (m.senderId == 'system' &&
+                                               (m.text.contains('Starte einen Chat') || m.text.contains('um eine Uhrzeit für Übergabe'))) {
+                                             return false;
+                                           }
+                                           return true;
+                                         }).toList()
+                                       : messages;
+                                   final showDemo = filteredMessages.isEmpty;
+                                   final displayMessages = showDemo ? _demoTranslationMessages() : _dedupeSupportCases(filteredMessages);
+
                                   return ListView.builder(
                                     controller: _listController,
                                     padding: const EdgeInsets.fromLTRB(16, 6, 16, 18),
-                                    itemCount: filteredMessages.length + (showAddressHint ? 1 : 0) + (showInlineFlowCard ? 1 : 0),
+                                      itemCount: displayMessages.length + (showAddressHint ? 1 : 0) + (showInlineFlowCard ? 1 : 0) + (showDemo ? 1 : 0),
                                     itemBuilder: (context, index) {
                                       int i = index;
+
+                                      if (showDemo) {
+                                        if (i == 0) {
+                                          return const Padding(
+                                            padding: EdgeInsets.only(bottom: 10, top: 4),
+                                            child: _TranslationDemoBanner(),
+                                          );
+                                        }
+                                        i -= 1;
+                                      }
 
                                       if (showAddressHint) {
                                         if (i == 0) {
@@ -634,32 +1232,80 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                         i -= 1;
                                       }
 
-                                      if (i < filteredMessages.length) {
-                                        final m = filteredMessages[i];
+                                      if (i < displayMessages.length) {
+                                        final m = displayMessages[i];
                                         final isMe = m.senderId == _currentUser?.id;
                                         final isSystem = m.senderId == 'system';
-                                        return _AnimatedMessageEntry(
-                                          key: ValueKey('msg_${m.id}'),
-                                          child: isSystem
-                                              ? _SystemMessage(
-                                                  text: m.text,
-                                                  // Zeit-Anfragen zeigen das Profilbild des aktuellen Users
-                                                  senderIsMe: true, 
-                                                  senderAvatarUrl: _currentUser?.photoURL,
-                                                )
-                                              : _AvatarMessageRow(
-                                                  isMe: isMe,
-                                                  avatarUrl: isMe ? _currentUser?.photoURL : _avatarUrl(),
-                                                  isSupport: isSupport,
-                                                  child: _ChatBubble(
-                                                    text: m.text,
-                                                    me: isMe,
-                                                    time: _formatTime(m.timestamp),
-                                                  ),
-                                                ),
-                                        );
+                                        final translation = _translationFor(m, isMe: isMe);
+                                        Widget messageRow;
+
+                                        if (isSystem) {
+                                          final supportCase = _parseSupportCaseMessage(m.text);
+                                          if (supportCase != null) {
+                                            messageRow = _SupportCaseMessage(
+                                              data: supportCase,
+                                              fallbackItem: _item,
+                                              fallbackRequest: _request,
+                                              fallbackCounterparty: _otherUser,
+                                              currentUserId: _currentUser?.id,
+                                            );
+                                          } else {
+                                            messageRow = _SystemMessage(
+                                              text: m.text,
+                                              senderIsMe: true,
+                                              senderAvatarUrl: _currentUser?.photoURL,
+                                            );
+                                          }
+                                        } else {
+                                          messageRow = _AvatarMessageRow(
+                                            isMe: isMe,
+                                            avatarUrl: isMe ? _currentUser?.photoURL : _avatarUrl(),
+                                            isSupport: isSupport,
+                                            child: () {
+                                              final handle = (!isMe && !isSystem)
+                                                  ? _TranslationHandleButton(
+                                                      active: _messageSettings.autoTranslateChat && !_showOriginalIncoming,
+                                                      onTap: () => _showTranslationMenu(m, isMe: isMe),
+                                                    )
+                                                  : null;
+
+                                              Widget bubble = _ChatBubble(
+                                                text: translation.original,
+                                                translatedText: translation.translated,
+                                                translationLabel: (translation.translated != null || translation.placeholder)
+                                                    ? _translationLabel(translation.languageCode, translation.placeholder)
+                                                    : null,
+                                                translationPlaceholder: translation.placeholder,
+                                                showOriginalUnderTranslation: translation.showOriginalUnderTranslation,
+                                                me: isMe,
+                                                time: _formatTime(m.timestamp),
+                                              );
+
+                                              if (handle != null) {
+                                                bubble = Stack(
+                                                  clipBehavior: Clip.none,
+                                                  children: [
+                                                    Padding(
+                                                      padding: const EdgeInsets.only(right: 28),
+                                                      child: bubble,
+                                                    ),
+                                                    Positioned(
+                                                      right: 2,
+                                                      bottom: 6,
+                                                      child: handle,
+                                                    ),
+                                                  ],
+                                                );
+                                              }
+
+                                              return bubble;
+                                            }(),
+                                          );
+                                        }
+
+                                        return _AnimatedMessageEntry(key: ValueKey('msg_${m.id}'), child: messageRow);
                                       }
-                                      i -= filteredMessages.length;
+                                      i -= displayMessages.length;
                                       if (showInlineFlowCard && i == 0) {
                                         final maxPhotos = 4;
                                         final photoCount = handoverActive
@@ -684,7 +1330,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                             ),
                 ),
                 // Chat-Gating: Bei inaktivem Chat nur Hinweis zeigen, kein Composer
-                if (!isChatActive) 
+                if (!isChatActive)
                   _ChatBlockedBanner(reason: _chatBlockedReason(st))
                 else
                   _TransactionComposer(
@@ -769,7 +1415,69 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   String _formatTime(DateTime time) => '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  
+
+  _SupportCaseData? _parseSupportCaseMessage(String text) {
+    final lower = text.toLowerCase();
+    if (!lower.contains('support-anfrage')) return null;
+
+    String? extract(String label) {
+      final idx = lower.indexOf(label.toLowerCase());
+      if (idx == -1) return null;
+      final after = text.substring(idx + label.length).split('\n').first;
+      return after.trim();
+    }
+
+    final lines = text.split('\n');
+    String? itemTitle;
+    for (final line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.toLowerCase().startsWith('support-anfrage zu:')) {
+        itemTitle = trimmed.substring('support-anfrage zu:'.length).trim();
+        break;
+      }
+    }
+
+    final bookingId = extract('buchung:');
+    final category = extract('kategorie:');
+    final subCategory = extract('unterkategorie:');
+
+    final descMarker = lines.indexWhere((l) => l.toLowerCase().contains('beschreibung:'));
+    String? description;
+    if (descMarker != -1) {
+      description = lines.sublist(descMarker + 1).join('\n').trim();
+    }
+
+    if ([itemTitle, bookingId, category, subCategory, description].every((e) => e == null)) return null;
+
+    return _SupportCaseData(
+      itemTitle: itemTitle?.isNotEmpty == true ? itemTitle! : null,
+      bookingId: bookingId?.isNotEmpty == true ? bookingId! : null,
+      category: category?.isNotEmpty == true ? category! : null,
+      subCategory: subCategory?.isNotEmpty == true ? subCategory! : null,
+      description: description?.isNotEmpty == true ? description! : null,
+    );
+  }
+
+  List<Message> _dedupeSupportCases(List<Message> messages) {
+    final result = <Message>[];
+    Message? lastSupport;
+
+    for (final m in messages) {
+      final isSupportCase = m.senderId == 'system' && _parseSupportCaseMessage(m.text) != null;
+      if (isSupportCase && lastSupport != null && lastSupport.text.trim() == m.text.trim()) {
+        continue;
+      }
+      if (isSupportCase) {
+        lastSupport = m;
+      } else {
+        lastSupport = null;
+      }
+      result.add(m);
+    }
+
+    return result;
+  }
+
   /// Findet angefragte Zeit in System-Nachrichten
   String? _findRequestedTime(List<Message> messages, {required bool isHandover}) {
     final searchTerm = isHandover ? 'Übergabezeit angefragt' : 'Rückgabezeit angefragt';
@@ -837,9 +1545,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _changeTime() async {
     final t = _thread;
     if (t == null) return;
-    
+
     final cs = Theme.of(context).colorScheme;
-    
+
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -921,32 +1629,141 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   Future<void> _navigateToBookingDetail() async {
-    final r = _request;
-    final t = _thread;
-    if (r == null && t == null) {
-      debugPrint('[MessageThreadScreen] No request/thread available for booking navigation');
-      AppPopup.toast(context, icon: Icons.info_outline, title: 'Keine Buchung verfügbar');
-      return;
+    try {
+      final me = _currentUser;
+      final thread = _thread;
+      RentalRequest? req = _request;
+      Item? item = _item;
+
+      final requestId = req?.id ?? thread?.requestId ?? widget.requestId ?? '';
+      if (req == null && requestId.isNotEmpty) {
+        req = await DataService.getRentalRequestById(requestId);
+      }
+
+      if (item == null) {
+        final itemId = req?.itemId ?? thread?.itemId ?? '';
+        if (itemId.isNotEmpty) item = await DataService.getItemById(itemId);
+      }
+
+      final owner = req != null ? await DataService.getUserById(req.ownerId) : null;
+      final viewerIsOwner = _isViewerOwnerFor(req, thread, me);
+
+      final resolvedReq = req;
+      if (resolvedReq == null) {
+        AppPopup.toast(context, icon: Icons.info_outline, title: 'Keine Buchung gefunden');
+        return;
+      }
+
+      if (viewerIsOwner) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => OngoingOwnerDetailScreen(
+              requestId: resolvedReq.id,
+              titleOverride: _ownerTitleFromStatus(resolvedReq.status),
+            ),
+          ),
+        );
+        return;
+      }
+
+      final deliverySel = item != null ? await DataService.getSavedDeliverySelection(item.id) : null;
+      final booking = _buildBookingMapForRenter(req: resolvedReq, item: item, owner: owner, deliverySel: deliverySel);
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => BookingDetailScreen(booking: booking, viewerIsOwner: false)),
+      );
+    } catch (e) {
+      debugPrint('[MessageThreadScreen] _navigateToBookingDetail failed: $e');
+      if (mounted) AppPopup.toast(context, icon: Icons.error_outline, title: 'Buchung nicht verfügbar');
     }
-    
-    // Build booking map from available data
-    final booking = <String, dynamic>{
-      'id': r?.id ?? t?.requestId ?? '',
-      'itemId': r?.itemId ?? t?.itemId ?? '',
-      'itemTitle': _itemTitle(),
-      'status': r?.status ?? t?.bookingStatus ?? 'pending',
-      'start': (r?.start ?? DateTime.now()).toIso8601String(),
-      'end': (r?.end ?? DateTime.now()).toIso8601String(),
-      'quotedTotalRenter': r?.quotedTotalRenter ?? 0.0,
-      'renterId': r?.renterId ?? '',
-      'ownerId': r?.ownerId ?? '',
-      'deliveryCity': r?.deliveryCity ?? '',
-      'deliveryAddressLine': r?.deliveryAddressLine ?? '',
+  }
+
+  bool _isViewerOwnerFor(RentalRequest? req, MessageThread? thread, User? viewer) {
+    if (viewer == null) return false;
+    if (req != null) return req.ownerId == viewer.id;
+    if (thread != null) return thread.user2Id == viewer.id;
+    return _viewerIsOwner();
+  }
+
+  String _ownerTitleFromStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'Mietanfrage';
+      case 'accepted':
+        return 'Kommende Anmietung';
+      case 'running':
+        return 'Laufende Anmietung';
+      case 'completed':
+        return 'Abgeschlossene Anmietung';
+      case 'cancelled':
+      case 'declined':
+        return 'Abgeschlossene Anmietung';
+      default:
+        return 'Anmietung';
+    }
+  }
+
+  String _bookingCategoryFromStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'pending';
+      case 'accepted':
+        return 'upcoming';
+      case 'running':
+        return 'ongoing';
+      case 'completed':
+      case 'cancelled':
+      case 'declined':
+        return 'completed';
+      default:
+        return 'upcoming';
+    }
+  }
+
+  Map<String, dynamic> _buildBookingMapForRenter({required RentalRequest req, Item? item, User? owner, Map<String, dynamic>? deliverySel}) {
+    String fmt(DateTime d) {
+      const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+      final mm = months[d.month - 1];
+      final dd = d.day.toString().padLeft(2, '0');
+      return '$dd. $mm';
+    }
+
+    final breakdown = item != null ? DataService.priceBreakdownForRequest(item: item, req: req, deliverySel: deliverySel) : null;
+    final total = req.quotedTotalRenter ?? breakdown?.totalRenter ?? 0.0;
+    return {
+      'requestId': req.id,
+      'itemId': item?.id ?? req.itemId,
+      'rawStatus': req.status,
+      'cancelledBy': req.cancelledBy,
+      'title': item?.title ?? _itemTitle(),
+      'dates': '${fmt(req.start)} – ${fmt(req.end)}',
+      'location': item?.locationText,
+      'status': req.status,
+      'category': _bookingCategoryFromStatus(req.status),
+      'image': (item?.photos.isNotEmpty == true) ? item!.photos.first : null,
+      'images': item?.photos ?? const <String>[],
+      'listerId': item?.ownerId ?? req.ownerId,
+      'listerName': owner?.displayName ?? 'Vermieter',
+      'listerAvatar': owner?.photoURL,
+      'pricePaid': total > 0 ? '${total.round()} €' : null,
+      'quotedTotalRenter': total,
+      'days': breakdown?.days,
+      'basePerDay': item?.pricePerDay,
+      'expressRequested': req.expressRequested,
+      'expressStatus': req.expressStatus,
+      'expressRequestedAt': req.expressRequestedAt?.toIso8601String(),
+      'startIso': req.start.toIso8601String(),
+      'endIso': req.end.toIso8601String(),
+      'policy': item?.cancellationPolicy,
+      'requestCreatedAtIso': req.createdAt.toIso8601String(),
+      'offersDeliveryAtDropoff': item?.offersDeliveryAtDropoff,
+      'offersPickupAtReturn': item?.offersPickupAtReturn,
+      'ownerDeliversAtDropoffChosen': req.ownerDeliversAtDropoffChosen,
+      'ownerPicksUpAtReturnChosen': req.ownerPicksUpAtReturnChosen,
+      'deliveryAddressLine': req.deliveryAddressLine ?? (deliverySel?['addressLine'] as String?) ?? '',
+      'deliveryCity': req.deliveryCity ?? (deliverySel?['city'] as String?) ?? '',
+      'deliveryLat': req.deliveryLat ?? (deliverySel?['lat'] as num?)?.toDouble(),
+      'deliveryLng': req.deliveryLng ?? (deliverySel?['lng'] as num?)?.toDouble(),
     };
-    
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => BookingDetailScreen(booking: booking, viewerIsOwner: _viewerIsOwner())),
-    );
   }
 
   Future<void> _blockUser() async {
@@ -954,6 +1771,11 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final me = _currentUser;
     if (t == null || me == null) {
       AppPopup.toast(context, icon: Icons.info_outline, title: 'Blockieren nicht möglich');
+      return;
+    }
+
+    if (t.id == _translationDemoThreadId) {
+      AppPopup.toast(context, icon: Icons.visibility_outlined, title: 'Demo-Chat', message: 'Blockieren ist in der Demo deaktiviert.');
       return;
     }
 
@@ -999,18 +1821,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _proposeHandoverTime() async {
     final t = _thread;
     if (t == null) return;
-    
+
     final now = DateTime.now();
     final initialTime = _request?.start ?? now.add(const Duration(hours: 2));
-    
+
     final picked = await SitGlassTimePicker.show(
       context,
       title: 'Übergabezeit wählen',
       initialTime: TimeOfDay.fromDateTime(initialTime),
     );
-    
+
     if (picked == null || !mounted) return;
-    
+
     final proposedTime = DateTime(
       initialTime.year,
       initialTime.month,
@@ -1018,10 +1840,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       picked.hour,
       picked.minute,
     );
-    
+
     final dayName = _weekdayName(proposedTime.weekday);
     final timeStr = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-    
+
     try {
       await DataService.addSystemMessageToThread(
         threadId: t.id,
@@ -1039,18 +1861,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _proposeReturnTime() async {
     final t = _thread;
     if (t == null) return;
-    
+
     final now = DateTime.now();
     final initialTime = _request?.end ?? now.add(const Duration(days: 1));
-    
+
     final picked = await SitGlassTimePicker.show(
       context,
       title: 'Rückgabezeit wählen',
       initialTime: TimeOfDay.fromDateTime(initialTime),
     );
-    
+
     if (picked == null || !mounted) return;
-    
+
     final proposedTime = DateTime(
       initialTime.year,
       initialTime.month,
@@ -1058,10 +1880,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       picked.hour,
       picked.minute,
     );
-    
+
     final dayName = _weekdayName(proposedTime.weekday);
     final timeStr = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-    
+
     try {
       await DataService.addSystemMessageToThread(
         threadId: t.id,
@@ -1080,30 +1902,20 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return days[(weekday - 1) % 7];
   }
 
+  Future<void> _viewProfile() async {
+    final otherId = await _resolveOtherPartyUserId();
+    if (otherId == null) {
+      AppPopup.toast(context, icon: Icons.info_outline, title: 'Profil konnte gerade nicht geöffnet werden.');
+      return;
+    }
 
-Future<void> _viewProfile() async {
-  final other = _otherUser;
-  final thread = _thread;
-  final isSupport = thread != null &&
-      (((thread.threadType ?? '').toLowerCase() == 'support') ||
-          thread.user1Id == 'support' ||
-          thread.user2Id == 'support');
-  if (isSupport) {
-    AppPopup.toast(
-      context,
-      icon: Icons.info_outline,
-      title: 'Für Support ist kein öffentliches Profil verfügbar.',
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PublicProfileScreen(userId: otherId),
+      ),
     );
-    return;
   }
-  if (other == null || other.id.trim().isEmpty) {
-    AppPopup.toast(context, icon: Icons.info_outline, title: 'Profil nicht verfügbar');
-    return;
-  }
-  await Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => PublicProfileScreen(userId: other.id)),
-  );
-}
 
   Future<void> _muteNotifications() async {
     // TODO: Echte Stummschaltungs-Logik
@@ -1115,6 +1927,11 @@ Future<void> _viewProfile() async {
     final me = _currentUser;
     if (t == null || me == null) {
       AppPopup.toast(context, icon: Icons.info_outline, title: 'Archivieren nicht möglich');
+      return;
+    }
+
+    if (t.id == _translationDemoThreadId) {
+      if (mounted) AppPopup.toast(context, icon: Icons.visibility_outlined, title: 'Demo-Chat', message: 'Archivieren ist in der Demo deaktiviert.');
       return;
     }
     try {
@@ -1229,7 +2046,7 @@ Unterkategorie: $subCategory$descText''';
       }
     }
   }
-  
+
   String _supportMainCategoryLabel(String category) {
     switch (category) {
       case 'handover': return 'Problem mit Übergabe';
@@ -1278,7 +2095,7 @@ class _ThreadHeader extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasActions = !isSupport || onMuteNotifications != null || onArchiveChat != null;
-    
+
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -1289,39 +2106,47 @@ class _ThreadHeader extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: 8,
       title: Row(
         children: [
-          _HeaderAvatar(isSupport: isSupport, avatarUrl: avatarUrl),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onViewProfile,
+            child: _HeaderAvatar(isSupport: isSupport, avatarUrl: avatarUrl),
+          ),
           const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onViewProfile,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                        ),
                       ),
-                    ),
-                    if (verified) ...[
-                      const SizedBox(width: 6),
-                      Icon(Icons.verified_rounded, size: 16, color: BrandColors.success),
+                      if (verified) ...[
+                        const SizedBox(width: 6),
+                        Icon(Icons.verified_rounded, size: 16, color: BrandColors.success),
+                      ],
                     ],
-                  ],
-                ),
-                if (subtitle.trim().isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.72), fontWeight: FontWeight.w700),
                   ),
+                  if (subtitle.trim().isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.72), fontWeight: FontWeight.w700),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],
@@ -1488,56 +2313,54 @@ class _CompactBookingCard extends StatelessWidget {
               border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Item-Bild
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    color: Colors.white.withValues(alpha: 0.08),
-                    child: itemImageUrl != null && itemImageUrl!.isNotEmpty
-                        ? Image.asset(itemImageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _placeholder())
-                        : _placeholder(),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // Artikelname + Status
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        itemTitle.isEmpty ? 'Buchung' : itemTitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
-                      ),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          _StatusBadge(label: statusLabel, bg: statusBg, fg: statusFg),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                // Details-Pfeil
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.06),
+                    color: Colors.white.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Details', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontWeight: FontWeight.w600, fontSize: 11)),
-                      const SizedBox(width: 2),
-                      Icon(Icons.chevron_right, color: Colors.white.withValues(alpha: 0.6), size: 14),
-                    ],
+                  child: itemImageUrl != null && itemImageUrl!.trim().isNotEmpty
+                      ? AppImage(url: itemImageUrl, fit: BoxFit.cover, borderRadius: BorderRadius.circular(8))
+                      : _placeholder(),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      itemTitle.isEmpty ? 'Buchung' : itemTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17),
+                    ),
                   ),
+                ),
+                const SizedBox(width: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _StatusBadge(label: statusLabel, bg: statusBg, fg: statusFg),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Details', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontWeight: FontWeight.w600, fontSize: 11)),
+                          const SizedBox(width: 2),
+                          Icon(Icons.chevron_right, color: Colors.white.withValues(alpha: 0.6), size: 14),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1728,6 +2551,21 @@ class _PressScaleState extends State<_PressScale> {
   }
 }
 
+class _TranslationDisplay {
+  final String original;
+  final String? translated;
+  final String languageCode;
+  final bool placeholder;
+  final bool showOriginalUnderTranslation;
+  const _TranslationDisplay({
+    required this.original,
+    this.translated,
+    required this.languageCode,
+    this.placeholder = false,
+    this.showOriginalUnderTranslation = false,
+  });
+}
+
 class _AnimatedMessageEntry extends StatelessWidget {
   final Widget child;
   const _AnimatedMessageEntry({super.key, required this.child});
@@ -1750,16 +2588,30 @@ class _AnimatedMessageEntry extends StatelessWidget {
 
 class _ChatBubble extends StatelessWidget {
   final String text;
+  final String? translatedText;
+  final String? translationLabel;
+  final bool translationPlaceholder;
+  final bool showOriginalUnderTranslation;
   final bool me;
   final String time;
-  const _ChatBubble({required this.text, required this.me, required this.time});
+  const _ChatBubble({
+    required this.text,
+    this.translatedText,
+    this.translationLabel,
+    this.translationPlaceholder = false,
+    this.showOriginalUnderTranslation = false,
+    required this.me,
+    required this.time,
+  });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final bg = me ? cs.primary.withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.08);
     final maxWidth = MediaQuery.of(context).size.width * 0.72;
-    
+    final hasTranslation = translatedText != null && translatedText!.trim().isNotEmpty;
+    final showPlaceholderLabel = !hasTranslation && translationPlaceholder && translationLabel != null;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 3),
       padding: const EdgeInsets.fromLTRB(12, 9, 10, 7),
@@ -1773,13 +2625,58 @@ class _ChatBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(text, style: const TextStyle(color: Colors.white, height: 1.3, fontSize: 14)),
+          if (hasTranslation) ...[
+            if (translationLabel != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(translationLabel!, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w700)),
+              ),
+            Text(translatedText!, style: const TextStyle(color: Colors.white, height: 1.3, fontSize: 14)),
+            if (showOriginalUnderTranslation) ...[
+              const SizedBox(height: 6),
+              Text('Original', style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 10, fontWeight: FontWeight.w600)),
+              Text(text, style: TextStyle(color: Colors.white.withValues(alpha: 0.78), height: 1.28, fontSize: 13)),
+            ],
+          ] else ...[
+            if (showPlaceholderLabel)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(translationLabel!, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.w700)),
+              ),
+            Text(text, style: const TextStyle(color: Colors.white, height: 1.3, fontSize: 14)),
+          ],
           const SizedBox(height: 3),
           Align(
             alignment: Alignment.bottomRight,
             child: Text(time, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 10, fontWeight: FontWeight.w500)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TranslationHandleButton extends StatelessWidget {
+  final bool active;
+  final VoidCallback onTap;
+
+  const _TranslationHandleButton({required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return _PressScale(
+      onTap: onTap,
+      child: Container(
+        width: 18,
+        height: 18,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: active ? cs.primary.withValues(alpha: 0.18) : Colors.white.withValues(alpha: 0.06),
+          border: Border.all(color: active ? cs.primary.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.08)),
+          boxShadow: active ? [BoxShadow(color: cs.primary.withValues(alpha: 0.18), blurRadius: 6, offset: const Offset(0, 1))] : null,
+        ),
+        child: Icon(Icons.translate_rounded, size: 11, color: active ? cs.primary : Colors.white.withValues(alpha: 0.68)),
       ),
     );
   }
@@ -1855,12 +2752,280 @@ class _AvatarMessageRow extends StatelessWidget {
   }
 }
 
+class _SupportCaseData {
+  final String? itemTitle;
+  final String? bookingId;
+  final String? category;
+  final String? subCategory;
+  final String? description;
+  const _SupportCaseData({this.itemTitle, this.bookingId, this.category, this.subCategory, this.description});
+}
+
+class _SupportCaseResolved {
+  final String itemTitle;
+  final String bookingId;
+  final String category;
+  final String subCategory;
+  final String description;
+  final String counterpart;
+  final String period;
+  final String? imageUrl;
+  const _SupportCaseResolved({required this.itemTitle, required this.bookingId, required this.category, required this.subCategory, required this.description, required this.counterpart, required this.period, this.imageUrl});
+}
+
+class _SupportCaseMessage extends StatefulWidget {
+  final _SupportCaseData data;
+  final Item? fallbackItem;
+  final RentalRequest? fallbackRequest;
+  final User? fallbackCounterparty;
+  final String? currentUserId;
+
+  const _SupportCaseMessage({required this.data, this.fallbackItem, this.fallbackRequest, this.fallbackCounterparty, this.currentUserId});
+
+  @override
+  State<_SupportCaseMessage> createState() => _SupportCaseMessageState();
+}
+
+class _SupportCaseMessageState extends State<_SupportCaseMessage> {
+  late final _SupportCaseResolved _base;
+  late final Future<_SupportCaseResolved> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _base = _SupportCaseResolved(
+      itemTitle: widget.data.itemTitle ?? 'Support-Fall',
+      bookingId: widget.data.bookingId ?? 'Nicht verfügbar',
+      category: widget.data.category ?? 'Nicht angegeben',
+      subCategory: widget.data.subCategory ?? 'Nicht angegeben',
+      description: widget.data.description ?? 'Keine Beschreibung vorhanden.',
+      counterpart: widget.fallbackCounterparty?.displayName?.trim().isNotEmpty == true ? widget.fallbackCounterparty!.displayName!.trim() : 'Unbekannt',
+      period: 'Nicht angegeben',
+      imageUrl: widget.fallbackItem?.photos.isNotEmpty == true ? widget.fallbackItem!.photos.first : null,
+    );
+    _future = _resolve();
+  }
+
+  Future<_SupportCaseResolved> _resolve() async {
+    String itemTitle = _base.itemTitle;
+    String bookingId = _base.bookingId;
+    String category = _base.category;
+    String subCategory = _base.subCategory;
+    String description = _base.description;
+    String counterpart = _base.counterpart;
+    String period = _base.period;
+    String? imageUrl = _base.imageUrl;
+
+    RentalRequest? req = widget.fallbackRequest;
+    final candidateBookingId = widget.data.bookingId;
+    if (req == null && candidateBookingId != null && candidateBookingId.trim().isNotEmpty && candidateBookingId.toLowerCase() != 'n/a') {
+      try {
+        req = await DataService.getRentalRequestById(candidateBookingId.trim());
+      } catch (_) {}
+    }
+
+    Item? item = widget.fallbackItem;
+    if (item == null && req != null && req.itemId.isNotEmpty) {
+      try {
+        item = await DataService.getItemById(req.itemId);
+      } catch (_) {}
+    }
+
+    if (item != null) {
+      itemTitle = item.title.isNotEmpty ? item.title : itemTitle;
+      if (item.photos.isNotEmpty) imageUrl = item.photos.first;
+    }
+
+    if (req != null) {
+      bookingId = bookingId == 'Nicht verfügbar' ? req.id : bookingId;
+      period = _formatPeriod(req.start, req.end);
+
+      final viewerId = widget.currentUserId;
+      final counterpartId = viewerId != null && viewerId.isNotEmpty
+          ? (viewerId == req.ownerId ? req.renterId : req.ownerId)
+          : req.renterId;
+      if (counterpartId.isNotEmpty) {
+        try {
+          final user = await DataService.getUserById(counterpartId);
+          if (user?.displayName.trim().isNotEmpty == true) {
+            counterpart = user!.displayName.trim();
+          }
+        } catch (_) {}
+      }
+    }
+
+    return _SupportCaseResolved(
+      itemTitle: itemTitle,
+      bookingId: bookingId,
+      category: category,
+      subCategory: subCategory,
+      description: description,
+      counterpart: counterpart,
+      period: period,
+      imageUrl: imageUrl,
+    );
+  }
+
+  String _formatPeriod(DateTime start, DateTime end) {
+    String fmt(DateTime d) {
+      final dd = d.day.toString().padLeft(2, '0');
+      final mm = d.month.toString().padLeft(2, '0');
+      final yyyy = d.year.toString();
+      return '$dd.$mm.$yyyy';
+    }
+
+    return '${fmt(start)} – ${fmt(end)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final maxWidth = MediaQuery.of(context).size.width * 0.94;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth > 520 ? 520 : maxWidth),
+          child: FutureBuilder<_SupportCaseResolved>(
+            future: _future,
+            builder: (context, snapshot) {
+              final d = snapshot.data ?? _base;
+              final hasBookingId = d.bookingId.isNotEmpty && d.bookingId != 'Nicht verfügbar';
+              final badgeLabel = hasBookingId ? 'Buchung #${d.bookingId.replaceFirst(RegExp(r'^#'), '').trim()}' : 'Support-Fall';
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 18, offset: const Offset(0, 8)),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Support-Anfrage', style: TextStyle(color: Colors.white.withValues(alpha: 0.82), fontWeight: FontWeight.w800, fontSize: 13)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                              ),
+                              child: Text(badgeLabel, style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontWeight: FontWeight.w700, fontSize: 11)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.06),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                              ),
+                              child: d.imageUrl != null && d.imageUrl!.trim().isNotEmpty
+                                  ? AppImage(url: d.imageUrl, fit: BoxFit.cover, borderRadius: BorderRadius.circular(12))
+                                  : Icon(Icons.inventory_2_outlined, color: Colors.white.withValues(alpha: 0.45), size: 26),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(d.itemTitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17, height: 1.2)),
+                                  const SizedBox(height: 6),
+                                  _SupportMetaLine(icon: Icons.confirmation_number_outlined, label: 'Buchungs-ID', value: d.bookingId),
+                                  const SizedBox(height: 3),
+                                  _SupportMetaLine(icon: Icons.schedule_outlined, label: 'Zeitraum', value: d.period),
+                                  const SizedBox(height: 3),
+                                  _SupportMetaLine(icon: Icons.person_outline, label: 'Betroffene Person', value: d.counterpart),
+                                  const SizedBox(height: 3),
+                                  _SupportMetaLine(icon: Icons.category_outlined, label: 'Kategorie', value: d.category),
+                                  const SizedBox(height: 3),
+                                  _SupportMetaLine(icon: Icons.label_outline, label: 'Unterkategorie', value: d.subCategory),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                          ),
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Bericht', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontWeight: FontWeight.w700, fontSize: 12)),
+                              const SizedBox(height: 6),
+                              Text(d.description.isEmpty ? 'Keine Beschreibung vorhanden.' : d.description, style: TextStyle(color: Colors.white.withValues(alpha: 0.9), height: 1.32, fontSize: 13.5)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SupportMetaLine extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _SupportMetaLine({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: Colors.white.withValues(alpha: 0.65), size: 15),
+        const SizedBox(width: 8),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.85), height: 1.35, fontSize: 12.5),
+              children: [
+                TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.w700)),
+                TextSpan(text: value.isNotEmpty ? value : 'Nicht angegeben'),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _SystemMessage extends StatelessWidget {
   final String text;
   final String? senderAvatarUrl;
   final bool senderIsMe;
   const _SystemMessage({
-    required this.text, 
+    required this.text,
     this.senderAvatarUrl,
     this.senderIsMe = true,
   });
@@ -1868,11 +3033,11 @@ class _SystemMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    
+
     // Prüfen ob es eine Zeit-Anfrage ist (Übergabe oder Rückgabe)
     final isHandoverTime = text.contains('Übergabezeit angefragt');
     final isReturnTime = text.contains('Rückgabezeit angefragt');
-    
+
     if (isHandoverTime || isReturnTime) {
       return _TimeRequestCard(
         text: text,
@@ -1881,7 +3046,7 @@ class _SystemMessage extends StatelessWidget {
         avatarUrl: senderAvatarUrl,
       );
     }
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Center(
@@ -1905,22 +3070,22 @@ class _TimeRequestCard extends StatelessWidget {
   final bool isReturn;
   final bool isMe;
   final String? avatarUrl;
-  
+
   const _TimeRequestCard({
-    required this.text, 
+    required this.text,
     this.isReturn = false,
     this.isMe = true,
     this.avatarUrl,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    
+
     // Text ohne Emoji extrahieren
     final cleanText = text.replaceAll('📦', '').replaceAll('🔄', '').trim();
     final maxWidth = MediaQuery.of(context).size.width * 0.72;
-    
+
     // Kleines Profilbild (wie bei Nachrichten, radius 9)
     Widget avatar = SitUserAvatar(
       url: avatarUrl,
@@ -1928,10 +3093,10 @@ class _TimeRequestCard extends StatelessWidget {
       borderColor: Colors.white.withValues(alpha: 0.12),
       placeholderIcon: Icons.person_outline,
     );
-    
+
     // Braune Karton-Farbe wie in der Nachrichtenübersicht
     const cardboardBrown = Color(0xFFB8956C);
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -2036,6 +3201,68 @@ class _InlineSystemCard extends StatelessWidget {
           const SizedBox(width: 6),
           Text(text, style: TextStyle(color: Colors.white.withValues(alpha: 0.40), fontWeight: FontWeight.w500, fontSize: 11)),
         ],
+      ),
+    );
+  }
+}
+
+class _TranslationDemoBanner extends StatelessWidget {
+  const _TranslationDemoBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                ),
+                child: const Icon(Icons.translate_rounded, color: Colors.white, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Beispiel-Chat für Übersetzung', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tippe auf das Übersetzungsicon links neben der eingehenden Nachricht, um den Übersetzungsmodus zu testen.',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontWeight: FontWeight.w500, fontSize: 11, height: 1.35),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: cs.primary.withValues(alpha: 0.35)),
+                ),
+                child: Text('Demo', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w900, fontSize: 11)),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2378,28 +3605,28 @@ class _TransactionComposerState extends State<_TransactionComposer> {
       builder: (context, value, _) {
         // Regel: isComposing = Text vorhanden ODER Fokus auf Input
         final isComposing = value.text.trim().isNotEmpty || _inputFocused;
-        
+
         // Wenn isComposing: alle Buttons ausblenden, nur Textfeld + Send
         // Zeitbuttons einzeln ausblenden nach bestätigtem Status:
         // - Übergabezeit-Button: ausblenden wenn running/returnPlanned/completed (Übergabe schon stattgefunden)
         // - Rückgabezeit-Button: ausblenden wenn completed (Rückgabe abgeschlossen)
         final showHandoverTimeButton = !isComposing && widget.chatState == _ChatState.confirmed;
-        final showReturnTimeButton = !isComposing && 
-            (widget.chatState == _ChatState.confirmed || 
-             widget.chatState == _ChatState.running || 
+        final showReturnTimeButton = !isComposing &&
+            (widget.chatState == _ChatState.confirmed ||
+             widget.chatState == _ChatState.running ||
              widget.chatState == _ChatState.returnPlanned);
         final showTimeButtons = showHandoverTimeButton || showReturnTimeButton;
         final showActions = !isComposing && widget.showActions;
-        
+
         // Web-Fallback: Auf Flutter Web bleibt viewInsets.bottom oft bei 0
         // In dem Fall nutzen wir viewPadding.bottom für SafeArea-Padding
         final viewInsets = MediaQuery.of(context).viewInsets.bottom;
         final viewPadding = MediaQuery.of(context).viewPadding.bottom;
         final isWebKeyboardWorkaround = kIsWeb && viewInsets == 0 && _inputFocused;
-        
+
         // Beim Schreiben: Minimale UI ohne äußere Card
         // Sonst: Normale Composer-UI mit Glass-Effekt
-        
+
         if (isComposing) {
           // Minimaler Composer: nur Textfeld + Icons + Send-Button, keine äußere Card
           return Padding(
@@ -2417,7 +3644,7 @@ class _TransactionComposerState extends State<_TransactionComposer> {
             ),
           );
         }
-        
+
         // Kein äußerer Wrapper mehr - nur Padding + Column
         return Padding(
           padding: EdgeInsets.fromLTRB(14, 12, 14, 10 + viewPadding),
@@ -2494,7 +3721,7 @@ class _CombinedActionRow extends StatelessWidget {
   final VoidCallback onProposeHandover;
   final VoidCallback onProposeReturn;
   final VoidCallback? onPrimary;
-  
+
   const _CombinedActionRow({
     required this.showHandoverTimeButton,
     required this.showReturnTimeButton,
@@ -2510,23 +3737,23 @@ class _CombinedActionRow extends StatelessWidget {
     required this.onProposeReturn,
     this.onPrimary,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    
+
     // Braune Karton-Farbe wie in der Nachrichtenübersicht
     const cardboardBrown = Color(0xFFB8956C);
-    
+
     // Pendingstatus für Zeitbuttons
     final handoverPending = handoverTimeRequested != null && handoverTimeRequested!.isNotEmpty && !handoverConfirmed;
     final returnPending = returnTimeRequested != null && returnTimeRequested!.isNotEmpty && !returnConfirmed;
-    
+
     // Button-Farben basierend auf Aktivierung
     final isActive = primaryEnabled && onPrimary != null;
-    
+
     final showTimeRow = showHandoverTimeButton || showReturnTimeButton;
-    
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -2591,12 +3818,12 @@ class _CombinedActionRow extends StatelessWidget {
                         child: Container(
                           height: 40,
                           decoration: BoxDecoration(
-                            color: handoverPending 
+                            color: handoverPending
                                 ? cs.primary.withValues(alpha: 0.12)
                                 : Colors.white.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: handoverPending 
+                              color: handoverPending
                                   ? cs.primary.withValues(alpha: 0.3)
                                   : Colors.white.withValues(alpha: 0.08),
                             ),
@@ -2609,8 +3836,8 @@ class _CombinedActionRow extends StatelessWidget {
                               Text(
                                 'Übergabezeit',
                                 style: TextStyle(
-                                  color: handoverPending ? cs.primary : Colors.white.withValues(alpha: 0.8), 
-                                  fontWeight: FontWeight.w600, 
+                                  color: handoverPending ? cs.primary : Colors.white.withValues(alpha: 0.8),
+                                  fontWeight: FontWeight.w600,
                                   fontSize: 12,
                                 ),
                               ),
@@ -2630,12 +3857,12 @@ class _CombinedActionRow extends StatelessWidget {
                         child: Container(
                           height: 40,
                           decoration: BoxDecoration(
-                            color: returnPending 
+                            color: returnPending
                                 ? cs.primary.withValues(alpha: 0.12)
                                 : Colors.white.withValues(alpha: 0.06),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: returnPending 
+                              color: returnPending
                                   ? cs.primary.withValues(alpha: 0.3)
                                   : Colors.white.withValues(alpha: 0.08),
                             ),
@@ -2667,8 +3894,8 @@ class _CombinedActionRow extends StatelessWidget {
                               Text(
                                 'Rückgabezeit',
                                 style: TextStyle(
-                                  color: returnPending ? cs.primary : Colors.white.withValues(alpha: 0.8), 
-                                  fontWeight: FontWeight.w600, 
+                                  color: returnPending ? cs.primary : Colors.white.withValues(alpha: 0.8),
+                                  fontWeight: FontWeight.w600,
                                   fontSize: 12,
                                 ),
                               ),
@@ -2707,8 +3934,8 @@ class _CombinedActionRow extends StatelessWidget {
                     Text(
                       primaryLabel,
                       style: TextStyle(
-                        color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.5), 
-                        fontWeight: FontWeight.w700, 
+                        color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.5),
+                        fontWeight: FontWeight.w700,
                         fontSize: 14,
                       ),
                     ),
@@ -2744,7 +3971,7 @@ class _TimeAgreementButtons extends StatelessWidget {
   final String? returnTimeRequested;   // z.B. "Fr, 16:00"
   final bool handoverConfirmed;
   final bool returnConfirmed;
-  
+
   const _TimeAgreementButtons({
     required this.onProposeHandover,
     required this.onProposeReturn,
@@ -2755,12 +3982,12 @@ class _TimeAgreementButtons extends StatelessWidget {
     this.handoverConfirmed = false,
     this.returnConfirmed = false,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     // Wenn beide unsichtbar, nichts anzeigen
     if (!showHandoverButton && !showReturnButton) return const SizedBox.shrink();
-    
+
     // Wenn nur einer sichtbar, zentriert anzeigen
     if (!showHandoverButton) {
       return _buildReturnButton(context);
@@ -2768,7 +3995,7 @@ class _TimeAgreementButtons extends StatelessWidget {
     if (!showReturnButton) {
       return _buildHandoverButton(context);
     }
-    
+
     // Beide sichtbar
     return Row(
       children: [
@@ -2778,15 +4005,15 @@ class _TimeAgreementButtons extends StatelessWidget {
       ],
     );
   }
-  
+
   Widget _buildHandoverButton(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final hasRequested = handoverTimeRequested != null && handoverTimeRequested!.isNotEmpty;
     final isPending = hasRequested && !handoverConfirmed;
-    
+
     // Braune Karton-Farbe wie in der Nachrichtenübersicht
     const cardboardBrown = Color(0xFFB8956C);
-    
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -2801,8 +4028,8 @@ class _TimeAgreementButtons extends StatelessWidget {
               Text(
                 'wartet auf Bestätigung',
                 style: TextStyle(
-                  color: Colors.orange.withValues(alpha: 0.8), 
-                  fontWeight: FontWeight.w500, 
+                  color: Colors.orange.withValues(alpha: 0.8),
+                  fontWeight: FontWeight.w500,
                   fontSize: 9,
                 ),
               ),
@@ -2815,12 +4042,12 @@ class _TimeAgreementButtons extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: isPending 
+              color: isPending
                   ? cs.primary.withValues(alpha: 0.12)
                   : Colors.white.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isPending 
+                color: isPending
                     ? cs.primary.withValues(alpha: 0.3)
                     : Colors.white.withValues(alpha: 0.08),
               ),
@@ -2834,8 +4061,8 @@ class _TimeAgreementButtons extends StatelessWidget {
                 Text(
                   'Übergabezeit',
                   style: TextStyle(
-                    color: isPending ? cs.primary : Colors.white.withValues(alpha: 0.8), 
-                    fontWeight: FontWeight.w600, 
+                    color: isPending ? cs.primary : Colors.white.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w600,
                     fontSize: 12,
                   ),
                 ),
@@ -2846,15 +4073,15 @@ class _TimeAgreementButtons extends StatelessWidget {
       ],
     );
   }
-  
+
   Widget _buildReturnButton(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final hasRequested = returnTimeRequested != null && returnTimeRequested!.isNotEmpty;
     final isPending = hasRequested && !returnConfirmed;
-    
+
     // Braune Karton-Farbe wie in der Nachrichtenübersicht
     const cardboardBrown = Color(0xFFB8956C);
-    
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -2869,8 +4096,8 @@ class _TimeAgreementButtons extends StatelessWidget {
               Text(
                 'wartet auf Bestätigung',
                 style: TextStyle(
-                  color: Colors.orange.withValues(alpha: 0.8), 
-                  fontWeight: FontWeight.w500, 
+                  color: Colors.orange.withValues(alpha: 0.8),
+                  fontWeight: FontWeight.w500,
                   fontSize: 9,
                 ),
               ),
@@ -2883,12 +4110,12 @@ class _TimeAgreementButtons extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: isPending 
+              color: isPending
                   ? cs.primary.withValues(alpha: 0.12)
                   : Colors.white.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isPending 
+                color: isPending
                     ? cs.primary.withValues(alpha: 0.3)
                     : Colors.white.withValues(alpha: 0.08),
               ),
@@ -2921,8 +4148,8 @@ class _TimeAgreementButtons extends StatelessWidget {
                 Text(
                   'Rückgabezeit',
                   style: TextStyle(
-                    color: isPending ? cs.primary : Colors.white.withValues(alpha: 0.8), 
-                    fontWeight: FontWeight.w600, 
+                    color: isPending ? cs.primary : Colors.white.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w600,
                     fontSize: 12,
                   ),
                 ),
@@ -2939,19 +4166,19 @@ class _TimeAgreementButtons extends StatelessWidget {
 class _HandoverCountdown extends StatefulWidget {
   final DateTime confirmedTime;
   final VoidCallback? onStartNow;
-  
+
   const _HandoverCountdown({
     required this.confirmedTime,
     this.onStartNow,
   });
-  
+
   @override
   State<_HandoverCountdown> createState() => _HandoverCountdownState();
 }
 
 class _HandoverCountdownState extends State<_HandoverCountdown> {
   late Duration _remaining;
-  
+
   @override
   void initState() {
     super.initState();
@@ -2964,7 +4191,7 @@ class _HandoverCountdownState extends State<_HandoverCountdown> {
       return true;
     });
   }
-  
+
   void _updateRemaining() {
     final now = DateTime.now();
     final diff = widget.confirmedTime.difference(now);
@@ -2972,28 +4199,28 @@ class _HandoverCountdownState extends State<_HandoverCountdown> {
       setState(() => _remaining = diff.isNegative ? Duration.zero : diff);
     }
   }
-  
+
   String _formatCountdown(Duration d) {
     if (d.isNegative || d == Duration.zero) return 'Jetzt';
-    
+
     final days = d.inDays;
     final hours = d.inHours % 24;
     final minutes = d.inMinutes % 60;
-    
+
     final parts = <String>[];
     if (days > 0) parts.add('$days ${days == 1 ? 'Tag' : 'Tage'}');
     if (hours > 0) parts.add('$hours ${hours == 1 ? 'Stunde' : 'Stunden'}');
     if (minutes > 0 || parts.isEmpty) parts.add('$minutes ${minutes == 1 ? 'Minute' : 'Minuten'}');
-    
+
     return parts.join(' ');
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final countdownText = _formatCountdown(_remaining);
     final isNow = _remaining == Duration.zero;
-    
+
     return _PressScale(
       onTap: widget.onStartNow,
       child: Container(
@@ -3069,10 +4296,10 @@ class _CompactTransactionCTA extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    
+
     // Leeren Button nicht anzeigen
     if (primaryLabel.isEmpty) return const SizedBox.shrink();
-    
+
     // Button-Farben basierend auf Aktivierung
     final isActive = primaryEnabled && onPrimary != null;
     final buttonColors = isActive
@@ -3080,7 +4307,7 @@ class _CompactTransactionCTA extends StatelessWidget {
         : [Colors.grey.shade600, Colors.grey.shade700];
     final iconColor = isActive ? Colors.white : Colors.white.withValues(alpha: 0.5);
     final textColor = isActive ? Colors.white : Colors.white.withValues(alpha: 0.5);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -3193,11 +4420,32 @@ class _GlassInputBar extends StatefulWidget {
 class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProviderStateMixin {
   static const double _iconSize = 18.0;
   static const Duration _animDuration = Duration(milliseconds: 220);
-  
+  static const Duration _focusAnimDuration = Duration(milliseconds: 140);
+  static const double _fieldMinHeight = 40.0;
+  static const double _fieldFontSize = 15.0;
+
   late AnimationController _animController;
   late Animation<double> _fadeOuterIcons;
   late Animation<double> _fadeInnerIcons;
-  
+
+  void _focusInput() {
+    // Ensure a single tap both expands the field and puts the cursor inside.
+    if (!widget.focusNode.hasFocus) {
+      FocusScope.of(context).requestFocus(widget.focusNode);
+    }
+    widget.focusNode.requestFocus();
+  }
+
+  void _onTextChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  void _onFocusChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
@@ -3208,10 +4456,13 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
     _fadeInnerIcons = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animController, curve: const Interval(0.3, 1.0, curve: Curves.easeOut)),
     );
-    
+
     if (widget.isComposing) _animController.value = 1.0;
+
+    widget.focusNode.addListener(_onFocusChanged);
+    widget.controller.addListener(_onTextChanged);
   }
-  
+
   @override
   void didUpdateWidget(covariant _GlassInputBar oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -3222,10 +4473,22 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
         _animController.reverse();
       }
     }
+
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onTextChanged);
+      widget.controller.addListener(_onTextChanged);
+    }
+
+    if (oldWidget.focusNode != widget.focusNode) {
+      oldWidget.focusNode.removeListener(_onFocusChanged);
+      widget.focusNode.addListener(_onFocusChanged);
+    }
   }
-  
+
   @override
   void dispose() {
+    widget.focusNode.removeListener(_onFocusChanged);
+    widget.controller.removeListener(_onTextChanged);
     _animController.dispose();
     super.dispose();
   }
@@ -3233,131 +4496,210 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    
-    // Uhr-Icon nur bei confirmed/running anzeigen
+    final hasFocus = widget.focusNode.hasFocus;
+    final hasText = widget.controller.text.trim().isNotEmpty;
+    final effectiveMaxLines = hasText ? 5 : 1;
     final showTimeIcon = widget.chatState == _ChatState.confirmed || widget.chatState == _ChatState.running;
-    
-    return AnimatedBuilder(
-      animation: _animController,
-      builder: (context, child) {
-        final isExpanded = _animController.value > 0.5;
-        
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Icons links - Ausblenden im Schreibmodus mit Animation
-            AnimatedContainer(
-              duration: _animDuration,
-              curve: Curves.easeOutCubic,
-              width: isExpanded ? 0 : null,
-              child: FadeTransition(
-                opacity: _fadeOuterIcons,
-                child: SizeTransition(
-                  axis: Axis.horizontal,
-                  sizeFactor: _fadeOuterIcons,
-                  child: Row(
+
+    // Focus state: dezent SIT-blau
+    final fieldBorderColor = hasFocus ? cs.primary.withValues(alpha: 0.70) : Colors.white.withValues(alpha: 0.08);
+    final fieldFillColor = hasFocus ? Colors.white.withValues(alpha: 0.11) : Colors.white.withValues(alpha: 0.08);
+    final fieldShadow = hasFocus
+        ? [BoxShadow(color: cs.primary.withValues(alpha: 0.22), blurRadius: 14, offset: const Offset(0, 4))]
+        : const <BoxShadow>[];
+
+    // Vertical padding for 40px field with 15px font
+    const vPad = (_fieldMinHeight - _fieldFontSize) / 2;
+
+    // Breitenreserve für Inline-Icons im fokussierten Zustand (2 Icons à 28px + 6px Abstand + 12px Innenabstand)
+    const double focusedIconGutter = 28 + 6 + 28 + 12;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: _focusInput,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Linke Icon-Leiste: nur sichtbar wenn nicht fokussiert
+          AnimatedSwitcher(
+            duration: _focusAnimDuration,
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeOut,
+            child: hasFocus
+                ? const SizedBox(width: 0, height: 40)
+                : Row(
+                    key: const ValueKey('outer_icons'),
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _GlassIconButton(icon: Icons.attach_file_rounded, onTap: widget.onPickFile, iconSize: _iconSize),
-                      const SizedBox(width: 6),
                       _GlassIconButton(icon: Icons.photo_camera_outlined, onTap: widget.onSendPhoto, iconSize: _iconSize),
-                      const SizedBox(width: 6),
-                      _GlassIconButton(icon: Icons.my_location_rounded, onTap: widget.onShareLocation, iconSize: _iconSize),
+                      const SizedBox(width: 8),
+                      _GlassIconButton(icon: Icons.attach_file_rounded, onTap: widget.onPickFile, iconSize: _iconSize),
                       if (showTimeIcon) ...[
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         _GlassIconButton(icon: Icons.schedule_rounded, onTap: widget.onChangeTime, iconSize: _iconSize),
                       ],
+                      const SizedBox(width: 8),
+                      _GlassIconButton(icon: Icons.my_location_rounded, onTap: widget.onShareLocation, iconSize: _iconSize),
                       const SizedBox(width: 10),
                     ],
                   ),
-                ),
-              ),
-            ),
-            // Textfeld - expandiert im Schreibmodus
-            Expanded(
-              child: Container(
-                constraints: const BoxConstraints(minHeight: 40),
+          ),
+          // Input field takes remaining width
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _focusInput,
+              child: AnimatedContainer(
+                duration: _focusAnimDuration,
+                curve: Curves.easeOut,
+                constraints: const BoxConstraints(minHeight: _fieldMinHeight),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
+                  color: fieldFillColor,
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: fieldBorderColor),
+                  boxShadow: fieldShadow,
                 ),
                 child: Stack(
                   children: [
-                    // Inline-Icons: Kamera + Paperclip (nur im Schreibmodus)
-                    // Bleiben oben links auf Höhe der ersten Zeile
-                    Positioned(
-                      left: 10,
-                      top: 6,
-                      child: FadeTransition(
-                        opacity: _fadeInnerIcons,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _InlineIconButton(icon: Icons.photo_camera_outlined, onTap: widget.onSendPhoto),
-                            const SizedBox(width: 6),
-                            _InlineIconButton(icon: Icons.attach_file_rounded, onTap: widget.onPickFile),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // TextField - erste Zeile neben Icons, ab Zeile 2 volle Breite
+                    // Main TextField
                     TextField(
                       controller: widget.controller,
                       focusNode: widget.focusNode,
                       minLines: 1,
-                      maxLines: 5,
-                      textInputAction: TextInputAction.newline,
-                      keyboardType: TextInputType.multiline,
+                      maxLines: effectiveMaxLines,
+                      textInputAction: TextInputAction.send,
+                      keyboardType: TextInputType.text,
                       textAlignVertical: TextAlignVertical.center,
-                      style: const TextStyle(color: Colors.white, height: 1.3, fontSize: 15),
+                      showCursor: true,
+                      cursorColor: Colors.white.withValues(alpha: 0.92),
+                      cursorWidth: 2.0,
+                      cursorRadius: const Radius.circular(2),
+                      style: const TextStyle(color: Colors.white, fontSize: _fieldFontSize),
                       decoration: InputDecoration(
                         hintText: 'Nachricht…',
-                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontWeight: FontWeight.w500, fontSize: 15),
+                        hintStyle: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.45),
+                          fontWeight: FontWeight.w500,
+                          fontSize: _fieldFontSize,
+                        ),
                         filled: false,
-                        isDense: true,
+                        isDense: false,
+                        isCollapsed: true,
+                        // Left padding to make room for inline icons when focused
                         contentPadding: EdgeInsets.fromLTRB(
-                          isExpanded ? 76 : 14, // Platz für Icons in erster Zeile
-                          10, 
-                          14, 
-                          10,
+                          hasFocus ? focusedIconGutter + 12 : 14,
+                          vPad,
+                          14,
+                          vPad,
                         ),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
                       ),
+                      onTap: _focusInput,
+                      onSubmitted: (_) => widget.onSend(),
+                      onChanged: (value) {
+                        if (!value.contains('\n')) return;
+                        final cleaned = value.replaceAll('\n', '');
+                        if (cleaned != value) {
+                          widget.controller.text = cleaned;
+                          widget.controller.selection = TextSelection.collapsed(offset: cleaned.length);
+                        }
+                        widget.onSend();
+                      },
                     ),
+                    // Icons positioned left inside field (only when focused)
+                    if (hasFocus)
+                      Positioned(
+                        left: 10,
+                        top: 0,
+                        bottom: 0,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _InlineFocusedIcon(
+                              icon: Icons.photo_camera_outlined,
+                              onTap: () {
+                                _focusInput();
+                                widget.onSendPhoto();
+                              },
+                            ),
+                            const SizedBox(width: 6),
+                            _InlineFocusedIcon(
+                              icon: Icons.attach_file_rounded,
+                              onTap: () {
+                                _focusInput();
+                                widget.onPickFile();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(width: 10),
-            // Senden-Button
-            _PressScale(
-              onTap: widget.onSend,
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [cs.primary, cs.primary.withValues(alpha: 0.85)],
+          ),
+          const SizedBox(width: 10),
+          // Send button stays right
+          _PressScale(
+            onTap: widget.onSend,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [cs.primary, cs.primary.withValues(alpha: 0.85)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: cs.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: cs.primary.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Center(child: _SitSendIcon(size: 20, color: Colors.white)),
+                ],
               ),
+              child: const Center(child: _SitSendIcon(size: 20, color: Colors.white)),
             ),
-          ],
-        );
-      },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Icon inside focused input field (no background, no circle)
+class _InlineFocusedIcon extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _InlineFocusedIcon({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        canRequestFocus: false,
+        onTap: onTap,
+        splashColor: Colors.white.withValues(alpha: 0.15),
+        highlightColor: Colors.white.withValues(alpha: 0.08),
+        child: SizedBox(
+          width: 28,
+          height: 28,
+          child: Center(
+            child: Icon(
+              icon,
+              color: Colors.white.withValues(alpha: 0.7),
+              size: 18,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -3367,9 +4709,9 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
 class _InlineIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  
+
   const _InlineIconButton({required this.icon, required this.onTap});
-  
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -3403,7 +4745,7 @@ class _GlassIconButton extends StatelessWidget {
   final double iconSize;
 
   const _GlassIconButton({
-    required this.icon, 
+    required this.icon,
     required this.onTap,
     this.iconSize = 18.0,
   });
@@ -3426,8 +4768,8 @@ class _GlassIconButton extends StatelessWidget {
           ),
           child: Center(
             child: Icon(
-              icon, 
-              color: Colors.white.withValues(alpha: 0.55), 
+              icon,
+              color: Colors.white.withValues(alpha: 0.55),
               size: iconSize,
             ),
           ),
@@ -3649,8 +4991,7 @@ class _ScrollToBottomGlassButton extends StatelessWidget {
   }
 }
 
-/// SIT-style Send Icon (vector, no PNG)
-/// Stilisierter Pfeil nach rechts - clean, modern
+/// Standard Sende-Icon (Paper Plane wie gängige Messenger)
 class _SitSendIcon extends StatelessWidget {
   final double size;
   final Color color;
@@ -3659,15 +5000,9 @@ class _SitSendIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: SvgPicture.asset(
-        'assets/images/Send_Icon_For_SIT.svg',
-        width: size,
-        height: size,
-        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-      ),
+    return Transform.translate(
+      offset: const Offset(0.6, 0.2),
+      child: Icon(Icons.send_rounded, size: size, color: color),
     );
   }
 }
