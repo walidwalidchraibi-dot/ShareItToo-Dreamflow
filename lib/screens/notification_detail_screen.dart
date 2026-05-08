@@ -312,16 +312,17 @@ class _NotificationDetailModel {
     }
 
     if (isReview) {
+      final reviewCtaLabel = isBooking ? 'Zur Buchung' : 'Verstanden';
       return _NotificationDetailModel(
-        title: title.isNotEmpty ? title : 'Bewertungen',
-        subline: 'Dein Profil lebt von Feedback – fair und transparent.',
-        explanation: 'Bewertungen helfen der Community, Vertrauen aufzubauen. Hier siehst du Hinweise zu neuen oder ausstehenden Bewertungen.',
+        title: title.isNotEmpty ? title : 'Bewertung erhalten',
+        subline: 'Feedback stärkt Vertrauen – klar und nachvollziehbar.',
+        explanation: 'Bewertungen helfen der Community, Vertrauen aufzubauen. Wenn ein klarer Buchungskontext vorhanden ist, kannst du ihn direkt öffnen. Sonst bleibt dieses Update bewusst neutral und vollständig.',
         bullets: const [
-          'Prüfe neue Bewertungen und antworte bei Bedarf sachlich.',
-          'Ausstehende Bewertungen: kurz nach der Rückgabe erledigen.',
-          'Gute Bewertungen erhöhen die Chance auf schnelle Buchungen.',
+          'Prüfe neue Bewertungen ruhig und sachlich.',
+          'Ausstehende Bewertungen: möglichst zeitnah nach der Rückgabe erledigen.',
+          'Wenn kein direkter Kontext verknüpft ist, zeigt SIT dieses Update bewusst ohne erfundenes Ziel an.',
         ],
-        ctaLabel: 'Bewertungen ansehen',
+        ctaLabel: reviewCtaLabel,
         timeLabel: timeLabel,
         headerIcon: Icons.star_outline,
       );
@@ -333,11 +334,11 @@ class _NotificationDetailModel {
         subline: 'Dein Fall wurde aktualisiert – wir sind dran.',
         explanation: 'Wenn du einen Support‑Fall hast, bekommst du Updates hier gebündelt. So bleibt alles nachvollziehbar an einem Ort.',
         bullets: const [
-          'Öffne den Fall, um die letzten Nachrichten/Schritte zu sehen.',
-          'Wenn Informationen fehlen, ergänze sie direkt im Ticket.',
+          'Öffne den Support-Thread, um die letzten Nachrichten und Schritte zu sehen.',
+          'Wenn Informationen fehlen, ergänze sie direkt im Fall.',
           'Bei Dringlichkeit: antworte kurz mit dem wichtigsten Punkt zuerst.',
         ],
-        ctaLabel: 'Support kontaktieren',
+        ctaLabel: 'Zum Support-Fall',
         timeLabel: timeLabel,
         headerIcon: Icons.support_agent,
       );

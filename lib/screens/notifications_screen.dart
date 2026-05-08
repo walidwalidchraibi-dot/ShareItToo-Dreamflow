@@ -10,6 +10,7 @@ import 'package:lendify/screens/notification_settings_screen.dart';
 import 'package:lendify/screens/payment_methods_screen.dart';
 import 'package:lendify/screens/verification_intro_screen.dart';
 import 'package:lendify/models/item.dart';
+import 'package:lendify/models/message.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
@@ -325,13 +326,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       }
 
       if (sitCategory == 'support') {
+        final threads = await DataService.getMessageThreadsForUser(uid);
+        MessageThread? supportThread = threads.cast<MessageThread?>().firstWhere(
+          (t) => t != null && ((t.threadType ?? '').toLowerCase() == 'support' || t.user1Id == 'support' || t.user2Id == 'support'),
+          orElse: () => null,
+        );
+        supportThread ??= await DataService.createSupportThread(userId: uid);
+        if (supportThread != null && mounted) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => MessageThreadScreen(
+                threadId: supportThread!.id,
+                participantName: 'SIT Support',
+                itemTitle: 'Support',
+              ),
+            ),
+          );
+          return;
+        }
         if (!mounted) return;
         await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpCenterScreen()));
         return;
       }
 
       if (sitCategory == 'reviews') {
-        _showSnack('Bewertungen sind bald hier verfügbar.');
+        if (mounted) Navigator.of(context).maybePop();
         return;
       }
 
