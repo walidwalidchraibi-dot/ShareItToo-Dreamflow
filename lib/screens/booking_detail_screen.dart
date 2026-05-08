@@ -240,7 +240,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final descText = result.userDescription.isNotEmpty ? '\n\nBeschreibung:\n${result.userDescription}' : '';
     await DataService.addSystemMessageToThread(
       threadId: supportThread.id,
-      text: "📋 Support-Anfrage zu: ${itemTitle.isNotEmpty ? itemTitle : 'Buchung'}\nBuchung: $requestId\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText",
+      text: "Support-Fall eröffnet: ${result.mainCategoryLabel} · ${itemTitle.isNotEmpty ? itemTitle : 'Buchung'}\n📋 Support-Anfrage zu: ${itemTitle.isNotEmpty ? itemTitle : 'Buchung'}\nBuchung: $requestId\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText",
     );
     if (!mounted) return;
     Navigator.of(context).push(

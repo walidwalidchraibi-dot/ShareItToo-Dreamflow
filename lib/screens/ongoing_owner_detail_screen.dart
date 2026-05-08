@@ -92,7 +92,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final descText = result.userDescription.isNotEmpty ? '\n\nBeschreibung:\n${result.userDescription}' : '';
     await DataService.addSystemMessageToThread(
       threadId: supportThread.id,
-      text: "📋 Support-Anfrage zu: ${item.title}\nBuchung: ${req.id}\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText",
+      text: "Support-Fall eröffnet: ${result.mainCategoryLabel} · ${item.title}\n📋 Support-Anfrage zu: ${item.title}\nBuchung: ${req.id}\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText",
     );
     if (!mounted) return;
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => MessageThreadScreen(threadId: supportThread.id, participantName: 'SIT Support', itemTitle: 'Support')));

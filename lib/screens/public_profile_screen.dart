@@ -62,7 +62,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     final descText = result.userDescription.isNotEmpty ? '\n\nBeschreibung:\n${result.userDescription}' : '';
     await DataService.addSystemMessageToThread(
       threadId: supportThread.id,
-      text: '📋 Support-Anfrage zu Profil: ${u.displayName}\nReferenz: profile:${u.id}\nTyp: $issueType\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText',
+      text: 'Support-Fall eröffnet: ${result.mainCategoryLabel} · Profil ${u.displayName}\n📋 Support-Anfrage zu Profil: ${u.displayName}\nReferenz: profile:${u.id}\nTyp: $issueType\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText',
     );
     if (!mounted) return;
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => MessageThreadScreen(threadId: supportThread.id, participantName: 'SIT Support', itemTitle: 'Support')));

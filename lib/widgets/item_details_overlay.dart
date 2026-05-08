@@ -761,7 +761,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                   final supportThread = await DataService.createSupportThread(userId: current.id);
                   if (supportThread == null) break;
                   final descText = result.userDescription.isNotEmpty ? '\n\nBeschreibung:\n${result.userDescription}' : '';
-                  await DataService.addSystemMessageToThread(threadId: supportThread.id, text: "📋 Support-Anfrage zu Anzeige: ${item.title}\nReferenz: listing:${item.id}\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText");
+                  await DataService.addSystemMessageToThread(threadId: supportThread.id, text: "Support-Fall eröffnet: ${result.mainCategoryLabel} · ${item.title}\n📋 Support-Anfrage zu Anzeige: ${item.title}\nReferenz: listing:${item.id}\nKategorie: ${result.mainCategoryLabel}\nUnterkategorie: ${result.subCategory}$descText");
                   if (!mounted) break;
                   await Navigator.of(context).push(MaterialPageRoute(builder: (_) => MessageThreadScreen(threadId: supportThread.id, participantName: 'SIT Support', itemTitle: 'Support')));
                   break;

@@ -2110,7 +2110,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
       final mainLabel = _supportMainCategoryLabel(mainCategory);
       final descText = userDescription.isNotEmpty ? '\n\nBeschreibung:\n$userDescription' : '';
-      final contextMessage = '''📋 Support-Anfrage zu: ${_itemTitle().isNotEmpty ? _itemTitle() : 'Buchung'}
+      final contextMessage = '''Support-Fall eröffnet: $mainLabel · ${_itemTitle().isNotEmpty ? _itemTitle() : 'Buchung'}\n📋 Support-Anfrage zu: ${_itemTitle().isNotEmpty ? _itemTitle() : 'Buchung'}
 Buchung: ${_request?.id ?? 'N/A'}
 Kategorie: $mainLabel
 Unterkategorie: $subCategory$descText''';
