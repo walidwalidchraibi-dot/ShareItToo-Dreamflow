@@ -458,27 +458,41 @@ class DataService {
     final bool ownerPicksUp =
         req.ownerPicksUpAtReturnChosen || inferredOwnerPicksUpByTransient;
 
-    // Distance estimation using best available signal
-    double km = 0.0;
-    final double? lat =
-        req.deliveryLat ?? (deliverySel?['lat'] as num?)?.toDouble();
-    final double? lng =
-        req.deliveryLng ?? (deliverySel?['lng'] as num?)?.toDouble();
-    if (lat != null && lng != null) {
-      km = estimateDistanceKm(item.lat, item.lng, lat, lng);
-    } else if ((req.deliveryAddressLine ?? '').toString().trim().isNotEmpty) {
-      km = estimateDistanceKmFromAddressLine(
-          item.lat, item.lng, req.deliveryAddressLine!.trim());
-    } else if ((req.deliveryCity ?? '').toString().trim().isNotEmpty) {
-      km = estimateDistanceKmToCity(
-          item.lat, item.lng, req.deliveryCity!.trim());
+    double estimateKm({
+      double? lat,
+      double? lng,
+      String? line,
+      String? city,
+    }) {
+      if (lat != null && lng != null) {
+        return estimateDistanceKm(item.lat, item.lng, lat, lng);
+      }
+      if ((line ?? '').trim().isNotEmpty) {
+        return estimateDistanceKmFromAddressLine(item.lat, item.lng, line!.trim());
+      }
+      if ((city ?? '').trim().isNotEmpty) {
+        return estimateDistanceKmToCity(item.lat, item.lng, city!.trim());
+      }
+      return 0.0;
     }
+
+    final double dropoffKm = estimateKm(
+      lat: req.deliveryLat ?? (deliverySel?['deliveryLat'] as num?)?.toDouble() ?? (deliverySel?['lat'] as num?)?.toDouble(),
+      lng: req.deliveryLng ?? (deliverySel?['deliveryLng'] as num?)?.toDouble() ?? (deliverySel?['lng'] as num?)?.toDouble(),
+      line: req.deliveryAddressLine ?? (deliverySel?['deliveryAddressLine'] as String?) ?? (deliverySel?['addressLine'] as String?),
+      city: req.deliveryCity ?? (deliverySel?['deliveryCity'] as String?) ?? (deliverySel?['city'] as String?),
+    );
+    final double returnKm = estimateKm(
+      lat: req.returnLat ?? (deliverySel?['returnLat'] as num?)?.toDouble() ?? req.deliveryLat ?? (deliverySel?['lat'] as num?)?.toDouble(),
+      lng: req.returnLng ?? (deliverySel?['returnLng'] as num?)?.toDouble() ?? req.deliveryLng ?? (deliverySel?['lng'] as num?)?.toDouble(),
+      line: req.returnAddressLine ?? (deliverySel?['returnAddressLine'] as String?) ?? req.deliveryAddressLine ?? (deliverySel?['addressLine'] as String?),
+      city: req.returnCity ?? (deliverySel?['returnCity'] as String?) ?? req.deliveryCity ?? (deliverySel?['city'] as String?),
+    );
 
     double dropoffFee = 0.0;
     double returnFee = 0.0;
-    if (ownerDelivers)
-      dropoffFee = double.parse((km * 0.30).toStringAsFixed(2));
-    if (ownerPicksUp) returnFee = double.parse((km * 0.30).toStringAsFixed(2));
+    if (ownerDelivers) dropoffFee = deliveryFeeForDistanceKm(dropoffKm);
+    if (ownerPicksUp) returnFee = deliveryFeeForDistanceKm(returnKm);
 
     // Express: renter sees the surcharge as soon as it is selected/requested.
     // We consider three sources:
@@ -2232,8 +2246,15 @@ class DataService {
         if (!map.containsKey('city')) map['city'] = '';
         if (!map.containsKey('lat')) map['lat'] = null;
         if (!map.containsKey('lng')) map['lng'] = null;
-        if (!map.containsKey('express'))
-          map['express'] = false; // ensure key exists for priority
+        if (!map.containsKey('express')) map['express'] = false;
+        if (!map.containsKey('deliveryAddressLine')) map['deliveryAddressLine'] = map['addressLine'] ?? '';
+        if (!map.containsKey('deliveryCity')) map['deliveryCity'] = map['city'] ?? '';
+        if (!map.containsKey('deliveryLat')) map['deliveryLat'] = map['lat'];
+        if (!map.containsKey('deliveryLng')) map['deliveryLng'] = map['lng'];
+        if (!map.containsKey('returnAddressLine')) map['returnAddressLine'] = map['addressLine'] ?? '';
+        if (!map.containsKey('returnCity')) map['returnCity'] = map['city'] ?? '';
+        if (!map.containsKey('returnLat')) map['returnLat'] = map['lat'];
+        if (!map.containsKey('returnLng')) map['returnLng'] = map['lng'];
         return map;
       }
     } catch (_) {}
@@ -2249,6 +2270,14 @@ class DataService {
     bool express = false,
     double? lat,
     double? lng,
+    String? deliveryAddressLine,
+    String? deliveryCity,
+    double? deliveryLat,
+    double? deliveryLng,
+    String? returnAddressLine,
+    String? returnCity,
+    double? returnLat,
+    double? returnLng,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_bookingSelectionsKey);
@@ -2271,6 +2300,14 @@ class DataService {
       'express': express,
       'lat': lat,
       'lng': lng,
+      'deliveryAddressLine': deliveryAddressLine ?? addressLine,
+      'deliveryCity': deliveryCity ?? addressCity ?? '',
+      'deliveryLat': deliveryLat ?? lat,
+      'deliveryLng': deliveryLng ?? lng,
+      'returnAddressLine': returnAddressLine ?? addressLine,
+      'returnCity': returnCity ?? addressCity ?? '',
+      'returnLat': returnLat ?? lat,
+      'returnLng': returnLng ?? lng,
     };
     map[itemId] = existing;
     await prefs.setString(_bookingSelectionsKey, jsonEncode(map));
@@ -3855,10 +3892,14 @@ class DataService {
       expressFee: req.expressFee,
       ownerDeliversAtDropoffChosen: ownerDelivers,
       ownerPicksUpAtReturnChosen: ownerPicksUp,
-      deliveryAddressLine: (deliverySel?['addressLine'] as String?),
-      deliveryCity: (deliverySel?['city'] as String?),
-      deliveryLat: (deliverySel?['lat'] as num?)?.toDouble(),
-      deliveryLng: (deliverySel?['lng'] as num?)?.toDouble(),
+      deliveryAddressLine: (deliverySel?['deliveryAddressLine'] as String?) ?? (deliverySel?['addressLine'] as String?),
+      deliveryCity: (deliverySel?['deliveryCity'] as String?) ?? (deliverySel?['city'] as String?),
+      deliveryLat: (deliverySel?['deliveryLat'] as num?)?.toDouble() ?? (deliverySel?['lat'] as num?)?.toDouble(),
+      deliveryLng: (deliverySel?['deliveryLng'] as num?)?.toDouble() ?? (deliverySel?['lng'] as num?)?.toDouble(),
+      returnAddressLine: (deliverySel?['returnAddressLine'] as String?),
+      returnCity: (deliverySel?['returnCity'] as String?),
+      returnLat: (deliverySel?['returnLat'] as num?)?.toDouble(),
+      returnLng: (deliverySel?['returnLng'] as num?)?.toDouble(),
       createdAt: now,
       expressRequestedAt: req.expressRequested ? now : null,
       expressConfirmedAt: null,

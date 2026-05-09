@@ -1126,13 +1126,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Activation switch like the Preisnachlass section (switch on the right)
                         SwitchListTile(
                           value: _deliveryOptionsEnabled,
                           onChanged: (v) => setState(() {
                             _deliveryOptionsEnabled = v;
                             if (!v) {
-                              // Reset inner options when disabled to avoid accidental persistence
                               _offersDeliveryAtDropoff = false;
                               _offersPickupAtReturn = false;
                               _offersExpressAtDropoff = false;
@@ -1143,15 +1141,19 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           contentPadding: EdgeInsets.zero,
                           title: Text(
                             _deliveryOptionsEnabled
-                                ? 'Liefer- & Abholoptionen deaktivieren'
+                                ? 'Liefer- & Abholoptionen verwalten'
                                 : 'Liefer- & Abholoptionen aktivieren',
                             style: const TextStyle(color: Colors.white),
+                          ),
+                          subtitle: const Text(
+                            'Du definierst hier nur, was möglich ist. Der Mieter wählt seine gewünschte Übergabe und Rückgabe später in der Anfrage.',
+                            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.35),
                           ),
                         ),
                         if (_deliveryOptionsEnabled) ...[
                           const SizedBox(height: 4),
                           ToggleTextOption(
-                            label: 'Lieferung bei Abgabe anbieten',
+                            label: 'Lieferung möglich',
                             selected: _offersDeliveryAtDropoff,
                             onTap: () => setState(() {
                               _offersDeliveryAtDropoff =
@@ -1162,7 +1164,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           ),
                           // Removed: Prioritätslieferung anbieten (no longer supported)
                           ToggleTextOption(
-                            label: 'Abholung bei Rückgabe anbieten',
+                            label: 'Rückgabe-Abholung möglich',
                             selected: _offersPickupAtReturn,
                             onTap: () => setState(() =>
                                 _offersPickupAtReturn = !_offersPickupAtReturn),
@@ -1180,7 +1182,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                               style: const TextStyle(color: Colors.white),
                               decoration: const InputDecoration(
                                 labelText:
-                                    'Maximale Entfernung (einfache Fahrt) in km',
+                                    'Maximale Liefer-/Abholentfernung in km',
                                 // Make the label more subtle/smaller when the field appears
                                 labelStyle: TextStyle(
                                     color: Colors.white70, fontSize: 12),
@@ -1191,7 +1193,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           ],
                           const SizedBox(height: 6),
                           const Text(
-                              'Wenn nichts aktiviert ist, muss der Mieter selbst abholen und zurückbringen.',
+                              'Wenn nichts aktiviert ist, erfolgt Übergabe und Rückgabe am Artikelstandort.',
                               style: TextStyle(
                                   color: Colors.white70, fontSize: 12)),
                           const SizedBox(height: 8),
@@ -1203,7 +1205,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                    'Vergütung: 0,30 € pro tatsächlich zu fahrendem Kilometer (Hin- und Rückfahrt).',
+                                    'Vergütung: automatisch aus der Entfernung berechnet (aktuell 0,30 € pro km für Hin- und Rückfahrt, mindestens 3,00 € pro Leistung).',
                                     style: TextStyle(
                                         color: Colors.white70, height: 1.4)),
                                 SizedBox(height: 6),
@@ -1213,7 +1215,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                         color: Colors.white70, height: 1.4)),
                                 SizedBox(height: 6),
                                 Text(
-                                    'Die Vergütung für Lieferung und/oder Abholung wird automatisch anhand der Entfernung berechnet.',
+                                    'Der Mieter sieht die Liefer- und Abholgebühren später direkt im Anfrageflow, bevor die Anfrage gesendet wird.',
                                     style: TextStyle(
                                         color: Colors.white70, height: 1.4)),
                               ],

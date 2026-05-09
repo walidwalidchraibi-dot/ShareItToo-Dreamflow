@@ -23,11 +23,15 @@ class RentalRequest {
   final bool ownerDeliversAtDropoffChosen;
   // When true => Owner picks item up from renter at return. When false => renter returns himself.
   final bool ownerPicksUpAtReturnChosen;
-  // Optional delivery address snapshot (lightweight, used for demo display only)
+  // Optional address snapshots used for pricing and later coordination.
   final String? deliveryAddressLine;
   final String? deliveryCity;
   final double? deliveryLat;
   final double? deliveryLng;
+  final String? returnAddressLine;
+  final String? returnCity;
+  final double? returnLat;
+  final double? returnLng;
   // Timestamps
   final DateTime createdAt; // when the request was created
   final DateTime? expressRequestedAt; // when renter opted for express
@@ -63,6 +67,10 @@ class RentalRequest {
     this.deliveryCity,
     this.deliveryLat,
     this.deliveryLng,
+    this.returnAddressLine,
+    this.returnCity,
+    this.returnLat,
+    this.returnLng,
     DateTime? createdAt,
     this.expressRequestedAt,
     this.expressConfirmedAt,
@@ -98,6 +106,10 @@ class RentalRequest {
     String? deliveryCity,
     double? deliveryLat,
     double? deliveryLng,
+    String? returnAddressLine,
+    String? returnCity,
+    double? returnLat,
+    double? returnLng,
     double? quotedTotalRenter,
     String? quotedSubtitle,
   }) =>
@@ -131,6 +143,10 @@ class RentalRequest {
         deliveryCity: deliveryCity ?? this.deliveryCity,
         deliveryLat: deliveryLat ?? this.deliveryLat,
         deliveryLng: deliveryLng ?? this.deliveryLng,
+        returnAddressLine: returnAddressLine ?? this.returnAddressLine,
+        returnCity: returnCity ?? this.returnCity,
+        returnLat: returnLat ?? this.returnLat,
+        returnLng: returnLng ?? this.returnLng,
         quotedTotalRenter: quotedTotalRenter ?? this.quotedTotalRenter,
         quotedSubtitle: quotedSubtitle ?? this.quotedSubtitle,
       );
@@ -156,6 +172,10 @@ class RentalRequest {
         deliveryCity: json['deliveryCity'] as String?,
         deliveryLat: (json['deliveryLat'] as num?)?.toDouble(),
         deliveryLng: (json['deliveryLng'] as num?)?.toDouble(),
+        returnAddressLine: json['returnAddressLine'] as String?,
+        returnCity: json['returnCity'] as String?,
+        returnLat: (json['returnLat'] as num?)?.toDouble(),
+        returnLng: (json['returnLng'] as num?)?.toDouble(),
         createdAt: _parseDt(json['createdAt']) ?? DateTime.now(),
         expressRequestedAt: _parseDt(json['expressRequestedAt']),
         expressConfirmedAt: _parseDt(json['expressConfirmedAt']),
@@ -188,6 +208,10 @@ class RentalRequest {
         'deliveryCity': deliveryCity,
         'deliveryLat': deliveryLat,
         'deliveryLng': deliveryLng,
+        'returnAddressLine': returnAddressLine,
+        'returnCity': returnCity,
+        'returnLat': returnLat,
+        'returnLng': returnLng,
         'createdAt': createdAt.toIso8601String(),
         'expressRequestedAt': expressRequestedAt?.toIso8601String(),
         'expressConfirmedAt': expressConfirmedAt?.toIso8601String(),
