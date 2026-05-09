@@ -1152,8 +1152,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final savedLabel = ((_handoverReturnState['${prefix}LocationLabel'] as String?) ?? '').trim();
     final sameCoords = savedLat == data.latitude.trim() && savedLng == data.longitude.trim() && savedLat.isNotEmpty && savedLng.isNotEmpty;
     final sameUrl = savedUrl.isNotEmpty && savedUrl == data.mapsUrl.trim();
-    final sameLabel = savedLabel.isNotEmpty && savedLabel == data.label.trim();
-    return sameCoords || sameUrl || sameLabel;
+    return sameCoords || sameUrl;
   }
 
   bool _shouldOfferReuseHandoverAsReturn() {
