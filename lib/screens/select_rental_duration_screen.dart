@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/theme.dart';
-import 'package:lendify/widgets/app_popup.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SelectRentalDurationScreen extends StatefulWidget {
@@ -26,6 +25,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
   int _selectedDays = 1;
   bool _checking = false;
   bool _overlapsBlocked = false;
+  bool _calendarExpanded = true;
 
   bool _hinwegLandlord = false;
   bool _rueckwegLandlord = false;
@@ -191,15 +191,18 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
         _end = null;
         _selectedDays = 1;
         _overlapsBlocked = false;
+        _calendarExpanded = true;
       } else {
         if (day.isBefore(_start!)) {
           _start = _strip(day);
           _end = null;
           _overlapsBlocked = false;
+          _calendarExpanded = true;
         } else {
           _end = _strip(day).add(const Duration(days: 1));
           _overlapsBlocked = _rangeOverlapsBooked(_start!, _end!);
           _selectedDays = max(1, _end!.difference(_start!).inDays);
+          _calendarExpanded = false;
         }
       }
     });
@@ -326,25 +329,26 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
     }
   }
 
+  String _formatShortDate(DateTime s) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${two(s.day)}. ${_monthsDe[s.month - 1]}';
+  }
+
   String _dateSpanText() {
     if (_start == null || _end == null) return '';
-    String two(int v) => v.toString().padLeft(2, '0');
     final s = _start!;
     final e = _end!.subtract(const Duration(days: 1));
     if (_isSameDay(s, e)) {
-      return '${two(s.day)}. ${_monthsDe[s.month - 1].substring(0, 3)}';
+      return _formatShortDate(s);
     }
-    return '${two(s.day)}. ${_monthsDe[s.month - 1].substring(0, 3)} → ${two(e.day)}. ${_monthsDe[e.month - 1].substring(0, 3)}';
+    return '${_formatShortDate(s)} – ${_formatShortDate(e)}';
   }
 
-  String _singleDateText(DateTime s) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${two(s.day)}. ${_monthsDe[s.month - 1].substring(0, 3)}';
-  }
+  String _singleDateText(DateTime s) => _formatShortDate(s);
 
   String _durationLabel() {
     final d = (_start != null && _end != null) ? max(1, _end!.difference(_start!).inDays) : _selectedDays;
-    return d == 1 ? '1 Tag' : '$d Tage';
+    return d == 1 ? '1 Miettag' : '$d Miettage';
   }
 
   @override
@@ -395,14 +399,14 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 2, 16, 140),
+                padding: const EdgeInsets.fromLTRB(16, 2, 16, 118),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _StepCard(
                       step: '1',
                       title: 'Zeitraum',
-                      subtitle: 'Wähle Start- und Enddatum für deine Anfrage.',
+                      subtitle: 'Wähle den Tag oder Zeitraum, an dem du den Artikel nutzen möchtest.',
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -417,7 +421,11 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                               else if (_start != null)
                                 Text(_singleDateText(_start!), style: TextStyle(color: sub, fontSize: 13))
                               else
-                                Text('Wähle Zeitraum', style: TextStyle(color: sub, fontSize: 13)),
+                                Text('Noch kein Miettag ausgewählt', style: TextStyle(color: sub, fontSize: 13)),
+                              if (_start != null && _end == null) ...[
+                                const SizedBox(height: 8),
+                                Text('Ein einzelner ausgewählter Tag zählt als 1 Miettag.', style: TextStyle(color: sub, fontSize: 12)),
+                              ],
                             ]),
                           ),
                           if (chips.isNotEmpty) ...[
@@ -452,49 +460,78 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                             ),
                           ],
                           const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                            decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(18), border: Border.all(color: border)),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    IconButton(
-                                      onPressed: () => _prevMonth(),
-                                      icon: const Icon(Icons.chevron_left, color: Colors.white),
-                                    ),
-                                    Expanded(
-                                      child: Text(
-                                        '${_monthsDe[_visibleMonth.month - 1]} ${_visibleMonth.year}',
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                          InkWell(
+                            onTap: () => setState(() => _calendarExpanded = !_calendarExpanded),
+                            borderRadius: BorderRadius.circular(18),
+                            child: Container(
+                              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                              decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(18), border: Border.all(color: border)),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          _calendarExpanded ? 'Kalender' : (_start == null ? 'Kalender öffnen' : 'Kalender anpassen'),
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                        ),
                                       ),
+                                      Icon(_calendarExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.white70),
+                                    ],
+                                  ),
+                                  AnimatedCrossFade(
+                                    duration: const Duration(milliseconds: 180),
+                                    crossFadeState: _calendarExpanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+                                    firstChild: Column(
+                                      children: [
+                                        const SizedBox(height: 10),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            IconButton(
+                                              visualDensity: VisualDensity.compact,
+                                              onPressed: () => _prevMonth(),
+                                              icon: const Icon(Icons.chevron_left, color: Colors.white),
+                                            ),
+                                            Expanded(
+                                              child: Text(
+                                                '${_monthsDe[_visibleMonth.month - 1]} ${_visibleMonth.year}',
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                                              ),
+                                            ),
+                                            IconButton(
+                                              visualDensity: VisualDensity.compact,
+                                              onPressed: () => _nextMonth(),
+                                              icon: const Icon(Icons.chevron_right, color: Colors.white),
+                                            ),
+                                          ],
+                                        ),
+                                        _WeekdayRow(color: sub),
+                                        const SizedBox(height: 4),
+                                        _MonthGrid(
+                                          month: _visibleMonth,
+                                          firstDate: _firstDate,
+                                          lastDate: _lastDate,
+                                          start: _start,
+                                          end: _end,
+                                          onTap: _onDayTap,
+                                          isBooked: _isBookedDay,
+                                          primary: primary,
+                                          textColor: Colors.white,
+                                          subText: sub,
+                                          danger: danger,
+                                        ),
+                                      ],
                                     ),
-                                    IconButton(
-                                      onPressed: () => _nextMonth(),
-                                      icon: const Icon(Icons.chevron_right, color: Colors.white),
-                                    ),
-                                  ],
-                                ),
-                                _WeekdayRow(color: sub),
-                                const SizedBox(height: 6),
-                                _MonthGrid(
-                                  month: _visibleMonth,
-                                  firstDate: _firstDate,
-                                  lastDate: _lastDate,
-                                  start: _start,
-                                  end: _end,
-                                  onTap: _onDayTap,
-                                  isBooked: _isBookedDay,
-                                  primary: primary,
-                                  textColor: Colors.white,
-                                  subText: sub,
-                                  danger: danger,
-                                ),
-                              ],
+                                    secondChild: const SizedBox.shrink(),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
+                          const SizedBox(height: 8),
+                          Text('Die genaue Übergabe- und Rückgabezeit stimmst du nach Annahme im Chat ab.', style: TextStyle(color: sub, fontSize: 12)),
                           if (_overlapsBlocked) ...[
                             const SizedBox(height: 8),
                             Text('Der gewählte Zeitraum überschneidet sich mit einer bestehenden Buchung.', style: TextStyle(color: danger, fontSize: 12, fontWeight: FontWeight.w700)),
@@ -511,8 +548,8 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _ChoiceCard(
-                            title: 'Selbst abholen',
-                            subtitle: 'Du holst den Artikel beim Vermieter ab.',
+                            title: 'Beim Vermieter abholen',
+                            subtitle: 'Du holst den Artikel selbst ab.',
                             selected: !_hinwegLandlord,
                             onTap: () {
                               setState(() => _hinwegLandlord = false);
@@ -521,8 +558,8 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                           ),
                           const SizedBox(height: 10),
                           _ChoiceCard(
-                            title: widget.item.offersDeliveryAtDropoff ? 'Lieferung anfragen' : 'Lieferung nicht verfügbar',
-                            subtitle: widget.item.offersDeliveryAtDropoff ? 'Der Vermieter liefert den Artikel zu dir.' : 'Dieser Vermieter bietet aktuell keine Lieferung an.',
+                            title: widget.item.offersDeliveryAtDropoff ? 'Lieferung durch Vermieter' : 'Aktuell nicht verfügbar',
+                            subtitle: widget.item.offersDeliveryAtDropoff ? 'Der Vermieter bringt den Artikel zu dir.' : 'Lieferung ist für diesen Artikel aktuell nicht verfügbar.',
                             selected: _hinwegLandlord,
                             enabled: widget.item.offersDeliveryAtDropoff,
                             onTap: () {
@@ -539,6 +576,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                               controller: _deliveryAddressCtrl,
                               estimatedKm: preview.deliveryKm,
                               fee: preview.deliveryFee,
+                              feeLabel: 'Liefergebühr',
                               overMax: !preview.deliveryWithinMax,
                               maxKm: widget.item.maxDeliveryKmAtDropoff,
                               onChanged: (_) {
@@ -566,8 +604,8 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _ChoiceCard(
-                            title: 'Selbst zurückbringen',
-                            subtitle: 'Du bringst den Artikel zum Vermieter zurück.',
+                            title: 'Zum Vermieter zurückbringen',
+                            subtitle: 'Du bringst den Artikel selbst zurück.',
                             selected: !_rueckwegLandlord,
                             onTap: () {
                               setState(() => _rueckwegLandlord = false);
@@ -576,8 +614,8 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                           ),
                           const SizedBox(height: 10),
                           _ChoiceCard(
-                            title: widget.item.offersPickupAtReturn ? 'Abholung durch Vermieter anfragen' : 'Abholung nicht verfügbar',
-                            subtitle: widget.item.offersPickupAtReturn ? 'Der Vermieter holt den Artikel bei dir ab.' : 'Dieser Vermieter bietet aktuell keine Rückgabe-Abholung an.',
+                            title: widget.item.offersPickupAtReturn ? 'Abholung durch Vermieter' : 'Aktuell nicht verfügbar',
+                            subtitle: widget.item.offersPickupAtReturn ? 'Der Vermieter holt den Artikel bei dir ab.' : 'Rückgabe-Abholung ist für diesen Artikel aktuell nicht verfügbar.',
                             selected: _rueckwegLandlord,
                             enabled: widget.item.offersPickupAtReturn,
                             onTap: () {
@@ -594,6 +632,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                               controller: _returnAddressCtrl,
                               estimatedKm: preview.returnKm,
                               fee: preview.pickupFee,
+                              feeLabel: 'Abholgebühr',
                               overMax: !preview.returnWithinMax,
                               maxKm: widget.item.maxPickupKmAtReturn,
                               onChanged: (_) {
@@ -616,7 +655,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                     _StepCard(
                       step: '4',
                       title: 'Übersicht & Preis',
-                      subtitle: 'Preisrelevante Änderungen nach Annahme müssen von beiden Seiten bestätigt werden.',
+                      subtitle: 'Hier siehst du die preisrelevanten Bestandteile deiner Anfrage.',
                       child: Column(
                         children: [
                           _PriceRow(label: 'Mietpreis', value: preview.rentalSubtotal),
@@ -628,20 +667,10 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                             padding: EdgeInsets.symmetric(vertical: 10),
                             child: Divider(color: Colors.white24, height: 1),
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Gesamtbetrag', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 17)),
-                              Text('${preview.total.toStringAsFixed(2)} €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24)),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white12)),
-                            child: const Text(
-                              'Spätere Änderungen mit Preiswirkung – z. B. Lieferung statt Selbstabholung, anderer Lieferort oder Wegfall einer Lieferleistung – müssen neu berechnet und von beiden Seiten bestätigt werden.',
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Preisrelevante Änderungen müssen später von beiden Seiten bestätigt werden.',
                               style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
                             ),
                           ),
@@ -657,28 +686,31 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               child: SafeArea(
                 top: false,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Expanded(child: Text('Gesamtbetrag', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
-                          Text('${preview.total.toStringAsFixed(2)} €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+                          const Text('Gesamtbetrag', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 2),
+                          const Text('inkl. Plattformgebühr', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          Text('${preview.total.toStringAsFixed(2)} €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    FilledButton(
-                      onPressed: _canContinue ? _confirm : null,
-                      style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                      child: _checking
-                          ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                          : Text(_start == null ? 'Zeitraum wählen' : 'Weiter zur Zusammenfassung'),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 132,
+                      child: FilledButton(
+                        onPressed: _canContinue ? _confirm : null,
+                        style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                        child: _checking
+                            ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                            : Text(_start == null ? 'Wählen' : 'Weiter'),
+                      ),
                     ),
                   ],
                 ),
@@ -825,6 +857,7 @@ class _AddressSection extends StatelessWidget {
   final TextEditingController controller;
   final double? estimatedKm;
   final double fee;
+  final String feeLabel;
   final bool overMax;
   final double? maxKm;
   final ValueChanged<String> onChanged;
@@ -836,6 +869,7 @@ class _AddressSection extends StatelessWidget {
     required this.controller,
     required this.estimatedKm,
     required this.fee,
+    required this.feeLabel,
     required this.overMax,
     required this.maxKm,
     required this.onChanged,
@@ -894,7 +928,7 @@ class _AddressSection extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            estimatedKm != null ? 'Gebühr: ${fee.toStringAsFixed(2)} €' : 'Gebühr erscheint, sobald die Adresse schätzbar ist.',
+            estimatedKm != null ? '$feeLabel: ${fee.toStringAsFixed(2)} €' : '$feeLabel erscheint, sobald die Adresse schätzbar ist.',
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
           ),
           if (overMax) ...[
