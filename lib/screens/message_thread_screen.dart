@@ -5114,25 +5114,21 @@ class _LocationShareBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final bg = me ? cs.primary.withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.08);
     final maxWidth = MediaQuery.of(context).size.width * 0.72;
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 3),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-      constraints: BoxConstraints(maxWidth: maxWidth, minWidth: 120),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(16),
-      ),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      constraints: BoxConstraints(maxWidth: maxWidth, minWidth: 160),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _LocationShareMessage(data: data),
           const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: Text(time, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 10, fontWeight: FontWeight.w500)),
+          Padding(
+            padding: const EdgeInsets.only(right: 2),
+            child: Align(
+              alignment: Alignment.bottomRight,
+              child: Text(time, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 10, fontWeight: FontWeight.w500)),
+            ),
           ),
         ],
       ),
@@ -5192,44 +5188,66 @@ _LocationShareData? _parseLocationShareMessage(String raw) {
 }
 
 class _LocationMapFallback extends StatelessWidget {
-  final String label;
   final bool loading;
-  const _LocationMapFallback({required this.label, this.loading = false});
+  const _LocationMapFallback({this.loading = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(colors: [Color(0xFF1F2937), Color(0xFF0F766E)]),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (loading)
-              const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-              )
-            else
-              const Icon(Icons.map_rounded, color: Colors.white, size: 28),
-            const SizedBox(height: 8),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text(
-                label,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
-              ),
-            ),
-          ],
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF243244), Color(0xFF1B4D4A), Color(0xFF0F766E)],
         ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Opacity(
+            opacity: 0.16,
+            child: CustomPaint(painter: _LocationGridPainter()),
+          ),
+          Center(
+            child: loading
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.place_rounded, color: Color(0xFF0F766E), size: 18),
+                  ),
+          ),
+        ],
       ),
     );
   }
+}
+
+class _LocationGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.14)
+      ..strokeWidth = 1;
+    const gap = 22.0;
+    for (double x = 0; x <= size.width; x += gap) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y <= size.height; y += gap) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _LocationShareMessage extends StatelessWidget {
@@ -5238,83 +5256,97 @@ class _LocationShareMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.center,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: const EdgeInsets.all(12),
-        constraints: const BoxConstraints(maxWidth: 320),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.24),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-        ),
+    final fallbackUrl = (data.latitudeValue != null && data.longitudeValue != null)
+        ? 'https://www.google.com/maps/search/?api=1&query=${data.latitudeValue},${data.longitudeValue}'
+        : '';
+    final effectiveUrl = data.mapsUrl.isNotEmpty ? data.mapsUrl : fallbackUrl;
+    final detailText = (data.latitude.isNotEmpty && data.longitude.isNotEmpty)
+        ? '${data.latitude}, ${data.longitude}'
+        : 'In Google Maps öffnen';
+
+    return MouseRegion(
+      cursor: effectiveUrl.isNotEmpty ? SystemMouseCursors.click : MouseCursor.defer,
+      child: Material(
+        color: Colors.transparent,
         child: InkWell(
           onTap: () async {
-            final fallbackUrl = (data.latitudeValue != null && data.longitudeValue != null)
-                ? 'https://www.google.com/maps/search/?api=1&query=${data.latitudeValue},${data.longitudeValue}'
-                : '';
-            final uri = Uri.tryParse(data.mapsUrl.isNotEmpty ? data.mapsUrl : fallbackUrl);
+            final uri = Uri.tryParse(effectiveUrl);
             if (uri != null) {
               await launchUrl(uri, mode: LaunchMode.externalApplication);
             }
           },
-          borderRadius: BorderRadius.circular(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: const [
-                  Icon(Icons.map_rounded, color: Colors.white, size: 18),
-                  SizedBox(width: 8),
-                  Text('Google Maps', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                ],
-              ),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  height: 120,
-                  width: double.infinity,
-                  child: Stack(
-                    fit: StackFit.expand,
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 320),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                  child: SizedBox(
+                    height: 168,
+                    width: double.infinity,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (data.staticMapUrl.isNotEmpty)
+                          Image.network(
+                            data.staticMapUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const _LocationMapFallback(),
+                            loadingBuilder: (context, child, progress) {
+                              if (progress == null) return child;
+                              return const _LocationMapFallback(loading: true);
+                            },
+                          )
+                        else
+                          const _LocationMapFallback(),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (data.staticMapUrl.isNotEmpty)
-                        Image.network(
-                          data.staticMapUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _LocationMapFallback(label: data.label),
-                          loadingBuilder: (context, child, progress) {
-                            if (progress == null) return child;
-                            return _LocationMapFallback(label: data.label, loading: true);
-                          },
-                        )
-                      else
-                        _LocationMapFallback(label: data.label),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.08),
-                              Colors.black.withValues(alpha: 0.34),
-                            ],
-                          ),
+                      const Text(
+                        'Standort geteilt',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        detailText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.76), fontSize: 11.5),
+                      ),
+                      if (effectiveUrl.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'In Google Maps öffnen',
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.84), fontSize: 11.5, fontWeight: FontWeight.w600),
                         ),
-                      ),
-                      const Center(
-                        child: Icon(Icons.place_rounded, color: Colors.white, size: 36),
-                      ),
+                      ],
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Text(data.label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 4),
-              Text('${data.latitude}, ${data.longitude}', style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 12)),
-            ],
+              ],
+            ),
           ),
         ),
       ),
