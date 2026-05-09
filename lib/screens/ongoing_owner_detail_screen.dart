@@ -41,6 +41,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   bool _showManualHandover = false;
   final TextEditingController _manualCodeCtrl = TextEditingController();
   Map<String, dynamic>? _deliverySel;
+  Map<String, dynamic> _flowState = const {};
 
   @override
   void initState() {
@@ -55,7 +56,8 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final renter = await DataService.getUserById(req.renterId);
     final owner = await DataService.getUserById(req.ownerId);
     final sel = item != null ? await DataService.getSavedDeliverySelection(item.id) : null;
-    setState(() { _req = req; _item = item; _renter = renter; _owner = owner; _deliverySel = sel; });
+    final flowState = await DataService.getHandoverReturnState(req.id);
+    setState(() { _req = req; _item = item; _renter = renter; _owner = owner; _deliverySel = sel; _flowState = flowState; });
     // Show one-time handover banner if present (e.g., renter confirmed)
     if (mounted && item != null) {
       final bookingId = _computeBookingId(item, req);
@@ -67,6 +69,29 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   }
 
   List<String> get _photos => (_item?.photos ?? const <String>[]);
+
+  String? _confirmedLocationText(bool isReturn) {
+    final prefix = isReturn ? 'return' : 'handover';
+    final label = ((_flowState['${prefix}LocationLabel'] as String?) ?? '').trim();
+    final name = ((_flowState['${prefix}LocationSharedByName'] as String?) ?? '').trim();
+    if (label.isNotEmpty) return '${isReturn ? 'Rückgabeort' : 'Übergabeort'}: $label';
+    if (name.isNotEmpty) return '${isReturn ? 'Rückgabeort' : 'Übergabeort'}: Standort von $name';
+    return null;
+  }
+
+  String _confirmedLocationMapsUrl(bool isReturn) {
+    final prefix = isReturn ? 'return' : 'handover';
+    return ((_flowState['${prefix}LocationMapsUrl'] as String?) ?? '').trim();
+  }
+
+  Future<void> _openConfirmedLocationUrl(bool isReturn) async {
+    final url = _confirmedLocationMapsUrl(isReturn);
+    if (url.isEmpty) return;
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
 
   Future<void> _openSupportFlow({required RentalRequest req, required Item item}) async {
     final current = await DataService.getCurrentUser();
@@ -763,6 +788,29 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
             // For ongoing bookings, always show the exact address
             return _AddressInfoCardInline(icon: Icons.place_outlined, text: 'Rückgabeort: $targetAddr');
           }),
+        ],
+
+        if (_confirmedLocationText(false) != null) ...[
+          const SizedBox(height: 12),
+          _AddressInfoCardInline(icon: Icons.place_outlined, text: _confirmedLocationText(false)!),
+        ],
+        if (_confirmedLocationMapsUrl(false).isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(onPressed: () => _openConfirmedLocationUrl(false), child: const Text('In Google Maps öffnen')),
+          ),
+        ],
+        if (_confirmedLocationText(true) != null) ...[
+          const SizedBox(height: 8),
+          _AddressInfoCardInline(icon: Icons.place, text: _confirmedLocationText(true)!),
+        ],
+        if (_confirmedLocationMapsUrl(true).isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(onPressed: () => _openConfirmedLocationUrl(true), child: const Text('In Google Maps öffnen')),
+          ),
         ],
 
         const SizedBox(height: 16),

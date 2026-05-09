@@ -59,6 +59,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   // Approximate map center for the listing (if available)
   double? _itemLat;
   double? _itemLng;
+  Map<String, dynamic> _flowState = const {};
 
   List<String> get _photos {
     final b = widget.booking;
@@ -201,6 +202,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         if (itemId != null && itemId.isNotEmpty) {
           final item = await DataService.getItemById(itemId);
           if (mounted) setState(() { _itemLat = item?.lat; _itemLng = item?.lng; });
+        }
+        final requestId = (widget.booking['requestId'] as String?)?.trim() ?? '';
+        if (requestId.isNotEmpty) {
+          final state = await DataService.getHandoverReturnState(requestId);
+          if (mounted) setState(() => _flowState = state);
         }
       } catch (e) {
         debugPrint('[booking_detail] load item coords failed: ' + e.toString());
@@ -345,6 +351,29 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       return false;
     }
     return true;
+  }
+
+
+  String? _confirmedLocationText(bool isReturn) {
+    final prefix = isReturn ? 'return' : 'handover';
+    final label = ((_flowState['${prefix}LocationLabel'] as String?) ?? '').trim();
+    final name = ((_flowState['${prefix}LocationSharedByName'] as String?) ?? '').trim();
+    if (label.isNotEmpty) return '${isReturn ? 'Rückgabeort' : 'Übergabeort'}: $label';
+    if (name.isNotEmpty) return '${isReturn ? 'Rückgabeort' : 'Übergabeort'}: Standort von $name';
+    return null;
+  }
+
+  String _confirmedLocationMapsUrl(bool isReturn) {
+    final prefix = isReturn ? 'return' : 'handover';
+    return ((_flowState['${prefix}LocationMapsUrl'] as String?) ?? '').trim();
+  }
+
+  Future<void> _openConfirmedLocationUrl(bool isReturn) async {
+    final url = _confirmedLocationMapsUrl(isReturn);
+    if (url.isEmpty) return;
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _viewListing() async {
@@ -720,6 +749,35 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             }
           }(),
         ),
+
+        if (_confirmedLocationText(false) != null) ...[
+          const SizedBox(height: 12),
+          _AddressInfoCard(
+            icon: Icons.place_outlined,
+            text: _confirmedLocationText(false)!,
+          ),
+        ],
+        if (_confirmedLocationMapsUrl(false).isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(onPressed: () => _openConfirmedLocationUrl(false), child: const Text('In Google Maps öffnen')),
+          ),
+        ],
+        if (_confirmedLocationText(true) != null) ...[
+          const SizedBox(height: 8),
+          _AddressInfoCard(
+            icon: Icons.place,
+            text: _confirmedLocationText(true)!,
+          ),
+        ],
+        if (_confirmedLocationMapsUrl(true).isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(onPressed: () => _openConfirmedLocationUrl(true), child: const Text('In Google Maps öffnen')),
+          ),
+        ],
 
         // Ongoing (Laufend): Karte für Rückgabe, falls der Mieter selbst zurückbringt –
         // identisches Verhalten wie die Abhol‑Karte in „Kommende Buchung"

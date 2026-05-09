@@ -1144,6 +1144,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return isReturn ? 'Als Rückgabeort gespeichert' : 'Als Übergabeort gespeichert';
   }
 
+  bool _savedLocationMatches(_LocationShareData data, {required bool isReturn}) {
+    final prefix = isReturn ? 'return' : 'handover';
+    final savedLat = ((_handoverReturnState['${prefix}LocationLat'] as String?) ?? '').trim();
+    final savedLng = ((_handoverReturnState['${prefix}LocationLng'] as String?) ?? '').trim();
+    final savedUrl = ((_handoverReturnState['${prefix}LocationMapsUrl'] as String?) ?? '').trim();
+    final savedLabel = ((_handoverReturnState['${prefix}LocationLabel'] as String?) ?? '').trim();
+    final sameCoords = savedLat == data.latitude.trim() && savedLng == data.longitude.trim() && savedLat.isNotEmpty && savedLng.isNotEmpty;
+    final sameUrl = savedUrl.isNotEmpty && savedUrl == data.mapsUrl.trim();
+    final sameLabel = savedLabel.isNotEmpty && savedLabel == data.label.trim();
+    return sameCoords || sameUrl || sameLabel;
+  }
+
   bool _shouldOfferReuseHandoverAsReturn() {
     final req = _request;
     if (req == null || req.needsReview) return false;
@@ -1440,11 +1452,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                                   forcedIntent: intent,
                                                 ),
                                                 acceptIntent: _locationIntentForCurrentContext(),
-                                                acceptStateText: _locationIntentForCurrentContext() == _LocationIntent.returnTrip
-                                                    ? (_hasSavedLocation(true) ? _savedLocationText(true) : null)
-                                                    : _locationIntentForCurrentContext() == _LocationIntent.handover
-                                                        ? (_hasSavedLocation(false) ? _savedLocationText(false) : null)
-                                                        : null,
+                                                handoverSaved: _savedLocationMatches(locationShare, isReturn: false),
+                                                returnSaved: _savedLocationMatches(locationShare, isReturn: true),
                                               ),
                                             );
                                           } else {
@@ -1492,11 +1501,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                                         forcedIntent: intent,
                                                       ),
                                                       acceptIntent: _locationIntentForCurrentContext(),
-                                                      acceptStateText: _locationIntentForCurrentContext() == _LocationIntent.returnTrip
-                                                          ? (_hasSavedLocation(true) ? _savedLocationText(true) : null)
-                                                          : _locationIntentForCurrentContext() == _LocationIntent.handover
-                                                              ? (_hasSavedLocation(false) ? _savedLocationText(false) : null)
-                                                              : null,
+                                                      handoverSaved: _savedLocationMatches(locationShare, isReturn: false),
+                                                      returnSaved: _savedLocationMatches(locationShare, isReturn: true),
                                                     )
                                                   : _ChatBubble(
                                                       text: translation.original,
@@ -5357,8 +5363,9 @@ class _LocationShareBubble extends StatelessWidget {
   final String time;
   final Future<void> Function(_LocationIntent intent)? onAcceptPlace;
   final _LocationIntent acceptIntent;
-  final String? acceptStateText;
-  const _LocationShareBubble({required this.data, required this.me, required this.time, this.onAcceptPlace, this.acceptIntent = _LocationIntent.unknown, this.acceptStateText});
+  final bool handoverSaved;
+  final bool returnSaved;
+  const _LocationShareBubble({required this.data, required this.me, required this.time, this.onAcceptPlace, this.acceptIntent = _LocationIntent.unknown, this.handoverSaved = false, this.returnSaved = false});
 
   @override
   Widget build(BuildContext context) {
@@ -5369,7 +5376,7 @@ class _LocationShareBubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _LocationShareMessage(data: data, time: time, onAcceptPlace: onAcceptPlace, acceptIntent: acceptIntent, acceptStateText: acceptStateText),
+          _LocationShareMessage(data: data, time: time, onAcceptPlace: onAcceptPlace, acceptIntent: acceptIntent, handoverSaved: handoverSaved, returnSaved: returnSaved),
         ],
       ),
     );
@@ -5528,8 +5535,9 @@ class _LocationShareMessage extends StatelessWidget {
   final String time;
   final Future<void> Function(_LocationIntent intent)? onAcceptPlace;
   final _LocationIntent acceptIntent;
-  final String? acceptStateText;
-  const _LocationShareMessage({required this.data, required this.time, this.onAcceptPlace, this.acceptIntent = _LocationIntent.unknown, this.acceptStateText});
+  final bool handoverSaved;
+  final bool returnSaved;
+  const _LocationShareMessage({required this.data, required this.time, this.onAcceptPlace, this.acceptIntent = _LocationIntent.unknown, this.handoverSaved = false, this.returnSaved = false});
 
   @override
   Widget build(BuildContext context) {
@@ -5627,20 +5635,13 @@ class _LocationShareMessage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Expanded(
-                            child: acceptStateText != null
-                                ? Text(
-                                    acceptStateText!,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontSize: 11.5, fontWeight: FontWeight.w600),
-                                  )
-                                : onAcceptPlace != null
+                            child: onAcceptPlace != null
                                     ? SingleChildScrollView(
                                         scrollDirection: Axis.horizontal,
                                         child: Row(
                                           children: [
                                             FilledButton.tonal(
-                                              onPressed: acceptIntent == _LocationIntent.returnTrip ? null : () => onAcceptPlace!(_LocationIntent.handover),
+                                              onPressed: (acceptIntent == _LocationIntent.returnTrip || handoverSaved) ? null : () => onAcceptPlace!(_LocationIntent.handover),
                                               style: FilledButton.styleFrom(
                                                 backgroundColor: BrandColors.primary.withValues(alpha: 0.18),
                                                 foregroundColor: BrandColors.primary,
@@ -5650,11 +5651,11 @@ class _LocationShareMessage extends StatelessWidget {
                                                 visualDensity: VisualDensity.compact,
                                                 textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                                               ),
-                                              child: const Text('Als Übergabeort'),
+                                              child: Text(handoverSaved ? 'Als Übergabeort gespeichert' : 'Als Übergabeort'),
                                             ),
                                             const SizedBox(width: 6),
                                             FilledButton.tonal(
-                                              onPressed: acceptIntent == _LocationIntent.handover ? null : () => onAcceptPlace!(_LocationIntent.returnTrip),
+                                              onPressed: (acceptIntent == _LocationIntent.handover || returnSaved) ? null : () => onAcceptPlace!(_LocationIntent.returnTrip),
                                               style: FilledButton.styleFrom(
                                                 backgroundColor: BrandColors.primary.withValues(alpha: 0.18),
                                                 foregroundColor: BrandColors.primary,
@@ -5664,7 +5665,7 @@ class _LocationShareMessage extends StatelessWidget {
                                                 visualDensity: VisualDensity.compact,
                                                 textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                                               ),
-                                              child: const Text('Als Rückgabeort'),
+                                              child: Text(returnSaved ? 'Als Rückgabeort gespeichert' : 'Als Rückgabeort'),
                                             ),
                                           ],
                                         ),
