@@ -5128,6 +5128,17 @@ class _LocationShareData {
   final String longitude;
   final String mapsUrl;
   const _LocationShareData({required this.label, required this.latitude, required this.longitude, required this.mapsUrl});
+
+  double? get latitudeValue => double.tryParse(latitude);
+  double? get longitudeValue => double.tryParse(longitude);
+
+  String get staticMapUrl {
+    final lat = latitudeValue;
+    final lng = longitudeValue;
+    if (lat == null || lng == null) return '';
+    final marker = Uri.encodeComponent('$lat,$lng,lightblue1');
+    return 'https://staticmap.openstreetmap.de/staticmap.php?center=$lat,$lng&zoom=15&size=800x320&maptype=mapnik&markers=$marker';
+  }
 }
 
 _LocationShareData? _parseLocationShareMessage(String raw) {
@@ -5141,6 +5152,47 @@ _LocationShareData? _parseLocationShareMessage(String raw) {
     longitude: parts[3],
     mapsUrl: parts[4],
   );
+}
+
+class _LocationMapFallback extends StatelessWidget {
+  final String label;
+  final bool loading;
+  const _LocationMapFallback({required this.label, this.loading = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(colors: [Color(0xFF1F2937), Color(0xFF0F766E)]),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (loading)
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              )
+            else
+              const Icon(Icons.map_rounded, color: Colors.white, size: 28),
+            const SizedBox(height: 8),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _LocationShareMessage extends StatelessWidget {
@@ -5177,14 +5229,44 @@ class _LocationShareMessage extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              Container(
-                height: 92,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  gradient: const LinearGradient(colors: [Color(0xFF1F2937), Color(0xFF0F766E)]),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  height: 120,
+                  width: double.infinity,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (data.staticMapUrl.isNotEmpty)
+                        Image.network(
+                          data.staticMapUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _LocationMapFallback(label: data.label),
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return _LocationMapFallback(label: data.label, loading: true);
+                          },
+                        )
+                      else
+                        _LocationMapFallback(label: data.label),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.08),
+                              Colors.black.withValues(alpha: 0.34),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Center(
+                        child: Icon(Icons.place_rounded, color: Colors.white, size: 36),
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Center(child: Icon(Icons.place_rounded, color: Colors.white, size: 34)),
               ),
               const SizedBox(height: 10),
               Text(data.label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
