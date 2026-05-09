@@ -66,6 +66,8 @@ class MessageThreadScreen extends StatefulWidget {
 
 enum _ChatState { requestOpen, confirmed, running, returnPlanned, completed, support }
 
+enum _LocationIntent { handover, returnTrip, unknown }
+
 /// Ob der Chat aktiv ist (Nachrichten senden erlaubt)
 /// Nur accepted/running erlaubt, alles andere ist gesperrt
 bool _isChatActiveForState(_ChatState st) {
@@ -1088,6 +1090,190 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     }
   }
 
+
+  String _sharedByNameFromLocation(_LocationShareData data) {
+    final label = data.label.trim();
+    const marker = ' hat einen Standort geteilt';
+    if (label.endsWith(marker)) {
+      final name = label.substring(0, label.length - marker.length).trim();
+      if (name.isNotEmpty) return name;
+    }
+    return label.isNotEmpty ? label : 'diesem Nutzer';
+  }
+
+  String _roleKeyForUserId(String? userId) {
+    final req = _request;
+    if (req == null || userId == null || userId.trim().isEmpty) return '';
+    if (userId == req.ownerId) return 'owner';
+    if (userId == req.renterId) return 'renter';
+    return '';
+  }
+
+  String _roleLabel(String roleKey) {
+    switch (roleKey) {
+      case 'owner':
+        return 'Vermieter';
+      case 'renter':
+        return 'Mieter';
+      default:
+        return '';
+    }
+  }
+
+  _LocationIntent _locationIntentForCurrentContext() {
+    final req = _request;
+    if (req == null || req.needsReview) return _LocationIntent.unknown;
+    final st = _deriveChatState();
+    final handoverDone = req.handoverConfirmation != null;
+    if ((st == _ChatState.confirmed || st == _ChatState.requestOpen) && !handoverDone) {
+      return _LocationIntent.handover;
+    }
+    if (st == _ChatState.running || st == _ChatState.returnPlanned || _handoverReturnState['returnActive'] == true || _handoverReturnState['returnTimeConfirmed'] == true) {
+      return _LocationIntent.returnTrip;
+    }
+    return _LocationIntent.unknown;
+  }
+
+  bool _hasSavedLocation(bool isReturn) {
+    final prefix = isReturn ? 'return' : 'handover';
+    return (((_handoverReturnState['${prefix}LocationLat'] as String?) ?? '').trim().isNotEmpty) &&
+        (((_handoverReturnState['${prefix}LocationLng'] as String?) ?? '').trim().isNotEmpty);
+  }
+
+  String _savedLocationText(bool isReturn) {
+    return isReturn ? 'Als Rückgabeort gespeichert' : 'Als Übergabeort gespeichert';
+  }
+
+  bool _shouldOfferReuseHandoverAsReturn() {
+    final req = _request;
+    if (req == null || req.needsReview) return false;
+    final st = _deriveChatState();
+    if (!(st == _ChatState.running || st == _ChatState.returnPlanned || _handoverReturnState['returnActive'] == true || _handoverReturnState['returnTimeConfirmed'] == true)) {
+      return false;
+    }
+    final hasHandover = _hasSavedLocation(false);
+    final hasReturn = _hasSavedLocation(true);
+    final dismissed = _handoverReturnState['returnLocationReusePromptDismissed'] == true;
+    return hasHandover && !hasReturn && !dismissed;
+  }
+
+  Future<_LocationIntent?> _chooseLocationIntent() async {
+    return showModalBottomSheet<_LocationIntent>(
+      context: context,
+      backgroundColor: Colors.black.withValues(alpha: 0.92),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.inventory_2_outlined, color: Colors.white),
+              title: const Text('Als Übergabeort übernehmen', style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.of(ctx).pop(_LocationIntent.handover),
+            ),
+            ListTile(
+              leading: const Icon(Icons.assignment_return_outlined, color: Colors.white),
+              title: const Text('Als Rückgabeort übernehmen', style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.of(ctx).pop(_LocationIntent.returnTrip),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _acceptSharedLocation({
+    required _LocationShareData data,
+    required String sharedByUserId,
+    required String sharedByName,
+    required String sharedByRole,
+  }) async {
+    final req = _request;
+    final t = _thread;
+    if (req == null || t == null) return;
+    var intent = _locationIntentForCurrentContext();
+    if (intent == _LocationIntent.unknown) {
+      final picked = await _chooseLocationIntent();
+      if (picked == null) return;
+      intent = picked;
+    }
+    final isReturn = intent == _LocationIntent.returnTrip;
+    final title = isReturn ? 'Rückgabeort übernehmen?' : 'Übergabeort übernehmen?';
+    final msg = 'Möchtest du den Standort von $sharedByName als ${isReturn ? 'Rückgabeort' : 'Übergabeort'} speichern?';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text('$msg\n\nSo ist für beide klar, wo ${isReturn ? 'die Rückgabe' : 'die Übergabe'} stattfinden soll.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Übernehmen')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await DataService.setFlowLocation(
+      requestId: req.id,
+      isReturn: isReturn,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      label: data.label,
+      mapsUrl: data.mapsUrl,
+      sharedByUserId: sharedByUserId,
+      sharedByName: sharedByName,
+      sharedByRole: sharedByRole,
+    );
+    final roleLabel = _roleLabel(sharedByRole);
+    final roleSuffix = roleLabel.isNotEmpty ? ' ($roleLabel)' : '';
+    await DataService.addSystemMessageToThread(
+      threadId: t.id,
+      text: '${isReturn ? 'Rückgabeort bestätigt' : 'Übergabeort bestätigt'}: Standort von $sharedByName$roleSuffix',
+    );
+    await _load();
+    _scrollToBottom(animate: true);
+    if (!mounted) return;
+    AppPopup.toast(
+      context,
+      icon: isReturn ? Icons.assignment_return_rounded : Icons.inventory_2_rounded,
+      title: isReturn ? 'Rückgabeort gespeichert' : 'Übergabeort gespeichert',
+    );
+  }
+
+  Future<void> _applyHandoverAsReturnLocation() async {
+    final req = _request;
+    final t = _thread;
+    if (req == null || t == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Übergabeort als Rückgabeort übernehmen?'),
+        content: const Text('Für diese Buchung ist noch kein Rückgabeort festgelegt. Soll der bestätigte Übergabeort auch für die Rückgabe verwendet werden?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Abbrechen')),
+          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Ja, übernehmen')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await DataService.copyHandoverLocationToReturn(requestId: req.id);
+    await DataService.addSystemMessageToThread(threadId: t.id, text: 'Rückgabeort bestätigt: gleicher Ort wie Übergabe');
+    await _load();
+    _scrollToBottom(animate: true);
+  }
+
+  Future<void> _declineHandoverAsReturnLocation() async {
+    final req = _request;
+    if (req == null) return;
+    await DataService.dismissReturnLocationReusePrompt(requestId: req.id);
+    await _load();
+    if (!mounted) return;
+    AppPopup.toast(
+      context,
+      icon: Icons.info_outline,
+      title: 'Kein Rückgabeort übernommen',
+      message: 'Teilt einen Standort im Chat, um den Rückgabeort festzulegen.',
+    );
+  }
+
   bool _showAddressHint() {
     final r = _request;
     if (r == null) return false;
@@ -1232,7 +1418,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                   return ListView.builder(
                                     controller: _listController,
                                     padding: const EdgeInsets.fromLTRB(16, 6, 16, 18),
-                                      itemCount: displayMessages.length + (showAddressHint ? 1 : 0) + (showInlineFlowCard ? 1 : 0) + (showDemo ? 1 : 0),
+                                      itemCount: displayMessages.length + (showAddressHint ? 1 : 0) + (showInlineFlowCard ? 1 : 0) + (_shouldOfferReuseHandoverAsReturn() ? 1 : 0) + (showDemo ? 1 : 0),
                                     itemBuilder: (context, index) {
                                       int i = index;
 
@@ -1275,6 +1461,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                                 data: locationShare,
                                                 me: legacyIsMe,
                                                 time: _formatTime(m.timestamp),
+                                                onAcceptPlace: _request == null || _request!.needsReview ? null : () => _acceptSharedLocation(
+                                                  data: locationShare,
+                                                  sharedByUserId: legacyIsMe ? (_currentUser?.id ?? '') : (_otherUser?.id ?? ''),
+                                                  sharedByName: _sharedByNameFromLocation(locationShare),
+                                                  sharedByRole: _roleKeyForUserId(legacyIsMe ? _currentUser?.id : _otherUser?.id),
+                                                ),
+                                                acceptIntent: _locationIntentForCurrentContext(),
+                                                acceptStateText: _locationIntentForCurrentContext() == _LocationIntent.returnTrip
+                                                    ? (_hasSavedLocation(true) ? _savedLocationText(true) : null)
+                                                    : _locationIntentForCurrentContext() == _LocationIntent.handover
+                                                        ? (_hasSavedLocation(false) ? _savedLocationText(false) : null)
+                                                        : null,
                                               ),
                                             );
                                           } else {
@@ -1314,6 +1512,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                                       data: locationShare,
                                                       me: isMe,
                                                       time: _formatTime(m.timestamp),
+                                                      onAcceptPlace: _request == null || _request!.needsReview ? null : () => _acceptSharedLocation(
+                                                        data: locationShare,
+                                                        sharedByUserId: m.senderId,
+                                                        sharedByName: _sharedByNameFromLocation(locationShare),
+                                                        sharedByRole: _roleKeyForUserId(m.senderId),
+                                                      ),
+                                                      acceptIntent: _locationIntentForCurrentContext(),
+                                                      acceptStateText: _locationIntentForCurrentContext() == _LocationIntent.returnTrip
+                                                          ? (_hasSavedLocation(true) ? _savedLocationText(true) : null)
+                                                          : _locationIntentForCurrentContext() == _LocationIntent.handover
+                                                              ? (_hasSavedLocation(false) ? _savedLocationText(false) : null)
+                                                              : null,
                                                     )
                                                   : _ChatBubble(
                                                       text: translation.original,
@@ -1352,6 +1562,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                         return _AnimatedMessageEntry(key: ValueKey('msg_${m.id}'), child: messageRow);
                                       }
                                       i -= displayMessages.length;
+                                      if (_shouldOfferReuseHandoverAsReturn() && i == 0) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(top: 6),
+                                          child: _ReturnLocationReuseCard(
+                                            onAccept: _applyHandoverAsReturnLocation,
+                                            onDecline: _declineHandoverAsReturnLocation,
+                                          ),
+                                        );
+                                      }
+                                      if (_shouldOfferReuseHandoverAsReturn()) i -= 1;
                                       if (showInlineFlowCard && i == 0) {
                                         final maxPhotos = 4;
                                         final photoCount = handoverActive
@@ -5122,11 +5342,50 @@ class _SitSendIcon extends StatelessWidget {
 }
 
 
+
+class _ReturnLocationReuseCard extends StatelessWidget {
+  final VoidCallback onAccept;
+  final VoidCallback onDecline;
+  const _ReturnLocationReuseCard({required this.onAccept, required this.onDecline});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Übergabeort als Rückgabeort übernehmen?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          Text('Für diese Buchung ist noch kein Rückgabeort festgelegt. Soll der bestätigte Übergabeort auch für die Rückgabe verwendet werden?', style: TextStyle(color: Colors.white.withValues(alpha: 0.82), height: 1.3)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.tonal(onPressed: onDecline, child: const Text('Nein, anderen Ort abstimmen')),
+              FilledButton(onPressed: onAccept, child: const Text('Ja, übernehmen')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _LocationShareBubble extends StatelessWidget {
   final _LocationShareData data;
   final bool me;
   final String time;
-  const _LocationShareBubble({required this.data, required this.me, required this.time});
+  final VoidCallback? onAcceptPlace;
+  final _LocationIntent acceptIntent;
+  final String? acceptStateText;
+  const _LocationShareBubble({required this.data, required this.me, required this.time, this.onAcceptPlace, this.acceptIntent = _LocationIntent.unknown, this.acceptStateText});
 
   @override
   Widget build(BuildContext context) {
@@ -5137,7 +5396,7 @@ class _LocationShareBubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _LocationShareMessage(data: data, time: time),
+          _LocationShareMessage(data: data, time: time, onAcceptPlace: onAcceptPlace, acceptIntent: acceptIntent, acceptStateText: acceptStateText),
         ],
       ),
     );
@@ -5294,7 +5553,10 @@ class _LocationGridPainter extends CustomPainter {
 class _LocationShareMessage extends StatelessWidget {
   final _LocationShareData data;
   final String time;
-  const _LocationShareMessage({required this.data, required this.time});
+  final VoidCallback? onAcceptPlace;
+  final _LocationIntent acceptIntent;
+  final String? acceptStateText;
+  const _LocationShareMessage({required this.data, required this.time, this.onAcceptPlace, this.acceptIntent = _LocationIntent.unknown, this.acceptStateText});
 
   @override
   Widget build(BuildContext context) {
@@ -5385,6 +5647,35 @@ class _LocationShareMessage extends StatelessWidget {
                         Text(
                           'In Google Maps öffnen',
                           style: TextStyle(color: Colors.white.withValues(alpha: 0.84), fontSize: 11.5, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                      if (acceptStateText != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          acceptStateText!,
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontSize: 11.5, fontWeight: FontWeight.w600),
+                        ),
+                      ] else if (onAcceptPlace != null) ...[
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: FilledButton.tonal(
+                            onPressed: onAcceptPlace,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: BrandColors.primary.withValues(alpha: 0.18),
+                              foregroundColor: BrandColors.primary,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              visualDensity: VisualDensity.compact,
+                              textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                            ),
+                            child: Text(
+                              acceptIntent == _LocationIntent.returnTrip
+                                  ? 'Als Rückgabeort übernehmen'
+                                  : acceptIntent == _LocationIntent.handover
+                                      ? 'Als Übergabeort übernehmen'
+                                      : 'Standort übernehmen',
+                            ),
+                          ),
                         ),
                       ],
                       const SizedBox(height: 6),

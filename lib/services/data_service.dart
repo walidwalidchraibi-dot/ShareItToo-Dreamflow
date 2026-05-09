@@ -5176,6 +5176,21 @@ class DataService {
         'returnTimeRequestedByUserId': (e['returnTimeRequestedByUserId'] as String?) ?? '',
         'handoverTimeConfirmed': e['handoverTimeConfirmed'] == true,
         'returnTimeConfirmed': e['returnTimeConfirmed'] == true,
+        'handoverLocationLat': (e['handoverLocationLat'] as String?) ?? '',
+        'handoverLocationLng': (e['handoverLocationLng'] as String?) ?? '',
+        'handoverLocationLabel': (e['handoverLocationLabel'] as String?) ?? '',
+        'handoverLocationMapsUrl': (e['handoverLocationMapsUrl'] as String?) ?? '',
+        'handoverLocationSharedByUserId': (e['handoverLocationSharedByUserId'] as String?) ?? '',
+        'handoverLocationSharedByName': (e['handoverLocationSharedByName'] as String?) ?? '',
+        'handoverLocationSharedByRole': (e['handoverLocationSharedByRole'] as String?) ?? '',
+        'returnLocationLat': (e['returnLocationLat'] as String?) ?? '',
+        'returnLocationLng': (e['returnLocationLng'] as String?) ?? '',
+        'returnLocationLabel': (e['returnLocationLabel'] as String?) ?? '',
+        'returnLocationMapsUrl': (e['returnLocationMapsUrl'] as String?) ?? '',
+        'returnLocationSharedByUserId': (e['returnLocationSharedByUserId'] as String?) ?? '',
+        'returnLocationSharedByName': (e['returnLocationSharedByName'] as String?) ?? '',
+        'returnLocationSharedByRole': (e['returnLocationSharedByRole'] as String?) ?? '',
+        'returnLocationReusePromptDismissed': e['returnLocationReusePromptDismissed'] == true,
       };
     }
     return {
@@ -5191,6 +5206,21 @@ class DataService {
       'returnTimeRequestedByUserId': '',
       'handoverTimeConfirmed': false,
       'returnTimeConfirmed': false,
+      'handoverLocationLat': '',
+      'handoverLocationLng': '',
+      'handoverLocationLabel': '',
+      'handoverLocationMapsUrl': '',
+      'handoverLocationSharedByUserId': '',
+      'handoverLocationSharedByName': '',
+      'handoverLocationSharedByRole': '',
+      'returnLocationLat': '',
+      'returnLocationLng': '',
+      'returnLocationLabel': '',
+      'returnLocationMapsUrl': '',
+      'returnLocationSharedByUserId': '',
+      'returnLocationSharedByName': '',
+      'returnLocationSharedByRole': '',
+      'returnLocationReusePromptDismissed': false,
     };
   }
 
@@ -5342,6 +5372,70 @@ class DataService {
     existing['${prefix}TimeIso'] = time.toIso8601String();
     existing['${prefix}TimeRequestedByUserId'] = requestedByUserId;
     existing['${prefix}TimeConfirmed'] = false;
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+  }
+
+
+  static Future<void> setFlowLocation({
+    required String requestId,
+    required bool isReturn,
+    required String latitude,
+    required String longitude,
+    required String label,
+    required String mapsUrl,
+    required String sharedByUserId,
+    required String sharedByName,
+    required String sharedByRole,
+  }) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return;
+    final map = await _getHandoverReturnStateMap();
+    final existing = (map[id] is Map)
+        ? Map<String, dynamic>.from(map[id] as Map)
+        : <String, dynamic>{};
+    final prefix = isReturn ? 'return' : 'handover';
+    existing['${prefix}LocationLat'] = latitude.trim();
+    existing['${prefix}LocationLng'] = longitude.trim();
+    existing['${prefix}LocationLabel'] = label.trim();
+    existing['${prefix}LocationMapsUrl'] = mapsUrl.trim();
+    existing['${prefix}LocationSharedByUserId'] = sharedByUserId.trim();
+    existing['${prefix}LocationSharedByName'] = sharedByName.trim();
+    existing['${prefix}LocationSharedByRole'] = sharedByRole.trim();
+    if (isReturn) {
+      existing['returnLocationReusePromptDismissed'] = false;
+    }
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+  }
+
+  static Future<void> copyHandoverLocationToReturn({required String requestId}) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return;
+    final map = await _getHandoverReturnStateMap();
+    final existing = (map[id] is Map)
+        ? Map<String, dynamic>.from(map[id] as Map)
+        : <String, dynamic>{};
+    existing['returnLocationLat'] = (existing['handoverLocationLat'] as String?) ?? '';
+    existing['returnLocationLng'] = (existing['handoverLocationLng'] as String?) ?? '';
+    existing['returnLocationLabel'] = (existing['handoverLocationLabel'] as String?) ?? '';
+    existing['returnLocationMapsUrl'] = (existing['handoverLocationMapsUrl'] as String?) ?? '';
+    existing['returnLocationSharedByUserId'] = (existing['handoverLocationSharedByUserId'] as String?) ?? '';
+    existing['returnLocationSharedByName'] = (existing['handoverLocationSharedByName'] as String?) ?? '';
+    existing['returnLocationSharedByRole'] = (existing['handoverLocationSharedByRole'] as String?) ?? '';
+    existing['returnLocationReusePromptDismissed'] = false;
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+  }
+
+  static Future<void> dismissReturnLocationReusePrompt({required String requestId}) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return;
+    final map = await _getHandoverReturnStateMap();
+    final existing = (map[id] is Map)
+        ? Map<String, dynamic>.from(map[id] as Map)
+        : <String, dynamic>{};
+    existing['returnLocationReusePromptDismissed'] = true;
     map[id] = existing;
     await _setHandoverReturnStateMap(map);
   }
