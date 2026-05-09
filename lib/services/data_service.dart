@@ -5183,6 +5183,7 @@ class DataService {
         'handoverLocationSharedByUserId': (e['handoverLocationSharedByUserId'] as String?) ?? '',
         'handoverLocationSharedByName': (e['handoverLocationSharedByName'] as String?) ?? '',
         'handoverLocationSharedByRole': (e['handoverLocationSharedByRole'] as String?) ?? '',
+        'handoverLocationAcceptedAs': (e['handoverLocationAcceptedAs'] as String?) ?? 'handoverLocation',
         'returnLocationLat': (e['returnLocationLat'] as String?) ?? '',
         'returnLocationLng': (e['returnLocationLng'] as String?) ?? '',
         'returnLocationLabel': (e['returnLocationLabel'] as String?) ?? '',
@@ -5190,6 +5191,7 @@ class DataService {
         'returnLocationSharedByUserId': (e['returnLocationSharedByUserId'] as String?) ?? '',
         'returnLocationSharedByName': (e['returnLocationSharedByName'] as String?) ?? '',
         'returnLocationSharedByRole': (e['returnLocationSharedByRole'] as String?) ?? '',
+        'returnLocationAcceptedAs': (e['returnLocationAcceptedAs'] as String?) ?? 'returnLocation',
         'returnLocationReusePromptDismissed': e['returnLocationReusePromptDismissed'] == true,
       };
     }
@@ -5213,6 +5215,7 @@ class DataService {
       'handoverLocationSharedByUserId': '',
       'handoverLocationSharedByName': '',
       'handoverLocationSharedByRole': '',
+      'handoverLocationAcceptedAs': 'handoverLocation',
       'returnLocationLat': '',
       'returnLocationLng': '',
       'returnLocationLabel': '',
@@ -5220,6 +5223,7 @@ class DataService {
       'returnLocationSharedByUserId': '',
       'returnLocationSharedByName': '',
       'returnLocationSharedByRole': '',
+      'returnLocationAcceptedAs': 'returnLocation',
       'returnLocationReusePromptDismissed': false,
     };
   }
@@ -5402,6 +5406,7 @@ class DataService {
     existing['${prefix}LocationSharedByUserId'] = sharedByUserId.trim();
     existing['${prefix}LocationSharedByName'] = sharedByName.trim();
     existing['${prefix}LocationSharedByRole'] = sharedByRole.trim();
+    existing['${prefix}LocationAcceptedAs'] = isReturn ? 'returnLocation' : 'handoverLocation';
     if (isReturn) {
       existing['returnLocationReusePromptDismissed'] = false;
     }
@@ -5423,6 +5428,7 @@ class DataService {
     existing['returnLocationSharedByUserId'] = (existing['handoverLocationSharedByUserId'] as String?) ?? '';
     existing['returnLocationSharedByName'] = (existing['handoverLocationSharedByName'] as String?) ?? '';
     existing['returnLocationSharedByRole'] = (existing['handoverLocationSharedByRole'] as String?) ?? '';
+    existing['returnLocationAcceptedAs'] = 'returnLocation';
     existing['returnLocationReusePromptDismissed'] = false;
     map[id] = existing;
     await _setHandoverReturnStateMap(map);

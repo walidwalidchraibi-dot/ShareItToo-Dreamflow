@@ -1171,7 +1171,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     if (intent == _LocationIntent.unknown) return;
     final isReturn = intent == _LocationIntent.returnTrip;
     final title = isReturn ? 'Rückgabeort übernehmen?' : 'Übergabeort übernehmen?';
-    final msg = 'Möchtest du den Standort von $sharedByName als ${isReturn ? 'Rückgabeort' : 'Übergabeort'} speichern?';
+    final msg = 'Möchtest du den Standort von $sharedByName als ${isReturn ? 'Rückgabeort' : 'Übergabeort'} für diese Buchung speichern?';
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1195,11 +1195,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       sharedByName: sharedByName,
       sharedByRole: sharedByRole,
     );
-    final roleLabel = _roleLabel(sharedByRole);
-    final roleSuffix = roleLabel.isNotEmpty ? ' ($roleLabel)' : '';
     await DataService.addSystemMessageToThread(
       threadId: t.id,
-      text: '${isReturn ? 'Rückgabeort bestätigt' : 'Übergabeort bestätigt'}: Standort von $sharedByName$roleSuffix',
+      text: '${isReturn ? 'Rückgabeort bestätigt' : 'Übergabeort bestätigt'}: Standort von $sharedByName',
     );
     await _load();
     _scrollToBottom(animate: true);
