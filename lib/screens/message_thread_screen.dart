@@ -5667,7 +5667,7 @@ class _LocationShareMessage extends StatelessWidget {
                                         child: Row(
                                           children: [
                                             FilledButton.tonal(
-                                              onPressed: (acceptIntent == _LocationIntent.returnTrip || handoverSaved) ? null : () => onAcceptPlace!(_LocationIntent.handover),
+                                              onPressed: handoverSaved ? null : () => onAcceptPlace!(_LocationIntent.handover),
                                               style: FilledButton.styleFrom(
                                                 backgroundColor: BrandColors.primary.withValues(alpha: 0.18),
                                                 foregroundColor: BrandColors.primary,
@@ -5681,7 +5681,7 @@ class _LocationShareMessage extends StatelessWidget {
                                             ),
                                             const SizedBox(width: 6),
                                             FilledButton.tonal(
-                                              onPressed: (acceptIntent == _LocationIntent.handover || returnSaved) ? null : () => onAcceptPlace!(_LocationIntent.returnTrip),
+                                              onPressed: returnSaved ? null : () => onAcceptPlace!(_LocationIntent.returnTrip),
                                               style: FilledButton.styleFrom(
                                                 backgroundColor: BrandColors.primary.withValues(alpha: 0.18),
                                                 foregroundColor: BrandColors.primary,
