@@ -631,25 +631,32 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                             ),
                           ),
                           // Summary header
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.06),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Bewertungen', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.star, color: Color(0xFFFB923C)),
+                                    const SizedBox(width: 8),
+                                    Text(avg.toStringAsFixed(1), style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text('$count Bewertungen aus abgeschlossenen Buchungen', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+                                    ),
+                                  ],
                                 ),
-                                child: Row(children: [
-                                  const Icon(Icons.star, color: Color(0xFFFB923C)),
-                                  const SizedBox(width: 8),
-                                  Text(avg.toStringAsFixed(1), style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
-                                  const SizedBox(width: 8),
-                                  Text('· $count Bewertungen', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70)),
-                                ]),
-                              ),
-                              const Spacer(),
-                            ],
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 12),
                           Expanded(

@@ -2356,6 +2356,22 @@ Future<void> _showUnavailablePopup(BuildContext context) async {
 }
 
 Future<void> _showReservationSentPopup(BuildContext context, {required String requestId, required Item item}) async {
+  final owner = await ItemDetailsOverlay._loadOwner(item.ownerId);
+  final range = await DataService.getRentalRequestById(requestId);
+
+  String formatDate(DateTime value) {
+    final two = (int v) => v.toString().padLeft(2, '0');
+    return '${two(value.day)}.${two(value.month)}.${value.year}';
+  }
+
+  final rangeText = range == null
+      ? null
+      : '${formatDate(range.start)} – ${formatDate(range.end)}';
+  final unit = item.priceUnit;
+  final raw = item.priceRaw;
+  final platformFee = DataService.platformContributionForRental(raw);
+  final customerPriceText = '${(raw + platformFee).toStringAsFixed(0)} ${unit == 'week' ? '€/Woche' : '€/Tag'} · Inkl. Plattformgebühr';
+
   await showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
@@ -2372,11 +2388,14 @@ Future<void> _showReservationSentPopup(BuildContext context, {required String re
               child: Material(
                 color: Colors.transparent,
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.34),
-                    borderRadius: BorderRadius.circular(20),
+                    color: const Color(0xFF0B111C).withValues(alpha: 0.96),
+                    borderRadius: BorderRadius.circular(22),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x55000000), blurRadius: 24, offset: Offset(0, 10)),
+                    ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -2404,30 +2423,94 @@ Future<void> _showReservationSentPopup(BuildContext context, {required String re
                         ],
                       ),
                       const SizedBox(height: 6),
-                      const Text('Warte auf Antwort vom Vermieter.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      Text(
+                        owner == null
+                            ? 'Warte auf die Antwort des Vermieters.'
+                            : 'Warte auf die Antwort von ${owner.displayName}.',
+                        style: const TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
                       const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          FilledButton.icon(
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: SizedBox(
+                                width: 56,
+                                height: 56,
+                                child: AppImage(
+                                  url: item.photos.isNotEmpty ? item.photos.first : '',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
                             ),
-                            onPressed: () async {
-                              // Use root navigator to ensure navigation works even when dialog context is disposed
-                              final nav = Navigator.of(ctx, rootNavigator: true);
-                              nav.pop();
-                              await Future<void>.delayed(const Duration(milliseconds: 80));
-                              await nav.push(
-                                MaterialPageRoute(builder: (_) => BookingsScreen(initialTabIndex: 2, highlightRequestId: requestId)),
-                              );
-                            },
-                            icon: const Icon(Icons.receipt_long),
-                            label: const Text(
-                              'Anfrage ansehen',
-                              softWrap: false,
-                              maxLines: 1,
-                              overflow: TextOverflow.fade,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                  ),
+                                  if (rangeText != null) ...[
+                                    const SizedBox(height: 4),
+                                    Text(rangeText, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                  ],
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    customerPriceText,
+                                    style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: Colors.white.withValues(alpha: 0.16)),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              ),
+                              onPressed: () => Navigator.of(ctx).maybePop(),
+                              child: const Text('Weiter stöbern'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              ),
+                              onPressed: () async {
+                                final nav = Navigator.of(ctx, rootNavigator: true);
+                                nav.pop();
+                                await Future<void>.delayed(const Duration(milliseconds: 80));
+                                await nav.push(
+                                  MaterialPageRoute(builder: (_) => BookingsScreen(initialTabIndex: 2, highlightRequestId: requestId)),
+                                );
+                              },
+                              icon: const Icon(Icons.receipt_long),
+                              label: const Text(
+                                'Anfrage ansehen',
+                                softWrap: false,
+                                maxLines: 1,
+                                overflow: TextOverflow.fade,
+                              ),
                             ),
                           ),
                         ],
