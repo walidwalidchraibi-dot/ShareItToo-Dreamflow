@@ -1,9 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:lendify/widgets/return_reminder_picker_sheet.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/models/invoice.dart';
+import 'package:lendify/services/invoice_pdf_service.dart';
+import 'package:printing/printing.dart';
+import 'package:lendify/services/file_download_stub.dart'
+    if (dart.library.html) 'package:lendify/services/file_download_web.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -581,8 +587,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     String label; Color color;
                     if (effective == 'completed') {
                       final cancelled = status == 'Storniert' || status == 'Abgelehnt';
-                      label = cancelled ? 'Storniert' : 'Abgeschlossen';
-                      color = cancelled ? const Color(0xFFF43F5E) : Colors.blueGrey;
+                      final heldForReview = widget.booking['needsReview'] == true;
+                      label = cancelled ? 'Storniert' : (heldForReview ? 'In Prüfung' : 'Abgeschlossen');
+                      color = cancelled ? const Color(0xFFF43F5E) : (heldForReview ? const Color(0xFFF59E0B) : Colors.blueGrey);
                     } else if (effective == 'pending') {
                       label = 'Anfrage'; color = Colors.grey;
                     } else if (effective == 'upcoming') {
@@ -669,8 +676,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           onMessage: (() {
             final (s, e) = _parseDateRange();
             final eff = _effectiveCategory(start: s, end: e);
-            if (eff == 'pending') return null;
-              return () {
+            if (eff == 'pending' || widget.booking['needsReview'] == true || eff == 'completed') return null;
+            return () {
               final reqId = (widget.booking['requestId'] ?? '').toString();
               Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => MessageThreadScreen(
@@ -1148,8 +1155,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     String label; Color color;
                     if (effectiveLocal == 'completed') {
                       final cancelled = status == 'Storniert' || status == 'Abgelehnt';
-                      label = cancelled ? 'Storniert' : 'Abgeschlossen';
-                      color = cancelled ? const Color(0xFFF43F5E) : Colors.blueGrey;
+                      final heldForReview = widget.booking['needsReview'] == true;
+                      label = cancelled ? 'Storniert' : (heldForReview ? 'In Prüfung' : 'Abgeschlossen');
+                      color = cancelled ? const Color(0xFFF43F5E) : (heldForReview ? const Color(0xFFF59E0B) : Colors.blueGrey);
                     } else if (effectiveLocal == 'pending') {
                       label = 'Anfrage'; color = Colors.grey;
                     } else if (effectiveLocal == 'upcoming') {
@@ -1251,7 +1259,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           counterpartyRating: null,
           counterpartyReviews: null,
           // Remove message button in pending
-          onMessage: isPending
+          onMessage: (isPending || widget.booking['needsReview'] == true || _isCompletedState)
               ? null
               : () {
                   final reqId = (widget.booking['requestId'] ?? '').toString();
@@ -1542,7 +1550,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                 child: OutlinedButton.icon(
                   onPressed: _downloadReceiptPdf,
                   icon: const Icon(Icons.picture_as_pdf),
-                  label: const Text('Beleg herunterladen (PDF)'),
+                  label: const Text('Beleg herunterladen'),
                 ),
               ),
             ],
@@ -2263,20 +2271,21 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   }
 
   Future<void> _downloadReceiptPdf() async {
-    // Lightweight HTML receipt (user can print/save as PDF in browser)
     final title = (widget.booking['title'] as String?) ?? '-';
     final bookingId = _computeBookingId();
+    final requestId = (widget.booking['requestId'] ?? '').toString();
     final (start, end) = _parseDateRange();
     final pricePaidStr = (widget.booking['pricePaid'] as String?) ?? '';
     final totalPaidLegacy = _parseEuro(pricePaidStr);
-    // Recompute rental subtotal from provided base/day and discounts when possible
     final daysVal = (widget.booking['days'] as num?)?.toInt() ?? ((start != null && end != null) ? end.difference(start).inDays.clamp(1, 365) : 1);
     final basePerDayProvided = (widget.booking['basePerDay'] as num?)?.toDouble();
-    final double baseTotal = basePerDayProvided != null ? (basePerDayProvided * (daysVal)) : totalPaidLegacy;
+    final double baseTotal = basePerDayProvided != null ? (basePerDayProvided * daysVal) : totalPaidLegacy;
     final double discountAmount = _discountsFromBooking();
     final rentalSubtotal = (baseTotal - discountAmount).clamp(0.0, baseTotal);
     final fee = DataService.platformContributionForRental(rentalSubtotal);
-    // Delivery/return/express
+    final netAmount = (rentalSubtotal / 1.19);
+    final taxAmount = (rentalSubtotal - netAmount);
+
     final bool ownerDelivers = (widget.booking['ownerDeliversAtDropoffChosen'] == true) || (widget.booking['expressRequested'] == true) ||
         (widget.booking['expressStatus'] != null) || ((widget.booking['deliveryAddressLine'] ?? '').toString().trim().isNotEmpty) || ((widget.booking['deliveryCity'] ?? '').toString().trim().isNotEmpty);
     final bool ownerPicks = (widget.booking['ownerPicksUpAtReturnChosen'] == true);
@@ -2293,66 +2302,52 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final double dropFee = ownerDelivers ? double.parse((km * 0.30).toStringAsFixed(2)) : 0.0;
     final double retFee = ownerPicks ? double.parse((km * 0.30).toStringAsFixed(2)) : 0.0;
     final bool expressSelected = (widget.booking['expressRequested'] == true) || (widget.booking['expressStatus'] == 'accepted');
-    final bool expressAccepted = (widget.booking['expressStatus'] == 'accepted');
     final double expressFee = expressSelected ? 5.0 : 0.0;
     final double expressFeePlatform = expressFee > 0 ? double.parse((expressFee * 0.10).toStringAsFixed(2)) : 0.0;
     final double totalPaid = double.parse((rentalSubtotal + fee + dropFee + retFee + expressFee + expressFeePlatform).toStringAsFixed(2));
-    // Refund computation (unified policy; assumed cancel time = jetzt)
-    final status = (widget.booking['status'] as String?) ?? '';
-    final cancelledBy = (widget.booking['cancelledBy'] as String?) ?? '';
-    final now = DateTime.now();
-    double refundRatio = 0.0;
-    if (status == 'Storniert' && start != null) {
-      if (cancelledBy == 'owner') {
-        refundRatio = 1.0;
-      } else {
-        refundRatio = DataService.refundRatio(policy: 'unified', start: start, cancelAt: now);
-      }
-    }
-    // Master-Regel: gleiche Quote auf alle Gebühren anwenden
-    final feesTotal = fee + dropFee + retFee + expressFee + expressFeePlatform;
-    final refundableTotal = (rentalSubtotal + feesTotal).clamp(0.0, totalPaid);
-    final double totalRefund = (cancelledBy == 'owner') ? totalPaid : double.parse((refundableTotal * refundRatio).toStringAsFixed(2));
-    final html = '''
-<!doctype html>
-<html lang="de">
-<meta charset="utf-8">
-<title>Beleg $bookingId</title>
-<style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:24px;color:#0f172a}
-  h1{font-size:18px;margin:0 0 12px}
-  table{border-collapse:collapse;width:100%;max-width:560px}
-  td{padding:6px 0}
-  .right{text-align:right}
-  .muted{color:#475569}
-  .total{font-weight:800}
-  hr{border:none;border-top:1px solid #e2e8f0;margin:12px 0}
-</style>
-<h1>Beleg</h1>
-<div class="muted">Buchungs-ID $bookingId</div>
-<div style="margin:8px 0 16px 0">$title</div>
-<div class="muted">Zeitraum: ${(widget.booking['dates'] as String?) ?? '-'}</div>
-<hr>
- <table>
-    <tr><td>Mietpreis (Tagespreis × Tage)</td><td class="right">${_formatEuro(rentalSubtotal)}</td></tr>
-   ${dropFee > 0 ? '<tr><td>Lieferung (Abgabe)</td><td class="right">${_formatEuro(dropFee)}</td></tr>' : ''}
-   ${retFee > 0 ? '<tr><td>Abholung (Rückgabe)</td><td class="right">${_formatEuro(retFee)}</td></tr>' : ''}
-   ${expressFee > 0 ? '<tr><td>Prioritätszuschlag</td><td class="right">${_formatEuro(expressFee)}</td></tr>' : ''}
-   ${expressFeePlatform > 0 ? '<tr><td>Plattformbeitrag auf Priorität (10%)</td><td class="right">${_formatEuro(expressFeePlatform)}</td></tr>' : ''}
-   <tr><td>Plattformbeitrag</td><td class="right">${_formatEuro(fee)}</td></tr>
-  <tr><td colspan="2"><hr></td></tr>
-   <tr><td class="total">Gesamt bezahlt (Mieter)</td><td class="right total">${_formatEuro(totalPaid)}</td></tr>
-  ${totalRefund > 0 ? '<tr><td class="total">Rückerstattung gesamt</td><td class="right total">${_formatEuro(totalRefund)}</td></tr>' : '<tr><td>Rückerstattung</td><td class="right">0,00 €</td></tr>'}
-</table>
- <p class="muted">${status == 'Storniert' ? 'Erstattung gem. einheitlicher Stornobedingung (alle Gebühren proportional).' : 'Keine Erstattung angewendet.'}</p>
-<p class="muted">ShareItToo – Quittung ohne Gewähr.</p>
-</html>
-''';
-    final dataUri = Uri.dataFromString(html, mimeType: 'text/html', encoding: utf8);
+
+    final renterName = (widget.booking['renterName'] as String?)?.trim();
+    final ownerName = (widget.booking['listerName'] as String?)?.trim();
+    final invoice = Invoice(
+      id: 'receipt_${requestId.isNotEmpty ? requestId : bookingId}',
+      invoiceNumber: 'SIT-${bookingId.replaceAll(RegExp(r'[^A-Za-z0-9-]'), '')}',
+      bookingId: bookingId,
+      requestId: requestId.isNotEmpty ? requestId : bookingId,
+      type: InvoiceType.invoice,
+      date: DateTime.now(),
+      title: title,
+      amount: totalPaid,
+      booking: InvoiceBookingDetails(
+        itemTitle: title,
+        renterName: (renterName?.isNotEmpty == true ? renterName! : 'Mieter'),
+        ownerName: (ownerName?.isNotEmpty == true ? ownerName! : 'Vermieter'),
+        rentalDays: daysVal,
+      ),
+      pricing: InvoicePriceBreakdown(
+        vatRate: 0.19,
+        netAmount: double.parse(netAmount.toStringAsFixed(2)),
+        taxAmount: double.parse(taxAmount.toStringAsFixed(2)),
+        totalAfterTax: double.parse(rentalSubtotal.toStringAsFixed(2)),
+        platformFee: double.parse(fee.toStringAsFixed(2)),
+        payoutToOwner: double.parse((totalPaid - fee).clamp(0.0, totalPaid).toStringAsFixed(2)),
+      ),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
     try {
-      await launchUrl(dataUri, mode: LaunchMode.platformDefault);
-    } catch (_) {
-      _toast('Beleg konnte nicht geöffnet werden');
+      final bytes = await InvoicePdfService.buildPdf(invoice);
+      final fileName = '${invoice.invoiceNumber}.pdf';
+      await triggerFileDownload(bytes, fileName, mimeType: 'application/pdf');
+      if (!kIsWeb) {
+        await Printing.layoutPdf(
+          name: fileName,
+          onLayout: (_) async => bytes,
+        );
+      }
+    } catch (e) {
+      debugPrint('[BookingDetailScreen] receipt download failed: $e');
+      _toast('Beleg konnte nicht erstellt werden');
     }
   }
 

@@ -408,8 +408,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final target = _effectiveTranslationLanguageCode();
     final translationActive = _messageSettings.autoTranslateChat;
     final showOriginal = translationActive && !isMe && _showOriginalIncoming;
+    final locationMessage = _parseLocationShareMessage(message.text);
 
-    final canTranslate = translationActive && !isMe && message.senderId != 'system' && message.text.trim().isNotEmpty;
+    final canTranslate = translationActive && !isMe && message.senderId != 'system' && message.text.trim().isNotEmpty && locationMessage == null;
     if (!canTranslate) {
       return _TranslationDisplay(
         original: message.text,
@@ -691,7 +692,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         showOriginalEnabled: showingOriginal,
         showLanguagesOnlyWhenTranslationOn: true,
         onTranslationToggle: (enabled) async {
-          if (enabled) await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: true, showOriginalMessages: false, preferredLanguageCode: currentLang));
+          if (enabled) await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: true, showOriginalMessages: _showOriginalIncoming, preferredLanguageCode: currentLang));
           if (!enabled) await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: false, showOriginalMessages: false));
         },
         onShowOriginalToggle: (show) async {
@@ -702,7 +703,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
     if (selected != null && selected.trim().isNotEmpty) {
       final normalized = selected.trim();
-      await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: true, showOriginalMessages: false, preferredLanguageCode: normalized));
+      await _updateTranslationSettings(_messageSettings.copyWith(autoTranslateChat: true, showOriginalMessages: _showOriginalIncoming, preferredLanguageCode: normalized));
     }
   }
 
@@ -1088,19 +1089,30 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final st = _deriveChatState();
     if (st == _ChatState.completed || st == _ChatState.support) return false;
 
-    // Release window example: 6h before handover.
-    final revealAt = r.start.subtract(const Duration(hours: 6));
+    final handoverIso = ((_handoverReturnState['handoverTimeIso'] as String?) ?? '').trim();
+    final confirmedHandover = _handoverReturnState['handoverTimeConfirmed'] == true
+        ? DateTime.tryParse(handoverIso)?.toLocal()
+        : null;
+    final revealAt = (confirmedHandover ?? r.start).subtract(const Duration(hours: 6));
     return DateTime.now().isBefore(revealAt);
   }
 
   String _addressHintText() {
     final r = _request;
     if (r == null) return '';
-    final revealAt = r.start.subtract(const Duration(hours: 6));
+    final handoverIso = ((_handoverReturnState['handoverTimeIso'] as String?) ?? '').trim();
+    final confirmedHandover = _handoverReturnState['handoverTimeConfirmed'] == true
+        ? DateTime.tryParse(handoverIso)?.toLocal()
+        : null;
+    if (confirmedHandover == null) {
+      return 'Hinweis zur Adressfreigabe: Die genaue Adresse wird automatisch etwa 6 h vor der bestätigten Übergabe angezeigt.';
+    }
+    final revealAt = confirmedHandover.subtract(const Duration(hours: 6));
     final minutes = revealAt.difference(DateTime.now()).inMinutes;
     if (minutes <= 0) return 'Hinweis: Die Adresse wird in Kürze freigegeben.';
+    if (minutes < 60) return 'Hinweis zur Adressfreigabe: Die genaue Adresse wird in weniger als 1 h vor der bestätigten Übergabe angezeigt.';
     final hours = (minutes / 60).ceil();
-    return 'Hinweis zur Adressfreigabe: Die genaue Adresse wird automatisch ca. $hours h vor der Übergabe angezeigt.';
+    return 'Hinweis zur Adressfreigabe: Die genaue Adresse wird automatisch etwa $hours h vor der bestätigten Übergabe angezeigt.';
   }
 
   @override
@@ -1259,6 +1271,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                             );
                                           }
                                         } else {
+                                          final locationShare = _parseLocationShareMessage(m.text);
                                           messageRow = _AvatarMessageRow(
                                             isMe: isMe,
                                             avatarUrl: isMe ? _currentUser?.photoURL : _avatarUrl(),
@@ -1271,17 +1284,23 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                                     )
                                                   : null;
 
-                                              Widget bubble = _ChatBubble(
-                                                text: translation.original,
+                                              Widget bubble = locationShare != null
+                                                  ? _LocationShareBubble(
+                                                      data: locationShare,
+                                                      me: isMe,
+                                                      time: _formatTime(m.timestamp),
+                                                    )
+                                                  : _ChatBubble(
+                                                      text: translation.original,
                                                 translatedText: translation.translated,
                                                 translationLabel: (translation.translated != null || translation.placeholder)
                                                     ? _translationLabel(translation.languageCode, translation.placeholder)
                                                     : null,
-                                                translationPlaceholder: translation.placeholder,
-                                                showOriginalUnderTranslation: translation.showOriginalUnderTranslation,
-                                                me: isMe,
-                                                time: _formatTime(m.timestamp),
-                                              );
+                                                      translationPlaceholder: translation.placeholder,
+                                                      showOriginalUnderTranslation: translation.showOriginalUnderTranslation,
+                                                      me: isMe,
+                                                      time: _formatTime(m.timestamp),
+                                                    );
 
                                               if (handle != null) {
                                                 bubble = Stack(
@@ -2723,11 +2742,11 @@ class _ChatBubble extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Text(translationLabel!, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w700)),
               ),
-            Text(translatedText!, style: const TextStyle(color: Colors.white, height: 1.3, fontSize: 14)),
+            Text(translatedText!, softWrap: true, overflow: TextOverflow.visible, style: const TextStyle(color: Colors.white, height: 1.3, fontSize: 14)),
             if (showOriginalUnderTranslation) ...[
               const SizedBox(height: 6),
               Text('Original', style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 10, fontWeight: FontWeight.w600)),
-              Text(text, style: TextStyle(color: Colors.white.withValues(alpha: 0.78), height: 1.28, fontSize: 13)),
+              Text(text, softWrap: true, overflow: TextOverflow.visible, style: TextStyle(color: Colors.white.withValues(alpha: 0.78), height: 1.28, fontSize: 13)),
             ],
           ] else ...[
             if (showPlaceholderLabel)
@@ -2735,7 +2754,7 @@ class _ChatBubble extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Text(translationLabel!, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.w700)),
               ),
-            Text(text, style: const TextStyle(color: Colors.white, height: 1.3, fontSize: 14)),
+            Text(text, softWrap: true, overflow: TextOverflow.visible, style: const TextStyle(color: Colors.white, height: 1.3, fontSize: 14)),
           ],
           const SizedBox(height: 3),
           Align(
@@ -4526,11 +4545,18 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
   late Animation<double> _fadeInnerIcons;
 
   void _focusInput() {
-    // Ensure a single tap both expands the field and puts the cursor inside.
     if (!widget.focusNode.hasFocus) {
       FocusScope.of(context).requestFocus(widget.focusNode);
     }
     widget.focusNode.requestFocus();
+    final textLength = widget.controller.text.length;
+    widget.controller.selection = TextSelection.collapsed(offset: textLength);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.focusNode.requestFocus();
+      final len = widget.controller.text.length;
+      widget.controller.selection = TextSelection.collapsed(offset: len);
+    });
   }
 
   void _onTextChanged() {
@@ -4608,8 +4634,6 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
     // Vertical padding for 40px field with 15px font
     const vPad = (_fieldMinHeight - _fieldFontSize) / 2;
 
-    // Breitenreserve für Inline-Icons im fokussierten Zustand (2 Icons à 28px + 6px Abstand + 12px Innenabstand)
-    const double focusedIconGutter = 28 + 6 + 28 + 12;
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -4618,28 +4642,21 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Linke Icon-Leiste: nur sichtbar wenn nicht fokussiert
-          AnimatedSwitcher(
-            duration: _focusAnimDuration,
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeOut,
-            child: hasFocus
-                ? const SizedBox(width: 0, height: 40)
-                : Row(
-                    key: const ValueKey('outer_icons'),
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _GlassIconButton(icon: Icons.photo_camera_outlined, onTap: widget.onSendPhoto, iconSize: _iconSize),
-                      const SizedBox(width: 8),
-                      _GlassIconButton(icon: Icons.attach_file_rounded, onTap: widget.onPickFile, iconSize: _iconSize),
-                      if (showTimeIcon) ...[
-                        const SizedBox(width: 8),
-                        _GlassIconButton(icon: Icons.schedule_rounded, onTap: widget.onChangeTime, iconSize: _iconSize),
-                      ],
-                      const SizedBox(width: 8),
-                      _GlassIconButton(icon: Icons.my_location_rounded, onTap: widget.onShareLocation, iconSize: _iconSize),
-                      const SizedBox(width: 10),
-                    ],
-                  ),
+          Row(
+            key: const ValueKey('outer_icons'),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _GlassIconButton(icon: Icons.photo_camera_outlined, onTap: widget.onSendPhoto, iconSize: _iconSize),
+              const SizedBox(width: 8),
+              _GlassIconButton(icon: Icons.attach_file_rounded, onTap: widget.onPickFile, iconSize: _iconSize),
+              if (showTimeIcon) ...[
+                const SizedBox(width: 8),
+                _GlassIconButton(icon: Icons.schedule_rounded, onTap: widget.onChangeTime, iconSize: _iconSize),
+              ],
+              const SizedBox(width: 8),
+              _GlassIconButton(icon: Icons.my_location_rounded, onTap: widget.onShareLocation, iconSize: _iconSize),
+              const SizedBox(width: 10),
+            ],
           ),
           // Input field takes remaining width
           Expanded(
@@ -4682,13 +4699,7 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
                         filled: false,
                         isDense: false,
                         isCollapsed: true,
-                        // Left padding to make room for inline icons when focused
-                        contentPadding: EdgeInsets.fromLTRB(
-                          hasFocus ? focusedIconGutter + 12 : 14,
-                          vPad,
-                          14,
-                          vPad,
-                        ),
+                        contentPadding: const EdgeInsets.fromLTRB(14, vPad, 14, vPad),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
@@ -4705,34 +4716,6 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
                         widget.onSend();
                       },
                     ),
-                    // Icons positioned left inside field (only when focused)
-                    if (hasFocus)
-                      Positioned(
-                        left: 10,
-                        top: 0,
-                        bottom: 0,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            _InlineFocusedIcon(
-                              icon: Icons.photo_camera_outlined,
-                              onTap: () {
-                                _focusInput();
-                                widget.onSendPhoto();
-                              },
-                            ),
-                            const SizedBox(width: 6),
-                            _InlineFocusedIcon(
-                              icon: Icons.attach_file_rounded,
-                              onTap: () {
-                                _focusInput();
-                                widget.onPickFile();
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -5104,6 +5087,40 @@ class _SitSendIcon extends StatelessWidget {
   }
 }
 
+
+class _LocationShareBubble extends StatelessWidget {
+  final _LocationShareData data;
+  final bool me;
+  final String time;
+  const _LocationShareBubble({required this.data, required this.me, required this.time});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final bg = me ? cs.primary.withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.08);
+    final maxWidth = MediaQuery.of(context).size.width * 0.72;
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+      constraints: BoxConstraints(maxWidth: maxWidth, minWidth: 120),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _LocationShareMessage(data: data),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Text(time, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 10, fontWeight: FontWeight.w500)),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _LocationShareData {
   final String label;

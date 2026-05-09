@@ -196,8 +196,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         case 'handover':
           return _prefs.showBookings;
         case 'messages':
-        case 'support':
           return _prefs.showMessages;
+        case 'support':
+          return _prefs.showSupport;
         case 'payments':
           return _prefs.showPayments;
         case 'reviews':

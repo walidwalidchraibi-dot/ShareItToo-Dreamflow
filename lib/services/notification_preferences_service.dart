@@ -11,6 +11,7 @@ class NotificationPreferences {
   final bool showImportant;
   final bool showBookings;
   final bool showMessages;
+  final bool showSupport;
   final bool showPayments;
   final bool showReviews;
   final bool showSecurity;
@@ -22,6 +23,7 @@ class NotificationPreferences {
     required this.showImportant,
     required this.showBookings,
     required this.showMessages,
+    required this.showSupport,
     required this.showPayments,
     required this.showReviews,
     required this.showSecurity,
@@ -34,6 +36,7 @@ class NotificationPreferences {
     showImportant: true,
     showBookings: true,
     showMessages: true,
+    showSupport: true,
     showPayments: true,
     showReviews: true,
     showSecurity: true,
@@ -46,6 +49,7 @@ class NotificationPreferences {
     bool? showImportant,
     bool? showBookings,
     bool? showMessages,
+    bool? showSupport,
     bool? showPayments,
     bool? showReviews,
     bool? showSecurity,
@@ -57,6 +61,7 @@ class NotificationPreferences {
     showImportant: true,
     showBookings: showBookings ?? this.showBookings,
     showMessages: showMessages ?? this.showMessages,
+    showSupport: showSupport ?? this.showSupport,
     showPayments: showPayments ?? this.showPayments,
     showReviews: showReviews ?? this.showReviews,
     // Locked categories: always true.
@@ -70,6 +75,7 @@ class NotificationPreferences {
     'showImportant': showImportant,
     'showBookings': showBookings,
     'showMessages': showMessages,
+    'showSupport': showSupport,
     'showPayments': showPayments,
     'showReviews': showReviews,
     'showSecurity': showSecurity,
@@ -91,6 +97,7 @@ class NotificationPreferences {
       showImportant: true,
       showBookings: b('showBookings', d.showBookings),
       showMessages: b('showMessages', d.showMessages),
+      showSupport: b('showSupport', d.showSupport),
       showPayments: b('showPayments', d.showPayments),
       showReviews: b('showReviews', d.showReviews),
       // Locked categories: always enabled.
