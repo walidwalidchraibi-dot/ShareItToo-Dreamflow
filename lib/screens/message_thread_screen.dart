@@ -1144,6 +1144,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return isReturn ? 'Als Rückgabeort gespeichert' : 'Als Übergabeort gespeichert';
   }
 
+
   bool _savedLocationMatches(_LocationShareData data, {required bool isReturn}) {
     final prefix = isReturn ? 'return' : 'handover';
     final savedLat = ((_handoverReturnState['${prefix}LocationLat'] as String?) ?? '').trim();
@@ -1156,6 +1157,48 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return sameCoords || sameUrl || sameLabel;
   }
 
+  bool _isLocationUpdateContext(bool isReturn) {
+    final st = _deriveChatState();
+    if (isReturn) {
+      return st == _ChatState.running || st == _ChatState.returnPlanned || _handoverReturnState['returnActive'] == true || _handoverReturnState['returnTimeConfirmed'] == true;
+    }
+    return st == _ChatState.confirmed || _handoverReturnState['handoverActive'] == true;
+  }
+
+  bool _shouldOfferLocationUpdate({
+    required _LocationShareData data,
+    required Message message,
+    required bool isReturn,
+  }) {
+    final req = _request;
+    if (req == null || req.needsReview) return false;
+    if (!_isLocationUpdateContext(isReturn)) return false;
+    if (!_hasSavedLocation(isReturn)) return false;
+    if (_savedLocationMatches(data, isReturn: isReturn)) return false;
+    final prefix = isReturn ? 'return' : 'handover';
+    final dismissedId = ((_handoverReturnState['${prefix}LocationPromptDismissedMessageId'] as String?) ?? '').trim();
+    if (dismissedId.isNotEmpty && dismissedId == message.id) return false;
+    final acceptedAtRaw = ((_handoverReturnState['${prefix}LocationAcceptedAt'] as String?) ?? '').trim();
+    final acceptedAt = acceptedAtRaw.isNotEmpty ? DateTime.tryParse(acceptedAtRaw) : null;
+    if (acceptedAt != null && !message.timestamp.isAfter(acceptedAt)) return false;
+    final sourceMessageId = ((_handoverReturnState['${prefix}LocationSourceMessageId'] as String?) ?? '').trim();
+    if (sourceMessageId.isNotEmpty && sourceMessageId == message.id) return false;
+    return true;
+  }
+
+  Future<void> _dismissLocationUpdateSuggestion({
+    required bool isReturn,
+    required String messageId,
+  }) async {
+    final req = _request;
+    if (req == null) return;
+    await DataService.dismissFlowLocationUpdatePrompt(
+      requestId: req.id,
+      isReturn: isReturn,
+      messageId: messageId,
+    );
+    await _load();
+  }
   bool _shouldOfferReuseHandoverAsReturn() {
     final req = _request;
     if (req == null || req.needsReview) return false;
@@ -1174,6 +1217,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     required String sharedByUserId,
     required String sharedByName,
     required String sharedByRole,
+    required String sourceMessageId,
+    required DateTime sharedAt,
     _LocationIntent? forcedIntent,
   }) async {
     final req = _request;
@@ -1230,6 +1275,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       sharedByUserId: sharedByUserId,
       sharedByName: sharedByName,
       sharedByRole: sharedByRole,
+      sourceMessageId: sourceMessageId,
+      acceptedAt: sharedAt,
     );
     await DataService.addSystemMessageToThread(
       threadId: t.id,
@@ -1475,11 +1522,17 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                                   sharedByUserId: legacyIsMe ? (_currentUser?.id ?? '') : (_otherUser?.id ?? ''),
                                                   sharedByName: _sharedByNameFromLocation(locationShare),
                                                   sharedByRole: _roleKeyForUserId(legacyIsMe ? _currentUser?.id : _otherUser?.id),
+                                                  sourceMessageId: m.id,
+                                                  sharedAt: m.timestamp,
                                                   forcedIntent: intent,
                                                 ),
                                                 acceptIntent: _locationIntentForCurrentContext(),
                                                 handoverSaved: _savedLocationMatches(locationShare, isReturn: false),
                                                 returnSaved: _savedLocationMatches(locationShare, isReturn: true),
+                                                showHandoverUpdatePrompt: _shouldOfferLocationUpdate(data: locationShare, message: m, isReturn: false),
+                                                showReturnUpdatePrompt: _shouldOfferLocationUpdate(data: locationShare, message: m, isReturn: true),
+                                                onDismissHandoverUpdate: () => _dismissLocationUpdateSuggestion(isReturn: false, messageId: m.id),
+                                                onDismissReturnUpdate: () => _dismissLocationUpdateSuggestion(isReturn: true, messageId: m.id),
                                               ),
                                             );
                                           } else {
@@ -1524,6 +1577,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                                         sharedByUserId: m.senderId,
                                                         sharedByName: _sharedByNameFromLocation(locationShare),
                                                         sharedByRole: _roleKeyForUserId(m.senderId),
+                                                        sourceMessageId: m.id,
+                                                        sharedAt: m.timestamp,
                                                         forcedIntent: intent,
                                                       ),
                                                       acceptIntent: _locationIntentForCurrentContext(),
@@ -5391,7 +5446,11 @@ class _LocationShareBubble extends StatelessWidget {
   final _LocationIntent acceptIntent;
   final bool handoverSaved;
   final bool returnSaved;
-  const _LocationShareBubble({required this.data, required this.me, required this.time, this.onAcceptPlace, this.acceptIntent = _LocationIntent.unknown, this.handoverSaved = false, this.returnSaved = false});
+  final bool showHandoverUpdatePrompt;
+  final bool showReturnUpdatePrompt;
+  final VoidCallback? onDismissHandoverUpdate;
+  final VoidCallback? onDismissReturnUpdate;
+  const _LocationShareBubble({required this.data, required this.me, required this.time, this.onAcceptPlace, this.acceptIntent = _LocationIntent.unknown, this.handoverSaved = false, this.returnSaved = false, this.showHandoverUpdatePrompt = false, this.showReturnUpdatePrompt = false, this.onDismissHandoverUpdate, this.onDismissReturnUpdate});
 
   @override
   Widget build(BuildContext context) {
@@ -5402,7 +5461,7 @@ class _LocationShareBubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _LocationShareMessage(data: data, time: time, onAcceptPlace: onAcceptPlace, acceptIntent: acceptIntent, handoverSaved: handoverSaved, returnSaved: returnSaved),
+          _LocationShareMessage(data: data, time: time, onAcceptPlace: onAcceptPlace, acceptIntent: acceptIntent, handoverSaved: handoverSaved, returnSaved: returnSaved, showHandoverUpdatePrompt: showHandoverUpdatePrompt, showReturnUpdatePrompt: showReturnUpdatePrompt, onDismissHandoverUpdate: onDismissHandoverUpdate, onDismissReturnUpdate: onDismissReturnUpdate),
         ],
       ),
     );
@@ -5477,6 +5536,40 @@ _LocationShareData? _parseLocationShareMessage(String raw) {
     longitude: lngValue != null ? longitude : '',
     mapsUrl: mapsUrl,
   );
+}
+
+
+class _LocationUpdatePrompt extends StatelessWidget {
+  final String label;
+  final VoidCallback? onDismiss;
+  final VoidCallback? onAccept;
+  const _LocationUpdatePrompt({required this.label, this.onDismiss, this.onAccept});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700, height: 1.25)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              TextButton(onPressed: onDismiss, child: const Text('Nein')),
+              const SizedBox(width: 6),
+              FilledButton.tonal(onPressed: onAccept, child: const Text('Übernehmen')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _LocationMapFallback extends StatelessWidget {
@@ -5563,7 +5656,11 @@ class _LocationShareMessage extends StatelessWidget {
   final _LocationIntent acceptIntent;
   final bool handoverSaved;
   final bool returnSaved;
-  const _LocationShareMessage({required this.data, required this.time, this.onAcceptPlace, this.acceptIntent = _LocationIntent.unknown, this.handoverSaved = false, this.returnSaved = false});
+  final bool showHandoverUpdatePrompt;
+  final bool showReturnUpdatePrompt;
+  final VoidCallback? onDismissHandoverUpdate;
+  final VoidCallback? onDismissReturnUpdate;
+  const _LocationShareMessage({required this.data, required this.time, this.onAcceptPlace, this.acceptIntent = _LocationIntent.unknown, this.handoverSaved = false, this.returnSaved = false, this.showHandoverUpdatePrompt = false, this.showReturnUpdatePrompt = false, this.onDismissHandoverUpdate, this.onDismissReturnUpdate});
 
   @override
   Widget build(BuildContext context) {
@@ -5657,6 +5754,18 @@ class _LocationShareMessage extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 8),
+                      if (showHandoverUpdatePrompt || showReturnUpdatePrompt) ...[
+                        const SizedBox(height: 8),
+                        _LocationUpdatePrompt(
+                          label: showReturnUpdatePrompt
+                              ? 'Neuen Standort als Rückgabeort übernehmen?'
+                              : 'Neuen Standort als Übergabeort übernehmen?',
+                          onDismiss: showReturnUpdatePrompt ? onDismissReturnUpdate : onDismissHandoverUpdate,
+                          onAccept: onAcceptPlace == null
+                              ? null
+                              : () => onAcceptPlace!(showReturnUpdatePrompt ? _LocationIntent.returnTrip : _LocationIntent.handover),
+                        ),
+                      ],
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [

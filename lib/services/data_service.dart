@@ -5184,6 +5184,9 @@ class DataService {
         'handoverLocationSharedByName': (e['handoverLocationSharedByName'] as String?) ?? '',
         'handoverLocationSharedByRole': (e['handoverLocationSharedByRole'] as String?) ?? '',
         'handoverLocationAcceptedAs': (e['handoverLocationAcceptedAs'] as String?) ?? 'handoverLocation',
+        'handoverLocationAcceptedAt': (e['handoverLocationAcceptedAt'] as String?) ?? '',
+        'handoverLocationSourceMessageId': (e['handoverLocationSourceMessageId'] as String?) ?? '',
+        'handoverLocationPromptDismissedMessageId': (e['handoverLocationPromptDismissedMessageId'] as String?) ?? '',
         'returnLocationLat': (e['returnLocationLat'] as String?) ?? '',
         'returnLocationLng': (e['returnLocationLng'] as String?) ?? '',
         'returnLocationLabel': (e['returnLocationLabel'] as String?) ?? '',
@@ -5192,6 +5195,9 @@ class DataService {
         'returnLocationSharedByName': (e['returnLocationSharedByName'] as String?) ?? '',
         'returnLocationSharedByRole': (e['returnLocationSharedByRole'] as String?) ?? '',
         'returnLocationAcceptedAs': (e['returnLocationAcceptedAs'] as String?) ?? 'returnLocation',
+        'returnLocationAcceptedAt': (e['returnLocationAcceptedAt'] as String?) ?? '',
+        'returnLocationSourceMessageId': (e['returnLocationSourceMessageId'] as String?) ?? '',
+        'returnLocationPromptDismissedMessageId': (e['returnLocationPromptDismissedMessageId'] as String?) ?? '',
         'returnLocationReusePromptDismissed': e['returnLocationReusePromptDismissed'] == true,
       };
     }
@@ -5216,6 +5222,9 @@ class DataService {
       'handoverLocationSharedByName': '',
       'handoverLocationSharedByRole': '',
       'handoverLocationAcceptedAs': 'handoverLocation',
+      'handoverLocationAcceptedAt': '',
+      'handoverLocationSourceMessageId': '',
+      'handoverLocationPromptDismissedMessageId': '',
       'returnLocationLat': '',
       'returnLocationLng': '',
       'returnLocationLabel': '',
@@ -5224,6 +5233,9 @@ class DataService {
       'returnLocationSharedByName': '',
       'returnLocationSharedByRole': '',
       'returnLocationAcceptedAs': 'returnLocation',
+      'returnLocationAcceptedAt': '',
+      'returnLocationSourceMessageId': '',
+      'returnLocationPromptDismissedMessageId': '',
       'returnLocationReusePromptDismissed': false,
     };
   }
@@ -5391,6 +5403,8 @@ class DataService {
     required String sharedByUserId,
     required String sharedByName,
     required String sharedByRole,
+    String sourceMessageId = '',
+    DateTime? acceptedAt,
   }) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
@@ -5407,6 +5421,9 @@ class DataService {
     existing['${prefix}LocationSharedByName'] = sharedByName.trim();
     existing['${prefix}LocationSharedByRole'] = sharedByRole.trim();
     existing['${prefix}LocationAcceptedAs'] = isReturn ? 'returnLocation' : 'handoverLocation';
+    existing['${prefix}LocationAcceptedAt'] = (acceptedAt ?? DateTime.now()).toIso8601String();
+    existing['${prefix}LocationSourceMessageId'] = sourceMessageId.trim();
+    existing['${prefix}LocationPromptDismissedMessageId'] = '';
     if (isReturn) {
       existing['returnLocationReusePromptDismissed'] = false;
     }
@@ -5429,6 +5446,9 @@ class DataService {
     existing['returnLocationSharedByName'] = (existing['handoverLocationSharedByName'] as String?) ?? '';
     existing['returnLocationSharedByRole'] = (existing['handoverLocationSharedByRole'] as String?) ?? '';
     existing['returnLocationAcceptedAs'] = 'returnLocation';
+    existing['returnLocationAcceptedAt'] = DateTime.now().toIso8601String();
+    existing['returnLocationSourceMessageId'] = (existing['handoverLocationSourceMessageId'] as String?) ?? '';
+    existing['returnLocationPromptDismissedMessageId'] = '';
     existing['returnLocationReusePromptDismissed'] = false;
     map[id] = existing;
     await _setHandoverReturnStateMap(map);
@@ -5442,6 +5462,24 @@ class DataService {
         ? Map<String, dynamic>.from(map[id] as Map)
         : <String, dynamic>{};
     existing['returnLocationReusePromptDismissed'] = true;
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+  }
+
+
+  static Future<void> dismissFlowLocationUpdatePrompt({
+    required String requestId,
+    required bool isReturn,
+    required String messageId,
+  }) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return;
+    final map = await _getHandoverReturnStateMap();
+    final existing = (map[id] is Map)
+        ? Map<String, dynamic>.from(map[id] as Map)
+        : <String, dynamic>{};
+    final prefix = isReturn ? 'return' : 'handover';
+    existing['${prefix}LocationPromptDismissedMessageId'] = messageId.trim();
     map[id] = existing;
     await _setHandoverReturnStateMap(map);
   }
