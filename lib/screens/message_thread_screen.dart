@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -744,6 +745,15 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return v.isEmpty ? null : v;
   }
 
+  bool _legacyLocationLooksLikeCurrentUser(_LocationShareData data) {
+    final label = data.label.trim().toLowerCase();
+    final currentName = (_currentUser?.displayName ?? '').trim().toLowerCase();
+    final otherName = ((_otherUser?.displayName ?? widget.participantName ?? '')).trim().toLowerCase();
+    if (currentName.isNotEmpty && label.contains(currentName)) return true;
+    if (otherName.isNotEmpty && label.contains(otherName)) return false;
+    return false;
+  }
+
   bool _viewerIsOwner() {
     final me = _currentUser;
     final r = _request;
@@ -1256,10 +1266,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                         if (isSystem) {
                                           final locationShare = _parseLocationShareMessage(m.text);
                                           if (locationShare != null) {
-                                            messageRow = _LocationShareBubble(
-                                              data: locationShare,
-                                              me: false,
-                                              time: _formatTime(m.timestamp),
+                                            final legacyIsMe = _legacyLocationLooksLikeCurrentUser(locationShare);
+                                            messageRow = _AvatarMessageRow(
+                                              isMe: legacyIsMe,
+                                              avatarUrl: legacyIsMe ? _currentUser?.photoURL : _avatarUrl(),
+                                              isSupport: false,
+                                              child: _LocationShareBubble(
+                                                data: locationShare,
+                                                me: legacyIsMe,
+                                                time: _formatTime(m.timestamp),
+                                              ),
                                             );
                                           } else {
                                             final supportCase = _parseSupportCaseMessage(m.text);
@@ -3158,7 +3174,7 @@ class _SystemMessage extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Center(
-          child: _LocationShareMessage(data: locationShare),
+          child: _LocationShareMessage(data: locationShare, time: ''),
         ),
       );
     }
@@ -5121,15 +5137,7 @@ class _LocationShareBubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _LocationShareMessage(data: data),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.only(right: 2),
-            child: Align(
-              alignment: Alignment.bottomRight,
-              child: Text(time, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 10, fontWeight: FontWeight.w500)),
-            ),
-          ),
+          _LocationShareMessage(data: data, time: time),
         ],
       ),
     );
@@ -5146,12 +5154,31 @@ class _LocationShareData {
   double? get latitudeValue => double.tryParse(latitude);
   double? get longitudeValue => double.tryParse(longitude);
 
-  String get staticMapUrl {
+  int get mapZoom => 15;
+
+  int? get tileX {
     final lat = latitudeValue;
     final lng = longitudeValue;
-    if (lat == null || lng == null) return '';
-    final marker = Uri.encodeComponent('$lat,$lng,lightblue1');
-    return 'https://staticmap.openstreetmap.de/staticmap.php?center=$lat,$lng&zoom=15&size=800x320&maptype=mapnik&markers=$marker';
+    if (lat == null || lng == null) return null;
+    final n = 1 << mapZoom;
+    return ((lng + 180.0) / 360.0 * n).floor();
+  }
+
+  int? get tileY {
+    final lat = latitudeValue;
+    final lng = longitudeValue;
+    if (lat == null || lng == null) return null;
+    final n = 1 << mapZoom;
+    final latRad = lat * math.pi / 180.0;
+    final y = (1.0 - math.log(math.tan(latRad) + 1 / math.cos(latRad)) / math.pi) / 2.0 * n;
+    return y.floor();
+  }
+
+  String get tilePreviewUrl {
+    final x = tileX;
+    final y = tileY;
+    if (x == null || y == null) return '';
+    return 'https://tile.openstreetmap.org/$mapZoom/$x/$y.png';
   }
 }
 
@@ -5252,7 +5279,8 @@ class _LocationGridPainter extends CustomPainter {
 
 class _LocationShareMessage extends StatelessWidget {
   final _LocationShareData data;
-  const _LocationShareMessage({required this.data});
+  final String time;
+  const _LocationShareMessage({required this.data, required this.time});
 
   @override
   Widget build(BuildContext context) {
@@ -5302,9 +5330,9 @@ class _LocationShareMessage extends StatelessWidget {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        if (data.staticMapUrl.isNotEmpty)
+                        if (data.tilePreviewUrl.isNotEmpty)
                           Image.network(
-                            data.staticMapUrl,
+                            data.tilePreviewUrl,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => const _LocationMapFallback(),
                             loadingBuilder: (context, child, progress) {
@@ -5324,9 +5352,11 @@ class _LocationShareMessage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Standort geteilt',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
+                      Text(
+                        data.label.trim().isNotEmpty ? data.label.trim() : 'Standort geteilt',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13, height: 1.2),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -5342,6 +5372,14 @@ class _LocationShareMessage extends StatelessWidget {
                           style: TextStyle(color: Colors.white.withValues(alpha: 0.84), fontSize: 11.5, fontWeight: FontWeight.w600),
                         ),
                       ],
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.bottomRight,
+                        child: Text(
+                          time,
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 10, fontWeight: FontWeight.w500),
+                        ),
+                      ),
                     ],
                   ),
                 ),
