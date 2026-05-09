@@ -5624,53 +5624,64 @@ class _LocationShareMessage extends StatelessWidget {
                           style: TextStyle(color: Colors.white.withValues(alpha: 0.84), fontSize: 11.5, fontWeight: FontWeight.w600),
                         ),
                       ],
-                      if (acceptStateText != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          acceptStateText!,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontSize: 11.5, fontWeight: FontWeight.w600),
-                        ),
-                      ] else if (onAcceptPlace != null) ...[
-                        const SizedBox(height: 10),
-                        Center(
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              FilledButton.tonal(
-                                onPressed: acceptIntent == _LocationIntent.returnTrip ? null : () => onAcceptPlace!(_LocationIntent.handover),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: BrandColors.primary.withValues(alpha: 0.18),
-                                  foregroundColor: BrandColors.primary,
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                  visualDensity: VisualDensity.compact,
-                                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                                ),
-                                child: const Text('Übergabeort'),
-                              ),
-                              FilledButton.tonal(
-                                onPressed: acceptIntent == _LocationIntent.handover ? null : () => onAcceptPlace!(_LocationIntent.returnTrip),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: BrandColors.primary.withValues(alpha: 0.18),
-                                  foregroundColor: BrandColors.primary,
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                  visualDensity: VisualDensity.compact,
-                                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                                ),
-                                child: const Text('Rückgabeort'),
-                              ),
-                            ],
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: acceptStateText != null
+                                ? Text(
+                                    acceptStateText!,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontSize: 11.5, fontWeight: FontWeight.w600),
+                                  )
+                                : onAcceptPlace != null
+                                    ? SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          children: [
+                                            FilledButton.tonal(
+                                              onPressed: acceptIntent == _LocationIntent.returnTrip ? null : () => onAcceptPlace!(_LocationIntent.handover),
+                                              style: FilledButton.styleFrom(
+                                                backgroundColor: BrandColors.primary.withValues(alpha: 0.18),
+                                                foregroundColor: BrandColors.primary,
+                                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                                                minimumSize: Size.zero,
+                                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                visualDensity: VisualDensity.compact,
+                                                textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                                              ),
+                                              child: const Text('Als Übergabeort'),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            FilledButton.tonal(
+                                              onPressed: acceptIntent == _LocationIntent.handover ? null : () => onAcceptPlace!(_LocationIntent.returnTrip),
+                                              style: FilledButton.styleFrom(
+                                                backgroundColor: BrandColors.primary.withValues(alpha: 0.18),
+                                                foregroundColor: BrandColors.primary,
+                                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                                                minimumSize: Size.zero,
+                                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                visualDensity: VisualDensity.compact,
+                                                textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                                              ),
+                                              child: const Text('Als Rückgabeort'),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    : const SizedBox.shrink(),
                           ),
-                        ),
-                      ],
-                      const SizedBox(height: 6),
-                      Align(
-                        alignment: Alignment.bottomRight,
-                        child: Text(
-                          time,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 10, fontWeight: FontWeight.w500),
-                        ),
+                          const SizedBox(width: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: Text(
+                              time,
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 10, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
