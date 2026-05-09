@@ -1182,16 +1182,40 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     var intent = forcedIntent ?? _locationIntentForCurrentContext();
     if (intent == _LocationIntent.unknown) return;
     final isReturn = intent == _LocationIntent.returnTrip;
-    final title = isReturn ? 'Rückgabeort übernehmen?' : 'Übergabeort übernehmen?';
-    final msg = 'Möchtest du den Standort von $sharedByName als ${isReturn ? 'Rückgabeort' : 'Übergabeort'} für diese Buchung speichern?';
+    final sameAsSaved = _savedLocationMatches(data, isReturn: isReturn);
+    if (sameAsSaved) {
+      if (!mounted) return;
+      AppPopup.toast(
+        context,
+        icon: isReturn ? Icons.assignment_return_rounded : Icons.inventory_2_rounded,
+        title: isReturn ? 'Rückgabeort bereits gespeichert' : 'Übergabeort bereits gespeichert',
+      );
+      return;
+    }
+    final hadSavedLocation = _hasSavedLocation(isReturn);
+    final title = hadSavedLocation
+        ? 'Ort ändern?'
+        : (isReturn ? 'Rückgabeort übernehmen?' : 'Übergabeort übernehmen?');
+    final msg = hadSavedLocation
+        ? (isReturn
+            ? 'Es ist bereits ein Rückgabeort gespeichert. Möchtest du ihn durch diesen Standort ersetzen?'
+            : 'Es ist bereits ein Übergabeort gespeichert. Möchtest du ihn durch diesen Standort ersetzen?')
+        : 'Möchtest du den Standort von $sharedByName als ${isReturn ? 'Rückgabeort' : 'Übergabeort'} für diese Buchung speichern?';
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),
-        content: Text('$msg\n\nSo ist für beide klar, wo ${isReturn ? 'die Rückgabe' : 'die Übergabe'} stattfinden soll.'),
+        content: Text(
+          hadSavedLocation
+              ? msg
+              : '$msg\n\nSo ist für beide klar, wo ${isReturn ? 'die Rückgabe' : 'die Übergabe'} stattfinden soll.',
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Abbrechen')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Übernehmen')),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(hadSavedLocation ? 'Ändern' : 'Übernehmen'),
+          ),
         ],
       ),
     );
@@ -1209,7 +1233,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     );
     await DataService.addSystemMessageToThread(
       threadId: t.id,
-      text: '${isReturn ? 'Rückgabeort bestätigt' : 'Übergabeort bestätigt'}: Standort von $sharedByName',
+      text: '${isReturn ? (hadSavedLocation ? 'Rückgabeort geändert' : 'Rückgabeort bestätigt') : (hadSavedLocation ? 'Übergabeort geändert' : 'Übergabeort bestätigt')}: Standort von $sharedByName',
     );
     await _load();
     _scrollToBottom(animate: true);
@@ -1217,7 +1241,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     AppPopup.toast(
       context,
       icon: isReturn ? Icons.assignment_return_rounded : Icons.inventory_2_rounded,
-      title: isReturn ? 'Rückgabeort gespeichert' : 'Übergabeort gespeichert',
+      title: hadSavedLocation
+          ? (isReturn ? 'Rückgabeort geändert' : 'Übergabeort geändert')
+          : (isReturn ? 'Rückgabeort gespeichert' : 'Übergabeort gespeichert'),
     );
   }
 
