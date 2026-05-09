@@ -5235,24 +5235,66 @@ class _LocationMapFallback extends StatelessWidget {
             opacity: 0.16,
             child: CustomPaint(painter: _LocationGridPainter()),
           ),
-          Center(
-            child: loading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.92),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.place_rounded, color: Color(0xFF0F766E), size: 18),
-                  ),
-          ),
+          if (loading)
+            const Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _LocationPreviewPin extends StatelessWidget {
+  const _LocationPreviewPin();
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.translate(
+      offset: const Offset(0, -8),
+      child: SizedBox(
+        width: 34,
+        height: 44,
+        child: Stack(
+          alignment: Alignment.topCenter,
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              top: 24,
+              child: Container(
+                width: 14,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.28),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2.2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.28),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Icon(Icons.place_rounded, color: Colors.white, size: 18),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -5342,6 +5384,7 @@ class _LocationShareMessage extends StatelessWidget {
                           )
                         else
                           const _LocationMapFallback(),
+                        const Center(child: IgnorePointer(child: _LocationPreviewPin())),
                       ],
                     ),
                   ),
