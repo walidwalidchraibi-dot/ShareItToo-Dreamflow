@@ -5143,14 +5143,33 @@ class _LocationShareData {
 
 _LocationShareData? _parseLocationShareMessage(String raw) {
   final text = raw.trim();
-  if (!text.startsWith('📍 LOCATION_SHARE|')) return null;
-  final parts = text.split('|');
-  if (parts.length < 5) return null;
+  final markerIndex = text.indexOf('LOCATION_SHARE|');
+  if (markerIndex < 0) return null;
+
+  final payload = text.substring(markerIndex);
+  final parts = payload.split('|');
+  if (parts.isEmpty || parts.first.trim() != 'LOCATION_SHARE') return null;
+
+  final label = parts.length > 1 && parts[1].trim().isNotEmpty
+      ? parts[1].trim()
+      : 'Standort geteilt';
+  final latitude = parts.length > 2 ? parts[2].trim() : '';
+  final longitude = parts.length > 3 ? parts[3].trim() : '';
+  final latValue = double.tryParse(latitude);
+  final lngValue = double.tryParse(longitude);
+
+  String mapsUrl = '';
+  if (parts.length > 4 && parts[4].trim().isNotEmpty) {
+    mapsUrl = parts[4].trim();
+  } else if (latValue != null && lngValue != null) {
+    mapsUrl = 'https://www.google.com/maps/search/?api=1&query=$latValue,$lngValue';
+  }
+
   return _LocationShareData(
-    label: parts[1],
-    latitude: parts[2],
-    longitude: parts[3],
-    mapsUrl: parts[4],
+    label: label,
+    latitude: latValue != null ? latitude : '',
+    longitude: lngValue != null ? longitude : '',
+    mapsUrl: mapsUrl,
   );
 }
 
@@ -5214,8 +5233,13 @@ class _LocationShareMessage extends StatelessWidget {
         ),
         child: InkWell(
           onTap: () async {
-            final uri = Uri.tryParse(data.mapsUrl);
-            if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
+            final fallbackUrl = (data.latitudeValue != null && data.longitudeValue != null)
+                ? 'https://www.google.com/maps/search/?api=1&query=${data.latitudeValue},${data.longitudeValue}'
+                : '';
+            final uri = Uri.tryParse(data.mapsUrl.isNotEmpty ? data.mapsUrl : fallbackUrl);
+            if (uri != null) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
           },
           borderRadius: BorderRadius.circular(12),
           child: Column(
