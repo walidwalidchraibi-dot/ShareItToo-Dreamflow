@@ -5677,7 +5677,7 @@ class _LocationShareMessage extends StatelessWidget {
                                                 visualDensity: VisualDensity.compact,
                                                 textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                                               ),
-                                              child: Text(handoverSaved ? 'Als Übergabeort gespeichert' : 'Als Übergabeort'),
+                                              child: const Text('Als Übergabeort'),
                                             ),
                                             const SizedBox(width: 6),
                                             FilledButton.tonal(
@@ -5691,7 +5691,7 @@ class _LocationShareMessage extends StatelessWidget {
                                                 visualDensity: VisualDensity.compact,
                                                 textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                                               ),
-                                              child: Text(returnSaved ? 'Als Rückgabeort gespeichert' : 'Als Rückgabeort'),
+                                              child: const Text('Als Rückgabeort'),
                                             ),
                                           ],
                                         ),
