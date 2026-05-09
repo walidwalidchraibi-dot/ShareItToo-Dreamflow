@@ -1254,21 +1254,30 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                         Widget messageRow;
 
                                         if (isSystem) {
-                                          final supportCase = _parseSupportCaseMessage(m.text);
-                                          if (supportCase != null) {
-                                            messageRow = _SupportCaseMessage(
-                                              data: supportCase,
-                                              fallbackItem: _item,
-                                              fallbackRequest: _request,
-                                              fallbackCounterparty: _otherUser,
-                                              currentUserId: _currentUser?.id,
+                                          final locationShare = _parseLocationShareMessage(m.text);
+                                          if (locationShare != null) {
+                                            messageRow = _LocationShareBubble(
+                                              data: locationShare,
+                                              me: false,
+                                              time: _formatTime(m.timestamp),
                                             );
                                           } else {
-                                            messageRow = _SystemMessage(
-                                              text: m.text,
-                                              senderIsMe: true,
-                                              senderAvatarUrl: _currentUser?.photoURL,
-                                            );
+                                            final supportCase = _parseSupportCaseMessage(m.text);
+                                            if (supportCase != null) {
+                                              messageRow = _SupportCaseMessage(
+                                                data: supportCase,
+                                                fallbackItem: _item,
+                                                fallbackRequest: _request,
+                                                fallbackCounterparty: _otherUser,
+                                                currentUserId: _currentUser?.id,
+                                              );
+                                            } else {
+                                              messageRow = _SystemMessage(
+                                                text: m.text,
+                                                senderIsMe: true,
+                                                senderAvatarUrl: _currentUser?.photoURL,
+                                              );
+                                            }
                                           }
                                         } else {
                                           final locationShare = _parseLocationShareMessage(m.text);
@@ -3144,6 +3153,15 @@ class _SystemMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final locationShare = _parseLocationShareMessage(text);
+    if (locationShare != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Center(
+          child: _LocationShareMessage(data: locationShare),
+        ),
+      );
+    }
 
     // Prüfen ob es eine Zeit-Anfrage ist (Übergabe oder Rückgabe)
     final isHandoverTime = text.contains('Übergabezeit angefragt');
