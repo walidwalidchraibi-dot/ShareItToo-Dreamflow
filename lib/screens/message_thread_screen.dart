@@ -5255,46 +5255,18 @@ class _LocationPreviewPin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Transform.translate(
-      offset: const Offset(0, -8),
-      child: SizedBox(
-        width: 34,
-        height: 44,
-        child: Stack(
-          alignment: Alignment.topCenter,
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              top: 24,
-              child: Container(
-                width: 14,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.28),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-            ),
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEF4444),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2.2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.28),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: const Center(
-                child: Icon(Icons.place_rounded, color: Colors.white, size: 18),
-              ),
-            ),
-          ],
-        ),
+      offset: Offset(0, -4),
+      child: Icon(
+        Icons.place_rounded,
+        size: 32,
+        color: BrandColors.primary,
+        shadows: [
+          Shadow(
+            color: Color(0x99000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
     );
   }
