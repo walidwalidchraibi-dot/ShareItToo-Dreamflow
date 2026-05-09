@@ -5646,11 +5646,11 @@ class _LocationShareMessage extends StatelessWidget {
                                               style: FilledButton.styleFrom(
                                                 backgroundColor: BrandColors.primary.withValues(alpha: 0.18),
                                                 foregroundColor: BrandColors.primary,
-                                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                                 minimumSize: Size.zero,
                                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                                 visualDensity: VisualDensity.compact,
-                                                textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                                                textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                                               ),
                                               child: const Text('Als Übergabeort'),
                                             ),
@@ -5660,11 +5660,11 @@ class _LocationShareMessage extends StatelessWidget {
                                               style: FilledButton.styleFrom(
                                                 backgroundColor: BrandColors.primary.withValues(alpha: 0.18),
                                                 foregroundColor: BrandColors.primary,
-                                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                                 minimumSize: Size.zero,
                                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                                 visualDensity: VisualDensity.compact,
-                                                textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                                                textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                                               ),
                                               child: const Text('Als Rückgabeort'),
                                             ),
@@ -5674,11 +5674,14 @@ class _LocationShareMessage extends StatelessWidget {
                                     : const SizedBox.shrink(),
                           ),
                           const SizedBox(width: 8),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 2),
-                            child: Text(
-                              time,
-                              style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 10, fontWeight: FontWeight.w500),
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 2),
+                              child: Text(
+                                time,
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 10, fontWeight: FontWeight.w500),
+                              ),
                             ),
                           ),
                         ],
