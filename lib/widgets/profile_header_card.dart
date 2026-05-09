@@ -35,7 +35,7 @@ class ProfileHeaderCard extends StatelessWidget {
           SizedBox(
             // Slightly narrower to move the divider left and free space for metrics.
             // (User request) push divider further left to gain room for right-side stats.
-            width: 104,
+            width: 132,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -62,10 +62,9 @@ class ProfileHeaderCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   user.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.white, height: 1.2),
                 ),
                 const SizedBox(height: 4),
                 Text(

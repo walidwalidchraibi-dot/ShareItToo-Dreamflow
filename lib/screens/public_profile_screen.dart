@@ -77,12 +77,11 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
         title: Text(l10n.t('Öffentliches Profil'), style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
         actions: [
           PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
             onSelected: (value) async {
-              if (value == 'report_profile') await _openProfileSupportFlow('Profil melden');
               if (value == 'report_problem') await _openProfileSupportFlow('Problem melden');
             },
             itemBuilder: (context) => const [
-              PopupMenuItem(value: 'report_profile', child: Text('Profil melden')),
               PopupMenuItem(value: 'report_problem', child: Text('Problem melden')),
             ],
           ),

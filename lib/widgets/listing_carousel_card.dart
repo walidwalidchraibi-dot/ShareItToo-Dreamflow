@@ -32,12 +32,6 @@ class ListingCarouselCard extends StatelessWidget {
     return (base + boost).clamp(4.3, 5.0);
   }
 
-  static String? _deriveHighlightTag(Item item, LocalizationController l10n, double derivedRating) {
-    if (item.timesLent >= 20) return l10n.t('Beliebt');
-    if (derivedRating >= 4.8) return l10n.t('Top bewertet');
-    if (item.status == 'active') return l10n.t('Sofort verfügbar');
-    return null;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +39,7 @@ class ListingCarouselCard extends StatelessWidget {
     final l10n = context.watch<LocalizationController>();
     final derivedRating = rating ?? _deriveRating(item);
     final derivedRentals = rentals ?? item.timesLent;
-    final highlight = badgeText ?? _deriveHighlightTag(item, l10n, derivedRating);
+    final highlight = badgeText;
     final isVerified = item.verificationStatus == 'verified' || item.verificationStatus == 'approved';
     // Keep in lockstep with RatingBadge + on-image highlight chips.
     // Requested: +20% size.

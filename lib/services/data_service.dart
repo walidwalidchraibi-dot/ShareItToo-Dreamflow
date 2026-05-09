@@ -2159,6 +2159,8 @@ class DataService {
     if (n.contains('elektronik') ||
         n.contains('computer') ||
         n.contains('kamera') ||
+        n.contains('audio') ||
+        n.contains('mikro') ||
         n.contains('drohn') ||
         n.contains('gaming') ||
         n.contains('vr')) {
@@ -2169,13 +2171,16 @@ class DataService {
         n.contains('möbel') ||
         n.contains('moebel') ||
         n.contains('wohnen') ||
-        n.contains('beleuchtung')) {
+        n.contains('beleuchtung') ||
+        n.contains('licht')) {
       return 'Haushalt & Wohnen';
     }
     if (n.contains('fahrzeug') ||
         n.contains('teile') ||
         n.contains('fahrräder') ||
         n.contains('fahrraeder') ||
+        n.contains('mobilität') ||
+        n.contains('mobilitaet') ||
         n.contains('e-mobility') ||
         n.contains('bike') ||
         n.contains('e-scooter')) {

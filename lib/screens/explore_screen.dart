@@ -113,10 +113,21 @@ IconData _coarseIconForGroup(String group) {
 }
 
 // Build the top-level categories in fixed order for the home header
-List<CategoryIconDataModel> get _homeCategories => [
-  for (final label in DataService.coarseCategoryOrder)
-    CategoryIconDataModel(id: label, icon: _coarseIconForGroup(label), label: label)
-];
+List<CategoryIconDataModel> get _homeCategories {
+  final presentGroups = <String>{
+    for (final item in _items)
+      if ((item.status == 'active' || item.isActive) && (_coarseByCatId[item.categoryId]?.isNotEmpty ?? false))
+        _coarseByCatId[item.categoryId]!,
+  };
+  final ordered = [
+    for (final label in DataService.coarseCategoryOrder)
+      if (presentGroups.contains(label)) label,
+  ];
+  return [
+    for (final label in ordered)
+      CategoryIconDataModel(id: label, icon: _coarseIconForGroup(label), label: label)
+  ];
+}
 
 
 @override
@@ -1629,14 +1640,7 @@ class _ExploreListingCardContent extends StatelessWidget {
     final derivedRating = _deriveStableListingRating(item);
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
 
-    String? highlight;
-    if (item.timesLent >= 20) {
-      highlight = l10n.t('Beliebt');
-    } else if (derivedRating >= 4.8) {
-      highlight = l10n.t('Top bewertet');
-    } else if (item.status == 'active') {
-      highlight = l10n.t('Sofort verfügbar');
-    }
+    const String? highlight = null;
 
     return InkWell(
       onTap: () => ItemDetailsOverlay.showFullPage(context, item: item, fresh: true),

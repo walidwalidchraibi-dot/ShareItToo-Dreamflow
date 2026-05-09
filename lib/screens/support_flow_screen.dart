@@ -165,6 +165,7 @@ class SupportFlowResult {
       case 'person': return 'Problem mit anderer Person';
       case 'technical': return 'Technisches Problem';
       case 'other': return 'Sonstiges';
+      case 'profile_report': return 'Profil melden';
       default: return mainCategory;
     }
   }
@@ -206,6 +207,7 @@ class SupportFlowScreen extends StatefulWidget {
 class _SupportFlowScreenState extends State<SupportFlowScreen> {
   String? _selectedMainCategory;
   String? _selectedSubCategory;
+  String? _selectedDetailSubCategory;
   final _descriptionController = TextEditingController();
   bool _sendingSupport = false;
   bool _cardsHidden = false;
@@ -350,13 +352,29 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
         'Ich bin unsicher, was ich tun soll',
         'Allgemeine Frage zur Buchung',
         'Ich brauche Hilfe vom Support',
+        'Profil melden',
         'Anderes Problem',
       ],
     ),
   };
 
+  bool get _isProfileContext => widget.context.requestId.startsWith('profile:') || widget.context.itemId.startsWith('profile:');
+
+  bool get _needsProfileReasonStep => _isProfileContext && _selectedMainCategory == 'other' && _selectedSubCategory == 'Profil melden';
+
+  static const List<String> _profileReportReasons = [
+    'Falsche Identität',
+    'Unangemessenes Verhalten',
+    'Betrugsverdacht',
+    'Beleidigende/gefährliche Inhalte',
+    'Spam',
+    'Sonstiges',
+  ];
+
   void _handleBack() {
-    if (_selectedSubCategory != null) {
+    if (_selectedDetailSubCategory != null) {
+      setState(() => _selectedDetailSubCategory = null);
+    } else if (_selectedSubCategory != null) {
       setState(() => _selectedSubCategory = null);
     } else if (_selectedMainCategory != null) {
       setState(() => _selectedMainCategory = null);
@@ -366,6 +384,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   }
 
   String _currentTitle() {
+    if (_selectedDetailSubCategory != null) return 'Beschreibe kurz, was passiert ist';
+    if (_needsProfileReasonStep) return 'Warum möchtest du dieses Profil melden?';
     if (_selectedSubCategory != null) return 'Beschreibe kurz, was passiert ist';
     if (_selectedMainCategory != null) {
       return _categoryTitles[_selectedMainCategory]?['title'] ?? 'Wähle einen Grund';
@@ -374,6 +394,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   }
 
   String _currentSubline() {
+    if (_selectedDetailSubCategory != null) return 'Prüfe die Auswahl kurz und beschreibe danach den Fall für den Support.';
+    if (_needsProfileReasonStep) return 'Wähle den genauesten Grund, damit der Support den Fall richtig einordnen kann.';
     if (_selectedSubCategory != null) return 'Je genauer du es beschreibst, desto schneller kann dir der Support helfen.';
     if (_selectedMainCategory != null) {
       return _categoryTitles[_selectedMainCategory]?['subline'] ?? 'Wähle den genauesten Grund.';
@@ -605,11 +627,15 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                       duration: const Duration(milliseconds: 250),
                       child: IgnorePointer(
                         ignoring: _cardsHidden,
-                        child: _selectedSubCategory != null
+                        child: _selectedDetailSubCategory != null
                             ? _buildDescriptionStep()
-                            : _selectedMainCategory == null
-                                ? _buildMainCategories()
-                                : _buildSubcategories(_selectedMainCategory!),
+                            : _needsProfileReasonStep
+                                ? _buildProfileReportReasons()
+                                : _selectedSubCategory != null
+                                    ? _buildDescriptionStep()
+                                    : _selectedMainCategory == null
+                                        ? _buildMainCategories()
+                                        : _buildSubcategories(_selectedMainCategory!),
                       ),
                     ),
                   ),
@@ -686,25 +712,56 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
 
   Widget _buildSubcategories(String mainKey) {
     final cat = _categories[mainKey]!;
+    final subcategories = mainKey == 'other' && !_isProfileContext
+        ? cat.subcategories.where((sub) => sub != 'Profil melden').toList()
+        : cat.subcategories;
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      itemCount: cat.subcategories.length,
+      itemCount: subcategories.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final sub = cat.subcategories[index];
+        final sub = subcategories[index];
         return _GlassySubcategoryCard(
           label: sub,
-          onTap: () => setState(() => _selectedSubCategory = sub),
+          onTap: () => setState(() {
+            _selectedSubCategory = sub;
+            _selectedDetailSubCategory = null;
+          }),
+        );
+      },
+    );
+  }
+
+  Widget _buildProfileReportReasons() {
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      itemCount: _profileReportReasons.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final reason = _profileReportReasons[index];
+        return _GlassySubcategoryCard(
+          label: reason,
+          onTap: () => setState(() => _selectedDetailSubCategory = reason),
         );
       },
     );
   }
 
   Widget _buildDescriptionStep() {
+    final resolvedMainCategory = (_needsProfileReasonStep || _selectedDetailSubCategory != null)
+        ? 'profile_report'
+        : _selectedMainCategory;
+    final resolvedSubCategory = _selectedDetailSubCategory ?? _selectedSubCategory;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
+          _SupportPreviewCard(
+            mainCategory: resolvedMainCategory ?? '',
+            subCategory: resolvedSubCategory ?? '',
+            itemTitle: widget.context.itemTitle,
+          ),
+          const SizedBox(height: 12),
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(18),
@@ -773,7 +830,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                               ),
                             )
                           : const Text(
-                              'Support-Fall senden',
+                              'An Support schicken',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w700,
@@ -799,8 +856,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
     try {
       // Return SupportFlowResult mit allen Daten
       final result = SupportFlowResult(
-        mainCategory: _selectedMainCategory ?? '',
-        subCategory: _selectedSubCategory ?? '',
+        mainCategory: (_needsProfileReasonStep || _selectedDetailSubCategory != null) ? 'profile_report' : (_selectedMainCategory ?? ''),
+        subCategory: _selectedDetailSubCategory ?? _selectedSubCategory ?? '',
         userDescription: _descriptionController.text.trim(),
         context: widget.context,
       );
@@ -808,6 +865,57 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
     } finally {
       if (mounted) setState(() => _sendingSupport = false);
     }
+  }
+}
+
+class _SupportPreviewCard extends StatelessWidget {
+  final String mainCategory;
+  final String subCategory;
+  final String itemTitle;
+
+  const _SupportPreviewCard({
+    required this.mainCategory,
+    required this.subCategory,
+    required this.itemTitle,
+  });
+
+  String _categoryLabel(String value) {
+    switch (value) {
+      case 'handover': return 'Problem mit Übergabe';
+      case 'return': return 'Problem mit Rückgabe';
+      case 'item_condition': return 'Problem mit Artikel/Zustand';
+      case 'payment': return 'Problem mit Zahlung';
+      case 'person': return 'Problem mit anderer Person';
+      case 'technical': return 'Technisches Problem';
+      case 'other': return 'Sonstiges';
+      case 'profile_report': return 'Profil melden';
+      default: return value;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Vorschau für den Support', style: TextStyle(color: Colors.white.withValues(alpha: 0.92), fontWeight: FontWeight.w700, fontSize: 14)),
+          const SizedBox(height: 8),
+          Text('Kontext: $itemTitle', style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 13)),
+          const SizedBox(height: 4),
+          Text('Kategorie: ${_categoryLabel(mainCategory)}', style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 13)),
+          const SizedBox(height: 4),
+          Text('Grund: $subCategory', style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 13)),
+        ],
+      ),
+    );
   }
 }
 

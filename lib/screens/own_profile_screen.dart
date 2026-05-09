@@ -62,14 +62,19 @@ class _OwnProfileScreenState extends State<OwnProfileScreen> with SingleTickerPr
       appBar: AppBar(
         title: Text(l10n.t('Mein Profil')),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.ios_share),
-            onPressed: () async {
-              final link = 'https://shareittoo.app/u/${_user?.id ?? 'me'}';
-              await Clipboard.setData(ClipboardData(text: link));
-              if (!mounted) return;
-              AppPopup.toast(context, icon: Icons.link, title: l10n.t('Profil-Link kopiert'));
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) async {
+              if (value == 'copy_link') {
+                final link = 'https://shareittoo.app/u/${_user?.id ?? 'me'}';
+                await Clipboard.setData(ClipboardData(text: link));
+                if (!mounted) return;
+                AppPopup.toast(context, icon: Icons.link, title: l10n.t('Profil-Link kopiert'));
+              }
             },
+            itemBuilder: (context) => const [
+              PopupMenuItem<String>(value: 'copy_link', child: Text('Profil-Link kopieren')),
+            ],
           )
         ],
         bottom: TabBar(
@@ -283,7 +288,7 @@ class _ListingsTabState extends State<_ListingsTab> {
                         if (it.status != 'ended') const PopupMenuItem(value: 'ended', child: Text('Beenden')),
                         if (it.status == 'draft') const PopupMenuItem(value: 'active', child: Text('Veröffentlichen')),
                       ],
-                      child: const Icon(Icons.more_horiz, color: Colors.white70),
+                      child: const Icon(Icons.more_vert, color: Colors.white70),
                     )
                   ])
                 ]))
