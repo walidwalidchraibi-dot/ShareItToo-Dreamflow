@@ -160,6 +160,34 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
     return _estimatedKmFor(isReturn: isReturn) != null;
   }
 
+  bool _hasAddressText(bool isReturn) =>
+      (isReturn ? _returnAddressCtrl.text : _deliveryAddressCtrl.text).trim().isNotEmpty;
+
+  String? _continueHint() {
+    if (_start == null) return 'Bitte wähle mindestens einen Miettag.';
+    if (_overlapsBlocked) return 'Bitte wähle einen verfügbaren Zeitraum.';
+    if (_requiresDeliveryAddress && !_hasAddressText(false)) {
+      return 'Bitte Lieferadresse eingeben.';
+    }
+    if (_requiresDeliveryAddress && !_isAddressEstimateReady(false)) {
+      return 'Lieferkosten können aktuell nicht automatisch berechnet werden. Bitte wähle Selbstabholung oder prüfe die Adresse mit Stadtangabe.';
+    }
+    if (_requiresReturnAddress && !_hasAddressText(true)) {
+      return 'Bitte Rückgabeadresse eingeben.';
+    }
+    if (_requiresReturnAddress && !_isAddressEstimateReady(true)) {
+      return 'Abholkosten können aktuell nicht automatisch berechnet werden. Bitte wähle Rückgabe beim Vermieter oder prüfe die Adresse mit Stadtangabe.';
+    }
+    final preview = _pricePreview;
+    if (_requiresDeliveryAddress && !preview.deliveryWithinMax) {
+      return 'Die Lieferadresse liegt außerhalb des Lieferbereichs.';
+    }
+    if (_requiresReturnAddress && !preview.returnWithinMax) {
+      return 'Die Rückgabeadresse liegt außerhalb des Abholbereichs.';
+    }
+    return null;
+  }
+
   bool _isBookedDay(DateTime d) {
     final day = _strip(d);
     for (final r in _unavailable) {
@@ -269,6 +297,9 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
     final deliveryWithinMax = !deliveryAllowed || deliveryKm == null || widget.item.maxDeliveryKmAtDropoff == null || deliveryKm <= widget.item.maxDeliveryKmAtDropoff!;
     final returnWithinMax = !returnAllowed || returnKm == null || widget.item.maxPickupKmAtReturn == null || returnKm <= widget.item.maxPickupKmAtReturn!;
 
+    final deliveryFeePending = deliveryAllowed && deliveryKm == null;
+    final pickupFeePending = returnAllowed && returnKm == null;
+
     final deliveryFee = deliveryAllowed && deliveryKm != null && deliveryWithinMax ? DataService.deliveryFeeForDistanceKm(deliveryKm) : 0.0;
     final pickupFee = returnAllowed && returnKm != null && returnWithinMax ? DataService.deliveryFeeForDistanceKm(returnKm) : 0.0;
 
@@ -286,21 +317,15 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
       returnKm: returnKm,
       deliveryWithinMax: deliveryWithinMax,
       returnWithinMax: returnWithinMax,
+      deliveryFeePending: deliveryFeePending,
+      pickupFeePending: pickupFeePending,
     );
   }
 
   bool get _requiresDeliveryAddress => _hinwegLandlord && widget.item.offersDeliveryAtDropoff;
   bool get _requiresReturnAddress => _rueckwegLandlord && widget.item.offersPickupAtReturn;
 
-  bool get _canContinue {
-    if (_start == null || _overlapsBlocked || _checking) return false;
-    if (_requiresDeliveryAddress && !_isAddressEstimateReady(false)) return false;
-    if (_requiresReturnAddress && !_isAddressEstimateReady(true)) return false;
-    final preview = _pricePreview;
-    if (_requiresDeliveryAddress && !preview.deliveryWithinMax) return false;
-    if (_requiresReturnAddress && !preview.returnWithinMax) return false;
-    return true;
-  }
+  bool get _canContinue => !_checking && _continueHint() == null;
 
   Future<void> _openMapsSearch(String query) async {
     final trimmed = query.trim();
@@ -361,6 +386,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
     final danger = BrandColors.danger;
     final chips = _thresholdChips;
     final preview = _pricePreview;
+    final continueHint = _continueHint();
 
     return Scaffold(
       backgroundColor: bg,
@@ -472,7 +498,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          _calendarExpanded ? 'Kalender' : (_start == null ? 'Kalender öffnen' : 'Kalender anpassen'),
+                                          _calendarExpanded ? 'Kalender' : (_start == null ? 'Kalender öffnen' : 'Zeitraum ändern'),
                                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                                         ),
                                       ),
@@ -572,7 +598,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                             const SizedBox(height: 12),
                             _AddressSection(
                               label: 'Lieferadresse',
-                              helper: 'Die Liefergebühr wird anhand der angegebenen Adresse berechnet.',
+                              helper: 'Sobald wir die Adresse grob zuordnen können, zeigen wir dir Entfernung und Lieferkosten an.',
                               controller: _deliveryAddressCtrl,
                               estimatedKm: preview.deliveryKm,
                               fee: preview.deliveryFee,
@@ -628,7 +654,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                             const SizedBox(height: 12),
                             _AddressSection(
                               label: 'Rückgabeadresse',
-                              helper: 'Die Abholgebühr wird anhand der angegebenen Rückgabeadresse berechnet.',
+                              helper: 'Sobald wir die Adresse grob zuordnen können, zeigen wir dir Entfernung und Abholkosten an.',
                               controller: _returnAddressCtrl,
                               estimatedKm: preview.returnKm,
                               fee: preview.pickupFee,
@@ -661,8 +687,10 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                           _PriceRow(label: 'Mietpreis', value: preview.rentalSubtotal),
                           if (preview.discountAmount > 0) _PriceRow(label: 'Rabatt', value: -preview.discountAmount, positiveAccent: true),
                           _PriceRow(label: 'Plattformgebühr', value: preview.platformFee),
-                          if (_hinwegLandlord) _PriceRow(label: 'Liefergebühr', value: preview.deliveryFee),
-                          if (_rueckwegLandlord) _PriceRow(label: 'Abholgebühr', value: preview.pickupFee),
+                          if (_hinwegLandlord)
+                            _PriceRow(label: 'Liefergebühr', value: preview.deliveryFee, pending: preview.deliveryFeePending),
+                          if (_rueckwegLandlord)
+                            _PriceRow(label: 'Abholgebühr', value: preview.pickupFee, pending: preview.pickupFeePending),
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 10),
                             child: Divider(color: Colors.white24, height: 1),
@@ -686,32 +714,54 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               child: SafeArea(
                 top: false,
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Gesamtbetrag', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 2),
-                          const Text('inkl. Plattformgebühr', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                          const SizedBox(height: 4),
-                          Text('${preview.total.toStringAsFixed(2)} €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
-                        ],
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Gesamtbetrag', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                              const SizedBox(height: 2),
+                              const Text('inkl. Plattformgebühr', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                              const SizedBox(height: 4),
+                              Text('${preview.total.toStringAsFixed(2)} €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 148,
+                          child: FilledButton(
+                            onPressed: _canContinue ? _confirm : null,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: BrandColors.primary,
+                              disabledBackgroundColor: Colors.white.withValues(alpha: 0.14),
+                              foregroundColor: Colors.white,
+                              disabledForegroundColor: Colors.white70,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            child: _checking
+                                ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                                : Text(_start == null ? 'Weiter' : 'Weiter'),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 132,
-                      child: FilledButton(
-                        onPressed: _canContinue ? _confirm : null,
-                        style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                        child: _checking
-                            ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                            : Text(_start == null ? 'Wählen' : 'Weiter'),
+                    if (continueHint != null) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          continueHint,
+                          style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.35),
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -735,6 +785,8 @@ class _PricePreview {
   final double? returnKm;
   final bool deliveryWithinMax;
   final bool returnWithinMax;
+  final bool deliveryFeePending;
+  final bool pickupFeePending;
 
   const _PricePreview({
     required this.rentalSubtotal,
@@ -748,6 +800,8 @@ class _PricePreview {
     required this.returnKm,
     required this.deliveryWithinMax,
     required this.returnWithinMax,
+    required this.deliveryFeePending,
+    required this.pickupFeePending,
   });
 }
 
@@ -881,6 +935,7 @@ class _AddressSection extends StatelessWidget {
     final sub = Colors.white70;
     final danger = BrandColors.danger;
     final canCheck = controller.text.trim().isNotEmpty;
+    final hasEstimate = estimatedKm != null;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -898,7 +953,7 @@ class _AddressSection extends StatelessWidget {
             onChanged: onChanged,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: 'Straße, Hausnummer, Stadt',
+              hintText: 'z. B. Musterstraße 12, Stuttgart',
               hintStyle: const TextStyle(color: Colors.white54),
               filled: true,
               fillColor: Colors.white.withValues(alpha: 0.05),
@@ -915,20 +970,20 @@ class _AddressSection extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: canCheck ? onCheckAddress : null,
                 icon: const Icon(Icons.map_outlined),
-                label: const Text('Adresse prüfen'),
+                label: const Text('Adresse in Maps öffnen'),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  estimatedKm != null ? 'Geschätzte Entfernung: ${estimatedKm!.toStringAsFixed(1)} km' : 'Bitte Adresse mit Stadt eingeben, damit wir die Entfernung schätzen können.',
-                  style: TextStyle(color: estimatedKm != null ? Colors.white70 : Colors.white60, fontSize: 12),
+                  hasEstimate ? 'Entfernung: ca. ${estimatedKm!.toStringAsFixed(1)} km' : 'Kosten können wir aktuell nur berechnen, wenn die Adresse einer bekannten Stadt zugeordnet werden kann.',
+                  style: TextStyle(color: hasEstimate ? Colors.white70 : Colors.white60, fontSize: 12, height: 1.35),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            estimatedKm != null ? '$feeLabel: ${fee.toStringAsFixed(2)} €' : '$feeLabel erscheint, sobald die Adresse schätzbar ist.',
+            hasEstimate ? '$feeLabel: ${fee.toStringAsFixed(2)} €' : '${feeLabel}: noch nicht berechnet',
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
           ),
           if (overMax) ...[
@@ -948,7 +1003,8 @@ class _PriceRow extends StatelessWidget {
   final String label;
   final double value;
   final bool positiveAccent;
-  const _PriceRow({required this.label, required this.value, this.positiveAccent = false});
+  final bool pending;
+  const _PriceRow({required this.label, required this.value, this.positiveAccent = false, this.pending = false});
 
   @override
   Widget build(BuildContext context) {
@@ -960,7 +1016,10 @@ class _PriceRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(color: color, fontSize: 13)),
-          Text('$prefix${value.abs().toStringAsFixed(2)} €', style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+          Text(
+            pending ? 'noch nicht berechnet' : '$prefix${value.abs().toStringAsFixed(2)} €',
+            style: TextStyle(color: pending ? Colors.white60 : color, fontWeight: FontWeight.w700),
+          ),
         ],
       ),
     );
