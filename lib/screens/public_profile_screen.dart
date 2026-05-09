@@ -389,7 +389,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
     final item = entry.item;
     final itemTitle = item?.title.trim() ?? '';
     final hasTitle = itemTitle.isNotEmpty;
-    final title = hasTitle ? itemTitle : 'Bewertung zu einer abgeschlossenen Buchung';
+    final title = hasTitle ? itemTitle : 'Bewertung zu einer abgeschlossenen Anzeige';
     final imageUrl = (item != null && item.photos.isNotEmpty && item.photos.first.trim().isNotEmpty)
         ? item.photos.first.trim()
         : null;
@@ -433,7 +433,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  hasTitle ? 'Buchung abgeschlossen' : 'Abgeschlossene Buchung',
+                  hasTitle ? 'Bewertung zur Anzeige' : 'Abgeschlossene Anzeige',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
@@ -562,7 +562,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(entry.review.comment, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white)),
+                  Text(entry.review.comment, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, height: 1.35)),
                   _buildReviewBookingContext(theme, entry),
                 ],
               ),
@@ -595,7 +595,15 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                 // Full-screen frosted dark background
                 BackdropFilter(
                   filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                  child: Container(color: Colors.black.withValues(alpha: 0.92)),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFF101826), Color(0xFF0B111C), Color(0xFF070B12)],
+                      ),
+                    ),
+                  ),
                 ),
                 // Content
                 Padding(
@@ -703,7 +711,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                                               ],
                                             ),
                                             const SizedBox(height: 8),
-                                            Text(entry.review.comment, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)),
+                                            Text(entry.review.comment, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, height: 1.35)),
                                             _buildReviewBookingContext(Theme.of(context), entry),
                                           ],
                                         ),

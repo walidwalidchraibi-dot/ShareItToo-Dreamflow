@@ -234,9 +234,12 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
   
 
   String _priceWithUnit(Item i) {
-    final unit = i.priceUnit; final raw = i.priceRaw;
+    final unit = i.priceUnit;
+    final raw = i.priceRaw;
+    final platformFee = DataService.platformContributionForRental(raw);
+    final customerPrice = raw + platformFee;
     final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
-    return '${raw.toStringAsFixed(0)} $suffix';
+    return '${customerPrice.toStringAsFixed(0)} $suffix · Inkl. Plattformgebühr';
   }
 
   
@@ -252,8 +255,10 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
     final diff = r.end.difference(r.start);
     int days = diff.inDays; if (days <= 0) days = 1;
     final priced = DataService.computeTotalWithDiscounts(item: i, days: days);
-    final total = priced.$1; final span = days == 1 ? '1 Tag' : '$days Tage';
-    return '${total.round()} € für $span';
+    final rentalSubtotal = priced.$1;
+    final total = rentalSubtotal + DataService.platformContributionForRental(rentalSubtotal);
+    final span = days == 1 ? '1 Tag' : '$days Tage';
+    return '${total.round()} € für $span · Inkl. Plattformgebühr';
   }
 
   Future<void> _addToWishlist() async {
@@ -686,9 +691,12 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
   }
 
   String _priceWithUnit(Item i) {
-    final unit = i.priceUnit; final raw = i.priceRaw;
+    final unit = i.priceUnit;
+    final raw = i.priceRaw;
+    final platformFee = DataService.platformContributionForRental(raw);
+    final customerPrice = raw + platformFee;
     final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
-    return '${raw.toStringAsFixed(0)} $suffix';
+    return '${customerPrice.toStringAsFixed(0)} $suffix · Inkl. Plattformgebühr';
   }
 
   String _formatRangeForButton(Item i, DateTimeRange r) {
@@ -1004,7 +1012,8 @@ class _ItemMetaSection extends StatelessWidget {
           final unit = item.priceUnit;
           final raw = item.priceRaw;
           final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
-          return _TableLine(label: l10n.t('Preis'), value: '${raw.toStringAsFixed(0)} $suffix');
+          final customerPrice = raw + DataService.platformContributionForRental(raw);
+          return _TableLine(label: l10n.t('Preis'), value: '${customerPrice.toStringAsFixed(0)} $suffix');
         }),
         _TableLine(label: l10n.t('Kategorie'), valueWidget: _CategoryNameById(id: item.categoryId, sub: item.subcategory)),
         _TableLine(label: l10n.t('Zustand'), value: ConditionLabels.label(item.condition)),
@@ -2163,6 +2172,8 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                           Text('${total.toStringAsFixed(2)} €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
                         ],
                       ),
+                      const SizedBox(height: 2),
+                      const Text('Inkl. Plattformgebühr', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 2),
                       Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 11)),
                     ]);

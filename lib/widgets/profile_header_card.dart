@@ -62,8 +62,9 @@ class ProfileHeaderCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   user.displayName,
-                  maxLines: 2,
+                  maxLines: 3,
                   textAlign: TextAlign.center,
+                  overflow: TextOverflow.fade,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.white, height: 1.2),
                 ),
                 const SizedBox(height: 4),
