@@ -1092,11 +1092,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
 
   String _sharedByNameFromLocation(_LocationShareData data) {
+    final explicit = data.sharedByName.trim();
+    if (explicit.isNotEmpty) return explicit;
     final label = data.label.trim();
-    const marker = ' hat einen Standort geteilt';
-    if (label.endsWith(marker)) {
-      final name = label.substring(0, label.length - marker.length).trim();
-      if (name.isNotEmpty) return name;
+    for (final marker in const [' hat einen Standort geteilt', ' hat eine Adresse geteilt']) {
+      if (label.endsWith(marker)) {
+        final name = label.substring(0, label.length - marker.length).trim();
+        if (name.isNotEmpty) return name;
+      }
     }
     return label.isNotEmpty ? label : 'diesem Nutzer';
   }
@@ -1804,10 +1807,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   Future<void> _sendLocationShareData(_LocationShareData data) async {
     final t = _thread;
-    if (t == null) return;
-    await DataService.addSystemMessageToThread(
+    final me = _currentUser;
+    if (t == null || me == null) return;
+    await DataService.addMessageToThread(
       threadId: t.id,
-      text: '📍 LOCATION_SHARE|${data.label}|${data.latitude}|${data.longitude}|${data.mapsUrl}',
+      senderId: me.id,
+      text: '📍 LOCATION_SHARE|${data.label}|${data.latitude}|${data.longitude}|${data.mapsUrl}|${data.shareKind}|${data.addressText}|${data.sharedByName}',
     );
     await _load();
     _scrollToBottom(animate: true);
@@ -1830,83 +1835,55 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     );
   }
 
-  Future<void> _showPreparedLocationShareSheet(
-    _LocationShareData data, {
-    String? helperText,
-  }) async {
+  Future<void> _showPreparedLocationShareSheet(_LocationShareData data) async {
     final phaseIntent = _locationIntentForCurrentContext();
     final closedContext = phaseIntent == _LocationIntent.unknown || _request?.needsReview == true;
     if (!mounted) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
+    await _showLocationFlowSheet(
+      title: 'Standort teilen',
+      bodyBuilder: (sheetContext) {
         final canSetHandover = phaseIntent == _LocationIntent.handover && !closedContext;
         final canSetReturn = phaseIntent == _LocationIntent.returnTrip && !closedContext;
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF111827),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              ),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Standort teilen', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 10),
-                  _LocationShareMessage(data: data, time: '', onAcceptPlace: null),
-                  if (helperText != null && helperText.trim().isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Text(helperText.trim(), style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontSize: 12.5, height: 1.35)),
-                  ],
-                  if (canSetReturn) ...[
-                    const SizedBox(height: 8),
-                    Text('Übergabe ist bereits abgeschlossen.', style: TextStyle(color: Colors.white.withValues(alpha: 0.60), fontSize: 12)),
-                  ],
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      if (canSetHandover)
-                        FilledButton.tonal(
-                          onPressed: () async {
-                            Navigator.of(sheetContext).pop();
-                            await _sharePreparedLocation(data, setAs: _LocationIntent.handover);
-                          },
-                          child: const Text('Als Übergabeort teilen'),
-                        ),
-                      if (canSetReturn)
-                        FilledButton.tonal(
-                          onPressed: () async {
-                            Navigator.of(sheetContext).pop();
-                            await _sharePreparedLocation(data, setAs: _LocationIntent.returnTrip);
-                          },
-                          child: const Text('Als Rückgabeort teilen'),
-                        ),
-                      FilledButton(
-                        onPressed: () async {
-                          Navigator.of(sheetContext).pop();
-                          await _sharePreparedLocation(data);
-                        },
-                        child: const Text('Nur teilen'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.of(sheetContext).pop(),
-                        child: const Text('Abbrechen'),
-                      ),
-                    ],
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _LocationShareMessage(data: data, time: '', onAcceptPlace: null),
+            if (canSetReturn) ...[
+              const SizedBox(height: 10),
+              Text('Übergabe ist bereits abgeschlossen.', style: TextStyle(color: Colors.white.withValues(alpha: 0.60), fontSize: 12)),
+            ],
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (canSetHandover)
+                  FilledButton.tonal(
+                    onPressed: () async {
+                      Navigator.of(sheetContext).pop();
+                      await _sharePreparedLocation(data, setAs: _LocationIntent.handover);
+                    },
+                    child: const Text('Als Übergabeort teilen'),
                   ),
-                ],
-              ),
+                if (canSetReturn)
+                  FilledButton.tonal(
+                    onPressed: () async {
+                      Navigator.of(sheetContext).pop();
+                      await _sharePreparedLocation(data, setAs: _LocationIntent.returnTrip);
+                    },
+                    child: const Text('Als Rückgabeort teilen'),
+                  ),
+                FilledButton(
+                  onPressed: () async {
+                    Navigator.of(sheetContext).pop();
+                    await _sharePreparedLocation(data);
+                  },
+                  child: const Text('Nur teilen'),
+                ),
+              ],
             ),
-          ),
+          ],
         );
       },
     );
@@ -1915,119 +1892,88 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _showAddressEntrySheet() async {
     if (!mounted) return;
     final controller = TextEditingController();
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
+    await _showLocationFlowSheet(
+      title: 'Adresse teilen',
+      onBack: () {
+        Navigator.of(context, rootNavigator: true).pop();
+        _shareLocation();
+      },
+      bodyBuilder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final address = controller.text.trim();
             final hasAddress = address.isNotEmpty;
             final mapsUrl = hasAddress ? _mapsSearchUrlForAddress(address) : '';
-            final data = _LocationShareData(label: address, latitude: '', longitude: '', mapsUrl: mapsUrl);
+            final me = _currentUser;
+            final sharerName = (me?.displayName ?? 'Jemand').trim();
+            final data = _LocationShareData(
+              label: sharerName.isNotEmpty ? '$sharerName hat eine Adresse geteilt' : 'Adresse geteilt',
+              latitude: '',
+              longitude: '',
+              mapsUrl: mapsUrl,
+              shareKind: 'address',
+              addressText: address,
+              sharedByName: sharerName,
+            );
             final phaseIntent = _locationIntentForCurrentContext();
-            final canSetHandover = phaseIntent == _LocationIntent.handover && hasAddress;
-            final canSetReturn = phaseIntent == _LocationIntent.returnTrip && hasAddress;
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(12, 12, 12, 12 + MediaQuery.of(sheetContext).viewInsets.bottom),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF111827),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                  ),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Standort teilen', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: controller,
-                        autofocus: true,
-                        onChanged: (_) => setModalState(() {}),
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Straße, Hausnummer, Ort',
-                          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.45)),
-                          filled: true,
-                          fillColor: Colors.white.withValues(alpha: 0.06),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Theme.of(sheetContext).colorScheme.primary.withValues(alpha: 0.85))),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Bitte gib die Adresse so genau ein, dass der Treffpunkt in Google Maps geprüft werden kann. Ohne Geocoding-API wird die Adresse ehrlich als Maps-Suche verwendet.',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontSize: 12.5, height: 1.35),
-                      ),
-                      if (phaseIntent == _LocationIntent.returnTrip) ...[
-                        const SizedBox(height: 8),
-                        Text('Übergabe ist bereits abgeschlossen.', style: TextStyle(color: Colors.white.withValues(alpha: 0.60), fontSize: 12)),
-                      ],
-                      const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          if (hasAddress)
-                            OutlinedButton(
-                              onPressed: () async {
-                                final uri = Uri.tryParse(mapsUrl);
-                                if (uri != null) {
-                                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                                }
-                              },
-                              child: const Text('Adresse in Maps prüfen'),
-                            ),
-                          if (canSetHandover)
-                            FilledButton.tonal(
-                              onPressed: () async {
-                                Navigator.of(sheetContext).pop();
-                                await _showPreparedLocationShareSheet(
-                                  data,
-                                  helperText: 'Adresse wird über Google Maps geöffnet/geprüft.',
-                                );
-                              },
-                              child: const Text('Als Übergabeort teilen'),
-                            ),
-                          if (canSetReturn)
-                            FilledButton.tonal(
-                              onPressed: () async {
-                                Navigator.of(sheetContext).pop();
-                                await _showPreparedLocationShareSheet(
-                                  data,
-                                  helperText: 'Adresse wird über Google Maps geöffnet/geprüft.',
-                                );
-                              },
-                              child: const Text('Als Rückgabeort teilen'),
-                            ),
-                          FilledButton(
-                            onPressed: hasAddress
-                                ? () async {
-                                    Navigator.of(sheetContext).pop();
-                                    await _showPreparedLocationShareSheet(
-                                      data,
-                                      helperText: 'Adresse wird über Google Maps geöffnet/geprüft.',
-                                    );
-                                  }
-                                : null,
-                            child: const Text('Nur teilen'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(sheetContext).pop(),
-                            child: const Text('Abbrechen'),
-                          ),
-                        ],
-                      ),
-                    ],
+            final canSetHandover = phaseIntent == _LocationIntent.handover;
+            final canSetReturn = phaseIntent == _LocationIntent.returnTrip;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  onChanged: (_) => setModalState(() {}),
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'z. B. Bernhaldenweg 37, 71579 Spiegelberg',
+                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.45)),
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.06),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Theme.of(sheetContext).colorScheme.primary.withValues(alpha: 0.85))),
                   ),
                 ),
-              ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (canSetHandover)
+                      FilledButton.tonal(
+                        onPressed: hasAddress
+                            ? () async {
+                                Navigator.of(sheetContext).pop();
+                                await _sharePreparedLocation(data, setAs: _LocationIntent.handover);
+                              }
+                            : null,
+                        child: const Text('Als Übergabeort teilen'),
+                      ),
+                    if (canSetReturn)
+                      FilledButton.tonal(
+                        onPressed: hasAddress
+                            ? () async {
+                                Navigator.of(sheetContext).pop();
+                                await _sharePreparedLocation(data, setAs: _LocationIntent.returnTrip);
+                              }
+                            : null,
+                        child: const Text('Als Rückgabeort teilen'),
+                      ),
+                    FilledButton(
+                      onPressed: hasAddress
+                          ? () async {
+                              Navigator.of(sheetContext).pop();
+                              await _sharePreparedLocation(data);
+                            }
+                          : null,
+                      child: const Text('Nur teilen'),
+                    ),
+                  ],
+                ),
+              ],
             );
           },
         );
@@ -2062,8 +2008,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       final lng = pos.longitude.toStringAsFixed(6);
       final mapsUrl = 'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
       final me = _currentUser;
-      final label = me != null ? '${me.displayName} hat einen Standort geteilt' : 'Standort geteilt';
-      final data = _LocationShareData(label: label, latitude: lat, longitude: lng, mapsUrl: mapsUrl);
+      final sharerName = (me?.displayName ?? '').trim();
+      final label = sharerName.isNotEmpty ? '$sharerName hat einen Standort geteilt' : 'Standort geteilt';
+      final data = _LocationShareData(
+        label: label,
+        latitude: lat,
+        longitude: lng,
+        mapsUrl: mapsUrl,
+        shareKind: 'location',
+        sharedByName: sharerName,
+      );
       await _showPreparedLocationShareSheet(data);
     } catch (e) {
       debugPrint('[MessageThreadScreen] _shareCurrentLocationFlow failed: $e');
@@ -2073,54 +2027,119 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     }
   }
 
-  Future<void> _shareLocation() async {
-    if (!mounted) return;
-    final selection = await showModalBottomSheet<String>(
+  Future<T?> _showLocationFlowSheet<T>({
+    required String title,
+    required Widget Function(BuildContext sheetContext) bodyBuilder,
+    VoidCallback? onBack,
+  }) {
+    return showGeneralDialog<T>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF111827),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              ),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Standort teilen', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 12),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.edit_location_alt_rounded, color: Colors.white),
-                    title: const Text('Adresse eingeben', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                    subtitle: Text('Teile deine aktuelle Adresse im Chat.', style: TextStyle(color: Colors.white.withValues(alpha: 0.68))),
-                    onTap: () => Navigator.of(sheetContext).pop('address'),
-                  ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.my_location_rounded, color: Colors.white),
-                    title: const Text('Aktuellen Standort teilen', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                    subtitle: Text('Teile deinen aktuellen Standort im Chat.', style: TextStyle(color: Colors.white.withValues(alpha: 0.68))),
-                    onTap: () => Navigator.of(sheetContext).pop('current'),
-                  ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                      child: const Text('Abbrechen'),
+      barrierDismissible: true,
+      barrierLabel: 'close',
+      barrierColor: Colors.black.withValues(alpha: 0.34),
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (dialogContext, _, __) {
+        return GestureDetector(
+          onTap: () => Navigator.of(dialogContext).pop(),
+          child: Material(
+            color: Colors.transparent,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: SafeArea(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: GestureDetector(
+                      onTap: () {},
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xF2141824),
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 24, offset: const Offset(0, 12)),
+                            ],
+                          ),
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 40,
+                                      child: onBack == null
+                                          ? const SizedBox.shrink()
+                                          : IconButton(
+                                              onPressed: onBack,
+                                              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                                            ),
+                                    ),
+                                    Expanded(
+                                      child: Text(
+                                        title,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 40,
+                                      child: IconButton(
+                                        onPressed: () => Navigator.of(dialogContext).pop(),
+                                        icon: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                bodyBuilder(dialogContext),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ],
+                ),
               ),
             ),
           ),
+        );
+      },
+      transitionBuilder: (_, animation, __, child) => FadeTransition(
+        opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+        child: ScaleTransition(scale: Tween(begin: 0.96, end: 1.0).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)), child: child),
+      ),
+    );
+  }
+
+  Future<void> _shareLocation() async {
+    if (!mounted) return;
+    final selection = await _showLocationFlowSheet<String>(
+      title: 'Standort teilen',
+      bodyBuilder: (sheetContext) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SheetActionTile(
+              icon: Icons.my_location_rounded,
+              title: 'Aktuellen Standort teilen',
+              subtitle: 'Teile deinen aktuellen Standort im Chat.',
+              onTap: () => Navigator.of(sheetContext).pop('current'),
+            ),
+            const SizedBox(height: 10),
+            _SheetActionTile(
+              icon: Icons.edit_location_alt_rounded,
+              title: 'Adresse teilen',
+              subtitle: 'Teile eine Adresse im Chat.',
+              onTap: () => Navigator.of(sheetContext).pop('address'),
+            ),
+          ],
         );
       },
     );
@@ -5689,7 +5708,21 @@ class _LocationShareData {
   final String latitude;
   final String longitude;
   final String mapsUrl;
-  const _LocationShareData({required this.label, required this.latitude, required this.longitude, required this.mapsUrl});
+  final String shareKind;
+  final String addressText;
+  final String sharedByName;
+  const _LocationShareData({
+    required this.label,
+    required this.latitude,
+    required this.longitude,
+    required this.mapsUrl,
+    this.shareKind = 'location',
+    this.addressText = '',
+    this.sharedByName = '',
+  });
+
+  bool get hasCoordinates => latitudeValue != null && longitudeValue != null;
+  bool get isAddressOnly => !hasCoordinates && (shareKind == 'address' || addressText.trim().isNotEmpty);
 
   double? get latitudeValue => double.tryParse(latitude);
   double? get longitudeValue => double.tryParse(longitude);
@@ -5738,6 +5771,9 @@ _LocationShareData? _parseLocationShareMessage(String raw) {
   final longitude = parts.length > 3 ? parts[3].trim() : '';
   final latValue = double.tryParse(latitude);
   final lngValue = double.tryParse(longitude);
+  final shareKind = parts.length > 5 && parts[5].trim().isNotEmpty ? parts[5].trim() : 'location';
+  final addressText = parts.length > 6 ? parts[6].trim() : '';
+  final sharedByName = parts.length > 7 ? parts[7].trim() : '';
 
   String mapsUrl = '';
   if (parts.length > 4 && parts[4].trim().isNotEmpty) {
@@ -5751,6 +5787,9 @@ _LocationShareData? _parseLocationShareMessage(String raw) {
     latitude: latValue != null ? latitude : '',
     longitude: lngValue != null ? longitude : '',
     mapsUrl: mapsUrl,
+    shareKind: shareKind,
+    addressText: addressText,
+    sharedByName: sharedByName,
   );
 }
 
@@ -5784,6 +5823,113 @@ class _LocationMapFallback extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _SheetActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  const _SheetActionTile({required this.icon, required this.title, required this.subtitle, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: BrandColors.primary.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: BrandColors.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 3),
+                    Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: 0.68), fontSize: 12.5, height: 1.3)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(Icons.chevron_right_rounded, color: Colors.white.withValues(alpha: 0.7)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddressPreviewSurface extends StatelessWidget {
+  final String addressText;
+  const _AddressPreviewSurface({required this.addressText});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1F2937), Color(0xFF0F172A)],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: BrandColors.primary.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.place_rounded, color: BrandColors.primary, size: 22),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Adresse geteilt',
+                    style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              addressText,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.88), fontSize: 12.5, height: 1.35),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -5842,13 +5988,14 @@ class _LocationShareMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fallbackUrl = (data.latitudeValue != null && data.longitudeValue != null)
+    final fallbackUrl = data.hasCoordinates
         ? 'https://www.google.com/maps/search/?api=1&query=${data.latitudeValue},${data.longitudeValue}'
         : '';
     final effectiveUrl = data.mapsUrl.isNotEmpty ? data.mapsUrl : fallbackUrl;
-    final detailText = (data.latitude.isNotEmpty && data.longitude.isNotEmpty)
+    final titleText = data.label.trim().isNotEmpty ? data.label.trim() : 'Standort geteilt';
+    final detailText = data.hasCoordinates
         ? '${data.latitude}, ${data.longitude}'
-        : 'In Google Maps öffnen';
+        : (data.addressText.trim().isNotEmpty ? data.addressText.trim() : 'Adresse geteilt');
 
     return MouseRegion(
       cursor: effectiveUrl.isNotEmpty ? SystemMouseCursors.click : MouseCursor.defer,
@@ -5888,7 +6035,7 @@ class _LocationShareMessage extends StatelessWidget {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        if (data.tilePreviewUrl.isNotEmpty)
+                        if (data.tilePreviewUrl.isNotEmpty) ...[
                           Image.network(
                             data.tilePreviewUrl,
                             fit: BoxFit.cover,
@@ -5897,10 +6044,14 @@ class _LocationShareMessage extends StatelessWidget {
                               if (progress == null) return child;
                               return const _LocationMapFallback(loading: true);
                             },
-                          )
-                        else
+                          ),
+                          const Center(child: IgnorePointer(child: _LocationPreviewPin())),
+                        ] else if (data.isAddressOnly) ...[
+                          _AddressPreviewSurface(addressText: detailText),
+                        ] else ...[
                           const _LocationMapFallback(),
-                        const Center(child: IgnorePointer(child: _LocationPreviewPin())),
+                          const Center(child: IgnorePointer(child: _LocationPreviewPin())),
+                        ],
                       ],
                     ),
                   ),
@@ -5912,7 +6063,7 @@ class _LocationShareMessage extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        data.label.trim().isNotEmpty ? data.label.trim() : 'Standort geteilt',
+                        titleText,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13, height: 1.2),
@@ -5920,9 +6071,9 @@ class _LocationShareMessage extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         detailText,
-                        maxLines: 1,
+                        maxLines: data.hasCoordinates ? 1 : 3,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.76), fontSize: 11.5),
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.76), fontSize: 11.5, height: 1.3),
                       ),
                       if (effectiveUrl.isNotEmpty) ...[
                         const SizedBox(height: 6),
