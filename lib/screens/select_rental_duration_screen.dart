@@ -212,7 +212,14 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
   }
 
   void _onDayTap(DateTime day) {
-    if (day.isBefore(_firstDate) || day.isAfter(_lastDate) || _isBookedDay(day)) return;
+    if (day.isBefore(_firstDate)) {
+      final label = _formatShortDate(day);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$label liegt in der Vergangenheit 🙂')),
+      );
+      return;
+    }
+    if (day.isAfter(_lastDate) || _isBookedDay(day)) return;
     setState(() {
       if (_start == null || (_start != null && _end != null)) {
         _start = _strip(day);
@@ -1135,7 +1142,10 @@ class _DayCell extends StatelessWidget {
 
     Color bg = Colors.transparent;
     BoxBorder? border;
-    Color fg = disabled ? subText : textColor;
+    Color fg = disabled ? Colors.white38 : textColor;
+    if (disabled) {
+      bg = Colors.white.withValues(alpha: 0.04);
+    }
     if (booked) {
       fg = Colors.white38;
     } else if (selected) {
@@ -1149,7 +1159,7 @@ class _DayCell extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(2),
       child: GestureDetector(
-        onTap: disabled || booked ? null : () => onTap(d),
+        onTap: booked ? null : () => onTap(d),
         child: Container(
           height: 42,
           alignment: Alignment.center,
