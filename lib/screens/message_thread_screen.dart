@@ -1195,31 +1195,47 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       return;
     }
     final hadSavedLocation = _hasSavedLocation(isReturn);
+    final noun = data.isAddressOnly ? 'Adresse' : 'Standort';
     final title = hadSavedLocation
         ? 'Ort ändern?'
         : (isReturn ? 'Rückgabeort übernehmen?' : 'Übergabeort übernehmen?');
     final msg = hadSavedLocation
         ? (isReturn
-            ? 'Es ist bereits ein Rückgabeort gespeichert. Möchtest du ihn durch diesen Standort ersetzen?'
-            : 'Es ist bereits ein Übergabeort gespeichert. Möchtest du ihn durch diesen Standort ersetzen?')
-        : 'Möchtest du den Standort von $sharedByName als ${isReturn ? 'Rückgabeort' : 'Übergabeort'} für diese Buchung speichern?';
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(
-          hadSavedLocation
-              ? msg
-              : '$msg\n\nSo ist für beide klar, wo ${isReturn ? 'die Rückgabe' : 'die Übergabe'} stattfinden soll.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Abbrechen')),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(hadSavedLocation ? 'Ändern' : 'Übernehmen'),
-          ),
-        ],
-      ),
+            ? 'Es ist bereits ein Rückgabeort gespeichert. Möchtest du ihn durch diese ${noun.toLowerCase()} ersetzen?'
+            : 'Es ist bereits ein Übergabeort gespeichert. Möchtest du ihn durch diese ${noun.toLowerCase()} ersetzen?')
+        : 'Möchtest du die ${noun.toLowerCase()} von $sharedByName als ${isReturn ? 'Rückgabeort' : 'Übergabeort'} für diese Buchung speichern?';
+    final ok = await _showLocationFlowSheet<bool>(
+      title: title,
+      onBack: () => Navigator.of(context, rootNavigator: true).pop(false),
+      bodyBuilder: (sheetContext) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              hadSavedLocation
+                  ? msg
+                  : '$msg\n\nSo ist für beide klar, wo ${isReturn ? 'die Rückgabe' : 'die Übergabe'} stattfinden soll.',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.84), fontSize: 14, height: 1.45),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(true),
+                  child: Text(hadSavedLocation ? 'Ändern' : 'Übernehmen'),
+                ),
+                OutlinedButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(false),
+                  child: const Text('Nein'),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
     if (ok != true) return;
     await DataService.setFlowLocation(
@@ -1233,9 +1249,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       sharedByName: sharedByName,
       sharedByRole: sharedByRole,
     );
+    final confirmationNoun = data.isAddressOnly ? 'Adresse' : 'Standort';
     await DataService.addSystemMessageToThread(
       threadId: t.id,
-      text: '${isReturn ? (hadSavedLocation ? 'Rückgabeort geändert' : 'Rückgabeort bestätigt') : (hadSavedLocation ? 'Übergabeort geändert' : 'Übergabeort bestätigt')}: Standort von $sharedByName',
+      text: '${isReturn ? (hadSavedLocation ? 'Rückgabeort geändert' : 'Rückgabeort bestätigt') : (hadSavedLocation ? 'Übergabeort geändert' : 'Übergabeort bestätigt')}: $confirmationNoun von $sharedByName',
     );
     await _load();
     _scrollToBottom(animate: true);
@@ -1835,12 +1852,17 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     );
   }
 
-  Future<void> _showPreparedLocationShareSheet(_LocationShareData data) async {
+  Future<void> _showPreparedLocationShareSheet(
+    _LocationShareData data, {
+    String? title,
+    VoidCallback? onBack,
+  }) async {
     final phaseIntent = _locationIntentForCurrentContext();
     final closedContext = phaseIntent == _LocationIntent.unknown || _request?.needsReview == true;
     if (!mounted) return;
     await _showLocationFlowSheet(
-      title: 'Standort teilen',
+      title: title ?? (data.isAddressOnly ? 'Adresse teilen' : 'Standort teilen'),
+      onBack: onBack,
       bodyBuilder: (sheetContext) {
         final canSetHandover = phaseIntent == _LocationIntent.handover && !closedContext;
         final canSetReturn = phaseIntent == _LocationIntent.returnTrip && !closedContext;
@@ -1889,9 +1911,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     );
   }
 
-  Future<void> _showAddressEntrySheet() async {
+  Future<void> _showAddressEntrySheet({String initialAddress = ''}) async {
     if (!mounted) return;
-    final controller = TextEditingController();
+    final controller = TextEditingController(text: initialAddress);
     await _showLocationFlowSheet(
       title: 'Adresse teilen',
       onBack: () {
@@ -1915,9 +1937,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
               addressText: address,
               sharedByName: sharerName,
             );
-            final phaseIntent = _locationIntentForCurrentContext();
-            final canSetHandover = phaseIntent == _LocationIntent.handover;
-            final canSetReturn = phaseIntent == _LocationIntent.returnTrip;
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1928,7 +1947,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                   onChanged: (_) => setModalState(() {}),
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    hintText: 'z. B. Bernhaldenweg 37, 71579 Spiegelberg',
+                    hintText: 'Musterstraße 22, 12489 Berlin',
                     hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.45)),
                     filled: true,
                     fillColor: Colors.white.withValues(alpha: 0.06),
@@ -1942,34 +1961,25 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    if (canSetHandover)
-                      FilledButton.tonal(
-                        onPressed: hasAddress
-                            ? () async {
-                                Navigator.of(sheetContext).pop();
-                                await _sharePreparedLocation(data, setAs: _LocationIntent.handover);
-                              }
-                            : null,
-                        child: const Text('Als Übergabeort teilen'),
-                      ),
-                    if (canSetReturn)
-                      FilledButton.tonal(
-                        onPressed: hasAddress
-                            ? () async {
-                                Navigator.of(sheetContext).pop();
-                                await _sharePreparedLocation(data, setAs: _LocationIntent.returnTrip);
-                              }
-                            : null,
-                        child: const Text('Als Rückgabeort teilen'),
-                      ),
                     FilledButton(
                       onPressed: hasAddress
                           ? () async {
                               Navigator.of(sheetContext).pop();
-                              await _sharePreparedLocation(data);
+                              await _showPreparedLocationShareSheet(
+                                data,
+                                title: 'Adresse teilen',
+                                onBack: () {
+                                  Navigator.of(context, rootNavigator: true).pop();
+                                  _showAddressEntrySheet(initialAddress: address);
+                                },
+                              );
                             }
                           : null,
-                      child: const Text('Nur teilen'),
+                      child: const Text('Adresse übernehmen?'),
+                    ),
+                    OutlinedButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      child: const Text('Nein'),
                     ),
                   ],
                 ),
@@ -2018,7 +2028,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         shareKind: 'location',
         sharedByName: sharerName,
       );
-      await _showPreparedLocationShareSheet(data);
+      await _showPreparedLocationShareSheet(
+        data,
+        title: 'Standort teilen',
+        onBack: () {
+          Navigator.of(context, rootNavigator: true).pop();
+          _shareLocation();
+        },
+      );
     } catch (e) {
       debugPrint('[MessageThreadScreen] _shareCurrentLocationFlow failed: $e');
       if (mounted) {
@@ -2121,6 +2138,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     if (!mounted) return;
     final selection = await _showLocationFlowSheet<String>(
       title: 'Standort teilen',
+      onBack: () => Navigator.of(context, rootNavigator: true).pop(),
       bodyBuilder: (sheetContext) {
         return Column(
           mainAxisSize: MainAxisSize.min,
