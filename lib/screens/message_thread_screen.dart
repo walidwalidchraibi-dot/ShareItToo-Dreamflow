@@ -1197,9 +1197,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       return;
     }
     final hadSavedLocation = _hasSavedLocation(isReturn);
-    final noun = data.isAddressOnly ? 'Adresse' : 'Standort';
-    final accusativeNoun = data.isAddressOnly ? 'die Adresse' : 'den Standort';
-    final replacementNoun = data.isAddressOnly ? 'diese Adresse' : 'diesen Standort';
+    final noun = data.isAddressShare ? 'Adresse' : 'Standort';
+    final accusativeNoun = data.isAddressShare ? 'die Adresse' : 'den Standort';
+    final replacementNoun = data.isAddressShare ? 'diese Adresse' : 'diesen Standort';
     final title = hadSavedLocation
         ? 'Ort ändern?'
         : (isReturn ? 'Rückgabeort übernehmen?' : 'Übergabeort übernehmen?');
@@ -1257,7 +1257,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       sharedByName: sharedByName,
       sharedByRole: sharedByRole,
     );
-    final confirmationNoun = data.isAddressOnly ? 'Adresse' : 'Standort';
+    final confirmationNoun = data.isAddressShare ? 'Adresse' : 'Standort';
     await DataService.addSystemMessageToThread(
       threadId: t.id,
       text: '${isReturn ? (hadSavedLocation ? 'Rückgabeort geändert' : 'Rückgabeort bestätigt') : (hadSavedLocation ? 'Übergabeort geändert' : 'Übergabeort bestätigt')}: $confirmationNoun von $sharedByName',
@@ -1843,6 +1843,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       });
       final response = await http.get(uri, headers: {
         'Accept': 'application/json',
+        'User-Agent': 'ShareItToo-Dreamflow/1.0 (address-share-preview)',
+        'Referer': 'http://127.0.0.1:8123/',
       });
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final decoded = jsonDecode(response.body);
@@ -1927,7 +1929,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final closedContext = phaseIntent == _LocationIntent.unknown || _request?.needsReview == true;
     if (!mounted) return;
     await _showLocationFlowSheet(
-      title: title ?? (data.isAddressOnly ? 'Adresse teilen' : 'Standort teilen'),
+      title: title ?? (data.isAddressShare ? 'Adresse teilen' : 'Standort teilen'),
       onBack: onBack,
       bodyBuilder: (sheetContext) {
         final canSetHandover = phaseIntent == _LocationIntent.handover && !closedContext;
@@ -1993,6 +1995,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           builder: (context, setModalState) {
             final address = controller.text.trim();
             final hasAddress = address.isNotEmpty;
+            final phaseIntent = _locationIntentForCurrentContext();
+            final canSetHandover = phaseIntent == _LocationIntent.handover;
+            final canSetReturn = phaseIntent == _LocationIntent.returnTrip;
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2036,11 +2041,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                 );
                               }
                             : null,
-                        child: const Text('Adresse übernehmen'),
-                      ),
-                      OutlinedButton(
-                        onPressed: () => Navigator.of(sheetContext).pop(),
-                        child: const Text('Nein'),
+                        child: const Text('Weiter'),
                       ),
                     ],
                   ),
@@ -5802,7 +5803,8 @@ class _LocationShareData {
   });
 
   bool get hasCoordinates => latitudeValue != null && longitudeValue != null;
-  bool get isAddressOnly => !hasCoordinates && (shareKind == 'address' || addressText.trim().isNotEmpty);
+  bool get isAddressShare => shareKind == 'address' || addressText.trim().isNotEmpty;
+  bool get isAddressOnly => !hasCoordinates && isAddressShare;
 
   double? get latitudeValue => double.tryParse(latitude);
   double? get longitudeValue => double.tryParse(longitude);
