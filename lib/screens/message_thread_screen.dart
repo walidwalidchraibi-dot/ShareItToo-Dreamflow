@@ -1198,14 +1198,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     }
     final hadSavedLocation = _hasSavedLocation(isReturn);
     final noun = data.isAddressOnly ? 'Adresse' : 'Standort';
+    final accusativeNoun = data.isAddressOnly ? 'die Adresse' : 'den Standort';
+    final replacementNoun = data.isAddressOnly ? 'diese Adresse' : 'diesen Standort';
     final title = hadSavedLocation
         ? 'Ort ändern?'
         : (isReturn ? 'Rückgabeort übernehmen?' : 'Übergabeort übernehmen?');
     final msg = hadSavedLocation
         ? (isReturn
-            ? 'Es ist bereits ein Rückgabeort gespeichert. Möchtest du ihn durch diese ${noun.toLowerCase()} ersetzen?'
-            : 'Es ist bereits ein Übergabeort gespeichert. Möchtest du ihn durch diese ${noun.toLowerCase()} ersetzen?')
-        : 'Möchtest du die ${noun.toLowerCase()} von $sharedByName als ${isReturn ? 'Rückgabeort' : 'Übergabeort'} für diese Buchung speichern?';
+            ? 'Es ist bereits ein Rückgabeort gespeichert. Möchtest du ihn durch $replacementNoun ersetzen?'
+            : 'Es ist bereits ein Übergabeort gespeichert. Möchtest du ihn durch $replacementNoun ersetzen?')
+        : 'Möchtest du $accusativeNoun von $sharedByName als ${isReturn ? 'Rückgabeort' : 'Übergabeort'} für diese Buchung speichern?';
     final ok = await _showLocationFlowSheet<bool>(
       title: title,
       onBack: () => Navigator.of(context, rootNavigator: true).pop(false),
