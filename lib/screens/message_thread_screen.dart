@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'dart:math' as math;
 
@@ -7,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/models/item.dart';
@@ -1822,6 +1824,53 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address.trim())}';
   }
 
+  Future<_LocationShareData> _resolveAddressPreviewData(String address) async {
+    final me = _currentUser;
+    final sharerName = (me?.displayName ?? 'Jemand').trim();
+    final label = sharerName.isNotEmpty ? '$sharerName hat eine Adresse geteilt' : 'Adresse geteilt';
+    final mapsUrl = _mapsSearchUrlForAddress(address);
+    try {
+      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
+        'q': address.trim(),
+        'format': 'jsonv2',
+        'limit': '1',
+      });
+      final response = await http.get(uri, headers: {
+        'Accept': 'application/json',
+      });
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is List && decoded.isNotEmpty && decoded.first is Map) {
+          final first = Map<String, dynamic>.from(decoded.first as Map);
+          final lat = (first['lat']?.toString() ?? '').trim();
+          final lon = (first['lon']?.toString() ?? '').trim();
+          if (double.tryParse(lat) != null && double.tryParse(lon) != null) {
+            return _LocationShareData(
+              label: label,
+              latitude: lat,
+              longitude: lon,
+              mapsUrl: mapsUrl,
+              shareKind: 'address',
+              addressText: address.trim(),
+              sharedByName: sharerName,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[MessageThreadScreen] address geocoding failed: $e');
+    }
+    return _LocationShareData(
+      label: label,
+      latitude: '',
+      longitude: '',
+      mapsUrl: mapsUrl,
+      shareKind: 'address',
+      addressText: address.trim(),
+      sharedByName: sharerName,
+    );
+  }
+
   Future<void> _sendLocationShareData(_LocationShareData data) async {
     final t = _thread;
     final me = _currentUser;
@@ -1876,34 +1925,40 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
               Text('Übergabe ist bereits abgeschlossen.', style: TextStyle(color: Colors.white.withValues(alpha: 0.60), fontSize: 12)),
             ],
             const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (canSetHandover)
-                  FilledButton.tonal(
+            Center(
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (canSetHandover)
+                    FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: BrandColors.primary, foregroundColor: Colors.white),
+                      onPressed: () async {
+                        Navigator.of(sheetContext).pop();
+                        await _sharePreparedLocation(data, setAs: _LocationIntent.handover);
+                      },
+                      child: const Text('Als Übergabeort teilen'),
+                    ),
+                  if (canSetReturn)
+                    FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: BrandColors.primary, foregroundColor: Colors.white),
+                      onPressed: () async {
+                        Navigator.of(sheetContext).pop();
+                        await _sharePreparedLocation(data, setAs: _LocationIntent.returnTrip);
+                      },
+                      child: const Text('Als Rückgabeort teilen'),
+                    ),
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: BrandColors.primary, foregroundColor: Colors.white),
                     onPressed: () async {
                       Navigator.of(sheetContext).pop();
-                      await _sharePreparedLocation(data, setAs: _LocationIntent.handover);
+                      await _sharePreparedLocation(data);
                     },
-                    child: const Text('Als Übergabeort teilen'),
+                    child: const Text('Nur teilen'),
                   ),
-                if (canSetReturn)
-                  FilledButton.tonal(
-                    onPressed: () async {
-                      Navigator.of(sheetContext).pop();
-                      await _sharePreparedLocation(data, setAs: _LocationIntent.returnTrip);
-                    },
-                    child: const Text('Als Rückgabeort teilen'),
-                  ),
-                FilledButton(
-                  onPressed: () async {
-                    Navigator.of(sheetContext).pop();
-                    await _sharePreparedLocation(data);
-                  },
-                  child: const Text('Nur teilen'),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         );
@@ -1925,18 +1980,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           builder: (context, setModalState) {
             final address = controller.text.trim();
             final hasAddress = address.isNotEmpty;
-            final mapsUrl = hasAddress ? _mapsSearchUrlForAddress(address) : '';
-            final me = _currentUser;
-            final sharerName = (me?.displayName ?? 'Jemand').trim();
-            final data = _LocationShareData(
-              label: sharerName.isNotEmpty ? '$sharerName hat eine Adresse geteilt' : 'Adresse geteilt',
-              latitude: '',
-              longitude: '',
-              mapsUrl: mapsUrl,
-              shareKind: 'address',
-              addressText: address,
-              sharedByName: sharerName,
-            );
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1965,6 +2008,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                       onPressed: hasAddress
                           ? () async {
                               Navigator.of(sheetContext).pop();
+                              final data = await _resolveAddressPreviewData(address);
+                              if (!mounted) return;
                               await _showPreparedLocationShareSheet(
                                 data,
                                 title: 'Adresse teilen',
