@@ -1221,19 +1221,23 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
               style: TextStyle(color: Colors.white.withValues(alpha: 0.84), fontSize: 14, height: 1.45),
             ),
             const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                FilledButton(
-                  onPressed: () => Navigator.of(sheetContext).pop(true),
-                  child: Text(hadSavedLocation ? 'Ändern' : 'Übernehmen'),
-                ),
-                OutlinedButton(
-                  onPressed: () => Navigator.of(sheetContext).pop(false),
-                  child: const Text('Nein'),
-                ),
-              ],
+            Center(
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: BrandColors.primary, foregroundColor: Colors.white),
+                    onPressed: () => Navigator.of(sheetContext).pop(true),
+                    child: Text(hadSavedLocation ? 'Ändern' : 'Übernehmen'),
+                  ),
+                  OutlinedButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(false),
+                    child: const Text('Nein'),
+                  ),
+                ],
+              ),
             ),
           ],
         );
@@ -1901,6 +1905,17 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     );
   }
 
+  bool _isPlausibleSharedAddress(String address) {
+    final trimmed = address.trim();
+    if (trimmed.length < 10) return false;
+    final hasHouseNumber = RegExp(r'\b\d+[a-zA-Z]?\b').hasMatch(trimmed);
+    final hasPostalCode = RegExp(r'\b\d{5}\b').hasMatch(trimmed);
+    final parts = trimmed.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final hasStreet = parts.isNotEmpty && parts.first.split(RegExp(r'\s+')).length >= 2;
+    final hasCityLikeTail = parts.length >= 2 || RegExp(r'\b[A-Za-zÄÖÜäöüß-]{3,}\b').allMatches(trimmed).length >= 3;
+    return hasStreet && hasHouseNumber && (hasPostalCode || hasCityLikeTail);
+  }
+
   Future<void> _showPreparedLocationShareSheet(
     _LocationShareData data, {
     String? title,
@@ -1917,13 +1932,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         final canSetReturn = phaseIntent == _LocationIntent.returnTrip && !closedContext;
         return Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            _LocationShareMessage(data: data, time: '', onAcceptPlace: null),
-            if (canSetReturn) ...[
-              const SizedBox(height: 10),
-              Text('Übergabe ist bereits abgeschlossen.', style: TextStyle(color: Colors.white.withValues(alpha: 0.60), fontSize: 12)),
-            ],
+            Center(child: _LocationShareMessage(data: data, time: '', onAcceptPlace: null)),
             const SizedBox(height: 14),
             Center(
               child: Wrap(
@@ -1990,7 +2001,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                   onChanged: (_) => setModalState(() {}),
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    hintText: 'Musterstraße 22, 12489 Berlin',
+                    hintText: 'z. B. Musterstraße 22, 12489 Berlin',
                     hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.45)),
                     filled: true,
                     fillColor: Colors.white.withValues(alpha: 0.06),
@@ -2000,33 +2011,37 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    FilledButton(
-                      onPressed: hasAddress
-                          ? () async {
-                              Navigator.of(sheetContext).pop();
-                              final data = await _resolveAddressPreviewData(address);
-                              if (!mounted) return;
-                              await _showPreparedLocationShareSheet(
-                                data,
-                                title: 'Adresse teilen',
-                                onBack: () {
-                                  Navigator.of(context, rootNavigator: true).pop();
-                                  _showAddressEntrySheet(initialAddress: address);
-                                },
-                              );
-                            }
-                          : null,
-                      child: const Text('Adresse übernehmen?'),
-                    ),
-                    OutlinedButton(
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                      child: const Text('Nein'),
-                    ),
-                  ],
+                Center(
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton(
+                        style: FilledButton.styleFrom(backgroundColor: BrandColors.primary, foregroundColor: Colors.white),
+                        onPressed: _isPlausibleSharedAddress(address)
+                            ? () async {
+                                Navigator.of(sheetContext).pop();
+                                final data = await _resolveAddressPreviewData(address);
+                                if (!mounted) return;
+                                await _showPreparedLocationShareSheet(
+                                  data,
+                                  title: 'Adresse teilen',
+                                  onBack: () {
+                                    Navigator.of(context, rootNavigator: true).pop();
+                                    _showAddressEntrySheet(initialAddress: address);
+                                  },
+                                );
+                              }
+                            : null,
+                        child: const Text('Adresse übernehmen'),
+                      ),
+                      OutlinedButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        child: const Text('Nein'),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             );
