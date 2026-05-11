@@ -179,7 +179,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       final it = itemById[r.itemId];
       if (it == null) continue; // skip dangling
       final owner = userById[it.ownerId];
-      maps.add(_toBookingMap(r, it, owner, deliveryByItemId[it.id]));
+      maps.add(await _toBookingMap(r, it, owner, deliveryByItemId[it.id], reviewerId: user.id));
     }
     
     // Calculate unread counts for each category
@@ -192,7 +192,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     for (final r in requests) {
       final it = itemById[r.itemId];
       if (it == null) continue;
-      final bookingMap = _toBookingMap(r, it, userById[it.ownerId], deliveryByItemId[it.id]);
+      final bookingMap = maps.firstWhere(
+        (m) => m['requestId'] == r.id,
+        orElse: () => <String, dynamic>{},
+      );
       final (start, end) = _parseDateRange(bookingMap['dates'] ?? '');
       final cat = _effectiveCategoryFor(bookingMap, start, end);
       categorized[cat]?.add(r);
@@ -211,7 +214,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     setState(() => _allBookings = maps);
   }
 
-  Map<String, dynamic> _toBookingMap(RentalRequest r, Item it, model.User? owner, Map<String, dynamic>? deliverySel) {
+  Future<Map<String, dynamic>> _toBookingMap(RentalRequest r, Item it, model.User? owner, Map<String, dynamic>? deliverySel, {required String reviewerId}) async {
     String fmt(DateTime d) {
       const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
       final mm = months[d.month - 1];
@@ -240,6 +243,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
 
     final bool inferredOwnerPicksUpByTransient = (deliverySel?['rueckweg'] == true);
     final bool ownerPicksUpAtReturn = r.ownerPicksUpAtReturnChosen || inferredOwnerPicksUpByTransient;
+    final flowState = await DataService.getHandoverReturnState(r.id);
+    final reviewSubmitted = await DataService.hasSubmittedReview(requestId: r.id, reviewerId: reviewerId);
 
     return {
       'requestId': r.id,
@@ -288,6 +293,13 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       'deliveryCity': r.deliveryCity ?? (deliverySel?['city'] as String?) ?? '',
       'deliveryLat': r.deliveryLat ?? (deliverySel?['lat'] as num?)?.toDouble(),
       'deliveryLng': r.deliveryLng ?? (deliverySel?['lng'] as num?)?.toDouble(),
+      'hasSubmittedReview': reviewSubmitted,
+      'handoverLocationLabel': (flowState['handoverLocationLabel'] as String?) ?? '',
+      'handoverLocationMapsUrl': (flowState['handoverLocationMapsUrl'] as String?) ?? '',
+      'handoverLocationSharedByName': (flowState['handoverLocationSharedByName'] as String?) ?? '',
+      'returnLocationLabel': (flowState['returnLocationLabel'] as String?) ?? '',
+      'returnLocationMapsUrl': (flowState['returnLocationMapsUrl'] as String?) ?? '',
+      'returnLocationSharedByName': (flowState['returnLocationSharedByName'] as String?) ?? '',
     };
   }
 
@@ -531,7 +543,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                                       ),
                                       const SizedBox(height: 1),
                                       Text(
-                                        booking['location'] ?? '',
+                                        _confirmedPlaceLineForCard(booking) ?? (booking['location'] ?? ''),
                                         style: TextStyle(
                                           color: Colors.grey.shade400,
                                           fontSize: isPending ? 12 : 13,
@@ -588,9 +600,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
         // Entfernt: "Anfrage zurückziehen" gehört jetzt in die Detailseite ganz unten (Ausstehende Buchung)
         return const SizedBox.shrink();
       case 'completed':
+        final alreadyReviewed = booking['hasSubmittedReview'] == true;
         return Wrap(spacing: 8, children: [
           TextButton.icon(
-            onPressed: () async {
+            onPressed: alreadyReviewed ? null : () async {
               final current = await DataService.getCurrentUser();
               if (current == null) return;
               final requestId = booking['requestId'] as String?;
@@ -611,10 +624,14 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                 if (item != null && context.mounted) {
                   await ItemDetailsOverlay.showFullPage(context, item: item);
                 }
+                await _load();
+              } else if (ok == false && context.mounted) {
+                await AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Bewertung abgegeben');
+                await _load();
               }
             },
-            icon: const Icon(Icons.star_rate_outlined, color: Colors.white70, size: 18),
-            label: const Text('Bewerten', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
+            icon: Icon(alreadyReviewed ? Icons.check_circle_outline : Icons.star_rate_outlined, color: Colors.white70, size: 18),
+            label: Text(alreadyReviewed ? 'Bewertung abgegeben' : 'Bewerten', style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
           ),
           TextButton.icon(
             onPressed: () => AppPopup.toast(context, icon: Icons.replay, title: 'Wieder mieten gestartet'),
@@ -704,6 +721,17 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     if (status == 'completed' || status == 'cancelled' || status == 'declined') return 'completed';
     // Fallback for unknown/missing status: treat as upcoming
     return 'upcoming';
+  }
+
+  String? _confirmedPlaceLineForCard(Map<String, dynamic> booking) {
+    final category = ((booking['category'] as String?) ?? '').toLowerCase();
+    final isOngoing = category == 'ongoing' || ((booking['rawStatus'] as String?) ?? '').toLowerCase() == 'running';
+    final prefix = isOngoing ? 'return' : 'handover';
+    final label = ((booking['${prefix}LocationLabel'] as String?) ?? '').trim();
+    final sharedBy = ((booking['${prefix}LocationSharedByName'] as String?) ?? '').trim();
+    if (label.isNotEmpty) return '${isOngoing ? 'Rückgabeort' : 'Übergabeort'}: $label';
+    if (sharedBy.isNotEmpty) return '${isOngoing ? 'Rückgabeort' : 'Übergabeort'}: Standort von $sharedBy';
+    return null;
   }
 
   // Status chip with countdown for list card (German, renter view)

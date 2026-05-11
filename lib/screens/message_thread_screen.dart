@@ -1179,6 +1179,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     required String sharedByName,
     required String sharedByRole,
     _LocationIntent? forcedIntent,
+    VoidCallback? onBackToPreview,
   }) async {
     final req = _request;
     final t = _thread;
@@ -1210,7 +1211,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         : 'Möchtest du $accusativeNoun von $sharedByName als ${isReturn ? 'Rückgabeort' : 'Übergabeort'} für diese Buchung speichern?';
     final ok = await _showLocationFlowSheet<bool>(
       title: title,
-      onBack: () => Navigator.of(context, rootNavigator: true).pop(false),
+      onBack: () {
+        Navigator.of(context, rootNavigator: true).pop(false);
+        if (onBackToPreview != null) {
+          Future.microtask(onBackToPreview);
+        }
+      },
       bodyBuilder: (sheetContext) {
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -1895,6 +1901,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _sharePreparedLocation(
     _LocationShareData data, {
     _LocationIntent? setAs,
+    VoidCallback? onBackToPreview,
   }) async {
     final me = _currentUser;
     if (me == null) return;
@@ -1906,6 +1913,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       sharedByName: me.displayName,
       sharedByRole: _roleKeyForUserId(me.id),
       forcedIntent: setAs,
+      onBackToPreview: onBackToPreview,
     );
   }
 
@@ -1951,7 +1959,15 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                       style: FilledButton.styleFrom(backgroundColor: BrandColors.primary, foregroundColor: Colors.white),
                       onPressed: () async {
                         Navigator.of(sheetContext).pop();
-                        await _sharePreparedLocation(data, setAs: _LocationIntent.handover);
+                        await _sharePreparedLocation(
+                          data,
+                          setAs: _LocationIntent.handover,
+                          onBackToPreview: () => _showPreparedLocationShareSheet(
+                            data,
+                            title: title ?? (data.isAddressShare ? 'Adresse teilen' : 'Standort teilen'),
+                            onBack: onBack,
+                          ),
+                        );
                       },
                       child: const Text('Als Übergabeort teilen'),
                     ),
@@ -1960,7 +1976,15 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                       style: FilledButton.styleFrom(backgroundColor: BrandColors.primary, foregroundColor: Colors.white),
                       onPressed: () async {
                         Navigator.of(sheetContext).pop();
-                        await _sharePreparedLocation(data, setAs: _LocationIntent.returnTrip);
+                        await _sharePreparedLocation(
+                          data,
+                          setAs: _LocationIntent.returnTrip,
+                          onBackToPreview: () => _showPreparedLocationShareSheet(
+                            data,
+                            title: title ?? (data.isAddressShare ? 'Adresse teilen' : 'Standort teilen'),
+                            onBack: onBack,
+                          ),
+                        );
                       },
                       child: const Text('Als Rückgabeort teilen'),
                     ),

@@ -60,6 +60,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   double? _itemLat;
   double? _itemLng;
   Map<String, dynamic> _flowState = const {};
+  bool _reviewAlreadySubmitted = false;
 
   List<String> get _photos {
     final b = widget.booking;
@@ -206,7 +207,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         final requestId = (widget.booking['requestId'] as String?)?.trim() ?? '';
         if (requestId.isNotEmpty) {
           final state = await DataService.getHandoverReturnState(requestId);
-          if (mounted) setState(() => _flowState = state);
+          final current = await DataService.getCurrentUser();
+          final alreadyReviewed = current != null
+              ? await DataService.hasSubmittedReview(requestId: requestId, reviewerId: current.id)
+              : false;
+          if (mounted) {
+            setState(() {
+              _flowState = state;
+              _reviewAlreadySubmitted = alreadyReviewed;
+            });
+          }
         }
       } catch (e) {
         debugPrint('[booking_detail] load item coords failed: ' + e.toString());
@@ -498,7 +508,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           child = SizedBox(
             height: 46,
             child: FilledButton.icon(
-              onPressed: () async {
+              onPressed: _reviewAlreadySubmitted ? null : () async {
                 final current = await DataService.getCurrentUser();
                 final requestId = widget.booking['requestId'] as String?;
                 final itemId = widget.booking['itemId'] as String?;
@@ -513,12 +523,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   direction: 'renter_to_owner',
                 );
                 if (ok == true && mounted) {
+                  setState(() => _reviewAlreadySubmitted = true);
                   await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
                   await _viewListing();
+                } else if (ok == false && mounted) {
+                  setState(() => _reviewAlreadySubmitted = true);
+                  await AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Bewertung abgegeben');
                 }
               },
-              icon: const Icon(Icons.star_rate_outlined),
-              label: const Text('Bewerten'),
+              icon: Icon(_reviewAlreadySubmitted ? Icons.check_circle_outline : Icons.star_rate_outlined),
+              label: Text(_reviewAlreadySubmitted ? 'Bewertung abgegeben' : 'Bewerten'),
             ),
           );
         } else if (effective == 'pending' && isRenterView) {
@@ -869,12 +883,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   ]),
                 ]),
                 const SizedBox(height: 2),
-                Text(
-                  isHeldForReview
-                      ? 'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.'
-                      : (end != null ? 'Auszahlung am ${_formatPayoutDate(end)}' : 'Auszahlung nach Rückgabe'),
-                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
-                ),
+                if (!isHeldForReview)
+                  Text(
+                    end != null ? 'Auszahlung am ${_formatPayoutDate(end)}' : 'Auszahlung nach Rückgabe',
+                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                  ),
               ]);
             }
             // Renter view: detailed breakdown for laufend
@@ -1501,12 +1514,11 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   ]),
                 ]),
                 const SizedBox(height: 2),
-                Text(
-                  isHeldForReview
-                      ? 'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.'
-                      : (end != null ? 'Auszahlung am ${_formatPayoutDate(end)}' : 'Auszahlung nach Rückgabe'),
-                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
-                ),
+                if (!isHeldForReview)
+                  Text(
+                    end != null ? 'Auszahlung am ${_formatPayoutDate(end)}' : 'Auszahlung nach Rückgabe',
+                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                  ),
               ]);
             }
             if (isPending || isUpcoming) {

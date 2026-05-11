@@ -128,7 +128,9 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
       final it = byItem[r.itemId];
       final renter = byUser[r.renterId];
       if (it == null || renter == null) continue;
-      list.add(_OwnerEntry(r: r, item: it, renter: renter));
+      final flowState = await DataService.getHandoverReturnState(r.id);
+      final reviewed = await DataService.hasSubmittedReview(requestId: r.id, reviewerId: owner.id);
+      list.add(_OwnerEntry(r: r, item: it, renter: renter, flowState: flowState, hasSubmittedReview: reviewed));
     }
     
     // Calculate unread counts for each category
@@ -333,6 +335,10 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
                                     Text(booking['dates'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade400, fontSize: 13, height: 1.1)),
                                     const SizedBox(height: 1),
                                     Text(booking['renter'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade400, fontSize: 13, height: 1.1)),
+                                    if ((booking['placeLine'] ?? '').toString().isNotEmpty) ...[
+                                      const SizedBox(height: 1),
+                                      Text(booking['placeLine'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade400, fontSize: 13, height: 1.1)),
+                                    ],
                                     const SizedBox(height: 2),
                                     if (effective == 'requests' || effective == 'upcoming' || effective == 'ongoing')
                                       _privacyHintForOwner(e.item.id),
@@ -380,6 +386,13 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
     final r = e.r; final it = e.item; final renter = e.renter;
     final breakdown = DataService.priceBreakdownForRequest(item: it, req: r);
     final payout = breakdown.payoutOwner.clamp(0.0, double.infinity);
+    final isOngoing = r.status == 'running';
+    final prefix = isOngoing ? 'return' : 'handover';
+    final label = ((e.flowState['${prefix}LocationLabel'] as String?) ?? '').trim();
+    final sharedBy = ((e.flowState['${prefix}LocationSharedByName'] as String?) ?? '').trim();
+    final placeLine = label.isNotEmpty
+        ? '${isOngoing ? 'Rückgabeort' : 'Übergabeort'}: $label'
+        : (sharedBy.isNotEmpty ? '${isOngoing ? 'Rückgabeort' : 'Übergabeort'}: Standort von $sharedBy' : '');
     return {
       'title': it.title,
       'dates': '${fmt(r.start)} – ${fmt(r.end)}',
@@ -387,6 +400,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
       // Show only the payout value for owner lists
       'total': '${payout.round()} €',
       'renter': renter.displayName,
+      'placeLine': placeLine,
     };
   }
 
@@ -618,10 +632,11 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
       case 'completed':
         // Show a small inline "Bewerten" action for completed rentals (not for cancelled/declined)
         if (e.r.status == 'completed' && !e.r.needsReview) {
+          final alreadyReviewed = e.hasSubmittedReview;
           return _TinyTextButton(
-            icon: Icons.star_rate_outlined,
-            label: 'Bewerten',
-            onPressed: () async {
+            icon: alreadyReviewed ? Icons.check_circle_outline : Icons.star_rate_outlined,
+            label: alreadyReviewed ? 'Bewertung abgegeben' : 'Bewerten',
+            onPressed: alreadyReviewed ? () {} : () async {
               final owner = await DataService.getCurrentUser();
               if (owner == null) return;
               final ok = await ReviewPromptSheet.show(
@@ -637,6 +652,10 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
                 if (mounted) {
                   await ItemDetailsOverlay.showFullPage(context, item: e.item);
                 }
+                await _load();
+              } else if (ok == false && mounted) {
+                await AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Bewertung abgegeben');
+                await _load();
               }
             },
           );
@@ -665,8 +684,12 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
 }
 
 class _OwnerEntry {
-  final RentalRequest r; final Item item; final model.User renter;
-  const _OwnerEntry({required this.r, required this.item, required this.renter});
+  final RentalRequest r;
+  final Item item;
+  final model.User renter;
+  final Map<String, dynamic> flowState;
+  final bool hasSubmittedReview;
+  const _OwnerEntry({required this.r, required this.item, required this.renter, required this.flowState, required this.hasSubmittedReview});
 }
 
 class _TinyTextButton extends StatelessWidget {

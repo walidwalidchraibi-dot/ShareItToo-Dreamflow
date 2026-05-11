@@ -146,11 +146,10 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
                       Text('Preisübersicht', style: theme.textTheme.titleMedium),
                       const SizedBox(height: 10),
                       _moneyRow(context, 'Mietpreis', inv.pricing.netAmount),
-                      _moneyRow(context, 'Mehrwertsteuer', inv.pricing.taxAmount),
                       const SizedBox(height: 8),
                       Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
                       const SizedBox(height: 8),
-                      _moneyRow(context, 'Gesamtbetrag (inkl. Steuer)', inv.pricing.totalAfterTax, emphasize: true),
+                      _moneyRow(context, 'Gesamtbetrag', inv.pricing.totalAfterTax, emphasize: true),
                       const SizedBox(height: 12),
 
                       Container(

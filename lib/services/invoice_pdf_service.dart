@@ -111,10 +111,9 @@ class InvoicePdfService {
     return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
       pw.Text('Preisübersicht', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 8),
-      _rowMoney('Mietpreis (netto)', eur(p.netAmount)),
-      _rowMoney('Mehrwertsteuer (${(p.vatRate * 100).toStringAsFixed(0)}%)', eur(p.taxAmount)),
+      _rowMoney('Mietpreis', eur(p.netAmount)),
       pw.Divider(color: PdfColors.grey300),
-      _rowMoney('Gesamtbetrag (inkl. Steuer)', eur(p.totalAfterTax), bold: true),
+      _rowMoney('Gesamtbetrag', eur(p.totalAfterTax), bold: true),
       pw.SizedBox(height: 8),
       pw.Container(
         padding: const pw.EdgeInsets.all(10),
@@ -123,6 +122,8 @@ class InvoicePdfService {
           pw.Text('ShareItToo Plattformgebühr', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 4),
           pw.Text('10% des Gesamtbetrags nach Steuern', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+          pw.SizedBox(height: 2),
+          pw.Text('Dieser Beleg ist keine Umsatzsteuerrechnung.', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
           pw.SizedBox(height: 8),
           _rowMoney('SIT Gebühr', eur(p.platformFee)),
           _rowMoney('Auszahlung an Vermieter', eur(p.payoutToOwner), bold: true),

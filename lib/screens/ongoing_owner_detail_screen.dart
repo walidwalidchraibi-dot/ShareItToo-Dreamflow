@@ -42,6 +42,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   final TextEditingController _manualCodeCtrl = TextEditingController();
   Map<String, dynamic>? _deliverySel;
   Map<String, dynamic> _flowState = const {};
+  bool _reviewAlreadySubmitted = false;
 
   @override
   void initState() {
@@ -57,7 +58,10 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final owner = await DataService.getUserById(req.ownerId);
     final sel = item != null ? await DataService.getSavedDeliverySelection(item.id) : null;
     final flowState = await DataService.getHandoverReturnState(req.id);
-    setState(() { _req = req; _item = item; _renter = renter; _owner = owner; _deliverySel = sel; _flowState = flowState; });
+    final alreadyReviewed = owner != null
+        ? await DataService.hasSubmittedReview(requestId: req.id, reviewerId: owner.id)
+        : false;
+    setState(() { _req = req; _item = item; _renter = renter; _owner = owner; _deliverySel = sel; _flowState = flowState; _reviewAlreadySubmitted = alreadyReviewed; });
     // Show one-time handover banner if present (e.g., renter confirmed)
     if (mounted && item != null) {
       final bookingId = _computeBookingId(item, req);
@@ -832,8 +836,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               Text('Keine Auszahlung, da vom Vermieter storniert.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
             ] else if (isCompleted && isHeldForReview) ...[
               _AmountRow(label: 'Wird geprüft', value: 'Wird nach Prüfung abgeschlossen', strong: true),
-              const SizedBox(height: 2),
-              Text('Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
             ] else if (isCompleted) ...[
               _AmountRow(label: 'Ausgezahlt (an Vermieter)', value: _formatEuro(totalPaid - fee), strong: true),
               Text('Ausgezahlt am ${_formatPayoutDate(req.end)}', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
@@ -884,10 +886,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                 const SizedBox(height: 8),
                 _FactRow(icon: Icons.info_outline, label: 'Hinweis', value: 'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.'),
               ],
-              if (isHeldForReview) ...[
-                const SizedBox(height: 8),
-                Text('Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab. Danke für dein Verständnis.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
-              ],
+
             ]),
           ),
 
@@ -1487,7 +1486,11 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       direction: 'owner_to_renter',
     );
     if (ok == true && context.mounted) {
+      setState(() => _reviewAlreadySubmitted = true);
       await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
+    } else if (ok == false && context.mounted) {
+      setState(() => _reviewAlreadySubmitted = true);
+      await AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Bewertung abgegeben');
     }
   }
 
