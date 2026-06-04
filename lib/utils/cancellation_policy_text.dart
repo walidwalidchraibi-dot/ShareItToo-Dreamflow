@@ -31,15 +31,12 @@ class CancellationPolicyText {
       'Nach deiner Bestätigung gelten für den Mieter folgende Stornierungsbedingungen:\n\n'
       '• Kostenlos bis 1 Kalendertag vor Mietbeginn\n'
       '• Am Kalendertag vor Mietbeginn: 50 % Rückerstattung\n'
-      '• Ab Mietbeginn oder bei Nicht‑Erscheinen: keine Rückerstattung\n\n'
-      '📌 Hinweis:\n\n'
-      'Erfolgt eine Rückerstattung, werden alle gezahlten Beträge entsprechend mit zurückerstattet,\n'
-      'einschließlich Plattformbeitrag, Priorität sowie ggf. Liefer- und Abholgebühren.\n\n'
-      'Wenn du nach Annahme einer Anfrage stornierst, erhält der Mieter automatisch den vollen Betrag zurück,\n'
-      'inklusive aller gezahlten Gebühren.\n\n'
-      '⚠️ Wichtiger Hinweis für Vermieter:\n\n'
-      'Eine Stornierung nach Annahme wirkt sich negativ auf deine Zuverlässigkeit und Sichtbarkeit in der App aus.\n'
-      'Nimm Anfragen daher nur an, wenn die Vermietung sicher stattfinden kann.';
+      '• Ab Mietbeginn oder bei Nicht-Erscheinen: keine Rückerstattung\n\n'
+      '📌 Hinweis:\n'
+      'Wenn eine Rückerstattung erfolgt, werden auch Plattformbeitrag, Priorität sowie ggf. Liefer- und Abholgebühren anteilig oder vollständig berücksichtigt.\n\n'
+      'Wichtiger Hinweis für Vermieter:\n'
+      'Wenn du eine bestätigte Anfrage stornierst, kann sich das auf deine Zuverlässigkeit und Sichtbarkeit in der App auswirken. '
+      'Nimm Anfragen daher bitte nur an, wenn die Vermietung sicher stattfinden kann.';
 
   /// Short, compact summary for confirmation popups.
   static String compactSummary() =>

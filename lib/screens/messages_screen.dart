@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:lendify/models/message.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
-import 'package:lendify/screens/messages_search_screen.dart';
 import 'package:lendify/screens/messages_settings_screen.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/services/blocked_users_service.dart';
@@ -33,11 +32,22 @@ class _MessagesScreenState extends State<MessagesScreen> {
   Map<String, User> _usersCache = {};
   Map<String, Item> _itemsCache = {};
   bool _isLoading = true;
+  bool _searchVisible = false;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -67,12 +77,48 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
       if (!mounted) return;
 
+      // If seeding is disabled, the message threads store can be empty, which makes
+      // it impossible to QA the chat detail UI. Seed a minimal local support thread
+      // (only when empty) and reload once.
+      if (threads.isEmpty && archived.isEmpty) {
+        await DataService.ensureSeededMessageThreadsForUser(user.id);
+        final seededThreads = await DataService.getMessageThreadsForUser(user.id);
+        final seededArchived = await DataService.getArchivedMessageThreadsForUser(user.id);
+        if (!mounted) return;
+        if (seededThreads.isNotEmpty || seededArchived.isNotEmpty) {
+          final injected = _withTranslationDemoThread(user: user, activeThreads: seededThreads, users: usersById, items: itemsById);
+          setState(() {
+            _currentUser = user;
+            _activeThreads = injected.activeThreads;
+            _archivedThreads = seededArchived;
+            _usersCache = injected.users;
+            _itemsCache = injected.items;
+            _isLoading = false;
+          });
+          return;
+        }
+
+        // As a last fallback, show a non-persistent demo UI state.
+        final demo = _buildDemoMessageState(baseUser: user, users: usersById, items: itemsById);
+        setState(() {
+          _currentUser = demo.user;
+          _activeThreads = demo.activeThreads;
+          _archivedThreads = demo.archivedThreads;
+          _usersCache = demo.users;
+          _itemsCache = demo.items;
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final injected = _withTranslationDemoThread(user: user, activeThreads: threads, users: usersById, items: itemsById);
+
       setState(() {
         _currentUser = user;
-        _activeThreads = threads;
+        _activeThreads = injected.activeThreads;
         _archivedThreads = archived;
-        _usersCache = usersById;
-        _itemsCache = itemsById;
+        _usersCache = injected.users;
+        _itemsCache = injected.items;
         _isLoading = false;
       });
     } catch (e) {
@@ -100,7 +146,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       createdAt: now.subtract(const Duration(days: 90)),
     );
 
-    final owner = User(
+    final mila = User(
       id: 'demo_owner',
       displayName: 'Mila Berger',
       email: 'mila@example.com',
@@ -112,11 +158,57 @@ class _MessagesScreenState extends State<MessagesScreen> {
       avgRating: 4.9,
       reviewCount: 18,
       createdAt: now.subtract(const Duration(days: 220)),
+      photoURL: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=face',
     );
 
-    final item = Item(
+    final jonas = User(
+      id: 'demo_upcoming_owner',
+      displayName: 'Jonas Keller',
+      email: 'jonas@example.com',
+      city: 'Hamburg',
+      preferredLanguage: 'de',
+      isVerified: true,
+      isBanned: false,
+      role: 'user',
+      avgRating: 4.7,
+      reviewCount: 26,
+      createdAt: now.subtract(const Duration(days: 150)),
+      photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face',
+    );
+
+    final lina = User(
+      id: 'demo_completed_owner',
+      displayName: 'Lina Thomsen',
+      email: 'lina@example.com',
+      city: 'Köln',
+      preferredLanguage: 'de',
+      isVerified: false,
+      isBanned: false,
+      role: 'user',
+      avgRating: 4.6,
+      reviewCount: 11,
+      createdAt: now.subtract(const Duration(days: 310)),
+      photoURL: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=150&h=150&fit=crop&crop=face',
+    );
+
+    final paula = User(
+      id: 'demo_pending_owner',
+      displayName: 'Paula Meier',
+      email: 'paula@example.com',
+      city: 'München',
+      preferredLanguage: 'de',
+      isVerified: true,
+      isBanned: false,
+      role: 'user',
+      avgRating: 4.8,
+      reviewCount: 34,
+      createdAt: now.subtract(const Duration(days: 190)),
+      photoURL: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=face',
+    );
+
+    final camera = Item(
       id: 'mock_item_camera',
-      ownerId: owner.id,
+      ownerId: mila.id,
       title: 'Sony Alpha 7 III',
       description: 'Demoartikel für Nachrichtenvorschau',
       categoryId: 'electronics',
@@ -124,7 +216,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       tags: const ['kamera', 'foto'],
       pricePerDay: 24,
       currency: 'EUR',
-      photos: const [],
+      photos: const ['https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=640'],
       locationText: 'Berlin, Mitte',
       lat: 52.52,
       lng: 13.405,
@@ -137,13 +229,82 @@ class _MessagesScreenState extends State<MessagesScreen> {
       country: 'Deutschland',
     );
 
+    final cargoBike = Item(
+      id: 'demo_item_bike',
+      ownerId: jonas.id,
+      title: 'Urban Arrow Lastenrad',
+      description: 'Geräumiges E-Lastenrad für Wochenendausflüge.',
+      categoryId: 'fahrzeuge',
+      subcategory: 'fahrrad',
+      tags: const ['bike', 'cargo'],
+      pricePerDay: 29,
+      currency: 'EUR',
+      photos: const ['https://images.unsplash.com/photo-1502877828070-33b167ad6860?w=640'],
+      locationText: 'Hamburg, Sternschanze',
+      lat: 53.56,
+      lng: 9.97,
+      geohash: 'u1x0v9',
+      condition: 'excellent',
+      createdAt: now.subtract(const Duration(days: 6)),
+      isActive: true,
+      verificationStatus: 'verified',
+      city: 'Hamburg',
+      country: 'Deutschland',
+    );
+
+    final projector = Item(
+      id: 'demo_item_projector',
+      ownerId: paula.id,
+      title: '4K Beamer Epson',
+      description: 'Demo-Beamer für Wohnzimmerkino.',
+      categoryId: 'electronics',
+      subcategory: 'beamer',
+      tags: const ['beamer', '4k'],
+      pricePerDay: 18,
+      currency: 'EUR',
+      photos: const ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=640'],
+      locationText: 'München, Glockenbach',
+      lat: 48.13,
+      lng: 11.57,
+      geohash: 'u28bn0',
+      condition: 'like-new',
+      createdAt: now.subtract(const Duration(days: 20)),
+      isActive: true,
+      verificationStatus: 'verified',
+      city: 'München',
+      country: 'Deutschland',
+    );
+
+    final grill = Item(
+      id: 'demo_item_grill',
+      ownerId: lina.id,
+      title: 'Weber Gasgrill',
+      description: 'Demoartikel – Chat ist abgeschlossen.',
+      categoryId: 'outdoor',
+      subcategory: 'grillen',
+      tags: const ['grill', 'outdoor'],
+      pricePerDay: 22,
+      currency: 'EUR',
+      photos: const ['https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=640'],
+      locationText: 'Köln, Ehrenfeld',
+      lat: 50.95,
+      lng: 6.92,
+      geohash: 'u1hcy7',
+      condition: 'good',
+      createdAt: now.subtract(const Duration(days: 40)),
+      isActive: true,
+      verificationStatus: 'verified',
+      city: 'Köln',
+      country: 'Deutschland',
+    );
+
     final bookingThread = MessageThread(
       id: 'mock_thread_booking',
       requestId: 'mock_request_booking',
-      itemId: item.id,
-      itemTitle: item.title,
+      itemId: camera.id,
+      itemTitle: camera.title,
       user1Id: me.id,
-      user2Id: owner.id,
+      user2Id: mila.id,
       bookingStatus: 'running',
       handoverAt: now.add(const Duration(hours: 3)),
       returnAt: now.add(const Duration(days: 2, hours: 2)),
@@ -151,7 +312,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       messages: [
         Message(
           id: 'mock_msg_1',
-          senderId: owner.id,
+          senderId: mila.id,
           text: 'Perfekt — bring bitte nur kurz deinen Ausweis zur Übergabe mit.',
           timestamp: now.subtract(const Duration(minutes: 12)),
           isRead: false,
@@ -159,6 +320,102 @@ class _MessagesScreenState extends State<MessagesScreen> {
       ],
       createdAt: now.subtract(const Duration(days: 1)),
       lastMessageAt: now.subtract(const Duration(minutes: 12)),
+    );
+
+    final upcomingThread = MessageThread(
+      id: 'mock_thread_upcoming',
+      requestId: 'mock_request_upcoming',
+      itemId: cargoBike.id,
+      itemTitle: cargoBike.title,
+      user1Id: me.id,
+      user2Id: jonas.id,
+      bookingStatus: 'accepted',
+      handoverAt: now.add(const Duration(days: 1, hours: 2)),
+      returnAt: now.add(const Duration(days: 4)),
+      otherUserOnline: false,
+      otherUserLastActive: now.subtract(const Duration(hours: 1)),
+      messages: [
+        Message(
+          id: 'mock_msg_u1',
+          senderId: jonas.id,
+          text: 'Alles klar, Übergabe morgen 10:00 am Schulterblatt passt?',
+          timestamp: now.subtract(const Duration(hours: 2, minutes: 10)),
+          isRead: true,
+        ),
+        Message(
+          id: 'mock_msg_u2',
+          senderId: me.id,
+          text: 'Ja, passt! Ich bringe Helm und Kaution mit.',
+          timestamp: now.subtract(const Duration(hours: 1, minutes: 55)),
+          isRead: true,
+        ),
+      ],
+      createdAt: now.subtract(const Duration(days: 1, hours: 5)),
+      lastMessageAt: now.subtract(const Duration(hours: 1, minutes: 55)),
+    );
+
+    final pendingThread = MessageThread(
+      id: 'mock_thread_pending',
+      requestId: 'mock_request_pending',
+      itemId: projector.id,
+      itemTitle: projector.title,
+      user1Id: me.id,
+      user2Id: paula.id,
+      bookingStatus: 'pending',
+      handoverAt: now.add(const Duration(days: 3, hours: 1)),
+      returnAt: now.add(const Duration(days: 5, hours: 1)),
+      otherUserOnline: false,
+      otherUserLastActive: now.subtract(const Duration(hours: 5)),
+      messages: [
+        Message(
+          id: 'mock_msg_p1',
+          senderId: me.id,
+          text: 'Hi Paula! Anfrage für das Wochenende ist raus – gib gerne kurz Bescheid.',
+          timestamp: now.subtract(const Duration(hours: 4, minutes: 10)),
+          isRead: true,
+        ),
+        Message(
+          id: 'mock_msg_p2',
+          senderId: paula.id,
+          text: 'Ich prüfe es heute Abend und sag dann Bescheid.',
+          timestamp: now.subtract(const Duration(hours: 3, minutes: 55)),
+          isRead: false,
+        ),
+      ],
+      createdAt: now.subtract(const Duration(hours: 8)),
+      lastMessageAt: now.subtract(const Duration(hours: 3, minutes: 55)),
+    );
+
+    final completedThread = MessageThread(
+      id: 'mock_thread_completed',
+      requestId: 'mock_request_completed',
+      itemId: grill.id,
+      itemTitle: grill.title,
+      user1Id: me.id,
+      user2Id: lina.id,
+      bookingStatus: 'completed',
+      handoverAt: now.subtract(const Duration(days: 6)),
+      returnAt: now.subtract(const Duration(days: 3)),
+      otherUserOnline: false,
+      otherUserLastActive: now.subtract(const Duration(days: 2)),
+      messages: [
+        Message(
+          id: 'mock_msg_c1',
+          senderId: lina.id,
+          text: 'Danke fürs Zurückbringen! Ich hoffe, das Grillen war top.',
+          timestamp: now.subtract(const Duration(days: 3, hours: 2)),
+          isRead: true,
+        ),
+        Message(
+          id: 'mock_msg_c2',
+          senderId: me.id,
+          text: 'War super, danke! Bewertung kommt gleich.',
+          timestamp: now.subtract(const Duration(days: 3, hours: 1, minutes: 50)),
+          isRead: true,
+        ),
+      ],
+      createdAt: now.subtract(const Duration(days: 9)),
+      lastMessageAt: now.subtract(const Duration(days: 3, hours: 1, minutes: 50)),
     );
 
     final supportThread = MessageThread(
@@ -183,12 +440,36 @@ class _MessagesScreenState extends State<MessagesScreen> {
       lastMessageAt: now.subtract(const Duration(hours: 2)),
     );
 
+    final translationDemo = _buildTranslationDemoThread(me);
+
     return (
       user: me,
-      activeThreads: [bookingThread, supportThread],
+      activeThreads: [
+        translationDemo.thread,
+        bookingThread,
+        upcomingThread,
+        pendingThread,
+        completedThread,
+        supportThread,
+      ],
       archivedThreads: const [],
-      users: {...?users, me.id: me, owner.id: owner},
-      items: {...?items, item.id: item},
+      users: {
+        ...?users,
+        me.id: me,
+        mila.id: mila,
+        jonas.id: jonas,
+        lina.id: lina,
+        paula.id: paula,
+        translationDemo.other.id: translationDemo.other,
+      },
+      items: {
+        ...?items,
+        camera.id: camera,
+        cargoBike.id: cargoBike,
+        projector.id: projector,
+        grill.id: grill,
+        translationDemo.item.id: translationDemo.item,
+      },
     );
   }
 
@@ -293,7 +574,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     required Map<String, User> users,
     required Map<String, Item> items,
   }) {
-    final exists = false && activeThreads.any((t) => false);
+    final exists = activeThreads.any((t) => t.id == _translationDemoThreadId);
     if (exists) return (activeThreads: activeThreads, users: users, items: items);
 
     final demo = _buildTranslationDemoThread(user);
@@ -314,20 +595,33 @@ class _MessagesScreenState extends State<MessagesScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
+        centerTitle: true,
         title: const Text('Nachrichten'),
         actions: [
+          IconButton(onPressed: _toggleSearch, icon: Icon(_searchVisible ? Icons.close : Icons.search)),
           IconButton(onPressed: _openMessageSettings, icon: const Icon(Icons.settings)),
         ],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-              child: _MessagesSearchBar(onTap: _openSearch),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: _searchVisible
+                  ? Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+                      child: _InlineSearchBar(
+                        controller: _searchController,
+                        focusNode: _searchFocusNode,
+                        hintText: 'Chats, Personen oder Artikel suchen',
+                        onChanged: (v) => setState(() => _searchQuery = v.trim()),
+                        onClose: _hideSearch,
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
               child: _FilterTabs(
                 filter: _filter,
                 counts: counts,
@@ -346,13 +640,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
                               itemCount: threads.length,
                               separatorBuilder: (_, __) => const SizedBox(height: 12),
                               itemBuilder: (context, index) {
-                                 final thread = threads[index];
-                                 final isDemoTranslation = false;
+                                final thread = threads[index];
+                                final isDemoTranslation = thread.id == _translationDemoThreadId;
                                 final other = _otherUser(thread);
                                 final lastMsg = thread.messages.isNotEmpty ? thread.messages.last : null;
                                 final hasUnread = _hasUnread(thread);
                                 final status = _derivedStatus(thread);
                                 final highlight = status.rank <= 1; // running/accepted
+                                final isTerminal = status.isTerminal;
                                 final isSupport = (thread.threadType ?? '').toLowerCase() == 'support' || thread.user1Id == 'support' || thread.user2Id == 'support';
                                 final item = _itemsCache[thread.itemId];
                                   return _ThreadDismissible(
@@ -396,6 +691,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                       statusTone: status.tone,
                                       lastMessage: lastMsg?.text ?? '',
                                       highlighted: highlight,
+                                      muted: isTerminal,
                                       onTap: () => _openThread(thread, other),
                                       onLongPress: () => _openThreadOptions(thread),
                                     ),
@@ -414,7 +710,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     if (userId == null) return const [];
 
     final all = [..._activeThreads, ..._archivedThreads];
-    final filtered = all.where((t) {
+    var filtered = all.where((t) {
       final type = (t.threadType ?? '').toLowerCase();
       final isSupport = type == 'support' || t.user1Id == 'support' || t.user2Id == 'support';
       final status = _derivedStatus(t);
@@ -434,6 +730,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
       }
     }).toList();
 
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isNotEmpty) {
+      filtered = filtered.where((t) => _matchesQuery(t, query)).toList();
+    }
+
     filtered.sort((a, b) {
       final ar = _derivedStatus(a).rank;
       final br = _derivedStatus(b).rank;
@@ -444,6 +745,19 @@ class _MessagesScreenState extends State<MessagesScreen> {
     });
 
     return filtered;
+  }
+
+  bool _matchesQuery(MessageThread thread, String query) {
+    final me = _currentUser;
+    if (me == null) return false;
+
+    final otherId = thread.user1Id == me.id ? thread.user2Id : thread.user1Id;
+    final other = _usersCache[otherId];
+    final name = (other?.displayName ?? '').toLowerCase();
+    final item = thread.itemTitle.toLowerCase();
+    final anyMsg = thread.messages.any((m) => m.text.toLowerCase().contains(query));
+
+    return name.contains(query) || item.contains(query) || anyMsg;
   }
 
   Map<_MessagesFilter, int> _tabCounts() {
@@ -551,16 +865,22 @@ class _MessagesScreenState extends State<MessagesScreen> {
     return '$label: $dayLabel $time';
   }
 
-  void _openSearch() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => MessagesSearchScreen(
-          currentUser: _currentUser,
-          threads: [..._activeThreads, ..._archivedThreads],
-          usersById: _usersCache,
-        ),
-      ),
-    );
+  void _toggleSearch() {
+    if (!_searchVisible) {
+      setState(() => _searchVisible = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _searchFocusNode.requestFocus());
+      return;
+    }
+    _hideSearch();
+  }
+
+  void _hideSearch() {
+    setState(() {
+      _searchVisible = false;
+      _searchQuery = '';
+    });
+    _searchController.clear();
+    _searchFocusNode.unfocus();
   }
 
   Future<void> _openThread(MessageThread thread, User? otherUser) async {
@@ -596,7 +916,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   Future<void> _openThreadOptions(MessageThread thread) async {
     final userId = _currentUser?.id;
     if (userId == null) return;
-    if (thread.id.startsWith('mock_')) {
+    if (thread.id == _translationDemoThreadId || thread.id.startsWith('mock_')) {
       if (mounted) {
         AppPopup.toast(context, icon: Icons.visibility_outlined, title: 'Demo-Chat', message: 'Verwalten ist für die Demo deaktiviert.');
       }
@@ -676,37 +996,60 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 }
 
-class _MessagesSearchBar extends StatelessWidget {
-  final VoidCallback onTap;
-  const _MessagesSearchBar({required this.onTap});
+class _InlineSearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClose;
+  final String hintText;
+  const _InlineSearchBar({required this.controller, required this.focusNode, required this.onChanged, required this.onClose, required this.hintText});
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Ink(
+    final theme = Theme.of(context);
+    final baseColor = theme.colorScheme.surface;
+    final overlay = theme.brightness == Brightness.dark ? baseColor.withValues(alpha: 0.24) : baseColor.withValues(alpha: 0.92);
+    final border = theme.colorScheme.onSurface.withValues(alpha: 0.08);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: overlay,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            border: Border.all(color: border),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            child: Row(children: [
-              const Icon(Icons.search, color: Colors.white70, size: 18),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Nachrichten, Personen oder Artikel suchen',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, fontWeight: FontWeight.w600),
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            onChanged: onChanged,
+            textInputAction: TextInputAction.search,
+            style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+            decoration: InputDecoration(
+              hintText: hintText,
+              hintStyle: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.5), fontWeight: FontWeight.w600),
+              prefixIcon: Icon(Icons.search, color: theme.colorScheme.onSurface.withValues(alpha: 0.65)),
+              suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (controller.text.isNotEmpty)
+                  IconButton(
+                    onPressed: () {
+                      controller.clear();
+                      onChanged('');
+                    },
+                    icon: Icon(Icons.close, color: theme.colorScheme.onSurface.withValues(alpha: 0.7), size: 18),
+                  ),
+                IconButton(
+                  onPressed: onClose,
+                  icon: Icon(Icons.keyboard_hide, color: theme.colorScheme.onSurface.withValues(alpha: 0.7), size: 18),
                 ),
-              ),
-            ]),
+              ]),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              filled: true,
+              fillColor: Colors.transparent,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+            ),
           ),
         ),
       ),
@@ -820,6 +1163,7 @@ class _ChatThreadTile extends StatelessWidget {
   final String statusLabel;
   final _StatusTone statusTone;
   final bool highlighted;
+  final bool muted;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -836,6 +1180,7 @@ class _ChatThreadTile extends StatelessWidget {
     required this.statusTone,
     required this.lastMessage,
     required this.highlighted,
+    this.muted = false,
     required this.onTap,
     required this.onLongPress,
   });
@@ -845,6 +1190,15 @@ class _ChatThreadTile extends StatelessWidget {
     final avatarUrlTrimmed = (avatarUrl ?? '').trim();
     final hasAvatar = avatarUrlTrimmed.isNotEmpty && !isSupport;
     final hasItemImage = (itemImageUrl ?? '').trim().isNotEmpty;
+
+    final ColorFilter? grayscaleFilter = muted
+        ? const ColorFilter.matrix([
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0.2126, 0.7152, 0.0722, 0, 0,
+            0, 0, 0, 1, 0,
+          ])
+        : null;
 
     Color statusColor;
     switch (statusTone) {
@@ -884,10 +1238,16 @@ class _ChatThreadTile extends StatelessWidget {
                 Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    if (isSupport)
-                      _SupportAvatar(size: 48)
-                    else
-                      _ItemImageTile(imageUrl: hasItemImage ? itemImageUrl : null, size: 48),
+                    grayscaleFilter == null
+                        ? (isSupport
+                            ? _SupportAvatar(size: 48)
+                            : _ItemImageTile(imageUrl: hasItemImage ? itemImageUrl : null, size: 48))
+                        : ColorFiltered(
+                            colorFilter: grayscaleFilter,
+                            child: isSupport
+                                ? _SupportAvatar(size: 48)
+                                : _ItemImageTile(imageUrl: hasItemImage ? itemImageUrl : null, size: 48),
+                          ),
                     // Rundes User-Profilbild rechts unten überlagert
                     if (!isSupport)
                       Positioned(
@@ -898,12 +1258,22 @@ class _ChatThreadTile extends StatelessWidget {
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.black.withValues(alpha: 0.5), width: 2),
                           ),
-                          child: SitUserAvatar(
-                            url: hasAvatar ? avatarUrlTrimmed : null,
-                            radius: 15,
-                            borderColor: Colors.transparent,
-                            placeholderIcon: Icons.person,
-                          ),
+                          child: grayscaleFilter == null
+                              ? SitUserAvatar(
+                                  url: hasAvatar ? avatarUrlTrimmed : null,
+                                  radius: 15,
+                                  borderColor: Colors.transparent,
+                                  placeholderIcon: Icons.person,
+                                )
+                              : ColorFiltered(
+                                  colorFilter: grayscaleFilter,
+                                  child: SitUserAvatar(
+                                    url: hasAvatar ? avatarUrlTrimmed : null,
+                                    radius: 15,
+                                    borderColor: Colors.transparent,
+                                    placeholderIcon: Icons.person,
+                                  ),
+                                ),
                         ),
                       ),
                     // Ungelesen-Badge

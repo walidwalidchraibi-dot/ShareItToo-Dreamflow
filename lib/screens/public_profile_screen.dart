@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/models/review.dart';
@@ -10,6 +11,7 @@ import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_card.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
 import 'package:lendify/widgets/user_avatar.dart';
+import 'package:lendify/widgets/app_popup.dart';
 import 'package:provider/provider.dart';
 
 class PublicProfileScreen extends StatefulWidget {
@@ -72,6 +74,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
     final u = _user;
+    final displayName = u?.displayName ?? 'Nutzer';
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.t('Öffentliches Profil'), style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
@@ -79,10 +82,22 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (value) async {
-              if (value == 'report_problem') await _openProfileSupportFlow('Problem melden');
+              if (value == 'report_problem') await _openProfileSupportFlow('Profil melden');
+              if (value == 'share_profile') {
+                final link = 'https://shareittoo.app/u/${u?.id ?? 'user'}';
+                await Clipboard.setData(ClipboardData(text: link));
+                if (!mounted) return;
+                AppPopup.toast(context, icon: Icons.link, title: l10n.t('Profil-Link kopiert'));
+              }
+              if (value == 'block_user') {
+                if (!mounted) return;
+                AppPopup.toast(context, icon: Icons.block, title: '$displayName blockieren');
+              }
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'report_problem', child: Text('Problem melden')),
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'report_problem', child: Text('Profil melden')),
+              const PopupMenuItem(value: 'share_profile', child: Text('Profil teilen')),
+              PopupMenuItem(value: 'block_user', child: Text('$displayName blockieren')),
             ],
           ),
         ],

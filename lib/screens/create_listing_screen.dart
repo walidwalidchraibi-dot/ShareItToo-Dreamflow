@@ -16,6 +16,7 @@ import 'dart:convert';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/utils/category_label.dart';
+import 'package:lendify/widgets/all_categories_overlay.dart';
 import 'package:lendify/services/ai_price_calculator_service.dart';
 import 'package:lendify/openai/openai_config.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
@@ -53,14 +54,14 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   // Map coarse label -> fine categories in that group
   Map<String, List<Category>> _catsByCoarse = {};
   String _priceUnit = 'day'; // only 'day' is supported in UI
-  String _condition = 'new'; // 'new' | 'like-new' | 'good' | 'acceptable'
+  String _condition = 'new'; // 'new' | 'like-new' | 'good' | 'acceptable' | 'worn'
   // Delivery options
   bool _offersDeliveryAtDropoff = false; // Lieferung bei Abgabe (Hinweg)
   bool _offersPickupAtReturn = false; // Abholung bei Rückgabe (Rückweg)
   bool _offersExpressAtDropoff =
       false; // Deprecated: Prioritäts-/Expresslieferung (nicht mehr angeboten)
   double? _maxDistanceKm; // applies to both delivery and pickup (simple model)
-  // Master toggle for Liefer- & Abholoptionen (default disabled like requested)
+  // Master toggle for Lieferung / Abholung anbieten (default disabled like requested)
   bool _deliveryOptionsEnabled = false;
   // Cancellation policy
   String _cancellationPolicy = 'flexible'; // 'flexible' | 'moderate' | 'strict'
@@ -77,6 +78,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   static const String _gmapsKey = kGoogleMapsApiKey;
   Timer? _debounce;
   List<_PlaceSuggestion> _addrSuggestions = const [];
+  bool _addrSuggestionsUnavailable = _gmapsKey.isEmpty;
 
   // AI Price Calculator
   PriceSuggestion? _priceSuggestion;
@@ -88,7 +90,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   // Debounce for live AI recalculation
   Timer? _priceRecalcDebounce;
   // Long-term discount state (threshold-based: Ab X Tagen -> Y%)
-  bool _autoApplyDiscounts = true; // acts as "Preisnachlass aktivieren"
+  bool _autoApplyDiscounts = true; // acts as "Rabatt aktivieren"
   int _tier1Days = 3;
   double _tier1Pct = 10;
   int _tier2Days = 5;
@@ -348,7 +350,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     // Always use address mode now
     String locationText = _addressCtrl.text.trim().isNotEmpty
         ? _addressCtrl.text.trim()
-        : 'Adresse';
+        : 'Übergabeort';
     if (_selectedAddrLat != null && _selectedAddrLng != null) {
       pos = (_selectedAddrLat!, _selectedAddrLng!);
     }
@@ -509,16 +511,33 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 220), () async {
       if (_gmapsKey.isEmpty) {
-        setState(() => _addrSuggestions = const []);
+        setState(() {
+          _addrSuggestions = const [];
+          _addrSuggestionsUnavailable = true;
+        });
         return;
       }
       if (q.trim().isEmpty) {
-        setState(() => _addrSuggestions = const []);
+        setState(() {
+          _addrSuggestions = const [];
+          _addrSuggestionsUnavailable = false;
+        });
         return;
       }
-      final results = await _fetchAutocomplete(q);
-      if (!mounted) return;
-      setState(() => _addrSuggestions = results);
+      try {
+        final results = await _fetchAutocomplete(q);
+        if (!mounted) return;
+        setState(() {
+          _addrSuggestions = results;
+          _addrSuggestionsUnavailable = false;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _addrSuggestions = const [];
+          _addrSuggestionsUnavailable = true;
+        });
+      }
     });
   }
 
@@ -574,6 +593,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         return Icons.pets;
       case 'business_center':
         return Icons.business_center;
+      case 'celebration':
+        return Icons.celebration;
+      case 'travel_explore':
+        return Icons.travel_explore;
       case 'more_horiz':
         return Icons.more_horiz;
       default:
@@ -595,6 +618,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         g.contains('geräte') ||
         g.contains('geraete')) return Icons.construction;
     if (g.contains('garten') || g.contains('hof')) return Icons.grass;
+    if (g.contains('event') || g.contains('feier') || g.contains('party'))
+      return Icons.celebration;
+    if (g.contains('reise') || g.contains('camping'))
+      return Icons.travel_explore;
     if (g.contains('büro') || g.contains('buero') || g.contains('gewerbe'))
       return Icons.business_center;
     if (g.contains('baby') || g.contains('kinder')) return Icons.child_friendly;
@@ -613,163 +640,25 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
 
   Future<void> _pickCategory() async {
     if (_coarseCats.isEmpty) return;
-    final selected = await showModalBottomSheet<String>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        barrierColor: Colors.black.withValues(alpha: 0.25),
-        builder: (context) {
-          return Material(
-            type: MaterialType.transparency,
-            child: SafeArea(
-              child: Stack(children: [
-                // Dismiss when tapping outside the category grid
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.of(context).maybePop(),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                      child: Container(color: Colors.transparent),
-                    ),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                    child: Container(
-                      decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.34),
-                          borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(24)),
-                          border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.08))),
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                      child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Center(
-                                child: Container(
-                                    width: 44,
-                                    height: 4,
-                                    decoration: BoxDecoration(
-                                        color: Colors.white
-                                            .withValues(alpha: 0.35),
-                                        borderRadius:
-                                            BorderRadius.circular(2)))),
-                            const SizedBox(height: 12),
-                            Text('Kategorie wählen',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800)),
-                            const SizedBox(height: 12),
-                            LayoutBuilder(builder: (context, c) {
-                              const crossAxisCount = 4;
-                              const spacing = 12.0;
-                              // Slightly taller tiles so second line (e.g., "& Kleingeräte") is fully visible
-                              // Make tiles a bit taller so long labels like "& Kleingeräte" fit on line 2
-                              const aspect = 0.68;
-                              final totalWidth = c.maxWidth;
-                              final tileWidth = (totalWidth -
-                                      (crossAxisCount - 1) * spacing) /
-                                  crossAxisCount;
-                              final tileHeight = tileWidth / aspect;
-                              final rows =
-                                  (_coarseCats.length / crossAxisCount).ceil();
-                              final gridHeight =
-                                  rows * tileHeight + (rows - 1) * spacing;
-                              return SizedBox(
-                                height: gridHeight,
-                                child: GridView.builder(
-                                  padding: EdgeInsets.zero,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: crossAxisCount,
-                                          crossAxisSpacing: spacing,
-                                          mainAxisSpacing: spacing,
-                                          childAspectRatio: aspect),
-                                  itemCount: _coarseCats.length,
-                                  itemBuilder: (context, index) {
-                                    final label = _coarseCats[index];
-                                    final active =
-                                        _currentCoarseLabel() == label;
-                                    return InkWell(
-                                      onTap: () =>
-                                          Navigator.of(context).pop(label),
-                                      borderRadius: BorderRadius.circular(14),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: active
-                                              ? Theme.of(context)
-                                                  .colorScheme
-                                                  .primary
-                                              : Colors.white
-                                                  .withValues(alpha: 0.06),
-                                          borderRadius:
-                                              BorderRadius.circular(14),
-                                          border: Border.all(
-                                              color: active
-                                                  ? Theme.of(context)
-                                                      .colorScheme
-                                                      .primary
-                                                  : Colors.white
-                                                      .withValues(alpha: 0.16)),
-                                        ),
-                                        padding: const EdgeInsets.all(8),
-                                        child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(_coarseIconForGroup(label),
-                                                  color: active
-                                                      ? Colors.black
-                                                      : Colors.white,
-                                                  size: 24),
-                                              const SizedBox(height: 6),
-                                              Text(
-                                                stackCategoryLabel(label),
-                                                maxLines: 2,
-                                                softWrap: true,
-                                                overflow: TextOverflow.clip,
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                  color: active
-                                                      ? Colors.black
-                                                      : Colors.white,
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 9,
-                                                  height: 1.15,
-                                                  letterSpacing: -0.1,
-                                                ),
-                                              ),
-                                            ]),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              );
-                            })
-                          ]),
-                    ),
-                  ),
-                ),
-              ]),
-            ),
-          );
-        });
+    final tiles = _coarseCats
+        .map((label) {
+          final list = _catsByCoarse[label] ?? const <Category>[];
+          final id = list.isNotEmpty ? list.first.id : label;
+          return CategoryChipData(
+              id: id, label: label, icon: _coarseIconForGroup(label));
+        })
+        .toList();
+
+    final selected = await AllCategoriesOverlay.show(context, tiles);
     if (selected != null) {
       // Map back from coarse label to a representative fine category id (first in group)
-      final list = _catsByCoarse[selected] ?? const <Category>[];
-      if (list.isNotEmpty) {
-        setState(() => _categoryId = list.first.id);
-        _schedulePriceRecalc();
-      }
+      final list = _catsByCoarse.entries
+          .firstWhere((e) => (e.value).any((c) => c.id == selected),
+              orElse: () => MapEntry('', const <Category>[]))
+          .value;
+      final target = list.isNotEmpty ? list.first.id : selected;
+      setState(() => _categoryId = target);
+      _schedulePriceRecalc();
     }
   }
 
@@ -1074,7 +963,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 ),
                 const SizedBox(height: 12),
                 _Section(
-                    title: 'Adresse',
+                    title: 'Übergabeort',
                     leading: const Icon(Icons.place_outlined,
                         color: Colors.lightBlueAccent, size: 18),
                     child: Column(
@@ -1098,21 +987,21 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             suggestions: _addrSuggestions,
                             apiKeyConfigured: _gmapsKey.isNotEmpty,
                           ),
-                          if (_gmapsKey.isEmpty)
+                          if (_addrSuggestionsUnavailable)
                             const Padding(
                               padding: EdgeInsets.only(top: 8),
                               child: Text(
-                                  'Adresse-Vorschläge benötigen einen Google Maps API Key. Bitte im Projekt als GOOGLE_MAPS_API_KEY konfigurieren.',
+                                  'Vorschläge sind gerade nicht verfügbar. Du kannst den Ort trotzdem manuell eingeben.',
                                   style: TextStyle(
                                       color: Colors.white70, fontSize: 12)),
                             ),
                           const SizedBox(height: 8),
                           _Accordion(
-                            title: 'Datenschutz & Adresse',
+                            title: 'Datenschutz & Übergabeort',
                             initiallyExpanded: false,
                             bare: true,
                             child: const Text(
-                              'Die genaue Adresse wird nur zur Berechnung der Entfernung genutzt und erst nach bestätigter Anfrage angezeigt, wenn der Mieter Selbstabholer ist.',
+                               'Der genaue Übergabeort wird nur zur Berechnung der Entfernung genutzt und erst nach bestätigter Anfrage angezeigt, wenn der Mieter Selbstabholer ist.',
                               style: TextStyle(
                                   color: Colors.white70, height: 1.45),
                             ),
@@ -1120,40 +1009,28 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                         ])),
                 const SizedBox(height: 12),
                 _Section(
-                  title: 'Liefer- & Abholoptionen',
+                  title: 'Lieferung / Abholung anbieten',
                   leading: const Icon(Icons.local_shipping_outlined,
                       color: Colors.lightBlueAccent, size: 18),
+                  trailing: Switch.adaptive(
+                    value: _deliveryOptionsEnabled,
+                    onChanged: (v) => setState(() {
+                      _deliveryOptionsEnabled = v;
+                      if (!v) {
+                        _offersDeliveryAtDropoff = false;
+                        _offersPickupAtReturn = false;
+                        _offersExpressAtDropoff = false;
+                        _maxDistanceKm = null;
+                      }
+                    }),
+                    activeColor: Colors.lightBlueAccent,
+                  ),
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SwitchListTile(
-                          value: _deliveryOptionsEnabled,
-                          onChanged: (v) => setState(() {
-                            _deliveryOptionsEnabled = v;
-                            if (!v) {
-                              _offersDeliveryAtDropoff = false;
-                              _offersPickupAtReturn = false;
-                              _offersExpressAtDropoff = false;
-                              _maxDistanceKm = null;
-                            }
-                          }),
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(
-                            _deliveryOptionsEnabled
-                                ? 'Liefer- & Abholoptionen verwalten'
-                                : 'Liefer- & Abholoptionen aktivieren',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          subtitle: const Text(
-                            'Du definierst hier nur, was möglich ist. Der Mieter wählt seine gewünschte Übergabe und Rückgabe später in der Anfrage.',
-                            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.35),
-                          ),
-                        ),
                         if (_deliveryOptionsEnabled) ...[
-                          const SizedBox(height: 4),
                           ToggleTextOption(
-                            label: 'Lieferung möglich',
+                            label: 'Lieferung',
                             selected: _offersDeliveryAtDropoff,
                             onTap: () => setState(() {
                               _offersDeliveryAtDropoff =
@@ -1162,12 +1039,23 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                 _offersExpressAtDropoff = false;
                             }),
                           ),
-                          // Removed: Prioritätslieferung anbieten (no longer supported)
                           ToggleTextOption(
-                            label: 'Rückgabe-Abholung möglich',
+                            label: 'Abholung',
                             selected: _offersPickupAtReturn,
                             onTap: () => setState(() =>
                                 _offersPickupAtReturn = !_offersPickupAtReturn),
+                          ),
+                          const SizedBox(height: 8),
+                          _Accordion(
+                            title: 'Was bedeutet das?',
+                            initiallyExpanded: false,
+                            bare: true,
+                            child: const Text(
+                              'Wenn du Lieferung anbietest und der Mieter diese Option bei der Buchung auswählt, bringst du den Artikel zum vereinbarten Übergabeort des Mieters.\n\n'
+                              'Wenn Abholung aktiviert ist und der Mieter diese Option für die Rückgabe auswählt, holst du den Artikel nach der Miete wieder beim Mieter ab.\n\n'
+                              'Wenn Lieferung oder Abholung nicht aktiviert sind, holt der Mieter den Artikel selbst am Übergabeort ab und bringt ihn nach der Miete selbst wieder zurück.',
+                              style: TextStyle(color: Colors.white70, height: 1.45),
+                            ),
                           ),
                           if (_offersDeliveryAtDropoff ||
                               _offersPickupAtReturn) ...[
@@ -1191,11 +1079,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                               ),
                             ),
                           ],
-                          const SizedBox(height: 6),
-                          const Text(
-                              'Wenn nichts aktiviert ist, erfolgt Übergabe und Rückgabe am Artikelstandort.',
-                              style: TextStyle(
-                                  color: Colors.white70, fontSize: 12)),
                           const SizedBox(height: 8),
                           _Accordion(
                             title: 'Vergütung für Fahrtaufwand',
@@ -1204,18 +1087,16 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             child: const Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                    'Vergütung: automatisch aus der Entfernung berechnet (aktuell 0,30 € pro km für Hin- und Rückfahrt, mindestens 3,00 € pro Leistung).',
+                                Text('Die Vergütung wird automatisch anhand der Entfernung berechnet.',
                                     style: TextStyle(
                                         color: Colors.white70, height: 1.4)),
                                 SizedBox(height: 6),
                                 Text(
-                                    'Die Mindestvergütung für eine Lieferung oder Abholung beträgt jeweils 3,00 €.',
+                                    'Aktuell: 0,30 € pro km für Hin- und Rückfahrt, mindestens 3,00 € pro Lieferung oder Abholung.',
                                     style: TextStyle(
                                         color: Colors.white70, height: 1.4)),
                                 SizedBox(height: 6),
-                                Text(
-                                    'Der Mieter sieht die Liefer- und Abholgebühren später direkt im Anfrageflow, bevor die Anfrage gesendet wird.',
+                                Text('Der Mieter sieht die Kosten vor dem Absenden der Anfrage.',
                                     style: TextStyle(
                                         color: Colors.white70, height: 1.4)),
                               ],
@@ -1226,217 +1107,306 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 ),
                 // Removed per request: Preisberechnung & Gebühren infocard
                 const SizedBox(height: 12),
-                _Section(
-                    title: 'Preis',
-                    leading: const Icon(Icons.euro_outlined,
-                        color: Colors.lightBlueAccent, size: 18),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // AI Price Calculator Card
-                          _AIPriceCalculatorCard(
-                            suggestion: _priceSuggestion,
-                            strategy: _priceStrategy,
-                            onStrategyChanged: (v) {
-                              // Always re-apply mode defaults when switching strategy
-                              setState(() {
-                                _priceStrategy = v;
-                                // bump epoch to recreate discount inputs, ensuring visible values refresh even if focused
-                                _strategyEpoch++;
-                                // Reset manual override so the mode can take full effect
-                                _priceTouched = false;
-                              });
-                              _autofillPriceFromMarket();
-                              // Always reset the discount preset for the chosen mode
-                              _applyModeDiscountPreset(force: true);
-                            },
-                            onRecalculate: _calculatePriceSuggestion,
-                            canCalculate: _titleCtrl.text.trim().isNotEmpty &&
-                                _categoryId != null &&
-                                _addressCtrl.text.trim().isNotEmpty,
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                        colors: [Color(0xFF0C1222), Color(0xFF0A152B)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.lightBlueAccent.withValues(alpha: 0.14),
+                          blurRadius: 22,
+                          spreadRadius: 1,
+                          offset: const Offset(0, 10)),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: const [
+                          _CircleBadge(
+                              icon: Icons.euro_rounded,
+                              color: Colors.lightBlueAccent,
+                              diameter: 38),
+                          SizedBox(width: 12),
+                          Text('Preis pro Tag',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18)),
+                        ]),
+                        const SizedBox(height: 14),
+                        _AIPriceCalculatorCard(
+                          suggestion: _priceSuggestion,
+                          strategy: _priceStrategy,
+                          onStrategyChanged: (v) {
+                            // Always re-apply mode defaults when switching strategy
+                            setState(() {
+                              _priceStrategy = v;
+                              // bump epoch to recreate discount inputs, ensuring visible values refresh even if focused
+                              _strategyEpoch++;
+                              // Reset manual override so the mode can take full effect
+                              _priceTouched = false;
+                            });
+                            _autofillPriceFromMarket();
+                            // Always reset the discount preset for the chosen mode
+                            _applyModeDiscountPreset(force: true);
+                          },
+                          onRecalculate: _calculatePriceSuggestion,
+                          canCalculate: _titleCtrl.text.trim().isNotEmpty &&
+                              _categoryId != null &&
+                              _addressCtrl.text.trim().isNotEmpty,
+                        ),
+                        const SizedBox(height: 14),
+                        _PricePerDayInput(
+                          controller: _priceCtrl,
+                          onChanged: (_) => setState(() {
+                            _priceTouched = true;
+                          }),
+                          validator: (v) {
+                            final n = double.tryParse(
+                                (v ?? '').replaceAll(',', '.'));
+                            if (n == null || n <= 0)
+                              return 'Gültigen Preis eingeben';
+                            return null;
+                          },
+                        ),
+                        if (_priceTouched)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: Text('Du hast den Preis manuell angepasst.',
+                                style: TextStyle(
+                                    color: Colors.white70, fontSize: 12)),
                           ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _priceCtrl,
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
-                            style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(
-                              labelText: 'Preis',
-                              floatingLabelBehavior: FloatingLabelBehavior.auto,
-                              suffixText: ' Euro/Tag',
-                            ),
-                            onChanged: (_) => setState(() {
-                              _priceTouched = true;
-                            }),
-                            validator: (v) {
-                              final n = double.tryParse(
-                                  (v ?? '').replaceAll(',', '.'));
-                              if (n == null || n <= 0)
-                                return 'Gültigen Preis eingeben';
-                              return null;
-                            },
+                        const SizedBox(height: 16),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                                colors: [Color(0xFF11192B), Color(0xFF0D1424)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.10)),
                           ),
-                          if (_priceTouched)
-                            const Padding(
-                              padding: EdgeInsets.only(top: 6),
-                              child: Text(
-                                  'Du hast den Preis manuell angepasst.',
-                                  style: TextStyle(
-                                      color: Colors.white70, fontSize: 12)),
-                            ),
-                          const SizedBox(height: 12),
-                          // Long-term discount editor
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.04),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.10)),
-                            ),
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(children: [
-                                    const Icon(Icons.discount_outlined,
-                                        color: Colors.lightBlueAccent,
-                                        size: 18),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                        'Preisnachlass bei längerer Mietdauer',
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w700)),
-                                  ]),
-                                  const SizedBox(height: 6),
-                                  // Switch on top: Preisnachlass – toggles label based on state
-                                  SwitchListTile(
-                                    value: _autoApplyDiscounts,
-                                    onChanged: (v) =>
-                                        setState(() => _autoApplyDiscounts = v),
-                                    dense: true,
-                                    contentPadding: EdgeInsets.zero,
-                                    title: Text(
-                                      _autoApplyDiscounts
-                                          ? 'Preisnachlass deaktivieren'
-                                          : 'Preisnachlass aktivieren',
-                                      style:
-                                          const TextStyle(color: Colors.white),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 10),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(children: [
+                                  const _CircleBadge(
+                                      icon: Icons.discount_outlined,
+                                      color: Colors.lightBlueAccent,
+                                      diameter: 24),
+                                  const SizedBox(width: 6),
+                                  const Expanded(
+                                      child: Text(
+                                          'Rabatt bei längerer Mietdauer',
+                                          style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 12))),
+                                  Transform.scale(
+                                    scale: 0.7,
+                                    alignment: Alignment.centerRight,
+                                    child: Switch.adaptive(
+                                      value: _autoApplyDiscounts,
+                                      onChanged: (v) => setState(
+                                          () => _autoApplyDiscounts = v),
+                                      activeColor: Colors.lightBlueAccent,
                                     ),
                                   ),
-                                  if (_autoApplyDiscounts) ...[
-                                    const SizedBox(height: 4),
-                                    const SizedBox(height: 6),
-                                    _ThresholdDiscountRow(
-                                      key: ValueKey(
-                                          'tier1_' + _strategyEpoch.toString()),
-                                      days: _tier1Days,
-                                      percent: _tier1Pct,
-                                      pricePerDay: double.tryParse(_priceCtrl
-                                              .text
-                                              .replaceAll(',', '.')) ??
-                                          0.0,
-                                      onDaysChanged: (v) => setState(() {
-                                        _tier1Days = v;
-                                        _discountsTouched = true;
-                                      }),
-                                      onPercentChanged: (v) => setState(() {
-                                        _tier1Pct = v;
-                                        _tier1PctEmpty = false;
-                                        _discountsTouched = true;
-                                      }),
-                                      onPercentEmptyChanged: (isEmpty) =>
-                                          setState(() {
-                                        _tier1PctEmpty = isEmpty;
-                                      }),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    _ThresholdDiscountRow(
-                                      key: ValueKey(
-                                          'tier2_' + _strategyEpoch.toString()),
-                                      days: _tier2Days,
-                                      percent: _tier2Pct,
-                                      pricePerDay: double.tryParse(_priceCtrl
-                                              .text
-                                              .replaceAll(',', '.')) ??
-                                          0.0,
-                                      onDaysChanged: (v) => setState(() {
-                                        _tier2Days = v;
-                                        _discountsTouched = true;
-                                      }),
-                                      onPercentChanged: (v) => setState(() {
-                                        _tier2Pct = v;
-                                        _tier2PctEmpty = false;
-                                        _discountsTouched = true;
-                                      }),
-                                      onPercentEmptyChanged: (isEmpty) =>
-                                          setState(() {
-                                        _tier2PctEmpty = isEmpty;
-                                      }),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    _ThresholdDiscountRow(
-                                      key: ValueKey(
-                                          'tier3_' + _strategyEpoch.toString()),
-                                      days: _tier3Days,
-                                      percent: _tier3Pct,
-                                      pricePerDay: double.tryParse(_priceCtrl
-                                              .text
-                                              .replaceAll(',', '.')) ??
-                                          0.0,
-                                      onDaysChanged: (v) => setState(() {
-                                        _tier3Days = v;
-                                        _discountsTouched = true;
-                                      }),
-                                      onPercentChanged: (v) => setState(() {
-                                        _tier3Pct = v;
-                                        _tier3PctEmpty = false;
-                                        _discountsTouched = true;
-                                      }),
-                                      onPercentEmptyChanged: (isEmpty) =>
-                                          setState(() {
-                                        _tier3PctEmpty = isEmpty;
-                                      }),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    const Text(
-                                        'Rabattstaffel wird automatisch in allen Preisvorschauen berücksichtigt.',
-                                        style: TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 12)),
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.lightBlueAccent
-                                            .withValues(alpha: 0.08),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                            color: Colors.lightBlueAccent
-                                                .withValues(alpha: 0.25)),
-                                      ),
-                                      padding: const EdgeInsets.all(10),
-                                      child: const Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text('AI‑Tipp',
-                                                style: TextStyle(
-                                                    color:
-                                                        Colors.lightBlueAccent,
-                                                    fontWeight:
-                                                        FontWeight.w700)),
-                                            SizedBox(height: 6),
-                                            Text(
-                                                'Für ähnliche Objekte in dieser Kategorie sind Rabatte wie oben angegeben zu empfehlen, um Mietfrequenz und Mietdauer zu erhöhen. Du kannst den Preis und die Staffelung anpassen oder komplett deaktivieren.',
-                                                style: TextStyle(
-                                                    color: Colors.white70)),
-                                          ]),
-                                    ),
-                                  ],
+                                  const SizedBox(width: 4),
+                                  Text('Rabatt aktiv',
+                                      style: TextStyle(
+                                          color: _autoApplyDiscounts
+                                              ? Colors.white
+                                              : Colors.white54,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 11)),
                                 ]),
+                                const SizedBox(height: 6),
+                                if (_autoApplyDiscounts) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 6, horizontal: 4),
+                                    child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: const [
+                                          Expanded(
+                                              child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Text('Mietdauer',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                    color: Colors.white60,
+                                                    fontSize: 13,
+                                                    fontWeight:
+                                                        FontWeight.w600)),
+                                          )),
+                                          Expanded(
+                                            child: Align(
+                                              alignment: Alignment.center,
+                                              child: Text('Rabatt',
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  textAlign:
+                                                      TextAlign.center,
+                                                  style: TextStyle(
+                                                      color: Colors.white60,
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w600)),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Align(
+                                              alignment: Alignment.centerRight,
+                                              child: Text('Preis pro Tag',
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  textAlign: TextAlign.right,
+                                                  style: TextStyle(
+                                                      color: Colors.white60,
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w600)),
+                                            ),
+                                          ),
+                                        ]),
+                                  ),
+                                  _ThresholdDiscountRow(
+                                    key: ValueKey(
+                                        'tier1_' + _strategyEpoch.toString()),
+                                    days: _tier1Days,
+                                    percent: _tier1Pct,
+                                    pricePerDay: double.tryParse(
+                                            _priceCtrl.text
+                                                .replaceAll(',', '.')) ??
+                                        0.0,
+                                    onDaysChanged: (v) => setState(() {
+                                      _tier1Days = v;
+                                      _discountsTouched = true;
+                                    }),
+                                    onPercentChanged: (v) => setState(() {
+                                      _tier1Pct = v;
+                                      _tier1PctEmpty = false;
+                                      _discountsTouched = true;
+                                    }),
+                                    onPercentEmptyChanged: (isEmpty) =>
+                                        setState(() {
+                                      _tier1PctEmpty = isEmpty;
+                                    }),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  _ThresholdDiscountRow(
+                                    key: ValueKey(
+                                        'tier2_' + _strategyEpoch.toString()),
+                                    days: _tier2Days,
+                                    percent: _tier2Pct,
+                                    pricePerDay: double.tryParse(
+                                            _priceCtrl.text
+                                                .replaceAll(',', '.')) ??
+                                        0.0,
+                                    onDaysChanged: (v) => setState(() {
+                                      _tier2Days = v;
+                                      _discountsTouched = true;
+                                    }),
+                                    onPercentChanged: (v) => setState(() {
+                                      _tier2Pct = v;
+                                      _tier2PctEmpty = false;
+                                      _discountsTouched = true;
+                                    }),
+                                    onPercentEmptyChanged: (isEmpty) =>
+                                        setState(() {
+                                      _tier2PctEmpty = isEmpty;
+                                    }),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  _ThresholdDiscountRow(
+                                    key: ValueKey(
+                                        'tier3_' + _strategyEpoch.toString()),
+                                    days: _tier3Days,
+                                    percent: _tier3Pct,
+                                    pricePerDay: double.tryParse(
+                                            _priceCtrl.text
+                                                .replaceAll(',', '.')) ??
+                                        0.0,
+                                    onDaysChanged: (v) => setState(() {
+                                      _tier3Days = v;
+                                      _discountsTouched = true;
+                                    }),
+                                    onPercentChanged: (v) => setState(() {
+                                      _tier3Pct = v;
+                                      _tier3PctEmpty = false;
+                                      _discountsTouched = true;
+                                    }),
+                                    onPercentEmptyChanged: (isEmpty) =>
+                                        setState(() {
+                                      _tier3PctEmpty = isEmpty;
+                                    }),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(children: const [
+                                    Icon(Icons.autorenew,
+                                        color: Colors.lightBlueAccent,
+                                        size: 16),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                        child: Text(
+                                            'Rabatte greifen automatisch in Preisvorschauen.',
+                                            style: TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 12)))
+                                  ]),
+                                ],
+                              ]),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                                colors: [Color(0xFF0F1C33), Color(0xFF0B1527)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                                color: Colors.lightBlueAccent
+                                    .withValues(alpha: 0.30)),
                           ),
-                        ])),
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Row(children: [
+                                  _CircleBadge(
+                                      icon: Icons.lightbulb_outline,
+                                      color: Colors.lightBlueAccent,
+                                      diameter: 32,
+                                      backgroundAlpha: 0.18),
+                                  SizedBox(width: 10),
+                                  Text('SIT-Tipp',
+                                      style: TextStyle(
+                                          color: Colors.lightBlueAccent,
+                                          fontWeight: FontWeight.w800))
+                                ]),
+                                SizedBox(height: 8),
+                                Text(
+                                    'Für ähnliche Objekte in dieser Kategorie sind Rabatte wie oben angegeben zu empfehlen, um Mietfrequenz und Mietdauer zu erhöhen. Du kannst den Preis und die Staffelung anpassen oder komplett deaktivieren.',
+                                    style: TextStyle(
+                                        color: Colors.white70, height: 1.45))
+                              ]),
+                        ),
+                      ]),
+                ),
                 // Preis-Section Ende – ab hier Inhalte außerhalb der Preis-Karte
                 // Stornierungsbedingungen außerhalb der Preis-Karte und oberhalb des Erstellen-Buttons
                 Container(
@@ -1460,14 +1430,32 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                         label: Text(_isEdit
                             ? 'Anzeige veröffentlichen'
                             : 'Anzeige erstellen'),
+                        style: FilledButton.styleFrom(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            foregroundColor: Colors.black,
+                            textStyle: const TextStyle(
+                                    fontWeight: FontWeight.w500, fontSize: 16)),
                       ),
                       const SizedBox(height: 12),
-                      FilledButton.icon(
+                      OutlinedButton.icon(
                         onPressed: () => _submit(forceInactive: true),
                         icon: const Icon(Icons.save_outlined),
                         label: Text(_isEdit
                             ? 'Bearbeitung speichern'
                             : 'Für später speichern'),
+                        style: OutlinedButton.styleFrom(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 13),
+                            foregroundColor: Colors.white,
+                            backgroundColor:
+                                Colors.white.withValues(alpha: 0.04),
+                            side: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.22)),
+                            textStyle: const TextStyle(
+                                    fontWeight: FontWeight.w500, fontSize: 15)),
                       ),
                     ])
               ]),
@@ -1476,40 +1464,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         ),
       ),
       backgroundColor: isDark ? Colors.transparent : null,
-    );
-  }
-}
-
-// Unit selector removed: pricing is fixed per Tag and indicated inline as suffix
-
-class _BlueChoice extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _BlueChoice(
-      {required this.label, required this.selected, required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected
-              ? Theme.of(context).colorScheme.primary
-              : Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-              color: selected
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.white.withValues(alpha: 0.20)),
-        ),
-        child: Text(label,
-            style: TextStyle(
-                color: selected ? Colors.black : Colors.white,
-                fontWeight: FontWeight.w600)),
-      ),
     );
   }
 }
@@ -1523,14 +1477,14 @@ class _ConditionPager extends StatefulWidget {
 }
 
 class _ConditionPagerState extends State<_ConditionPager> {
-  late final PageController _controller;
-  int _currentIndex = 0;
   static const List<String> _labels = [
     'Wie neu',
     'Gut gepflegt',
-    'Gebrauchsspuren'
+    'Normale Gebrauchsspuren',
+    'Stark gebraucht'
   ];
-  static const List<String> _keys = ['like-new', 'good', 'acceptable'];
+  static const List<String> _keys = ['like-new', 'good', 'acceptable', 'worn'];
+  bool _expanded = false;
 
   int _indexFor(String sel) {
     switch (sel) {
@@ -1540,6 +1494,8 @@ class _ConditionPagerState extends State<_ConditionPager> {
         return 1;
       case 'acceptable':
         return 2;
+      case 'worn':
+        return 3;
       case 'new':
         return 0; // map legacy "Neu" to "Wie neu"
       default:
@@ -1548,69 +1504,101 @@ class _ConditionPagerState extends State<_ConditionPager> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _currentIndex = _indexFor(widget.selected);
-    _controller =
-        PageController(initialPage: _currentIndex, viewportFraction: 0.5);
+  Widget build(BuildContext context) {
+    final selectedIndex = _indexFor(widget.selected);
+    final selectedLabel = _labels[selectedIndex];
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+            ),
+            child: Row(children: [
+              Expanded(
+                  child: Text(selectedLabel,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700))),
+              AnimatedRotation(
+                turns: _expanded ? 0.5 : 0.0,
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                child: const Icon(Icons.expand_more, color: Colors.white70),
+              ),
+            ]),
+          ),
+        ),
+      ),
+      AnimatedSize(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        child: _expanded
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                    children: List.generate(_labels.length, (i) {
+                  final selected = i == selectedIndex;
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: i == _labels.length - 1 ? 0 : 8),
+                    child: _ConditionOption(
+                        label: _labels[i],
+                        selected: selected,
+                        onTap: () => widget.onChanged(_keys[i])),
+                  );
+                })),
+              )
+            : const SizedBox.shrink(),
+      ),
+    ]);
   }
+}
 
-  @override
-  void didUpdateWidget(covariant _ConditionPager oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final newIndex = _indexFor(widget.selected);
-    if (newIndex != _currentIndex) {
-      _currentIndex = newIndex;
-      // Jump without animation to reflect external change
-      if (_controller.hasClients) {
-        _controller.jumpToPage(_currentIndex);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+class _ConditionOption extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ConditionOption(
+      {required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    return SizedBox(
-      height: 56,
-      child: PageView.builder(
-        controller: _controller,
-        physics: const BouncingScrollPhysics(),
-        onPageChanged: (i) {
-          setState(() => _currentIndex = i);
-          if (i >= 0 && i < _keys.length) widget.onChanged(_keys[i]);
-        },
-        itemCount: _labels.length,
-        itemBuilder: (context, i) {
-          final selected = i == _currentIndex;
-          // Ensure each page consumes exactly half of the card width to reveal half-neighbors
-          final itemWidth = width * 0.5;
-          return Center(
-            child: SizedBox(
-              width: itemWidth -
-                  16, // slight breathing space so the chip isn't full-bleed
-              child: Center(
-                child: _BlueChoice(
-                  label: _labels[i],
-                  selected: selected,
-                  onTap: () {
-                    if (_controller.hasClients) {
-                      _controller.animateToPage(i,
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeOut);
-                    }
-                  },
-                ),
-              ),
-            ),
-          );
-        },
+    final colorScheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected
+              ? colorScheme.primary.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+              color: selected
+                  ? colorScheme.primary
+                  : Colors.white.withValues(alpha: 0.16)),
+        ),
+        child: Row(children: [
+          Icon(
+            selected ? Icons.radio_button_checked : Icons.radio_button_off,
+            color: selected ? colorScheme.primary : Colors.white70,
+            size: 22,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+              child: Text(label,
+                  softWrap: true,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w600))),
+        ]),
       ),
     );
   }
@@ -1743,6 +1731,80 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
       },
       onSelected: (v) => widget.onChanged(v),
     );
+  }
+}
+
+class _CircleBadge extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final double diameter;
+  final double backgroundAlpha;
+  const _CircleBadge(
+      {required this.icon,
+      required this.color,
+      this.diameter = 36,
+      this.backgroundAlpha = 0.14});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: diameter,
+      height: diameter,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color.withValues(alpha: backgroundAlpha),
+        boxShadow: [
+          BoxShadow(
+              color: color.withValues(alpha: 0.18), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Icon(icon, color: color, size: diameter * 0.58),
+    );
+  }
+}
+
+class _PricePerDayInput extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final String? Function(String?)? validator;
+  const _PricePerDayInput(
+      {required this.controller,
+      required this.onChanged,
+      required this.validator});
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      TextFormField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: false),
+        style:
+            const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.euro, color: Colors.white70, size: 18),
+          prefixIconConstraints: const BoxConstraints(minWidth: 38, minHeight: 24),
+          suffixIcon: Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: Text('pro Tag',
+                style: const TextStyle(
+                    color: Colors.white60, fontWeight: FontWeight.w600, fontSize: 14)),
+          ),
+          suffixIconConstraints: const BoxConstraints(minWidth: 72, minHeight: 24),
+          hintText: '0,00',
+          hintStyle:
+              const TextStyle(color: Colors.white38, fontWeight: FontWeight.w600),
+          filled: true,
+          fillColor: Colors.white.withValues(alpha: 0.06),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.lightBlueAccent.withValues(alpha: 0.8))),
+        ),
+        onChanged: onChanged,
+        validator: validator,
+      ),
+    ]);
   }
 }
 
@@ -1915,7 +1977,7 @@ class _Accordion extends StatefulWidget {
   const _Accordion({
     required this.title,
     required this.child,
-    this.initiallyExpanded = true,
+    this.initiallyExpanded = false,
     this.bare = false,
     this.centerTitle = false,
     this.headerPadding,
@@ -2024,7 +2086,7 @@ class _OwnerCancellationInfoCardState
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.policy_outlined, color: Colors.white70),
                 const SizedBox(width: 8),
-                const Text('Stornierungsbedingungen',
+                        const Text('Stornierungsbedingungen',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         fontWeight: FontWeight.w700, color: Colors.white)),
@@ -2097,7 +2159,7 @@ class _AddressAutocompleteField extends StatelessWidget {
           focusNode: focusNode,
           style: const TextStyle(color: Colors.white),
           decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search), hintText: 'Adresse eingeben'),
+              prefixIcon: Icon(Icons.search), hintText: 'Übergabeort eingeben'),
           onChanged: onQueryChanged,
         );
       },
@@ -2160,15 +2222,21 @@ Future<List<_PlaceSuggestion>> _fetchAutocomplete(String input) async {
   });
   try {
     final res = await http.get(uri);
-    if (res.statusCode != 200) return const [];
+    if (res.statusCode != 200) throw Exception('gmaps_unavailable');
     final data = json.decode(utf8.decode(res.bodyBytes));
+    final status = (data['status'] ?? '').toString();
+    if (status != 'OK') {
+      if (status == 'ZERO_RESULTS') return const [];
+      throw Exception('gmaps_unavailable');
+    }
     final preds = (data['predictions'] as List?) ?? [];
     return preds
         .map<_PlaceSuggestion>((p) => _PlaceSuggestion(
             description: p['description'], placeId: p['place_id']))
         .toList();
   } catch (_) {
-    return const [];
+    // Propagate unavailability so UI can show a friendly fallback message.
+    throw Exception('gmaps_unavailable');
   }
 }
 
@@ -2214,37 +2282,53 @@ class _AIPriceCalculatorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Icon(Icons.auto_awesome,
-              color: Colors.lightBlueAccent, size: 20),
-          const SizedBox(width: 8),
-          const Text('KI-Preisberechnung',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15)),
-          const Spacer(),
-          // Live recalculation enabled – manual refresh removed
-        ]),
-        if (!canCalculate) ...[
-          const SizedBox(height: 8),
-          const Text(
-              'Bitte fülle Titel, Kategorie und Adresse aus, um eine Preisempfehlung zu erhalten.',
-              style: TextStyle(color: Colors.white70, fontSize: 13)),
+        gradient: const LinearGradient(
+            colors: [Color(0xFF111C2F), Color(0xFF0C1424)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.lightBlueAccent.withValues(alpha: 0.18)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.lightBlueAccent.withValues(alpha: 0.12),
+              blurRadius: 18,
+              offset: const Offset(0, 8)),
         ],
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: const [
+          _CircleBadge(
+              icon: Icons.auto_awesome,
+              color: Colors.lightBlueAccent,
+              diameter: 28,
+              backgroundAlpha: 0.22),
+          SizedBox(width: 8),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text('KI-Preisberechnung',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13)),
+                SizedBox(height: 4),
+                Text(
+                    'Bitte fülle Titel, Kategorie und Übergabeort aus, um eine Preisempfehlung zu erhalten.',
+                    style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10.5,
+                        height: 1.35))
+              ])),
+        ]),
         if (canCalculate && suggestion == null) ...[
           const SizedBox(height: 8),
           const Text('Berechne Preisvorschlag…',
-              style: TextStyle(color: Colors.white70, fontSize: 13)),
+              style: TextStyle(color: Colors.white70, fontSize: 11.5)),
         ],
         if (suggestion != null) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 9),
           // Strategy toggle
           Row(children: [
             Expanded(
@@ -2265,76 +2349,85 @@ class _AIPriceCalculatorCard extends StatelessWidget {
               ),
             ),
           ]),
-          const SizedBox(height: 12),
+          const SizedBox(height: 9),
           // Price suggestions
           Container(
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(9),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 const Icon(Icons.calendar_today,
-                    color: Colors.white70, size: 16),
-                const SizedBox(width: 6),
+                    color: Colors.white70, size: 14),
+                const SizedBox(width: 4),
                 const Text('Aktueller Marktpreis (€/Tag):',
                     style: TextStyle(
-                        color: Colors.white70, fontWeight: FontWeight.w600)),
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.5)),
                 const Spacer(),
                 Text(
                     '${suggestion!.dailyPriceMin.toStringAsFixed(0)}–${suggestion!.dailyPriceMax.toStringAsFixed(0)} €',
                     style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
-                        fontSize: 16)),
+                        fontSize: 14)),
               ]),
             ]),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 9),
           // Mode-specific helper text
           Builder(builder: (context) {
             final help = strategy == 'quick'
                 ? 'Preis im unteren Marktbereich – erhöht die Buchungswahrscheinlichkeit.'
                 : 'Preis im oberen Marktbereich – optimiert Ertrag pro Vermietung.';
             return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Icon(Icons.info_outline, color: Colors.white54, size: 16),
-              const SizedBox(width: 6),
+              const Icon(Icons.info_outline, color: Colors.white54, size: 14),
+              const SizedBox(width: 4),
               Expanded(
                   child: Text(help,
                       style: const TextStyle(
-                          color: Colors.white70, fontSize: 12, height: 1.4))),
+                          color: Colors.white70,
+                          fontSize: 11.5,
+                          height: 1.35))),
             ]);
           }),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
           // Reasoning
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Icon(Icons.info_outline, color: Colors.white54, size: 16),
-            const SizedBox(width: 6),
+            const Icon(Icons.info_outline, color: Colors.white54, size: 14),
+            const SizedBox(width: 4),
             Expanded(
                 child: Text(suggestion!.reasoning,
                     style: const TextStyle(
-                        color: Colors.white70, fontSize: 12, height: 1.4))),
+                        color: Colors.white70,
+                        fontSize: 11.5,
+                        height: 1.35))),
           ]),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
           // Optimization tip
           Container(
             decoration: BoxDecoration(
               color: Colors.lightBlueAccent.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(
                   color: Colors.lightBlueAccent.withValues(alpha: 0.3)),
             ),
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Icon(Icons.lightbulb_outline,
-                  color: Colors.lightBlueAccent, size: 16),
-              const SizedBox(width: 8),
+                  color: Colors.lightBlueAccent, size: 14),
+              const SizedBox(width: 6),
               Expanded(
                   child: Text(suggestion!.optimizationTip,
                       style: const TextStyle(
-                          color: Colors.white, fontSize: 12, height: 1.4))),
+                          color: Colors.white,
+                          fontSize: 11.5,
+                          height: 1.35))),
             ]),
           ),
         ],
@@ -2369,17 +2462,17 @@ class _StrategyChip extends StatelessWidget {
                   ? Colors.lightBlueAccent
                   : Colors.white.withValues(alpha: 0.16)),
         ),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, color: selected ? Colors.black : Colors.white70, size: 16),
-          const SizedBox(width: 6),
+          Icon(icon, color: selected ? Colors.black : Colors.white70, size: 14),
+          const SizedBox(width: 5),
           Expanded(
               child: Text(label,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       color: selected ? Colors.black : Colors.white70,
                       fontWeight: FontWeight.w600,
-                      fontSize: 12))),
+                        fontSize: 11.5))),
         ]),
       ),
     );
@@ -2480,157 +2573,145 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
 
   @override
   Widget build(BuildContext context) {
-    final discountEuroPerDay = ((widget.pricePerDay) * (widget.percent / 100))
+    final primary = Colors.lightBlueAccent;
+    final discountedPerDay = (widget.pricePerDay * (1 - widget.percent / 100))
         .clamp(0.0, double.infinity)
         .toDouble();
-    return Row(children: [
-      // Mietdauer: slightly narrower so Rabatt gets a bit more space (~0.5 cm)
-      Flexible(
-        flex:
-            6, // give Mietdauer more breathing room so it stays tappable/editable
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-              minWidth: 120), // ensure a minimum interactive width
-          child: TextField(
-            controller: _daysCtrl,
-            focusNode: _daysFocus,
-            keyboardType: const TextInputType.numberWithOptions(
-                signed: false, decimal: false),
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(2),
+    final discountedText =
+        '${discountedPerDay.toStringAsFixed(2).replaceAll('.', ',')} € / Tag';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Expanded(
+          child: Row(children: [
+            const Text('Ab',
+                style: TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14)),
+            const SizedBox(width: 4),
+            IntrinsicWidth(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 13, maxWidth: 42),
+                child: TextField(
+                  controller: _daysCtrl,
+                  focusNode: _daysFocus,
+                  cursorColor: primary,
+                  keyboardType: const TextInputType.numberWithOptions(
+                      signed: false, decimal: false),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(3),
+                  ],
+                  style: TextStyle(
+                      color: primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14),
+                  textAlign: TextAlign.left,
+                  decoration: InputDecoration(
+                      isDense: true,
+                      isCollapsed: true,
+                      contentPadding: EdgeInsets.zero,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
+                      hintText: '0',
+                      hintStyle: TextStyle(
+                          color: primary.withOpacity(0.35), fontSize: 14)),
+                  onChanged: (v) {
+                    final n = int.tryParse(v.replaceAll(',', '.'));
+                    if (n != null) widget.onDaysChanged(n.clamp(1, 365));
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 2),
+            const Text('Tagen',
+                style: TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14)),
+          ]),
+        ),
+        Expanded(
+          child: Center(
+            child: SizedBox(
+              width: 73,
+              child: TextField(
+                controller: _pctCtrl,
+                focusNode: _pctFocus,
+                keyboardType: const TextInputType.numberWithOptions(
+                    signed: false, decimal: false),
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(2),
+                ],
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14),
+                textAlign: TextAlign.center,
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 7, horizontal: 8),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.05),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide:
+                          BorderSide(color: Colors.white.withValues(alpha: 0.16))),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4),
+                      borderSide: BorderSide(
+                          color: primary.withValues(alpha: 0.9))),
+                  suffixText: '%',
+                  suffixStyle: const TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13),
+                  hintText: '0',
+                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                ),
+                onChanged: (v) {
+                  final n = double.tryParse(v.replaceAll(',', '.'));
+                  widget.onPercentEmptyChanged?.call(v.trim().isEmpty);
+                  if (n != null) {
+                    widget.onPercentChanged(n.clamp(0.0, 95.0).toDouble());
+                  }
+                },
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                  width: 1,
+                  height: 18,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  color: Colors.white.withValues(alpha: 0.18)),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(discountedText,
+                      textAlign: TextAlign.right,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14)),
+                ),
+              )
             ],
-            style: const TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
-              labelText: 'Mietdauer',
-              labelStyle: TextStyle(
-                  color: Colors.lightBlueAccent, fontWeight: FontWeight.w700),
-              floatingLabelStyle: TextStyle(
-                  color: Colors.lightBlueAccent, fontWeight: FontWeight.w700),
-              floatingLabelAlignment: FloatingLabelAlignment.center,
-              floatingLabelBehavior: FloatingLabelBehavior.always,
-              prefixText: 'Ab ',
-              suffixText: ' Tagen',
-              isDense: true,
-            ),
-            onChanged: (v) {
-              final n = int.tryParse(v.replaceAll(',', '.'));
-              if (n != null) widget.onDaysChanged(n.clamp(1, 365));
-            },
           ),
-        ),
-      ),
-      const SizedBox(width: 12),
-      // Rabatt: behave like a single input (like Mietdauer). Tap to edit percent; right side shows computed €/Tag.
-      // Widen the editable area so multiple digits remain fully visible.
-      Flexible(
-        flex: 10,
-        child: TextField(
-          controller: _pctCtrl,
-          focusNode: _pctFocus,
-          keyboardType: const TextInputType.numberWithOptions(
-              signed: false, decimal: false),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(2),
-          ],
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: 'Rabatt',
-            labelStyle: const TextStyle(
-                color: Colors.lightBlueAccent, fontWeight: FontWeight.w700),
-            floatingLabelStyle: const TextStyle(
-                color: Colors.lightBlueAccent, fontWeight: FontWeight.w700),
-            floatingLabelAlignment: FloatingLabelAlignment.center,
-            floatingLabelBehavior: FloatingLabelBehavior.always,
-            isDense: true,
-            // Place '%' on the left, before the entered value, aligned across rows
-            // Ensure the prefix does not intercept taps so the field stays editable
-            prefixIcon: const IgnorePointer(child: _PercentPrefix()),
-            prefixIconConstraints: _PercentPrefix.constraints,
-            // Keep the computed "€/Tag" as a compact suffix that only takes its intrinsic width
-            // so the editable area remains wide enough to show the typed number.
-            suffix: IgnorePointer(
-                child: _ComputedDiscountSuffix(value: discountEuroPerDay)),
-          ),
-          onChanged: (v) {
-            final n = double.tryParse(v.replaceAll(',', '.'));
-            widget.onPercentEmptyChanged?.call(v.trim().isEmpty);
-            if (n != null)
-              widget.onPercentChanged(n.clamp(0.0, 95.0).toDouble());
-          },
-        ),
-      ),
-    ]);
-  }
-}
-
-class _PercentPrefix extends StatelessWidget {
-  const _PercentPrefix();
-
-  // Fixed width so '%' aligns vertically across all Rabatt rows
-  static const double _width = 24; // slimmer to free space for input
-  static final BoxConstraints constraints = const BoxConstraints(
-    minWidth: _width,
-    maxWidth: _width,
-    minHeight: 0,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: constraints.maxWidth,
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Padding(
-          // Keep a small left inset; keep gap to the input minimal
-          padding: const EdgeInsets.only(left: 8, right: 2),
-          child: Text('%', style: const TextStyle(color: Colors.white)),
-        ),
-      ),
+        )
+      ]),
     );
-  }
-}
-
-class _ComputedDiscountSuffix extends StatelessWidget {
-  final double value;
-  const _ComputedDiscountSuffix({required this.value});
-
-  // Compact layout sizes. This widget is used as InputDecoration.suffix (not suffixIcon)
-  // so it will shrink-wrap to its intrinsic width and avoid stealing space from the input text.
-  static const double _dividerWidth = 1;
-  static const double _gapBeforeDivider =
-      6; // pull divider closer to reclaim input width
-  static const double _gapAfterDivider = 6;
-  static const double _endPadding = 12; // ~2mm from the field's right edge
-
-  @override
-  Widget build(BuildContext context) {
-    final text =
-        (value.isFinite ? value.toStringAsFixed(2) : '0.00') + ' €/Tag';
-    return Row(mainAxisSize: MainAxisSize.min, children: [
-      SizedBox(width: _gapBeforeDivider),
-      Container(width: _dividerWidth, height: 24, color: Colors.white24),
-      const SizedBox(width: _gapAfterDivider),
-      // Let the euro text size itself but keep it from growing too tall and clip if needed
-      Flexible(
-        fit: FlexFit.loose,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 44, maxWidth: 96),
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerRight,
-              child: Text(text,
-                  style: const TextStyle(color: Colors.white),
-                  maxLines: 1,
-                  softWrap: false),
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(width: _endPadding),
-    ]);
   }
 }

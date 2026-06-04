@@ -1565,10 +1565,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                                     )
                                                   : _ChatBubble(
                                                       text: translation.original,
-                                                translatedText: translation.translated,
-                                                translationLabel: (translation.translated != null || translation.placeholder)
-                                                    ? _translationLabel(translation.languageCode, translation.placeholder)
-                                                    : null,
+                                                      translatedText: translation.translated,
+                                                      translationLabel: (translation.translated != null || translation.placeholder)
+                                                          ? _translationLabel(translation.languageCode, translation.placeholder)
+                                                          : null,
                                                       translationPlaceholder: translation.placeholder,
                                                       showOriginalUnderTranslation: translation.showOriginalUnderTranslation,
                                                       me: isMe,
@@ -1781,7 +1781,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
     return result;
   }
-
   /// Findet angefragte Zeit in System-Nachrichten
   String? _findRequestedTime(List<Message> messages, {required bool isHandover}) {
     final searchTerm = isHandover ? 'Übergabezeit angefragt' : 'Rückgabezeit angefragt';
@@ -3371,7 +3370,6 @@ class _ChatBubble extends StatelessWidget {
     final maxWidth = MediaQuery.of(context).size.width * 0.72;
     final hasTranslation = translatedText != null && translatedText!.trim().isNotEmpty;
     final showPlaceholderLabel = !hasTranslation && translationPlaceholder && translationLabel != null;
-
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 3),
       padding: const EdgeInsets.fromLTRB(12, 9, 10, 7),
@@ -5197,12 +5195,12 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
   static const Duration _focusAnimDuration = Duration(milliseconds: 140);
   static const double _fieldMinHeight = 40.0;
   static const double _fieldFontSize = 15.0;
-
   late AnimationController _animController;
   late Animation<double> _fadeOuterIcons;
   late Animation<double> _fadeInnerIcons;
 
   void _focusInput() {
+    // Ensure a single tap both expands the field and puts the cursor inside.
     if (!widget.focusNode.hasFocus) {
       FocusScope.of(context).requestFocus(widget.focusNode);
     }
@@ -5226,7 +5224,6 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
     if (!mounted) return;
     setState(() {});
   }
-
   @override
   void initState() {
     super.initState();
@@ -5291,7 +5288,8 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
 
     // Vertical padding for 40px field with 15px font
     const vPad = (_fieldMinHeight - _fieldFontSize) / 2;
-
+    // Breitenreserve für Inline-Icons im fokussierten Zustand (2 Icons à 28px + 6px Abstand + 12px Innenabstand)
+    const double focusedIconGutter = 28 + 6 + 28 + 12;
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -5300,21 +5298,28 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Linke Icon-Leiste: nur sichtbar wenn nicht fokussiert
-          Row(
-            key: const ValueKey('outer_icons'),
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _GlassIconButton(icon: Icons.photo_camera_outlined, onTap: widget.onSendPhoto, iconSize: _iconSize),
-              const SizedBox(width: 8),
-              _GlassIconButton(icon: Icons.attach_file_rounded, onTap: widget.onPickFile, iconSize: _iconSize),
-              if (showTimeIcon) ...[
-                const SizedBox(width: 8),
-                _GlassIconButton(icon: Icons.schedule_rounded, onTap: widget.onChangeTime, iconSize: _iconSize),
-              ],
-              const SizedBox(width: 8),
-              _GlassIconButton(icon: Icons.my_location_rounded, onTap: widget.onShareLocation, iconSize: _iconSize),
-              const SizedBox(width: 10),
-            ],
+          AnimatedSwitcher(
+            duration: _focusAnimDuration,
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeOut,
+            child: hasFocus
+                ? const SizedBox(width: 0, height: 40)
+                : Row(
+                    key: const ValueKey('outer_icons'),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _GlassIconButton(icon: Icons.photo_camera_outlined, onTap: widget.onSendPhoto, iconSize: _iconSize),
+                      const SizedBox(width: 8),
+                      _GlassIconButton(icon: Icons.attach_file_rounded, onTap: widget.onPickFile, iconSize: _iconSize),
+                      if (showTimeIcon) ...[
+                        const SizedBox(width: 8),
+                        _GlassIconButton(icon: Icons.schedule_rounded, onTap: widget.onChangeTime, iconSize: _iconSize),
+                      ],
+                      const SizedBox(width: 8),
+                      _GlassIconButton(icon: Icons.my_location_rounded, onTap: widget.onShareLocation, iconSize: _iconSize),
+                      const SizedBox(width: 10),
+                    ],
+                  ),
           ),
           // Input field takes remaining width
           Expanded(
@@ -5357,7 +5362,7 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
                         filled: false,
                         isDense: false,
                         isCollapsed: true,
-                        contentPadding: const EdgeInsets.fromLTRB(14, vPad, 14, vPad),
+                        contentPadding: EdgeInsets.fromLTRB(hasFocus ? focusedIconGutter + 12 : 14, vPad, 14, vPad),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
@@ -5374,6 +5379,34 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
                         widget.onSend();
                       },
                     ),
+                    // Icons positioned left inside field (only when focused)
+                    if (hasFocus)
+                      Positioned(
+                        left: 10,
+                        top: 0,
+                        bottom: 0,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _InlineFocusedIcon(
+                              icon: Icons.photo_camera_outlined,
+                              onTap: () {
+                                _focusInput();
+                                widget.onSendPhoto();
+                              },
+                            ),
+                            const SizedBox(width: 6),
+                            _InlineFocusedIcon(
+                              icon: Icons.attach_file_rounded,
+                              onTap: () {
+                                _focusInput();
+                                widget.onPickFile();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -5414,7 +5447,6 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
 class _InlineFocusedIcon extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-
   const _InlineFocusedIcon({required this.icon, required this.onTap});
 
   @override
@@ -5744,7 +5776,6 @@ class _SitSendIcon extends StatelessWidget {
     );
   }
 }
-
 
 
 class _ReturnLocationReuseCard extends StatelessWidget {

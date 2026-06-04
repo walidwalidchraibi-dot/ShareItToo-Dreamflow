@@ -261,7 +261,7 @@ class _SearchSheetState extends State<_SearchSheet> {
   double? _priceMin;
   double? _priceMax;
 
-  /// Selected category must always come from the same 11 coarse categories as
+  /// Selected category must always come from the same coarse categories as
   /// the "Neue Anzeige" flow.
   String? _coarseCategory;
 
@@ -278,19 +278,45 @@ class _SearchSheetState extends State<_SearchSheet> {
 
     // Simple synonyms for common natural-language inputs.
     final synonymHints = <String, String>{
-      'auto': 'Fahrzeuge & Mobilität',
-      'wagen': 'Fahrzeuge & Mobilität',
-      'pkw': 'Fahrzeuge & Mobilität',
-      'mercedes': 'Fahrzeuge & Mobilität',
-      'bmw': 'Fahrzeuge & Mobilität',
-      'audi': 'Fahrzeuge & Mobilität',
-      'transporter': 'Fahrzeuge & Mobilität',
-      'wohnmobil': 'Fahrzeuge & Mobilität',
-      'fahrrad': 'Fahrzeuge & Mobilität',
-      'ebike': 'Fahrzeuge & Mobilität',
-      'e-bike': 'Fahrzeuge & Mobilität',
-      'e scooter': 'Fahrzeuge & Mobilität',
-      'e-scooter': 'Fahrzeuge & Mobilität',
+      'auto': 'Auto & Mobilität',
+      'wagen': 'Auto & Mobilität',
+      'pkw': 'Auto & Mobilität',
+      'mercedes': 'Auto & Mobilität',
+      'bmw': 'Auto & Mobilität',
+      'audi': 'Auto & Mobilität',
+      'transporter': 'Auto & Mobilität',
+      'wohnmobil': 'Auto & Mobilität',
+      'fahrrad': 'Auto & Mobilität',
+      'ebike': 'Auto & Mobilität',
+      'e-bike': 'Auto & Mobilität',
+      'e scooter': 'Auto & Mobilität',
+      'e-scooter': 'Auto & Mobilität',
+      'camping': 'Reisen & Camping',
+      'zelt': 'Reisen & Camping',
+      'reise': 'Reisen & Camping',
+      'urlaub': 'Reisen & Camping',
+      'party': 'Events & Feiern',
+      'feier': 'Events & Feiern',
+      'hochzeit': 'Events & Feiern',
+      'geburtstag': 'Events & Feiern',
+      'werkzeug': 'Werkzeuge & Kleingeräte',
+      'bohrer': 'Werkzeuge & Kleingeräte',
+      'säge': 'Werkzeuge & Kleingeräte',
+      'saege': 'Werkzeuge & Kleingeräte',
+      'kleidung': 'Kleidung & Anlässe',
+      'anzug': 'Kleidung & Anlässe',
+      'kleid': 'Kleidung & Anlässe',
+      'kostüm': 'Kleidung & Anlässe',
+      'kostuem': 'Kleidung & Anlässe',
+      'baby': 'Baby & Familie',
+      'familie': 'Baby & Familie',
+      'kinderwagen': 'Baby & Familie',
+      'garten': 'Garten & Outdoor',
+      'grill': 'Garten & Outdoor',
+      'büro': 'Büro & Lernen',
+      'buero': 'Büro & Lernen',
+      'office': 'Büro & Lernen',
+      'schule': 'Büro & Lernen',
     };
     for (final e in synonymHints.entries) {
       if (q.contains(e.key)) return e.value;
@@ -332,24 +358,26 @@ class _SearchSheetState extends State<_SearchSheet> {
     switch (group) {
       case 'Technik & Elektronik':
         return Icons.devices_other_outlined;
-      case 'Haushalt & Wohnen':
-        return Icons.weekend_outlined;
-      case 'Fahrzeuge & Mobilität':
-        return Icons.directions_car_outlined;
-      case 'Mode & Lifestyle':
-        return Icons.checkroom_outlined;
-      case 'Sport & Hobbys':
-        return Icons.sports_soccer_outlined;
       case 'Werkzeuge & Kleingeräte':
         return Icons.construction_outlined;
-      case 'Garten & Hof':
+      case 'Haushalt & Wohnen':
+        return Icons.weekend_outlined;
+      case 'Sport & Hobbys':
+        return Icons.sports_soccer_outlined;
+      case 'Auto & Mobilität':
+        return Icons.directions_car_outlined;
+      case 'Garten & Outdoor':
         return Icons.grass_outlined;
-      case 'Büro & Gewerbe':
-        return Icons.business_center_outlined;
-      case 'Babys & Kinder':
-        return Icons.child_friendly_outlined;
-      case 'Haustierbedarf':
-        return Icons.pets_outlined;
+      case 'Events & Feiern':
+        return Icons.celebration_outlined;
+      case 'Baby & Familie':
+        return Icons.family_restroom;
+      case 'Reisen & Camping':
+        return Icons.travel_explore;
+      case 'Kleidung & Anlässe':
+        return Icons.checkroom_outlined;
+      case 'Büro & Lernen':
+        return Icons.school_outlined;
       case 'Sonstiges':
         return Icons.more_horiz;
       default:
@@ -515,7 +543,7 @@ class _SearchSheetState extends State<_SearchSheet> {
   bool _isReturnValid(DateTime from, DateTime to) => to.isAfter(from);
 
   String _fmt(DateTime? dt) => dt == null
-      ? 'Datum wählen'
+      ? 'Zeitraum wählen'
       : '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
 
   List<Item> _filteredResults() {
@@ -977,7 +1005,7 @@ class _SearchSheetState extends State<_SearchSheet> {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: primary.withValues(alpha: 0.25)),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -995,18 +1023,17 @@ class _SearchSheetState extends State<_SearchSheet> {
                 controller: _aiCtrl,
                 focusNode: _aiFocus,
                 style: const TextStyle(color: Colors.white, fontSize: 13),
-                maxLines: 2,
-                minLines: 1,
+                maxLines: 3,
+                minLines: 2,
                 textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                   border: InputBorder.none,
                   hintText:
-                      'z. B. „Bohrmaschine in Berlin ab heute für 3 Tage“',
+                      'Beschreibe einfach, was du brauchst.\n„Akkuschrauber in Leipzig für 2 Tage“',
                   hintStyle: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.35),
-                      fontSize: 12),
+                      color: Colors.white.withValues(alpha: 0.35), fontSize: 12),
                 ),
                 onChanged: (v) {
                   // Debounce to avoid firing an OpenAI request on every keystroke.
@@ -1020,7 +1047,7 @@ class _SearchSheetState extends State<_SearchSheet> {
                     _suggestCategoriesFromText(v);
                   });
 
-                  // Instant: infer category from taxonomy (e.g., "Auto" -> "Fahrzeuge & Mobilität").
+                  // Instant: infer category from taxonomy (e.g., "Auto" -> "Auto & Mobilität").
                   final inferred = _normalizeCoarseCategory(v);
                   if (inferred != null) {
                     _setSelectedCoarseCategory(inferred);
@@ -1049,7 +1076,7 @@ class _SearchSheetState extends State<_SearchSheet> {
             link: _whatLink,
             child: _FieldShell(
               key: _whatFieldKey,
-              label: 'Was',
+               label: 'Was',
               trailingIcon: Icons.widgets_outlined,
               child: TextField(
                 controller: _whatCtrl,
@@ -1060,20 +1087,20 @@ class _SearchSheetState extends State<_SearchSheet> {
                 textAlignVertical: TextAlignVertical.center,
                 maxLines: 1,
                 minLines: 1,
-                decoration: const InputDecoration(
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                  border: InputBorder.none,
-                  hintText: 'Was möchtest du ausleihen?',
-                  hintStyle: TextStyle(color: Colors.white70, fontSize: 13),
-                ),
+                 decoration: const InputDecoration(
+                   isDense: true,
+                   contentPadding: EdgeInsets.zero,
+                   border: InputBorder.none,
+                   hintText: 'Was suchst du?',
+                   hintStyle: TextStyle(color: Colors.white70, fontSize: 13),
+                 ),
               ),
             ),
           ),
         ),
         const SizedBox(height: 6),
         _FieldShell(
-          label: 'Kat.',
+          label: 'Kategorie',
           trailingIcon: Icons.category_outlined,
           child: InkWell(
             onTap: _openCategoryPicker,
@@ -1086,7 +1113,7 @@ class _SearchSheetState extends State<_SearchSheet> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      _coarseCategory ?? 'Kat. wählen',
+                      _coarseCategory ?? 'Alle Kategorien',
                       style:
                           const TextStyle(fontSize: 13, color: Colors.white70),
                       overflow: TextOverflow.ellipsis,
@@ -1153,8 +1180,8 @@ class _SearchSheetState extends State<_SearchSheet> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      (_pickup == null || _return == null)
-                          ? 'Datum wählen'
+                       (_pickup == null || _return == null)
+                           ? 'Zeitraum wählen'
                           : '${_fmt(_pickup)} → ${_fmt(_return)}',
                       style:
                           const TextStyle(fontSize: 13, color: Colors.white70),
@@ -1169,7 +1196,7 @@ class _SearchSheetState extends State<_SearchSheet> {
         const SizedBox(height: 12),
         // "Zuletzt gesucht" Abschnitt entfernt
         const SizedBox(height: 12),
-        Text('Vorschläge in der Nähe',
+        Text('Beliebt in deiner Nähe',
             style: theme.textTheme.titleMedium
                 ?.copyWith(fontWeight: FontWeight.w700, color: Colors.white)),
         const SizedBox(height: 8),
@@ -1229,9 +1256,11 @@ class _SearchSheetState extends State<_SearchSheet> {
           Expanded(
               child: OutlinedButton(
                   onPressed: _clearAll,
-                  style:
-                      OutlinedButton.styleFrom(foregroundColor: Colors.white),
-                  child: const Text('Alles löschen'))),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    side: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
+                  ),
+                  child: const Text('Zurücksetzen'))),
           const SizedBox(width: 12),
           Expanded(
               child: FilledButton(
@@ -1267,7 +1296,7 @@ class _FieldShell extends StatelessWidget {
       {Key? key, required this.label, required this.child, this.trailingIcon})
       : super(key: key);
   static const double _labelWidth =
-      64; // ensures first letters align vertically
+      82; // ensures first letters align vertically without truncating "Kategorie"
   static const double _iconSlotWidth = 28; // fixed slot for icon alignment
   @override
   Widget build(BuildContext context) {

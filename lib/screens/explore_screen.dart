@@ -864,8 +864,9 @@ const SliverToBoxAdapter(child: SizedBox(height: 0)),
                     pageCount: 4,
                     showLeft: true,
                     showRight: true,
-                     // Move the page arrows up to the page-title area.
-                     arrowsTop: 6,
+                    showArrows: false,
+                    // Keep the fade aligned with the page-title area.
+                    arrowsTop: 6,
                     child: PageView(
                       controller: _feedPager,
                       physics: const BouncingScrollPhysics(),

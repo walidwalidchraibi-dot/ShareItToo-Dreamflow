@@ -24,7 +24,7 @@ class Item {
   final double lng;
   final String geohash;
   // Item meta
-  final String condition; // 'new' | 'like-new' | 'good' | 'acceptable' | legacy: 'used'
+  final String condition; // 'new' | 'like-new' | 'good' | 'acceptable' | 'worn' | legacy: 'used'
   final int? minDays;
   final int? maxDays;
   final DateTime createdAt;

@@ -27,10 +27,10 @@ class WishlistMosaicCard extends StatelessWidget {
     Widget content = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       _Mosaic(urls: photoUrls, empty: isEmpty, totalCount: count),
       Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(isEmpty ? 'Noch leer' : '$count Artikel', style: metaStyle),
         ]),
       ),

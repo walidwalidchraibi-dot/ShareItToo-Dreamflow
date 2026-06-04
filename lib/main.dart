@@ -110,6 +110,29 @@ class MyApp extends StatelessWidget {
 class AppRoot extends StatelessWidget {
   const AppRoot({super.key});
 
+  // Preview-only: auto sign-in with local demo user to unlock gated areas in Dreamflow Preview.
+  static const bool _enableDreamflowPreviewDemoAuth = true;
+
+  Future<AuthSession?> _loadSessionWithPreviewFallback() async {
+    try {
+      final existing = await AuthService.readSession();
+      if (existing != null) return existing;
+      if (_enableDreamflowPreviewDemoAuth && !kReleaseMode) {
+        await AuthService.ensureSeeded();
+        final result = await AuthService.signInWithEmailPassword(
+          email: AuthService.demoEmail,
+          password: AuthService.demoPassword,
+        );
+        if (result.ok) {
+          return await AuthService.readSession();
+        }
+      }
+    } catch (e) {
+      debugPrint('[AppRoot] preview auto-login failed: $e');
+    }
+    return null;
+  }
+
   Widget _buildPreviewRoute(DeveloperPreviewController preview) {
     switch (preview.state) {
       case DeveloperUserState.firstLaunch:
@@ -132,7 +155,7 @@ class AppRoot extends StatelessWidget {
     }
 
     return FutureBuilder<AuthSession?>(
-      future: AuthService.readSession(),
+      future: _loadSessionWithPreviewFallback(),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const _StartupBrandLoader();

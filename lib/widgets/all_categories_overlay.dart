@@ -59,7 +59,7 @@ class AllCategoriesScreen extends StatelessWidget {
       body: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
           child: LayoutBuilder(
             builder: (context, c) {
               final w = c.maxWidth;
@@ -75,9 +75,8 @@ class AllCategoriesScreen extends StatelessWidget {
               } else {
                 crossAxisCount = 2;
               }
-
-              const crossAxisSpacing = 12.0;
-              const mainAxisSpacing = 12.0;
+              const crossAxisSpacing = 14.0;
+              const mainAxisSpacing = 16.0;
               const aspectRatio = 3 / 2;
 
               // If the last row would contain a single item (e.g. “Sonstiges”),
@@ -86,12 +85,18 @@ class AllCategoriesScreen extends StatelessWidget {
               final mainCount = shouldCenterLast ? categories.length - 1 : categories.length;
 
               final centeredTileWidth = (w - crossAxisSpacing * (crossAxisCount - 1)) / crossAxisCount;
+              final tileHeight = centeredTileWidth / aspectRatio;
+              final mainRows = mainCount == 0 ? 0 : ((mainCount - 1) ~/ crossAxisCount) + 1;
+              final totalGridHeight = (mainRows * tileHeight) + ((mainRows > 0 ? mainRows - 1 : 0) * mainAxisSpacing) + (shouldCenterLast ? (mainAxisSpacing + tileHeight) : 0);
+              final verticalChrome = shouldCenterLast ? mainAxisSpacing + 32 + media.viewPadding.bottom : 20 + media.viewPadding.bottom;
+              // Avoid tiny scrollbars when the grid already fits the viewport.
+              final needsScroll = (totalGridHeight + verticalChrome) > c.maxHeight;
 
               return CustomScrollView(
-                physics: const BouncingScrollPhysics(),
+                physics: needsScroll ? const BouncingScrollPhysics() : const NeverScrollableScrollPhysics(),
                 slivers: [
                   SliverPadding(
-                    padding: EdgeInsets.only(bottom: shouldCenterLast ? mainAxisSpacing : (8 + media.viewPadding.bottom)),
+                    padding: EdgeInsets.only(top: 12, bottom: shouldCenterLast ? mainAxisSpacing : (8 + media.viewPadding.bottom)),
                     sliver: SliverGrid(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossAxisCount,
@@ -114,7 +119,7 @@ class AllCategoriesScreen extends StatelessWidget {
                   ),
                   if (shouldCenterLast)
                     SliverPadding(
-                      padding: EdgeInsets.only(bottom: 8 + media.viewPadding.bottom),
+                      padding: EdgeInsets.only(top: 12, bottom: 8 + media.viewPadding.bottom),
                       sliver: SliverToBoxAdapter(
                         child: Center(
                           child: SizedBox(

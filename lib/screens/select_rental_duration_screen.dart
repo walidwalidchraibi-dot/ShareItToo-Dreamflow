@@ -648,7 +648,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                           const SizedBox(height: 10),
                           _ChoiceCard(
                             title: widget.item.offersPickupAtReturn ? 'Abholung durch Vermieter' : 'Aktuell nicht verfügbar',
-                            subtitle: widget.item.offersPickupAtReturn ? 'Der Vermieter holt den Artikel bei dir ab.' : 'Rückgabe-Abholung ist für diesen Artikel aktuell nicht verfügbar.',
+                            subtitle: widget.item.offersPickupAtReturn ? 'Der Vermieter holt den Artikel bei dir ab.' : 'Abholung ist für diesen Artikel aktuell nicht verfügbar.',
                             selected: _rueckwegLandlord,
                             enabled: widget.item.offersPickupAtReturn,
                             onTap: () {

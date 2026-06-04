@@ -90,6 +90,8 @@ class AIPriceCalculatorService {
         return 1.0;
       case 'acceptable':
         return 0.75;
+      case 'worn':
+        return 0.6;
       default:
         return 1.0;
     }
@@ -141,6 +143,8 @@ class AIPriceCalculatorService {
         return 'Gut';
       case 'acceptable':
         return 'Akzeptabel';
+      case 'worn':
+        return 'Stark gebraucht';
       default:
         return condition;
     }

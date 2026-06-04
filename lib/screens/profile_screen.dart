@@ -12,7 +12,6 @@ import 'package:lendify/screens/verification_intro_screen.dart';
 import 'package:lendify/screens/edit_profile_screen.dart';
 import 'package:lendify/screens/account_settings_screen.dart';
 import 'package:lendify/screens/bookings_screen.dart';
-import 'package:lendify/screens/notifications_screen.dart';
 import 'package:lendify/screens/help_center_screen.dart';
 import 'package:lendify/screens/legal_screen.dart';
 import 'package:lendify/screens/language_screen.dart';
@@ -27,6 +26,7 @@ import 'package:lendify/widgets/profile_logged_out_banner.dart';
 import 'package:lendify/widgets/login_nudge_sheet.dart';
 import 'package:lendify/navigation/main_navigation.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
+import 'package:lendify/screens/notifications_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -43,10 +43,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _hasNewRequests = false;
   bool _isLoggedOutUser = false;
   bool _hasActiveSession = false;
+  bool _isProfileSearchOpen = false;
   // Feedback state
   final TextEditingController _feedbackCtrl = TextEditingController();
   final FocusNode _feedbackFocus = FocusNode();
   bool _sendingFeedback = false;
+  final TextEditingController _profileSearchCtrl = TextEditingController();
+  final FocusNode _profileSearchFocus = FocusNode();
+  final List<_ProfileSearchEntry> _profileSearchEntries = const [
+    _ProfileSearchEntry(
+      id: 'account_settings',
+      labelKey: 'profile.menu.accountSettings',
+      titleFallback: 'Kontoeinstellungen',
+      icon: Icons.settings_outlined,
+      route: '/accountSettings',
+      description: 'Login, Passwort, Adresse, Sicherheit',
+      keywords: ['konto', 'passwort', 'login', 'sicherheit', 'email', 'telefon', 'adresse', '2fa', 'zweifaktor', 'zahlungsmethoden'],
+    ),
+    _ProfileSearchEntry(
+      id: 'notifications',
+      titleFallback: 'Benachrichtigungen',
+      icon: Icons.notifications_outlined,
+      description: 'Push, E-Mail, Ruhezeiten',
+      keywords: ['push', 'meldungen', 'hinweise', 'ruhe', 'unread'],
+      action: _ProfileSearchEntryAction.notifications,
+    ),
+    _ProfileSearchEntry(
+      id: 'help_center',
+      labelKey: 'profile.menu.helpCenter',
+      titleFallback: 'Hilfe-Center',
+      icon: Icons.help_outline,
+      route: '/help',
+      description: 'FAQ, Support, Kontakt',
+      keywords: ['support', 'faq', 'kontakt', 'hilfe', 'problem'],
+    ),
+    _ProfileSearchEntry(
+      id: 'legal',
+      labelKey: 'profile.menu.legal',
+      titleFallback: 'Rechtliches',
+      icon: Icons.article_outlined,
+      route: '/legal',
+      description: 'AGB, Datenschutz, Richtlinien',
+      keywords: ['agb', 'datenschutz', 'recht', 'bedingungen', 'richtlinien', 'impressum'],
+    ),
+    _ProfileSearchEntry(
+      id: 'language',
+      labelKey: 'profile.menu.language',
+      titleFallback: 'Sprache',
+      icon: Icons.language,
+      route: '/language',
+      description: 'App-Sprache',
+      keywords: ['language', 'sprache', 'übersetzung'],
+    ),
+    _ProfileSearchEntry(
+      id: 'verification',
+      titleFallback: 'Verifizierung',
+      icon: Icons.verified_user_outlined,
+      route: '/verify',
+      description: 'Identitätsprüfung',
+      keywords: ['verifizieren', 'ausweis', 'identität', 'prüfung'],
+    ),
+  ];
 
   FeedbackValidation _validateFeedback(String input) {
     final raw = input;
@@ -191,6 +248,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void dispose() {
     _feedbackCtrl.dispose();
     _feedbackFocus.dispose();
+    _profileSearchCtrl.dispose();
+    _profileSearchFocus.dispose();
     super.dispose();
   }
 
@@ -242,6 +301,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  void _toggleProfileSearch() {
+    setState(() {
+      _isProfileSearchOpen = !_isProfileSearchOpen;
+      if (_isProfileSearchOpen) {
+        _profileSearchCtrl.clear();
+        Future.microtask(() => _profileSearchFocus.requestFocus());
+      } else {
+        _profileSearchCtrl.clear();
+        _profileSearchFocus.unfocus();
+      }
+    });
+  }
+
+  List<_ProfileSearchEntry> _profileSearchResults(LocalizationController l10n) {
+    final query = _profileSearchCtrl.text.trim().toLowerCase();
+    final entries = _profileSearchEntries;
+    if (query.isEmpty) return const [];
+    return entries.where((entry) {
+      final haystack = <String>[
+        entry.title(l10n).toLowerCase(),
+        if (entry.description != null) entry.description!.toLowerCase(),
+        ...entry.keywords.map((k) => k.toLowerCase()),
+      ];
+      return haystack.any((text) => text.contains(query));
+    }).toList();
+  }
+
+  void _openProfileSearchEntry(_ProfileSearchEntry entry, {required bool isGuest}) {
+    _profileSearchFocus.unfocus();
+    setState(() {
+      _isProfileSearchOpen = false;
+      _profileSearchCtrl.clear();
+    });
+
+    if (entry.route != null) {
+      if (isGuest && _isLoginRequiredRoute(entry.route!)) {
+        showGuestRestrictionSheet(context, gateContext: _guestGateContextForRoute(entry.route!));
+        return;
+      }
+      _handleRoute(entry.route!);
+      return;
+    }
+
+    if (entry.action != null) {
+      switch (entry.action!) {
+        case _ProfileSearchEntryAction.notifications:
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+          break;
+      }
+    }
+  }
+
   User _placeholderUser() {
     final now = DateTime.now();
     return User(
@@ -290,6 +401,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userForDisplay = _user ?? (isGuest ? _guestUser() : _placeholderUser());
     final verified = userForDisplay.isVerified;
     final bool _hasAnyNotifications = _hasNewRequests; // extend when adding more sources
+    final hasProfileQuery = _isProfileSearchOpen && _profileSearchCtrl.text.trim().isNotEmpty;
+    final searchResults = _isProfileSearchOpen ? _profileSearchResults(l10n) : const <_ProfileSearchEntry>[];
+    final visibleProfileResults = hasProfileQuery ? searchResults : const <_ProfileSearchEntry>[];
+    final showProfileSearchEmpty = hasProfileQuery && searchResults.isEmpty;
     // JSON-like spec that defines the Profile menu structure
     final Map<String, dynamic> menuSpec = {
       'primaryActions': [
@@ -381,19 +496,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
         leading: IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
         title: Text(l10n.t('Profil')),
         actions: [
-          Transform.translate(
-            offset: const Offset(-12.6, 0), // shift ~3mm to the left
-            child: Stack(children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
               IconButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen(),
-                  ),
-                ),
-                icon: const Icon(Icons.notifications_outlined),
+                tooltip: l10n.t('Suchen'),
+                onPressed: _toggleProfileSearch,
+                icon: Icon(_isProfileSearchOpen ? Icons.close : Icons.search),
               ),
-              if (_hasAnyNotifications)
-                Positioned(right: 8, top: 8, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle))),
+              Stack(children: [
+                IconButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.notifications_outlined),
+                ),
+                if (_hasAnyNotifications)
+                  Positioned(right: 8, top: 8, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle))),
+              ]),
             ]),
           ),
         ],
@@ -401,6 +523,78 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 16, 16, 40),
         child: Column(children: [
+          if (_isProfileSearchOpen) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.30),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              ),
+              child: Column(children: [
+                TextField(
+                  controller: _profileSearchCtrl,
+                  focusNode: _profileSearchFocus,
+                  onChanged: (_) => setState(() {}),
+                  onSubmitted: (_) {
+                    if (visibleProfileResults.isNotEmpty) {
+                      _openProfileSearchEntry(visibleProfileResults.first, isGuest: isGuest);
+                    }
+                  },
+                  decoration: InputDecoration(
+                    hintText: l10n.t('Nach Kontoeinstellungen, Hilfe oder Rechtlichem suchen'),
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        if (_profileSearchCtrl.text.isNotEmpty) {
+                          setState(() {
+                            _profileSearchCtrl.clear();
+                          });
+                          return;
+                        }
+                        _toggleProfileSearch();
+                      },
+                    ),
+                    filled: true,
+                    fillColor: Colors.black.withValues(alpha: 0.25),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6))),
+                  ),
+                ),
+                if (!showProfileSearchEmpty && visibleProfileResults.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Column(children: [
+                    for (final entry in visibleProfileResults)
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                        dense: true,
+                        leading: Icon(entry.icon, color: Colors.white70),
+                        title: Text(entry.title(l10n), style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)),
+                        subtitle: entry.description == null
+                            ? null
+                            : Text(entry.description!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white54)),
+                        trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+                        onTap: () => _openProfileSearchEntry(entry, isGuest: isGuest),
+                      ),
+                  ]),
+                ] else if (showProfileSearchEmpty) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      l10n.t('Keine Treffer – versuche einen anderen Begriff.'),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60),
+                    ),
+                  ),
+                ],
+              ]),
+            ),
+          ],
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 220),
             switchInCurve: Curves.easeOut,
@@ -965,4 +1159,30 @@ class FeedbackValidation {
   final bool valid;
   final String? reason;
   const FeedbackValidation({required this.valid, required this.reason});
+}
+
+enum _ProfileSearchEntryAction { notifications }
+
+@immutable
+class _ProfileSearchEntry {
+  final String id;
+  final String titleFallback;
+  final String? labelKey;
+  final IconData icon;
+  final String? route;
+  final _ProfileSearchEntryAction? action;
+  final String? description;
+  final List<String> keywords;
+  const _ProfileSearchEntry({
+    required this.id,
+    required this.titleFallback,
+    this.labelKey,
+    required this.icon,
+    this.route,
+    this.action,
+    this.description,
+    this.keywords = const [],
+  });
+
+  String title(LocalizationController l10n) => labelKey == null ? titleFallback : l10n.t(labelKey!);
 }

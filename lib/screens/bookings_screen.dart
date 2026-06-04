@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lendify/screens/booking_detail_screen.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart' as model;
+import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/box_chat_icon.dart';
 import 'package:lendify/widgets/review_prompt_sheet.dart';
@@ -88,7 +91,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     final itemId = (booking['itemId'] as String?)?.trim() ?? '';
     final listerId = (booking['listerId'] as String?)?.trim() ?? '';
     final needsReview = booking['needsReview'] == true;
-    return rawStatus == 'completed' && !needsReview && requestId.isNotEmpty && itemId.isNotEmpty && listerId.isNotEmpty;
+    final alreadyReviewed = booking['hasSubmittedReview'] == true;
+    return rawStatus == 'completed' && !needsReview && !alreadyReviewed && requestId.isNotEmpty && itemId.isNotEmpty && listerId.isNotEmpty;
   }
 
   bool _showingReminder = false;
@@ -149,18 +153,39 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     }
   }
 
+  Future<void> _openItemListing(String? itemId) async {
+    final targetId = itemId?.trim();
+    if (targetId == null || targetId.isEmpty || !mounted) return;
+    final item = await DataService.getItemById(targetId);
+    if (!mounted || item == null) return;
+    await ItemDetailsOverlay.showFullPage(context, item: item);
+  }
+
   Future<void> _load() async {
     final user = await DataService.getCurrentUser();
     if (user == null) {
+      final demo = await _buildDemoBookings(renterId: 'demo_renter');
       if (!mounted) return;
+      _unreadCounts
+        ..clear()
+        ..addAll({'ongoing': 1, 'upcoming': 1, 'pending': 1, 'completed': 3});
       setState(() {
-        _allBookings = const [];
-        _currentUserId = null;
+        _allBookings = demo;
+        _currentUserId = 'demo_renter';
       });
       return;
     }
     _currentUserId = user.id;
     final requests = await DataService.getRentalRequestsForRenter(user.id);
+    if (requests.isEmpty) {
+      final demo = await _buildDemoBookings(renterId: user.id);
+      if (!mounted) return;
+      _unreadCounts
+        ..clear()
+        ..addAll({'ongoing': 1, 'upcoming': 1, 'pending': 1, 'completed': 3});
+      setState(() => _allBookings = demo);
+      return;
+    }
     // Load items and listers referenced by requests
     final Map<String, Item?> itemById = {};
     final Map<String, model.User?> userById = {};
@@ -214,6 +239,142 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     setState(() => _allBookings = maps);
   }
 
+  Future<List<Map<String, dynamic>>> _buildDemoBookings({required String renterId}) async {
+    final now = DateTime.now();
+    final items = await DataService.getItems();
+    final users = await DataService.getUsers();
+    final itemPool = items.isNotEmpty
+        ? items
+        :
+        [
+            Item(
+              id: 'demo_fallback_item',
+              ownerId: 'demo_owner',
+              title: 'Demo Objekt',
+              description: 'Fallback Demo Item',
+              categoryId: 'electronics',
+              subcategory: 'demo',
+              tags: const [],
+              pricePerDay: 20,
+              currency: 'EUR',
+              photos: const ['https://picsum.photos/seed/demo_item/800/800'],
+              locationText: 'Berlin',
+              lat: 52.52,
+              lng: 13.405,
+              geohash: 'u33dc0',
+              condition: 'good',
+              createdAt: now.subtract(const Duration(days: 10)),
+              isActive: true,
+              verificationStatus: 'verified',
+              city: 'Berlin',
+              country: 'Deutschland',
+            ),
+          ];
+    Item pick(int index) => itemPool[index % itemPool.length];
+    final renter = users.firstWhere(
+      (u) => u.id == renterId,
+      orElse: () => model.User(
+        id: renterId,
+        displayName: 'Du',
+        email: 'demo@shareittoo.local',
+        preferredLanguage: 'de',
+        isVerified: true,
+        isBanned: false,
+        role: 'user',
+        avgRating: 4.8,
+        reviewCount: 42,
+        createdAt: now.subtract(const Duration(days: 120)),
+      ),
+    );
+
+    final List<RentalRequest> demoRequests = [
+      RentalRequest(
+        id: 'demo_req_pending',
+        itemId: pick(0).id,
+        ownerId: pick(0).ownerId,
+        renterId: renter.id,
+        start: now.add(const Duration(days: 3, hours: 2)),
+        end: now.add(const Duration(days: 5, hours: 2)),
+        status: 'pending',
+        expressRequested: true,
+        expressStatus: 'pending',
+        expressRequestedAt: now.subtract(const Duration(minutes: 8)),
+      ),
+      RentalRequest(
+        id: 'demo_req_upcoming',
+        itemId: pick(1).id,
+        ownerId: pick(1).ownerId,
+        renterId: renter.id,
+        start: now.add(const Duration(days: 2, hours: 1)),
+        end: now.add(const Duration(days: 4, hours: 1)),
+        status: 'accepted',
+        deliveryAddressLine: 'Sternschanze 12',
+        deliveryCity: 'Hamburg',
+        ownerDeliversAtDropoffChosen: true,
+      ),
+      RentalRequest(
+        id: 'demo_req_running',
+        itemId: pick(2).id,
+        ownerId: pick(2).ownerId,
+        renterId: renter.id,
+        start: now.subtract(const Duration(hours: 6)),
+        end: now.add(const Duration(days: 1, hours: 5)),
+        status: 'running',
+        handoverConfirmation: {'by': 'owner'},
+      ),
+      RentalRequest(
+        id: 'demo_req_completed_review_needed',
+        itemId: pick(3).id,
+        ownerId: pick(3).ownerId,
+        renterId: renter.id,
+        start: now.subtract(const Duration(days: 8)),
+        end: now.subtract(const Duration(days: 6)),
+        status: 'completed',
+        needsReview: true,
+        reviewReason: 'manual_hold',
+      ),
+      RentalRequest(
+        id: 'demo_req_completed_reviewable',
+        itemId: pick(4).id,
+        ownerId: pick(4).ownerId,
+        renterId: renter.id,
+        start: now.subtract(const Duration(days: 12)),
+        end: now.subtract(const Duration(days: 10)),
+        status: 'completed',
+        needsReview: false,
+      ),
+      RentalRequest(
+        id: 'demo_req_completed_reviewed',
+        itemId: pick(5).id,
+        ownerId: pick(5).ownerId,
+        renterId: renter.id,
+        start: now.subtract(const Duration(days: 20)),
+        end: now.subtract(const Duration(days: 18)),
+        status: 'completed',
+        needsReview: false,
+      ),
+    ];
+
+    final byUser = {for (final u in users) u.id: u};
+    final maps = <Map<String, dynamic>>[];
+    for (int i = 0; i < demoRequests.length; i++) {
+      final r = demoRequests[i];
+      final it = itemPool.firstWhere((item) => item.id == r.itemId, orElse: () => pick(i));
+      final owner = byUser[it.ownerId];
+      final map = await _toBookingMap(r, it, owner, null, reviewerId: renter.id);
+      // Override review state for the two completed cases
+      if (r.id == 'demo_req_completed_reviewed') {
+        map['hasSubmittedReview'] = true;
+      }
+      if (r.id == 'demo_req_running') {
+        map['handoverLocationLabel'] = 'Boxi, Berlin';
+        map['returnLocationLabel'] = 'Gleisdreieck';
+      }
+      maps.add(map);
+    }
+    return maps;
+  }
+
   Future<Map<String, dynamic>> _toBookingMap(RentalRequest r, Item it, model.User? owner, Map<String, dynamic>? deliverySel, {required String reviewerId}) async {
     String fmt(DateTime d) {
       const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
@@ -252,6 +413,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       'rawStatus': r.status,
       'cancelledBy': r.cancelledBy,
       'needsReview': r.needsReview,
+      'hasSubmittedReview': reviewSubmitted,
       'title': it.title,
       'dates': '${fmt(r.start)} – ${fmt(r.end)}',
       'location': displayLocation,
@@ -329,7 +491,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       case 'running':
         return 'Laufend';
       case 'completed':
-        return r.needsReview ? 'Zur Prüfung' : 'Abgeschlossen';
+        return r.needsReview ? 'In Prüfung' : 'Abgeschlossen';
       case 'declined':
         return 'Abgelehnt';
       case 'cancelled':
@@ -357,8 +519,9 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
           centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          isScrollable: false,
-          tabAlignment: TabAlignment.center,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 12),
           labelColor: Theme.of(context).colorScheme.primary,
           unselectedLabelColor: Colors.white70,
           labelStyle: tabsStyle,
@@ -493,11 +656,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: SizedBox(
-                        width: 80,
-                        height: 80,
-                        child: _ThumbnailWithSkeleton(url: booking['image'] as String?),
-                      ),
+                      child: SizedBox(width: 80, height: 80, child: _ThumbnailWithSkeleton(url: booking['image'] as String?)),
                     ),
                     const SizedBox(width: 16),
                     // Right content column with fixed height to keep the whole card as high as the image
@@ -600,39 +759,40 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
         // Entfernt: "Anfrage zurückziehen" gehört jetzt in die Detailseite ganz unten (Ausstehende Buchung)
         return const SizedBox.shrink();
       case 'completed':
-        final alreadyReviewed = booking['hasSubmittedReview'] == true;
+        final canReview = _canReviewCompletedBooking(booking);
         return Wrap(spacing: 8, children: [
-          TextButton.icon(
-            onPressed: alreadyReviewed ? null : () async {
-              final current = await DataService.getCurrentUser();
-              if (current == null) return;
-              final requestId = booking['requestId'] as String?;
-              final itemId = booking['itemId'] as String?;
-              final listerId = booking['listerId'] as String?;
-              if (requestId == null || itemId == null || listerId == null) return;
-              final ok = await ReviewPromptSheet.show(
-                context,
-                requestId: requestId,
-                itemId: itemId,
-                reviewerId: current.id,
-                reviewedUserId: listerId,
-                direction: 'renter_to_owner',
-              );
-              if (ok == true && context.mounted) {
-                await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
-                final item = await DataService.getItemById(itemId);
-                if (item != null && context.mounted) {
-                  await ItemDetailsOverlay.showFullPage(context, item: item);
+          if (canReview)
+            TextButton.icon(
+              onPressed: () async {
+                final current = await DataService.getCurrentUser();
+                if (current == null) return;
+                final requestId = booking['requestId'] as String?;
+                final itemId = booking['itemId'] as String?;
+                final listerId = booking['listerId'] as String?;
+                if (requestId == null || itemId == null || listerId == null) return;
+                final ok = await ReviewPromptSheet.show(
+                  context,
+                  requestId: requestId,
+                  itemId: itemId,
+                  reviewerId: current.id,
+                  reviewedUserId: listerId,
+                  direction: 'renter_to_owner',
+                );
+                if (ok == true && context.mounted) {
+                  await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
+                  final item = await DataService.getItemById(itemId);
+                  if (item != null && context.mounted) {
+                    await ItemDetailsOverlay.showFullPage(context, item: item);
+                  }
+                  await _load();
+                } else if (ok == false && context.mounted) {
+                  await AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Bewertung abgegeben');
+                  await _load();
                 }
-                await _load();
-              } else if (ok == false && context.mounted) {
-                await AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Bewertung abgegeben');
-                await _load();
-              }
-            },
-            icon: Icon(alreadyReviewed ? Icons.check_circle_outline : Icons.star_rate_outlined, color: Colors.white70, size: 18),
-            label: Text(alreadyReviewed ? 'Bewertung abgegeben' : 'Bewerten', style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
-          ),
+              },
+              icon: const Icon(Icons.star_rate_outlined, color: Colors.white70, size: 18),
+              label: const Text('Bewerten', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
+            ),
           TextButton.icon(
             onPressed: () => AppPopup.toast(context, icon: Icons.replay, title: 'Wieder mieten gestartet'),
             icon: const Icon(Icons.refresh_outlined, color: Colors.white70, size: 18),
@@ -785,7 +945,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
           label = 'Abgelehnt';
           color = Colors.grey; // neutral grey for declined
         } else if (booking?['needsReview'] == true) {
-          label = 'Zur Prüfung';
+          label = 'In Prüfung';
           color = const Color(0xFFF59E0B);
         } else {
           label = 'Abgeschlossen';
@@ -1188,17 +1348,21 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
     if (url == null || url.isEmpty) {
       return _skeleton();
     }
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      loadingBuilder: (c, child, progress) {
-        if (progress == null) {
-          _loaded = true;
-          return child;
-        }
-        return _skeleton();
-      },
-      errorBuilder: (_, __, ___) => _skeleton(),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showPreview(context, [url], 0),
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        loadingBuilder: (c, child, progress) {
+          if (progress == null) {
+            _loaded = true;
+            return child;
+          }
+          return _skeleton();
+        },
+        errorBuilder: (_, __, ___) => _skeleton(),
+      ),
     );
   }
 
@@ -1220,6 +1384,122 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
           ),
         );
       },
+    );
+  }
+
+  Future<void> _showPreview(BuildContext context, List<String> urls, int initialIndex) async {
+    if (urls.isEmpty) return;
+    await showGeneralDialog(
+      context: context,
+      barrierLabel: 'image_preview',
+      barrierDismissible: true,
+      barrierColor: Colors.transparent,
+      pageBuilder: (ctx, anim, secAnim) {
+        final images = urls.where((u) => u.isNotEmpty).toList();
+        if (images.isEmpty) return const SizedBox.shrink();
+        final startIndex = initialIndex.clamp(0, images.length - 1);
+        final controller = PageController(initialPage: startIndex);
+        var page = startIndex;
+        final size = MediaQuery.of(ctx).size;
+
+        Future<void> _shift(int delta) async {
+          final target = (page + delta).clamp(0, images.length - 1);
+          if (target != page) {
+            page = target;
+            await controller.animateToPage(target, duration: const Duration(milliseconds: 160), curve: Curves.easeOutCubic);
+          }
+        }
+
+        return StatefulBuilder(builder: (context, setState) {
+          return Stack(fit: StackFit.expand, children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.of(ctx).maybePop(),
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 25.2, sigmaY: 25.2),
+                    child: Container(color: Colors.black.withValues(alpha: 0.05)),
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: size.width * 0.85, maxHeight: size.height * 0.75),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Listener(
+                          onPointerSignal: (signal) {
+                            if (signal is PointerScrollEvent) {
+                              if (signal.scrollDelta.dy > 0 || signal.scrollDelta.dx > 0) {
+                                _shift(1);
+                              } else if (signal.scrollDelta.dy < 0 || signal.scrollDelta.dx < 0) {
+                                _shift(-1);
+                              }
+                            }
+                          },
+                          child: Stack(children: [
+                            ScrollConfiguration(
+                              behavior: const ScrollBehavior().copyWith(scrollbars: false),
+                              child: PageView.builder(
+                                controller: controller,
+                                onPageChanged: (i) => setState(() => page = i),
+                                itemCount: images.length,
+                                itemBuilder: (_, i) => DecoratedBox(
+                                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.08)),
+                                  child: Center(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: AppImage(url: images[i], fit: BoxFit.contain),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (images.length > 1)
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 12,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    for (int i = 0; i < images.length; i++)
+                                      AnimatedContainer(
+                                        duration: const Duration(milliseconds: 160),
+                                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                                        width: i == page ? 10 : 8,
+                                        height: i == page ? 10 : 8,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: i == page ? 0.9 : 0.5),
+                                          borderRadius: BorderRadius.circular(999),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ]);
+        });
+      },
+      transitionBuilder: (ctx, anim, secAnim, child) {
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        return FadeTransition(opacity: curved, child: child);
+      },
+      transitionDuration: const Duration(milliseconds: 160),
     );
   }
 }

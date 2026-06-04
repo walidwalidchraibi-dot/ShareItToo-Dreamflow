@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart' as model;
@@ -112,9 +114,33 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
 
   Future<void> _load() async {
     final owner = await DataService.getCurrentUser();
-    if (owner == null) return;
+    if (owner == null) {
+      final demo = await _buildDemoOwnerEntries();
+      if (!mounted) return;
+      _ownerId = demo.ownerId;
+      _deliveryByItemId
+        ..clear()
+        ..addAll(demo.deliverySelections);
+      _unreadCounts
+        ..clear()
+        ..addAll({'ongoing': 1, 'upcoming': 1, 'requests': 1, 'completed': 3});
+      setState(() => _entries = demo.entries);
+      return;
+    }
     _ownerId = owner.id;
     final requests = await DataService.getRentalRequestsForOwner(owner.id);
+    if (requests.isEmpty) {
+      final demo = await _buildDemoOwnerEntries(ownerId: owner.id);
+      if (!mounted) return;
+      _deliveryByItemId
+        ..clear()
+        ..addAll(demo.deliverySelections);
+      _unreadCounts
+        ..clear()
+        ..addAll({'ongoing': 1, 'upcoming': 1, 'requests': 1, 'completed': 3});
+      setState(() => _entries = demo.entries);
+      return;
+    }
     final items = await DataService.getItems();
     final users = await DataService.getUsers();
     final byItem = {for (final it in items) it.id: it};
@@ -155,6 +181,229 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
     }
     
     setState(() => _entries = list);
+  }
+
+  Future<({String ownerId, List<_OwnerEntry> entries, Map<String, Map<String, dynamic>> deliverySelections})> _buildDemoOwnerEntries({String? ownerId}) async {
+    final now = DateTime.now();
+    final items = await DataService.getItems();
+    final users = await DataService.getUsers();
+    final demoOwnerId = ownerId ?? (items.isNotEmpty ? items.first.ownerId : 'demo_owner');
+    final ownerUser = users.firstWhere(
+      (u) => u.id == demoOwnerId,
+      orElse: () => model.User(
+        id: demoOwnerId,
+        displayName: 'Du (Demo Vermieter)',
+        email: 'owner@shareittoo.local',
+        preferredLanguage: 'de',
+        isVerified: true,
+        isBanned: false,
+        role: 'user',
+        avgRating: 4.9,
+        reviewCount: 64,
+        createdAt: now.subtract(const Duration(days: 200)),
+        photoURL: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=face',
+      ),
+    );
+
+    final renterPool = users.where((u) => u.id != demoOwnerId).toList()
+      ..addAll([
+        model.User(
+          id: 'demo_renter_a',
+          displayName: 'Sarah Roth',
+          email: 'sarah@example.com',
+          preferredLanguage: 'de',
+          isVerified: true,
+          isBanned: false,
+          role: 'user',
+          avgRating: 4.8,
+          reviewCount: 31,
+          createdAt: now.subtract(const Duration(days: 160)),
+          photoURL: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
+        ),
+        model.User(
+          id: 'demo_renter_b',
+          displayName: 'Emre Kaya',
+          email: 'emre@example.com',
+          preferredLanguage: 'de',
+          isVerified: false,
+          isBanned: false,
+          role: 'user',
+          avgRating: 4.5,
+          reviewCount: 9,
+          createdAt: now.subtract(const Duration(days: 90)),
+          photoURL: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=face',
+        ),
+        model.User(
+          id: 'demo_renter_c',
+          displayName: 'Lea Walter',
+          email: 'lea@example.com',
+          preferredLanguage: 'de',
+          isVerified: true,
+          isBanned: false,
+          role: 'user',
+          avgRating: 4.7,
+          reviewCount: 22,
+          createdAt: now.subtract(const Duration(days: 70)),
+          photoURL: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=face',
+        ),
+      ]);
+
+    model.User pickRenter(int index) => renterPool[index % renterPool.length];
+
+    Item buildItem({required String id, required String title, required String photo, required String location, required double lat, required double lng, String condition = 'good'}) {
+      return Item(
+        id: id,
+        ownerId: demoOwnerId,
+        title: title,
+        description: 'Demo-Listing für die Karten-Vorschau.',
+        categoryId: 'demo',
+        subcategory: 'demo',
+        tags: const ['demo'],
+        pricePerDay: 22,
+        currency: 'EUR',
+        photos: [photo],
+        locationText: location,
+        lat: lat,
+        lng: lng,
+        geohash: 'u33d',
+        condition: condition,
+        createdAt: now.subtract(const Duration(days: 14)),
+        isActive: true,
+        verificationStatus: 'verified',
+        city: location,
+        country: 'Deutschland',
+        priceUnit: 'day',
+        priceRaw: 22,
+        status: 'active',
+        offersDeliveryAtDropoff: true,
+        offersPickupAtReturn: true,
+        offersExpressAtDropoff: true,
+        cancellationPolicy: 'flexible',
+      );
+    }
+
+    final itemPending = buildItem(
+      id: 'owner_demo_item_pending',
+      title: 'Makita Akku-Bohrschrauber',
+      photo: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=640',
+      location: 'Berlin, Friedrichshain',
+      lat: 52.51,
+      lng: 13.45,
+    );
+    final itemUpcoming = buildItem(
+      id: 'owner_demo_item_upcoming',
+      title: 'DJI Mini Drohne',
+      photo: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=640',
+      location: 'Berlin, Prenzlauer Berg',
+      lat: 52.54,
+      lng: 13.41,
+      condition: 'excellent',
+    );
+    final itemOngoing = buildItem(
+      id: 'owner_demo_item_ongoing',
+      title: 'Sony Alpha Kamera',
+      photo: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?w=640',
+      location: 'Berlin, Kreuzberg',
+      lat: 52.49,
+      lng: 13.41,
+    );
+    final itemCompletedA = buildItem(
+      id: 'owner_demo_item_completed_a',
+      title: 'Weber Gasgrill',
+      photo: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=640',
+      location: 'Berlin, Charlottenburg',
+      lat: 52.51,
+      lng: 13.30,
+    );
+    final itemCompletedB = buildItem(
+      id: 'owner_demo_item_completed_b',
+      title: 'Bosch Stichsäge',
+      photo: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=640',
+      location: 'Berlin, Mitte',
+      lat: 52.52,
+      lng: 13.40,
+    );
+
+    final requests = <RentalRequest>[
+      RentalRequest(
+        id: 'owner_demo_req_pending',
+        itemId: itemPending.id,
+        ownerId: demoOwnerId,
+        renterId: pickRenter(0).id,
+        start: now.add(const Duration(days: 3, hours: 3)),
+        end: now.add(const Duration(days: 5, hours: 3)),
+        status: 'pending',
+        expressRequested: false,
+      ),
+      RentalRequest(
+        id: 'owner_demo_req_upcoming',
+        itemId: itemUpcoming.id,
+        ownerId: demoOwnerId,
+        renterId: pickRenter(1).id,
+        start: now.add(const Duration(days: 1, hours: 1)),
+        end: now.add(const Duration(days: 3, hours: 1)),
+        status: 'accepted',
+        deliveryAddressLine: 'Kollwitzplatz 7',
+        deliveryCity: 'Berlin',
+        ownerDeliversAtDropoffChosen: true,
+      ),
+      RentalRequest(
+        id: 'owner_demo_req_running',
+        itemId: itemOngoing.id,
+        ownerId: demoOwnerId,
+        renterId: pickRenter(2).id,
+        start: now.subtract(const Duration(hours: 2)),
+        end: now.add(const Duration(days: 1, hours: 8)),
+        status: 'running',
+        handoverConfirmation: {'by': 'owner'},
+      ),
+      RentalRequest(
+        id: 'owner_demo_req_completed_hold',
+        itemId: itemCompletedA.id,
+        ownerId: demoOwnerId,
+        renterId: pickRenter(0).id,
+        start: now.subtract(const Duration(days: 8)),
+        end: now.subtract(const Duration(days: 6)),
+        status: 'completed',
+        needsReview: true,
+        reviewReason: 'manual_hold',
+      ),
+      RentalRequest(
+        id: 'owner_demo_req_completed_reviewable',
+        itemId: itemCompletedB.id,
+        ownerId: demoOwnerId,
+        renterId: pickRenter(1).id,
+        start: now.subtract(const Duration(days: 14)),
+        end: now.subtract(const Duration(days: 12)),
+        status: 'completed',
+      ),
+      RentalRequest(
+        id: 'owner_demo_req_completed_reviewed',
+        itemId: itemCompletedB.id,
+        ownerId: demoOwnerId,
+        renterId: pickRenter(2).id,
+        start: now.subtract(const Duration(days: 20)),
+        end: now.subtract(const Duration(days: 18)),
+        status: 'completed',
+      ),
+    ];
+
+    final deliverySelections = <String, Map<String, dynamic>>{
+      itemPending.id: {'hinweg': true, 'rueckweg': false},
+      itemUpcoming.id: {'hinweg': true, 'rueckweg': true},
+      itemOngoing.id: {'hinweg': false, 'rueckweg': true},
+    };
+
+    final entries = <_OwnerEntry>[
+      _OwnerEntry(r: requests[0], item: itemPending, renter: pickRenter(0), flowState: const {}, hasSubmittedReview: false),
+      _OwnerEntry(r: requests[1], item: itemUpcoming, renter: pickRenter(1), flowState: const {'handoverLocationLabel': 'Mauerpark'}, hasSubmittedReview: false),
+      _OwnerEntry(r: requests[2], item: itemOngoing, renter: pickRenter(2), flowState: const {'handoverLocationLabel': 'S Warschauer Brücke', 'returnLocationLabel': 'Tempelhofer Feld'}, hasSubmittedReview: false),
+      _OwnerEntry(r: requests[3], item: itemCompletedA, renter: pickRenter(0), flowState: const {}, hasSubmittedReview: false),
+      _OwnerEntry(r: requests[4], item: itemCompletedB, renter: pickRenter(1), flowState: const {}, hasSubmittedReview: false),
+      _OwnerEntry(r: requests[5], item: itemCompletedB, renter: pickRenter(2), flowState: const {}, hasSubmittedReview: true),
+    ];
+
+    return (ownerId: ownerUser.id, entries: entries, deliverySelections: deliverySelections);
   }
 
   @override
@@ -316,11 +565,12 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: SizedBox(
-                      height: 78,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 80),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,13 +585,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
                                     Text(booking['dates'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade400, fontSize: 13, height: 1.1)),
                                     const SizedBox(height: 1),
                                     Text(booking['renter'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade400, fontSize: 13, height: 1.1)),
-                                    if ((booking['placeLine'] ?? '').toString().isNotEmpty) ...[
-                                      const SizedBox(height: 1),
-                                      Text(booking['placeLine'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade400, fontSize: 13, height: 1.1)),
-                                    ],
                                     const SizedBox(height: 2),
-                                    if (effective == 'requests' || effective == 'upcoming' || effective == 'ongoing')
-                                      _privacyHintForOwner(e.item.id),
                                   ],
                                 ),
                               ),
@@ -350,11 +594,10 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
                                 Text(booking['total'] ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16), textAlign: TextAlign.right),
                             ],
                           ),
-                           Row(children: [
+                          Row(children: [
                             chip,
                             if (inlineAction != null) ...[
                               const SizedBox(width: 4),
-                              // Prevent right overflow on small widths: horizontally scrollable action row
                               Expanded(
                                 child: SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
@@ -462,6 +705,11 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
     ]);
   }
 
+  Future<void> _openItemOverlay(Item item) async {
+    if (!mounted) return;
+    await ItemDetailsOverlay.showFullPage(context, item: item);
+  }
+
   Widget _buildStatusChipForCard(String category, DateTime start, DateTime end, _OwnerEntry e) {
     String label; Color color;
     switch (category) {
@@ -488,7 +736,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
           label = 'Zurückgezogen';
           color = const Color(0xFFF43F5E);
         } else if (e.r.needsReview) {
-          label = 'Zur Prüfung';
+          label = 'In Prüfung';
           color = const Color(0xFFF59E0B);
         } else {
           label = cancelled ? 'Storniert' : 'Abgeschlossen';
@@ -631,12 +879,11 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
         ]);
       case 'completed':
         // Show a small inline "Bewerten" action for completed rentals (not for cancelled/declined)
-        if (e.r.status == 'completed' && !e.r.needsReview) {
-          final alreadyReviewed = e.hasSubmittedReview;
+        if (e.r.status == 'completed' && !e.r.needsReview && !e.hasSubmittedReview) {
           return _TinyTextButton(
-            icon: alreadyReviewed ? Icons.check_circle_outline : Icons.star_rate_outlined,
-            label: alreadyReviewed ? 'Bewertung abgegeben' : 'Bewerten',
-            onPressed: alreadyReviewed ? () {} : () async {
+            icon: Icons.star_rate_outlined,
+            label: 'Bewerten',
+            onPressed: () async {
               final owner = await DataService.getCurrentUser();
               if (owner == null) return;
               final ok = await ReviewPromptSheet.show(
@@ -734,10 +981,14 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
   Widget build(BuildContext context) {
     final url = widget.url;
     if (url == null || url.isEmpty) return _skeleton();
-    return Image.network(url, fit: BoxFit.cover, loadingBuilder: (c, child, progress) {
-      if (progress == null) { _done = true; return child; }
-      return _skeleton();
-    }, errorBuilder: (_, __, ___) => _skeleton());
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showPreview(context, [url], 0),
+      child: Image.network(url, fit: BoxFit.cover, loadingBuilder: (c, child, progress) {
+        if (progress == null) { _done = true; return child; }
+        return _skeleton();
+      }, errorBuilder: (_, __, ___) => _skeleton()),
+    );
   }
   Widget _skeleton() {
     return AnimatedBuilder(
@@ -757,6 +1008,122 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
           ),
         );
       },
+    );
+  }
+
+  Future<void> _showPreview(BuildContext context, List<String> urls, int initialIndex) async {
+    if (urls.isEmpty) return;
+    await showGeneralDialog(
+      context: context,
+      barrierLabel: 'image_preview',
+      barrierDismissible: true,
+      barrierColor: Colors.transparent,
+      pageBuilder: (ctx, anim, secAnim) {
+        final images = urls.where((u) => u.isNotEmpty).toList();
+        if (images.isEmpty) return const SizedBox.shrink();
+        final startIndex = initialIndex.clamp(0, images.length - 1);
+        final controller = PageController(initialPage: startIndex);
+        var page = startIndex;
+        final size = MediaQuery.of(ctx).size;
+
+        Future<void> _shift(int delta) async {
+          final target = (page + delta).clamp(0, images.length - 1);
+          if (target != page) {
+            page = target;
+            await controller.animateToPage(target, duration: const Duration(milliseconds: 160), curve: Curves.easeOutCubic);
+          }
+        }
+
+        return StatefulBuilder(builder: (context, setState) {
+          return Stack(fit: StackFit.expand, children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.of(ctx).maybePop(),
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 25.2, sigmaY: 25.2),
+                    child: Container(color: Colors.black.withValues(alpha: 0.05)),
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: size.width * 0.85, maxHeight: size.height * 0.75),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Listener(
+                          onPointerSignal: (signal) {
+                            if (signal is PointerScrollEvent) {
+                              if (signal.scrollDelta.dy > 0 || signal.scrollDelta.dx > 0) {
+                                _shift(1);
+                              } else if (signal.scrollDelta.dy < 0 || signal.scrollDelta.dx < 0) {
+                                _shift(-1);
+                              }
+                            }
+                          },
+                          child: Stack(children: [
+                            ScrollConfiguration(
+                              behavior: const ScrollBehavior().copyWith(scrollbars: false),
+                              child: PageView.builder(
+                                controller: controller,
+                                onPageChanged: (i) => setState(() => page = i),
+                                itemCount: images.length,
+                                itemBuilder: (_, i) => DecoratedBox(
+                                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.08)),
+                                  child: Center(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: AppImage(url: images[i], fit: BoxFit.contain),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (images.length > 1)
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 12,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    for (int i = 0; i < images.length; i++)
+                                      AnimatedContainer(
+                                        duration: const Duration(milliseconds: 160),
+                                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                                        width: i == page ? 10 : 8,
+                                        height: i == page ? 10 : 8,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: i == page ? 0.9 : 0.5),
+                                          borderRadius: BorderRadius.circular(999),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ]);
+        });
+      },
+      transitionBuilder: (ctx, anim, secAnim, child) {
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        return FadeTransition(opacity: curved, child: child);
+      },
+      transitionDuration: const Duration(milliseconds: 160),
     );
   }
 }

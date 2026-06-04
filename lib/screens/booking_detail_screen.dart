@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/bookings_screen.dart';
@@ -444,6 +445,139 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return 'upcoming';
   }
 
+  Widget _viewListingOverlay() => Positioned(
+        top: 8,
+        right: 8,
+        child: Material(
+          color: Colors.black.withValues(alpha: 0.35),
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: _viewListing,
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.visibility_outlined, size: 18, color: Colors.white),
+            ),
+          ),
+        ),
+      );
+
+  Future<void> _showImagePreview(List<String> urls, {int initialIndex = 0}) async {
+    if (urls.isEmpty) return;
+    await showGeneralDialog(
+      context: context,
+      barrierLabel: 'image_preview',
+      barrierDismissible: true,
+      barrierColor: Colors.transparent,
+      pageBuilder: (ctx, anim, secAnim) {
+        final images = urls.where((u) => u.isNotEmpty).toList();
+        if (images.isEmpty) return const SizedBox.shrink();
+        final startIndex = initialIndex.clamp(0, images.length - 1);
+        final controller = PageController(initialPage: startIndex);
+        var page = startIndex;
+        final size = MediaQuery.of(ctx).size;
+
+        Future<void> _shift(int delta) async {
+          final target = (page + delta).clamp(0, images.length - 1);
+          if (target != page) {
+            page = target;
+            await controller.animateToPage(target, duration: const Duration(milliseconds: 160), curve: Curves.easeOutCubic);
+          }
+        }
+
+        return StatefulBuilder(builder: (context, setState) {
+          return Stack(fit: StackFit.expand, children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.of(ctx).maybePop(),
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 25.2, sigmaY: 25.2),
+                    child: Container(color: Colors.black.withValues(alpha: 0.05)),
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: size.width * 0.85, maxHeight: size.height * 0.75),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Listener(
+                          onPointerSignal: (signal) {
+                            if (signal is PointerScrollEvent) {
+                              if (signal.scrollDelta.dy > 0 || signal.scrollDelta.dx > 0) {
+                                _shift(1);
+                              } else if (signal.scrollDelta.dy < 0 || signal.scrollDelta.dx < 0) {
+                                _shift(-1);
+                              }
+                            }
+                          },
+                          child: Stack(children: [
+                            ScrollConfiguration(
+                              behavior: const ScrollBehavior().copyWith(scrollbars: false),
+                              child: PageView.builder(
+                                controller: controller,
+                                onPageChanged: (i) => setState(() => page = i),
+                                itemCount: images.length,
+                                itemBuilder: (_, i) => DecoratedBox(
+                                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.08)),
+                                  child: Center(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: AppImage(url: images[i], fit: BoxFit.contain),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (images.length > 1)
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 12,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    for (int i = 0; i < images.length; i++)
+                                      AnimatedContainer(
+                                        duration: const Duration(milliseconds: 160),
+                                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                                        width: i == page ? 10 : 8,
+                                        height: i == page ? 10 : 8,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: i == page ? 0.9 : 0.5),
+                                          borderRadius: BorderRadius.circular(999),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ]);
+        });
+      },
+      transitionBuilder: (ctx, anim, secAnim, child) {
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        return FadeTransition(opacity: curved, child: child);
+      },
+      transitionDuration: const Duration(milliseconds: 160),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -598,8 +732,17 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   controller: _pageController,
                   onPageChanged: (i) => setState(() => _page = i),
                   itemCount: _photos.length,
-                  itemBuilder: (_, i) => SizedBox(width: double.infinity, height: 220, child: AppImage(url: _photos[i], fit: BoxFit.cover)),
+                  itemBuilder: (_, i) => SizedBox(
+                    width: double.infinity,
+                    height: 220,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _showImagePreview(_photos, initialIndex: i),
+                      child: AppImage(url: _photos[i], fit: BoxFit.cover),
+                    ),
+                  ),
                 ),
+                _viewListingOverlay(),
                 if (_photos.length > 1)
                   Positioned(
                     left: 0,
@@ -1195,8 +1338,17 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   controller: _pageController,
                   onPageChanged: (i) => setState(() => _page = i),
                   itemCount: _photos.length,
-                  itemBuilder: (_, i) => SizedBox(width: double.infinity, height: 220, child: AppImage(url: _photos[i], fit: BoxFit.cover)),
+                  itemBuilder: (_, i) => SizedBox(
+                    width: double.infinity,
+                    height: 220,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _showImagePreview(_photos, initialIndex: i),
+                      child: AppImage(url: _photos[i], fit: BoxFit.cover),
+                    ),
+                  ),
                 ),
+                _viewListingOverlay(),
                 if (_photos.length > 1)
                   Positioned(
                     left: 0,
@@ -1749,10 +1901,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
         const SizedBox(height: 12),
         if (isCompleted) ...[
-          if (widget.booking['needsReview'] == true) ...[
-            _HeldBookingNoticeCard(),
-            const SizedBox(height: 12),
-          ],
           _CompletionSummaryCard(
             booking: widget.booking,
             isOwnerView: _isViewerOwnerSync(),
@@ -3857,21 +4005,3 @@ class _InlineTimeActionButton extends StatelessWidget {
 }
 
 
-class _HeldBookingNoticeCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.20),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-      ),
-      child: const Text(
-        'Zu dieser Buchung liegt eine Rückmeldung vor. Wir prüfen den Vorgang sorgfältig und schließen die Buchung danach vollständig ab.',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, height: 1.4),
-      ),
-    );
-  }
-}

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/widgets/app_popup.dart';
@@ -186,6 +187,122 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       return false;
     }
     return true;
+  }
+
+  Future<void> _showImagePreview(List<String> urls, {int initialIndex = 0}) async {
+    if (urls.isEmpty) return;
+    await showGeneralDialog(
+      context: context,
+      barrierLabel: 'image_preview',
+      barrierDismissible: true,
+      barrierColor: Colors.transparent,
+      pageBuilder: (ctx, anim, secAnim) {
+        final images = urls.where((u) => u.isNotEmpty).toList();
+        if (images.isEmpty) return const SizedBox.shrink();
+        final startIndex = initialIndex.clamp(0, images.length - 1);
+        final controller = PageController(initialPage: startIndex);
+        var page = startIndex;
+        final size = MediaQuery.of(ctx).size;
+
+        Future<void> _shift(int delta) async {
+          final target = (page + delta).clamp(0, images.length - 1);
+          if (target != page) {
+            page = target;
+            await controller.animateToPage(target, duration: const Duration(milliseconds: 160), curve: Curves.easeOutCubic);
+          }
+        }
+
+        return StatefulBuilder(builder: (context, setState) {
+          return Stack(fit: StackFit.expand, children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.of(ctx).maybePop(),
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 25.2, sigmaY: 25.2),
+                    child: Container(color: Colors.black.withValues(alpha: 0.05)),
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: size.width * 0.85, maxHeight: size.height * 0.75),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Listener(
+                          onPointerSignal: (signal) {
+                            if (signal is PointerScrollEvent) {
+                              if (signal.scrollDelta.dy > 0 || signal.scrollDelta.dx > 0) {
+                                _shift(1);
+                              } else if (signal.scrollDelta.dy < 0 || signal.scrollDelta.dx < 0) {
+                                _shift(-1);
+                              }
+                            }
+                          },
+                          child: Stack(children: [
+                            ScrollConfiguration(
+                              behavior: const ScrollBehavior().copyWith(scrollbars: false),
+                              child: PageView.builder(
+                                controller: controller,
+                                onPageChanged: (i) => setState(() => page = i),
+                                itemCount: images.length,
+                                itemBuilder: (_, i) => DecoratedBox(
+                                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.08)),
+                                  child: Center(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: AppImage(url: images[i], fit: BoxFit.contain),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (images.length > 1)
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 12,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    for (int i = 0; i < images.length; i++)
+                                      AnimatedContainer(
+                                        duration: const Duration(milliseconds: 160),
+                                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                                        width: i == page ? 10 : 8,
+                                        height: i == page ? 10 : 8,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: i == page ? 0.9 : 0.5),
+                                          borderRadius: BorderRadius.circular(999),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ]);
+        });
+      },
+      transitionBuilder: (ctx, anim, secAnim, child) {
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        return FadeTransition(opacity: curved, child: child);
+      },
+      transitionDuration: const Duration(milliseconds: 160),
+    );
   }
 
   @override
@@ -403,7 +520,29 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               height: 220,
               child: Stack(children: [
                 // Ensure the image fills and is centered (avoid half-shifted appearance)
-                Positioned.fill(child: AppImage(url: _photos.first, fit: BoxFit.cover)),
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _showImagePreview(_photos, initialIndex: 0),
+                    child: AppImage(url: _photos.first, fit: BoxFit.cover),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Material(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () => ItemDetailsOverlay.showFullPage(context, item: item),
+                      child: const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Icon(Icons.visibility_outlined, size: 18, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
                 // Status chip overlay (bottom-left) across all categories
                 Positioned(
                   left: 8,

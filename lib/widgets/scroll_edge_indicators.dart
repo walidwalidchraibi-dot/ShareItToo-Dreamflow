@@ -13,6 +13,7 @@ class ScrollEdgeIndicators extends StatefulWidget {
   final bool tapToScroll;
   final bool showLeft;
   final bool showRight;
+  final bool showArrows;
   /// Optional: fixed top offset for the left/right arrows.
   /// If null, arrows are vertically centered.
   final double? arrowsTop;
@@ -27,6 +28,7 @@ class ScrollEdgeIndicators extends StatefulWidget {
     this.tapToScroll = true,
     this.showLeft = true,
     this.showRight = true,
+    this.showArrows = true,
     this.arrowsTop,
     this.forceLeftTranslucent = false,
     this.forceRightTranslucent = false,
@@ -43,6 +45,7 @@ class ScrollEdgeIndicators extends StatefulWidget {
     this.tapToScroll = true,
     this.showLeft = true,
     this.showRight = true,
+    this.showArrows = true,
     this.arrowsTop,
     this.forceLeftTranslucent = false,
     this.forceRightTranslucent = false,
@@ -271,7 +274,7 @@ class _ScrollEdgeIndicatorsState extends State<ScrollEdgeIndicators>
               ),
 
             // Left arrow (nudged ~2mm outward to the left)
-            if (showLeft)
+            if (showLeft && widget.showArrows)
               Positioned(
                 left: -12, // ~2mm on mdpi (~12dp)
                 top: arrowTop,
@@ -292,7 +295,7 @@ class _ScrollEdgeIndicatorsState extends State<ScrollEdgeIndicators>
               ),
 
             // Right arrow (nudged ~2mm outward to the right)
-            if (showRight)
+            if (showRight && widget.showArrows)
               Positioned(
                 right: -12, // ~2mm on mdpi (~12dp)
                 top: arrowTop,

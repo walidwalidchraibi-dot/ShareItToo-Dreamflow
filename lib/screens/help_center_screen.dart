@@ -221,7 +221,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               intro: 'Fotos sind der wichtigste Faktor für Vertrauen.',
               steps: [
                 'Nutze mindestens 4 Fotos: Front, Seite, Details, Zubehör.',
-                'Zeige Zustand (Kratzer, Gebrauchsspuren) ehrlich.',
+                'Zeige Zustand (Kratzer, Normale Gebrauchsspuren) ehrlich.',
               ],
               tips: ['Helles Tageslicht und neutraler Hintergrund wirken professionell.'],
             ),

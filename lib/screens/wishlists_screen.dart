@@ -341,11 +341,11 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                       Expanded(
                         child: GridView.builder(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
                             crossAxisSpacing: 12,
                             mainAxisSpacing: 12,
-                            childAspectRatio: 0.92,
+                            childAspectRatio: _wishlistDetailChildAspectRatio(context),
                           ),
                           itemCount: _items.length,
                           itemBuilder: (_, i) {
@@ -435,21 +435,50 @@ double _mosaicChildAspectRatio(BuildContext context) {
   // Column width per card
   final colWidth = (size.width - horizontalPadding - crossSpacing) / 2.0;
 
-  // Extra vertical space below the 1:1 mosaic (approximate, based on theme)
+  // Estimate height from actual card layout: mosaic (fixed aspect) + padded text block.
+  // This keeps the card frame ending right below the count text without dead space.
   final theme = Theme.of(context).textTheme;
   final titleFs = (theme.titleSmall?.fontSize ?? 16) * textScale;
   final labelFs = (theme.labelSmall?.fontSize ?? 12) * textScale;
+  final titleHeight = titleFs * (theme.titleSmall?.height ?? 1.2);
+  final labelHeight = labelFs * (theme.labelSmall?.height ?? 1.2);
 
-  // Use approximate line-heights and paddings from the card implementation
-  // Add a small safety cushion to avoid fractional pixel overflows seen on some devices
-  // Subtitle removed on cards → reduce required height accordingly
-  final extra = 10 + (titleFs * 1.2) + 8 + (labelFs * 1.3) + 10 + 6;
+  const mosaicAspect = 1.18; // width / height used in card
+  final mosaicHeight = colWidth / mosaicAspect;
+  final textBlockHeight = 6 + titleHeight + 2 + labelHeight + 2; // padding + gaps
 
-  // Smaller ratio => more height. We also lower the max cap slightly to ensure
-  // we always have a few extra pixels for rounding.
-  final ratio = colWidth / (colWidth + extra);
-  // Clamp for stability across extreme screen sizes
-  return math.min(0.80, math.max(0.64, ratio));
+  final totalHeight = mosaicHeight + textBlockHeight;
+  final ratio = colWidth / totalHeight;
+  // Keep within a safe band to avoid overflow on small screens or large text scales
+  return math.min(0.9, math.max(0.7, ratio));
+}
+
+// Compute aspect ratio for wishlist detail item grid so the ItemCard has
+// enough vertical room for 2 text lines + city + price without overflow on phones.
+double _wishlistDetailChildAspectRatio(BuildContext context) {
+  final size = MediaQuery.sizeOf(context);
+  final textScale = MediaQuery.textScaleFactorOf(context);
+
+  const horizontalPadding = 32.0; // 16 + 16
+  const crossSpacing = 12.0;
+  final colWidth = (size.width - horizontalPadding - crossSpacing) / 2.0;
+
+  final theme = Theme.of(context).textTheme;
+  final titleFs = (theme.titleSmall?.fontSize ?? 14) * textScale;
+  final titleHeight = titleFs * (theme.titleSmall?.height ?? 1.2) * 2; // 2 lines
+  final cityFs = (theme.bodySmall?.fontSize ?? 12) * textScale;
+  final cityHeight = cityFs * (theme.bodySmall?.height ?? 1.2);
+  final priceFs = (theme.bodyMedium?.fontSize ?? 14) * textScale;
+  final priceHeight = priceFs * (theme.bodyMedium?.height ?? 1.2);
+
+  const verticalPadding = 24.0; // 12 top + 12 bottom inside ItemCard text area
+  const gaps = 8.0; // 2 + 6 between text blocks
+  final textBlockHeight = verticalPadding + gaps + titleHeight + cityHeight + priceHeight;
+
+  // In ItemCard the info area is ~42% of the card height (58% image, 42% text)
+  final ratioLimit = (colWidth * 0.42) / textBlockHeight;
+  final safeRatio = (ratioLimit - 0.02).clamp(0.32, 0.88); // allow extra height on small phones
+  return safeRatio.toDouble();
 }
 
 class _CreateWishlistPopupBody extends StatelessWidget {

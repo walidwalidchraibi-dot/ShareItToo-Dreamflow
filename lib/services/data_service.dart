@@ -665,7 +665,37 @@ class DataService {
       return getCategories();
     }
     final List<dynamic> categoriesList = jsonDecode(categoriesJson);
-    return categoriesList.map((json) => Category.fromJson(json)).toList();
+    final List<Category> categories =
+        categoriesList.map((json) => Category.fromJson(json)).toList();
+
+    // Ensure newly added demo categories are present for all users (no lazy backfill).
+    final seeds = _buildDemoCategories();
+    final orderById = {
+      for (int i = 0; i < seeds.length; i++) seeds[i].id: i,
+    };
+
+    bool mutated = false;
+    for (final seed in seeds) {
+      final exists = categories.any((c) => c.id == seed.id);
+      if (!exists) {
+        categories.add(seed);
+        mutated = true;
+      }
+    }
+
+    categories.sort((a, b) {
+      final ai = orderById[a.id] ?? seeds.length;
+      final bi = orderById[b.id] ?? seeds.length;
+      if (ai != bi) return ai.compareTo(bi);
+      return a.name.compareTo(b.name);
+    });
+
+    if (mutated) {
+      await prefs.setString(
+          _categoriesKey, jsonEncode(categories.map((c) => c.toJson()).toList()));
+    }
+
+    return categories;
   }
 
   static Future<List<Item>> getItems() async {
@@ -2153,15 +2183,16 @@ class DataService {
   // Coarse category groups (ordered) for simplified display in UI
   static const List<String> coarseCategoryOrder = [
     'Technik & Elektronik',
-    'Haushalt & Wohnen',
-    'Fahrzeuge & Mobilität',
-    'Mode & Lifestyle',
-    'Sport & Hobbys',
     'Werkzeuge & Kleingeräte',
-    'Garten & Hof',
-    'Büro & Gewerbe',
-    'Babys & Kinder',
-    'Haustierbedarf',
+    'Haushalt & Wohnen',
+    'Sport & Hobbys',
+    'Auto & Mobilität',
+    'Garten & Outdoor',
+    'Events & Feiern',
+    'Baby & Familie',
+    'Reisen & Camping',
+    'Kleidung & Anlässe',
+    'Büro & Lernen',
     'Sonstiges',
   ];
 
@@ -2177,8 +2208,17 @@ class DataService {
         n.contains('mikro') ||
         n.contains('drohn') ||
         n.contains('gaming') ||
-        n.contains('vr')) {
+        n.contains('vr') ||
+        n.contains('smart')) {
       return 'Technik & Elektronik';
+    }
+    if (n.contains('werkzeug') ||
+        n.contains('maschinen') ||
+        n.contains('handwerk') ||
+        n.contains('bohr') ||
+        n.contains('säge') ||
+        n.contains('saege')) {
+      return 'Werkzeuge & Kleingeräte';
     }
     if (n.contains('haushalt') ||
         n.contains('haushalts') ||
@@ -2189,6 +2229,12 @@ class DataService {
         n.contains('licht')) {
       return 'Haushalt & Wohnen';
     }
+    if (n.contains('freizeit') ||
+        n.contains('sport') ||
+        n.contains('fitness') ||
+        n.contains('hobby')) {
+      return 'Sport & Hobbys';
+    }
     if (n.contains('fahrzeug') ||
         n.contains('teile') ||
         n.contains('fahrräder') ||
@@ -2197,36 +2243,63 @@ class DataService {
         n.contains('mobilitaet') ||
         n.contains('e-mobility') ||
         n.contains('bike') ||
-        n.contains('e-scooter')) {
-      return 'Fahrzeuge & Mobilität';
+        n.contains('e-scooter') ||
+        n.contains('scooter') ||
+        n.contains('auto') ||
+        n.contains('wagen')) {
+      return 'Auto & Mobilität';
+    }
+    if (n.contains('garten') ||
+        n.contains('heimwerken') ||
+        n.contains('grill') ||
+        n.contains('rasen') ||
+        n.contains('outdoor')) {
+      return 'Garten & Outdoor';
+    }
+    if (n.contains('event') ||
+        n.contains('feier') ||
+        n.contains('party') ||
+        n.contains('hochzeit') ||
+        n.contains('geburtstag') ||
+        n.contains('festival')) {
+      return 'Events & Feiern';
+    }
+    if (n.contains('baby') ||
+        n.contains('kinder') ||
+        n.contains('familie') ||
+        n.contains('spielzeug')) {
+      return 'Baby & Familie';
+    }
+    if (n.contains('camping') ||
+        n.contains('zelt') ||
+        n.contains('reise') ||
+        n.contains('urlaub') ||
+        n.contains('rucksack') ||
+        n.contains('koffer')) {
+      return 'Reisen & Camping';
     }
     if (n.contains('mode') ||
         n.contains('accessoires') ||
         n.contains('schmuck') ||
-        n.contains('uhren')) {
-      return 'Mode & Lifestyle';
+        n.contains('uhren') ||
+        n.contains('kleidung') ||
+        n.contains('anzug') ||
+        n.contains('kleid') ||
+        n.contains('kostüm') ||
+        n.contains('kostuem')) {
+      return 'Kleidung & Anlässe';
     }
-    if (n.contains('freizeit') ||
-        n.contains('sport') ||
-        n.contains('outdoor')) {
-      return 'Sport & Hobbys';
-    }
-    if (n.contains('werkzeug') ||
-        n.contains('maschinen') ||
-        n.contains('handwerk')) {
-      return 'Werkzeuge & Kleingeräte';
-    }
-    if (n.contains('garten') || n.contains('heimwerken')) {
-      return 'Garten & Hof';
-    }
-    if (n.contains('büro') || n.contains('buero') || n.contains('gewerbe')) {
-      return 'Büro & Gewerbe';
-    }
-    if (n.contains('baby') || n.contains('kinder')) {
-      return 'Babys & Kinder';
+    if (n.contains('büro') ||
+        n.contains('buero') ||
+        n.contains('gewerbe') ||
+        n.contains('office') ||
+        n.contains('lernen') ||
+        n.contains('schule') ||
+        n.contains('studium')) {
+      return 'Büro & Lernen';
     }
     if (n.contains('haustier')) {
-      return 'Haustierbedarf';
+      return 'Sonstiges';
     }
     return 'Sonstiges';
   }
@@ -2536,6 +2609,20 @@ class DataService {
         'buero-gewerbe',
         'business_center',
         ['Bürotechnik', 'Präsentation', 'Werkstatt', 'Lager', 'Zubehör']
+      ),
+      (
+        'cat22',
+        'Events & Feiern',
+        'events-feiern',
+        'celebration',
+        ['Party-Deko', 'Eventtechnik', 'Tische & Stühle', 'Pavillons', 'Buffet & Catering']
+      ),
+      (
+        'cat23',
+        'Reisen & Camping',
+        'reisen-camping',
+        'travel_explore',
+        ['Zelte', 'Schlafsäcke', 'Rucksäcke & Koffer', 'Campingküche', 'Outdoor-Zubehör']
       ),
       ('cat21', 'Sonstiges', 'sonstiges', 'more_horiz', ['Diverses']),
     ];
@@ -5669,6 +5756,79 @@ class DataService {
     } catch (e) {
       debugPrint('[DataService] getMessageThreadsForUser error: $e');
       return [];
+    }
+  }
+
+  /// Ensures at least one openable thread exists for the given user.
+  ///
+  /// Rationale: In Dreamflow preview/dev builds, demo seeding can be disabled.
+  /// That can leave the Messages tab empty, making it impossible to QA the chat
+  /// detail UI. This method seeds a minimal *support* thread **only when the
+  /// store is empty**. It does not touch booking/payment/QR/review logic.
+  static Future<bool> ensureSeededMessageThreadsForUser(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_messageThreadsKey);
+
+      List<dynamic> list = <dynamic>[];
+      if (raw != null && raw.trim().isNotEmpty) {
+        try {
+          final decoded = jsonDecode(raw);
+          if (decoded is List) list = decoded;
+        } catch (_) {
+          list = <dynamic>[];
+        }
+      }
+
+      if (list.isNotEmpty) return false;
+
+      final now = DateTime.now();
+      final threadId = 'seed_support_${now.microsecondsSinceEpoch}';
+      final messages = <Message>[
+        Message(
+          id: 'seed_msg_${now.microsecondsSinceEpoch}',
+          senderId: 'support',
+          text: 'Hi! Das ist ein lokaler Demo-Chat, damit du das UI testen kannst.',
+          timestamp: now.subtract(const Duration(minutes: 18)),
+          isRead: false,
+        ),
+        Message(
+          id: 'seed_msg_${now.microsecondsSinceEpoch + 1}',
+          senderId: userId,
+          text: 'Perfekt — ich prüfe gerade den Composer und den Send-Button.',
+          timestamp: now.subtract(const Duration(minutes: 12)),
+          isRead: true,
+        ),
+        Message(
+          id: 'seed_msg_${now.microsecondsSinceEpoch + 2}',
+          senderId: 'support',
+          text: 'Super. Schreib einfach eine Testnachricht — nichts wird extern gesendet.',
+          timestamp: now.subtract(const Duration(minutes: 8)),
+          isRead: false,
+        ),
+      ];
+
+      final thread = MessageThread(
+        id: threadId,
+        requestId: 'seed_support_request_$userId',
+        itemId: 'support',
+        itemTitle: 'Support',
+        user1Id: userId,
+        user2Id: 'support',
+        threadType: 'support',
+        otherUserOnline: true,
+        messages: messages,
+        createdAt: now.subtract(const Duration(hours: 2)),
+        lastMessageAt: messages.last.timestamp,
+        archivedForUserIds: const <String>[],
+      );
+
+      await prefs.setString(_messageThreadsKey, jsonEncode([thread.toJson()]));
+      debugPrint('[DataService] Seeded minimal support thread for user=$userId');
+      return true;
+    } catch (e) {
+      debugPrint('[DataService] ensureSeededMessageThreadsForUser failed: $e');
+      return false;
     }
   }
 

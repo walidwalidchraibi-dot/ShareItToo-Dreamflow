@@ -86,6 +86,7 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
         controller: _scrollController,
         showLeft: false,
         showRight: true,
+        showArrows: false,
         forceRightTranslucent: true,
         child: ListView.separated(
           controller: _scrollController,

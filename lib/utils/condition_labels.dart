@@ -1,7 +1,7 @@
 /// Centralized labels and mappings for item condition across the app.
 ///
 /// Internal item.condition values (persisted):
-/// - 'new' | 'like-new' | 'good' | 'acceptable' | legacy: 'used'
+/// - 'new' | 'like-new' | 'good' | 'acceptable' | 'worn' | legacy: 'used'
 ///
 /// FiltersOverlay uses German-coded values:
 /// - 'neu' | 'wie-neu' | 'gut' | 'akzeptabel' | 'egal'
@@ -12,7 +12,8 @@ class ConditionLabels {
       case 'new': return 'Neu';
       case 'like-new': return 'Wie neu';
       case 'good': return 'Gut gepflegt';
-      case 'acceptable': return 'Gebrauchsspuren';
+      case 'acceptable': return 'Normale Gebrauchsspuren';
+      case 'worn': return 'Stark gebraucht';
       case 'used': return 'Gebraucht';
       default: return code;
     }
@@ -24,7 +25,8 @@ class ConditionLabels {
       case 'neu': return 'Neu';
       case 'wie-neu': return 'Wie neu';
       case 'gut': return 'Gut gepflegt';
-      case 'akzeptabel': return 'Gebrauchsspuren';
+      case 'akzeptabel': return 'Normale Gebrauchsspuren';
+      case 'stark-gebraucht': return 'Stark gebraucht';
       case 'egal': return 'Alle';
       default: return filterCode;
     }
@@ -37,6 +39,7 @@ class ConditionLabels {
       case 'wie-neu': return 'like-new';
       case 'gut': return 'good';
       case 'akzeptabel': return 'acceptable';
+      case 'stark-gebraucht': return 'worn';
       case 'egal':
       default: return null;
     }

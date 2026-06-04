@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/models/review.dart';
@@ -8,7 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/widgets/app_image.dart';
-import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/user_avatar.dart';
 
 class OwnProfileScreen extends StatefulWidget {
@@ -61,22 +59,6 @@ class _OwnProfileScreenState extends State<OwnProfileScreen> with SingleTickerPr
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(l10n.t('Mein Profil')),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) async {
-              if (value == 'copy_link') {
-                final link = 'https://shareittoo.app/u/${_user?.id ?? 'me'}';
-                await Clipboard.setData(ClipboardData(text: link));
-                if (!mounted) return;
-                AppPopup.toast(context, icon: Icons.link, title: l10n.t('Profil-Link kopiert'));
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem<String>(value: 'copy_link', child: Text('Profil-Link kopieren')),
-            ],
-          )
-        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
