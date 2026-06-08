@@ -1479,7 +1479,8 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       viewerIsOwner: true,
       mode: ReturnFlowMode.returnFlow,
     );
-    if (ok?.confirmed == true) {
+    final counterpartyConfirmed = ok?.confirmed == true;
+    if (counterpartyConfirmed) {
       await _completeOwnerReturnWithSideEffects(
         req: req,
         item: item,

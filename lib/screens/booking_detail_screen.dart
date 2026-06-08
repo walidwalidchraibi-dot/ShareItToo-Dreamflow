@@ -2292,7 +2292,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       mode: ReturnFlowMode.returnFlow,
     );
 
-    if (ok?.confirmed == true && mounted) {
+    final counterpartyConfirmed = ok?.confirmed == true;
+    if (counterpartyConfirmed && mounted) {
       final ownerUserId = await DataService.getCurrentUser();
       final expectedOwnerId = (widget.booking['ownerId'] as String?)?.trim();
       if (ownerUserId == null || expectedOwnerId == null || ownerUserId.id != expectedOwnerId) {
@@ -2307,7 +2308,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           requestId: requestId,
           confirmedByUserId: ownerUserId.id,
           method: 'stepper',
-          confirmationContextVerified: ok?.confirmed == true,
+          confirmationContextVerified: counterpartyConfirmed,
           galleryAcknowledged: galleryAcknowledged,
           reviewPauseSource: 'booking_detail_screen_stepper',
         );
@@ -2449,7 +2450,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
     // If the renter successfully confirmed via QR or manual code in the stepper,
     // mark the booking as running immediately.
-    if (ok?.confirmed == true) {
+    final counterpartyConfirmed = ok?.confirmed == true;
+    if (counterpartyConfirmed) {
       try {
         final renterUserId = await _guardAuthenticatedRenter();
         if (renterUserId == null) return;
@@ -2461,7 +2463,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             requestId: requestId,
             confirmedByUserId: renterUserId,
             method: 'stepper',
-            confirmationContextVerified: ok?.confirmed == true,
+            confirmationContextVerified: counterpartyConfirmed,
             galleryAcknowledged: galleryAcknowledged,
           );
           if (!transitioned) return;

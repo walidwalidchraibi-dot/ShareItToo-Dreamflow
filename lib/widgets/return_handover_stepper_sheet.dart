@@ -190,11 +190,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
         if (!_hasDamage) return true;
         return _damagePhotos.isNotEmpty || _damageNotesCtrl.text.trim().isNotEmpty;
       case _StepKind.codes:
-        // Owner in pickup flow shows QR/Code; allow proceeding without scanner feedback.
-        if (widget.viewerIsOwner && widget.mode == ReturnFlowMode.pickupFlow) return true;
-        // NEW: Renter in return flow shows QR/Code to Vermieter; allow proceed
-        if (!widget.viewerIsOwner && widget.mode == ReturnFlowMode.returnFlow) return true;
-        // Otherwise require explicit confirmation (e.g., after scan or manual code)
+        // Hard SIT rule: final completion requires true counterparty confirmation.
         return _otherPartyConfirmed;
     }
   }
