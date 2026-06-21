@@ -25,7 +25,7 @@ enum _MessagesFilter { all, bookings, active, archived, support }
 const String _translationDemoThreadId = 'demo_translation_thread';
 
 class _MessagesScreenState extends State<MessagesScreen> {
-  _MessagesFilter _filter = _MessagesFilter.all;
+  _MessagesFilter _filter = _MessagesFilter.active;
   List<MessageThread> _activeThreads = [];
   List<MessageThread> _archivedThreads = [];
   User? _currentUser;
@@ -589,7 +589,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
   @override
   Widget build(BuildContext context) {
     final threads = _filteredThreads();
-    final counts = _tabCounts();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -624,7 +623,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
               child: _FilterTabs(
                 filter: _filter,
-                counts: counts,
+                showBlocked: _blockedUserIds.isNotEmpty,
                 onChanged: (f) => setState(() => _filter = f),
               ),
             ),
@@ -632,9 +631,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : (!_hasUser)
-                      ? _EmptyState(onCta: () => Navigator.of(context).maybePop())
+                      ? _EmptyState(title: 'Noch keine Nachrichten', body: body, onCta: () => Navigator.of(context).maybePop())
                       : threads.isEmpty
-                          ? _EmptyState(onCta: () => Navigator.of(context).maybePop())
+                          ? _EmptyState(title: _emptyStateCopy().title, body: _emptyStateCopy().body, onCta: () => Navigator.of(context).maybePop())
                           : ListView.separated(
                               padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
                               itemCount: threads.length,
@@ -718,15 +717,17 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
       switch (_filter) {
         case _MessagesFilter.all:
-          return true;
+          return !isArchived && !isBlocked;
         case _MessagesFilter.bookings:
-          return !isSupport;
+          return !isSupport && !isArchived && !isBlocked;
         case _MessagesFilter.active:
-          return !isSupport && !isArchived && !status.isTerminal;
+          return !isSupport && !isArchived && !isBlocked && !status.isTerminal;
         case _MessagesFilter.archived:
-          return isArchived || status.isTerminal;
+          return isArchived && !isBlocked;
+        case _MessagesFilter.blocked:
+          return isBlocked;
         case _MessagesFilter.support:
-          return isSupport;
+          return isSupport && !isArchived && !isBlocked;
       }
     }).toList();
 
@@ -775,20 +776,24 @@ class _MessagesScreenState extends State<MessagesScreen> {
     bool isSupport(MessageThread t) => (t.threadType ?? '').toLowerCase() == 'support' || t.user1Id == 'support' || t.user2Id == 'support';
 
     final all = [..._activeThreads, ..._archivedThreads];
-    final support = all.where(isSupport);
+    final support = all.where((t) => isSupport(t) && !_isOtherUserBlocked(t) && !t.archivedForUserIds.contains(userId));
     final nonSupport = all.where((t) => !isSupport(t));
+    final visibleNonBlocked = nonSupport.where((t) => !_isOtherUserBlocked(t));
+    final blocked = nonSupport.where((t) => _isOtherUserBlocked(t));
 
-    final active = nonSupport.where((t) {
+    final active = visibleNonBlocked.where((t) {
       final st = _derivedStatus(t);
       return !t.archivedForUserIds.contains(userId) && !st.isTerminal;
     });
-    final archived = nonSupport.where((t) => t.archivedForUserIds.contains(userId) || _derivedStatus(t).isTerminal);
+    final archived = visibleNonBlocked.where((t) => t.archivedForUserIds.contains(userId));
+    final allVisible = all.where((t) => !_isOtherUserBlocked(t) && !t.archivedForUserIds.contains(userId));
 
     return {
-      _MessagesFilter.all: unreadFor(all),
-      _MessagesFilter.bookings: unreadFor(nonSupport),
+      _MessagesFilter.all: unreadFor(allVisible),
+      _MessagesFilter.bookings: unreadFor(visibleNonBlocked.where((t) => !t.archivedForUserIds.contains(userId))),
       _MessagesFilter.active: unreadFor(active),
       _MessagesFilter.archived: unreadFor(archived),
+      _MessagesFilter.blocked: unreadFor(blocked),
       _MessagesFilter.support: unreadFor(support),
     };
   }
@@ -1059,27 +1064,28 @@ class _InlineSearchBar extends StatelessWidget {
 
 class _FilterTabs extends StatelessWidget {
   final _MessagesFilter filter;
-  final Map<_MessagesFilter, int> counts;
+  final bool showBlocked;
   final ValueChanged<_MessagesFilter> onChanged;
-  const _FilterTabs({required this.filter, required this.counts, required this.onChanged});
+  const _FilterTabs({required this.filter, required this.showBlocked, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    // Chips einzeln frei schwebend - kein äußerer Container mehr
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
       clipBehavior: Clip.none,
       child: Row(children: [
-        _FilterPill(label: 'Alle', count: counts[_MessagesFilter.all] ?? 0, selected: filter == _MessagesFilter.all, onTap: () => onChanged(_MessagesFilter.all)),
-        const SizedBox(width: 8),
-        _FilterPill(label: 'Buchungen', count: counts[_MessagesFilter.bookings] ?? 0, selected: filter == _MessagesFilter.bookings, onTap: () => onChanged(_MessagesFilter.bookings)),
-        const SizedBox(width: 8),
-        _FilterPill(label: 'Aktiv', count: counts[_MessagesFilter.active] ?? 0, selected: filter == _MessagesFilter.active, onTap: () => onChanged(_MessagesFilter.active)),
-        const SizedBox(width: 8),
-        _FilterPill(label: 'Archiv', count: counts[_MessagesFilter.archived] ?? 0, selected: filter == _MessagesFilter.archived, onTap: () => onChanged(_MessagesFilter.archived)),
-        const SizedBox(width: 8),
-        _FilterPill(label: 'Support', count: counts[_MessagesFilter.support] ?? 0, selected: filter == _MessagesFilter.support, onTap: () => onChanged(_MessagesFilter.support)),
+        _FilterPill(label: 'Aktiv', selected: filter == _MessagesFilter.active, onTap: () => onChanged(_MessagesFilter.active)),
+        const SizedBox(width: 10),
+        _FilterPill(label: 'Alle', selected: filter == _MessagesFilter.all, onTap: () => onChanged(_MessagesFilter.all)),
+        const SizedBox(width: 10),
+        _FilterPill(label: 'Archiv', selected: filter == _MessagesFilter.archived, onTap: () => onChanged(_MessagesFilter.archived)),
+        const SizedBox(width: 10),
+        _FilterPill(label: 'Support', selected: filter == _MessagesFilter.support, onTap: () => onChanged(_MessagesFilter.support)),
+        if (showBlocked) ...[
+          const SizedBox(width: 10),
+          _FilterPill(label: 'Blockiert', selected: filter == _MessagesFilter.blocked, onTap: () => onChanged(_MessagesFilter.blocked)),
+        ],
       ]),
     );
   }
@@ -1087,63 +1093,46 @@ class _FilterTabs extends StatelessWidget {
 
 class _FilterPill extends StatelessWidget {
   final String label;
-  final int count;
   final bool selected;
   final VoidCallback onTap;
-  const _FilterPill({required this.label, required this.count, required this.selected, required this.onTap});
+  const _FilterPill({required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final bg = selected ? Colors.white.withValues(alpha: 0.14) : Colors.white.withValues(alpha: 0.06);
-    final border = selected ? Colors.white.withValues(alpha: 0.22) : Colors.white.withValues(alpha: 0.12);
-    final text = selected ? Colors.white : Colors.white70;
-    final glow = selected;
+    final fill = selected ? BrandColors.primary.withValues(alpha: 0.16) : Colors.white.withValues(alpha: 0.02);
+    final border = selected ? BrandColors.primary.withValues(alpha: 0.42) : Colors.white.withValues(alpha: 0.10);
+    final text = selected ? Colors.white : Colors.white.withValues(alpha: 0.74);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
+          duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(14),
+            color: fill,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: border),
-            boxShadow: glow ? [BoxShadow(color: BrandColors.primary.withValues(alpha: 0.22), blurRadius: 18, spreadRadius: 0)] : const [],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Text(
+          child: Center(
+            child: Text(
               label,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(color: text, fontWeight: selected ? FontWeight.w800 : FontWeight.w700),
+              maxLines: 1,
+              overflow: TextOverflow.visible,
+              softWrap: false,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: text,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
+                letterSpacing: 0.1,
+              ),
             ),
-            if (count > 0) ...[
-              const SizedBox(width: 8),
-              _UnreadBadge(count: count, emphasized: selected),
-            ],
-          ]),
+          ),
         ),
       ),
-    );
-  }
-}
-
-class _UnreadBadge extends StatelessWidget {
-  final int count;
-  final bool emphasized;
-  const _UnreadBadge({required this.count, required this.emphasized});
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = emphasized ? BrandColors.logoAccent : Colors.white.withValues(alpha: 0.14);
-    final fg = emphasized ? Colors.black : Colors.white;
-    final text = count > 99 ? '99+' : count.toString();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white.withValues(alpha: 0.18))),
-      child: Text(text, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: fg, fontWeight: FontWeight.w900)),
     );
   }
 }
@@ -1790,8 +1779,10 @@ class _SheetAction extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
+  final String title;
+  final String body;
   final VoidCallback onCta;
-  const _EmptyState({required this.onCta});
+  const _EmptyState({required this.title, required this.body, required this.onCta});
 
   @override
   Widget build(BuildContext context) {
@@ -1799,7 +1790,7 @@ class _EmptyState extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('Noch keine Nachrichten', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+          Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
           const SizedBox(height: 10),
           Text(
             'Deine Gespräche erscheinen hier, sobald du eine Anfrage stellst oder annimmst.',
