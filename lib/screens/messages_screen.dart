@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/models/message.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
@@ -20,9 +22,10 @@ class MessagesScreen extends StatefulWidget {
   State<MessagesScreen> createState() => _MessagesScreenState();
 }
 
-enum _MessagesFilter { all, bookings, active, archived, support }
+enum _MessagesFilter { all, bookings, active, archived, blocked, support }
 
 const String _translationDemoThreadId = 'demo_translation_thread';
+const String _mutedThreadsKey = 'muted_message_threads_v1';
 
 class _MessagesScreenState extends State<MessagesScreen> {
   _MessagesFilter _filter = _MessagesFilter.active;
@@ -32,6 +35,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
   Map<String, User> _usersCache = {};
   Map<String, Item> _itemsCache = {};
   bool _isLoading = true;
+  Set<String> _blockedUserIds = const {};
+  Set<String> _mutedThreadKeys = const {};
   bool _searchVisible = false;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -41,6 +46,61 @@ class _MessagesScreenState extends State<MessagesScreen> {
   void initState() {
     super.initState();
     _loadData();
+  }
+
+
+  static String _muteKey({required String threadId, required String userId}) => '$userId::$threadId';
+
+  Future<Set<String>> _loadMutedThreadKeys() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_mutedThreadsKey);
+      if (raw == null || raw.isEmpty) return <String>{};
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return <String>{};
+      return decoded.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toSet();
+    } catch (e) {
+      debugPrint('MessagesScreen._loadMutedThreadKeys failed: $e');
+      return <String>{};
+    }
+  }
+
+  bool _isThreadMuted(MessageThread thread) {
+    final userId = _currentUser?.id;
+    if (userId == null) return false;
+    return _mutedThreadKeys.contains(_muteKey(threadId: thread.id, userId: userId));
+  }
+
+  bool _isOtherUserBlocked(MessageThread thread) {
+    final me = _currentUser;
+    if (me == null) return false;
+    final otherUserId = thread.user1Id == me.id ? thread.user2Id : thread.user1Id;
+    return otherUserId.isNotEmpty && _blockedUserIds.contains(otherUserId);
+  }
+
+
+  _MessagesFilter _normalizedFilterForBlocked(Set<String> blockedUserIds) {
+    if (_filter == _MessagesFilter.blocked && blockedUserIds.isEmpty) {
+      return _MessagesFilter.active;
+    }
+    return _filter;
+  }
+
+  ({String title, String body}) _emptyStateCopy() {
+    switch (_filter) {
+      case _MessagesFilter.active:
+        return (title: 'Keine aktiven Nachrichten', body: 'Sobald eine laufende oder offene Unterhaltung entsteht, erscheint sie hier.');
+      case _MessagesFilter.all:
+        return (title: 'Noch keine Nachrichten', body: 'Deine Gespräche erscheinen hier, sobald du eine Anfrage stellst oder annimmst.');
+      case _MessagesFilter.bookings:
+        return (title: 'Keine Buchungsnachrichten', body: 'Sobald es Nachrichten zu Buchungen gibt, erscheinen sie hier.');
+      case _MessagesFilter.archived:
+        return (title: 'Keine archivierten Nachrichten', body: 'Archivierte Gespräche erscheinen hier.');
+      case _MessagesFilter.support:
+        return (title: 'Keine Support-Nachrichten', body: 'Support-Unterhaltungen erscheinen hier, sobald du den Support kontaktierst.');
+      case _MessagesFilter.blocked:
+        return (title: 'Keine blockierten Kontakte', body: 'Blockierte Gespräche erscheinen hier, solange mindestens ein Kontakt blockiert ist.');
+    }
   }
 
   @override
@@ -65,6 +125,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
           _archivedThreads = demo.archivedThreads;
           _usersCache = demo.users;
           _itemsCache = demo.items;
+          _blockedUserIds = const {};
+          _mutedThreadKeys = const {};
+          _filter = _normalizedFilterForBlocked(const <String>{});
           _isLoading = false;
         });
         return;
@@ -72,6 +135,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
       final threads = await DataService.getMessageThreadsForUser(user.id);
       final archived = await DataService.getArchivedMessageThreadsForUser(user.id);
+      final blockedUserIds = (await BlockedUsersService.getBlockedUserIds()).toSet();
+      final mutedThreadKeys = await _loadMutedThreadKeys();
       final usersById = {for (final u in users) u.id: u};
       final itemsById = {for (final i in items) i.id: i};
 
@@ -93,7 +158,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
             _archivedThreads = seededArchived;
             _usersCache = injected.users;
             _itemsCache = injected.items;
-            _isLoading = false;
+            _blockedUserIds = blockedUserIds;
+            _mutedThreadKeys = mutedThreadKeys;
+            _filter = _normalizedFilterForBlocked(blockedUserIds);
+          _isLoading = false;
           });
           return;
         }
@@ -106,6 +174,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
           _archivedThreads = demo.archivedThreads;
           _usersCache = demo.users;
           _itemsCache = demo.items;
+          _blockedUserIds = blockedUserIds;
+          _mutedThreadKeys = mutedThreadKeys;
+          _filter = _normalizedFilterForBlocked(blockedUserIds);
           _isLoading = false;
         });
         return;
@@ -119,7 +190,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
         _archivedThreads = archived;
         _usersCache = injected.users;
         _itemsCache = injected.items;
-        _isLoading = false;
+        _blockedUserIds = blockedUserIds;
+        _mutedThreadKeys = mutedThreadKeys;
+        _filter = _normalizedFilterForBlocked(blockedUserIds);
+          _isLoading = false;
       });
     } catch (e) {
       debugPrint('MessagesScreen._loadData failed: $e');
@@ -575,7 +649,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
     required Map<String, Item> items,
   }) {
     final exists = activeThreads.any((t) => t.id == _translationDemoThreadId);
-    if (exists) return (activeThreads: activeThreads, users: users, items: items);
+    if (exists || activeThreads.isNotEmpty) {
+      return (activeThreads: activeThreads, users: users, items: items);
+    }
 
     final demo = _buildTranslationDemoThread(user);
     final updatedThreads = [demo.thread, ...activeThreads];
@@ -631,7 +707,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : (!_hasUser)
-                      ? _EmptyState(title: 'Noch keine Nachrichten', body: body, onCta: () => Navigator.of(context).maybePop())
+                      ? _EmptyState(title: 'Noch keine Nachrichten', body: 'Deine Gespräche erscheinen hier, sobald du eine Anfrage stellst oder annimmst.', onCta: () => Navigator.of(context).maybePop())
                       : threads.isEmpty
                           ? _EmptyState(title: _emptyStateCopy().title, body: _emptyStateCopy().body, onCta: () => Navigator.of(context).maybePop())
                           : ListView.separated(
@@ -690,7 +766,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                       statusTone: status.tone,
                                       lastMessage: lastMsg?.text ?? '',
                                       highlighted: highlight,
-                                      muted: isTerminal,
+                                      muted: _isThreadMuted(thread),
+                                      blocked: _isOtherUserBlocked(thread),
                                       onTap: () => _openThread(thread, other),
                                       onLongPress: () => _openThreadOptions(thread),
                                     ),
@@ -714,6 +791,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       final isSupport = type == 'support' || t.user1Id == 'support' || t.user2Id == 'support';
       final status = _derivedStatus(t);
       final isArchived = t.archivedForUserIds.contains(userId);
+      final isBlocked = _isOtherUserBlocked(t);
 
       switch (_filter) {
         case _MessagesFilter.all:
@@ -809,6 +887,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
     if (me == null) return null;
     final otherUserId = thread.user1Id == me.id ? thread.user2Id : thread.user1Id;
     return _usersCache[otherUserId];
+  }
+
+
+  bool _canBlockThread(MessageThread thread) {
+    if (_isOtherUserBlocked(thread)) return true;
+    final isSupport = (thread.threadType ?? '').toLowerCase() == 'support' || thread.user1Id == 'support' || thread.user2Id == 'support';
+    if (isSupport) return false;
+    return _derivedStatus(thread).isTerminal;
   }
 
   ({String label, _StatusTone tone, int rank, bool isTerminal}) _derivedStatus(MessageThread thread) {
@@ -934,7 +1020,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       isScrollControlled: true,
       barrierColor: Colors.black.withValues(alpha: 0.35),
       backgroundColor: Colors.transparent,
-      builder: (context) => _ThreadOptionsSheet(isArchived: thread.archivedForUserIds.contains(userId), hasUnread: _hasUnread(thread)),
+      builder: (context) => _ThreadOptionsSheet(isArchived: thread.archivedForUserIds.contains(userId), hasUnread: _hasUnread(thread), canBlock: _canBlockThread(thread), isBlocked: _isOtherUserBlocked(thread)),
     );
     if (choice == null) return;
 
@@ -954,7 +1040,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
         await DataService.deleteMessageThread(threadId: thread.id);
         break;
       case 'block':
-        // Determine the other user in this thread
         final otherUserId = thread.user1Id == userId ? thread.user2Id : thread.user1Id;
         if (otherUserId.isEmpty || otherUserId == 'support') {
           if (mounted) {
@@ -962,13 +1047,25 @@ class _MessagesScreenState extends State<MessagesScreen> {
           }
           return;
         }
-        // Block the user via BlockedUsersService
-        await BlockedUsersService.blockUser(otherUserId);
-        // Archive the thread so it disappears from active list
-        await DataService.archiveMessageThreadForUser(threadId: thread.id, userId: userId);
-        debugPrint('[Messages] User $otherUserId blocked and thread ${thread.id} archived');
-        if (mounted) {
-          AppPopup.toast(context, icon: Icons.block, title: 'Nutzer blockiert', message: 'Du erhältst keine Nachrichten mehr von dieser Person.');
+        final isBlocked = _isOtherUserBlocked(thread);
+        if (!isBlocked && !_canBlockThread(thread)) {
+          if (mounted) {
+            AppPopup.toast(context, icon: Icons.info_outline, title: 'Blockieren erst nach abgeschlossener Buchung möglich');
+          }
+          return;
+        }
+        if (isBlocked) {
+          await BlockedUsersService.unblockUser(otherUserId);
+          if (mounted) {
+            AppPopup.toast(context, icon: Icons.lock_open_outlined, title: 'Blockierung aufgehoben');
+          }
+        } else {
+          await BlockedUsersService.blockUser(otherUserId);
+          await DataService.archiveMessageThreadForUser(threadId: thread.id, userId: userId);
+          debugPrint('[Messages] User $otherUserId blocked and thread ${thread.id} archived');
+          if (mounted) {
+            AppPopup.toast(context, icon: Icons.block, title: 'Nutzer blockiert', message: 'Du erhältst keine Nachrichten mehr von dieser Person.');
+          }
         }
         break;
     }
@@ -1153,6 +1250,7 @@ class _ChatThreadTile extends StatelessWidget {
   final _StatusTone statusTone;
   final bool highlighted;
   final bool muted;
+  final bool blocked;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -1170,6 +1268,7 @@ class _ChatThreadTile extends StatelessWidget {
     required this.lastMessage,
     required this.highlighted,
     this.muted = false,
+    this.blocked = false,
     required this.onTap,
     required this.onLongPress,
   });
@@ -1348,6 +1447,19 @@ class _ChatThreadTile extends StatelessWidget {
                               ),
                         ),
                       ],
+                      if (muted || blocked) ...[
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            if (muted)
+                              const _ThreadStateChip(icon: Icons.notifications_off_outlined, label: 'Stumm'),
+                            if (blocked)
+                              const _ThreadStateChip(icon: Icons.block_outlined, label: 'Blockiert', danger: true),
+                          ],
+                        ),
+                      ],
                       // Zeile 3: Letzte Nachricht (1 Zeile)
                       const SizedBox(height: 3),
                       Text(
@@ -1369,6 +1481,36 @@ class _ChatThreadTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+
+class _ThreadStateChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool danger;
+  const _ThreadStateChip({required this.icon, required this.label, this.danger = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = danger ? Colors.red.shade300 : Colors.white70;
+    final bg = danger ? Colors.red.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.08);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(color: color, fontSize: 10.5, fontWeight: FontWeight.w700)),
+        ],
       ),
     );
   }
@@ -1602,7 +1744,9 @@ class _SwipeActionSheet extends StatelessWidget {
 class _ThreadOptionsSheet extends StatelessWidget {
   final bool isArchived;
   final bool hasUnread;
-  const _ThreadOptionsSheet({required this.isArchived, required this.hasUnread});
+  final bool canBlock;
+  final bool isBlocked;
+  const _ThreadOptionsSheet({required this.isArchived, required this.hasUnread, required this.canBlock, required this.isBlocked});
 
   @override
   Widget build(BuildContext context) {
@@ -1627,13 +1771,14 @@ class _ThreadOptionsSheet extends StatelessWidget {
             onTap: () => Navigator.of(context).pop(isArchived ? 'unarchive' : 'archive'),
           ),
           const SizedBox(height: 10),
-          _SheetAction(
-            icon: Icons.block,
-            title: 'Blockieren',
-            subtitle: 'Du erhältst keine Nachrichten mehr von dieser Person.',
-            danger: true,
-            onTap: () => Navigator.of(context).pop('block'),
-          ),
+          if (canBlock || isBlocked)
+            _SheetAction(
+              icon: isBlocked ? Icons.lock_open_outlined : Icons.block,
+              title: isBlocked ? 'Blockierung aufheben' : 'Blockieren',
+              subtitle: isBlocked ? 'Der Nutzer kann wieder normal kontaktiert werden.' : 'Nur nach abgeschlossener Buchung möglich.',
+              danger: !isBlocked,
+              onTap: () => Navigator.of(context).pop('block'),
+            ),
           const SizedBox(height: 10),
           _SheetAction(
             icon: Icons.delete_outline,
@@ -1793,7 +1938,7 @@ class _EmptyState extends StatelessWidget {
           Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
           const SizedBox(height: 10),
           Text(
-            'Deine Gespräche erscheinen hier, sobald du eine Anfrage stellst oder annimmst.',
+            body,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, height: 1.45, fontWeight: FontWeight.w600),
           ),

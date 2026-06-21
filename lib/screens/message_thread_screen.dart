@@ -11,6 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/message.dart';
 import 'package:lendify/models/rental_request.dart';
@@ -35,6 +36,7 @@ import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
 
 const String _translationDemoThreadId = 'demo_translation_thread';
+const String _mutedThreadsKey = 'muted_message_threads_v1';
 
 /// Chat detail screen (Communication Hub).
 ///
@@ -100,6 +102,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Map<String, dynamic> _handoverReturnState = const {};
   MessagesSettings _messageSettings = MessagesSettings.defaults();
   bool _showOriginalIncoming = false;
+  bool _isThreadMuted = false;
+  bool _isThreadArchived = false;
+  bool _isOtherUserBlocked = false;
 
   bool _isAtBottom = true;
   bool _showJumpToBottom = false;
@@ -197,10 +202,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       }
 
       User? other;
+      String otherId = '';
       if (thread != null) {
-        final otherId = thread.user1Id == me.id ? thread.user2Id : thread.user1Id;
+        otherId = thread.user1Id == me.id ? thread.user2Id : thread.user1Id;
         other = await DataService.getUserById(otherId);
       }
+
+      final isThreadArchived = thread != null && thread.archivedForUserIds.contains(me.id);
+      final blockedUserIds = await BlockedUsersService.getBlockedUserIds();
+      final isOtherUserBlocked = otherId.isNotEmpty && blockedUserIds.contains(otherId);
+      final isThreadMuted = thread != null ? await _isThreadMutedForUser(threadId: thread.id, userId: me.id) : false;
 
       Map<String, dynamic> hr = const {};
       final reqId = request?.id ?? thread?.requestId;
@@ -223,6 +234,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         _otherUser = other;
         _handoverReturnState = hr;
         _messageSettings = normalizedSettings;
+        _isThreadArchived = isThreadArchived;
+        _isOtherUserBlocked = isOtherUserBlocked;
+        _isThreadMuted = isThreadMuted;
         _isLoading = false;
         _showOriginalIncoming = normalizedSettings.showOriginalMessages;
       });
@@ -237,6 +251,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
     }
+  }
+
+
+  bool _canBlockCurrentThread() {
+    if (_isOtherUserBlocked) return true;
+    final st = _deriveChatState();
+    return st == _ChatState.completed;
   }
 
   _ChatState _deriveChatState() {
@@ -272,6 +293,47 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       return value.copyWith(preferredLanguageCode: fallback);
     }
     return value;
+  }
+
+  static Future<List<String>> _getMutedThreadKeys() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_mutedThreadsKey);
+      if (raw == null || raw.isEmpty) return const [];
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const [];
+      return decoded.map((e) => e.toString()).where((e) => e.trim().isNotEmpty).toList(growable: false);
+    } catch (e) {
+      debugPrint('[MessageThreadScreen] _getMutedThreadKeys failed: $e');
+      return const [];
+    }
+  }
+
+  static Future<void> _setMutedThreadKeys(List<String> keys) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cleaned = keys.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet().toList()..sort();
+      await prefs.setString(_mutedThreadsKey, jsonEncode(cleaned));
+    } catch (e) {
+      debugPrint('[MessageThreadScreen] _setMutedThreadKeys failed: $e');
+    }
+  }
+
+  static String _muteKey({required String threadId, required String userId}) => '$userId::$threadId';
+
+  static Future<bool> _isThreadMutedForUser({required String threadId, required String userId}) async {
+    if (threadId.isEmpty || userId.isEmpty) return false;
+    final keys = await _getMutedThreadKeys();
+    return keys.contains(_muteKey(threadId: threadId, userId: userId));
+  }
+
+  static Future<void> _setThreadMutedForUser({required String threadId, required String userId, required bool muted}) async {
+    if (threadId.isEmpty || userId.isEmpty) return;
+    final key = _muteKey(threadId: threadId, userId: userId);
+    final keys = await _getMutedThreadKeys();
+    final next = [...keys.where((e) => e != key)];
+    if (muted) next.add(key);
+    await _setMutedThreadKeys(next);
   }
 
   String _appLanguageCode() {
@@ -1399,12 +1461,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         title: isSupport ? 'SIT Support' : _displayName(),
         subtitle: isSupport ? 'Hilfe & Sicherheit' : _itemTitle(),
         verified: isSupport ? true : (_otherUser?.isVerified ?? false),
-        onBlock: isSupport ? null : _blockUser,
+        onBlock: isSupport ? null : _toggleBlockUser,
+        canShowBlockAction: !isSupport && (_isOtherUserBlocked || _canBlockCurrentThread()),
         onViewBooking: isSupport ? null : _navigateToBookingDetail,
         onViewProfile: isSupport ? null : _viewProfile,
-        onMuteNotifications: _muteNotifications,
-        onArchiveChat: _archiveChat,
+        onMuteNotifications: _toggleMuteNotifications,
+        onArchiveChat: _toggleArchiveChat,
         onContactSupport: isSupport ? null : _contactSupport,
+        isMuted: _isThreadMuted,
+        isArchived: _isThreadArchived,
+        isBlocked: _isOtherUserBlocked,
       ),
       body: SafeArea(
         top: false,
@@ -2480,11 +2546,15 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     };
   }
 
-  Future<void> _blockUser() async {
+  Future<void> _toggleBlockUser() async {
     final t = _thread;
     final me = _currentUser;
     if (t == null || me == null) {
       AppPopup.toast(context, icon: Icons.info_outline, title: 'Blockieren nicht möglich');
+      return;
+    }
+    if (!_canBlockCurrentThread()) {
+      AppPopup.toast(context, icon: Icons.info_outline, title: 'Blockieren erst nach abgeschlossener Buchung möglich');
       return;
     }
 
@@ -2509,16 +2579,28 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     }
 
     try {
-      await BlockedUsersService.blockUser(otherUserId);
-      // Thread archivieren
-      await DataService.archiveMessageThreadForUser(threadId: t.id, userId: me.id);
+      final nextBlocked = !_isOtherUserBlocked;
+      if (nextBlocked) {
+        await BlockedUsersService.blockUser(otherUserId);
+        await DataService.archiveMessageThreadForUser(threadId: t.id, userId: me.id);
+      } else {
+        await BlockedUsersService.unblockUser(otherUserId);
+      }
+      await _load();
       if (mounted) {
-        AppPopup.toast(context, icon: Icons.block, title: 'Nutzer blockiert');
-        Navigator.of(context).pop(true);
+        setState(() {
+          _isOtherUserBlocked = nextBlocked;
+          if (nextBlocked) _isThreadArchived = true;
+        });
+        AppPopup.toast(
+          context,
+          icon: nextBlocked ? Icons.block : Icons.lock_open_outlined,
+          title: nextBlocked ? 'Nutzer blockiert' : 'Blockierung aufgehoben',
+        );
       }
     } catch (e) {
-      debugPrint('[MessageThreadScreen] _blockUser failed: $e');
-      if (mounted) AppPopup.toast(context, icon: Icons.error_outline, title: 'Blockieren fehlgeschlagen');
+      debugPrint('[MessageThreadScreen] _toggleBlockUser failed: $e');
+      if (mounted) AppPopup.toast(context, icon: Icons.error_outline, title: _isOtherUserBlocked ? 'Entblocken fehlgeschlagen' : 'Blockieren fehlgeschlagen');
     }
   }
 
@@ -2676,12 +2758,27 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     );
   }
 
-  Future<void> _muteNotifications() async {
-    // TODO: Echte Stummschaltungs-Logik
-    AppPopup.toast(context, icon: Icons.notifications_off_outlined, title: 'Benachrichtigungen stummgeschaltet');
+  Future<void> _toggleMuteNotifications() async {
+    final t = _thread;
+    final me = _currentUser;
+    if (t == null || me == null) {
+      AppPopup.toast(context, icon: Icons.info_outline, title: 'Stummschalten nicht möglich');
+      return;
+    }
+
+    final nextMuted = !_isThreadMuted;
+    await _setThreadMutedForUser(threadId: t.id, userId: me.id, muted: nextMuted);
+    await _load();
+    if (!mounted) return;
+    setState(() => _isThreadMuted = nextMuted);
+    AppPopup.toast(
+      context,
+      icon: nextMuted ? Icons.notifications_off_outlined : Icons.notifications_active_outlined,
+      title: nextMuted ? 'Benachrichtigungen stummgeschaltet' : 'Stummschaltung aufgehoben',
+    );
   }
 
-  Future<void> _archiveChat() async {
+  Future<void> _toggleArchiveChat() async {
     final t = _thread;
     final me = _currentUser;
     if (t == null || me == null) {
@@ -2694,14 +2791,20 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       return;
     }
     try {
-      await DataService.archiveMessageThreadForUser(threadId: t.id, userId: me.id);
+      final nextArchived = !_isThreadArchived;
+      if (_isThreadArchived) {
+        await DataService.unarchiveMessageThreadForUser(threadId: t.id, userId: me.id);
+      } else {
+        await DataService.archiveMessageThreadForUser(threadId: t.id, userId: me.id);
+      }
+      await _load();
       if (mounted) {
-        AppPopup.toast(context, icon: Icons.archive_outlined, title: 'Chat archiviert');
-        Navigator.of(context).pop(true);
+        setState(() => _isThreadArchived = nextArchived);
+        AppPopup.toast(context, icon: nextArchived ? Icons.archive_outlined : Icons.unarchive_outlined, title: nextArchived ? 'Chat archiviert' : 'Aus Archiv geholt');
       }
     } catch (e) {
-      debugPrint('[MessageThreadScreen] _archiveChat failed: $e');
-      if (mounted) AppPopup.toast(context, icon: Icons.error_outline, title: 'Archivieren fehlgeschlagen');
+      debugPrint('[MessageThreadScreen] _toggleArchiveChat failed: $e');
+      if (mounted) AppPopup.toast(context, icon: Icons.error_outline, title: _isThreadArchived ? 'Wiederherstellen fehlgeschlagen' : 'Archivieren fehlgeschlagen');
     }
   }
 
@@ -2827,11 +2930,15 @@ class _ThreadHeader extends StatelessWidget implements PreferredSizeWidget {
   final String subtitle;
   final bool verified;
   final VoidCallback? onBlock;
+  final bool canShowBlockAction;
   final VoidCallback? onViewBooking;
   final VoidCallback? onViewProfile;
   final VoidCallback? onMuteNotifications;
   final VoidCallback? onArchiveChat;
   final VoidCallback? onContactSupport;
+  final bool isMuted;
+  final bool isArchived;
+  final bool isBlocked;
 
   const _ThreadHeader({
     required this.isSupport,
@@ -2840,11 +2947,15 @@ class _ThreadHeader extends StatelessWidget implements PreferredSizeWidget {
     required this.subtitle,
     required this.verified,
     this.onBlock,
+    this.canShowBlockAction = false,
     this.onViewBooking,
     this.onViewProfile,
     this.onMuteNotifications,
     this.onArchiveChat,
     this.onContactSupport,
+    this.isMuted = false,
+    this.isArchived = false,
+    this.isBlocked = false,
   });
 
   @override
@@ -2933,8 +3044,8 @@ class _ThreadHeader extends StatelessWidget implements PreferredSizeWidget {
                         // Support-Chat: reduziertes Menü
                         PopupMenuItem(value: 'info', enabled: false, height: 38, child: Row(children: [Icon(Icons.support_agent_rounded, size: 16, color: Colors.white.withValues(alpha: 0.6)), const SizedBox(width: 10), Text('SIT Support', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12))])),
                         const PopupMenuDivider(height: 8),
-                        PopupMenuItem(value: 'mute', height: 42, child: Row(children: [Icon(Icons.notifications_off_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), const Text('Stummschalten', style: TextStyle(fontSize: 13))])),
-                        PopupMenuItem(value: 'archive', height: 42, child: Row(children: [Icon(Icons.archive_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), const Text('Chat archivieren', style: TextStyle(fontSize: 13))])),
+                        PopupMenuItem(value: 'mute', height: 42, child: Row(children: [Icon(isMuted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), Text(isMuted ? 'Stummschaltung aufheben' : 'Stummschalten', style: const TextStyle(fontSize: 13))])),
+                        PopupMenuItem(value: 'archive', height: 42, child: Row(children: [Icon(isArchived ? Icons.unarchive_outlined : Icons.archive_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), Text(isArchived ? 'Aus Archiv holen' : 'Chat archivieren', style: const TextStyle(fontSize: 13))])),
                       ]
                     : [
                         // Normaler Chat: vollständiges Menü
@@ -2942,14 +3053,14 @@ class _ThreadHeader extends StatelessWidget implements PreferredSizeWidget {
                           PopupMenuItem(value: 'booking', height: 42, child: Row(children: [Icon(Icons.receipt_long_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), const Text('Buchung ansehen', style: TextStyle(fontSize: 13))])),
                         PopupMenuItem(value: 'profile', height: 42, child: Row(children: [Icon(Icons.person_outline, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), const Text('Profil ansehen', style: TextStyle(fontSize: 13))])),
                         const PopupMenuDivider(height: 8),
-                        PopupMenuItem(value: 'mute', height: 42, child: Row(children: [Icon(Icons.notifications_off_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), const Text('Stummschalten', style: TextStyle(fontSize: 13))])),
-                        PopupMenuItem(value: 'archive', height: 42, child: Row(children: [Icon(Icons.archive_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), const Text('Chat archivieren', style: TextStyle(fontSize: 13))])),
+                        PopupMenuItem(value: 'mute', height: 42, child: Row(children: [Icon(isMuted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), Text(isMuted ? 'Stummschaltung aufheben' : 'Stummschalten', style: const TextStyle(fontSize: 13))])),
+                        PopupMenuItem(value: 'archive', height: 42, child: Row(children: [Icon(isArchived ? Icons.unarchive_outlined : Icons.archive_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), Text(isArchived ? 'Aus Archiv holen' : 'Chat archivieren', style: const TextStyle(fontSize: 13))])),
                         const PopupMenuDivider(height: 8),
                         PopupMenuItem(value: 'support', height: 42, child: Row(children: [
                           ClipOval(child: Image.asset('assets/images/icononly_transparent_nobuffer.png', width: 18, height: 18, fit: BoxFit.contain, errorBuilder: (_, __, ___) => Icon(Icons.support_agent_rounded, size: 18, color: BrandColors.primary))),
                           const SizedBox(width: 10), Text('Support kontaktieren', style: TextStyle(color: BrandColors.primary, fontSize: 13))])),
-                        if (onBlock != null)
-                          PopupMenuItem(value: 'block', height: 42, child: Row(children: [Icon(Icons.block, size: 18, color: Colors.red.shade400), const SizedBox(width: 10), Text('Nutzer blockieren', style: TextStyle(color: Colors.red.shade400, fontSize: 13))])),
+                        if (canShowBlockAction)
+                          PopupMenuItem(value: 'block', height: 42, child: Row(children: [Icon(isBlocked ? Icons.lock_open_outlined : Icons.block, size: 18, color: Colors.red.shade400), const SizedBox(width: 10), Text(isBlocked ? 'Blockierung aufheben' : 'Nutzer blockieren', style: TextStyle(color: Colors.red.shade400, fontSize: 13))])),
                       ],
               ),
             ]
