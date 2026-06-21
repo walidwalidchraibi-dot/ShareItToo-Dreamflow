@@ -1407,14 +1407,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     child: Builder(builder: (context) {
                       final now = DateTime.now();
                       final diff = start.difference(now);
-                      String text;
-                      if (diff.isNegative || diff.inDays == 0) {
-                        text = 'Abholung Heute';
-                      } else if (diff.inDays == 1) {
-                        text = 'Abholung in 1 Tag';
-                      } else {
-                        text = 'Abholung in ${diff.inDays} Tagen';
-                      }
+                      final ownerDeliversAtDropoff =
+                          (widget.booking['ownerDeliversAtDropoffChosen'] == true) ||
+                          (widget.booking['expressRequested'] == true) ||
+                          (widget.booking['expressStatus'] == 'accepted');
+                      final modeLabel = ownerDeliversAtDropoff ? 'Lieferung' : 'Abholung';
+                      final text = _formatPickupCountdown(diff, modeLabel: modeLabel);
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
@@ -2136,12 +2134,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return '$dd. $m';
   }
 
-  String _formatPickupCountdown(Duration d) {
+  String _formatPickupCountdown(Duration d, {String modeLabel = 'Abholung'}) {
     if (d.isNegative || d.inDays == 0) {
-      return 'Abholung Heute';
+      return '$modeLabel Heute';
     }
-    if (d.inDays == 1) return 'Abholung in 1 Tag';
-    return 'Abholung in ${d.inDays} Tagen';
+    if (d.inDays == 1) return '$modeLabel in 1 Tag';
+    return '$modeLabel in ${d.inDays} Tagen';
   }
 
   String _formatDeadline(DateTime dt) {

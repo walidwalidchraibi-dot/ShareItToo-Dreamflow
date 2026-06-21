@@ -1142,16 +1142,16 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   (IconData, String, bool) _emptyStateForCategory(String category) {
     switch (category) {
       case 'ongoing':
-        return (Icons.timelapse_outlined, 'Du hast keine Laufenden Buchungen', false);
+        return (Icons.timelapse_outlined, 'Du hast keine laufenden Buchungen', false);
       case 'upcoming':
-        return (Icons.event_available_outlined, 'Du hast keine Kommenden Buchungen', false);
+        return (Icons.event_available_outlined, 'Du hast keine kommenden Buchungen', false);
       case 'pending':
         // Pending bookings are booking requests waiting for confirmation.
         // Use a dedicated pending icon (instead of the Mietanfragen/BoxChat icon).
-        return (Icons.pending_actions_outlined, 'Du hast keine Ausstehenden Buchungen', false);
+        return (Icons.pending_actions_outlined, 'Du hast keine ausstehenden Buchungen', false);
       case 'completed':
       default:
-        return (Icons.task_alt_outlined, 'Du hast keine Abgeschlossenen Buchungen', false);
+        return (Icons.task_alt_outlined, 'Du hast keine abgeschlossenen Buchungen', false);
     }
   }
 }

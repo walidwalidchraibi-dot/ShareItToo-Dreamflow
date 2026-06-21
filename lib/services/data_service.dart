@@ -1010,7 +1010,17 @@ class DataService {
     if (mutated) {
       await prefs.setString(_currentUserKey, jsonEncode(user.toJson()));
     }
+    await _ensureQaMessagesAndNotificationsForUserOnce(user.id);
     return user;
+  }
+
+
+  static Future<void> applyQaFixturesForScreenAudit() async {
+    final me = await getCurrentUser();
+    if (me == null || me.id.isEmpty || !kDebugMode) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('$_qaMessagesAndNotifsSeedFlagPrefix${me.id}');
+    await _ensureQaMessagesAndNotificationsForUserOnce(me.id);
   }
 
   static Future<void> _ensureDemoNotificationsForUserOnce(String userId) async {
@@ -1106,7 +1116,7 @@ class DataService {
     }
   }
 
-  static const bool _launchQaSeedingEnabled = false;
+  static const bool _launchQaSeedingEnabled = true;
 
   static Future<void> _ensureQaMessagesAndNotificationsForUserOnce(String userId) async {
     if (userId.isEmpty || !kDebugMode || !_launchQaSeedingEnabled) return;
@@ -1116,8 +1126,15 @@ class DataService {
       final done = prefs.getBool(key) ?? false;
       if (done) return;
 
-      final me = await getCurrentUser();
-      if (me == null || me.id != userId) return;
+      final rawCurrentUser = prefs.getString(_currentUserKey);
+      if (rawCurrentUser == null || rawCurrentUser.isEmpty) return;
+      User? me;
+      try {
+        me = User.fromJson(Map<String, dynamic>.from(jsonDecode(rawCurrentUser) as Map));
+      } catch (_) {
+        return;
+      }
+      if (me.id != userId) return;
 
       final users = await getUsers();
       final items = await getItems();
@@ -1149,8 +1166,82 @@ class DataService {
       final runningItem = firstOwnedByWithPhoto(ownerB.id) ?? acceptedItem;
       final completedItem = firstOwnedBy(ownerC.id) ?? runningItem;
       final pendingItem = firstOwnedBy(me.id) ?? acceptedItem;
-
+      final ownerTemplate = firstOwnedByWithPhoto(me.id) ?? firstOwnedBy(me.id) ?? items.first;
       final now = DateTime.now();
+
+      Item ownerQaItem({
+        required String id,
+        required String title,
+        bool offersDeliveryAtDropoff = false,
+        bool offersPickupAtReturn = false,
+      }) {
+        return Item(
+          id: id,
+          ownerId: userId,
+          title: title,
+          description: 'Lokaler QA-Fixture-Artikel für Owner-Screen-Audits.',
+          categoryId: ownerTemplate.categoryId,
+          subcategory: ownerTemplate.subcategory,
+          tags: ownerTemplate.tags,
+          pricePerDay: ownerTemplate.pricePerDay,
+          currency: ownerTemplate.currency,
+          priceUnit: ownerTemplate.priceUnit,
+          priceRaw: ownerTemplate.priceRaw,
+          deposit: ownerTemplate.deposit,
+          autoApplyDiscounts: ownerTemplate.autoApplyDiscounts,
+          longRentalDiscounts: ownerTemplate.longRentalDiscounts,
+          photos: ownerTemplate.photos,
+          locationText: ownerTemplate.locationText,
+          lat: ownerTemplate.lat,
+          lng: ownerTemplate.lng,
+          geohash: ownerTemplate.geohash,
+          condition: ownerTemplate.condition,
+          minDays: ownerTemplate.minDays,
+          maxDays: ownerTemplate.maxDays,
+          createdAt: now.subtract(const Duration(days: 1)),
+          isActive: true,
+          verificationStatus: ownerTemplate.verificationStatus,
+          city: ownerTemplate.city,
+          country: ownerTemplate.country,
+          status: 'active',
+          timesLent: ownerTemplate.timesLent,
+          offersDeliveryAtDropoff: offersDeliveryAtDropoff,
+          offersPickupAtReturn: offersPickupAtReturn,
+          offersExpressAtDropoff: ownerTemplate.offersExpressAtDropoff,
+          maxDeliveryKmAtDropoff: ownerTemplate.maxDeliveryKmAtDropoff,
+          maxPickupKmAtReturn: ownerTemplate.maxPickupKmAtReturn,
+          cancellationPolicy: ownerTemplate.cancellationPolicy,
+        );
+      }
+
+      final ownerPendingItem = ownerQaItem(
+        id: 'qa_owner_item_pending_$userId',
+        title: 'QA Neue Mietanfrage',
+      );
+      final ownerUpcomingPickupItem = ownerQaItem(
+        id: 'qa_owner_item_upcoming_pickup_$userId',
+        title: 'QA Werkzeug Abholung durch Mieter',
+      );
+      final ownerUpcomingDeliveryItem = ownerQaItem(
+        id: 'qa_owner_item_upcoming_delivery_$userId',
+        title: 'QA Monitor Lieferung durch Vermieter',
+        offersDeliveryAtDropoff: true,
+      );
+      final ownerRunningItem = ownerQaItem(
+        id: 'qa_owner_item_running_$userId',
+        title: 'QA Stativ laufende Anmietung',
+        offersDeliveryAtDropoff: true,
+        offersPickupAtReturn: true,
+      );
+      final ownerCompletedCleanItem = ownerQaItem(
+        id: 'qa_owner_item_completed_clean_$userId',
+        title: 'QA Kamera abgeschlossen',
+      );
+      final ownerCompletedProblemItem = ownerQaItem(
+        id: 'qa_owner_item_completed_problem_$userId',
+        title: 'QA E-Scooter Prüfung läuft',
+      );
+
       final acceptedRequest = RentalRequest(
         id: 'qa_req_accepted_$userId',
         itemId: acceptedItem.id,
@@ -1159,7 +1250,7 @@ class DataService {
         start: now.add(const Duration(days: 2, hours: 4)),
         end: now.add(const Duration(days: 5, hours: 2)),
         status: 'accepted',
-        message: 'Ich freue mich auf die Miete und richte alles sauber für die Übergabe her.',
+        message: 'QA PS5 Lieferung — bestätigter Kommend-Testfall für den lokalen Screen-Audit.',
         deliveryAddressLine: 'Torstraße 17',
         deliveryCity: 'Berlin',
         createdAt: now.subtract(const Duration(days: 1, hours: 4)),
@@ -1174,7 +1265,7 @@ class DataService {
         start: now.subtract(const Duration(days: 1, hours: 2)),
         end: now.add(const Duration(days: 2, hours: 6)),
         status: 'running',
-        message: 'Die Kamera ist schon unterwegs in deinen Drehplan eingebaut.',
+        message: 'qa_booking_running — laufender Audit-Fall mit sichtbarer Abholung und Rückgabe.',
         deliveryAddressLine: 'Rosenthaler Straße 44',
         deliveryCity: 'Berlin',
         createdAt: now.subtract(const Duration(days: 3)),
@@ -1210,7 +1301,7 @@ class DataService {
         start: now.subtract(const Duration(days: 6)),
         end: now.subtract(const Duration(days: 4, hours: 4)),
         status: 'completed',
-        message: 'Der Vorgang ist beendet, aber ein Detail wartet noch auf Prüfung.',
+        message: 'QA E-Scooter Prüfung läuft — abgeschlossener Vorgang mit Review-Hold.',
         createdAt: now.subtract(const Duration(days: 6, hours: 8)),
         needsReview: true,
         reviewReason: 'Zusätzliche Prüfung nach Rückgabe',
@@ -1233,22 +1324,141 @@ class DataService {
         quotedSubtitle: 'Anfrage noch offen',
       );
       final ownerPendingRequest = RentalRequest(
-        id: 'qa_req_owner_pending_$userId',
-        itemId: pendingItem.id,
-        ownerId: pendingItem.ownerId,
-        renterId: pendingItem.ownerId == userId ? renterA.id : ownerB.id,
+        id: 'qa_owner_pending_$userId',
+        itemId: ownerPendingItem.id,
+        ownerId: userId,
+        renterId: renterA.id,
         start: now.add(const Duration(days: 3, hours: 6)),
         end: now.add(const Duration(days: 5, hours: 12)),
         status: 'pending',
-        message: 'Ich könnte am Samstag am späten Nachmittag abholen, wenn das für dich passt.',
+        message: 'Neue Mietanfrage für den lokalen Owner-Audit.',
         createdAt: now.subtract(const Duration(hours: 1, minutes: 35)),
         quotedTotalRenter: 67.0,
         quotedSubtitle: 'eingehende Mietanfrage',
       );
+      final ownerUpcomingPickupRequest = RentalRequest(
+        id: 'qa_owner_upcoming_pickup_$userId',
+        itemId: ownerUpcomingPickupItem.id,
+        ownerId: userId,
+        renterId: ownerA.id,
+        start: now.add(const Duration(days: 1, hours: 4)),
+        end: now.add(const Duration(days: 3, hours: 4)),
+        status: 'accepted',
+        message: 'Bestätigte Owner-Anmietung mit Selbstabholung durch den Mieter.',
+        createdAt: now.subtract(const Duration(days: 1, hours: 6)),
+        ownerDeliversAtDropoffChosen: false,
+        quotedTotalRenter: 82.0,
+        quotedSubtitle: 'kommend / abholung',
+      );
+      final ownerUpcomingDeliveryRequest = RentalRequest(
+        id: 'qa_owner_upcoming_delivery_$userId',
+        itemId: ownerUpcomingDeliveryItem.id,
+        ownerId: userId,
+        renterId: ownerB.id,
+        start: now.add(const Duration(days: 2, hours: 2)),
+        end: now.add(const Duration(days: 4, hours: 8)),
+        status: 'accepted',
+        message: 'Bestätigte Owner-Anmietung mit Lieferung durch den Vermieter.',
+        createdAt: now.subtract(const Duration(days: 1, hours: 2)),
+        ownerDeliversAtDropoffChosen: true,
+        quotedTotalRenter: 119.0,
+        quotedSubtitle: 'kommend / lieferung',
+      );
+      final ownerRunningRequest = RentalRequest(
+        id: 'qa_owner_running_$userId',
+        itemId: ownerRunningItem.id,
+        ownerId: userId,
+        renterId: ownerC.id,
+        start: now.subtract(const Duration(days: 1, hours: 3)),
+        end: now.add(const Duration(days: 1, hours: 10)),
+        status: 'running',
+        message: 'Laufende Owner-Anmietung für den Audit.',
+        createdAt: now.subtract(const Duration(days: 2, hours: 6)),
+        ownerDeliversAtDropoffChosen: true,
+        ownerPicksUpAtReturnChosen: true,
+        handoverConfirmation: {
+          'confirmedAt': now.subtract(const Duration(days: 1, hours: 4)).toIso8601String(),
+          'method': 'manual',
+        },
+        quotedTotalRenter: 134.0,
+        quotedSubtitle: 'laufend',
+      );
+      final ownerCompletedCleanRequest = RentalRequest(
+        id: 'qa_owner_completed_clean_$userId',
+        itemId: ownerCompletedCleanItem.id,
+        ownerId: userId,
+        renterId: renterA.id,
+        start: now.subtract(const Duration(days: 8)),
+        end: now.subtract(const Duration(days: 5, hours: 2)),
+        status: 'completed',
+        message: 'Sauber abgeschlossene Owner-Anmietung für den Audit.',
+        createdAt: now.subtract(const Duration(days: 9, hours: 1)),
+        returnConfirmation: {
+          'confirmedAt': now.subtract(const Duration(days: 5, hours: 1)).toIso8601String(),
+          'method': 'manual',
+        },
+        needsReview: false,
+        quotedTotalRenter: 73.0,
+        quotedSubtitle: 'abgeschlossen / clean',
+      );
+      final ownerCompletedProblemRequest = RentalRequest(
+        id: 'qa_owner_completed_problem_$userId',
+        itemId: ownerCompletedProblemItem.id,
+        ownerId: userId,
+        renterId: ownerB.id,
+        start: now.subtract(const Duration(days: 6, hours: 4)),
+        end: now.subtract(const Duration(days: 3, hours: 6)),
+        status: 'completed',
+        message: 'Owner-Review-Hold-Fall für den Audit.',
+        createdAt: now.subtract(const Duration(days: 6, hours: 8)),
+        returnConfirmation: {
+          'confirmedAt': now.subtract(const Duration(days: 3, hours: 5)).toIso8601String(),
+          'method': 'manual',
+        },
+        needsReview: true,
+        reviewReason: 'Zusätzliche Prüfung nach Rückgabe',
+        reviewSource: 'qa_demo_seed',
+        reviewRequestedAt: now.subtract(const Duration(days: 3, hours: 4)),
+        quotedTotalRenter: 96.0,
+        quotedSubtitle: 'abgeschlossen / prüfung',
+      );
+
+      final itemJson = prefs.getString(_itemsKey);
+      final List<dynamic> itemList = itemJson != null && itemJson.isNotEmpty ? (jsonDecode(itemJson) as List) : <dynamic>[];
+      itemList.removeWhere((e) {
+        if (e is! Map) return false;
+        final id = (e['id'] ?? '').toString();
+        return id.startsWith('qa_owner_item_') && ((e['ownerId'] ?? '').toString() == userId);
+      });
+      itemList.addAll([
+        ownerPendingItem.toJson(),
+        ownerUpcomingPickupItem.toJson(),
+        ownerUpcomingDeliveryItem.toJson(),
+        ownerRunningItem.toJson(),
+        ownerCompletedCleanItem.toJson(),
+        ownerCompletedProblemItem.toJson(),
+      ]);
+      await prefs.setString(_itemsKey, jsonEncode(itemList));
 
       final requests = await _getAllRentalRequests();
-      requests.removeWhere((r) => r.id.startsWith('qa_req_') && (r.renterId == userId || r.ownerId == userId));
-      requests.addAll([acceptedRequest, runningRequest, completedRequest, needsReviewRequest, pendingRequest, ownerPendingRequest]);
+      requests.removeWhere((r) {
+        final isRenterOrOwnerQa = r.id.startsWith('qa_req_') && (r.renterId == userId || r.ownerId == userId);
+        final isOwnerQa = r.id.startsWith('qa_owner_') && r.ownerId == userId;
+        return isRenterOrOwnerQa || isOwnerQa;
+      });
+      requests.addAll([
+        acceptedRequest,
+        runningRequest,
+        completedRequest,
+        needsReviewRequest,
+        pendingRequest,
+        ownerPendingRequest,
+        ownerUpcomingPickupRequest,
+        ownerUpcomingDeliveryRequest,
+        ownerRunningRequest,
+        ownerCompletedCleanRequest,
+        ownerCompletedProblemRequest,
+      ]);
       await _saveAllRentalRequests(requests);
 
       final rawThreads = prefs.getString(_messageThreadsKey);

@@ -680,14 +680,14 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
   (IconData, String) _emptyStateForCategory(String category) {
     switch (category) {
       case 'ongoing':
-        return (Icons.timelapse_outlined, 'Du hast keine Laufenden Anmietungen');
+        return (Icons.timelapse_outlined, 'Du hast keine laufenden Anmietungen');
       case 'upcoming':
-        return (Icons.event_available_outlined, 'Du hast keine Kommenden Anmietungen');
+        return (Icons.event_available_outlined, 'Du hast keine kommenden Anmietungen');
       case 'requests':
         return (Icons.assignment_outlined, 'Du hast keine Mietanfragen');
       case 'completed':
       default:
-        return (Icons.task_alt_outlined, 'Du hast keine Abgeschlossenen Anmietungen');
+        return (Icons.task_alt_outlined, 'Du hast keine abgeschlossenen Anmietungen');
     }
   }
 
