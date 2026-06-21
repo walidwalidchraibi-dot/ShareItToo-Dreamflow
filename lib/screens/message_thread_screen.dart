@@ -1069,12 +1069,56 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       if (mounted) AppPopup.toast(context, icon: Icons.visibility_outlined, title: 'Demo-Chat', message: 'Anhänge sind in der Demo deaktiviert.');
       return;
     }
+
+    final selection = await _showLocationFlowSheet<String>(
+      title: 'Foto hinzufügen',
+      bodyBuilder: (sheetContext) {
+        final hintStyle = Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
+          color: Colors.white.withValues(alpha: 0.64),
+          height: 1.35,
+        );
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SheetActionTile(
+              icon: Icons.photo_camera_outlined,
+              title: 'Foto aufnehmen',
+              subtitle: 'Öffnet Kamera oder Geräteauswahl für ein neues Bild.',
+              onTap: () => Navigator.of(sheetContext).pop('camera'),
+            ),
+            const SizedBox(height: 10),
+            _SheetActionTile(
+              icon: Icons.photo_library_outlined,
+              title: 'Aus Galerie wählen',
+              subtitle: 'Wähle ein vorhandenes Bild aus.',
+              onTap: () => Navigator.of(sheetContext).pop('gallery'),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Im Browser kann die Kameraauswahl je nach Gerät als Bildauswahl erscheinen.',
+              style: hintStyle,
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selection == 'camera') {
+      await _pickPhoto(ImageSource.camera);
+    } else if (selection == 'gallery') {
+      await _pickPhoto(ImageSource.gallery);
+    }
+  }
+
+  Future<void> _pickPhoto(ImageSource source) async {
+    final t = _thread;
+    if (t == null) return;
     try {
       final picker = ImagePicker();
-      final file = await picker.pickImage(source: ImageSource.camera, imageQuality: 82);
+      final file = await picker.pickImage(source: source, imageQuality: 82);
       if (file == null) return;
       await DataService.addSystemMessageToThread(threadId: t.id, text: 'Foto hinzugefügt');
-      // Update inline progress when a handover/return is active.
       final reqId = _request?.id;
       if (reqId != null && reqId.isNotEmpty) {
         final handoverActive = _handoverReturnState['handoverActive'] == true;
@@ -1085,8 +1129,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       await _load();
       _scrollToBottom(animate: true);
     } catch (e) {
-      debugPrint('[MessageThreadScreen] _pickCamera failed: $e');
-      if (mounted) AppPopup.toast(context, icon: Icons.error_outline, title: 'Kamera nicht verfügbar');
+      debugPrint('[MessageThreadScreen] _pickPhoto failed: $e');
+      if (mounted) {
+        AppPopup.toast(
+          context,
+          icon: Icons.error_outline,
+          title: source == ImageSource.camera ? 'Kamera nicht verfügbar' : 'Bildauswahl nicht verfügbar',
+        );
+      }
     }
   }
 
