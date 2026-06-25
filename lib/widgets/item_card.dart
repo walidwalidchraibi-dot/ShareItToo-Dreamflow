@@ -11,6 +11,7 @@ import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/rating_badge.dart';
 import 'package:lendify/widgets/listing_options_dialog.dart';
+import 'package:lendify/widgets/long_press_feedback_wrapper.dart';
 
 class ItemCard extends StatelessWidget {
   final Item item;
@@ -61,12 +62,13 @@ class ItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => ItemDetailsOverlay.showFullPage(context, item: item),
-      onLongPress: longPressContext == null ? null : () => showListingOptionsDialog(context, item: item, contextType: longPressContext!, onWishlistChanged: onContextActionCompleted),
-      borderRadius: BorderRadius.circular(16),
-      mouseCursor: SystemMouseCursors.basic,
-      child: Card(
+    return LongPressFeedbackWrapper(
+      child: InkWell(
+        onTap: () => ItemDetailsOverlay.showFullPage(context, item: item),
+        onLongPress: longPressContext == null ? null : () => showListingOptionsDialog(context, item: item, contextType: longPressContext!, onWishlistChanged: onContextActionCompleted),
+        borderRadius: BorderRadius.circular(16),
+        mouseCursor: SystemMouseCursors.basic,
+        child: Card(
         elevation: 2,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -191,6 +193,7 @@ class ItemCard extends StatelessWidget {
             ),
           ]);
         }),
+        ),
       ),
     );
   }

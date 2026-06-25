@@ -144,11 +144,6 @@ class _SelectorContent extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (allowCreate)
-                _CreateListCard(
-                  onDark: onDark,
-                  onCreated: (id) => (popWith ?? (s) {})(id),
-                ),
               if (grid)
                 WishlistFolderGrid(
                   options: [
@@ -166,6 +161,11 @@ class _SelectorContent extends StatelessWidget {
                 )
               else
                 Column(children: [for (final op in options) _OptionCard(option: op, onSelected: (id) => (popWith ?? (s) {})(id), onDark: onDark, showIcon: !hideIcons)]),
+              if (allowCreate)
+                _CreateListCard(
+                  onDark: onDark,
+                  onCreated: (id) => (popWith ?? (s) {})(id),
+                ),
             ],
           ),
         ),

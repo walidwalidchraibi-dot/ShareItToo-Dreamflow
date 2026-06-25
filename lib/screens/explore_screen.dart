@@ -31,6 +31,7 @@ import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/screens/developer_preview_screen.dart';
 import 'package:lendify/widgets/rating_badge.dart';
 import 'package:lendify/widgets/listing_options_dialog.dart';
+import 'package:lendify/widgets/long_press_feedback_wrapper.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 
 double _deriveStableListingRating(Item item) {
@@ -208,7 +209,7 @@ final extrasTop = <Item>[];
    for (final c in categories) c.id: DataService.coarseCategoryFor(c.name)
  };
  setState(() {
-   _items = items;
+   _items = items.where((item) => !hiddenIds.contains(item.id)).toList();
    _categories = categories;
    _coarseByCatId = coarseMap;
    _usersById = {for (final u in users) u.id: u};
@@ -487,7 +488,6 @@ Future<void> _toggleFavorite(String id) async {
     }
   }
   final saved = await DataService.getSavedItemIds();
-final hiddenIds = await ListingFeedbackService.getHiddenItemIds();
   if (!mounted) return;
   setState(() => _savedIds = saved);
 }
@@ -674,15 +674,18 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                                     final dist = _distanceFromUserKm(it);
                                     return SizedBox(
                                       width: cardW,
-                                      child: InkWell(
-                                        onTap: () => ItemDetailsOverlay.showFullPage(context, item: it, fresh: true),
-                                        splashColor: Colors.transparent,
-                                        highlightColor: Colors.transparent,
-                                        child: ListingCarouselCard(
+                                      child: LongPressFeedbackWrapper(
+                                        child: InkWell(
+                                          onTap: () => ItemDetailsOverlay.showFullPage(context, item: it, fresh: true),
+                                          onLongPress: () => showListingOptionsDialog(context, item: it, contextType: ListingOptionsContext.explore, onWishlistChanged: _loadData, onVisibilityChanged: _loadData),
+                                          splashColor: Colors.transparent,
+                                          highlightColor: Colors.transparent,
+                                          child: ListingCarouselCard(
                                           item: it,
                                           isFavorite: isFav,
                                           onFavoriteToggle: () => _toggleFavorite(it.id),
                                           distanceKm: dist,
+                                          ),
                                         ),
                                       ),
                                     );
@@ -1268,10 +1271,7 @@ Widget build(BuildContext context) {
   final derivedRating = _deriveStableListingRating(widget.item);
   return MouseRegion(
     cursor: SystemMouseCursors.basic,
-    child: GestureDetector(
-      onTapDown: (_) { _pointerDown = true; _startPressTimer(); },
-      onTapUp: (_) { _pointerDown = false; _cancelTimer(); },
-      onTapCancel: () { _pointerDown = false; _cancelTimer(); },
+    child: LongPressFeedbackWrapper(
       child: GestureDetector(
 key: _key,
                 onTap: () => ItemDetailsOverlay.showFullPage(context, item: widget.item, fresh: true),
@@ -1392,10 +1392,7 @@ Widget build(BuildContext context) {
   final derivedRating = _deriveStableListingRating(widget.item);
   return MouseRegion(
     cursor: SystemMouseCursors.basic,
-    child: GestureDetector(
-      onTapDown: (_) { _pointerDown = true; _startPressTimer(); },
-      onTapUp: (_) { _pointerDown = false; _cancelTimer(); },
-      onTapCancel: () { _pointerDown = false; _cancelTimer(); },
+    child: LongPressFeedbackWrapper(
       child: GestureDetector(
 key: _key,
             onTap: () => ItemDetailsOverlay.showFullPage(context, item: widget.item, fresh: true),
@@ -1522,10 +1519,7 @@ class _SmallGridCardState extends State<_SmallGridCard> {
   Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.basic,
-      child: GestureDetector(
-        onTapDown: (_) { _pointerDown = true; _startPressTimer(); },
-        onTapUp: (_) { _pointerDown = false; _cancelTimer(); },
-        onTapCancel: () { _pointerDown = false; _cancelTimer(); },
+      child: LongPressFeedbackWrapper(
         child: GestureDetector(
           key: _key,
           onTap: () => ItemDetailsOverlay.showFullPage(context, item: widget.item, fresh: true),
@@ -1601,6 +1595,10 @@ class _SmallGridCardState extends State<_SmallGridCard> {
   }
 }
 
+/// Explore tile in the same visual style as "Meine Anzeigen":
+/// image (16:9) + title + price per day.
+///
+/// Note: intentionally no "Aktiv" chip and no overflow menu.
 double _exploreListingChildAspectRatio(BuildContext context, {required bool isDesktop, required bool isTablet}) {
   final size = MediaQuery.sizeOf(context);
   final textScale = MediaQuery.textScaleFactorOf(context);
@@ -1624,10 +1622,6 @@ double _exploreListingChildAspectRatio(BuildContext context, {required bool isDe
   return (colWidth / cardHeight).clamp(isDesktop ? 0.90 : (isTablet ? 0.86 : 0.82), 1.0);
 }
 
-/// Explore tile in the same visual style as "Meine Anzeigen":
-/// image (16:9) + title + price per day.
-///
-/// Note: intentionally no "Aktiv" chip and no overflow menu.
 class _ExploreListingCard extends StatelessWidget {
   final Item item;
   final bool isFavorite;
@@ -1673,14 +1667,15 @@ class _ExploreListingCardContent extends StatelessWidget {
 
     const String? highlight = null;
 
-    return InkWell(
-      onTap: () => ItemDetailsOverlay.showFullPage(context, item: item, fresh: true),
-      onLongPress: () => showListingOptionsDialog(context, item: item, contextType: ListingOptionsContext.explore, onWishlistChanged: onFavoriteToggle, onVisibilityChanged: () => Navigator.of(context).maybePop()),
-      borderRadius: BorderRadius.circular(20),
-      mouseCursor: SystemMouseCursors.basic,
-      splashColor: Colors.transparent,
-      highlightColor: Colors.transparent,
-      child: Container(
+    return LongPressFeedbackWrapper(
+      child: InkWell(
+        onTap: () => ItemDetailsOverlay.showFullPage(context, item: item, fresh: true),
+        onLongPress: () => showListingOptionsDialog(context, item: item, contextType: ListingOptionsContext.explore, onWishlistChanged: onFavoriteToggle, onVisibilityChanged: () => Navigator.of(context).maybePop()),
+        borderRadius: BorderRadius.circular(20),
+        mouseCursor: SystemMouseCursors.basic,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        child: Container(
         decoration: BoxDecoration(
           color: BrandColors.glassSurface.withValues(alpha: 0.55),
           borderRadius: BorderRadius.circular(20),
@@ -1824,6 +1819,7 @@ class _ExploreListingCardContent extends StatelessWidget {
             ),
           ),
         ]),
+        ),
       ),
     );
   }
