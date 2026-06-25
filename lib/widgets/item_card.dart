@@ -10,12 +10,15 @@ import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/rating_badge.dart';
+import 'package:lendify/widgets/listing_options_dialog.dart';
 
 class ItemCard extends StatelessWidget {
   final Item item;
   final bool compact;
+  final ListingOptionsContext? longPressContext;
+  final VoidCallback? onContextActionCompleted;
 
-  const ItemCard({super.key, required this.item, this.compact = false});
+  const ItemCard({super.key, required this.item, this.compact = false, this.longPressContext, this.onContextActionCompleted});
 
   static double recommendedGridChildAspectRatio(
     BuildContext context, {
@@ -60,6 +63,7 @@ class ItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () => ItemDetailsOverlay.showFullPage(context, item: item),
+      onLongPress: longPressContext == null ? null : () => showListingOptionsDialog(context, item: item, contextType: longPressContext!, onWishlistChanged: onContextActionCompleted),
       borderRadius: BorderRadius.circular(16),
       mouseCursor: SystemMouseCursors.basic,
       child: Card(

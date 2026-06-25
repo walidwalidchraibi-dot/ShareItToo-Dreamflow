@@ -21,6 +21,7 @@ import 'package:provider/provider.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:lendify/services/localization_service.dart';
+import 'package:lendify/services/listing_feedback_service.dart';
 import 'package:lendify/screens/explore_screen_pinned_header.dart';
 import 'package:lendify/widgets/scroll_edge_indicators.dart';
 import 'package:lendify/widgets/app_image.dart';
@@ -29,6 +30,7 @@ import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/screens/developer_preview_screen.dart';
 import 'package:lendify/widgets/rating_badge.dart';
+import 'package:lendify/widgets/listing_options_dialog.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 
 double _deriveStableListingRating(Item item) {
@@ -159,6 +161,7 @@ final users = await DataService.getUsers();
 final session = await AuthService.readSession();
 final user = await DataService.getCurrentUser();
 final saved = await DataService.getSavedItemIds();
+final hiddenIds = await ListingFeedbackService.getHiddenItemIds();
 final hasRealSession = session != null;
 
 // Build extra curated items with unique images for Guests row
@@ -484,6 +487,7 @@ Future<void> _toggleFavorite(String id) async {
     }
   }
   final saved = await DataService.getSavedItemIds();
+final hiddenIds = await ListingFeedbackService.getHiddenItemIds();
   if (!mounted) return;
   setState(() => _savedIds = saved);
 }
@@ -1271,6 +1275,7 @@ Widget build(BuildContext context) {
       child: GestureDetector(
 key: _key,
                 onTap: () => ItemDetailsOverlay.showFullPage(context, item: widget.item, fresh: true),
+                onLongPress: () => showListingOptionsDialog(context, item: widget.item, contextType: ListingOptionsContext.explore, onWishlistChanged: widget.onFavoriteToggle, onVisibilityChanged: () => Navigator.of(context).maybePop()),
 child: ClipRRect(
 borderRadius: BorderRadius.circular(18),
 child: Stack(children: [
@@ -1394,6 +1399,7 @@ Widget build(BuildContext context) {
       child: GestureDetector(
 key: _key,
             onTap: () => ItemDetailsOverlay.showFullPage(context, item: widget.item, fresh: true),
+            onLongPress: () => showListingOptionsDialog(context, item: widget.item, contextType: ListingOptionsContext.explore, onWishlistChanged: widget.onFavoriteToggle, onVisibilityChanged: () => Navigator.of(context).maybePop()),
 child: ClipRRect(
 borderRadius: BorderRadius.circular(14),
 child: LayoutBuilder(builder: (context, c) {
@@ -1523,6 +1529,7 @@ class _SmallGridCardState extends State<_SmallGridCard> {
         child: GestureDetector(
           key: _key,
           onTap: () => ItemDetailsOverlay.showFullPage(context, item: widget.item, fresh: true),
+          onLongPress: () => showListingOptionsDialog(context, item: widget.item, contextType: ListingOptionsContext.explore, onWishlistChanged: widget.onFavoriteToggle, onVisibilityChanged: () => Navigator.of(context).maybePop()),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: LayoutBuilder(builder: (context, c) {
@@ -1668,6 +1675,7 @@ class _ExploreListingCardContent extends StatelessWidget {
 
     return InkWell(
       onTap: () => ItemDetailsOverlay.showFullPage(context, item: item, fresh: true),
+      onLongPress: () => showListingOptionsDialog(context, item: item, contextType: ListingOptionsContext.explore, onWishlistChanged: onFavoriteToggle, onVisibilityChanged: () => Navigator.of(context).maybePop()),
       borderRadius: BorderRadius.circular(20),
       mouseCursor: SystemMouseCursors.basic,
       splashColor: Colors.transparent,

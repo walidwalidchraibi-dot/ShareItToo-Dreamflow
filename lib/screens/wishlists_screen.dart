@@ -5,6 +5,7 @@ import 'package:lendify/services/data_service.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_card.dart';
+import 'package:lendify/widgets/listing_options_dialog.dart';
 import 'package:lendify/widgets/wishlist_mosaic_card.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
@@ -351,7 +352,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                           itemBuilder: (_, i) {
                             final item = _items[i];
                             return Stack(children: [
-                              Positioned.fill(child: ItemCard(item: item)),
+                              Positioned.fill(child: ItemCard(item: item, longPressContext: ListingOptionsContext.wishlist, onContextActionCompleted: _load)),
                               if (_editMode)
                                 Positioned(
                                   top: 8,
