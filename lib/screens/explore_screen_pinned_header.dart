@@ -1,13 +1,54 @@
 import 'dart:ui' as ui show ImageFilter;
 import 'package:flutter/material.dart';
 
+
+class CompactPinnedSearchHeader extends SliverPersistentHeaderDelegate {
+  final WidgetBuilder builder;
+  CompactPinnedSearchHeader({required this.builder});
+
+  static const double _topPadding = 8;
+  static const double _searchHeight = 44;
+  static const double _bottomPadding = 4;
+  static const double _totalHeight =
+      _topPadding +
+      _searchHeight +
+      _bottomPadding;
+
+  @override
+  double get minExtent => _totalHeight;
+  @override
+  double get maxExtent => _totalHeight;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Stack(children: [
+      Positioned.fill(child: _PinnedHeaderBackgroundReplica()),
+      Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          const SizedBox(height: _topPadding),
+          Material(
+            color: Colors.transparent,
+            child: SizedBox(height: _searchHeight, child: builder(context)),
+          ),
+          const SizedBox(height: _bottomPadding),
+        ],
+      ),
+    ]);
+  }
+
+  @override
+  bool shouldRebuild(covariant CompactPinnedSearchHeader oldDelegate) => false;
+}
+
 class PinnedCategoriesHeader extends SliverPersistentHeaderDelegate {
   final WidgetBuilder builder;
   PinnedCategoriesHeader({required this.builder});
 
   // Thickness adjustments (~1 mm ≈ 6 dp) applied on top and bottom
   // Keep this very tight so the first feed title sits close to the category row.
-  static const double _topGapAfterSeparator = 16; // +12dp (~3mm) mehr Abstand von Icons oberhalb
+  static const double _topGapAfterSeparator = 6; // tighter because compact sticky search now sits above
   static const double _iconsHeight = 84; // CategoryIconRow reduced by ~1mm from bottom
   static const double _bottomPad = 0;
 
