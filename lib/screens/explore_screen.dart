@@ -832,6 +832,7 @@ pinned: true,
 delegate: CompactPinnedSearchHeader(
 builder: (context) {
 final isDark = Theme.of(context).brightness == Brightness.dark;
+final cs = Theme.of(context).colorScheme;
 return Padding(
 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
 child: Material(
@@ -843,9 +844,9 @@ child: Container(
 height: 44,
 padding: const EdgeInsets.symmetric(horizontal: 14),
 decoration: BoxDecoration(
-color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
+color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.96),
 borderRadius: BorderRadius.circular(20),
-border: Border.all(color: Colors.white.withValues(alpha: isDark ? 0.22 : 0.95), width: 1.2),
+border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.22) : Colors.black.withValues(alpha: 0.06), width: 1.2),
 boxShadow: [
 BoxShadow(
 color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.05),
@@ -864,12 +865,12 @@ child: Text(
 maxLines: 1,
 overflow: TextOverflow.ellipsis,
 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-color: Colors.white,
+color: isDark ? Colors.white : cs.onSurface,
 fontWeight: FontWeight.w700,
 ),
 ),
 ),
-Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white.withValues(alpha: 0.72)),
+Icon(Icons.arrow_forward_ios_rounded, size: 14, color: (isDark ? Colors.white : cs.onSurface).withValues(alpha: 0.72)),
 ],
 ),
 ),
