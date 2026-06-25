@@ -453,32 +453,13 @@ double _mosaicChildAspectRatio(BuildContext context) {
   return math.min(0.9, math.max(0.7, ratio));
 }
 
-// Compute aspect ratio for wishlist detail item grid so the ItemCard has
-// enough vertical room for 2 text lines + city + price without overflow on phones.
+// Keep wishlist detail item cards a bit tighter than the generic grid,
+// while still leaving enough room for two title lines on smaller phones.
 double _wishlistDetailChildAspectRatio(BuildContext context) {
-  final size = MediaQuery.sizeOf(context);
   final textScale = MediaQuery.textScaleFactorOf(context);
-
-  const horizontalPadding = 32.0; // 16 + 16
-  const crossSpacing = 12.0;
-  final colWidth = (size.width - horizontalPadding - crossSpacing) / 2.0;
-
-  final theme = Theme.of(context).textTheme;
-  final titleFs = (theme.titleSmall?.fontSize ?? 14) * textScale;
-  final titleHeight = titleFs * (theme.titleSmall?.height ?? 1.2) * 2; // 2 lines
-  final cityFs = (theme.bodySmall?.fontSize ?? 12) * textScale;
-  final cityHeight = cityFs * (theme.bodySmall?.height ?? 1.2);
-  final priceFs = (theme.bodyMedium?.fontSize ?? 14) * textScale;
-  final priceHeight = priceFs * (theme.bodyMedium?.height ?? 1.2);
-
-  const verticalPadding = 24.0; // 12 top + 12 bottom inside ItemCard text area
-  const gaps = 8.0; // 2 + 6 between text blocks
-  final textBlockHeight = verticalPadding + gaps + titleHeight + cityHeight + priceHeight;
-
-  // In ItemCard the info area is ~42% of the card height (58% image, 42% text)
-  final ratioLimit = (colWidth * 0.42) / textBlockHeight;
-  final safeRatio = (ratioLimit - 0.02).clamp(0.32, 0.88); // allow extra height on small phones
-  return safeRatio.toDouble();
+  final base = ItemCard.recommendedGridChildAspectRatio(context);
+  final extra = textScale > 1.1 ? 0.06 : 0.10;
+  return (base + extra).clamp(0.82, 1.0);
 }
 
 class _CreateWishlistPopupBody extends StatelessWidget {

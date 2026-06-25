@@ -716,7 +716,7 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                               // 4:3 image + trust row + price rows.
                               // Slightly taller on phones to avoid bottom overflows in tight grid tiles
                               // (e.g., with larger textScaleFactor).
-                              childAspectRatio: isDesktop ? 0.90 : (isTablet ? 0.87 : 0.80),
+                              childAspectRatio: _exploreListingChildAspectRatio(context, isDesktop: isDesktop, isTablet: isTablet),
                             ),
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
@@ -1167,7 +1167,7 @@ Widget build(BuildContext context) {
         child: SizedBox(
 key: _tileKey,
 width: widget.width,
-height: widget.width,
+height: widget.width * 0.86,
 child: _SquareItemCard(item: widget.item, isFavorite: widget.isFavorite, onFavoriteToggle: widget.onFavoriteToggle),
 ),
 ),
@@ -1594,6 +1594,29 @@ class _SmallGridCardState extends State<_SmallGridCard> {
   }
 }
 
+double _exploreListingChildAspectRatio(BuildContext context, {required bool isDesktop, required bool isTablet}) {
+  final size = MediaQuery.sizeOf(context);
+  final textScale = MediaQuery.textScaleFactorOf(context);
+  final cols = isDesktop ? 4 : (isTablet ? 3 : 2);
+  const horizontalPadding = 40.0; // grid left 16 + right 24
+  const crossSpacing = 12.0;
+  final colWidth = (size.width - horizontalPadding - (crossSpacing * (cols - 1))) / cols;
+  final imageHeight = colWidth * 0.60; // shorter image block to cut bottom air
+  final theme = Theme.of(context).textTheme;
+  final titleFs = (theme.titleMedium?.fontSize ?? 16) * textScale;
+  final titleHeight = titleFs * ((theme.titleMedium?.height ?? 1.2));
+  final metaHeight = (16 * textScale).clamp(16, 20).toDouble();
+  final priceFs = (theme.titleLarge?.fontSize ?? 22) * textScale;
+  final priceHeight = priceFs * ((theme.titleLarge?.height ?? 1.1));
+  final suffixFs = (theme.bodySmall?.fontSize ?? 12) * textScale;
+  final suffixHeight = suffixFs * ((theme.bodySmall?.height ?? 1.2));
+  const verticalPadding = 12.0;
+  const gaps = 12.0; // tighter vertical rhythm under the last visible block
+  final infoHeight = verticalPadding + titleHeight + metaHeight + max(priceHeight, suffixHeight) + gaps;
+  final cardHeight = imageHeight + infoHeight;
+  return (colWidth / cardHeight).clamp(isDesktop ? 0.90 : (isTablet ? 0.86 : 0.82), 1.0);
+}
+
 /// Explore tile in the same visual style as "Meine Anzeigen":
 /// image (16:9) + title + price per day.
 ///
@@ -1659,7 +1682,7 @@ class _ExploreListingCardContent extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           AspectRatio(
-            aspectRatio: 4 / 3,
+            aspectRatio: 1.55,
             child: Stack(fit: StackFit.expand, children: [
               AppImage(url: item.photos.isNotEmpty ? item.photos.first : 'https://picsum.photos/seed/explore_listing/1200/900', fit: BoxFit.cover),
               Positioned(
@@ -1721,16 +1744,14 @@ class _ExploreListingCardContent extends StatelessWidget {
               Positioned(right: 10, bottom: 10, child: RatingBadge(rating: derivedRating)),
             ]),
           ),
-          // Details area: wrap in a LayoutBuilder + FittedBox scaleDown so this
-          // never overflows vertically (even with long locales or tight grid tiles).
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 9, 12, 7),
+              padding: const EdgeInsets.fromLTRB(10, 7, 10, 4),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final body = Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
                     Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: Colors.white)),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     SizedBox(
                       height: (16 * textScale).clamp(16, 20).toDouble(),
                       child: FittedBox(
@@ -1762,7 +1783,7 @@ class _ExploreListingCardContent extends StatelessWidget {
                         ]),
                       ),
                     ),
-                    const SizedBox(height: 7),
+                    const SizedBox(height: 4),
                     Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                       Flexible(
                         child: FittedBox(
@@ -1773,18 +1794,21 @@ class _ExploreListingCardContent extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
+                        padding: const EdgeInsets.only(bottom: 1),
                         child: Text('/ ${l10n.t('Tag')}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.80), fontWeight: FontWeight.w700)),
                       ),
                     ]),
                   ]);
 
-                  return FittedBox(
-                    fit: BoxFit.scaleDown,
+                  return Align(
                     alignment: Alignment.topLeft,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: constraints.maxWidth, maxWidth: constraints.maxWidth),
-                      child: body,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.topLeft,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minWidth: constraints.maxWidth, maxWidth: constraints.maxWidth),
+                        child: body,
+                      ),
                     ),
                   );
                 },

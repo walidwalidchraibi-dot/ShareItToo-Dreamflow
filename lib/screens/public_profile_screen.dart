@@ -125,9 +125,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        childAspectRatio: 0.90,
+                        childAspectRatio: ItemCard.recommendedGridChildAspectRatio(context, compact: true) + 0.08,
                         mainAxisSpacing: 12,
                         crossAxisSpacing: 12,
                       ),

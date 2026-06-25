@@ -17,6 +17,39 @@ class ItemCard extends StatelessWidget {
 
   const ItemCard({super.key, required this.item, this.compact = false});
 
+  static double recommendedGridChildAspectRatio(
+    BuildContext context, {
+    bool compact = false,
+    int columns = 2,
+    double horizontalPadding = 32,
+    double crossSpacing = 12,
+  }) {
+    final size = MediaQuery.sizeOf(context);
+    final textScale = MediaQuery.textScaleFactorOf(context);
+    final theme = Theme.of(context).textTheme;
+
+    final colWidth =
+        (size.width - horizontalPadding - (crossSpacing * (columns - 1))) /
+            columns;
+    final imageHeight =
+        colWidth * 0.66; // slightly shorter visual block to avoid long cards
+
+    final titleFs = ((theme.bodyMedium?.fontSize ?? 14) * textScale);
+    final titleHeight =
+        titleFs * (((theme.bodyMedium?.height) ?? 1.2)) * (compact ? 1 : 2);
+    final cityFs = ((theme.bodySmall?.fontSize ?? 12) * textScale);
+    final cityHeight = cityFs * (((theme.bodySmall?.height) ?? 1.2));
+    final priceFs = ((theme.bodyMedium?.fontSize ?? 14) * textScale);
+    final priceHeight = priceFs * (((theme.bodyMedium?.height) ?? 1.2));
+
+    final verticalPadding = compact ? 16.0 : 20.0;
+    const gaps = 8.0; // compact spacing between visible content blocks
+    final textHeight =
+        verticalPadding + titleHeight + cityHeight + priceHeight + gaps;
+    final cardHeight = imageHeight + textHeight;
+    return (colWidth / cardHeight).clamp(0.72, 1.08);
+  }
+
   static double _deriveRating(Item item) {
     final base = 4.4 + ((item.id.hashCode.abs() % 40) / 100); // 4.40 - 4.79
     final boost = (item.timesLent.clamp(0, 30) / 300); // up to +0.10
@@ -34,10 +67,15 @@ class ItemCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: LayoutBuilder(builder: (context, constraints) {
-          final h = constraints.maxHeight.isFinite ? constraints.maxHeight : 240.0;
-          // Use deterministic heights to avoid 1px rounding overflows.
-          final imageH = (h * 0.58).floorToDouble();
-          final infoH = (h - imageH).clamp(0.0, h);
+          final width =
+              constraints.maxWidth.isFinite ? constraints.maxWidth : 180.0;
+          final maxHeight = constraints.maxHeight.isFinite
+              ? constraints.maxHeight
+              : (width * 1.24);
+          final reservedTextHeight = compact ? 58.0 : 68.0;
+          final preferredImageH = width * 0.72;
+          final imageH = preferredImageH.clamp(0.0,
+              (maxHeight - reservedTextHeight).clamp(84.0, preferredImageH));
           final iconSize = (imageH * 0.10).clamp(16.0, 22.0);
           return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SizedBox(
@@ -84,31 +122,31 @@ class ItemCard extends StatelessWidget {
                 ),
               ]),
             ),
-            SizedBox(
-              height: infoH,
-              width: double.infinity,
+            Expanded(
               child: Padding(
-                padding: EdgeInsets.all(compact ? 10 : 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title,
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
-                      maxLines: compact ? 1 : 2,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: true,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      item.city,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72), fontSize: 12),
-                    ),
-                    SizedBox(height: compact ? 4 : 6),
-                    Row(
+                padding: EdgeInsets.fromLTRB(compact ? 9 : 10,
+                    compact ? 8 : 9, compact ? 9 : 10, compact ? 6 : 7),
+                child: LayoutBuilder(
+                  builder: (context, textConstraints) {
+                    final body = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        Text(
+                          item.title,
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
+                          maxLines: compact ? 1 : 2,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          item.city,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72), fontSize: 12),
+                        ),
+                        SizedBox(height: compact ? 2 : 3),
                         Builder(
                           builder: (context) {
                             final unit = item.priceUnit;
@@ -126,10 +164,24 @@ class ItemCard extends StatelessWidget {
                             );
                           },
                         ),
-                        const Spacer(),
                       ],
-                    ),
-                  ],
+                    );
+
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.topLeft,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: textConstraints.maxWidth,
+                            maxWidth: textConstraints.maxWidth,
+                          ),
+                          child: body,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
