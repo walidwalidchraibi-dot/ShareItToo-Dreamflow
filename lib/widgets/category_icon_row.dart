@@ -18,7 +18,9 @@ class CategoryIconRow extends StatefulWidget {
   final List<CategoryIconDataModel> categories;
   final ValueChanged<CategoryIconDataModel>? onSelected;
   final VoidCallback? onAllCategoriesTap;
-  const CategoryIconRow({super.key, required this.categories, this.onSelected, this.onAllCategoriesTap});
+  final bool showSearchIcon;
+  final VoidCallback? onSearchTap;
+  const CategoryIconRow({super.key, required this.categories, this.onSelected, this.onAllCategoriesTap, this.showSearchIcon = false, this.onSearchTap});
 
   @override
   State<CategoryIconRow> createState() => _CategoryIconRowState();
@@ -53,6 +55,9 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
     final spacing = baseSpacing + (extraMm * 160 / 25.4);
 
     final tiles = <Widget>[];
+    if (widget.showSearchIcon) {
+      tiles.add(_SearchTile(width: itemWidth, onTap: widget.onSearchTap));
+    }
     tiles.add(_AllTile(width: itemWidth, onTap: widget.onAllCategoriesTap));
     for (int i = 0; i < widget.categories.length; i++) {
       final c = widget.categories[i];
@@ -106,6 +111,71 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
           itemBuilder: (context, index) => tiles[index],
           separatorBuilder: (_, __) => SizedBox(width: spacing),
           itemCount: tiles.length,
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchTile extends StatefulWidget {
+  final double width; final VoidCallback? onTap;
+  const _SearchTile({required this.width, this.onTap});
+  @override
+  State<_SearchTile> createState() => _SearchTileState();
+}
+
+class _SearchTileState extends State<_SearchTile> {
+  bool _hovering = false;
+  @override
+  Widget build(BuildContext context) {
+    final color = _hovering ? BrandColors.primary : BrandColors.inactiveNav;
+    return FocusableActionDetector(
+      onShowFocusHighlight: (hasFocus) => setState(() => _hovering = hasFocus),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovering = true),
+        onExit: (_) => setState(() => _hovering = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: SizedBox(
+            width: widget.width,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    gradient: LinearGradient(colors: [Colors.black.withValues(alpha: 0.10), Colors.white.withValues(alpha: 0.04)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    border: Border.all(color: BrandColors.primary, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 8, offset: const Offset(0, 4)),
+                      BoxShadow(color: BrandColors.goldShadow.withValues(alpha: 0.12), blurRadius: 10, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Center(
+                    child: AnimatedScale(
+                      scale: _hovering ? 1.12 : 1.0,
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOut,
+                      child: Icon(Icons.search, color: color, size: 20),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: 44,
+                  child: Text(
+                    'Suchen',
+                    maxLines: 2,
+                    softWrap: true,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 10, height: 1.1, fontWeight: FontWeight.w600, color: color),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

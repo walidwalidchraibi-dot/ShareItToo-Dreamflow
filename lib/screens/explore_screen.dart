@@ -865,6 +865,8 @@ final localized = _homeCategories.map((e) => CategoryIconDataModel(id: e.id, ico
 return Container(
 color: Colors.transparent,
 child: CategoryIconRow(
+showSearchIcon: _showCompactStickySearch,
+onSearchTap: _openSearch,
 categories: localized,
 onSelected: (c) async {
 // Apply immediately without confirmation popup
@@ -884,70 +886,6 @@ _filters = f;
       final l10n = context.read<LocalizationController>();
       AppPopup.toast(context, icon: Icons.category_outlined, title: l10n.t('Alle Kategorien'), duration: const Duration(seconds: 1));
 },
-),
-);
-},
-),
-),
-SliverPersistentHeader(
-pinned: true,
-delegate: CompactPinnedSearchHeader(
-visible: _showCompactStickySearch,
-builder: (context) {
-final isDark = Theme.of(context).brightness == Brightness.dark;
-final cs = Theme.of(context).colorScheme;
-return Padding(
-padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-child: AnimatedSlide(
-duration: const Duration(milliseconds: 180),
-curve: Curves.easeOutCubic,
-offset: _showCompactStickySearch ? Offset.zero : const Offset(0, -0.18),
-child: AnimatedOpacity(
-duration: const Duration(milliseconds: 160),
-curve: Curves.easeOut,
-opacity: _showCompactStickySearch ? 1 : 0,
-child: Material(
-color: Colors.transparent,
-child: InkWell(
-borderRadius: BorderRadius.circular(20),
-onTap: _openSearch,
-child: Container(
-height: 44,
-padding: const EdgeInsets.symmetric(horizontal: 14),
-decoration: BoxDecoration(
-color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.96),
-borderRadius: BorderRadius.circular(20),
-border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.22) : Colors.black.withValues(alpha: 0.06), width: 1.2),
-boxShadow: [
-BoxShadow(
-color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.05),
-blurRadius: 10,
-offset: const Offset(0, 4),
-),
-],
-),
-child: Row(
-children: [
-const Icon(Icons.search, size: 18, color: BrandColors.primary),
-const SizedBox(width: 10),
-Expanded(
-child: Text(
-'Was suchst du?',
-maxLines: 1,
-overflow: TextOverflow.ellipsis,
-style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-color: isDark ? Colors.white : cs.onSurface,
-fontWeight: FontWeight.w700,
-),
-),
-),
-Icon(Icons.arrow_forward_ios_rounded, size: 14, color: (isDark ? Colors.white : cs.onSurface).withValues(alpha: 0.72)),
-],
-),
-),
-),
-),
-),
 ),
 );
 },
