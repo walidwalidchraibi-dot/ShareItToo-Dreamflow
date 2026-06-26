@@ -157,7 +157,7 @@ _loadData();
 
     final searchTop = searchBox.localToGlobal(Offset.zero, ancestor: nestedBox).dy;
     final searchBottom = searchTop + searchBox.size.height;
-    final shouldShow = searchBottom <= 0;
+    final shouldShow = searchBottom < 18;
 
     if (shouldShow == _showCompactStickySearch) return;
     setState(() => _showCompactStickySearch = shouldShow);
