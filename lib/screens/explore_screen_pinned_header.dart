@@ -2,6 +2,49 @@ import 'dart:ui' as ui show ImageFilter;
 import 'package:flutter/material.dart';
 
 
+class CompactPinnedSearchHeader extends SliverPersistentHeaderDelegate {
+  final WidgetBuilder builder;
+  final bool visible;
+  CompactPinnedSearchHeader({required this.builder, required this.visible});
+
+  static const double _topPadding = 0;
+  static const double _searchHeight = 44;
+  static const double _bottomPadding = 0;
+  static const double _totalHeight =
+      _topPadding +
+      _searchHeight +
+      _bottomPadding;
+
+  @override
+  double get minExtent => visible ? _totalHeight : 0;
+  @override
+  double get maxExtent => visible ? _totalHeight : 0;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    if (!visible) return const SizedBox.shrink();
+    return Stack(children: [
+      Positioned.fill(child: _PinnedHeaderBackgroundReplica()),
+      Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          const SizedBox(height: _topPadding),
+          Material(
+            color: Colors.transparent,
+            child: SizedBox(height: _searchHeight, child: builder(context)),
+          ),
+          const SizedBox(height: _bottomPadding),
+        ],
+      ),
+    ]);
+  }
+
+  @override
+  bool shouldRebuild(covariant CompactPinnedSearchHeader oldDelegate) =>
+      oldDelegate.visible != visible || oldDelegate.builder != builder;
+}
+
 class PinnedCategoriesHeader extends SliverPersistentHeaderDelegate {
   final WidgetBuilder builder;
   PinnedCategoriesHeader({required this.builder});
