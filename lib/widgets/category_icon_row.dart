@@ -55,12 +55,10 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
     final spacing = baseSpacing + (extraMm * 160 / 25.4);
 
     final tiles = <Widget>[];
-    tiles.add(_AnimatedLeadingSlot(
-      width: itemWidth,
-      showSearchIcon: widget.showSearchIcon,
-      onSearchTap: widget.onSearchTap,
-      onAllCategoriesTap: widget.onAllCategoriesTap,
-    ));
+    if (widget.showSearchIcon) {
+      tiles.add(_SearchTile(width: itemWidth, onTap: widget.onSearchTap));
+    }
+    tiles.add(_AllTile(width: itemWidth, onTap: widget.onAllCategoriesTap));
     for (int i = 0; i < widget.categories.length; i++) {
       final c = widget.categories[i];
       final isSelected = i == _selectedIndex;
@@ -119,68 +117,9 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
   }
 }
 
-class _AnimatedLeadingSlot extends StatelessWidget {
-  final double width;
-  final bool showSearchIcon;
-  final VoidCallback? onSearchTap;
-  final VoidCallback? onAllCategoriesTap;
-
-  const _AnimatedLeadingSlot({
-    required this.width,
-    required this.showSearchIcon,
-    required this.onSearchTap,
-    required this.onAllCategoriesTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      child: ClipRect(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 220),
-          reverseDuration: const Duration(milliseconds: 140),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeOut,
-          transitionBuilder: (child, animation) {
-            final slide = Tween<Offset>(
-              begin: const Offset(-0.32, 0),
-              end: Offset.zero,
-            ).animate(animation);
-            return FadeTransition(
-              opacity: animation,
-              child: SlideTransition(position: slide, child: child),
-            );
-          },
-          layoutBuilder: (currentChild, previousChildren) {
-            return Stack(
-              alignment: Alignment.centerLeft,
-              children: [
-                ...previousChildren,
-                if (currentChild != null) currentChild,
-              ],
-            );
-          },
-          child: showSearchIcon
-              ? _SearchTile(
-                  key: const ValueKey('search'),
-                  width: width,
-                  onTap: onSearchTap,
-                )
-              : _AllTile(
-                  key: const ValueKey('all'),
-                  width: width,
-                  onTap: onAllCategoriesTap,
-                ),
-        ),
-      ),
-    );
-  }
-}
-
 class _SearchTile extends StatefulWidget {
   final double width; final VoidCallback? onTap;
-  const _SearchTile({super.key, required this.width, this.onTap});
+  const _SearchTile({required this.width, this.onTap});
   @override
   State<_SearchTile> createState() => _SearchTileState();
 }
@@ -245,7 +184,7 @@ class _SearchTileState extends State<_SearchTile> {
 
 class _AllTile extends StatefulWidget {
   final double width; final VoidCallback? onTap;
-  const _AllTile({super.key, required this.width, this.onTap});
+  const _AllTile({required this.width, this.onTap});
   @override
   State<_AllTile> createState() => _AllTileState();
 }
