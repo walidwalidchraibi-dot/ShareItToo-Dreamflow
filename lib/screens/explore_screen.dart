@@ -829,58 +829,6 @@ SliverToBoxAdapter(
 
 SliverPersistentHeader(
 pinned: true,
-delegate: CompactPinnedSearchHeader(
-builder: (context) {
-final isDark = Theme.of(context).brightness == Brightness.dark;
-return Padding(
-padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-child: Material(
-color: Colors.transparent,
-child: InkWell(
-borderRadius: BorderRadius.circular(20),
-onTap: _openSearch,
-child: Container(
-height: 44,
-padding: const EdgeInsets.symmetric(horizontal: 14),
-decoration: BoxDecoration(
-color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
-borderRadius: BorderRadius.circular(20),
-border: Border.all(color: Colors.white.withValues(alpha: isDark ? 0.22 : 0.95), width: 1.2),
-boxShadow: [
-BoxShadow(
-color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.05),
-blurRadius: 10,
-offset: const Offset(0, 4),
-),
-],
-),
-child: Row(
-children: [
-const Icon(Icons.search, size: 18, color: BrandColors.primary),
-const SizedBox(width: 10),
-Expanded(
-child: Text(
-'Was suchst du?',
-maxLines: 1,
-overflow: TextOverflow.ellipsis,
-style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-color: Colors.white,
-fontWeight: FontWeight.w700,
-),
-),
-),
-Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white.withValues(alpha: 0.72)),
-],
-),
-),
-),
-),
-);
-},
-),
-),
-SliverPersistentHeader(
-pinned: true,
 delegate: PinnedCategoriesHeader(
 builder: (context) {
 final l10n = context.watch<LocalizationController>();
