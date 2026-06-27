@@ -54,8 +54,8 @@ class _MainNavigationState extends State<MainNavigation> {
     const ProfileScreen(),
   ];
 
-  Widget _navIcon(IconData icon, int index) => _HoveringNavIcon(icon: icon, active: _currentIndex == index);
-
+  Widget _navIcon(IconData icon, int index) =>
+      _HoveringNavIcon(icon: icon, active: _currentIndex == index);
 
   Widget _buildProfileNavIcon({required bool active}) {
     return FutureBuilder<AuthSession?>(
@@ -68,7 +68,13 @@ class _MainNavigationState extends State<MainNavigation> {
               key: ValueKey('profile_guest_${active ? 'active' : 'idle'}'),
               child: _ProfileNavIcon(photoUrl: null, active: active),
             ),
-            const Positioned(right: -2, top: -2, child: DecoratedBox(decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle), child: SizedBox(width: 8, height: 8))),
+            const Positioned(
+                right: -2,
+                top: -2,
+                child: DecoratedBox(
+                    decoration: BoxDecoration(
+                        color: BrandColors.logoAccent, shape: BoxShape.circle),
+                    child: SizedBox(width: 8, height: 8))),
           ]);
         }
         return FutureBuilder<model.User?>(
@@ -87,7 +93,14 @@ class _MainNavigationState extends State<MainNavigation> {
                 key: ValueKey(keySuffix),
                 child: _ProfileNavIcon(photoUrl: photoUrl, active: active),
               ),
-              const Positioned(right: -2, top: -2, child: DecoratedBox(decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle), child: SizedBox(width: 8, height: 8))),
+              const Positioned(
+                  right: -2,
+                  top: -2,
+                  child: DecoratedBox(
+                      decoration: BoxDecoration(
+                          color: BrandColors.logoAccent,
+                          shape: BoxShape.circle),
+                      child: SizedBox(width: 8, height: 8))),
             ]);
           },
         );
@@ -112,68 +125,83 @@ class _MainNavigationState extends State<MainNavigation> {
         }
         return true;
       },
-      child: Scaffold(
-        body: _screens[_currentIndex],
-        bottomNavigationBar: BottomNavigationBar(
+      child: AppGradientBackground(
+        child: Scaffold(
           backgroundColor: Colors.transparent,
-          elevation: 0,
-          type: BottomNavigationBarType.fixed,
-          currentIndex: _currentIndex,
-          onTap: (index) async {
-            final preview = context.read<DeveloperPreviewController>();
-            final session = await AuthService.readSession();
-            final isGuest = session == null && preview.isGuest;
-            // Soft logged-out experience:
-            // - Guests can open the Profile tab to explore.
-            // - Other tabs remain locked in guest mode.
-            if (isGuest && index != 0 && index != 4) {
-              final gateContext = switch (index) {
-                1 => GuestGateContext.favorites,
-                2 => GuestGateContext.booking,
-                3 => GuestGateContext.messages,
-                _ => GuestGateContext.generic,
-              };
+          extendBody: true,
+          body: _screens[_currentIndex],
+          bottomNavigationBar: BottomNavigationBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            type: BottomNavigationBarType.fixed,
+            currentIndex: _currentIndex,
+            onTap: (index) async {
+              final preview = context.read<DeveloperPreviewController>();
+              final session = await AuthService.readSession();
+              final isGuest = session == null && preview.isGuest;
+              // Soft logged-out experience:
+              // - Guests can open the Profile tab to explore.
+              // - Other tabs remain locked in guest mode.
+              if (isGuest && index != 0 && index != 4) {
+                final gateContext = switch (index) {
+                  1 => GuestGateContext.favorites,
+                  2 => GuestGateContext.booking,
+                  3 => GuestGateContext.messages,
+                  _ => GuestGateContext.generic,
+                };
+                if (!context.mounted) return;
+                showGuestRestrictionSheet(context, gateContext: gateContext);
+                context.read<MainNavController>().setIndex(0);
+                return;
+              }
               if (!context.mounted) return;
-              showGuestRestrictionSheet(context, gateContext: gateContext);
-              context.read<MainNavController>().setIndex(0);
-              return;
-            }
-            if (!context.mounted) return;
-            context.read<MainNavController>().setIndex(index);
-          },
-          selectedItemColor: BrandColors.primary,
-          unselectedItemColor: BrandColors.inactiveNav,
-          selectedIconTheme: const IconThemeData(size: 20),
-          unselectedIconTheme: const IconThemeData(size: 20),
-          selectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
-          items: [
-            BottomNavigationBarItem(
-              icon: _navIcon(Icons.search, 0),
-              activeIcon: _HoveringNavIcon(icon: Icons.search, active: true),
-              label: l10n.t('Erkunden'),
-            ),
-            BottomNavigationBarItem(
-              icon: _navIcon(Icons.favorite_border, 1),
-              activeIcon: _HoveringNavIcon(icon: Icons.favorite_border, active: true),
-              label: l10n.t('Wunschlisten'),
-            ),
-            BottomNavigationBarItem(
-              icon: _HoveringAssetNavIcon(asset: 'assets/images/icononly_transparent_nobuffer.png', active: _currentIndex == 2, baseSize: 32.0),
-              activeIcon: _HoveringAssetNavIcon(asset: 'assets/images/icononly_transparent_nobuffer.png', active: true, baseSize: 32.0),
-              label: l10n.t('Buchungen'),
-            ),
-            BottomNavigationBarItem(
-              icon: _MessagesNavIcon(active: _currentIndex == 3, userId: _currentUser?.id),
-              activeIcon: _MessagesNavIcon(active: true, userId: _currentUser?.id),
-              label: l10n.t('Nachrichten'),
-            ),
-            BottomNavigationBarItem(
-              icon: _buildProfileNavIcon(active: _currentIndex == 4),
-              activeIcon: _buildProfileNavIcon(active: true),
-              label: l10n.t('Profil'),
-            ),
-          ],
+              context.read<MainNavController>().setIndex(index);
+            },
+            selectedItemColor: BrandColors.primary,
+            unselectedItemColor: BrandColors.inactiveNav,
+            selectedIconTheme: const IconThemeData(size: 20),
+            unselectedIconTheme: const IconThemeData(size: 20),
+            selectedLabelStyle:
+                const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+            unselectedLabelStyle:
+                const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+            items: [
+              BottomNavigationBarItem(
+                icon: _navIcon(Icons.search, 0),
+                activeIcon: _HoveringNavIcon(icon: Icons.search, active: true),
+                label: l10n.t('Erkunden'),
+              ),
+              BottomNavigationBarItem(
+                icon: _navIcon(Icons.favorite_border, 1),
+                activeIcon:
+                    _HoveringNavIcon(icon: Icons.favorite_border, active: true),
+                label: l10n.t('Wunschlisten'),
+              ),
+              BottomNavigationBarItem(
+                icon: _HoveringAssetNavIcon(
+                    asset: 'assets/images/icononly_transparent_nobuffer.png',
+                    active: _currentIndex == 2,
+                    baseSize: 32.0),
+                activeIcon: _HoveringAssetNavIcon(
+                    asset: 'assets/images/icononly_transparent_nobuffer.png',
+                    active: true,
+                    baseSize: 32.0),
+                label: l10n.t('Buchungen'),
+              ),
+              BottomNavigationBarItem(
+                icon: _MessagesNavIcon(
+                    active: _currentIndex == 3, userId: _currentUser?.id),
+                activeIcon:
+                    _MessagesNavIcon(active: true, userId: _currentUser?.id),
+                label: l10n.t('Nachrichten'),
+              ),
+              BottomNavigationBarItem(
+                icon: _buildProfileNavIcon(active: _currentIndex == 4),
+                activeIcon: _buildProfileNavIcon(active: true),
+                label: l10n.t('Profil'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -181,7 +209,8 @@ class _MainNavigationState extends State<MainNavigation> {
 }
 
 class _HoveringNavIcon extends StatefulWidget {
-  final IconData icon; final bool active;
+  final IconData icon;
+  final bool active;
   const _HoveringNavIcon({required this.icon, required this.active});
   @override
   State<_HoveringNavIcon> createState() => _HoveringNavIconState();
@@ -191,11 +220,17 @@ class _HoveringNavIconState extends State<_HoveringNavIcon> {
   bool _hovering = false;
   @override
   Widget build(BuildContext context) {
-    final color = widget.active || _hovering ? BrandColors.primary : BrandColors.inactiveNav;
+    final color = widget.active || _hovering
+        ? BrandColors.primary
+        : BrandColors.inactiveNav;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
-      child: AnimatedScale(scale: _hovering ? 1.33 : 1.0, duration: const Duration(milliseconds: 180), curve: Curves.easeOut, child: Icon(widget.icon, size: 20, color: color)),
+      child: AnimatedScale(
+          scale: _hovering ? 1.33 : 1.0,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          child: Icon(widget.icon, size: 20, color: color)),
     );
   }
 }
@@ -204,12 +239,14 @@ class _HoveringAssetNavIcon extends StatefulWidget {
   final String asset;
   final bool active;
   final double baseSize;
-  const _HoveringAssetNavIcon({required this.asset, required this.active, this.baseSize = 22});
+  const _HoveringAssetNavIcon(
+      {required this.asset, required this.active, this.baseSize = 22});
   @override
   State<_HoveringAssetNavIcon> createState() => _HoveringAssetNavIconState();
 }
 
-class _HoveringAssetNavIconState extends State<_HoveringAssetNavIcon> with SingleTickerProviderStateMixin {
+class _HoveringAssetNavIconState extends State<_HoveringAssetNavIcon>
+    with SingleTickerProviderStateMixin {
   bool _hovering = false;
   late final AnimationController _spinController;
 
@@ -218,7 +255,8 @@ class _HoveringAssetNavIconState extends State<_HoveringAssetNavIcon> with Singl
     super.initState();
     // 3x faster per rotation than the main logo (700ms per 1 rotation)
     // Main logo: 1 rotation in 700ms; this does 3 rotations in 700ms total => 233ms per rotation.
-    _spinController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
+    _spinController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 700));
   }
 
   @override
@@ -235,7 +273,9 @@ class _HoveringAssetNavIconState extends State<_HoveringAssetNavIcon> with Singl
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.active || _hovering ? BrandColors.primary : BrandColors.inactiveNav;
+    final color = widget.active || _hovering
+        ? BrandColors.primary
+        : BrandColors.inactiveNav;
     return MouseRegion(
       onEnter: (_) {
         setState(() => _hovering = true);
@@ -252,7 +292,8 @@ class _HoveringAssetNavIconState extends State<_HoveringAssetNavIcon> with Singl
             angle: _spinController.value * 2 * math.pi * 3,
             child: child,
           ),
-          child: ImageIcon(AssetImage(widget.asset), size: widget.baseSize, color: color),
+          child: ImageIcon(AssetImage(widget.asset),
+              size: widget.baseSize, color: color),
         ),
       ),
     );
@@ -269,7 +310,11 @@ class _ProfileNavIcon extends StatelessWidget {
     final Color border = active ? BrandColors.primary : BrandColors.inactiveNav;
     final double size = 20;
     return MouseRegion(
-      child: SitUserAvatar(url: photoUrl, radius: size / 2, borderColor: border, placeholderIcon: Icons.person_outline),
+      child: SitUserAvatar(
+          url: photoUrl,
+          radius: size / 2,
+          borderColor: border,
+          placeholderIcon: Icons.person_outline),
     );
   }
 }
@@ -281,7 +326,8 @@ class _MessagesNavIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = _HoveringNavIcon(icon: Icons.chat_bubble_outline, active: active);
+    final base =
+        _HoveringNavIcon(icon: Icons.chat_bubble_outline, active: active);
     final uid = (userId ?? '').trim();
     if (uid.isEmpty) return base;
 
@@ -298,7 +344,8 @@ class _MessagesNavIcon extends StatelessWidget {
               right: -2,
               top: -2,
               child: DecoratedBox(
-                decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                    color: BrandColors.logoAccent, shape: BoxShape.circle),
                 child: SizedBox(width: 10, height: 10),
               ),
             ),

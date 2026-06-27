@@ -11,6 +11,7 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/screens/onboarding_flow_screen.dart';
+import 'package:lendify/services/background_theme_service.dart';
 
 Future<void> main() async {
   // Initialize bindings once in the same zone as runApp to avoid zone mismatch warnings.
@@ -88,9 +89,12 @@ class MyApp extends StatelessWidget {
               DeveloperPreviewController(initialState: initialPreviewState)
                 ..loadFromPrefs(),
         ),
+        ChangeNotifierProvider<BackgroundThemeController>(
+          create: (_) => BackgroundThemeController()..loadFromPrefs(),
+        ),
       ],
-      child: Consumer<LocalizationController>(
-        builder: (context, l10n, _) {
+      child: Consumer2<LocalizationController, BackgroundThemeController>(
+        builder: (context, l10n, backgroundTheme, _) {
           return MaterialApp(
             title: 'ShareItToo',
             debugShowCheckedModeBanner: false,
