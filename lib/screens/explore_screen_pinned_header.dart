@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 
 class CompactPinnedSearchHeader extends SliverPersistentHeaderDelegate {
   final WidgetBuilder builder;
-  final bool visible;
-  CompactPinnedSearchHeader({required this.builder, required this.visible});
+  CompactPinnedSearchHeader({required this.builder});
 
   static const double _topPadding = 8;
   static const double _searchHeight = 44;
@@ -16,13 +15,12 @@ class CompactPinnedSearchHeader extends SliverPersistentHeaderDelegate {
       _bottomPadding;
 
   @override
-  double get minExtent => visible ? _totalHeight : 0;
+  double get minExtent => _totalHeight;
   @override
-  double get maxExtent => visible ? _totalHeight : 0;
+  double get maxExtent => _totalHeight;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    if (!visible) return const SizedBox.shrink();
     return Stack(children: [
       Positioned.fill(child: _PinnedHeaderBackgroundReplica()),
       Column(
@@ -41,8 +39,7 @@ class CompactPinnedSearchHeader extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(covariant CompactPinnedSearchHeader oldDelegate) =>
-      oldDelegate.visible != visible;
+  bool shouldRebuild(covariant CompactPinnedSearchHeader oldDelegate) => false;
 }
 
 class PinnedCategoriesHeader extends SliverPersistentHeaderDelegate {
@@ -51,7 +48,7 @@ class PinnedCategoriesHeader extends SliverPersistentHeaderDelegate {
 
   // Thickness adjustments (~1 mm ≈ 6 dp) applied on top and bottom
   // Keep this very tight so the first feed title sits close to the category row.
-  static const double _topGapAfterSeparator = 16; // keep original spacing; compact search appears separately when revealed
+  static const double _topGapAfterSeparator = 6; // tighter because compact sticky search now sits above
   static const double _iconsHeight = 84; // CategoryIconRow reduced by ~1mm from bottom
   static const double _bottomPad = 0;
 

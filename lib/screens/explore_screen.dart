@@ -50,9 +50,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final ScrollController _scrollController = ScrollController();
   final PageController _feedPager = PageController();
   final ScrollController _ctrlGuests = ScrollController();
-  static const double _compactSearchRevealOffset = 170;
-
-  bool _showCompactStickySearch = false;
 
   int _devTapCount = 0;
   Timer? _devTapReset;
@@ -139,21 +136,12 @@ List<CategoryIconDataModel> get _homeCategories {
 @override
 void initState() {
 super.initState();
-_scrollController.addListener(_handleScroll);
 _loadData();
 }
-
-  void _handleScroll() {
-    final shouldShow = _scrollController.hasClients &&
-        _scrollController.offset >= _compactSearchRevealOffset;
-    if (shouldShow == _showCompactStickySearch || !mounted) return;
-    setState(() => _showCompactStickySearch = shouldShow);
-  }
 
   @override
   void dispose() {
     _devTapReset?.cancel();
-    _scrollController.removeListener(_handleScroll);
     _scrollController.dispose();
     _feedPager.dispose();
     _ctrlGuests.dispose();
@@ -842,7 +830,6 @@ SliverToBoxAdapter(
 SliverPersistentHeader(
 pinned: true,
 delegate: CompactPinnedSearchHeader(
-visible: _showCompactStickySearch,
 builder: (context) {
 final isDark = Theme.of(context).brightness == Brightness.dark;
 final cs = Theme.of(context).colorScheme;
