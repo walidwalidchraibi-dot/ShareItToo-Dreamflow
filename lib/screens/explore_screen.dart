@@ -50,8 +50,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final ScrollController _scrollController = ScrollController();
   final PageController _feedPager = PageController();
   final ScrollController _ctrlGuests = ScrollController();
-  final GlobalKey _nestedScrollViewKey = GlobalKey();
-  final GlobalKey _searchHeaderKey = GlobalKey();
+  static const double _compactSearchRevealOffset = 170;
 
   bool _showCompactStickySearch = false;
 
@@ -141,25 +140,13 @@ List<CategoryIconDataModel> get _homeCategories {
 void initState() {
 super.initState();
 _scrollController.addListener(_handleScroll);
-WidgetsBinding.instance.addPostFrameCallback((_) => _handleScroll());
 _loadData();
 }
 
   void _handleScroll() {
-    if (!mounted) return;
-    final nestedContext = _nestedScrollViewKey.currentContext;
-    final searchContext = _searchHeaderKey.currentContext;
-    if (nestedContext == null || searchContext == null) return;
-
-    final nestedBox = nestedContext.findRenderObject() as RenderBox?;
-    final searchBox = searchContext.findRenderObject() as RenderBox?;
-    if (nestedBox == null || searchBox == null || !nestedBox.hasSize || !searchBox.hasSize) return;
-
-    final searchTop = searchBox.localToGlobal(Offset.zero, ancestor: nestedBox).dy;
-    final searchBottom = searchTop + searchBox.size.height;
-    final shouldShow = searchBottom <= 0;
-
-    if (shouldShow == _showCompactStickySearch) return;
+    final shouldShow = _scrollController.hasClients &&
+        _scrollController.offset >= _compactSearchRevealOffset;
+    if (shouldShow == _showCompactStickySearch || !mounted) return;
     setState(() => _showCompactStickySearch = shouldShow);
   }
 
@@ -770,7 +757,6 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                 }
 
                 return NestedScrollView(
-                  key: _nestedScrollViewKey,
                   controller: _scrollController,
                   headerSliverBuilder: (context, innerBoxIsScrolled) {
                     return [
@@ -838,9 +824,7 @@ style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, f
 
 const SliverToBoxAdapter(child: SizedBox(height: 16)),
 SliverToBoxAdapter(
-  child: KeyedSubtree(
-    key: _searchHeaderKey,
-    child: SearchHeader(
+  child: SearchHeader(
     onFiltersPressed: () async {
       await Navigator.of(context).push(
         MaterialPageRoute(
@@ -850,7 +834,6 @@ SliverToBoxAdapter(
     },
     onSearchTap: _openSearch,
     onListingCreated: _handleListingCreated,
-  ),
   ),
 ),
 
