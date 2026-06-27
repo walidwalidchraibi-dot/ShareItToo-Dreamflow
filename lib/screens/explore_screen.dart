@@ -858,54 +858,13 @@ SliverToBoxAdapter(
 
 SliverPersistentHeader(
 pinned: true,
-delegate: PinnedCategoriesHeader(
-builder: (context) {
-final l10n = context.watch<LocalizationController>();
-final localized = _homeCategories.map((e) => CategoryIconDataModel(id: e.id, icon: e.icon, label: l10n.t(e.label))).toList();
-return Container(
-color: Colors.transparent,
-child: CategoryIconRow(
-categories: localized,
-onSelected: (c) async {
-// Apply immediately without confirmation popup
-if (!mounted) return;
-setState(() => _filters = { ...?_filters, 'categories': [c.id] });
-      AppPopup.toast(context, icon: Icons.filter_alt_outlined, title: '${l10n.t('Gefiltert nach:')} ${c.label}', duration: const Duration(seconds: 1));
-},
-onAllCategoriesTap: () {
-setState(() {
-if (_filters == null) {
-_filters = {};
-}
-final f = Map<String, dynamic>.from(_filters!);
-f.remove('categories');
-_filters = f;
-});
-      final l10n = context.read<LocalizationController>();
-      AppPopup.toast(context, icon: Icons.category_outlined, title: l10n.t('Alle Kategorien'), duration: const Duration(seconds: 1));
-},
-),
-);
-},
-),
-),
-SliverPersistentHeader(
-pinned: true,
 delegate: CompactPinnedSearchHeader(
 visible: _showCompactStickySearch,
 builder: (context) {
 final isDark = Theme.of(context).brightness == Brightness.dark;
 final cs = Theme.of(context).colorScheme;
 return Padding(
-padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-child: AnimatedSlide(
-duration: const Duration(milliseconds: 180),
-curve: Curves.easeOutCubic,
-offset: _showCompactStickySearch ? Offset.zero : const Offset(0, -0.18),
-child: AnimatedOpacity(
-duration: const Duration(milliseconds: 160),
-curve: Curves.easeOut,
-opacity: _showCompactStickySearch ? 1 : 0,
+padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
 child: Material(
 color: Colors.transparent,
 child: InkWell(
@@ -947,7 +906,38 @@ Icon(Icons.arrow_forward_ios_rounded, size: 14, color: (isDark ? Colors.white : 
 ),
 ),
 ),
+);
+},
 ),
+),
+SliverPersistentHeader(
+pinned: true,
+delegate: PinnedCategoriesHeader(
+builder: (context) {
+final l10n = context.watch<LocalizationController>();
+final localized = _homeCategories.map((e) => CategoryIconDataModel(id: e.id, icon: e.icon, label: l10n.t(e.label))).toList();
+return Container(
+color: Colors.transparent,
+child: CategoryIconRow(
+categories: localized,
+onSelected: (c) async {
+// Apply immediately without confirmation popup
+if (!mounted) return;
+setState(() => _filters = { ...?_filters, 'categories': [c.id] });
+      AppPopup.toast(context, icon: Icons.filter_alt_outlined, title: '${l10n.t('Gefiltert nach:')} ${c.label}', duration: const Duration(seconds: 1));
+},
+onAllCategoriesTap: () {
+setState(() {
+if (_filters == null) {
+_filters = {};
+}
+final f = Map<String, dynamic>.from(_filters!);
+f.remove('categories');
+_filters = f;
+});
+      final l10n = context.read<LocalizationController>();
+      AppPopup.toast(context, icon: Icons.category_outlined, title: l10n.t('Alle Kategorien'), duration: const Duration(seconds: 1));
+},
 ),
 );
 },

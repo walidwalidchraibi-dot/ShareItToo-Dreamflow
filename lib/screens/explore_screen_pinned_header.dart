@@ -7,9 +7,9 @@ class CompactPinnedSearchHeader extends SliverPersistentHeaderDelegate {
   final bool visible;
   CompactPinnedSearchHeader({required this.builder, required this.visible});
 
-  static const double _topPadding = 0;
+  static const double _topPadding = 8;
   static const double _searchHeight = 44;
-  static const double _bottomPadding = 0;
+  static const double _bottomPadding = 4;
   static const double _totalHeight =
       _topPadding +
       _searchHeight +
@@ -42,7 +42,7 @@ class CompactPinnedSearchHeader extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant CompactPinnedSearchHeader oldDelegate) =>
-      oldDelegate.visible != visible || oldDelegate.builder != builder;
+      oldDelegate.visible != visible;
 }
 
 class PinnedCategoriesHeader extends SliverPersistentHeaderDelegate {
