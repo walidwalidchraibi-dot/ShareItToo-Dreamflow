@@ -36,40 +36,79 @@ class BrandColors {
   static const tiktok = Color(0xFFEE1D52);
 }
 
+class AppTheme {
+  static bool isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
+
+  static Color textPrimary(BuildContext context) =>
+      isDark(context) ? Colors.white : const Color(0xFF111111);
+  static Color textBody(BuildContext context) =>
+      isDark(context) ? const Color(0xFFE5E7EB) : const Color(0xFF1F2937);
+  static Color textSecondary(BuildContext context) =>
+      isDark(context) ? Colors.white70 : const Color(0xFF334155);
+  static Color textDisabled(BuildContext context) =>
+      isDark(context) ? Colors.white38 : const Color(0xFF64748B);
+  static Color navInactive(BuildContext context) =>
+      isDark(context) ? BrandColors.inactiveNav : const Color(0xFF334155);
+
+  static Color surfacePrimary(BuildContext context) => isDark(context)
+      ? BrandColors.glassSurface.withValues(alpha: 0.55)
+      : Colors.white.withValues(alpha: 0.96);
+  static Color surfaceSecondary(BuildContext context) => isDark(context)
+      ? Colors.white.withValues(alpha: 0.06)
+      : Colors.white.withValues(alpha: 0.98);
+  static Color surfaceMuted(BuildContext context) => isDark(context)
+      ? Colors.white.withValues(alpha: 0.02)
+      : const Color(0xFFF1F5F9).withValues(alpha: 0.98);
+  static Color glassSurface(BuildContext context) => isDark(context)
+      ? BrandColors.glassSurface.withValues(alpha: 0.55)
+      : const Color(0xFFF8FAFC).withValues(alpha: 0.94);
+  static Color glassStroke(BuildContext context) => isDark(context)
+      ? BrandColors.glassStroke
+      : BrandColors.primary.withValues(alpha: 0.22);
+  static Color imageScrim(BuildContext context) => isDark(context)
+      ? BrandColors.imageScrim.withValues(alpha: 0.55)
+      : Colors.white.withValues(alpha: 0.08);
+  static Color searchBorder(BuildContext context) =>
+      isDark(context) ? Colors.white : BrandColors.primary;
+  static Color categoryCircleFill(BuildContext context,
+          {required bool active}) =>
+      isDark(context)
+          ? Colors.white.withValues(alpha: 0.03)
+          : Colors.white.withValues(alpha: 0.98);
+  static Color categoryCircleBorder(BuildContext context,
+          {required bool active}) =>
+      isDark(context)
+          ? (active
+              ? BrandColors.primary
+              : Colors.white.withValues(alpha: 0.14))
+          : BrandColors.primary;
+  static List<BoxShadow> cardShadow(BuildContext context) => [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: isDark(context) ? 0.16 : 0.08),
+          blurRadius: isDark(context) ? 16 : 14,
+          offset: const Offset(0, 6),
+        ),
+      ];
+}
+
 class AppTypography {
-  static TextTheme textTheme(BuildContext context) {
-    // Ensure every TextStyle (including those we don't override explicitly)
-    // defaults to white to remain readable on our dark/blurred surfaces.
+  static TextTheme textTheme(BuildContext context, {required bool isDark}) {
+    final primary = isDark ? Colors.white : const Color(0xFF111111);
     final base = GoogleFonts.interTextTheme(Theme.of(context).textTheme)
-        .apply(bodyColor: Colors.white, displayColor: Colors.white);
+        .apply(bodyColor: primary, displayColor: primary);
     const h = 1.25;
     return base.copyWith(
-      // Force white as default text color to ensure readability on our dark blurred background
       titleLarge: base.titleLarge?.copyWith(
-          fontSize: 18,
-          height: h,
-          fontWeight: FontWeight.w700,
-          color: Colors.white),
+          fontSize: 18, height: h, fontWeight: FontWeight.w700, color: primary),
       titleMedium: base.titleMedium?.copyWith(
-          fontSize: 16,
-          height: h,
-          fontWeight: FontWeight.w600,
-          color: Colors.white),
+          fontSize: 16, height: h, fontWeight: FontWeight.w600, color: primary),
       bodyMedium: base.bodyMedium?.copyWith(
-          fontSize: 13,
-          height: h,
-          fontWeight: FontWeight.w500,
-          color: Colors.white),
+          fontSize: 13, height: h, fontWeight: FontWeight.w500, color: primary),
       bodySmall: base.bodySmall?.copyWith(
-          fontSize: 12,
-          height: h,
-          fontWeight: FontWeight.w500,
-          color: Colors.white),
+          fontSize: 12, height: h, fontWeight: FontWeight.w500, color: primary),
       labelSmall: base.labelSmall?.copyWith(
-          fontSize: 11,
-          height: h,
-          fontWeight: FontWeight.w600,
-          color: Colors.white),
+          fontSize: 11, height: h, fontWeight: FontWeight.w600, color: primary),
     );
   }
 }
@@ -81,7 +120,7 @@ Gradient get appBackgroundGradient => const LinearGradient(
 
 ThemeData buildLightTheme(BuildContext context) {
   final base = ThemeData(useMaterial3: true, brightness: Brightness.light);
-  final text = AppTypography.textTheme(context);
+  final text = AppTypography.textTheme(context, isDark: false);
   return base.copyWith(
     colorScheme: base.colorScheme.copyWith(
       primary: BrandColors.primary,
@@ -89,25 +128,53 @@ ThemeData buildLightTheme(BuildContext context) {
       tertiary: BrandColors.success,
       error: BrandColors.danger,
       // Use dark surface with white foreground to match our global dark backdrop
-      surface: const Color(0xFF0F172A),
-      onSurface: Colors.white,
+      surface: const Color(0xFFFFFFFF),
+      onSurface: const Color(0xFF0F172A),
+      onSurfaceVariant: const Color(0xFF334155),
     ),
     scaffoldBackgroundColor: Colors.transparent,
     appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: Color(0xFF111111),
         elevation: 0,
         centerTitle: false),
     listTileTheme: const ListTileThemeData(
-        iconColor: Colors.white, textColor: Colors.white),
-    iconTheme: const IconThemeData(color: Colors.white),
+        iconColor: Color(0xFF0F172A), textColor: Color(0xFF0F172A)),
+    iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: Colors.transparent,
+      selectedItemColor: BrandColors.primary,
+      unselectedItemColor: Color(0xFF334155),
+      selectedIconTheme: IconThemeData(color: BrandColors.primary),
+      unselectedIconTheme: IconThemeData(color: Color(0xFF334155)),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xF5FFFFFF),
+      hintStyle: text.bodyMedium?.copyWith(color: AppTheme.textSecondary(context)),
+      labelStyle: text.bodyMedium?.copyWith(color: AppTheme.textBody(context)),
+      prefixIconColor: BrandColors.primary,
+      suffixIconColor: AppTheme.textSecondary(context),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: BrandColors.primary, width: 1.2),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: BrandColors.primary, width: 1.2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: BrandColors.primary, width: 1.5),
+      ),
+    ),
     textTheme: text,
   );
 }
 
 ThemeData buildDarkTheme(BuildContext context) {
   final base = ThemeData(useMaterial3: true, brightness: Brightness.dark);
-  final text = AppTypography.textTheme(context);
+  final text = AppTypography.textTheme(context, isDark: true);
   return base.copyWith(
     colorScheme: base.colorScheme.copyWith(
       primary: BrandColors.primary,

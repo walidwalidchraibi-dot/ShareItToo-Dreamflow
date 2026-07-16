@@ -158,7 +158,7 @@ class _MainNavigationState extends State<MainNavigation> {
               context.read<MainNavController>().setIndex(index);
             },
             selectedItemColor: BrandColors.primary,
-            unselectedItemColor: BrandColors.inactiveNav,
+            unselectedItemColor: AppTheme.navInactive(context),
             selectedIconTheme: const IconThemeData(size: 20),
             unselectedIconTheme: const IconThemeData(size: 20),
             selectedLabelStyle:
@@ -222,7 +222,7 @@ class _HoveringNavIconState extends State<_HoveringNavIcon> {
   Widget build(BuildContext context) {
     final color = widget.active || _hovering
         ? BrandColors.primary
-        : BrandColors.inactiveNav;
+        : AppTheme.navInactive(context);
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
@@ -275,7 +275,7 @@ class _HoveringAssetNavIconState extends State<_HoveringAssetNavIcon>
   Widget build(BuildContext context) {
     final color = widget.active || _hovering
         ? BrandColors.primary
-        : BrandColors.inactiveNav;
+        : AppTheme.navInactive(context);
     return MouseRegion(
       onEnter: (_) {
         setState(() => _hovering = true);
@@ -307,7 +307,7 @@ class _ProfileNavIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color border = active ? BrandColors.primary : BrandColors.inactiveNav;
+    final Color border = active ? BrandColors.primary : AppTheme.navInactive(context);
     final double size = 20;
     return MouseRegion(
       child: SitUserAvatar(
