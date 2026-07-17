@@ -14,128 +14,165 @@ class SearchHeader extends StatelessWidget {
   final VoidCallback onSearchTap;
   final Future<void> Function(Item created)? onListingCreated;
 
-  const SearchHeader({super.key, required this.onFiltersPressed, required this.onSearchTap, this.onListingCreated});
+  const SearchHeader(
+      {super.key,
+      required this.onFiltersPressed,
+      required this.onSearchTap,
+      this.onListingCreated});
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bodyText = AppTheme.textBody(context);
+    final secondaryText = AppTheme.textSecondary(context);
 
     Widget buildCreateButton(double size) => InkWell(
-      onTap: () async {
-        final u = await DataService.getCurrentUser();
-        if (u == null) {
-          if (context.mounted) await showGuestRestrictionSheet(context, gateContext: GuestGateContext.listing);
-          return;
-        }
-        final created = await Navigator.of(context).push<Item?>(MaterialPageRoute(builder: (_) => const CreateListingScreen()));
-        if (created != null && onListingCreated != null) {
-          await onListingCreated!(created);
-        }
-      },
-      borderRadius: BorderRadius.circular(size / 2),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
+          onTap: () async {
+            final u = await DataService.getCurrentUser();
+            if (u == null) {
+              if (context.mounted)
+                await showGuestRestrictionSheet(context,
+                    gateContext: GuestGateContext.listing);
+              return;
+            }
+            final created = await Navigator.of(context).push<Item?>(
+                MaterialPageRoute(builder: (_) => const CreateListingScreen()));
+            if (created != null && onListingCreated != null) {
+              await onListingCreated!(created);
+            }
+          },
           borderRadius: BorderRadius.circular(size / 2),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.14 : 0.06), blurRadius: 12, offset: const Offset(0, 6)),
-          ],
-          border: Border.all(color: Colors.white, width: 1.5),
-        ),
-        alignment: Alignment.center,
-        child: const Icon(Icons.add_business, size: 22, color: BrandColors.primary),
-      ),
-    );
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppTheme.surfaceSecondary(context)
+                  : AppTheme.surfacePrimary(context),
+              borderRadius: BorderRadius.circular(size / 2),
+              boxShadow: [
+                ...AppTheme.cardShadow(context),
+              ],
+              border:
+                  Border.all(color: AppTheme.searchBorder(context), width: 1.5),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(Icons.add_business,
+                size: 22, color: BrandColors.primary),
+          ),
+        );
 
     Widget buildSearchField() => InkWell(
-      onTap: onSearchTap,
-      borderRadius: BorderRadius.circular(28),
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
+          onTap: onSearchTap,
           borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.14 : 0.06), blurRadius: 12, offset: const Offset(0, 6)),
-          ],
-          border: Border.all(color: Colors.white, width: 1.5),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.search, color: BrandColors.primary),
-            const SizedBox(width: 10),
-            Builder(builder: (context) {
-              final l10n = context.watch<LocalizationController>();
-              return Text(l10n.t('Jetzt suchen'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: BrandColors.primary));
-            })
-          ],
-        ),
-      ),
-    );
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppTheme.surfaceSecondary(context)
+                  : AppTheme.surfacePrimary(context),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                ...AppTheme.cardShadow(context),
+              ],
+              border:
+                  Border.all(color: AppTheme.searchBorder(context), width: 1.5),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.search, color: isDark ? BrandColors.primary : secondaryText),
+                const SizedBox(width: 10),
+                Builder(builder: (context) {
+                  final l10n = context.watch<LocalizationController>();
+                  return Text(l10n.t('Jetzt suchen'),
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? BrandColors.primary : bodyText));
+                })
+              ],
+            ),
+          ),
+        );
 
     Widget buildRequestsButton(double size) => InkWell(
-      onTap: () async {
-        final u = await DataService.getCurrentUser();
-        if (u == null) {
-          if (context.mounted) await showGuestRestrictionSheet(context, gateContext: GuestGateContext.rentalRequest);
-          return;
-        }
-        onFiltersPressed();
-      },
-      borderRadius: BorderRadius.circular(size / 2),
-      child: FutureBuilder<bool>(
-        future: () async {
-          try {
+          onTap: () async {
             final u = await DataService.getCurrentUser();
-            if (u == null) return false;
-            final pending = await DataService.getRentalRequestsForOwner(u.id, status: 'pending');
-            final has = pending.isNotEmpty;
-            debugPrint('[SearchHeader] hasPendingOwnerRequests=' + has.toString() + ' (ownerId=' + u.id + ', count=' + pending.length.toString() + ')');
-            return has;
-          } catch (_) {
-            return false;
-          }
-        }(),
-        builder: (context, snapshot) {
-          final hasNew = (snapshot.data == true);
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
-                  borderRadius: BorderRadius.circular(size / 2),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.14 : 0.06), blurRadius: 12, offset: const Offset(0, 6)),
-                  ],
-                  border: Border.all(color: Colors.white, width: 1.5),
-                ),
-                alignment: Alignment.center,
-                child: Transform.translate(
-                  offset: const Offset(-1, 3),
-                  child: const BoxChatIcon(size: 22, color: BrandColors.primary),
-                ),
-              ),
-              if (hasNew)
-                const Positioned(
-                  right: 1,
-                  top: 1,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(color: BrandColors.logoAccent, shape: BoxShape.circle),
-                    child: SizedBox(width: 8, height: 8),
+            if (u == null) {
+              if (context.mounted)
+                await showGuestRestrictionSheet(context,
+                    gateContext: GuestGateContext.rentalRequest);
+              return;
+            }
+            onFiltersPressed();
+          },
+          borderRadius: BorderRadius.circular(size / 2),
+          child: FutureBuilder<bool>(
+            future: () async {
+              try {
+                final u = await DataService.getCurrentUser();
+                if (u == null) return false;
+                final pending = await DataService.getRentalRequestsForOwner(
+                    u.id,
+                    status: 'pending');
+                final has = pending.isNotEmpty;
+                debugPrint('[SearchHeader] hasPendingOwnerRequests=' +
+                    has.toString() +
+                    ' (ownerId=' +
+                    u.id +
+                    ', count=' +
+                    pending.length.toString() +
+                    ')');
+                return has;
+              } catch (_) {
+                return false;
+              }
+            }(),
+            builder: (context, snapshot) {
+              final hasNew = (snapshot.data == true);
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: size,
+                    height: size,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppTheme.surfaceSecondary(context)
+                          : AppTheme.surfacePrimary(context),
+                      borderRadius: BorderRadius.circular(size / 2),
+                      boxShadow: [
+                        ...AppTheme.cardShadow(context),
+                      ],
+                      border: Border.all(
+                          color: AppTheme.searchBorder(context), width: 1.5),
+                    ),
+                    alignment: Alignment.center,
+                    child: Transform.translate(
+                      offset: const Offset(-1, 3),
+                      child: const BoxChatIcon(
+                          size: 22, color: BrandColors.primary),
+                    ),
                   ),
-                ),
-            ],
-          );
-        },
-      ),
-    );
+                  if (hasNew)
+                    const Positioned(
+                      right: 1,
+                      top: 1,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                            color: BrandColors.logoAccent,
+                            shape: BoxShape.circle),
+                        child: SizedBox(width: 8, height: 8),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -173,5 +210,3 @@ class SearchHeader extends StatelessWidget {
     );
   }
 }
-
-

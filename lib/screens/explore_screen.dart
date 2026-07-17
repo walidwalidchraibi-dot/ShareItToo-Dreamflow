@@ -41,9 +41,9 @@ double _deriveStableListingRating(Item item) {
 }
 
 class ExploreScreen extends StatefulWidget {
-const ExploreScreen({super.key});
-@override
-State<ExploreScreen> createState() => _ExploreScreenState();
+  const ExploreScreen({super.key});
+  @override
+  State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
@@ -54,90 +54,117 @@ class _ExploreScreenState extends State<ExploreScreen> {
   int _devTapCount = 0;
   Timer? _devTapReset;
 
-List<Item> _items = [];
-List<Category> _categories = [];
+  List<Item> _items = [];
+  List<Category> _categories = [];
 // Map fine category id -> coarse/top-level category label
-Map<String, String> _coarseByCatId = {};
-Map<String, model.User> _usersById = {};
-bool _isLoading = true;
-String? _currentUserName;
-String? _currentUserCity;
-Set<String> _savedIds = {};
+  Map<String, String> _coarseByCatId = {};
+  Map<String, model.User> _usersById = {};
+  bool _isLoading = true;
+  String? _currentUserName;
+  String? _currentUserCity;
+  Set<String> _savedIds = {};
 
 // Extra curated cards with fresh images (used for Guests row)
-List<Item> _extraGuests = [];
+  List<Item> _extraGuests = [];
 // Extra curated cards for "Am meisten gebucht" to add two full rows (3 under 3)
-List<Item> _extraTopBooked = [];
+  List<Item> _extraTopBooked = [];
 
+  Map<String, dynamic>? _filters;
 
-Map<String, dynamic>? _filters;
-
-IconData _iconFromName(String name) {
-switch (name) {
-case 'devices': return Icons.devices;
-case 'computer': return Icons.computer;
-case 'camera_alt': return Icons.camera_alt;
-case 'sports_esports': return Icons.sports_esports;
-case 'kitchen': return Icons.kitchen;
-case 'weekend': return Icons.weekend;
-case 'grass': return Icons.grass;
-case 'construction': return Icons.construction;
-case 'pedal_bike': return Icons.pedal_bike;
-case 'directions_car': return Icons.directions_car;
-case 'sports_soccer': return Icons.sports_soccer;
-case 'checkroom': return Icons.checkroom;
-case 'child_friendly': return Icons.child_friendly;
-case 'music_note': return Icons.music_note;
-case 'menu_book': return Icons.menu_book;
-case 'watch': return Icons.watch;
-case 'palette': return Icons.palette;
-case 'spa': return Icons.spa;
-case 'pets': return Icons.pets;
-case 'business_center': return Icons.business_center;
-case 'more_horiz': return Icons.more_horiz;
-default: return Icons.category;
-}
-}
+  IconData _iconFromName(String name) {
+    switch (name) {
+      case 'devices':
+        return Icons.devices;
+      case 'computer':
+        return Icons.computer;
+      case 'camera_alt':
+        return Icons.camera_alt;
+      case 'sports_esports':
+        return Icons.sports_esports;
+      case 'kitchen':
+        return Icons.kitchen;
+      case 'weekend':
+        return Icons.weekend;
+      case 'grass':
+        return Icons.grass;
+      case 'construction':
+        return Icons.construction;
+      case 'pedal_bike':
+        return Icons.pedal_bike;
+      case 'directions_car':
+        return Icons.directions_car;
+      case 'sports_soccer':
+        return Icons.sports_soccer;
+      case 'checkroom':
+        return Icons.checkroom;
+      case 'child_friendly':
+        return Icons.child_friendly;
+      case 'music_note':
+        return Icons.music_note;
+      case 'menu_book':
+        return Icons.menu_book;
+      case 'watch':
+        return Icons.watch;
+      case 'palette':
+        return Icons.palette;
+      case 'spa':
+        return Icons.spa;
+      case 'pets':
+        return Icons.pets;
+      case 'business_center':
+        return Icons.business_center;
+      case 'more_horiz':
+        return Icons.more_horiz;
+      default:
+        return Icons.category;
+    }
+  }
 
 // Coarse/top-level category icon mapping
-IconData _coarseIconForGroup(String group) {
-  final g = group.toLowerCase();
-  if (g.contains('technik')) return Icons.devices;
-  if (g.contains('haushalt') || g.contains('wohnen')) return Icons.weekend;
-  if (g.contains('fahrzeuge') || g.contains('mobil')) return Icons.directions_car;
-  if (g.contains('mode') || g.contains('lifestyle')) return Icons.checkroom;
-  if (g.contains('sport') || g.contains('hobby') || g.contains('hobb')) return Icons.sports_soccer;
-  if (g.contains('werkzeuge') || g.contains('geräte') || g.contains('geraete')) return Icons.construction;
-  if (g.contains('garten') || g.contains('hof')) return Icons.grass;
-  if (g.contains('büro') || g.contains('buero') || g.contains('gewerbe')) return Icons.business_center;
-  if (g.contains('baby') || g.contains('kinder')) return Icons.child_friendly;
-  if (g.contains('haustier')) return Icons.pets;
-  return Icons.category;
-}
+  IconData _coarseIconForGroup(String group) {
+    final g = group.toLowerCase();
+    if (g.contains('technik')) return Icons.devices;
+    if (g.contains('haushalt') || g.contains('wohnen')) return Icons.weekend;
+    if (g.contains('fahrzeuge') || g.contains('mobil'))
+      return Icons.directions_car;
+    if (g.contains('mode') || g.contains('lifestyle')) return Icons.checkroom;
+    if (g.contains('sport') || g.contains('hobby') || g.contains('hobb'))
+      return Icons.sports_soccer;
+    if (g.contains('werkzeuge') ||
+        g.contains('geräte') ||
+        g.contains('geraete')) return Icons.construction;
+    if (g.contains('garten') || g.contains('hof')) return Icons.grass;
+    if (g.contains('büro') || g.contains('buero') || g.contains('gewerbe'))
+      return Icons.business_center;
+    if (g.contains('baby') || g.contains('kinder')) return Icons.child_friendly;
+    if (g.contains('haustier')) return Icons.pets;
+    return Icons.category;
+  }
 
 // Build the top-level categories in fixed order for the home header
-List<CategoryIconDataModel> get _homeCategories {
-  final presentGroups = <String>{
-    for (final item in _items)
-      if ((item.status == 'active' || item.isActive) && (_coarseByCatId[item.categoryId]?.isNotEmpty ?? false))
-        _coarseByCatId[item.categoryId]!,
-  };
-  final ordered = [
-    for (final label in DataService.coarseCategoryOrder)
-      if (presentGroups.contains(label)) label,
-  ];
-  return [
-    for (final label in ordered)
-      CategoryIconDataModel(id: label, icon: _coarseIconForGroup(label), label: label)
-  ];
-}
+  List<CategoryIconDataModel> get _homeCategories {
+    final presentGroups = <String>{
+      for (final item in _items)
+        if ((item.status == 'active' || item.isActive) &&
+            (_coarseByCatId[item.categoryId]?.isNotEmpty ?? false))
+          _coarseByCatId[item.categoryId]!,
+    };
+    final ordered = [
+      for (final label in DataService.coarseCategoryOrder)
+        if (presentGroups.contains(label)) label,
+    ];
+    return [
+      for (final label in ordered)
+        CategoryIconDataModel(
+            id: label, icon: _coarseIconForGroup(label), label: label)
+    ];
+  }
 
-
-@override
-void initState() {
-super.initState();
-_loadData();
-}
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
   @override
   void dispose() {
@@ -154,72 +181,74 @@ _loadData();
     if (mounted) setState(() => _devTapCount = 0);
   }
 
-Future<void> _loadData() async {
-try {
-final items = await DataService.getPublicItems();
-final categories = await DataService.getCategories();
-final users = await DataService.getUsers();
-final session = await AuthService.readSession();
-final user = await DataService.getCurrentUser();
-final saved = await DataService.getSavedItemIds();
-final hiddenIds = await ListingFeedbackService.getHiddenItemIds();
-final hasRealSession = session != null;
+  Future<void> _loadData() async {
+    try {
+      final items = await DataService.getPublicItems();
+      final categories = await DataService.getCategories();
+      final users = await DataService.getUsers();
+      final session = await AuthService.readSession();
+      final user = await DataService.getCurrentUser();
+      final saved = await DataService.getSavedItemIds();
+      final hiddenIds = await ListingFeedbackService.getHiddenItemIds();
+      final hasRealSession = session != null;
 
 // Build extra curated items with unique images for Guests row
-List<Item> buildExtras(int count, String seedPrefix) {
-final berlin = DataService.getCities()['Berlin'] ?? (52.52, 13.405);
-final owner = users.isNotEmpty ? users.first : null;
-final rnd = Random(seedPrefix.hashCode);
-return [
-for (int i = 0; i < count; i++)
-Item(
-id: '${seedPrefix}_$i',
-ownerId: owner?.id ?? 'u1',
-title: 'Neu ${i + 1}',
-description: 'Frisch eingestellt in Berlin',
-categoryId: categories.isNotEmpty ? categories[rnd.nextInt(categories.length)].id : 'cat1',
-subcategory: 'Highlights',
-tags: const ['highlight', 'neu'],
-pricePerDay: 10 + rnd.nextInt(60) + rnd.nextDouble(),
-currency: 'EUR',
-deposit: null,
-photos: ['https://picsum.photos/seed/${seedPrefix}_$i/800/800'],
-locationText: 'Berlin-Mitte',
-lat: berlin.$1,
-lng: berlin.$2,
-geohash: 'u130f$i',
-condition: 'new',
-minDays: null,
-maxDays: 7,
-createdAt: DateTime.now().subtract(Duration(hours: i)),
-isActive: true,
-verificationStatus: 'approved',
-city: 'Berlin',
-country: 'Deutschland',
-)
-];
-}
+      List<Item> buildExtras(int count, String seedPrefix) {
+        final berlin = DataService.getCities()['Berlin'] ?? (52.52, 13.405);
+        final owner = users.isNotEmpty ? users.first : null;
+        final rnd = Random(seedPrefix.hashCode);
+        return [
+          for (int i = 0; i < count; i++)
+            Item(
+              id: '${seedPrefix}_$i',
+              ownerId: owner?.id ?? 'u1',
+              title: 'Neu ${i + 1}',
+              description: 'Frisch eingestellt in Berlin',
+              categoryId: categories.isNotEmpty
+                  ? categories[rnd.nextInt(categories.length)].id
+                  : 'cat1',
+              subcategory: 'Highlights',
+              tags: const ['highlight', 'neu'],
+              pricePerDay: 10 + rnd.nextInt(60) + rnd.nextDouble(),
+              currency: 'EUR',
+              deposit: null,
+              photos: ['https://picsum.photos/seed/${seedPrefix}_$i/800/800'],
+              locationText: 'Berlin-Mitte',
+              lat: berlin.$1,
+              lng: berlin.$2,
+              geohash: 'u130f$i',
+              condition: 'new',
+              minDays: null,
+              maxDays: 7,
+              createdAt: DateTime.now().subtract(Duration(hours: i)),
+              isActive: true,
+              verificationStatus: 'approved',
+              city: 'Berlin',
+              country: 'Deutschland',
+            )
+        ];
+      }
 
 // No extra fillers for the five-item showcase
-final extrasGuests = <Item>[];
-final extrasTop = <Item>[];
+      final extrasGuests = <Item>[];
+      final extrasTop = <Item>[];
 
- // Precompute mapping: fine category id -> coarse label for filters and display
- final coarseMap = <String, String>{
-   for (final c in categories) c.id: DataService.coarseCategoryFor(c.name)
- };
- setState(() {
-   _items = items.where((item) => !hiddenIds.contains(item.id)).toList();
-   _categories = categories;
-   _coarseByCatId = coarseMap;
-   _usersById = {for (final u in users) u.id: u};
-   _currentUserName = hasRealSession ? user?.displayName : null;
-   _currentUserCity = hasRealSession ? user?.city : null;
-   _savedIds = saved;
-   _extraGuests = extrasGuests;
-   _extraTopBooked = extrasTop;
-   _isLoading = false;
- });
+      // Precompute mapping: fine category id -> coarse label for filters and display
+      final coarseMap = <String, String>{
+        for (final c in categories) c.id: DataService.coarseCategoryFor(c.name)
+      };
+      setState(() {
+        _items = items.where((item) => !hiddenIds.contains(item.id)).toList();
+        _categories = categories;
+        _coarseByCatId = coarseMap;
+        _usersById = {for (final u in users) u.id: u};
+        _currentUserName = hasRealSession ? user?.displayName : null;
+        _currentUserCity = hasRealSession ? user?.city : null;
+        _savedIds = saved;
+        _extraGuests = extrasGuests;
+        _extraTopBooked = extrasTop;
+        _isLoading = false;
+      });
       // After data is loaded, check if we have a freshly created/saved listing event to show a popup
       final ev = DataService.takeLastCreateEvent();
       if (ev != null && mounted) {
@@ -227,13 +256,15 @@ final extrasTop = <Item>[];
           _showCreatedPopup(ev.$1, ev.$2);
         });
       }
-} catch (e) {
-setState(() => _isLoading = false);
-}
-}
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
 
   Future<void> _showCreatedPopup(Item item, bool draft) async {
-    final message = draft ? 'Anzeige wurde für später gespeichert' : 'Anzeige wurde erstellt';
+    final message = draft
+        ? 'Anzeige wurde für später gespeichert'
+        : 'Anzeige wurde erstellt';
     if (!mounted) return;
     await showDialog<void>(
       context: context,
@@ -241,7 +272,8 @@ setState(() => _isLoading = false);
       builder: (context) {
         return Dialog(
           backgroundColor: Colors.black.withValues(alpha: 0.90),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -250,14 +282,24 @@ setState(() => _isLoading = false);
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Row(children: [
-                    const Icon(Icons.check_circle, color: Colors.lightGreenAccent),
+                    const Icon(Icons.check_circle,
+                        color: Colors.lightGreenAccent),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(message, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16))),
-                    IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.close, color: Colors.white70)),
+                    Expanded(
+                        child: Text(message,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16))),
+                    IconButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: const Icon(Icons.close, color: Colors.white70)),
                   ]),
                   const SizedBox(height: 8),
                   Text(
-                    draft ? 'Du findest den Entwurf unter „Meine Anzeigen“.' : 'Deine Anzeige ist jetzt sichtbar.',
+                    draft
+                        ? 'Du findest den Entwurf unter „Meine Anzeigen“.'
+                        : 'Deine Anzeige ist jetzt sichtbar.',
                     style: const TextStyle(color: Colors.white70),
                   ),
                   const SizedBox(height: 12),
@@ -274,12 +316,14 @@ setState(() => _isLoading = false);
                       child: FilledButton.icon(
                         onPressed: () async {
                           Navigator.of(context).maybePop();
-                          await Future<void>.delayed(const Duration(milliseconds: 50));
+                          await Future<void>.delayed(
+                              const Duration(milliseconds: 50));
                           if (!mounted) return;
                           ItemDetailsOverlay.showFullPage(context, item: item);
                         },
                         icon: const Icon(Icons.visibility),
-                        label: Text(draft ? 'Vorschau ansehen' : 'Anzeige ansehen'),
+                        label: Text(
+                            draft ? 'Vorschau ansehen' : 'Anzeige ansehen'),
                       ),
                     ),
                   ]),
@@ -304,7 +348,8 @@ setState(() => _isLoading = false);
         FilledButton.icon(
           onPressed: () {
             Navigator.of(context, rootNavigator: true).maybePop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyListingsScreen()));
+            Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MyListingsScreen()));
           },
           icon: const Icon(Icons.dashboard_customize_outlined),
           label: Text(l10n.t('Meine Anzeigen')),
@@ -313,219 +358,285 @@ setState(() => _isLoading = false);
     );
   }
 
-Future<void> _showFilters() async {
-final result = await FiltersOverlay.show(context, initial: _filters);
-if (result != null) setState(() => _filters = result);
-}
+  Future<void> _showFilters() async {
+    final result = await FiltersOverlay.show(context, initial: _filters);
+    if (result != null) setState(() => _filters = result);
+  }
 
-void _openSearch() => SearchOverlay.show(context);
+  void _openSearch() => SearchOverlay.show(context);
 
-void _openAllCategories() {
-final l10n = context.read<LocalizationController>();
-final cats = _homeCategories.map((e) => CategoryChipData(id: e.id, label: l10n.t(e.label), icon: e.icon)).toList();
-AllCategoriesOverlay.show(context, cats);
-}
+  void _openAllCategories() {
+    final l10n = context.read<LocalizationController>();
+    final cats = _homeCategories
+        .map((e) =>
+            CategoryChipData(id: e.id, label: l10n.t(e.label), icon: e.icon))
+        .toList();
+    AllCategoriesOverlay.show(context, cats);
+  }
 
-Future<bool?> _showCategoryConfirm(String label) {
-final l10n = context.read<LocalizationController>();
-return showModalBottomSheet<bool>(
-context: context,
-isScrollControlled: false,
-backgroundColor: Colors.transparent,
-barrierColor: Colors.black.withValues(alpha: 0.25),
-shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-builder: (_) {
-return SafeArea(
-top: false,
-child: Center(
-child: Container(
-decoration: BoxDecoration(
-color: Colors.black.withValues(alpha: 0.34),
-borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-),
-padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-child: Column(mainAxisSize: MainAxisSize.min, children: [
-Container(width: 44, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-const SizedBox(height: 12),
-Row(children: [
-Container(
-decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), shape: BoxShape.circle),
-padding: const EdgeInsets.all(10),
-child: const Icon(Icons.category, color: Colors.white),
-),
-const SizedBox(width: 12),
-Expanded(child: Text(l10n.t('Kategorie auswählen'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16))),
-IconButton(onPressed: () => Navigator.of(context).pop(false), icon: const Icon(Icons.close, color: Colors.white70))
-]),
-const SizedBox(height: 8),
-Text('${l10n.t('Gefiltert nach:')} $label', style: const TextStyle(color: Colors.white), textAlign: TextAlign.center),
-const SizedBox(height: 16),
-Row(children: [
-Expanded(child: OutlinedButton.icon(onPressed: () => Navigator.of(context).pop(false), icon: const Icon(Icons.arrow_back), label: Text(l10n.t('Abbrechen')))),
-const SizedBox(width: 12),
-Expanded(child: FilledButton.icon(onPressed: () => Navigator.of(context).pop(true), icon: const Icon(Icons.check_circle), label: Text(l10n.t('Bestätigen')))),
-])
-]),
-),
-),
-);
-},
-);
-}
+  Future<bool?> _showCategoryConfirm(String label) {
+    final l10n = context.read<LocalizationController>();
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: false,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.25),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) {
+        return SafeArea(
+          top: false,
+          child: Center(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.34),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(20)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                    width: 44,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 12),
+                Row(children: [
+                  Container(
+                    decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        shape: BoxShape.circle),
+                    padding: const EdgeInsets.all(10),
+                    child: const Icon(Icons.category, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: Text(l10n.t('Kategorie auswählen'),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16))),
+                  IconButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      icon: const Icon(Icons.close, color: Colors.white70))
+                ]),
+                const SizedBox(height: 8),
+                Text('${l10n.t('Gefiltert nach:')} $label',
+                    style: const TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(
+                      child: OutlinedButton.icon(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          icon: const Icon(Icons.arrow_back),
+                          label: Text(l10n.t('Abbrechen')))),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: FilledButton.icon(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          icon: const Icon(Icons.check_circle),
+                          label: Text(l10n.t('Bestätigen')))),
+                ])
+              ]),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
-Future<void> _openLocationUpdate() async {
-final list = DataService.getCities().keys.toList();
-final cities = ['Automatisch', ...list];
-final selected = await showModalBottomSheet<String>(
-context: context,
-backgroundColor: Colors.black.withValues(alpha: 0.7),
-shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-builder: (context) => SafeArea(
-child: Column(mainAxisSize: MainAxisSize.min, children: [
-const SizedBox(height: 12),
-Container(width: 44, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
-const SizedBox(height: 12),
-Text('Standort aktualisieren', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
-const SizedBox(height: 8),
-ConstrainedBox(
-constraints: const BoxConstraints(maxHeight: 420),
-child: ListView.separated(
-shrinkWrap: true,
-itemCount: cities.length,
-separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
-itemBuilder: (context, i) {
-final c = cities[i];
-return ListTile(
-leading: c == 'Automatisch' ? const Icon(Icons.my_location, color: Colors.white70) : const SizedBox.shrink(),
-title: Text(c, style: const TextStyle(color: Colors.white)),
-trailing: (_currentUserCity == c) ? const Icon(Icons.check, color: Colors.lightBlueAccent) : null,
-onTap: () => Navigator.of(context).pop(c),
-);
-},
-),
-),
-const SizedBox(height: 12),
-]),
-),
-);
-if (selected == null || selected.isEmpty) return;
+  Future<void> _openLocationUpdate() async {
+    final list = DataService.getCities().keys.toList();
+    final cities = ['Automatisch', ...list];
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.black.withValues(alpha: 0.7),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (context) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const SizedBox(height: 12),
+          Container(
+              width: 44,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 12),
+          Text('Standort aktualisieren',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 420),
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: cities.length,
+              separatorBuilder: (_, __) =>
+                  const Divider(color: Colors.white12, height: 1),
+              itemBuilder: (context, i) {
+                final c = cities[i];
+                return ListTile(
+                  leading: c == 'Automatisch'
+                      ? const Icon(Icons.my_location, color: Colors.white70)
+                      : const SizedBox.shrink(),
+                  title: Text(c, style: const TextStyle(color: Colors.white)),
+                  trailing: (_currentUserCity == c)
+                      ? const Icon(Icons.check, color: Colors.lightBlueAccent)
+                      : null,
+                  onTap: () => Navigator.of(context).pop(c),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+        ]),
+      ),
+    );
+    if (selected == null || selected.isEmpty) return;
 
-if (selected == 'Automatisch') {
-await _useAutomaticLocation();
-return;
-}
-
-await _persistCity(selected);
-}
-
-Future<void> _persistCity(String selected) async {
-setState(() => _currentUserCity = selected);
-final user = await DataService.getCurrentUser();
-  if (user != null) {
-final updated = model.User(
-id: user.id,
-displayName: user.displayName,
-email: user.email,
-phone: user.phone,
-photoURL: user.photoURL,
-bio: user.bio,
-city: selected,
-country: user.country,
-preferredLanguage: user.preferredLanguage,
-isVerified: user.isVerified,
-isBanned: user.isBanned,
-role: user.role,
-payoutAccountId: user.payoutAccountId,
-avgRating: user.avgRating,
-reviewCount: user.reviewCount,
-createdAt: user.createdAt,
-languages: user.languages,
-interests: user.interests,
-);
-await DataService.setCurrentUser(updated);
-if (!mounted) return;
-  AppPopup.toast(context, icon: Icons.place, title: 'Standort aktualisiert: $selected');
-}
-}
-
-Future<void> _useAutomaticLocation() async {
-try {
-LocationPermission perm = await Geolocator.checkPermission();
-if (perm == LocationPermission.denied) {
-perm = await Geolocator.requestPermission();
-}
-if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) {
-  if (!mounted) return;
-  AppPopup.toast(context, icon: Icons.location_off, title: 'Standortzugriff verweigert.', message: 'Bitte erlaube den Zugriff in den Einstellungen.');
-return;
-}
-final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-final nearest = DataService.nearestCityName(pos.latitude, pos.longitude);
-await _persistCity(nearest);
-} catch (e) {
-if (!mounted) return;
-  AppPopup.toast(context, icon: Icons.location_disabled, title: 'Standort konnte nicht ermittelt werden.');
-}
-}
-
-Future<void> _toggleFavorite(String id) async {
-  final current = await DataService.getWishlistForItem(id);
-  if (current == null) {
-    final sel = await WishlistSelectionSheet.showAdd(context);
-    if (sel != null && sel.isNotEmpty) {
-      await DataService.setItemWishlist(id, sel);
+    if (selected == 'Automatisch') {
+      await _useAutomaticLocation();
+      return;
     }
-  } else {
-    final choice = await WishlistSelectionSheet.showManageOptions(context);
-    if (choice == 'move') {
-      final sel = await WishlistSelectionSheet.showMove(context, currentListId: current);
+
+    await _persistCity(selected);
+  }
+
+  Future<void> _persistCity(String selected) async {
+    setState(() => _currentUserCity = selected);
+    final user = await DataService.getCurrentUser();
+    if (user != null) {
+      final updated = model.User(
+        id: user.id,
+        displayName: user.displayName,
+        email: user.email,
+        phone: user.phone,
+        photoURL: user.photoURL,
+        bio: user.bio,
+        city: selected,
+        country: user.country,
+        preferredLanguage: user.preferredLanguage,
+        isVerified: user.isVerified,
+        isBanned: user.isBanned,
+        role: user.role,
+        payoutAccountId: user.payoutAccountId,
+        avgRating: user.avgRating,
+        reviewCount: user.reviewCount,
+        createdAt: user.createdAt,
+        languages: user.languages,
+        interests: user.interests,
+      );
+      await DataService.setCurrentUser(updated);
+      if (!mounted) return;
+      AppPopup.toast(context,
+          icon: Icons.place, title: 'Standort aktualisiert: $selected');
+    }
+  }
+
+  Future<void> _useAutomaticLocation() async {
+    try {
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.deniedForever ||
+          perm == LocationPermission.denied) {
+        if (!mounted) return;
+        AppPopup.toast(context,
+            icon: Icons.location_off,
+            title: 'Standortzugriff verweigert.',
+            message: 'Bitte erlaube den Zugriff in den Einstellungen.');
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      final nearest = DataService.nearestCityName(pos.latitude, pos.longitude);
+      await _persistCity(nearest);
+    } catch (e) {
+      if (!mounted) return;
+      AppPopup.toast(context,
+          icon: Icons.location_disabled,
+          title: 'Standort konnte nicht ermittelt werden.');
+    }
+  }
+
+  Future<void> _toggleFavorite(String id) async {
+    final current = await DataService.getWishlistForItem(id);
+    if (current == null) {
+      final sel = await WishlistSelectionSheet.showAdd(context);
       if (sel != null && sel.isNotEmpty) {
         await DataService.setItemWishlist(id, sel);
       }
-    } else if (choice == 'remove') {
-      await DataService.removeItemFromWishlist(id);
+    } else {
+      final choice = await WishlistSelectionSheet.showManageOptions(context);
+      if (choice == 'move') {
+        final sel = await WishlistSelectionSheet.showMove(context,
+            currentListId: current);
+        if (sel != null && sel.isNotEmpty) {
+          await DataService.setItemWishlist(id, sel);
+        }
+      } else if (choice == 'remove') {
+        await DataService.removeItemFromWishlist(id);
+      }
     }
+    final saved = await DataService.getSavedItemIds();
+    if (!mounted) return;
+    setState(() => _savedIds = saved);
   }
-  final saved = await DataService.getSavedItemIds();
-  if (!mounted) return;
-  setState(() => _savedIds = saved);
-}
 
-bool _matches(Item it) {
-  final f = _filters;
-  final RangeValues price = f?['price'] ?? const RangeValues(0, 500);
-  final String priceUnit = f?['priceUnit'] ?? 'day';
-  final double maxDistance = (f?['distance'] as double?) ?? 100;
-  final bool verifiedOnly = f?['verified'] == true;
-  final String condition = (f?['condition'] as String?) ?? 'egal';
-  // Now stores coarse/top-level category labels (not fine-grained IDs)
-  final List<String> catGroups = (f?['categories'] as List<String>?) ?? const [];
-  final double minRating = (f?['minRating'] as double?) ?? 0;
+  bool _matches(Item it) {
+    final f = _filters;
+    final RangeValues price = f?['price'] ?? const RangeValues(0, 500);
+    final String priceUnit = f?['priceUnit'] ?? 'day';
+    final double maxDistance = (f?['distance'] as double?) ?? 100;
+    final bool verifiedOnly = f?['verified'] == true;
+    final String condition = (f?['condition'] as String?) ?? 'egal';
+    // Now stores coarse/top-level category labels (not fine-grained IDs)
+    final List<String> catGroups =
+        (f?['categories'] as List<String>?) ?? const [];
+    final double minRating = (f?['minRating'] as double?) ?? 0;
     final List<String> delivery = (f?['delivery'] as List<String>?) ?? const [];
 
-  final double minPerDay = priceUnit == 'week' ? price.start / 7 : price.start;
-  final double maxPerDay = priceUnit == 'week' ? price.end / 7 : price.end;
-  if (it.pricePerDay < minPerDay || it.pricePerDay > maxPerDay) return false;
-  if (verifiedOnly) {
-    final ok = it.verificationStatus == 'approved' || it.verificationStatus == 'verified';
-    if (!ok) return false;
-  }
-  if (condition != 'egal') {
-    String mapped;
-    switch (condition) {
-      case 'neu': mapped = 'new'; break;
-      case 'wie-neu': mapped = 'like-new'; break;
-      case 'gut': mapped = 'good'; break;
-      case 'akzeptabel': mapped = 'acceptable'; break;
-      default: mapped = condition; break;
+    final double minPerDay =
+        priceUnit == 'week' ? price.start / 7 : price.start;
+    final double maxPerDay = priceUnit == 'week' ? price.end / 7 : price.end;
+    if (it.pricePerDay < minPerDay || it.pricePerDay > maxPerDay) return false;
+    if (verifiedOnly) {
+      final ok = it.verificationStatus == 'approved' ||
+          it.verificationStatus == 'verified';
+      if (!ok) return false;
     }
-    if (it.condition != mapped) return false;
-  }
-  if (catGroups.isNotEmpty) {
-    final g = _coarseByCatId[it.categoryId] ?? '';
-    if (!catGroups.contains(g)) return false;
-  }
+    if (condition != 'egal') {
+      String mapped;
+      switch (condition) {
+        case 'neu':
+          mapped = 'new';
+          break;
+        case 'wie-neu':
+          mapped = 'like-new';
+          break;
+        case 'gut':
+          mapped = 'good';
+          break;
+        case 'akzeptabel':
+          mapped = 'acceptable';
+          break;
+        default:
+          mapped = condition;
+          break;
+      }
+      if (it.condition != mapped) return false;
+    }
+    if (catGroups.isNotEmpty) {
+      final g = _coarseByCatId[it.categoryId] ?? '';
+      if (!catGroups.contains(g)) return false;
+    }
     if (delivery.isNotEmpty) {
       bool matchesAny = false;
       for (final opt in delivery) {
@@ -544,80 +655,90 @@ bool _matches(Item it) {
       }
       if (!matchesAny) return false;
     }
-  final d = _distanceFromUserKm(it);
-  if (d != null && d > maxDistance) return false;
-  final ownerRating = _usersById[it.ownerId]?.avgRating ?? 0.0;
-  if (ownerRating < minRating) return false;
-  return true;
-}
+    final d = _distanceFromUserKm(it);
+    if (d != null && d > maxDistance) return false;
+    final ownerRating = _usersById[it.ownerId]?.avgRating ?? 0.0;
+    if (ownerRating < minRating) return false;
+    return true;
+  }
 
-List<Item> get _filteredItems {
-  final src = [..._items];
-  if (_filters == null) return _sorted(src);
-  final filtered = src.where(_matches).toList();
-  return _sorted(filtered);
-}
+  List<Item> get _filteredItems {
+    final src = [..._items];
+    if (_filters == null) return _sorted(src);
+    final filtered = src.where(_matches).toList();
+    return _sorted(filtered);
+  }
 
+  List<Item> _sorted(List<Item> list) {
+    final sort = _filters?['sort'] as String? ?? 'Preis';
+    switch (sort) {
+      case 'Preis':
+        final order = (_filters?['priceOrder'] as String?) ?? 'asc';
+        list.sort((a, b) => a.pricePerDay.compareTo(b.pricePerDay));
+        if (order == 'desc') {
+          list = list.reversed.toList();
+        }
+        break;
+      case 'Bewertung':
+        double ratingOf(String ownerId) =>
+            _usersById[ownerId]?.avgRating ?? 0.0;
+        list.sort((a, b) => ratingOf(b.ownerId).compareTo(ratingOf(a.ownerId)));
+        break;
+      case 'Neueste':
+        list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+      case 'Entfernung':
+      default:
+        double dist(Item i) => _distanceFromUserKm(i) ?? double.infinity;
+        list.sort((a, b) => dist(a).compareTo(dist(b)));
+        break;
+    }
+    return list;
+  }
 
-List<Item> _sorted(List<Item> list) {
-final sort = _filters?['sort'] as String? ?? 'Preis';
-switch (sort) {
-case 'Preis':
-final order = (_filters?['priceOrder'] as String?) ?? 'asc';
-list.sort((a, b) => a.pricePerDay.compareTo(b.pricePerDay));
-if (order == 'desc') {
-  list = list.reversed.toList();
-}
-break;
-case 'Bewertung':
-double ratingOf(String ownerId) => _usersById[ownerId]?.avgRating ?? 0.0;
-list.sort((a, b) => ratingOf(b.ownerId).compareTo(ratingOf(a.ownerId)));
-break;
-case 'Neueste':
-list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-break;
-case 'Entfernung':
-default:
-double dist(Item i) => _distanceFromUserKm(i) ?? double.infinity;
-list.sort((a, b) => dist(a).compareTo(dist(b)));
-break;
-}
-return list;
-}
+  double? _distanceFromUserKm(Item item) {
+    final cities = DataService.getCities();
+    final city = _currentUserCity ?? 'Berlin';
+    final origin = cities[city];
+    if (origin == null) return null;
+    return _haversine(origin.$1, origin.$2, item.lat, item.lng);
+  }
 
-double? _distanceFromUserKm(Item item) {
-final cities = DataService.getCities();
-final city = _currentUserCity ?? 'Berlin';
-final origin = cities[city];
-if (origin == null) return null;
-return _haversine(origin.$1, origin.$2, item.lat, item.lng);
-}
+  double _haversine(double lat1, double lon1, double lat2, double lon2) {
+    const R = 6371.0;
+    double dLat = _deg2rad(lat2 - lat1);
+    double dLon = _deg2rad(lon2 - lon1);
+    double a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_deg2rad(lat1)) *
+            cos(_deg2rad(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return R * c;
+  }
 
-double _haversine(double lat1, double lon1, double lat2, double lon2) {
-const R = 6371.0;
-double dLat = _deg2rad(lat2 - lat1);
-double dLon = _deg2rad(lon2 - lon1);
-double a =
-sin(dLat / 2) * sin(dLat / 2) + cos(_deg2rad(lat1)) * cos(_deg2rad(lat2)) * sin(dLon / 2) * sin(dLon / 2);
-double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-return R * c;
-}
+  double _deg2rad(double deg) => deg * (pi / 180.0);
 
-double _deg2rad(double deg) => deg * (pi / 180.0);
-
-@override
-Widget build(BuildContext context) {
-final itemsFiltered = _filteredItems;
-final now = DateTime.now();
-final latest = [...itemsFiltered]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-final recent = latest.where((e) => e.createdAt.isAfter(now.subtract(const Duration(days: 14)))).toList();
-final neueQuelle = (recent.isNotEmpty ? recent : latest);
+  @override
+  Widget build(BuildContext context) {
+    final itemsFiltered = _filteredItems;
+    final now = DateTime.now();
+    final latest = [...itemsFiltered]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final recent = latest
+        .where(
+            (e) => e.createdAt.isAfter(now.subtract(const Duration(days: 14))))
+        .toList();
+    final neueQuelle = (recent.isNotEmpty ? recent : latest);
 
     // Feed datasets (same cards/logic; only layout/navigation changes)
     final topBooked = [...itemsFiltered, ..._extraTopBooked];
-    final nearYou = [...itemsFiltered]
-      ..sort((a, b) => (_distanceFromUserKm(a) ?? double.infinity).compareTo(_distanceFromUserKm(b) ?? double.infinity));
-    final customersLike = itemsFiltered.where((it) => _savedIds.contains(it.id) || it.timesLent > 5).toList();
+    final nearYou = [...itemsFiltered]..sort((a, b) =>
+        (_distanceFromUserKm(a) ?? double.infinity)
+            .compareTo(_distanceFromUserKm(b) ?? double.infinity));
+    final customersLike = itemsFiltered
+        .where((it) => _savedIds.contains(it.id) || it.timesLent > 5)
+        .toList();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -631,10 +752,17 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
 
                 // Guests row: keep previous style
                 const guestsViewportFraction = 0.24; // ~24–25%
-                final guestsRowHeight = width * guestsViewportFraction; // 1:1 tile
+                final guestsRowHeight =
+                    width * guestsViewportFraction; // 1:1 tile
 
-                Widget feedPage({required String title, required List<Item> items}) {
+                Widget feedPage(
+                    {required String title, required List<Item> items}) {
                   final l10n = context.watch<LocalizationController>();
+                  final activeCategories = (_filters?['categories'] as List?)
+                          ?.whereType<String>()
+                          .toList() ??
+                      const <String>[];
+                  final showingCategoryResults = activeCategories.isNotEmpty;
                   return CustomScrollView(
                     // Each page scrolls vertically on its own.
                     slivers: [
@@ -645,7 +773,7 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                           padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                         ),
                       ),
-                      if (items.isNotEmpty)
+                      if (items.isNotEmpty && !showingCategoryResults)
                         SliverToBoxAdapter(
                           child: Padding(
                             padding: const EdgeInsets.only(bottom: 14),
@@ -654,7 +782,8 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                               const sidePad = 16.0;
                               const gap = 10.0;
                               final viewport = c.maxWidth;
-                              final cardW = (viewport - sidePad * 2 - gap * 2) / 3;
+                              final cardW =
+                                  (viewport - sidePad * 2 - gap * 2) / 3;
                               // Keep the featured (upper) cards compact.
                               // Image is 4:3 => height = width * 3/4.
                               // Tighten the horizontal featured cards so they end right under the price.
@@ -665,7 +794,8 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                               return SizedBox(
                                 height: cardH,
                                 child: ListView.separated(
-                                  padding: const EdgeInsets.fromLTRB(sidePad, 0, sidePad, 0),
+                                  padding: const EdgeInsets.fromLTRB(
+                                      sidePad, 0, sidePad, 0),
                                   scrollDirection: Axis.horizontal,
                                   physics: const BouncingScrollPhysics(),
                                   itemBuilder: (context, i) {
@@ -676,21 +806,36 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                                       width: cardW,
                                       child: LongPressFeedbackWrapper(
                                         child: InkWell(
-                                          onTap: () => ItemDetailsOverlay.showFullPage(context, item: it, fresh: true),
-                                          onLongPress: () => showListingOptionsDialog(context, item: it, contextType: ListingOptionsContext.explore, onWishlistChanged: _loadData, onVisibilityChanged: _loadData),
+                                          onTap: () =>
+                                              ItemDetailsOverlay.showFullPage(
+                                                  context,
+                                                  item: it,
+                                                  fresh: true),
+                                          onLongPress: () =>
+                                              showListingOptionsDialog(
+                                                  context,
+                                                  item: it,
+                                                  contextType:
+                                                      ListingOptionsContext
+                                                          .explore,
+                                                  onWishlistChanged: _loadData,
+                                                  onVisibilityChanged:
+                                                      _loadData),
                                           splashColor: Colors.transparent,
                                           highlightColor: Colors.transparent,
                                           child: ListingCarouselCard(
-                                          item: it,
-                                          isFavorite: isFav,
-                                          onFavoriteToggle: () => _toggleFavorite(it.id),
-                                          distanceKm: dist,
+                                            item: it,
+                                            isFavorite: isFav,
+                                            onFavoriteToggle: () =>
+                                                _toggleFavorite(it.id),
+                                            distanceKm: dist,
                                           ),
                                         ),
                                       ),
                                     );
                                   },
-                                  separatorBuilder: (_, __) => const SizedBox(width: gap),
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(width: gap),
                                   itemCount: featured.length,
                                 ),
                               );
@@ -703,7 +848,10 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                           child: Center(
                             child: Text(
                               l10n.t('Keine Anzeigen gefunden'),
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: Colors.white70),
                             ),
                           ),
                         )
@@ -711,8 +859,10 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                         SliverPadding(
                           padding: const EdgeInsets.fromLTRB(16, 0, 24, 32),
                           sliver: SliverGrid(
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: isDesktop ? 4 : (isTablet ? 3 : 2),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount:
+                                  isDesktop ? 4 : (isTablet ? 3 : 2),
                               mainAxisSpacing: 12,
                               crossAxisSpacing: 12,
                               // Make cards more compact vertically so the tile ends right below
@@ -723,7 +873,10 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                               // 4:3 image + trust row + price rows.
                               // Slightly taller on phones to avoid bottom overflows in tight grid tiles
                               // (e.g., with larger textScaleFactor).
-                              childAspectRatio: _exploreListingChildAspectRatio(context, isDesktop: isDesktop, isTablet: isTablet),
+                              childAspectRatio: _exploreListingChildAspectRatio(
+                                  context,
+                                  isDesktop: isDesktop,
+                                  isTablet: isTablet),
                             ),
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
@@ -732,7 +885,8 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                                 return _ExploreListingCard(
                                   item: item,
                                   isFavorite: isFav,
-                                  onFavoriteToggle: () => _toggleFavorite(item.id),
+                                  onFavoriteToggle: () =>
+                                      _toggleFavorite(item.id),
                                   distanceKm: _distanceFromUserKm(item),
                                 );
                               },
@@ -751,119 +905,163 @@ final neueQuelle = (recent.isNotEmpty ? recent : latest);
                       const SliverToBoxAdapter(child: SizedBox(height: 0)),
 
 // New Header with greeting and rotating logo
-SliverToBoxAdapter(
-child: Padding(
-padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-child: Builder(builder: (context) {
-final l10n = context.watch<LocalizationController>();
-final hasRealUserName = (_currentUserName ?? '').trim().isNotEmpty;
-final greeting = hasRealUserName
-    ? 'Hi ${_currentUserName!.trim().split(' ').first}! 👋'
-    : l10n.t('Hallo 👋');
-return Row(
-crossAxisAlignment: CrossAxisAlignment.start,
-children: [
-Expanded(
-child: InkWell(
-onTap: () {
-context.read<MainNavController>().setIndex(4);
-},
-borderRadius: BorderRadius.circular(16),
-child: Padding(
-padding: const EdgeInsets.symmetric(vertical: 4),
-child: Column(
-crossAxisAlignment: CrossAxisAlignment.start,
-children: [
-Text(
-greeting,
-style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
-),
-const SizedBox(height: 4),
-Row(children: [
-InkWell(
-onTap: _openLocationUpdate,
-borderRadius: BorderRadius.circular(12),
-child: const Padding(
-padding: EdgeInsets.all(4.0),
-child: Icon(Icons.location_on, size: 16, color: Colors.white70),
-),
-),
-const SizedBox(width: 4),
-Text(
-_currentUserCity ?? 'Nicht verfügbar',
-style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, fontSize: 14),
-),
-]),
-],
-),
-),
-),
-),
- GestureDetector(
-   onTap: null,
-   behavior: HitTestBehavior.opaque,
-   child: Transform.translate(offset: const Offset(0, 4), child: _HoverSpinAppLogo(size: 48)),
- ),
-],
-);
-}),
-),
-),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                          child: Builder(builder: (context) {
+                            final l10n =
+                                context.watch<LocalizationController>();
+                            final hasRealUserName =
+                                (_currentUserName ?? '').trim().isNotEmpty;
+                            final greeting = hasRealUserName
+                                ? 'Hi ${_currentUserName!.trim().split(' ').first}! 👋'
+                                : l10n.t('Hallo 👋');
+                            final primaryText = AppTheme.textPrimary(context);
+                            final secondaryText =
+                                AppTheme.textSecondary(context);
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () {
+                                      context
+                                          .read<MainNavController>()
+                                          .setIndex(4);
+                                    },
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 4),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            greeting,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .headlineSmall
+                                                ?.copyWith(
+                                                    color: primaryText,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 24),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(children: [
+                                            InkWell(
+                                              onTap: _openLocationUpdate,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.all(4.0),
+                                                child: Icon(Icons.location_on,
+                                                    size: 16,
+                                                    color: secondaryText),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              _currentUserCity ??
+                                                  'Nicht verfügbar',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.copyWith(
+                                                      color: secondaryText,
+                                                      fontSize: 14),
+                                            ),
+                                          ]),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: null,
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Transform.translate(
+                                      offset: const Offset(0, 4),
+                                      child: _HoverSpinAppLogo(size: 48)),
+                                ),
+                              ],
+                            );
+                          }),
+                        ),
+                      ),
 
-const SliverToBoxAdapter(child: SizedBox(height: 16)),
-SliverToBoxAdapter(
-  child: SearchHeader(
-    onFiltersPressed: () async {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => const OwnerRequestsScreen(initialTabIndex: 2),
-        ),
-      );
-    },
-    onSearchTap: _openSearch,
-    onListingCreated: _handleListingCreated,
-  ),
-),
+                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                      SliverToBoxAdapter(
+                        child: SearchHeader(
+                          onFiltersPressed: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const OwnerRequestsScreen(
+                                    initialTabIndex: 2),
+                              ),
+                            );
+                          },
+                          onSearchTap: _openSearch,
+                          onListingCreated: _handleListingCreated,
+                        ),
+                      ),
 
-
-
-SliverPersistentHeader(
-pinned: true,
-delegate: PinnedCategoriesHeader(
-builder: (context) {
-final l10n = context.watch<LocalizationController>();
-final localized = _homeCategories.map((e) => CategoryIconDataModel(id: e.id, icon: e.icon, label: l10n.t(e.label))).toList();
-return Container(
-color: Colors.transparent,
-child: CategoryIconRow(
-categories: localized,
-onSelected: (c) async {
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: PinnedCategoriesHeader(
+                          builder: (context) {
+                            final l10n =
+                                context.watch<LocalizationController>();
+                            final localized = _homeCategories
+                                .map((e) => CategoryIconDataModel(
+                                    id: e.id,
+                                    icon: e.icon,
+                                    label: l10n.t(e.label)))
+                                .toList();
+                            return Container(
+                              color: Colors.transparent,
+                              child: CategoryIconRow(
+                                categories: localized,
+                                onSelected: (c) async {
 // Apply immediately without confirmation popup
-if (!mounted) return;
-setState(() => _filters = { ...?_filters, 'categories': [c.id] });
-      AppPopup.toast(context, icon: Icons.filter_alt_outlined, title: '${l10n.t('Gefiltert nach:')} ${c.label}', duration: const Duration(seconds: 1));
-},
-onAllCategoriesTap: () {
-setState(() {
-if (_filters == null) {
-_filters = {};
-}
-final f = Map<String, dynamic>.from(_filters!);
-f.remove('categories');
-_filters = f;
-});
-      final l10n = context.read<LocalizationController>();
-      AppPopup.toast(context, icon: Icons.category_outlined, title: l10n.t('Alle Kategorien'), duration: const Duration(seconds: 1));
-},
-),
-);
-},
-),
-),
-const SliverToBoxAdapter(child: SizedBox(height: 0)),
+                                  if (!mounted) return;
+                                  setState(() => _filters = {
+                                        ...?_filters,
+                                        'categories': [c.id]
+                                      });
+                                  AppPopup.toast(context,
+                                      icon: Icons.filter_alt_outlined,
+                                      title:
+                                          '${l10n.t('Gefiltert nach:')} ${c.label}',
+                                      duration: const Duration(seconds: 1));
+                                },
+                                onAllCategoriesTap: () {
+                                  setState(() {
+                                    if (_filters == null) {
+                                      _filters = {};
+                                    }
+                                    final f =
+                                        Map<String, dynamic>.from(_filters!);
+                                    f.remove('categories');
+                                    _filters = f;
+                                  });
+                                  final l10n =
+                                      context.read<LocalizationController>();
+                                  AppPopup.toast(context,
+                                      icon: Icons.category_outlined,
+                                      title: l10n.t('Alle Kategorien'),
+                                      duration: const Duration(seconds: 1));
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 0)),
 
-                       // Keep the feed visually tight to the pinned categories row.
-                       const SliverToBoxAdapter(child: SizedBox(height: 0)),
+                      // Keep the feed visually tight to the pinned categories row.
+                      const SliverToBoxAdapter(child: SizedBox(height: 0)),
                     ];
                   },
                   body: ScrollEdgeIndicators.page(
@@ -878,10 +1076,26 @@ const SliverToBoxAdapter(child: SizedBox(height: 0)),
                       controller: _feedPager,
                       physics: const BouncingScrollPhysics(),
                       children: [
-                        feedPage(title: context.watch<LocalizationController>().t('Am meisten gebucht'), items: topBooked),
-                        feedPage(title: context.watch<LocalizationController>().t('Neue Angebote'), items: neueQuelle),
-                        feedPage(title: context.watch<LocalizationController>().t('In der Nähe von dir'), items: nearYou),
-                        feedPage(title: context.watch<LocalizationController>().t('Kunden gefällt auch'), items: customersLike),
+                        feedPage(
+                            title: context
+                                .watch<LocalizationController>()
+                                .t('Am meisten gebucht'),
+                            items: topBooked),
+                        feedPage(
+                            title: context
+                                .watch<LocalizationController>()
+                                .t('Neue Angebote'),
+                            items: neueQuelle),
+                        feedPage(
+                            title: context
+                                .watch<LocalizationController>()
+                                .t('In der Nähe von dir'),
+                            items: nearYou),
+                        feedPage(
+                            title: context
+                                .watch<LocalizationController>()
+                                .t('Kunden gefällt auch'),
+                            items: customersLike),
                       ],
                     ),
                   ),
@@ -893,269 +1107,285 @@ const SliverToBoxAdapter(child: SizedBox(height: 0)),
 }
 
 class _SectionHeader extends StatelessWidget {
-final String title;
-final EdgeInsets? padding;
-const _SectionHeader({required this.title, this.padding});
-@override
-Widget build(BuildContext context) {
- final effectivePadding = padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8);
- final titleStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white);
+  final String title;
+  final EdgeInsets? padding;
+  const _SectionHeader({required this.title, this.padding});
+  @override
+  Widget build(BuildContext context) {
+    final effectivePadding =
+        padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8);
+    final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+      fontWeight: FontWeight.w600,
+      fontSize: 18,
+      color: AppTheme.textPrimary(context),
+      letterSpacing: -0.2,
+    );
 
- return Padding(
- padding: effectivePadding,
- child: SizedBox(
-  height: 28,
- child: Stack(
- alignment: Alignment.center,
- children: [
- Align(
- alignment: Alignment.center,
- child: Text(
- title,
- maxLines: 1,
- overflow: TextOverflow.ellipsis,
- textAlign: TextAlign.center,
- style: titleStyle,
- ),
- ),
- ],
- ),
- ),
- );
-}
+    return Padding(
+      padding: effectivePadding,
+      child: SizedBox(
+        height: 28,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Align(
+              alignment: Alignment.center,
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: titleStyle,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _HoverResponsiveTopGrid extends StatefulWidget {
-final List<Item> items;
-final Set<String> savedIds;
-final ValueChanged<String> onFavoriteToggle;
-const _HoverResponsiveTopGrid({required this.items, required this.savedIds, required this.onFavoriteToggle});
-@override
-State<_HoverResponsiveTopGrid> createState() => _HoverResponsiveTopGridState();
+  final List<Item> items;
+  final Set<String> savedIds;
+  final ValueChanged<String> onFavoriteToggle;
+  const _HoverResponsiveTopGrid(
+      {required this.items,
+      required this.savedIds,
+      required this.onFavoriteToggle});
+  @override
+  State<_HoverResponsiveTopGrid> createState() =>
+      _HoverResponsiveTopGridState();
 }
 
 class _HoverResponsiveTopGridState extends State<_HoverResponsiveTopGrid> {
-static const double _gap = 8.0;
-OverlayEntry? _hoverEntry;
-int? _hoveredIndex;
+  static const double _gap = 8.0;
+  OverlayEntry? _hoverEntry;
+  int? _hoveredIndex;
 
-@override
-void dispose() {
-_removeHoverOverlay();
-super.dispose();
-}
+  @override
+  void dispose() {
+    _removeHoverOverlay();
+    super.dispose();
+  }
 
-void _showHoverOverlay(int index, Rect rect) {
-_removeHoverOverlay();
-_hoveredIndex = index;
-final item = widget.items.length > index ? widget.items[index] : null;
-if (item == null) return;
-final isFav = widget.savedIds.contains(item.id);
-final overlay = Overlay.of(context);
-if (overlay == null) return;
+  void _showHoverOverlay(int index, Rect rect) {
+    _removeHoverOverlay();
+    _hoveredIndex = index;
+    final item = widget.items.length > index ? widget.items[index] : null;
+    if (item == null) return;
+    final isFav = widget.savedIds.contains(item.id);
+    final overlay = Overlay.of(context);
+    if (overlay == null) return;
 
-const scale = 1.33;
-final media = MediaQuery.of(context);
-final screenSize = media.size;
-final scaledW = rect.width * scale;
-final scaledH = rect.height * scale;
-final center = rect.center;
-double left = center.dx - scaledW / 2;
-double top = center.dy - scaledH / 2;
-const margin = 8.0;
-left = left.clamp(margin, screenSize.width - scaledW - margin);
-top = top.clamp(margin, screenSize.height - scaledH - margin);
+    const scale = 1.33;
+    final media = MediaQuery.of(context);
+    final screenSize = media.size;
+    final scaledW = rect.width * scale;
+    final scaledH = rect.height * scale;
+    final center = rect.center;
+    double left = center.dx - scaledW / 2;
+    double top = center.dy - scaledH / 2;
+    const margin = 8.0;
+    left = left.clamp(margin, screenSize.width - scaledW - margin);
+    top = top.clamp(margin, screenSize.height - scaledH - margin);
 
-_hoverEntry = OverlayEntry(builder: (_) {
-return Stack(children: [
-Positioned.fill(
-child: GestureDetector(
-behavior: HitTestBehavior.opaque,
-onTap: _removeHoverOverlay,
-child: BackdropFilter(
-filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-child: Container(color: Colors.black.withValues(alpha: 0.06)),
-),
-),
-),
-Positioned(
-left: left,
-top: top,
-width: scaledW,
-height: scaledH,
-child: MouseRegion(
-onExit: (_) => _removeHoverOverlay(),
-child: Material(
-elevation: 16,
-borderRadius: BorderRadius.circular(18),
-clipBehavior: Clip.antiAlias,
-child: _SquareItemCard(
-item: item,
-isFavorite: isFav,
-onFavoriteToggle: () {
-widget.onFavoriteToggle(item.id);
-WidgetsBinding.instance.addPostFrameCallback((_) {
-_rebuildHoverOverlay(index, Rect.fromLTWH(rect.left, rect.top, rect.width, rect.height));
-});
-},
-),
-),
-),
-),
-]);
-});
-overlay.insert(_hoverEntry!);
-}
+    _hoverEntry = OverlayEntry(builder: (_) {
+      return Stack(children: [
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _removeHoverOverlay,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: Container(color: Colors.black.withValues(alpha: 0.06)),
+            ),
+          ),
+        ),
+        Positioned(
+          left: left,
+          top: top,
+          width: scaledW,
+          height: scaledH,
+          child: MouseRegion(
+            onExit: (_) => _removeHoverOverlay(),
+            child: Material(
+              elevation: 16,
+              borderRadius: BorderRadius.circular(18),
+              clipBehavior: Clip.antiAlias,
+              child: _SquareItemCard(
+                item: item,
+                isFavorite: isFav,
+                onFavoriteToggle: () {
+                  widget.onFavoriteToggle(item.id);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _rebuildHoverOverlay(
+                        index,
+                        Rect.fromLTWH(
+                            rect.left, rect.top, rect.width, rect.height));
+                  });
+                },
+              ),
+            ),
+          ),
+        ),
+      ]);
+    });
+    overlay.insert(_hoverEntry!);
+  }
 
-void _rebuildHoverOverlay(int index, Rect rect) {
-if (_hoverEntry == null) return;
-_showHoverOverlay(index, rect);
-}
+  void _rebuildHoverOverlay(int index, Rect rect) {
+    if (_hoverEntry == null) return;
+    _showHoverOverlay(index, rect);
+  }
 
-void _removeHoverOverlay() {
-_hoverEntry?.remove();
-_hoverEntry = null;
-_hoveredIndex = null;
-}
+  void _removeHoverOverlay() {
+    _hoverEntry?.remove();
+    _hoverEntry = null;
+    _hoveredIndex = null;
+  }
 
-@override
-Widget build(BuildContext context) {
-final items = widget.items.length > 9 ? widget.items.take(9).toList() : widget.items;
-if (items.isEmpty) return const SizedBox();
+  @override
+  Widget build(BuildContext context) {
+    final items =
+        widget.items.length > 9 ? widget.items.take(9).toList() : widget.items;
+    if (items.isEmpty) return const SizedBox();
 
-return LayoutBuilder(builder: (context, constraints) {
-final maxWidth = constraints.maxWidth;
-final rows = (items.length / 3).ceil();
-return Column(children: [
-for (int r = 0; r < rows; r++) ...[
-_AnimatedHoverRow(
-rowIndex: r,
-maxWidth: maxWidth,
-items: items,
-start: r * 3,
-end: (r * 3 + 3).clamp(0, items.length),
-onHoverEnter: (i, rect) => _showHoverOverlay(i, rect),
-onHoverExit: (i) {
-if (_hoveredIndex == i) _removeHoverOverlay();
-},
-savedIds: widget.savedIds,
-onFavoriteToggle: widget.onFavoriteToggle,
-),
-if (r != rows - 1) const SizedBox(height: _gap),
-]
-]);
-});
-}
+    return LayoutBuilder(builder: (context, constraints) {
+      final maxWidth = constraints.maxWidth;
+      final rows = (items.length / 3).ceil();
+      return Column(children: [
+        for (int r = 0; r < rows; r++) ...[
+          _AnimatedHoverRow(
+            rowIndex: r,
+            maxWidth: maxWidth,
+            items: items,
+            start: r * 3,
+            end: (r * 3 + 3).clamp(0, items.length),
+            onHoverEnter: (i, rect) => _showHoverOverlay(i, rect),
+            onHoverExit: (i) {
+              if (_hoveredIndex == i) _removeHoverOverlay();
+            },
+            savedIds: widget.savedIds,
+            onFavoriteToggle: widget.onFavoriteToggle,
+          ),
+          if (r != rows - 1) const SizedBox(height: _gap),
+        ]
+      ]);
+    });
+  }
 }
 
 class _AnimatedHoverRow extends StatelessWidget {
-final int rowIndex;
-final double maxWidth;
-final List<Item> items;
-final int start;
-final int end; // exclusive
-final void Function(int, Rect) onHoverEnter;
-final ValueChanged<int> onHoverExit;
-final Set<String> savedIds;
-final ValueChanged<String> onFavoriteToggle;
+  final int rowIndex;
+  final double maxWidth;
+  final List<Item> items;
+  final int start;
+  final int end; // exclusive
+  final void Function(int, Rect) onHoverEnter;
+  final ValueChanged<int> onHoverExit;
+  final Set<String> savedIds;
+  final ValueChanged<String> onFavoriteToggle;
 
-static const double gap = 8.0;
+  static const double gap = 8.0;
 
-const _AnimatedHoverRow({
-required this.rowIndex,
-required this.maxWidth,
-required this.items,
-required this.start,
-required this.end,
-required this.onHoverEnter,
-required this.onHoverExit,
-required this.savedIds,
-required this.onFavoriteToggle,
-});
+  const _AnimatedHoverRow({
+    required this.rowIndex,
+    required this.maxWidth,
+    required this.items,
+    required this.start,
+    required this.end,
+    required this.onHoverEnter,
+    required this.onHoverExit,
+    required this.savedIds,
+    required this.onFavoriteToggle,
+  });
 
-@override
-Widget build(BuildContext context) {
-final count = end - start;
-final totalGap = (count - 1) * gap;
-final tileWidth = count > 0 ? (maxWidth - totalGap) / count : 0.0;
+  @override
+  Widget build(BuildContext context) {
+    final count = end - start;
+    final totalGap = (count - 1) * gap;
+    final tileWidth = count > 0 ? (maxWidth - totalGap) / count : 0.0;
 
-return SizedBox(
-width: maxWidth,
-child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-for (int j = 0; j < count; j++) ...[
-_HoverTile(
-globalIndex: start + j,
-width: tileWidth,
-item: items[start + j],
-isFavorite: savedIds.contains(items[start + j].id),
-onFavoriteToggle: () => onFavoriteToggle(items[start + j].id),
-onHoverEnter: onHoverEnter,
-onHoverExit: onHoverExit,
-),
-if (j != count - 1) const SizedBox(width: gap),
-]
-]),
-);
-}
+    return SizedBox(
+      width: maxWidth,
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        for (int j = 0; j < count; j++) ...[
+          _HoverTile(
+            globalIndex: start + j,
+            width: tileWidth,
+            item: items[start + j],
+            isFavorite: savedIds.contains(items[start + j].id),
+            onFavoriteToggle: () => onFavoriteToggle(items[start + j].id),
+            onHoverEnter: onHoverEnter,
+            onHoverExit: onHoverExit,
+          ),
+          if (j != count - 1) const SizedBox(width: gap),
+        ]
+      ]),
+    );
+  }
 }
 
 class _HoverTile extends StatefulWidget {
-final int globalIndex;
-final double width;
-final Item item;
-final bool isFavorite;
-final VoidCallback onFavoriteToggle;
-final void Function(int, Rect) onHoverEnter;
-final ValueChanged<int> onHoverExit;
+  final int globalIndex;
+  final double width;
+  final Item item;
+  final bool isFavorite;
+  final VoidCallback onFavoriteToggle;
+  final void Function(int, Rect) onHoverEnter;
+  final ValueChanged<int> onHoverExit;
 
-const _HoverTile({
-required this.globalIndex,
-required this.width,
-required this.item,
-required this.isFavorite,
-required this.onFavoriteToggle,
-required this.onHoverEnter,
-required this.onHoverExit,
-});
+  const _HoverTile({
+    required this.globalIndex,
+    required this.width,
+    required this.item,
+    required this.isFavorite,
+    required this.onFavoriteToggle,
+    required this.onHoverEnter,
+    required this.onHoverExit,
+  });
 
-@override
-State<_HoverTile> createState() => _HoverTileState();
+  @override
+  State<_HoverTile> createState() => _HoverTileState();
 }
 
 class _HoverTileState extends State<_HoverTile> {
-final GlobalKey _tileKey = GlobalKey();
-Timer? _pressTimer;
-bool _pointerDown = false;
+  final GlobalKey _tileKey = GlobalKey();
+  Timer? _pressTimer;
+  bool _pointerDown = false;
 
-void _startPressTimer() {
-_pressTimer?.cancel();
-_pressTimer = Timer(const Duration(seconds: 1), () {
-if (!_pointerDown) return;
-final ctx = _tileKey.currentContext;
-if (ctx != null) {
-final box = ctx.findRenderObject() as RenderBox;
-final pos = box.localToGlobal(Offset.zero);
-final size = box.size;
-widget.onHoverEnter(widget.globalIndex, Rect.fromLTWH(pos.dx, pos.dy, size.width, size.height));
-} else {
-widget.onHoverEnter(widget.globalIndex, Rect.fromLTWH(0, 0, widget.width, widget.width));
-}
-});
-}
+  void _startPressTimer() {
+    _pressTimer?.cancel();
+    _pressTimer = Timer(const Duration(seconds: 1), () {
+      if (!_pointerDown) return;
+      final ctx = _tileKey.currentContext;
+      if (ctx != null) {
+        final box = ctx.findRenderObject() as RenderBox;
+        final pos = box.localToGlobal(Offset.zero);
+        final size = box.size;
+        widget.onHoverEnter(widget.globalIndex,
+            Rect.fromLTWH(pos.dx, pos.dy, size.width, size.height));
+      } else {
+        widget.onHoverEnter(widget.globalIndex,
+            Rect.fromLTWH(0, 0, widget.width, widget.width));
+      }
+    });
+  }
 
-void _cancelPressTimer() {
-_pressTimer?.cancel();
-_pressTimer = null;
-}
+  void _cancelPressTimer() {
+    _pressTimer?.cancel();
+    _pressTimer = null;
+  }
 
-@override
-void dispose() {
-_cancelPressTimer();
-super.dispose();
-}
+  @override
+  void dispose() {
+    _cancelPressTimer();
+    super.dispose();
+  }
 
-@override
-Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.basic,
       child: GestureDetector(
@@ -1172,322 +1402,463 @@ Widget build(BuildContext context) {
           _cancelPressTimer();
         },
         child: SizedBox(
-key: _tileKey,
-width: widget.width,
-height: widget.width * 0.86,
-child: _SquareItemCard(item: widget.item, isFavorite: widget.isFavorite, onFavoriteToggle: widget.onFavoriteToggle),
-),
-),
-);
-}
+          key: _tileKey,
+          width: widget.width,
+          height: widget.width * 0.86,
+          child: _SquareItemCard(
+              item: widget.item,
+              isFavorite: widget.isFavorite,
+              onFavoriteToggle: widget.onFavoriteToggle),
+        ),
+      ),
+    );
+  }
 }
 
 class _OverlayPresenter {
-static void showEnlarged(BuildContext context, Item item, Rect anchorRect, {bool isFavorite = false, VoidCallback? onFavoriteToggle}) {
-final overlay = Overlay.of(context);
-if (overlay == null) return;
-const scale = 1.33;
-final media = MediaQuery.of(context);
-final screenSize = media.size;
-final scaledW = anchorRect.width * scale;
-final scaledH = anchorRect.height * scale;
-final center = anchorRect.center;
-double left = center.dx - scaledW / 2;
-double top = center.dy - scaledH / 2;
-const margin = 8.0;
-left = left.clamp(margin, screenSize.width - scaledW - margin);
-top = top.clamp(margin, screenSize.height - scaledH - margin);
+  static void showEnlarged(BuildContext context, Item item, Rect anchorRect,
+      {bool isFavorite = false, VoidCallback? onFavoriteToggle}) {
+    final overlay = Overlay.of(context);
+    if (overlay == null) return;
+    const scale = 1.33;
+    final media = MediaQuery.of(context);
+    final screenSize = media.size;
+    final scaledW = anchorRect.width * scale;
+    final scaledH = anchorRect.height * scale;
+    final center = anchorRect.center;
+    double left = center.dx - scaledW / 2;
+    double top = center.dy - scaledH / 2;
+    const margin = 8.0;
+    left = left.clamp(margin, screenSize.width - scaledW - margin);
+    top = top.clamp(margin, screenSize.height - scaledH - margin);
 
-late OverlayEntry entry;
-entry = OverlayEntry(builder: (_) {
-return Stack(children: [
-Positioned.fill(
-child: GestureDetector(
-behavior: HitTestBehavior.opaque,
-onTap: () => entry.remove(),
-child: BackdropFilter(
-filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-child: Container(color: Colors.black.withValues(alpha: 0.06)),
-),
-),
-),
-Positioned(
-left: left,
-top: top,
-width: scaledW,
-height: scaledH,
-child: Material(
-elevation: 16,
-borderRadius: BorderRadius.circular(18),
-clipBehavior: Clip.antiAlias,
-child: _SquareItemCard(
-item: item,
-isFavorite: isFavorite,
-onFavoriteToggle: () {
-if (onFavoriteToggle != null) onFavoriteToggle();
-},
-),
-),
-),
-]);
-});
-overlay.insert(entry);
-}
+    late OverlayEntry entry;
+    entry = OverlayEntry(builder: (_) {
+      return Stack(children: [
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => entry.remove(),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: Container(color: Colors.black.withValues(alpha: 0.06)),
+            ),
+          ),
+        ),
+        Positioned(
+          left: left,
+          top: top,
+          width: scaledW,
+          height: scaledH,
+          child: Material(
+            elevation: 16,
+            borderRadius: BorderRadius.circular(18),
+            clipBehavior: Clip.antiAlias,
+            child: _SquareItemCard(
+              item: item,
+              isFavorite: isFavorite,
+              onFavoriteToggle: () {
+                if (onFavoriteToggle != null) onFavoriteToggle();
+              },
+            ),
+          ),
+        ),
+      ]);
+    });
+    overlay.insert(entry);
+  }
 }
 
- class _SquareItemCard extends StatefulWidget {
- final Item item; final bool isFavorite; final VoidCallback onFavoriteToggle; final bool showFavorite; final bool showInfo;
- const _SquareItemCard({required this.item, required this.isFavorite, required this.onFavoriteToggle, this.showFavorite = true, this.showInfo = true});
-@override
-State<_SquareItemCard> createState() => _SquareItemCardState();
+class _SquareItemCard extends StatefulWidget {
+  final Item item;
+  final bool isFavorite;
+  final VoidCallback onFavoriteToggle;
+  final bool showFavorite;
+  final bool showInfo;
+  const _SquareItemCard(
+      {required this.item,
+      required this.isFavorite,
+      required this.onFavoriteToggle,
+      this.showFavorite = true,
+      this.showInfo = true});
+  @override
+  State<_SquareItemCard> createState() => _SquareItemCardState();
 }
 
 class _SquareItemCardState extends State<_SquareItemCard> {
-final GlobalKey _key = GlobalKey();
-Timer? _pressTimer; bool _pointerDown = false;
-bool get _isVerified => widget.item.verificationStatus == 'approved' || widget.item.verificationStatus == 'verified';
+  final GlobalKey _key = GlobalKey();
+  Timer? _pressTimer;
+  bool _pointerDown = false;
+  bool get _isVerified =>
+      widget.item.verificationStatus == 'approved' ||
+      widget.item.verificationStatus == 'verified';
 
-void _startPressTimer() {
-_pressTimer?.cancel();
-_pressTimer = Timer(const Duration(seconds: 1), () {
-if (!_pointerDown) return;
-final ctx = _key.currentContext;
-if (ctx != null) {
-final box = ctx.findRenderObject() as RenderBox;
-final pos = box.localToGlobal(Offset.zero);
-final size = box.size;
-_OverlayPresenter.showEnlarged(context, widget.item, Rect.fromLTWH(pos.dx, pos.dy, size.width, size.height), isFavorite: widget.isFavorite, onFavoriteToggle: widget.onFavoriteToggle);
-}
-});
-}
+  void _startPressTimer() {
+    _pressTimer?.cancel();
+    _pressTimer = Timer(const Duration(seconds: 1), () {
+      if (!_pointerDown) return;
+      final ctx = _key.currentContext;
+      if (ctx != null) {
+        final box = ctx.findRenderObject() as RenderBox;
+        final pos = box.localToGlobal(Offset.zero);
+        final size = box.size;
+        _OverlayPresenter.showEnlarged(context, widget.item,
+            Rect.fromLTWH(pos.dx, pos.dy, size.width, size.height),
+            isFavorite: widget.isFavorite,
+            onFavoriteToggle: widget.onFavoriteToggle);
+      }
+    });
+  }
 
-void _cancelTimer() { _pressTimer?.cancel(); _pressTimer = null; }
+  void _cancelTimer() {
+    _pressTimer?.cancel();
+    _pressTimer = null;
+  }
 
-@override
-void dispose() { _cancelTimer(); super.dispose(); }
+  @override
+  void dispose() {
+    _cancelTimer();
+    super.dispose();
+  }
 
-@override
-Widget build(BuildContext context) {
-  final derivedRating = _deriveStableListingRating(widget.item);
-  return MouseRegion(
-    cursor: SystemMouseCursors.basic,
-    child: LongPressFeedbackWrapper(
-      child: GestureDetector(
-key: _key,
-                onTap: () => ItemDetailsOverlay.showFullPage(context, item: widget.item, fresh: true),
-                onLongPress: () => showListingOptionsDialog(context, item: widget.item, contextType: ListingOptionsContext.explore, onWishlistChanged: widget.onFavoriteToggle, onVisibilityChanged: () => Navigator.of(context).maybePop()),
-child: ClipRRect(
-borderRadius: BorderRadius.circular(18),
-child: Stack(children: [
-Positioned.fill(
-child: LayoutBuilder(builder: (context, c) {
-final dpr = MediaQuery.of(context).devicePixelRatio;
-final cache = (c.maxWidth * dpr).round();
-          return AppImage(
-            url: widget.item.photos.isNotEmpty ? widget.item.photos.first : 'https://picsum.photos/seed/fallback_1/800/800',
-            fit: BoxFit.cover,
-            // cacheWidth ignored by AppImage; kept simple
-          );
-}),
-),
-Positioned.fill(
-child: DecoratedBox(
-decoration: BoxDecoration(
-border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-borderRadius: BorderRadius.circular(18),
-),
-),
-),
- if (widget.showInfo)
- Positioned(
- left: 0, right: 0, bottom: 0,
- child: Container(
- padding: const EdgeInsets.all(8),
- decoration: BoxDecoration(
- gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [
- Colors.black.withValues(alpha: 0.0), Colors.black.withValues(alpha: 0.55),
- ]),
- ),
- child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
- Text(widget.item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: Colors.white)),
- const SizedBox(height: 2),
- Row(children: [
- Expanded(child: Builder(builder: (context) {
- final unit = widget.item.priceUnit;
- final perDay = widget.item.pricePerDay;
- final price = unit == 'week' ? perDay * 7 : perDay;
- final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
- return Text('${price.toStringAsFixed(0)} $suffix', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white));
- })),
- ]),
- ]),
- ),
- ),
+  @override
+  Widget build(BuildContext context) {
+    final derivedRating = _deriveStableListingRating(widget.item);
+    return MouseRegion(
+      cursor: SystemMouseCursors.basic,
+      child: LongPressFeedbackWrapper(
+        child: GestureDetector(
+          key: _key,
+          onTap: () => ItemDetailsOverlay.showFullPage(context,
+              item: widget.item, fresh: true),
+          onLongPress: () => showListingOptionsDialog(context,
+              item: widget.item,
+              contextType: ListingOptionsContext.explore,
+              onWishlistChanged: widget.onFavoriteToggle,
+              onVisibilityChanged: () => Navigator.of(context).maybePop()),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Stack(children: [
+              Positioned.fill(
+                child: LayoutBuilder(builder: (context, c) {
+                  final dpr = MediaQuery.of(context).devicePixelRatio;
+                  final cache = (c.maxWidth * dpr).round();
+                  return AppImage(
+                    url: widget.item.photos.isNotEmpty
+                        ? widget.item.photos.first
+                        : 'https://picsum.photos/seed/fallback_1/800/800',
+                    fit: BoxFit.cover,
+                    // cacheWidth ignored by AppImage; kept simple
+                  );
+                }),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+              ),
+              if (widget.showInfo)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.0),
+                            Colors.black.withValues(alpha: 0.55),
+                          ]),
+                    ),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(widget.item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white)),
+                          const SizedBox(height: 2),
+                          Row(children: [
+                            Expanded(child: Builder(builder: (context) {
+                              final unit = widget.item.priceUnit;
+                              final perDay = widget.item.pricePerDay;
+                              final price =
+                                  unit == 'week' ? perDay * 7 : perDay;
+                              final suffix =
+                                  unit == 'week' ? '€/Woche' : '€/Tag';
+                              return Text('${price.toStringAsFixed(0)} $suffix',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(color: Colors.white));
+                            })),
+                          ]),
+                        ]),
+                  ),
+                ),
 
- // Rating on image (bottom-right)
- Positioned(right: 8, bottom: 8, child: RatingBadge(rating: derivedRating)),
-if (widget.showFavorite)
-Positioned(
-top: 8,
-right: 8,
-child: InkWell(
-onTap: widget.onFavoriteToggle,
-borderRadius: BorderRadius.circular(16),
-mouseCursor: SystemMouseCursors.basic,
-child: Container(
-padding: const EdgeInsets.all(6),
-decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
- child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: 14, color: widget.isFavorite ? Colors.pinkAccent : Colors.black54),
-),
-),
-),
-Positioned(
-top: 8,
-left: 8,
- child: Icon(Icons.verified, size: 16, color: _isVerified ? BrandColors.success : Colors.grey),
-),
-]),
-),
-),
-),
-);
-}
+              // Rating on image (bottom-right)
+              Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: RatingBadge(rating: derivedRating)),
+              if (widget.showFavorite)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: InkWell(
+                    onTap: widget.onFavoriteToggle,
+                    borderRadius: BorderRadius.circular(16),
+                    mouseCursor: SystemMouseCursors.basic,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          shape: BoxShape.circle),
+                      child: Icon(
+                          widget.isFavorite
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          size: 14,
+                          color: widget.isFavorite
+                              ? Colors.pinkAccent
+                              : Colors.black54),
+                    ),
+                  ),
+                ),
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Icon(Icons.verified,
+                    size: 16,
+                    color: _isVerified ? BrandColors.success : Colors.grey),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _SmallScrollCard extends StatefulWidget {
-final Item item; final bool isFavorite; final VoidCallback onFavoriteToggle;
-const _SmallScrollCard({required this.item, required this.isFavorite, required this.onFavoriteToggle});
-@override
-State<_SmallScrollCard> createState() => _SmallScrollCardState();
+  final Item item;
+  final bool isFavorite;
+  final VoidCallback onFavoriteToggle;
+  const _SmallScrollCard(
+      {required this.item,
+      required this.isFavorite,
+      required this.onFavoriteToggle});
+  @override
+  State<_SmallScrollCard> createState() => _SmallScrollCardState();
 }
 
 class _SmallScrollCardState extends State<_SmallScrollCard> {
-final GlobalKey _key = GlobalKey();
-Timer? _pressTimer; bool _pointerDown = false;
-bool get _isVerified => widget.item.verificationStatus == 'approved' || widget.item.verificationStatus == 'verified';
+  final GlobalKey _key = GlobalKey();
+  Timer? _pressTimer;
+  bool _pointerDown = false;
+  bool get _isVerified =>
+      widget.item.verificationStatus == 'approved' ||
+      widget.item.verificationStatus == 'verified';
 
-double _iconSizeFor(double width) => (width * 0.10).clamp(14.0, 20.0);
+  double _iconSizeFor(double width) => (width * 0.10).clamp(14.0, 20.0);
 
-void _startPressTimer() {
-_pressTimer?.cancel();
-_pressTimer = Timer(const Duration(seconds: 1), () {
-if (!_pointerDown) return;
-final ctx = _key.currentContext;
-if (ctx != null) {
-final box = ctx.findRenderObject() as RenderBox;
-final pos = box.localToGlobal(Offset.zero);
-final size = box.size;
-_OverlayPresenter.showEnlarged(context, widget.item, Rect.fromLTWH(pos.dx, pos.dy, size.width, size.height));
-}
-});
-}
+  void _startPressTimer() {
+    _pressTimer?.cancel();
+    _pressTimer = Timer(const Duration(seconds: 1), () {
+      if (!_pointerDown) return;
+      final ctx = _key.currentContext;
+      if (ctx != null) {
+        final box = ctx.findRenderObject() as RenderBox;
+        final pos = box.localToGlobal(Offset.zero);
+        final size = box.size;
+        _OverlayPresenter.showEnlarged(context, widget.item,
+            Rect.fromLTWH(pos.dx, pos.dy, size.width, size.height));
+      }
+    });
+  }
 
-void _cancelTimer() { _pressTimer?.cancel(); _pressTimer = null; }
+  void _cancelTimer() {
+    _pressTimer?.cancel();
+    _pressTimer = null;
+  }
 
-@override
-void dispose() { _cancelTimer(); super.dispose(); }
+  @override
+  void dispose() {
+    _cancelTimer();
+    super.dispose();
+  }
 
-@override
-Widget build(BuildContext context) {
-  final derivedRating = _deriveStableListingRating(widget.item);
-  return MouseRegion(
-    cursor: SystemMouseCursors.basic,
-    child: LongPressFeedbackWrapper(
-      child: GestureDetector(
-key: _key,
-            onTap: () => ItemDetailsOverlay.showFullPage(context, item: widget.item, fresh: true),
-            onLongPress: () => showListingOptionsDialog(context, item: widget.item, contextType: ListingOptionsContext.explore, onWishlistChanged: widget.onFavoriteToggle, onVisibilityChanged: () => Navigator.of(context).maybePop()),
-child: ClipRRect(
-borderRadius: BorderRadius.circular(14),
-child: LayoutBuilder(builder: (context, c) {
-final iconSize = _iconSizeFor(c.maxWidth);
-return Stack(children: [
-Positioned.fill(
-child: LayoutBuilder(builder: (context, c2) {
-final dpr = MediaQuery.of(context).devicePixelRatio;
-final cache = (c2.maxWidth * dpr).round();
-      return AppImage(
-        url: widget.item.photos.isNotEmpty ? widget.item.photos.first : 'https://picsum.photos/seed/fallback_2/600/600',
-        fit: BoxFit.cover,
-      );
-}),
-),
-Positioned.fill(
-child: DecoratedBox(
-decoration: BoxDecoration(
-border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-borderRadius: BorderRadius.circular(14),
-),
-),
-),
-Positioned(
-left: 0, right: 0, bottom: 0,
-child: Container(
-padding: const EdgeInsets.all(6),
-decoration: BoxDecoration(
-gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [
-Colors.black.withValues(alpha: 0.0), Colors.black.withValues(alpha: 0.55),
-]),
-),
-child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-Text(widget.item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
-const SizedBox(height: 2),
-Row(children: [
-Expanded(child: Builder(builder: (context) {
-final unit = widget.item.priceUnit;
-final perDay = widget.item.pricePerDay;
-final price = unit == 'week' ? perDay * 7 : perDay;
-final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
-return Text('${price.toStringAsFixed(0)} $suffix', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white));
- })),
- ])
-]),
-),
-),
+  @override
+  Widget build(BuildContext context) {
+    final derivedRating = _deriveStableListingRating(widget.item);
+    return MouseRegion(
+      cursor: SystemMouseCursors.basic,
+      child: LongPressFeedbackWrapper(
+        child: GestureDetector(
+          key: _key,
+          onTap: () => ItemDetailsOverlay.showFullPage(context,
+              item: widget.item, fresh: true),
+          onLongPress: () => showListingOptionsDialog(context,
+              item: widget.item,
+              contextType: ListingOptionsContext.explore,
+              onWishlistChanged: widget.onFavoriteToggle,
+              onVisibilityChanged: () => Navigator.of(context).maybePop()),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: LayoutBuilder(builder: (context, c) {
+              final iconSize = _iconSizeFor(c.maxWidth);
+              return Stack(children: [
+                Positioned.fill(
+                  child: LayoutBuilder(builder: (context, c2) {
+                    final dpr = MediaQuery.of(context).devicePixelRatio;
+                    final cache = (c2.maxWidth * dpr).round();
+                    return AppImage(
+                      url: widget.item.photos.isNotEmpty
+                          ? widget.item.photos.first
+                          : 'https://picsum.photos/seed/fallback_2/600/600',
+                      fit: BoxFit.cover,
+                    );
+                  }),
+                ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.10)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.0),
+                            Colors.black.withValues(alpha: 0.55),
+                          ]),
+                    ),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(widget.item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 2),
+                          Row(children: [
+                            Expanded(child: Builder(builder: (context) {
+                              final unit = widget.item.priceUnit;
+                              final perDay = widget.item.pricePerDay;
+                              final price =
+                                  unit == 'week' ? perDay * 7 : perDay;
+                              final suffix =
+                                  unit == 'week' ? '€/Woche' : '€/Tag';
+                              return Text('${price.toStringAsFixed(0)} $suffix',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(color: Colors.white));
+                            })),
+                          ])
+                        ]),
+                  ),
+                ),
 
- // Rating on image (bottom-right)
- Positioned(right: 8, bottom: 8, child: RatingBadge(rating: derivedRating)),
+                // Rating on image (bottom-right)
+                Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: RatingBadge(rating: derivedRating)),
 // Favorite heart (top-right)
-Positioned(
-top: 8,
-right: 8,
-child: InkWell(
-onTap: widget.onFavoriteToggle,
-borderRadius: BorderRadius.circular(16),
-mouseCursor: SystemMouseCursors.basic,
-child: Container(
- padding: EdgeInsets.all(iconSize * 0.28),
-decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
- child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: iconSize * 0.86, color: widget.isFavorite ? Colors.red : Colors.black54),
-),
-),
-),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: InkWell(
+                    onTap: widget.onFavoriteToggle,
+                    borderRadius: BorderRadius.circular(16),
+                    mouseCursor: SystemMouseCursors.basic,
+                    child: Container(
+                      padding: EdgeInsets.all(iconSize * 0.28),
+                      decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          shape: BoxShape.circle),
+                      child: Icon(
+                          widget.isFavorite
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          size: iconSize * 0.86,
+                          color:
+                              widget.isFavorite ? Colors.red : Colors.black54),
+                    ),
+                  ),
+                ),
 // Verified (top-left)
-Positioned(
-top: 8,
-left: 8,
- child: Icon(Icons.verified, size: iconSize, color: _isVerified ? BrandColors.success : Colors.grey),
-),
-]);
-}),
-),
-),
-),
-);
-}
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Icon(Icons.verified,
+                      size: iconSize,
+                      color: _isVerified ? BrandColors.success : Colors.grey),
+                ),
+              ]);
+            }),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _SmallGridCard extends StatefulWidget {
-  final Item item; final bool isFavorite; final VoidCallback onFavoriteToggle; final bool compact;
-  const _SmallGridCard({required this.item, required this.isFavorite, required this.onFavoriteToggle, this.compact = false});
+  final Item item;
+  final bool isFavorite;
+  final VoidCallback onFavoriteToggle;
+  final bool compact;
+  const _SmallGridCard(
+      {required this.item,
+      required this.isFavorite,
+      required this.onFavoriteToggle,
+      this.compact = false});
   @override
   State<_SmallGridCard> createState() => _SmallGridCardState();
 }
 
 class _SmallGridCardState extends State<_SmallGridCard> {
   final GlobalKey _key = GlobalKey();
-  Timer? _pressTimer; bool _pointerDown = false;
-  bool get _isVerified => widget.item.verificationStatus == 'approved' || widget.item.verificationStatus == 'verified';
+  Timer? _pressTimer;
+  bool _pointerDown = false;
+  bool get _isVerified =>
+      widget.item.verificationStatus == 'approved' ||
+      widget.item.verificationStatus == 'verified';
 
   double _iconSizeFor(double width) {
     final base = widget.compact ? 0.08 : 0.10;
@@ -1505,15 +1876,22 @@ class _SmallGridCardState extends State<_SmallGridCard> {
         final box = ctx.findRenderObject() as RenderBox;
         final pos = box.localToGlobal(Offset.zero);
         final size = box.size;
-        _OverlayPresenter.showEnlarged(context, widget.item, Rect.fromLTWH(pos.dx, pos.dy, size.width, size.height));
+        _OverlayPresenter.showEnlarged(context, widget.item,
+            Rect.fromLTWH(pos.dx, pos.dy, size.width, size.height));
       }
     });
   }
 
-  void _cancelTimer() { _pressTimer?.cancel(); _pressTimer = null; }
+  void _cancelTimer() {
+    _pressTimer?.cancel();
+    _pressTimer = null;
+  }
 
   @override
-  void dispose() { _cancelTimer(); super.dispose(); }
+  void dispose() {
+    _cancelTimer();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1522,8 +1900,13 @@ class _SmallGridCardState extends State<_SmallGridCard> {
       child: LongPressFeedbackWrapper(
         child: GestureDetector(
           key: _key,
-          onTap: () => ItemDetailsOverlay.showFullPage(context, item: widget.item, fresh: true),
-          onLongPress: () => showListingOptionsDialog(context, item: widget.item, contextType: ListingOptionsContext.explore, onWishlistChanged: widget.onFavoriteToggle, onVisibilityChanged: () => Navigator.of(context).maybePop()),
+          onTap: () => ItemDetailsOverlay.showFullPage(context,
+              item: widget.item, fresh: true),
+          onLongPress: () => showListingOptionsDialog(context,
+              item: widget.item,
+              contextType: ListingOptionsContext.explore,
+              onWishlistChanged: widget.onFavoriteToggle,
+              onVisibilityChanged: () => Navigator.of(context).maybePop()),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: LayoutBuilder(builder: (context, c) {
@@ -1534,7 +1917,9 @@ class _SmallGridCardState extends State<_SmallGridCard> {
                     final dpr = MediaQuery.of(context).devicePixelRatio;
                     final cache = (c2.maxWidth * dpr).round();
                     return AppImage(
-                      url: widget.item.photos.isNotEmpty ? widget.item.photos.first : 'https://picsum.photos/seed/fallback_3/600/600',
+                      url: widget.item.photos.isNotEmpty
+                          ? widget.item.photos.first
+                          : 'https://picsum.photos/seed/fallback_3/600/600',
                       fit: BoxFit.cover,
                     );
                   }),
@@ -1542,26 +1927,34 @@ class _SmallGridCardState extends State<_SmallGridCard> {
                 Positioned.fill(
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.10)),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
                 // Title overlay at bottom (like Neue Angebote)
                 Positioned(
-                  left: 0, right: 0, bottom: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [
-                        Colors.black.withValues(alpha: 0.0), Colors.black.withValues(alpha: 0.55),
-                      ]),
+                      gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.0),
+                            Colors.black.withValues(alpha: 0.55),
+                          ]),
                     ),
                     child: Text(
                       widget.item.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Colors.white, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -1575,8 +1968,17 @@ class _SmallGridCardState extends State<_SmallGridCard> {
                     mouseCursor: SystemMouseCursors.basic,
                     child: Container(
                       padding: EdgeInsets.all(iconSize * 0.28),
-                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
-                      child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: iconSize * 0.86, color: widget.isFavorite ? Colors.pinkAccent : Colors.black54),
+                      decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          shape: BoxShape.circle),
+                      child: Icon(
+                          widget.isFavorite
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          size: iconSize * 0.86,
+                          color: widget.isFavorite
+                              ? Colors.pinkAccent
+                              : Colors.black54),
                     ),
                   ),
                 ),
@@ -1584,7 +1986,9 @@ class _SmallGridCardState extends State<_SmallGridCard> {
                 Positioned(
                   top: 6,
                   left: 6,
-                  child: Icon(Icons.verified, size: iconSize, color: _isVerified ? BrandColors.success : Colors.grey),
+                  child: Icon(Icons.verified,
+                      size: iconSize,
+                      color: _isVerified ? BrandColors.success : Colors.grey),
                 ),
               ]);
             }),
@@ -1599,13 +2003,15 @@ class _SmallGridCardState extends State<_SmallGridCard> {
 /// image (16:9) + title + price per day.
 ///
 /// Note: intentionally no "Aktiv" chip and no overflow menu.
-double _exploreListingChildAspectRatio(BuildContext context, {required bool isDesktop, required bool isTablet}) {
+double _exploreListingChildAspectRatio(BuildContext context,
+    {required bool isDesktop, required bool isTablet}) {
   final size = MediaQuery.sizeOf(context);
   final textScale = MediaQuery.textScaleFactorOf(context);
   final cols = isDesktop ? 4 : (isTablet ? 3 : 2);
   const horizontalPadding = 40.0; // grid left 16 + right 24
   const crossSpacing = 12.0;
-  final colWidth = (size.width - horizontalPadding - (crossSpacing * (cols - 1))) / cols;
+  final colWidth =
+      (size.width - horizontalPadding - (crossSpacing * (cols - 1))) / cols;
   final imageHeight = colWidth * 0.60; // shorter image block to cut bottom air
   final theme = Theme.of(context).textTheme;
   final titleFs = (theme.titleMedium?.fontSize ?? 16) * textScale;
@@ -1617,9 +2023,14 @@ double _exploreListingChildAspectRatio(BuildContext context, {required bool isDe
   final suffixHeight = suffixFs * ((theme.bodySmall?.height ?? 1.2));
   const verticalPadding = 12.0;
   const gaps = 12.0; // tighter vertical rhythm under the last visible block
-  final infoHeight = verticalPadding + titleHeight + metaHeight + max(priceHeight, suffixHeight) + gaps;
+  final infoHeight = verticalPadding +
+      titleHeight +
+      metaHeight +
+      max(priceHeight, suffixHeight) +
+      gaps;
   final cardHeight = imageHeight + infoHeight;
-  return (colWidth / cardHeight).clamp(isDesktop ? 0.90 : (isTablet ? 0.86 : 0.82), 1.0);
+  return (colWidth / cardHeight)
+      .clamp(isDesktop ? 0.90 : (isTablet ? 0.86 : 0.82), 1.0);
 }
 
 class _ExploreListingCard extends StatelessWidget {
@@ -1628,9 +2039,15 @@ class _ExploreListingCard extends StatelessWidget {
   final VoidCallback onFavoriteToggle;
   final double? distanceKm;
 
-  const _ExploreListingCard({required this.item, required this.isFavorite, required this.onFavoriteToggle, required this.distanceKm});
+  const _ExploreListingCard(
+      {required this.item,
+      required this.isFavorite,
+      required this.onFavoriteToggle,
+      required this.distanceKm});
 
-  bool get _isVerified => item.verificationStatus == 'approved' || item.verificationStatus == 'verified';
+  bool get _isVerified =>
+      item.verificationStatus == 'approved' ||
+      item.verificationStatus == 'verified';
 
   @override
   Widget build(BuildContext context) {
@@ -1638,12 +2055,17 @@ class _ExploreListingCard extends StatelessWidget {
     // with large accessibility text. We clamp scaling inside the card to prevent
     // RenderFlex overflows while keeping the overall app text scaling intact.
     final clampedMediaQuery = MediaQuery.of(context).copyWith(
-      textScaler: MediaQuery.textScalerOf(context).clamp(minScaleFactor: 1.0, maxScaleFactor: 1.18),
+      textScaler: MediaQuery.textScalerOf(context)
+          .clamp(minScaleFactor: 1.0, maxScaleFactor: 1.18),
     );
 
     return MediaQuery(
       data: clampedMediaQuery,
-      child: _ExploreListingCardContent(item: item, isFavorite: isFavorite, onFavoriteToggle: onFavoriteToggle, distanceKm: distanceKm),
+      child: _ExploreListingCardContent(
+          item: item,
+          isFavorite: isFavorite,
+          onFavoriteToggle: onFavoriteToggle,
+          distanceKm: distanceKm),
     );
   }
 }
@@ -1654,171 +2076,258 @@ class _ExploreListingCardContent extends StatelessWidget {
   final VoidCallback onFavoriteToggle;
   final double? distanceKm;
 
-  const _ExploreListingCardContent({required this.item, required this.isFavorite, required this.onFavoriteToggle, required this.distanceKm});
+  const _ExploreListingCardContent(
+      {required this.item,
+      required this.isFavorite,
+      required this.onFavoriteToggle,
+      required this.distanceKm});
 
-  bool get _isVerified => item.verificationStatus == 'approved' || item.verificationStatus == 'verified';
+  bool get _isVerified =>
+      item.verificationStatus == 'approved' ||
+      item.verificationStatus == 'verified';
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
     final derivedRating = _deriveStableListingRating(item);
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final titleColor = isDark ? Colors.white : AppTheme.textPrimary(context);
+    final metaColor = isDark ? Colors.white.withValues(alpha: 0.86) : AppTheme.textSecondary(context);
+    final metaIconColor = isDark ? Colors.white70 : AppTheme.textSecondary(context);
+    final priceColor = isDark ? Colors.white : AppTheme.textPrimary(context);
+    final priceSuffixColor = isDark ? Colors.white.withValues(alpha: 0.80) : AppTheme.textSecondary(context);
 
     const String? highlight = null;
 
     return LongPressFeedbackWrapper(
       child: InkWell(
-        onTap: () => ItemDetailsOverlay.showFullPage(context, item: item, fresh: true),
-        onLongPress: () => showListingOptionsDialog(context, item: item, contextType: ListingOptionsContext.explore, onWishlistChanged: onFavoriteToggle, onVisibilityChanged: () => Navigator.of(context).maybePop()),
+        onTap: () =>
+            ItemDetailsOverlay.showFullPage(context, item: item, fresh: true),
+        onLongPress: () => showListingOptionsDialog(context,
+            item: item,
+            contextType: ListingOptionsContext.explore,
+            onWishlistChanged: onFavoriteToggle,
+            onVisibilityChanged: () => Navigator.of(context).maybePop()),
         borderRadius: BorderRadius.circular(20),
         mouseCursor: SystemMouseCursors.basic,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
         child: Container(
-        decoration: BoxDecoration(
-          color: BrandColors.glassSurface.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: BrandColors.glassStroke),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.22), blurRadius: 16, offset: const Offset(0, 10))],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          AspectRatio(
-            aspectRatio: 1.55,
-            child: Stack(fit: StackFit.expand, children: [
-              AppImage(url: item.photos.isNotEmpty ? item.photos.first : 'https://picsum.photos/seed/explore_listing/1200/900', fit: BoxFit.cover),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: 68,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, BrandColors.imageScrim.withValues(alpha: 0.55)],
-                    ),
-                  ),
-                ),
-              ),
-              // Verified symbol only (top-left): green if verified, grey otherwise.
-              Positioned(
-                top: 10,
-                left: 10,
-                child: Icon(Icons.verified, size: 18, color: _isVerified ? BrandColors.success : Colors.grey),
-              ),
-              if (highlight != null)
+          decoration: BoxDecoration(
+            color: isDark
+                ? AppTheme.glassSurface(context)
+                : AppTheme.surfacePrimary(context),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppTheme.glassStroke(context)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.10),
+                blurRadius: isDark ? 16 : 14,
+                offset: const Offset(0, 10),
+              )
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            AspectRatio(
+              aspectRatio: 1.55,
+              child: Stack(fit: StackFit.expand, children: [
+                AppImage(
+                    url: item.photos.isNotEmpty
+                        ? item.photos.first
+                        : 'https://picsum.photos/seed/explore_listing/1200/900',
+                    fit: BoxFit.cover),
                 Positioned(
-                  left: 10,
-                  bottom: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 68,
+                  child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: cs.primary.withValues(alpha: 0.92),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                    ),
-                    child: Text(
-                      highlight,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: ((Theme.of(context).textTheme.labelSmall?.fontSize) ?? 11) * 0.78,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          AppTheme.imageScrim(context)
+                        ],
                       ),
                     ),
                   ),
                 ),
-              Positioned(
-                top: 10,
-                right: 10,
-                child: GestureDetector(
-                  onTap: onFavoriteToggle,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.92), shape: BoxShape.circle),
-                    child: Icon(isFavorite ? Icons.favorite : Icons.favorite_border, size: 16, color: isFavorite ? BrandColors.danger : Colors.black54),
+                // Verified symbol only (top-left): green if verified, grey otherwise.
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: Icon(Icons.verified,
+                      size: 18,
+                      color: _isVerified ? BrandColors.success : Colors.grey),
+                ),
+                if (highlight != null)
+                  Positioned(
+                    left: 10,
+                    bottom: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: cs.primary.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.12)),
+                      ),
+                      child: Text(
+                        highlight,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: ((Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.fontSize) ??
+                                      11) *
+                                  0.78,
+                            ),
+                      ),
+                    ),
+                  ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: GestureDetector(
+                    onTap: onFavoriteToggle,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          shape: BoxShape.circle),
+                      child: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          size: 16,
+                          color:
+                              isFavorite ? BrandColors.danger : Colors.black54),
+                    ),
                   ),
                 ),
-              ),
 
-              // Rating badge bottom-right on image
-              Positioned(right: 10, bottom: 10, child: RatingBadge(rating: derivedRating)),
-            ]),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 7, 10, 4),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final body = Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                    Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: Colors.white)),
-                    const SizedBox(height: 2),
-                    SizedBox(
-                      height: (16 * textScale).clamp(16, 20).toDouble(),
+                // Rating badge bottom-right on image
+                Positioned(
+                    right: 10,
+                    bottom: 10,
+                    child: RatingBadge(rating: derivedRating)),
+              ]),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 7, 10, 4),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final body = Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15.5,
+                                color: titleColor,
+                              )),
+                          const SizedBox(height: 2),
+                          SizedBox(
+                            height: (16 * textScale).clamp(16, 20).toDouble(),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(children: [
+                                Builder(
+                                  builder: (context) {
+                                    final baseStyle =
+                                        Theme.of(context).textTheme.labelSmall;
+                                    final style = baseStyle?.copyWith(
+                                      color: metaColor,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize:
+                                          (baseStyle?.fontSize ?? 11) * 0.95,
+                                      letterSpacing: -0.05,
+                                    );
+
+                                    const iconSize = 12.0;
+                                    return Row(children: [
+                                      Icon(Icons.place_outlined,
+                                          size: iconSize,
+                                          color: metaIconColor),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                          distanceKm == null
+                                              ? l10n.t('in deiner Nähe')
+                                              : '${distanceKm!.toStringAsFixed(distanceKm! < 10 ? 1 : 0)} km',
+                                          style: style),
+                                      const SizedBox(width: 6),
+                                      Icon(Icons.loop,
+                                          size: iconSize,
+                                          color: metaIconColor),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                          '${item.timesLent.clamp(0, 999)} ${l10n.t('Vermietungen')}',
+                                          style: style),
+                                    ]);
+                                  },
+                                ),
+                              ]),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Flexible(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                        '${item.pricePerDay.toStringAsFixed(0)} €',
+                                        style: theme.textTheme.titleMedium?.copyWith(
+                                          color: priceColor,
+                                          fontWeight: FontWeight.w700,
+                                        )),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 1),
+                                  child: Text('/ ${l10n.t('Tag')}',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: priceSuffixColor,
+                                        fontWeight: FontWeight.w500,
+                                      )),
+                                ),
+                              ]),
+                        ]);
+
+                    return Align(
+                      alignment: Alignment.topLeft,
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Row(children: [
-                          Builder(
-                            builder: (context) {
-                              final baseStyle = Theme.of(context).textTheme.labelSmall;
-                              final style = baseStyle?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.86),
-                                fontWeight: FontWeight.w800,
-                                fontSize: (baseStyle?.fontSize ?? 11) * 0.92,
-                                letterSpacing: -0.1,
-                              );
-
-                              const iconSize = 12.0;
-                              return Row(children: [
-                                const Icon(Icons.place_outlined, size: iconSize, color: Colors.white70),
-                                const SizedBox(width: 3),
-                                Text(distanceKm == null ? l10n.t('in deiner Nähe') : '${distanceKm!.toStringAsFixed(distanceKm! < 10 ? 1 : 0)} km', style: style),
-                                const SizedBox(width: 6),
-                                const Icon(Icons.loop, size: iconSize, color: Colors.white70),
-                                const SizedBox(width: 3),
-                                Text('${item.timesLent.clamp(0, 999)} ${l10n.t('Vermietungen')}', style: style),
-                              ]);
-                            },
-                          ),
-                        ]),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Flexible(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text('${item.pricePerDay.toStringAsFixed(0)} €', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+                        alignment: Alignment.topLeft,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                              minWidth: constraints.maxWidth,
+                              maxWidth: constraints.maxWidth),
+                          child: body,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 1),
-                        child: Text('/ ${l10n.t('Tag')}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.80), fontWeight: FontWeight.w700)),
-                      ),
-                    ]),
-                  ]);
-
-                  return Align(
-                    alignment: Alignment.topLeft,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.topLeft,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(minWidth: constraints.maxWidth, maxWidth: constraints.maxWidth),
-                        child: body,
-                      ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ]),
+          ]),
         ),
       ),
     );
@@ -1829,198 +2338,257 @@ class _SquareTitleOnlyCard extends StatefulWidget {
   final Item item;
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
-  const _SquareTitleOnlyCard({required this.item, this.isFavorite = false, this.onFavoriteToggle});
+  const _SquareTitleOnlyCard(
+      {required this.item, this.isFavorite = false, this.onFavoriteToggle});
   @override
   State<_SquareTitleOnlyCard> createState() => _SquareTitleOnlyCardState();
 }
 
 class _SquareTitleOnlyCardState extends State<_SquareTitleOnlyCard> {
   final GlobalKey _key = GlobalKey();
-  Timer? _pressTimer; bool _pointerDown = false;
-  bool get _isVerified => widget.item.verificationStatus == 'approved' || widget.item.verificationStatus == 'verified';
+  Timer? _pressTimer;
+  bool _pointerDown = false;
+  bool get _isVerified =>
+      widget.item.verificationStatus == 'approved' ||
+      widget.item.verificationStatus == 'verified';
 
-void _startPressTimer() {
-_pressTimer?.cancel();
-_pressTimer = Timer(const Duration(seconds: 1), () {
-if (!_pointerDown) return;
-final ctx = _key.currentContext;
-if (ctx != null) {
-final box = ctx.findRenderObject() as RenderBox;
-final pos = box.localToGlobal(Offset.zero);
-final size = box.size;
-_OverlayPresenter.showEnlarged(context, widget.item, Rect.fromLTWH(pos.dx, pos.dy, size.width, size.height));
-}
-});
-}
+  void _startPressTimer() {
+    _pressTimer?.cancel();
+    _pressTimer = Timer(const Duration(seconds: 1), () {
+      if (!_pointerDown) return;
+      final ctx = _key.currentContext;
+      if (ctx != null) {
+        final box = ctx.findRenderObject() as RenderBox;
+        final pos = box.localToGlobal(Offset.zero);
+        final size = box.size;
+        _OverlayPresenter.showEnlarged(context, widget.item,
+            Rect.fromLTWH(pos.dx, pos.dy, size.width, size.height));
+      }
+    });
+  }
 
-void _cancelTimer() { _pressTimer?.cancel(); _pressTimer = null; }
+  void _cancelTimer() {
+    _pressTimer?.cancel();
+    _pressTimer = null;
+  }
 
-@override
-void dispose() { _cancelTimer(); super.dispose(); }
+  @override
+  void dispose() {
+    _cancelTimer();
+    super.dispose();
+  }
 
-@override
-Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.basic,
       child: GestureDetector(
-        onTapDown: (_) { _pointerDown = true; _startPressTimer(); },
-        onTapUp: (_) { _pointerDown = false; _cancelTimer(); },
-        onTapCancel: () { _pointerDown = false; _cancelTimer(); },
-            child: GestureDetector(
-key: _key,
-          onTap: () => ItemDetailsOverlay.showFullPage(context, item: widget.item, fresh: true),
-child: ClipRRect(
-borderRadius: BorderRadius.circular(18),
-child: Stack(children: [
-Positioned.fill(
-child: LayoutBuilder(builder: (context, c) {
-final dpr = MediaQuery.of(context).devicePixelRatio;
-final cache = (c.maxWidth * dpr).round();
-        return AppImage(
-          url: widget.item.photos.isNotEmpty ? widget.item.photos.first : 'https://picsum.photos/seed/titleonly/800/800',
-          fit: BoxFit.cover,
-        );
-}),
-),
-Positioned.fill(
-child: DecoratedBox(
-decoration: BoxDecoration(
-border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-borderRadius: BorderRadius.circular(18),
-),
-),
-),
-Positioned(
-left: 0, right: 0, bottom: 0,
-child: Container(
-padding: const EdgeInsets.all(8),
-decoration: BoxDecoration(
-gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [
-Colors.black.withValues(alpha: 0.0), Colors.black.withValues(alpha: 0.55),
-]),
-),
-child: Column(
-crossAxisAlignment: CrossAxisAlignment.start,
-mainAxisSize: MainAxisSize.min,
-children: [
-Text(widget.item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: Colors.white)),
-  // Date removed per request
-],
-),
-),
-),
+        onTapDown: (_) {
+          _pointerDown = true;
+          _startPressTimer();
+        },
+        onTapUp: (_) {
+          _pointerDown = false;
+          _cancelTimer();
+        },
+        onTapCancel: () {
+          _pointerDown = false;
+          _cancelTimer();
+        },
+        child: GestureDetector(
+          key: _key,
+          onTap: () => ItemDetailsOverlay.showFullPage(context,
+              item: widget.item, fresh: true),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Stack(children: [
+              Positioned.fill(
+                child: LayoutBuilder(builder: (context, c) {
+                  final dpr = MediaQuery.of(context).devicePixelRatio;
+                  final cache = (c.maxWidth * dpr).round();
+                  return AppImage(
+                    url: widget.item.photos.isNotEmpty
+                        ? widget.item.photos.first
+                        : 'https://picsum.photos/seed/titleonly/800/800',
+                    fit: BoxFit.cover,
+                  );
+                }),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.0),
+                          Colors.black.withValues(alpha: 0.55),
+                        ]),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(widget.item.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white)),
+                      // Date removed per request
+                    ],
+                  ),
+                ),
+              ),
 // Favorite heart (top-right)
-if (widget.onFavoriteToggle != null)
-Positioned(
-top: 8,
-right: 8,
-child: InkWell(
-onTap: widget.onFavoriteToggle,
-borderRadius: BorderRadius.circular(16),
-mouseCursor: SystemMouseCursors.basic,
-child: Container(
-padding: const EdgeInsets.all(6),
-decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
- child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: 16, color: widget.isFavorite ? Colors.pinkAccent : Colors.black54),
-),
-),
-),
-Positioned(
-top: 8,
-left: 8,
-child: _isVerified
- ? const Icon(Icons.verified, size: 16, color: BrandColors.success)
-: const Tooltip(message: 'Nicht verifiziert', child: Icon(Icons.verified_outlined, size: 16, color: Colors.grey)),
-),
-]),
-),
-),
-),
-);
-}
+              if (widget.onFavoriteToggle != null)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: InkWell(
+                    onTap: widget.onFavoriteToggle,
+                    borderRadius: BorderRadius.circular(16),
+                    mouseCursor: SystemMouseCursors.basic,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          shape: BoxShape.circle),
+                      child: Icon(
+                          widget.isFavorite
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          size: 16,
+                          color: widget.isFavorite
+                              ? Colors.pinkAccent
+                              : Colors.black54),
+                    ),
+                  ),
+                ),
+              Positioned(
+                top: 8,
+                left: 8,
+                child: _isVerified
+                    ? const Icon(Icons.verified,
+                        size: 16, color: BrandColors.success)
+                    : const Tooltip(
+                        message: 'Nicht verifiziert',
+                        child: Icon(Icons.verified_outlined,
+                            size: 16, color: Colors.grey)),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _ShimmerBox extends StatefulWidget {
-const _ShimmerBox();
-@override
-State<_ShimmerBox> createState() => _ShimmerBoxState();
+  const _ShimmerBox();
+  @override
+  State<_ShimmerBox> createState() => _ShimmerBoxState();
 }
 
-class _ShimmerBoxState extends State<_ShimmerBox> with SingleTickerProviderStateMixin {
-late final AnimationController _c;
-@override
-void initState() {
-super.initState();
-_c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat();
-}
+class _ShimmerBoxState extends State<_ShimmerBox>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1200))
+      ..repeat();
+  }
 
-@override
-void dispose() {
-_c.dispose();
-super.dispose();
-}
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
 
-@override
-Widget build(BuildContext context) {
-return AnimatedBuilder(
-animation: _c,
-builder: (context, _) {
-return DecoratedBox(
-decoration: BoxDecoration(
-borderRadius: BorderRadius.circular(8),
-gradient: LinearGradient(
-begin: Alignment(-1 + 2 * _c.value, -1),
-end: Alignment(0 + 2 * _c.value, 1),
-colors: [
-Colors.white.withValues(alpha: 0.08),
-Colors.white.withValues(alpha: 0.20),
-Colors.white.withValues(alpha: 0.08),
-],
-),
-),
-child: const SizedBox.expand(),
-);
-},
-);
-}
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            gradient: LinearGradient(
+              begin: Alignment(-1 + 2 * _c.value, -1),
+              end: Alignment(0 + 2 * _c.value, 1),
+              colors: [
+                Colors.white.withValues(alpha: 0.08),
+                Colors.white.withValues(alpha: 0.20),
+                Colors.white.withValues(alpha: 0.08),
+              ],
+            ),
+          ),
+          child: const SizedBox.expand(),
+        );
+      },
+    );
+  }
 }
 
 class _HoverSpinAppLogo extends StatefulWidget {
-final double size;
-const _HoverSpinAppLogo({required this.size});
-@override
-State<_HoverSpinAppLogo> createState() => _HoverSpinAppLogoState();
+  final double size;
+  const _HoverSpinAppLogo({required this.size});
+  @override
+  State<_HoverSpinAppLogo> createState() => _HoverSpinAppLogoState();
 }
 
-class _HoverSpinAppLogoState extends State<_HoverSpinAppLogo> with SingleTickerProviderStateMixin {
-late final AnimationController _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
-late final Animation<double> _turns = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+class _HoverSpinAppLogoState extends State<_HoverSpinAppLogo>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 700));
+  late final Animation<double> _turns = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
-void _spinOnce() {
+  void _spinOnce() {
 // Restart from 0 so each hover completes a single rotation
-_controller.forward(from: 0);
-}
+    _controller.forward(from: 0);
+  }
 
-@override
-void dispose() {
-_controller.dispose();
-super.dispose();
-}
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
-@override
-Widget build(BuildContext context) {
-return SizedBox(
-width: widget.size,
-height: widget.size,
-child: MouseRegion(
-onEnter: (_) => _spinOnce(),
-child: Center(
-child: RotationTransition(
-turns: _turns,
-child: Image.asset('assets/images/icononly_transparent_nobuffer.png', fit: BoxFit.contain),
-),
-),
-),
-);
-}
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: widget.size,
+      height: widget.size,
+      child: MouseRegion(
+        onEnter: (_) => _spinOnce(),
+        child: Center(
+          child: RotationTransition(
+            turns: _turns,
+            child: Image.asset(
+                'assets/images/icononly_transparent_nobuffer.png',
+                fit: BoxFit.contain),
+          ),
+        ),
+      ),
+    );
+  }
 }

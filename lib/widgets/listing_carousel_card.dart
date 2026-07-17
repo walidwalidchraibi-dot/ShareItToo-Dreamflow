@@ -35,22 +35,36 @@ class ListingCarouselCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
     final l10n = context.watch<LocalizationController>();
     final derivedRating = rating ?? _deriveRating(item);
     final derivedRentals = rentals ?? item.timesLent;
     final highlight = badgeText;
     final isVerified = item.verificationStatus == 'verified' || item.verificationStatus == 'approved';
+    final titleColor = isDark ? Colors.white : AppTheme.textPrimary(context);
+    final metaColor = isDark ? Colors.white.withValues(alpha: 0.86) : AppTheme.textSecondary(context);
+    final metaIconColor = isDark ? Colors.white70 : AppTheme.textSecondary(context);
+    final priceColor = isDark ? Colors.white : AppTheme.textPrimary(context);
+    final priceSuffixColor = isDark ? Colors.white.withValues(alpha: 0.80) : AppTheme.textSecondary(context);
     // Keep in lockstep with RatingBadge + on-image highlight chips.
-    // Requested: +20% size.
-    final tagFontSize = ((Theme.of(context).textTheme.labelSmall?.fontSize) ?? 11) * 0.78;
+    final tagFontSize = ((theme.textTheme.labelSmall?.fontSize) ?? 11) * 0.78;
 
     return Container(
       decoration: BoxDecoration(
-        color: BrandColors.glassSurface.withValues(alpha: 0.55),
+        color: isDark
+            ? BrandColors.glassSurface.withValues(alpha: 0.55)
+            : AppTheme.surfacePrimary(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: BrandColors.glassStroke),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 18, offset: const Offset(0, 10))],
+        border: Border.all(color: AppTheme.glassStroke(context)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.10),
+            blurRadius: isDark ? 18 : 14,
+            offset: const Offset(0, 10),
+          )
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -125,16 +139,42 @@ class ListingCarouselCard extends StatelessWidget {
           // Keep this section ultra-compact so the card visually ends right under the price.
           padding: const EdgeInsets.fromLTRB(12, 7, 12, 5),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, color: Colors.white)),
-            const SizedBox(height: 3),
-            _TrustRow(distanceKm: distanceKm, rentals: derivedRentals),
+            Text(
+              item.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 15.5,
+                color: titleColor,
+              ),
+            ),
             const SizedBox(height: 4),
+            _TrustRow(
+              distanceKm: distanceKm,
+              rentals: derivedRentals,
+              textColor: metaColor,
+              iconColor: metaIconColor,
+            ),
+            const SizedBox(height: 6),
             Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('${item.pricePerDay.toStringAsFixed(0)} €', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+              Text(
+                '${item.pricePerDay.toStringAsFixed(0)} €',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: priceColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(width: 6),
               Padding(
                 padding: const EdgeInsets.only(bottom: 1),
-                child: Text('/ ${l10n.t('Tag')}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.80), fontWeight: FontWeight.w700)),
+                child: Text(
+                  '/ ${l10n.t('Tag')}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: priceSuffixColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
               const Spacer(),
             ]),
@@ -148,27 +188,33 @@ class ListingCarouselCard extends StatelessWidget {
 class _TrustRow extends StatelessWidget {
   final double? distanceKm;
   final int rentals;
-  const _TrustRow({required this.distanceKm, required this.rentals});
+  final Color textColor;
+  final Color iconColor;
+  const _TrustRow({
+    required this.distanceKm,
+    required this.rentals,
+    required this.textColor,
+    required this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
     final baseStyle = Theme.of(context).textTheme.labelSmall;
     final style = baseStyle?.copyWith(
-      color: Colors.white.withValues(alpha: 0.86),
-      fontWeight: FontWeight.w800,
-      // Featured cards are narrow (3 per viewport) — keep KM + rentals always visible.
-      fontSize: (baseStyle?.fontSize ?? 11) * 0.92,
-      letterSpacing: -0.1,
+      color: textColor,
+      fontWeight: FontWeight.w500,
+      fontSize: (baseStyle?.fontSize ?? 11) * 0.95,
+      letterSpacing: -0.05,
     );
     const iconSize = 12.0;
 
     final parts = <Widget>[
-      const Icon(Icons.place_outlined, size: iconSize, color: Colors.white70),
+      Icon(Icons.place_outlined, size: iconSize, color: iconColor),
       const SizedBox(width: 3),
       Text(distanceKm == null ? l10n.t('in deiner Nähe') : '${distanceKm!.toStringAsFixed(distanceKm! < 10 ? 1 : 0)} km', style: style),
       const SizedBox(width: 6),
-      const Icon(Icons.loop, size: iconSize, color: Colors.white70),
+      Icon(Icons.loop, size: iconSize, color: iconColor),
       const SizedBox(width: 3),
       Text('${rentals.clamp(0, 999)}', style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
     ];

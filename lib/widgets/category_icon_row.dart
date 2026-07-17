@@ -11,14 +11,19 @@ class CategoryIconDataModel {
   final String id;
   final IconData icon;
   final String label;
-  const CategoryIconDataModel({required this.id, required this.icon, required this.label});
+  const CategoryIconDataModel(
+      {required this.id, required this.icon, required this.label});
 }
 
 class CategoryIconRow extends StatefulWidget {
   final List<CategoryIconDataModel> categories;
   final ValueChanged<CategoryIconDataModel>? onSelected;
   final VoidCallback? onAllCategoriesTap;
-  const CategoryIconRow({super.key, required this.categories, this.onSelected, this.onAllCategoriesTap});
+  const CategoryIconRow(
+      {super.key,
+      required this.categories,
+      this.onSelected,
+      this.onAllCategoriesTap});
 
   @override
   State<CategoryIconRow> createState() => _CategoryIconRowState();
@@ -57,10 +62,15 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
     for (int i = 0; i < widget.categories.length; i++) {
       final c = widget.categories[i];
       final isSelected = i == _selectedIndex;
-      tiles.add(_CategoryTile(width: itemWidth, label: c.label, icon: c.icon, isSelected: isSelected, onTap: () {
-        setState(() => _selectedIndex = i);
-        widget.onSelected?.call(c);
-      }));
+      tiles.add(_CategoryTile(
+          width: itemWidth,
+          label: c.label,
+          icon: c.icon,
+          isSelected: isSelected,
+          onTap: () {
+            setState(() => _selectedIndex = i);
+            widget.onSelected?.call(c);
+          }));
     }
     // No artificial trailing spacer — we compute a precise scroll extension below
     // so that the last circle aligns directly under the filter button.
@@ -91,11 +101,11 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
         child: ListView.separated(
           controller: _scrollController,
           scrollDirection: Axis.horizontal,
-            // Stoppe etwas FRÜHER nach links, sodass der letzte Kreis unter dem
-            // Filter‑Kreis steht. Ein positives cutoff reduziert die maxScrollExtent.
-            physics: TrailingCutoffScrollPhysics(
-              cutoff: cutoffPx,
-            ),
+          // Stoppe etwas FRÜHER nach links, sodass der letzte Kreis unter dem
+          // Filter‑Kreis steht. Ein positives cutoff reduziert die maxScrollExtent.
+          physics: TrailingCutoffScrollPhysics(
+            cutoff: cutoffPx,
+          ),
           // Align left edge with the surrounding card content
           padding: EdgeInsets.only(
             left: horizontalPadding,
@@ -113,7 +123,8 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
 }
 
 class _AllTile extends StatefulWidget {
-  final double width; final VoidCallback? onTap;
+  final double width;
+  final VoidCallback? onTap;
   const _AllTile({required this.width, this.onTap});
   @override
   State<_AllTile> createState() => _AllTileState();
@@ -123,7 +134,10 @@ class _AllTileState extends State<_AllTile> {
   bool _hovering = false;
   @override
   Widget build(BuildContext context) {
-    final color = _hovering ? BrandColors.primary : BrandColors.inactiveNav;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = _hovering
+        ? BrandColors.primary
+        : (isDark ? BrandColors.inactiveNav : AppTheme.textSecondary(context));
     return FocusableActionDetector(
       onShowFocusHighlight: (hasFocus) => setState(() => _hovering = hasFocus),
       child: MouseRegion(
@@ -133,35 +147,37 @@ class _AllTileState extends State<_AllTile> {
           onTap: widget.onTap,
           child: SizedBox(
             width: widget.width,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(28),
-                  gradient: LinearGradient(colors: [Colors.black.withValues(alpha: 0.10), Colors.white.withValues(alpha: 0.04)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                  border: Border.all(color: BrandColors.primary, width: 1.5),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 8, offset: const Offset(0, 4)),
-                    BoxShadow(color: BrandColors.goldShadow.withValues(alpha: 0.12), blurRadius: 10, offset: const Offset(0, 2)),
-                  ],
+                  color:
+                      AppTheme.categoryCircleFill(context, active: _hovering),
+                  border: Border.all(
+                      color: AppTheme.categoryCircleBorder(context,
+                          active: _hovering),
+                      width: 1.5),
+                  boxShadow: AppTheme.cardShadow(context),
                 ),
-                  child: Center(
-                    child: AnimatedScale(
-                      scale: _hovering ? 1.33 : 1.0,
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOut,
-                      child: MaterialOutlineIcon(icon: Icons.apps, color: color, size: 20),
-                    ),
+                child: Center(
+                  child: AnimatedScale(
+                    scale: _hovering ? 1.33 : 1.0,
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOut,
+                    child: MaterialOutlineIcon(
+                        icon: Icons.apps, color: color, size: 20),
                   ),
+                ),
               ),
               const SizedBox(height: 6),
               Builder(builder: (context) {
                 final l10n = context.watch<LocalizationController>();
                 // Widen label to avoid truncation; keep visual center under the 44px circle
-                const labelWidth = 66.0; // wider than 44 to show full text on 2 lines
+                const labelWidth =
+                    66.0; // wider than 44 to show full text on 2 lines
                 final dx = -((labelWidth - 44) / 2);
                 return Transform.translate(
                   offset: Offset(dx, 0),
@@ -173,7 +189,11 @@ class _AllTileState extends State<_AllTile> {
                       softWrap: true,
                       overflow: TextOverflow.visible, // keine „…“
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 10, height: 1.1, fontWeight: FontWeight.w600, color: color),
+                      style: TextStyle(
+                          fontSize: 10.5,
+                          height: 1.12,
+                          fontWeight: FontWeight.w500,
+                          color: color),
                     ),
                   ),
                 );
@@ -204,7 +224,8 @@ class TrailingCutoffScrollPhysics extends ScrollPhysics {
   @override
   double applyBoundaryConditions(ScrollMetrics position, double value) {
     // Respect parent's boundaries first
-    final parentResult = parent?.applyBoundaryConditions(position, value) ?? 0.0;
+    final parentResult =
+        parent?.applyBoundaryConditions(position, value) ?? 0.0;
     if (parentResult != 0.0) return parentResult;
 
     // Compute an adjusted maximum extent reduced by the cutoff
@@ -226,8 +247,17 @@ class TrailingCutoffScrollPhysics extends ScrollPhysics {
 }
 
 class _CategoryTile extends StatefulWidget {
-  final double width; final String label; final IconData icon; final bool isSelected; final VoidCallback onTap;
-  const _CategoryTile({required this.width, required this.label, required this.icon, required this.isSelected, required this.onTap});
+  final double width;
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+  const _CategoryTile(
+      {required this.width,
+      required this.label,
+      required this.icon,
+      required this.isSelected,
+      required this.onTap});
   @override
   State<_CategoryTile> createState() => _CategoryTileState();
 }
@@ -237,7 +267,10 @@ class _CategoryTileState extends State<_CategoryTile> {
   @override
   Widget build(BuildContext context) {
     final active = widget.isSelected || _hovering;
-    final color = active ? BrandColors.primary : BrandColors.inactiveNav;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = active
+        ? BrandColors.primary
+        : (isDark ? BrandColors.inactiveNav : AppTheme.textSecondary(context));
     return FocusableActionDetector(
       onShowFocusHighlight: (hasFocus) => setState(() => _hovering = hasFocus),
       child: MouseRegion(
@@ -247,9 +280,8 @@ class _CategoryTileState extends State<_CategoryTile> {
           onTap: widget.onTap,
           child: SizedBox(
             width: widget.width,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOut,
@@ -257,12 +289,12 @@ class _CategoryTileState extends State<_CategoryTile> {
                 height: 44,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(28),
-                  gradient: LinearGradient(colors: [Colors.black.withValues(alpha: 0.10), Colors.white.withValues(alpha: 0.04)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                  border: Border.all(color: BrandColors.primary, width: 1.5),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.10), blurRadius: 8, offset: const Offset(0, 4)),
-                    BoxShadow(color: BrandColors.goldShadow.withValues(alpha: 0.12), blurRadius: 10, offset: const Offset(0, 2)),
-                  ],
+                  color: AppTheme.categoryCircleFill(context, active: active),
+                  border: Border.all(
+                      color: AppTheme.categoryCircleBorder(context,
+                          active: active),
+                      width: 1.5),
+                  boxShadow: AppTheme.cardShadow(context),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(28),
@@ -271,7 +303,8 @@ class _CategoryTileState extends State<_CategoryTile> {
                       scale: _hovering ? 1.33 : 1.0,
                       duration: const Duration(milliseconds: 180),
                       curve: Curves.easeOut,
-                      child: MaterialOutlineIcon(icon: widget.icon, size: 22, color: color),
+                      child: MaterialOutlineIcon(
+                          icon: widget.icon, size: 22, color: color),
                     ),
                   ),
                 ),
@@ -291,7 +324,11 @@ class _CategoryTileState extends State<_CategoryTile> {
                       softWrap: true,
                       overflow: TextOverflow.visible, // keine „…“
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w600, color: color, height: 1.1),
+                      style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                          color: color,
+                          height: 1.12),
                     ),
                   ),
                 );
