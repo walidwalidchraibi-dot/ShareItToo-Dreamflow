@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/models/message.dart';
@@ -160,7 +159,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
             _itemsCache = injected.items;
             _blockedUserIds = blockedUserIds;
             _mutedThreadKeys = mutedThreadKeys;
-            _filter = _normalizedFilterForBlocked(blockedUserIds);
+              _filter = _normalizedFilterForBlocked(blockedUserIds);
           _isLoading = false;
           });
           return;
@@ -1092,9 +1091,37 @@ class _MessagesScreenState extends State<MessagesScreen> {
     return '${time.day}.${time.month}.';
   }
 
-  void _openMessageSettings() {
+  Future<void> _openMessageSettings() async {
     debugPrint('[MessagesScreen] open settings tapped');
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MessagesSettingsScreen()));
+    final result = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const MessagesSettingsScreen()));
+    if (result == true) {
+      await _loadData();
+      if (!mounted) return;
+      final theme = Theme.of(context);
+      final isDark = theme.brightness == Brightness.dark;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              'Änderungen wurden gespeichert.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark ? Colors.white : AppTheme.textPrimary(context),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            duration: const Duration(milliseconds: 2500),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 88),
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0)),
+            ),
+          ),
+        );
+    }
   }
 }
 
@@ -1120,7 +1147,7 @@ class _InlineSearchBar extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: overlay,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(999),
             border: Border.all(color: border),
           ),
           child: TextField(
@@ -1196,23 +1223,26 @@ class _FilterPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fill = selected ? BrandColors.primary.withValues(alpha: 0.16) : Colors.white.withValues(alpha: 0.02);
-    final border = selected ? BrandColors.primary.withValues(alpha: 0.42) : Colors.white.withValues(alpha: 0.10);
-    final text = selected ? Colors.white : Colors.white.withValues(alpha: 0.74);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fill = selected
+        ? Theme.of(context).colorScheme.primary
+        : (isDark ? AppTheme.surfaceSecondary(context) : const Color(0xFFF8FAFC));
+    final border = isDark ? AppTheme.glassStroke(context) : const Color(0xFFE2E8F0);
+    final text = selected ? Colors.white : AppTheme.textBody(context);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(999),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
           decoration: BoxDecoration(
             color: fill,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(999),
             border: Border.all(color: border),
           ),
           child: Center(
@@ -1223,8 +1253,9 @@ class _FilterPill extends StatelessWidget {
               softWrap: false,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: text,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
-                letterSpacing: 0.1,
+                fontSize: 14,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                letterSpacing: 0.0,
               ),
             ),
           ),
@@ -1304,12 +1335,13 @@ class _ChatThreadTile extends StatelessWidget {
         break;
     }
 
-    final border = highlighted ? Colors.white.withValues(alpha: 0.16) : Colors.white.withValues(alpha: 0.10);
-    final bg = highlighted ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.22);
-    final glow = highlighted ? <BoxShadow>[BoxShadow(color: BrandColors.primary.withValues(alpha: 0.18), blurRadius: 22, spreadRadius: 0)] : const <BoxShadow>[];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final border = isDark ? AppTheme.glassStroke(context) : const Color(0xFFE2E8F0);
+    final bg = isDark ? (highlighted ? AppTheme.surfaceSecondary(context) : AppTheme.surfaceMuted(context)) : Colors.white;
+    final glow = const <BoxShadow>[];
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(18),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: Material(
@@ -1317,10 +1349,10 @@ class _ChatThreadTile extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             onLongPress: onLongPress,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(18),
             child: Ink(
-              decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(14), border: Border.all(color: border), boxShadow: glow),
-              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(18), border: Border.all(color: border), boxShadow: glow),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                 // Linkes Bild: Item-Bild quadratisch mit User-Avatar überlagert
                 Stack(
@@ -1344,7 +1376,7 @@ class _ChatThreadTile extends StatelessWidget {
                         child: Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.black.withValues(alpha: 0.5), width: 2),
+                            border: Border.all(color: AppTheme.surfacePrimary(context), width: 2),
                           ),
                           child: grayscaleFilter == null
                               ? SitUserAvatar(
@@ -1399,9 +1431,10 @@ class _ChatThreadTile extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 14,
+                                      color: AppTheme.textPrimary(context),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                      height: 22/16,
                                     ),
                               ),
                             ),
@@ -1411,7 +1444,7 @@ class _ChatThreadTile extends StatelessWidget {
                               Icon(
                                 Icons.verified,
                                 size: 14,
-                                color: isVerified ? BrandColors.success : Colors.grey.withValues(alpha: 0.5),
+                                color: isVerified ? BrandColors.success : (isDark ? Colors.grey.withValues(alpha: 0.5) : const Color(0xFF475569)),
                               ),
                           ]),
                         ),
@@ -1426,9 +1459,10 @@ class _ChatThreadTile extends StatelessWidget {
                           Text(
                             timeLabel,
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: Colors.white60,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 11,
+                                  color: AppTheme.textSecondary(context),
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 12,
+                                  height: 16/12,
                                 ),
                           ),
                         ]),
@@ -1441,9 +1475,10 @@ class _ChatThreadTile extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
+                                color: AppTheme.textBody(context),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                                height: 20/14,
                               ),
                         ),
                       ],
@@ -1460,23 +1495,23 @@ class _ChatThreadTile extends StatelessWidget {
                           ],
                         ),
                       ],
-                      // Zeile 3: Letzte Nachricht (1 Zeile)
                       const SizedBox(height: 3),
                       Text(
                         lastMessage,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.white54,
-                              fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w500,
-                              fontSize: 12,
+                              color: AppTheme.textSecondary(context),
+                              fontWeight: FontWeight.w400,
+                              fontSize: 14,
+                              height: 20/14,
                             ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 4),
-                Icon(Icons.chevron_right, color: Colors.white.withValues(alpha: 0.25), size: 18),
+                const SizedBox(width: 6),
+                Icon(Icons.chevron_right, color: AppTheme.textDisabled(context), size: 16),
               ]),
             ),
           ),
@@ -1495,8 +1530,9 @@ class _ThreadStateChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = danger ? Colors.red.shade300 : Colors.white70;
-    final bg = danger ? Colors.red.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.08);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = danger ? Colors.red.shade300 : (isDark ? AppTheme.textSecondary(context) : const Color(0xFF1E293B));
+    final bg = danger ? Colors.red.withValues(alpha: 0.12) : (isDark ? AppTheme.surfaceMuted(context) : const Color(0xFFE2E8F0));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
@@ -1532,22 +1568,22 @@ class _ItemImageTile extends StatelessWidget {
       child: Container(
         width: size,
         height: size,
-        color: Colors.white.withValues(alpha: 0.08),
+        color: AppTheme.surfaceMuted(context),
         child: hasImage
             ? Image.network(
                 url,
                 width: size,
                 height: size,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _placeholder(),
+                errorBuilder: (_, __, ___) => _placeholder(context),
               )
-            : _placeholder(),
+            : _placeholder(context),
       ),
     );
   }
 
-  Widget _placeholder() => Center(
-        child: Icon(Icons.image_outlined, color: Colors.white.withValues(alpha: 0.3), size: 22),
+  Widget _placeholder(BuildContext context) => Center(
+        child: Icon(Icons.image_outlined, color: AppTheme.textDisabled(context), size: 22),
       );
 }
 
@@ -1577,7 +1613,7 @@ class _SupportAvatar extends StatelessWidget {
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => Icon(
                 Icons.support_agent_rounded,
-                color: Colors.white.withValues(alpha: 0.8),
+                color: AppTheme.textPrimary(context),
                 size: size * 0.5,
               ),
             ),
@@ -1596,13 +1632,13 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.55), width: 1.2),
+        border: Border.all(color: color.withValues(alpha: 0.32), width: 1),
       ),
-      child: Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w800, fontSize: 10)),
+      child: Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w600, fontSize: 12, height: 16/12)),
     );
   }
 }
@@ -1699,9 +1735,9 @@ class _SwipeActionPill extends StatelessWidget {
             border: Border.all(color: color.withValues(alpha: 0.30)),
           ),
           child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 18, color: Colors.white),
+            Icon(icon, size: 18, color: AppTheme.textPrimary(context)),
             const SizedBox(width: 8),
-            Text(label, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+            Text(label, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: AppTheme.textPrimary(context), fontWeight: FontWeight.w900)),
           ]),
         ),
       ),
@@ -1807,7 +1843,7 @@ class _ConfirmDeleteSheet extends StatelessWidget {
         children: [
           Text(
             'Diese Aktion kann nicht rückgängig gemacht werden. (Lokale Demo-Daten)',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, height: 1.45, fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.textBody(context), height: 1.45, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 14),
           Row(children: [
@@ -1845,19 +1881,19 @@ class _GlassSheet extends StatelessWidget {
             child: Container(
               constraints: const BoxConstraints(maxWidth: 720),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.46),
+                color: AppTheme.surfacePrimary(context),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                border: Border.all(color: AppTheme.glassStroke(context)),
               ),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 SizedBox(
                   height: 44,
                   child: Stack(children: [
-                    Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.30), borderRadius: BorderRadius.circular(2)))),
+                    Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppTheme.textDisabled(context), borderRadius: BorderRadius.circular(2)))),
                     Positioned.fill(
                       child: Center(
-                        child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+                        child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.textPrimary(context), fontWeight: FontWeight.w900)),
                       ),
                     ),
                     Positioned(
@@ -1867,7 +1903,7 @@ class _GlassSheet extends StatelessWidget {
                       child: InkWell(
                         borderRadius: BorderRadius.circular(22),
                         onTap: () => Navigator.of(context).pop(),
-                        child: const SizedBox(width: 44, height: 44, child: Center(child: Icon(Icons.close, color: Colors.white))),
+                        child: SizedBox(width: 44, height: 44, child: Center(child: Icon(Icons.close, color: AppTheme.textPrimary(context)))),
                       ),
                     ),
                   ]),
@@ -1893,18 +1929,18 @@ class _SheetAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = danger ? BrandColors.danger : Colors.white;
+    final c = danger ? BrandColors.danger : AppTheme.textPrimary(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(999),
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            color: AppTheme.surfaceSecondary(context),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: AppTheme.glassStroke(context)),
           ),
           child: Row(children: [
             Icon(icon, color: c, size: 22),
@@ -1913,7 +1949,7 @@ class _SheetAction extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: c, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.35, fontWeight: FontWeight.w600)),
+                Text(subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary(context), height: 1.35, fontWeight: FontWeight.w600)),
               ]),
             ),
           ]),
@@ -1935,12 +1971,12 @@ class _EmptyState extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+          Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppTheme.textPrimary(context), fontWeight: FontWeight.w900)),
           const SizedBox(height: 10),
           Text(
             body,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, height: 1.45, fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.textBody(context), height: 1.45, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 18),
           SizedBox(

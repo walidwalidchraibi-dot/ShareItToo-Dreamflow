@@ -67,19 +67,19 @@ class _MessagesSearchScreenState extends State<MessagesSearchScreen> {
                   filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.06),
+                      color: AppTheme.surfaceSecondary(context),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      border: Border.all(color: AppTheme.glassStroke(context)),
                     ),
                     child: TextField(
                       controller: _controller,
                       focusNode: _focusNode,
                       onChanged: (v) => setState(() => _query = v.trim()),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      style: TextStyle(color: AppTheme.textPrimary(context), fontWeight: FontWeight.w700),
                       decoration: InputDecoration(
                         hintText: 'Nachrichten, Personen oder Artikel suchen',
-                        hintStyle: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
-                        prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                        hintStyle: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.w600),
+                        prefixIcon: Icon(Icons.search, color: AppTheme.textSecondary(context)),
                         suffixIcon: _query.isEmpty
                             ? null
                             : IconButton(
@@ -87,11 +87,11 @@ class _MessagesSearchScreenState extends State<MessagesSearchScreen> {
                                   _controller.clear();
                                   setState(() => _query = '');
                                 },
-                                icon: const Icon(Icons.close, color: Colors.white70),
+                                icon: Icon(Icons.close, color: AppTheme.textSecondary(context)),
                               ),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
                         filled: true,
-                        fillColor: Colors.white.withValues(alpha: 0.02),
+                        fillColor: AppTheme.surfaceMuted(context),
                       ),
                     ),
                   ),
@@ -106,7 +106,7 @@ class _MessagesSearchScreenState extends State<MessagesSearchScreen> {
                         child: Text(
                           _query.isEmpty ? 'Tippe, um Chats zu durchsuchen.' : 'Keine Treffer gefunden.',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, fontWeight: FontWeight.w700),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary(context), fontWeight: FontWeight.w700),
                         ),
                       ),
                     )
@@ -218,24 +218,24 @@ class _SearchResultCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             child: Ink(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.22),
+                color: AppTheme.surfacePrimary(context),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                border: Border.all(color: AppTheme.glassStroke(context)),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Row(children: [
-                  SitUserAvatar(url: url.isNotEmpty ? url : null, radius: 22, borderColor: Colors.white.withValues(alpha: 0.14), placeholderIcon: Icons.person_outline),
+                  SitUserAvatar(url: url.isNotEmpty ? url : null, radius: 22, borderColor: AppTheme.glassStroke(context), placeholderIcon: Icons.person_outline),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
+                      Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.textPrimary(context), fontWeight: FontWeight.w900)),
                       const SizedBox(height: 4),
-                      Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.35, fontWeight: FontWeight.w600)),
+                      Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary(context), height: 1.35, fontWeight: FontWeight.w600)),
                     ]),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.chevron_right, color: Colors.white38),
+                  Icon(Icons.chevron_right, color: AppTheme.textDisabled(context)),
                 ]),
               ),
             ),

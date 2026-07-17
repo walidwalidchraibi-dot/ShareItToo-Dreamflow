@@ -740,7 +740,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(color: theme.colorScheme.primary.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(18)),
-            child: const Icon(Icons.archive_outlined, color: Colors.white),
+            child: Icon(Icons.archive_outlined, color: AppTheme.textPrimary(context)),
           ),
           confirmDismiss: (_) async {
             await _archive(n);
@@ -874,9 +874,9 @@ class _FilterPill extends StatelessWidget {
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
-        color: selected ? accent.withValues(alpha: 0.22) : Colors.white.withValues(alpha: 0.06),
+        color: selected ? accent.withValues(alpha: 0.18) : AppTheme.surfaceMuted(context),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: selected ? 0.18 : 0.10)),
+        border: Border.all(color: selected ? accent.withValues(alpha: 0.28) : AppTheme.glassStroke(context)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -887,7 +887,7 @@ class _FilterPill extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Text(
               label,
-              style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: selected ? 1.0 : 0.85), fontWeight: selected ? FontWeight.w800 : FontWeight.w700),
+              style: theme.textTheme.labelSmall?.copyWith(color: selected ? accent : AppTheme.textSecondary(context), fontWeight: selected ? FontWeight.w800 : FontWeight.w700),
             ),
           ),
         ),
@@ -913,14 +913,14 @@ class _CategoryHeader extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [accent.withValues(alpha: 0.42), accent.withValues(alpha: 0.14)]),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+            border: Border.all(color: AppTheme.glassStroke(context)),
           ),
-          child: Icon(icon, size: 16, color: Colors.white),
+          child: Icon(icon, size: 16, color: AppTheme.textPrimary(context)),
         ),
         const SizedBox(width: 10),
         Text(label, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
         const SizedBox(width: 10),
-        Expanded(child: Container(height: 1, color: Colors.white.withValues(alpha: 0.10))),
+        Expanded(child: Container(height: 1, color: AppTheme.glassStroke(context))),
       ],
     );
   }
@@ -944,7 +944,7 @@ class _DateHeader extends StatelessWidget {
       children: [
         Text(label, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
         const SizedBox(width: 10),
-        Expanded(child: Container(height: 1, color: Colors.white.withValues(alpha: 0.10))),
+        Expanded(child: Container(height: 1, color: AppTheme.glassStroke(context))),
       ],
     );
   }
@@ -978,9 +978,9 @@ class _NotificationCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: read ? 0.04 : 0.08),
+              color: read ? AppTheme.surfacePrimary(context) : AppTheme.surfaceSecondary(context),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: read ? Colors.white.withValues(alpha: 0.06) : accent.withValues(alpha: 0.18)),
+              border: Border.all(color: read ? AppTheme.glassStroke(context) : accent.withValues(alpha: 0.18)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1015,14 +1015,14 @@ class _NotificationCard extends StatelessWidget {
                           body,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.85)),
+                          style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textBody(context)),
                         ),
                       ],
                       if (timeLabel.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         Text(
                           timeLabel,
-                          style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.6), fontSize: 11),
+                          style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.textDisabled(context), fontSize: 11),
                         ),
                       ],
                     ],
@@ -1030,7 +1030,7 @@ class _NotificationCard extends StatelessWidget {
                 ),
                 if (showChevron) ...[
                   const SizedBox(width: 10),
-                  Icon(Icons.chevron_right, color: Colors.white.withValues(alpha: 0.7)),
+                  Icon(Icons.chevron_right, color: AppTheme.textDisabled(context)),
                 ],
               ],
             ),
@@ -1075,12 +1075,12 @@ class _EmptyState extends StatelessWidget {
                 gradient: const LinearGradient(colors: [BrandColors.logoGradientStart, BrandColors.logoGradientEnd]),
                 borderRadius: BorderRadius.circular(22),
               ),
-              child: Icon(icon, color: Colors.white, size: 34),
+              child: Icon(icon, color: AppTheme.textPrimary(context), size: 34),
             ),
             const SizedBox(height: 14),
             Text(title, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(subtitle, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.82))),
+            Text(subtitle, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary(context))),
           ],
         ),
       ),

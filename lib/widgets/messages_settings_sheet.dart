@@ -1,8 +1,9 @@
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import 'package:lendify/theme.dart';
 
 import 'package:lendify/screens/blocked_users_screen.dart';
 import 'package:lendify/screens/report_user_screen.dart';
@@ -73,16 +74,33 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
   }
 
   Future<void> _save() async {
+    if (_saving) return;
     final value = _settings;
     if (value == null) return;
     setState(() => _saving = true);
     try {
       await MessagesSettingsService.set(value);
       if (!mounted) return;
-      widget.onSaved?.call();
       if (widget.presentation == MessagesSettingsPresentation.sheet) {
-        Navigator.of(context).maybePop();
+        Navigator.of(context).pop(true);
+      } else if (widget.onSaved != null) {
+        widget.onSaved!.call();
+      } else {
+        Navigator.of(context).pop(true);
       }
+    } catch (e) {
+      debugPrint('MessagesSettingsView._save failed: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('Einstellungen konnten nicht gespeichert werden. Bitte versuche es erneut.'),
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+          ),
+        );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -122,95 +140,33 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final s = _settings;
-    final muteAll = s?.muteAll ?? false;
 
     final header = widget.presentation == MessagesSettingsPresentation.sheet
         ? Padding(
             padding: const EdgeInsets.fromLTRB(16, 6, 8, 8),
             child: Row(children: [
-              Expanded(child: Text('Nachrichten-Einstellungen', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))),
-              IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.close, color: Colors.white)),
+              Expanded(child: Text('Nachrichten-Einstellungen', style: theme.textTheme.titleLarge?.copyWith(fontSize: 20, fontWeight: FontWeight.w600, color: AppTheme.textPrimary(context)))),
+              IconButton(onPressed: _saving ? null : () => Navigator.of(context).maybePop(), icon: Icon(Icons.close, size: 24, color: AppTheme.textPrimary(context))),
             ]),
           )
         : const SizedBox(height: 10);
 
     return Column(children: [
       header,
-      const Divider(height: 1, thickness: 1, color: Colors.white24),
+      Divider(height: 1, thickness: 1, color: Theme.of(context).brightness == Brightness.dark ? Colors.white24 : const Color(0xFFE2E8F0)),
       Expanded(
         child: _loading
             ? const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
             : Stack(
                 children: [
                   SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 160),
+                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 156),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                      // 1. Benachrichtigungen
-                      _SettingsSection(
-                        title: 'Benachrichtigungen',
-                        icon: Icons.notifications_outlined,
-                        child: Column(children: [
-                          _SettingsSwitchRow(
-                            icon: Icons.mark_chat_unread_outlined,
-                            title: 'Neue Nachrichten',
-                            subtitle: 'Benachrichtigt dich bei neuen Chat-Nachrichten.',
-                            value: s?.newMessagesNotif ?? true,
-                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(newMessagesNotif: v)),
-                            disabled: muteAll,
-                          ),
-                          const SizedBox(height: 4),
-                          _SettingsSwitchRow(
-                            icon: Icons.schedule_outlined,
-                            title: 'Übergabe- & Rückgabe-Erinnerungen',
-                            subtitle: 'Erinnert dich rechtzeitig an Übergabe und Rückgabe.',
-                            value: s?.handoverReturnReminders ?? true,
-                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(handoverReturnReminders: v)),
-                            disabled: muteAll,
-                          ),
-                          const SizedBox(height: 4),
-                          _SettingsSwitchRow(
-                            icon: Icons.pending_actions_outlined,
-                            title: 'Offene Zeitbestätigungen',
-                            subtitle: 'Erinnert dich, wenn eine vorgeschlagene Zeit noch bestätigt werden muss.',
-                            value: s?.openTimeConfirmations ?? true,
-                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(openTimeConfirmations: v)),
-                            disabled: muteAll,
-                          ),
-                          const SizedBox(height: 4),
-                          _SettingsSwitchRow(
-                            icon: Icons.support_agent_outlined,
-                            title: 'Support-Fall Updates',
-                            subtitle: 'Benachrichtigt dich, wenn es Neuigkeiten zu einem Support-Fall gibt.',
-                            value: s?.supportCaseUpdates ?? true,
-                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(supportCaseUpdates: v)),
-                            disabled: muteAll,
-                          ),
-                          const SizedBox(height: 4),
-                          _SettingsSwitchRow(
-                            icon: Icons.notifications_off_outlined,
-                            title: 'Alle stummschalten',
-                            subtitle: 'Deaktiviert alle Chat-Benachrichtigungen.',
-                            value: muteAll,
-                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(muteAll: v)),
-                          ),
-                        ]),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // 2. Privatsphäre & Sicherheit
                       _SettingsSection(
                         title: 'Privatsphäre & Sicherheit',
                         icon: Icons.shield_outlined,
                         emphasized: true,
                         child: Column(children: [
-                          _SettingsSwitchRow(
-                            icon: Icons.done_all,
-                            title: 'Lesebestätigungen senden',
-                            subtitle: 'Andere sehen, ob du eine Nachricht gelesen hast.',
-                            value: s?.sendReadReceipts ?? true,
-                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(sendReadReceipts: v)),
-                          ),
-                          const SizedBox(height: 4),
                           _SettingsSwitchRow(
                             icon: Icons.visibility_outlined,
                             title: 'Chat-Vorschau anzeigen',
@@ -218,30 +174,45 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
                             value: s?.showChatPreview ?? true,
                             onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(showChatPreview: v)),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           _SettingsActionRow(
                             icon: Icons.block,
                             title: 'Blockierte Nutzer verwalten',
                             subtitle: 'Du bestimmst, wen du blockiert hast.',
                             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BlockedUsersScreen())),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           _SettingsActionRow(
                             icon: Icons.report_outlined,
                             title: 'Nutzer oder Chat melden',
                             subtitle: 'Hilf uns, die Community sicher zu halten.',
                             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportUserScreen())),
                           ),
+                        ]),
+                      ),
+                      const SizedBox(height: 10),
+                      _SettingsSection(
+                        title: 'Übergabe & Belege',
+                        icon: Icons.photo_library_outlined,
+                        child: Column(children: [
+                          _SettingsSwitchRow(
+                            icon: Icons.add_photo_alternate_outlined,
+                            title: 'Übergabefotos in Galerie speichern',
+                            subtitle: 'Speichert lokal aufgenommene Übergabe- und Rückgabefotos zusätzlich auf deinem Gerät.',
+                            value: s?.autoSaveHandoverPhotos ?? true,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(autoSaveHandoverPhotos: v)),
+                          ),
                           const SizedBox(height: 6),
-                          _SettingsInfoRow(
-                            icon: Icons.info_outline,
-                            text: 'Chats sind nur bei angenommenen und laufenden Buchungen aktiv.',
+                          _SettingsSwitchRow(
+                            icon: Icons.picture_as_pdf_outlined,
+                            title: 'Belege lokal speichern',
+                            subtitle: 'Lädt erzeugte Belege zusätzlich lokal herunter bzw. speichert sie auf dem Gerät.',
+                            value: s?.saveReceiptsLocally ?? true,
+                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(saveReceiptsLocally: v)),
                           ),
                         ]),
                       ),
                       const SizedBox(height: 10),
-
-                      // 3. Übersetzung
                       _SettingsSection(
                         title: 'Übersetzung',
                         icon: Icons.translate_outlined,
@@ -253,7 +224,7 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
                             value: s?.autoTranslateChat ?? false,
                             onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(autoTranslateChat: v)),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           _SettingsSelectorRow(
                             icon: Icons.language_outlined,
                             title: 'Übersetzungssprache',
@@ -265,76 +236,9 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
                         ]),
                       ),
                       const SizedBox(height: 10),
-
-                      // 4. Übergabe & Belege
-                      _SettingsSection(
-                        title: 'Übergabe & Belege',
-                        icon: Icons.inventory_2_outlined,
-                        highlightTint: theme.colorScheme.primary.withValues(alpha: 0.08),
-                        child: Column(children: [
-                          _SettingsSwitchRow(
-                            icon: Icons.photo_library_outlined,
-                            title: 'Übergabefotos in Galerie speichern',
-                            subtitle: 'Speichert Belege schneller auf deinem Gerät.',
-                            value: s?.autoSaveHandoverPhotos ?? true,
-                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(autoSaveHandoverPhotos: v)),
-                          ),
-                          const SizedBox(height: 4),
-                          _SettingsSwitchRow(
-                            icon: Icons.save_outlined,
-                            title: 'Belege lokal speichern',
-                            subtitle: 'Sichert wichtige Nachweise für Übergabe und Rückgabe.',
-                            value: s?.saveReceiptsLocally ?? true,
-                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(saveReceiptsLocally: v)),
-                          ),
-                          const SizedBox(height: 6),
-                          _SettingsInfoRow(
-                            icon: Icons.photo_camera_outlined,
-                            text: 'Für Übergabe und Rückgabe sind mindestens 4 Fotos erforderlich.',
-                          ),
-                          const SizedBox(height: 4),
-                          _SettingsSwitchRow(
-                            icon: Icons.qr_code_2,
-                            title: 'QR-/Code-Hinweise anzeigen',
-                            subtitle: 'Zeigt Hinweise, falls QR-Code oder 6-stelliger Code benötigt wird.',
-                            value: s?.showQrCodeHints ?? true,
-                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(showQrCodeHints: v)),
-                          ),
-                        ]),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // 5. Chat-Verhalten
-                      _SettingsSection(
-                        title: 'Chat-Verhalten',
-                        icon: Icons.forum_outlined,
-                        child: Column(children: [
-                          _SettingsSwitchRow(
-                            icon: Icons.visibility_off_outlined,
-                            title: 'Abgeschlossene Chats ausblenden',
-                            subtitle: 'Reduziert die Liste auf aktive Vorgänge.',
-                            value: s?.hideCompletedChats ?? false,
-                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(hideCompletedChats: v)),
-                          ),
-                          const SizedBox(height: 4),
-                          _SettingsSwitchRow(
-                            icon: Icons.archive_outlined,
-                            title: 'Chats automatisch archivieren',
-                            subtitle: 'Ordnet abgeschlossene Chats automatisch ein.',
-                            value: s?.autoArchiveChats ?? false,
-                            onChanged: (v) => setState(() => _settings = (s ?? MessagesSettings.defaults()).copyWith(autoArchiveChats: v)),
-                          ),
-                          const SizedBox(height: 6),
-                          _SettingsInfoRow(
-                            icon: Icons.info_outline,
-                            text: 'Abgeschlossene Chats bleiben über Buchungsdetails erreichbar.',
-                          ),
-                        ]),
-                      ),
                       const SizedBox(height: 12),
                     ]),
                   ),
-                  // Floating glassy footer
                   Positioned(
                     left: 0,
                     right: 0,
@@ -378,59 +282,60 @@ class _GlassyFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                color: isDark ? Colors.black.withValues(alpha: 0.15) : AppTheme.surfacePrimary(context),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0)),
               ),
               padding: const EdgeInsets.all(6),
               child: Row(children: [
                 Expanded(
                   child: SizedBox(
-                    height: 42,
+                    height: 48,
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(14),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                         child: TextButton(
                           onPressed: saving ? null : onCancel,
                           style: TextButton.styleFrom(
-                            backgroundColor: Colors.white.withValues(alpha: 0.06),
-                            foregroundColor: Colors.white.withValues(alpha: 0.85),
+                            backgroundColor: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF8FAFC),
+                            foregroundColor: isDark ? Colors.white.withValues(alpha: 0.85) : AppTheme.textBody(context),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                              borderRadius: BorderRadius.circular(14),
+                              side: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.15) : const Color(0xFFE2E8F0)),
                             ),
                           ),
-                          child: const Text('Abbrechen', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                          child: const Text('Abbrechen', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                         ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 Expanded(
                   child: SizedBox(
-                    height: 42,
+                    height: 48,
                     child: TextButton(
                       onPressed: (saving || loading) ? null : onSave,
                       style: TextButton.styleFrom(
                         backgroundColor: theme.colorScheme.primary,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       child: saving
                           ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Änderungen speichern', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                          : const Text('Änderungen speichern', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                     ),
                   ),
                 ),
@@ -454,7 +359,8 @@ class _SettingsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final tint = highlightTint ?? Colors.white.withValues(alpha: emphasized ? 0.06 : 0.04);
+    final isDark = theme.brightness == Brightness.dark;
+    final tint = highlightTint ?? (isDark ? Colors.white.withValues(alpha: emphasized ? 0.06 : 0.04) : (emphasized ? const Color(0xFFF8FAFC) : AppTheme.surfacePrimary(context)));
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
       child: BackdropFilter(
@@ -463,16 +369,16 @@ class _SettingsSection extends StatelessWidget {
           decoration: BoxDecoration(
             color: tint,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withValues(alpha: emphasized ? 0.14 : 0.08)),
+            border: Border.all(color: isDark ? Colors.white.withValues(alpha: emphasized ? 0.14 : 0.08) : const Color(0xFFE2E8F0)),
           ),
-          padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
+          padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Row(children: [
-              Icon(icon, color: emphasized ? theme.colorScheme.primary : Colors.white70, size: 15),
-              const SizedBox(width: 6),
-              Expanded(child: Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.2, fontSize: 12))),
+              Icon(icon, color: isDark ? Colors.white70 : AppTheme.textPrimary(context), size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.1, fontSize: 15, color: AppTheme.textPrimary(context)))),
             ]),
-            const SizedBox(height: 6),
+            const SizedBox(height: 2),
             child,
           ]),
         ),
@@ -487,51 +393,52 @@ class _SettingsSwitchRow extends StatelessWidget {
   final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
-  final bool disabled;
-  const _SettingsSwitchRow({required this.icon, required this.title, this.subtitle, required this.value, required this.onChanged, this.disabled = false});
+  const _SettingsSwitchRow({required this.icon, required this.title, this.subtitle, required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final opacity = disabled ? 0.4 : 1.0;
-    return Opacity(
-      opacity: opacity,
-      child: Container(
+    final isDark = theme.brightness == Brightness.dark;
+    final titleColor = AppTheme.textPrimary(context);
+    final subtitleColor = AppTheme.textSecondary(context);
+    final iconColor = isDark ? Colors.white70 : AppTheme.textPrimary(context);
+    return Container(
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          color: isDark ? Colors.white.withValues(alpha: 0.04) : AppTheme.surfacePrimary(context),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0)),
         ),
-        padding: const EdgeInsets.fromLTRB(7, 5, 4, 5),
+        constraints: const BoxConstraints(minHeight: 62),
+        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
         child: Row(children: [
           Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(7)),
-            child: Icon(icon, color: Colors.white70, size: 14),
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: iconColor, size: 18),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-              Text(title, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, fontSize: 12)),
+              Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, fontSize: 15, color: titleColor)),
               if (subtitle != null) ...[
-                const SizedBox(height: 1),
-                Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white54, fontSize: 10, height: 1.25)),
+                const SizedBox(height: 2),
+                Text(subtitle!, style: theme.textTheme.bodyMedium?.copyWith(color: subtitleColor, fontSize: 13, fontWeight: FontWeight.w400, height: 1.25)),
               ],
             ]),
           ),
           Transform.scale(
-            scale: 0.8,
+            scale: 0.86,
             child: Switch(
               value: value,
-              onChanged: disabled ? null : onChanged,
-              activeColor: theme.colorScheme.primary,
-              inactiveThumbColor: Colors.white.withValues(alpha: 0.6),
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.14),
+              onChanged: onChanged,
+              activeThumbColor: theme.colorScheme.primary,
+              activeTrackColor: theme.colorScheme.primary.withValues(alpha: 0.35),
+              inactiveThumbColor: isDark ? Colors.white.withValues(alpha: 0.6) : const Color(0xFFCBD5E1),
+              inactiveTrackColor: isDark ? Colors.white.withValues(alpha: 0.14) : const Color(0xFFE2E8F0),
             ),
           ),
         ]),
-      ),
     );
   }
 }
@@ -548,39 +455,45 @@ class _SettingsSelectorRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final opacity = disabled ? 0.5 : 1.0;
+    final isDark = theme.brightness == Brightness.dark;
+    final opacity = disabled ? 1.0 : 1.0;
+    final titleColor = disabled ? AppTheme.textDisabled(context) : AppTheme.textPrimary(context);
+    final subtitleColor = disabled ? AppTheme.textDisabled(context) : AppTheme.textSecondary(context);
+    final iconColor = disabled ? AppTheme.textDisabled(context) : (isDark ? Colors.white70 : AppTheme.textPrimary(context));
+    final valueColor = disabled ? AppTheme.textDisabled(context) : (isDark ? Colors.white : AppTheme.textBody(context));
     return Opacity(
       opacity: opacity,
       child: Material(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(10),
+        color: isDark ? Colors.white.withValues(alpha: 0.04) : AppTheme.surfacePrimary(context),
+        borderRadius: BorderRadius.circular(14),
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(14),
           onTap: disabled ? null : onTap,
           child: Container(
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
-            padding: const EdgeInsets.fromLTRB(7, 5, 7, 5),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0))),
+            constraints: const BoxConstraints(minHeight: 62),
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
             child: Row(children: [
               Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(7)),
-                child: Icon(icon, color: Colors.white70, size: 14),
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+                child: Icon(icon, color: iconColor, size: 18),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                  Text(title, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, fontSize: 12)),
+                  Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, fontSize: 15, color: titleColor)),
                   if (subtitle != null) ...[
-                    const SizedBox(height: 1),
-                    Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white54, fontSize: 10, height: 1.25)),
+                    const SizedBox(height: 2),
+                    Text(subtitle!, style: theme.textTheme.bodyMedium?.copyWith(color: subtitleColor, fontSize: 13, fontWeight: FontWeight.w400, height: 1.25)),
                   ],
                 ]),
               ),
-              const SizedBox(width: 6),
-              Text(valueLabel, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)),
+              const SizedBox(width: 8),
+              Text(valueLabel, style: theme.textTheme.bodyMedium?.copyWith(color: valueColor, fontWeight: FontWeight.w500, fontSize: 14)),
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, color: Colors.white54, size: 18),
+              Icon(Icons.chevron_right, color: disabled ? AppTheme.textDisabled(context) : AppTheme.textSecondary(context), size: 18),
             ]),
           ),
         ),
@@ -599,34 +512,38 @@ class _SettingsActionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final titleColor = AppTheme.textPrimary(context);
+    final subtitleColor = AppTheme.textSecondary(context);
     return Material(
-      color: Colors.white.withValues(alpha: 0.04),
-      borderRadius: BorderRadius.circular(10),
+      color: isDark ? Colors.white.withValues(alpha: 0.04) : AppTheme.surfacePrimary(context),
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Container(
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
-          padding: const EdgeInsets.fromLTRB(7, 5, 7, 5),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0))),
+          constraints: const BoxConstraints(minHeight: 62),
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
           child: Row(children: [
             Container(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(7)),
-              child: Icon(icon, color: Colors.white70, size: 14),
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: isDark ? Colors.white70 : AppTheme.textPrimary(context), size: 18),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                Text(title, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, fontSize: 12)),
+                Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, fontSize: 15, color: titleColor)),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 1),
-                  Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white54, fontSize: 10, height: 1.25)),
+                  const SizedBox(height: 2),
+                  Text(subtitle!, style: theme.textTheme.bodyMedium?.copyWith(color: subtitleColor, fontSize: 13, fontWeight: FontWeight.w400, height: 1.25)),
                 ],
               ]),
             ),
-            const SizedBox(width: 6),
-            const Icon(Icons.chevron_right, color: Colors.white54, size: 18),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right, color: AppTheme.textSecondary(context), size: 18),
           ]),
         ),
       ),
@@ -634,35 +551,3 @@ class _SettingsActionRow extends StatelessWidget {
   }
 }
 
-class _SettingsInfoRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _SettingsInfoRow({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.18)),
-      ),
-      padding: const EdgeInsets.fromLTRB(7, 5, 7, 5),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 1),
-          child: Icon(icon, color: theme.colorScheme.primary.withValues(alpha: 0.8), size: 14),
-        ),
-        const SizedBox(width: 7),
-        Expanded(
-          child: Text(
-            text,
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, fontSize: 10, height: 1.35),
-            softWrap: true,
-          ),
-        ),
-      ]),
-    );
-  }
-}

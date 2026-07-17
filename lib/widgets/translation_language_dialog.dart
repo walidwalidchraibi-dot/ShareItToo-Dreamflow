@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'package:lendify/services/messages_settings_service.dart';
+import 'package:lendify/theme.dart';
 
 class TranslationLanguageDialog extends StatefulWidget {
   final String title;
@@ -57,6 +58,15 @@ class _TranslationLanguageDialogState extends State<TranslationLanguageDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final outerSurface = isDark ? Colors.black.withValues(alpha: 0.55) : AppTheme.surfacePrimary(context);
+    final innerSurface = isDark ? Colors.white.withValues(alpha: 0.03) : AppTheme.surfaceSecondary(context);
+    final outerBorder = isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFE2E8F0);
+    final innerBorder = isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0);
+    final titleColor = isDark ? Colors.white : AppTheme.textPrimary(context);
+    final bodyColor = isDark ? Colors.white : AppTheme.textBody(context);
+    final secondaryColor = isDark ? Colors.white54 : AppTheme.textSecondary(context);
+    final iconBg = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF8FAFC);
     final sortedOptions = [...widget.options]
       ..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
     return Stack(
@@ -81,9 +91,9 @@ class _TranslationLanguageDialogState extends State<TranslationLanguageDialog> {
                     type: MaterialType.transparency,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
+                        color: outerSurface,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                        border: Border.all(color: outerBorder),
                         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.32), blurRadius: 22, spreadRadius: 4)],
                       ),
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
@@ -95,18 +105,18 @@ class _TranslationLanguageDialogState extends State<TranslationLanguageDialog> {
                             Container(
                               width: 32,
                               height: 32,
-                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(10)),
-                              child: const Icon(Icons.translate_outlined, color: Colors.white, size: 18),
+                              decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(10)),
+                              child: Icon(Icons.translate_outlined, color: titleColor, size: 18),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 widget.title,
-                                style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 0.2),
+                                style: theme.textTheme.titleMedium?.copyWith(color: titleColor, fontWeight: FontWeight.w800, letterSpacing: 0.2),
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                              icon: Icon(Icons.close, color: isDark ? Colors.white70 : AppTheme.textPrimary(context), size: 20),
                               onPressed: () => Navigator.of(context).maybePop(),
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
@@ -116,15 +126,15 @@ class _TranslationLanguageDialogState extends State<TranslationLanguageDialog> {
                             const SizedBox(height: 12),
                             ..._withSpacing(widget.actionTiles),
                             const SizedBox(height: 10),
-                            Divider(color: Colors.white.withValues(alpha: 0.1), thickness: 1, height: 1),
+                            Divider(color: innerBorder, thickness: 1, height: 1),
                             const SizedBox(height: 10),
                           ],
                           if (widget.showTranslationToggle || widget.showOriginalToggle) ...[
                             Container(
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.03),
+                                color: innerSurface,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                border: Border.all(color: innerBorder),
                               ),
                               child: Column(children: [
                                 if (widget.showTranslationToggle)
@@ -159,9 +169,9 @@ class _TranslationLanguageDialogState extends State<TranslationLanguageDialog> {
                           if (!widget.showLanguagesOnlyWhenTranslationOn || _translationOn)
                             Container(
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.03),
+                                color: innerSurface,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                border: Border.all(color: innerBorder),
                               ),
                               child: ConstrainedBox(
                                 constraints: const BoxConstraints(maxHeight: 320),
@@ -173,20 +183,24 @@ class _TranslationLanguageDialogState extends State<TranslationLanguageDialog> {
                                         color: Colors.transparent,
                                         child: InkWell(
                                           borderRadius: BorderRadius.circular(12),
-                                          onTap: () => Navigator.of(context).maybePop(_translationOn ? opt.code : null),
+                                          onTap: () {
+                                            if (!_translationOn) return;
+                                            setState(() => _selected = opt.code);
+                                            Navigator.of(context).pop(opt.code);
+                                          },
                                           child: Padding(
                                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                             child: Row(children: [
-                                              Icon(active ? Icons.radio_button_checked : Icons.radio_button_off, color: active ? theme.colorScheme.primary : Colors.white54, size: 20),
+                                              Icon(active ? Icons.radio_button_checked : Icons.radio_button_off, color: active ? theme.colorScheme.primary : secondaryColor, size: 20),
                                               const SizedBox(width: 12),
-                                              Expanded(child: Text(opt.label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14))),
+                                              Expanded(child: Text(opt.label, style: TextStyle(color: bodyColor, fontWeight: FontWeight.w700, fontSize: 14))),
                                               if (active)
                                                 Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                                   decoration: BoxDecoration(
-                                                    color: theme.colorScheme.primary.withValues(alpha: 0.14),
+                                                    color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.14 : 0.10),
                                                     borderRadius: BorderRadius.circular(10),
-                                                    border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                                                    border: Border.all(color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.3 : 0.45)),
                                                   ),
                                                   child: Text('Aktiv', style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w800, fontSize: 11)),
                                                 ),
@@ -233,16 +247,17 @@ class _SwitchRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final enabled = onChanged != null;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05)))),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFE2E8F0)))),
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+            Text(title, style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w800, fontSize: 14)),
             const SizedBox(height: 4),
-            Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: enabled ? 0.72 : 0.45), fontSize: 12)),
+            Text(subtitle, style: TextStyle(color: isDark ? Colors.white.withValues(alpha: enabled ? 0.72 : 0.45) : (enabled ? AppTheme.textSecondary(context) : AppTheme.textDisabled(context)), fontSize: 12)),
           ]),
         ),
         Switch.adaptive(value: value, onChanged: onChanged, activeColor: theme.colorScheme.primary),

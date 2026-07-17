@@ -776,17 +776,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   ({String label, Color bg, Color fg}) _statusBadge(_ChatState st) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (st) {
       case _ChatState.requestOpen:
         return (label: 'Anfrage offen', bg: BrandColors.logoAccent.withValues(alpha: 0.18), fg: Colors.white);
       case _ChatState.confirmed:
-        return (label: 'Bestätigt', bg: cs.primary.withValues(alpha: 0.22), fg: Colors.white);
+        return (label: 'Bestätigt', bg: cs.primary.withValues(alpha: isDark ? 0.22 : 0.16), fg: isDark ? Colors.white : const Color(0xFF0F172A));
       case _ChatState.running:
-        return (label: 'Laufend', bg: BrandColors.success.withValues(alpha: 0.22), fg: Colors.white);
+        return (label: 'Laufend', bg: BrandColors.success.withValues(alpha: isDark ? 0.22 : 0.16), fg: isDark ? Colors.white : const Color(0xFF0F172A));
       case _ChatState.returnPlanned:
-        return (label: 'Rückgabe geplant', bg: BrandColors.primary.withValues(alpha: 0.18), fg: Colors.white);
+        return (label: 'Rückgabe geplant', bg: BrandColors.primary.withValues(alpha: isDark ? 0.18 : 0.14), fg: isDark ? Colors.white : const Color(0xFF0F172A));
       case _ChatState.completed:
-        return (label: 'Abgeschlossen', bg: Colors.white.withValues(alpha: 0.10), fg: Colors.white);
+        return (label: 'Abgeschlossen', bg: isDark ? Colors.white.withValues(alpha: 0.10) : const Color(0xFFE2E8F0), fg: isDark ? Colors.white : const Color(0xFF0F172A));
       case _ChatState.support:
         return (label: 'Support', bg: cs.primary.withValues(alpha: 0.22), fg: Colors.white);
     }
@@ -3021,7 +3022,7 @@ class _ThreadHeader extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       leading: IconButton(
         onPressed: () => Navigator.of(context).pop(true),
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary(context)),
       ),
       titleSpacing: 8,
       title: Row(
@@ -3047,7 +3048,7 @@ class _ThreadHeader extends StatelessWidget implements PreferredSizeWidget {
                           title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                          style: theme.textTheme.titleMedium?.copyWith(color: AppTheme.textPrimary(context), fontWeight: FontWeight.w900),
                         ),
                       ),
                       if (verified) ...[
@@ -3062,7 +3063,7 @@ class _ThreadHeader extends StatelessWidget implements PreferredSizeWidget {
                       subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.72), fontWeight: FontWeight.w700),
+                      style: theme.textTheme.bodySmall?.copyWith(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.textSecondary(context) : const Color(0xFF334155), fontWeight: FontWeight.w500),
                     ),
                   ],
                 ],
@@ -3074,8 +3075,8 @@ class _ThreadHeader extends StatelessWidget implements PreferredSizeWidget {
       actions: hasActions
           ? [
               PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert, color: Colors.white.withValues(alpha: 0.85), size: 22),
-                color: Colors.grey.shade900,
+                icon: Icon(Icons.more_vert, color: AppTheme.textPrimary(context), size: 22),
+                color: AppTheme.surfacePrimary(context),
                 elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 offset: const Offset(0, 8),
@@ -3092,19 +3093,19 @@ class _ThreadHeader extends StatelessWidget implements PreferredSizeWidget {
                 itemBuilder: (_) => isSupport
                     ? [
                         // Support-Chat: reduziertes Menü
-                        PopupMenuItem(value: 'info', enabled: false, height: 38, child: Row(children: [Icon(Icons.support_agent_rounded, size: 16, color: Colors.white.withValues(alpha: 0.6)), const SizedBox(width: 10), Text('SIT Support', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12))])),
+                        PopupMenuItem(value: 'info', enabled: false, height: 38, child: Row(children: [Icon(Icons.support_agent_rounded, size: 16, color: AppTheme.textDisabled(context)), const SizedBox(width: 10), Text('SIT Support', style: TextStyle(color: AppTheme.textDisabled(context), fontSize: 12))])),
                         const PopupMenuDivider(height: 8),
-                        PopupMenuItem(value: 'mute', height: 42, child: Row(children: [Icon(isMuted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), Text(isMuted ? 'Stummschaltung aufheben' : 'Stummschalten', style: const TextStyle(fontSize: 13))])),
-                        PopupMenuItem(value: 'archive', height: 42, child: Row(children: [Icon(isArchived ? Icons.unarchive_outlined : Icons.archive_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), Text(isArchived ? 'Aus Archiv holen' : 'Chat archivieren', style: const TextStyle(fontSize: 13))])),
+                        PopupMenuItem(value: 'mute', height: 42, child: Row(children: [Icon(isMuted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined, size: 18, color: AppTheme.textPrimary(context)), const SizedBox(width: 10), Text(isMuted ? 'Stummschaltung aufheben' : 'Stummschalten', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)))])),
+                        PopupMenuItem(value: 'archive', height: 42, child: Row(children: [Icon(isArchived ? Icons.unarchive_outlined : Icons.archive_outlined, size: 18, color: AppTheme.textPrimary(context)), const SizedBox(width: 10), Text(isArchived ? 'Aus Archiv holen' : 'Chat archivieren', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)))])),
                       ]
                     : [
                         // Normaler Chat: vollständiges Menü
                         if (onViewBooking != null)
-                          PopupMenuItem(value: 'booking', height: 42, child: Row(children: [Icon(Icons.receipt_long_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), const Text('Buchung ansehen', style: TextStyle(fontSize: 13))])),
-                        PopupMenuItem(value: 'profile', height: 42, child: Row(children: [Icon(Icons.person_outline, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), const Text('Profil ansehen', style: TextStyle(fontSize: 13))])),
+                          PopupMenuItem(value: 'booking', height: 42, child: Row(children: [Icon(Icons.receipt_long_outlined, size: 18, color: AppTheme.textPrimary(context)), const SizedBox(width: 10), Text('Buchung ansehen', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)))])),
+                        PopupMenuItem(value: 'profile', height: 42, child: Row(children: [Icon(Icons.person_outline, size: 18, color: AppTheme.textPrimary(context)), const SizedBox(width: 10), Text('Profil ansehen', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)))])),
                         const PopupMenuDivider(height: 8),
-                        PopupMenuItem(value: 'mute', height: 42, child: Row(children: [Icon(isMuted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), Text(isMuted ? 'Stummschaltung aufheben' : 'Stummschalten', style: const TextStyle(fontSize: 13))])),
-                        PopupMenuItem(value: 'archive', height: 42, child: Row(children: [Icon(isArchived ? Icons.unarchive_outlined : Icons.archive_outlined, size: 18, color: Colors.white.withValues(alpha: 0.85)), const SizedBox(width: 10), Text(isArchived ? 'Aus Archiv holen' : 'Chat archivieren', style: const TextStyle(fontSize: 13))])),
+                        PopupMenuItem(value: 'mute', height: 42, child: Row(children: [Icon(isMuted ? Icons.notifications_active_outlined : Icons.notifications_off_outlined, size: 18, color: AppTheme.textPrimary(context)), const SizedBox(width: 10), Text(isMuted ? 'Stummschaltung aufheben' : 'Stummschalten', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)))])),
+                        PopupMenuItem(value: 'archive', height: 42, child: Row(children: [Icon(isArchived ? Icons.unarchive_outlined : Icons.archive_outlined, size: 18, color: AppTheme.textPrimary(context)), const SizedBox(width: 10), Text(isArchived ? 'Aus Archiv holen' : 'Chat archivieren', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)))])),
                         const PopupMenuDivider(height: 8),
                         PopupMenuItem(value: 'support', height: 42, child: Row(children: [
                           ClipOval(child: Image.asset('assets/images/icononly_transparent_nobuffer.png', width: 18, height: 18, fit: BoxFit.contain, errorBuilder: (_, __, ___) => Icon(Icons.support_agent_rounded, size: 18, color: BrandColors.primary))),
@@ -3132,7 +3133,7 @@ class _HeaderAvatar extends StatelessWidget {
       return SitUserAvatar(
         url: avatarUrl,
         radius: 24,
-        borderColor: Colors.white.withValues(alpha: 0.16),
+        borderColor: AppTheme.glassStroke(context),
         placeholderIcon: Icons.person_outline,
       );
     }
@@ -3158,7 +3159,7 @@ class _HeaderAvatar extends StatelessWidget {
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => Icon(
                 Icons.support_agent_rounded,
-                color: Colors.white.withValues(alpha: 0.8),
+                color: AppTheme.textSecondary(context),
                 size: size * 0.5,
               ),
             ),
@@ -3179,16 +3180,16 @@ class _MetaPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.07),
+        color: AppTheme.surfaceMuted(context),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        border: Border.all(color: AppTheme.glassStroke(context)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white.withValues(alpha: 0.85), size: 14),
+          Icon(icon, color: AppTheme.textSecondary(context), size: 14),
           const SizedBox(width: 6),
-          Text(text, style: TextStyle(color: Colors.white.withValues(alpha: 0.88), fontWeight: FontWeight.w800, fontSize: 11)),
+          Text(text, style: TextStyle(color: AppTheme.textBody(context), fontWeight: FontWeight.w500, fontSize: 11)),
         ],
       ),
     );
@@ -3228,9 +3229,9 @@ class _CompactBookingCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: Theme.of(context).brightness == Brightness.dark ? AppTheme.surfaceSecondary(context) : Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all(color: AppTheme.glassStroke(context)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -3240,12 +3241,12 @@ class _CompactBookingCard extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
+                    color: Theme.of(context).brightness == Brightness.dark ? AppTheme.surfaceMuted(context) : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: itemImageUrl != null && itemImageUrl!.trim().isNotEmpty
                       ? AppImage(url: itemImageUrl, fit: BoxFit.cover, borderRadius: BorderRadius.circular(8))
-                      : _placeholder(),
+                      : _placeholder(context),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -3255,7 +3256,7 @@ class _CompactBookingCard extends StatelessWidget {
                       itemTitle.isEmpty ? 'Buchung' : itemTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17),
+                      style: TextStyle(color: AppTheme.textPrimary(context), fontWeight: FontWeight.w700, fontSize: 17),
                     ),
                   ),
                 ),
@@ -3268,15 +3269,15 @@ class _CompactBookingCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.06),
+                        color: Theme.of(context).brightness == Brightness.dark ? AppTheme.surfaceMuted(context) : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('Details', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontWeight: FontWeight.w600, fontSize: 11)),
+                          Text('Details', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.textSecondary(context) : const Color(0xFF1E293B), fontWeight: FontWeight.w600, fontSize: 11)),
                           const SizedBox(width: 2),
-                          Icon(Icons.chevron_right, color: Colors.white.withValues(alpha: 0.6), size: 14),
+                          Icon(Icons.chevron_right, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.textDisabled(context) : const Color(0xFF475569), size: 14),
                         ],
                       ),
                     ),
@@ -3290,8 +3291,8 @@ class _CompactBookingCard extends StatelessWidget {
     );
   }
 
-  Widget _placeholder() => Center(
-    child: Icon(Icons.inventory_2_outlined, color: Colors.white.withValues(alpha: 0.4), size: 20),
+  Widget _placeholder(BuildContext context) => Center(
+    child: Icon(Icons.inventory_2_outlined, color: AppTheme.textDisabled(context), size: 20),
   );
 }
 
@@ -3305,9 +3306,9 @@ class _InfoRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: Colors.white.withValues(alpha: 0.78), size: 16),
+        Icon(icon, color: AppTheme.textSecondary(context), size: 16),
         const SizedBox(width: 10),
-        Expanded(child: Text(text, style: TextStyle(color: Colors.white.withValues(alpha: 0.86), fontWeight: FontWeight.w700, height: 1.35))),
+        Expanded(child: Text(text, style: TextStyle(color: AppTheme.textBody(context), fontWeight: FontWeight.w700, height: 1.35))),
       ],
     );
   }
@@ -3321,18 +3322,18 @@ class _TrustBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: AppTheme.surfacePrimary(context),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+        border: Border.all(color: AppTheme.glassStroke(context)),
       ),
       child: Row(
         children: [
-          Icon(Icons.verified_user_outlined, color: Colors.white.withValues(alpha: 0.45), size: 12),
+          Icon(Icons.verified_user_outlined, color: AppTheme.textDisabled(context), size: 12),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               'Adresse geschützt · Zahlung nach SIT-Regeln · Übergabe mit Fotos & Code',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontWeight: FontWeight.w500, fontSize: 10, height: 1.3),
+              style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.w500, fontSize: 10, height: 1.3),
             ),
           ),
         ],
@@ -3377,9 +3378,9 @@ class _ActionBar extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.22),
+            color: AppTheme.surfacePrimary(context),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            border: Border.all(color: AppTheme.glassStroke(context)),
           ),
           child: Row(
             children: [
@@ -3419,9 +3420,9 @@ class _SITButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final bg = primary ? cs.primary : Colors.white.withValues(alpha: 0.08);
-    final border = primary ? cs.primary.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.14);
-    final fg = Colors.white;
+    final bg = primary ? cs.primary : AppTheme.surfaceSecondary(context);
+    final border = primary ? cs.primary.withValues(alpha: 0.6) : AppTheme.glassStroke(context);
+    final fg = primary ? Colors.white : AppTheme.textPrimary(context);
     return Container(
       height: 46,
       decoration: BoxDecoration(
@@ -3527,7 +3528,10 @@ class _ChatBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final bg = me ? cs.primary.withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.08);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = me
+        ? cs.primary.withValues(alpha: 0.85)
+        : (isDark ? AppTheme.surfaceSecondary(context) : Colors.white.withValues(alpha: 0.99));
     final maxWidth = MediaQuery.of(context).size.width * 0.72;
     final hasTranslation = translatedText != null && translatedText!.trim().isNotEmpty;
     final showPlaceholderLabel = !hasTranslation && translationPlaceholder && translationLabel != null;
@@ -3538,7 +3542,7 @@ class _ChatBubble extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(16),
-        // Kein harter Border - saubere moderne Optik
+        border: me ? null : Border.all(color: isDark ? AppTheme.glassStroke(context) : const Color(0xFF94A3B8)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3548,26 +3552,26 @@ class _ChatBubble extends StatelessWidget {
             if (translationLabel != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 2),
-                child: Text(translationLabel!, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w700)),
+                child: Text(translationLabel!, style: TextStyle(color: me ? Colors.white.withValues(alpha: 0.8) : const Color(0xFF1E293B), fontSize: 10, fontWeight: FontWeight.w500)),
               ),
-            Text(translatedText!, softWrap: true, overflow: TextOverflow.visible, style: const TextStyle(color: Colors.white, height: 1.3, fontSize: 14)),
+            Text(translatedText!, softWrap: true, overflow: TextOverflow.visible, style: TextStyle(color: me ? Colors.white : const Color(0xFF0F172A), height: 1.3, fontSize: 14)),
             if (showOriginalUnderTranslation) ...[
               const SizedBox(height: 6),
-              Text('Original', style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 10, fontWeight: FontWeight.w600)),
-              Text(text, softWrap: true, overflow: TextOverflow.visible, style: TextStyle(color: Colors.white.withValues(alpha: 0.78), height: 1.28, fontSize: 13)),
+              Text('Original', style: TextStyle(color: me ? Colors.white.withValues(alpha: 0.65) : const Color(0xFF475569), fontSize: 10, fontWeight: FontWeight.w500)),
+              Text(text, softWrap: true, overflow: TextOverflow.visible, style: TextStyle(color: me ? Colors.white.withValues(alpha: 0.78) : const Color(0xFF1E293B), height: 1.28, fontSize: 13)),
             ],
           ] else ...[
             if (showPlaceholderLabel)
               Padding(
                 padding: const EdgeInsets.only(bottom: 2),
-                child: Text(translationLabel!, style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.w700)),
+                child: Text(translationLabel!, style: TextStyle(color: me ? Colors.white.withValues(alpha: 0.7) : const Color(0xFF1E293B), fontSize: 10, fontWeight: FontWeight.w500)),
               ),
-            Text(text, softWrap: true, overflow: TextOverflow.visible, style: const TextStyle(color: Colors.white, height: 1.3, fontSize: 14)),
+            Text(text, softWrap: true, overflow: TextOverflow.visible, style: TextStyle(color: me ? Colors.white : const Color(0xFF0F172A), height: 1.3, fontSize: 14)),
           ],
           const SizedBox(height: 3),
           Align(
             alignment: Alignment.bottomRight,
-            child: Text(time, style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 10, fontWeight: FontWeight.w500)),
+            child: Text(time, style: TextStyle(color: me ? Colors.white.withValues(alpha: 0.55) : const Color(0xFF0F172A), fontSize: 10, fontWeight: FontWeight.w500)),
           ),
         ],
       ),
@@ -3591,11 +3595,11 @@ class _TranslationHandleButton extends StatelessWidget {
         height: 18,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: active ? cs.primary.withValues(alpha: 0.18) : Colors.white.withValues(alpha: 0.06),
-          border: Border.all(color: active ? cs.primary.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.08)),
+          color: active ? cs.primary.withValues(alpha: 0.18) : AppTheme.surfaceMuted(context),
+          border: Border.all(color: active ? cs.primary.withValues(alpha: 0.5) : AppTheme.glassStroke(context)),
           boxShadow: active ? [BoxShadow(color: cs.primary.withValues(alpha: 0.18), blurRadius: 6, offset: const Offset(0, 1))] : null,
         ),
-        child: Icon(Icons.translate_rounded, size: 11, color: active ? cs.primary : Colors.white.withValues(alpha: 0.68)),
+        child: Icon(Icons.translate_rounded, size: 11, color: active ? cs.primary : AppTheme.textSecondary(context)),
       ),
     );
   }
@@ -3632,7 +3636,7 @@ class _AvatarMessageRow extends StatelessWidget {
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => Icon(
                   Icons.support_agent_rounded,
-                  color: Colors.white.withValues(alpha: 0.8),
+                  color: AppTheme.textSecondary(context),
                   size: 10,
                 ),
               ),
@@ -3645,7 +3649,7 @@ class _AvatarMessageRow extends StatelessWidget {
       avatar = SitUserAvatar(
         url: avatarUrl,
         radius: 9,
-        borderColor: Colors.white.withValues(alpha: 0.12),
+        borderColor: AppTheme.glassStroke(context),
         placeholderIcon: Icons.person_outline,
       );
     }
@@ -3834,11 +3838,11 @@ class _SupportCaseMessageState extends State<_SupportCaseMessage> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.08),
+                                color: Theme.of(context).brightness == Brightness.dark ? AppTheme.surfaceMuted(context) : const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(999),
                                 border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
                               ),
-                              child: Text(badgeLabel, style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontWeight: FontWeight.w700, fontSize: 11)),
+                              child: Text(badgeLabel, style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.w700, fontSize: 11)),
                             ),
                           ],
                         ),
@@ -3850,20 +3854,20 @@ class _SupportCaseMessageState extends State<_SupportCaseMessage> {
                               width: 60,
                               height: 60,
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.06),
+                                color: Theme.of(context).brightness == Brightness.dark ? AppTheme.surfaceMuted(context) : const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
                               ),
                               child: d.imageUrl != null && d.imageUrl!.trim().isNotEmpty
                                   ? AppImage(url: d.imageUrl, fit: BoxFit.cover, borderRadius: BorderRadius.circular(12))
-                                  : Icon(Icons.inventory_2_outlined, color: Colors.white.withValues(alpha: 0.45), size: 26),
+                                  : Icon(Icons.inventory_2_outlined, color: AppTheme.textDisabled(context), size: 26),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(d.itemTitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17, height: 1.2)),
+                                  Text(d.itemTitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppTheme.textPrimary(context), fontWeight: FontWeight.w800, fontSize: 17, height: 1.2)),
                                   const SizedBox(height: 6),
                                   _SupportMetaLine(icon: Icons.confirmation_number_outlined, label: 'Buchungs-ID', value: d.bookingId),
                                   const SizedBox(height: 3),
@@ -3883,7 +3887,7 @@ class _SupportCaseMessageState extends State<_SupportCaseMessage> {
                         Container(
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.05),
+                            color: AppTheme.surfacePrimary(context),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
                           ),
@@ -3891,9 +3895,9 @@ class _SupportCaseMessageState extends State<_SupportCaseMessage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Bericht', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontWeight: FontWeight.w700, fontSize: 12)),
+                              Text('Bericht', style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.w700, fontSize: 12)),
                               const SizedBox(height: 6),
-                              Text(d.description.isEmpty ? 'Keine Beschreibung vorhanden.' : d.description, style: TextStyle(color: Colors.white.withValues(alpha: 0.9), height: 1.32, fontSize: 13.5)),
+                              Text(d.description.isEmpty ? 'Keine Beschreibung vorhanden.' : d.description, style: TextStyle(color: AppTheme.textBody(context), height: 1.32, fontSize: 13.5)),
                             ],
                           ),
                         ),
@@ -3921,12 +3925,12 @@ class _SupportMetaLine extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: Colors.white.withValues(alpha: 0.65), size: 15),
+        Icon(icon, color: AppTheme.textSecondary(context), size: 15),
         const SizedBox(width: 8),
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.85), height: 1.35, fontSize: 12.5),
+              style: TextStyle(color: AppTheme.textBody(context), height: 1.35, fontSize: 12.5),
               children: [
                 TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.w700)),
                 TextSpan(text: value.isNotEmpty ? value : 'Nicht angegeben'),
@@ -3983,7 +3987,7 @@ class _SystemMessage extends StatelessWidget {
           child: Text(
             text,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.62), fontSize: 12, fontWeight: FontWeight.w700, height: 1.35),
+            style: TextStyle(color: AppTheme.textSecondary(context), fontSize: 12, fontWeight: FontWeight.w500, height: 1.35),
           ),
         ),
       ),
@@ -4044,9 +4048,9 @@ class _TimeRequestCard extends StatelessWidget {
                 constraints: BoxConstraints(maxWidth: maxWidth, minWidth: 60),
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
+                  color: Theme.of(context).brightness == Brightness.dark ? AppTheme.surfaceSecondary(context) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                  border: Border.all(color: AppTheme.glassStroke(context)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -4087,7 +4091,7 @@ class _TimeRequestCard extends StatelessWidget {
                       child: Text(
                         cleanText,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: AppTheme.textBody(context),
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           height: 1.3,
@@ -4125,9 +4129,9 @@ class _InlineSystemCard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: Colors.white.withValues(alpha: 0.35), size: 12),
+          Icon(icon, color: AppTheme.textDisabled(context), size: 12),
           const SizedBox(width: 6),
-          Text(text, style: TextStyle(color: Colors.white.withValues(alpha: 0.40), fontWeight: FontWeight.w500, fontSize: 11)),
+          Text(text, style: TextStyle(color: AppTheme.textDisabled(context), fontWeight: FontWeight.w500, fontSize: 11)),
         ],
       ),
     );
@@ -4147,9 +4151,9 @@ class _TranslationDemoBanner extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: AppTheme.surfaceSecondary(context),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            border: Border.all(color: AppTheme.glassStroke(context)),
           ),
           child: Row(
             children: [
@@ -4157,9 +4161,9 @@ class _TranslationDemoBanner extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.08),
+                  color: AppTheme.surfaceMuted(context),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                  border: Border.all(color: AppTheme.glassStroke(context)),
                 ),
                 child: const Icon(Icons.translate_rounded, color: Colors.white, size: 18),
               ),
@@ -4169,11 +4173,11 @@ class _TranslationDemoBanner extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Beispiel-Chat für Übersetzung', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+                    Text('Beispiel-Chat für Übersetzung', style: TextStyle(color: AppTheme.textPrimary(context), fontWeight: FontWeight.w800, fontSize: 13)),
                     const SizedBox(height: 4),
                     Text(
                       'Tippe auf das Übersetzungsicon links neben der eingehenden Nachricht, um den Übersetzungsmodus zu testen.',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.72), fontWeight: FontWeight.w500, fontSize: 11, height: 1.35),
+                      style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.w500, fontSize: 11, height: 1.35),
                     ),
                   ],
                 ),
@@ -4213,19 +4217,19 @@ class _FlowProgressCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.22),
+            color: AppTheme.surfacePrimary(context),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            border: Border.all(color: AppTheme.glassStroke(context)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
                 children: [
-                  Icon(Icons.fact_check_outlined, color: Colors.white.withValues(alpha: 0.9), size: 18),
+                  Icon(Icons.fact_check_outlined, color: AppTheme.textPrimary(context), size: 18),
                   const SizedBox(width: 10),
-                  Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white))),
-                  Text(progressLabel, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w800, fontSize: 12)),
+                  Expanded(child: Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: AppTheme.textPrimary(context)))),
+                  Text(progressLabel, style: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.w800, fontSize: 12)),
                 ],
               ),
               const SizedBox(height: 10),
@@ -4301,8 +4305,8 @@ class _InputBar extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.15),
-          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+          color: AppTheme.surfacePrimary(context),
+          border: Border(top: BorderSide(color: AppTheme.glassStroke(context))),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -4318,16 +4322,16 @@ class _InputBar extends StatelessWidget {
                     maxLines: 2,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => onSend(),
-                    style: const TextStyle(color: Colors.white, height: 1.25, fontSize: 14),
+                    style: TextStyle(color: AppTheme.textPrimary(context), height: 1.25, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Nachricht…',
-                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontWeight: FontWeight.w600, fontSize: 14),
+                      hintStyle: TextStyle(color: AppTheme.textSecondary(context), fontWeight: FontWeight.w500, fontSize: 14),
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.05),
+                      fillColor: AppTheme.surfaceSecondary(context),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(fieldRadius), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(fieldRadius), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(fieldRadius), borderSide: BorderSide(color: AppTheme.glassStroke(context))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(fieldRadius), borderSide: BorderSide(color: AppTheme.glassStroke(context))),
                       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(fieldRadius), borderSide: BorderSide(color: cs.primary.withValues(alpha: 0.7))),
                     ),
                   ),
@@ -4382,11 +4386,11 @@ class _ComposerIconButton extends StatelessWidget {
           width: 34,
           height: 34,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.04),
+            color: AppTheme.surfaceMuted(context),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            border: Border.all(color: AppTheme.glassStroke(context)),
           ),
-          child: Center(child: Icon(icon, color: Colors.white.withValues(alpha: 0.65), size: 15)),
+          child: Center(child: Icon(icon, color: AppTheme.textSecondary(context), size: 15)),
         ),
       ),
     );
@@ -4405,18 +4409,18 @@ class _ChatBlockedBanner extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
-          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
+          color: AppTheme.surfacePrimary(context),
+          border: Border(top: BorderSide(color: AppTheme.glassStroke(context))),
         ),
         child: Row(
           children: [
-            Icon(Icons.lock_outline, color: Colors.white.withValues(alpha: 0.4), size: 18),
+            Icon(Icons.lock_outline, color: AppTheme.textDisabled(context), size: 18),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 reason,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: AppTheme.textSecondary(context),
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   height: 1.4,
@@ -4684,6 +4688,7 @@ class _CombinedActionRow extends StatelessWidget {
 
     // Button-Farben basierend auf Aktivierung
     final isActive = primaryEnabled && onPrimary != null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final showTimeRow = showHandoverTimeButton || showReturnTimeButton;
 
@@ -4753,12 +4758,12 @@ class _CombinedActionRow extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: handoverPending
                                 ? cs.primary.withValues(alpha: 0.12)
-                                : Colors.white.withValues(alpha: 0.06),
+                                : (isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: handoverPending
                                   ? cs.primary.withValues(alpha: 0.3)
-                                  : Colors.white.withValues(alpha: 0.08),
+                                  : (isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFF94A3B8)),
                             ),
                           ),
                           child: Row(
@@ -4769,7 +4774,7 @@ class _CombinedActionRow extends StatelessWidget {
                               Text(
                                 'Übergabezeit',
                                 style: TextStyle(
-                                  color: handoverPending ? cs.primary : Colors.white.withValues(alpha: 0.8),
+                                  color: handoverPending ? cs.primary : (isDark ? Colors.white.withValues(alpha: 0.8) : const Color(0xFF1E293B)),
                                   fontWeight: FontWeight.w600,
                                   fontSize: 12,
                                 ),
@@ -4792,12 +4797,12 @@ class _CombinedActionRow extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: returnPending
                                 ? cs.primary.withValues(alpha: 0.12)
-                                : Colors.white.withValues(alpha: 0.06),
+                                : (isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: returnPending
                                   ? cs.primary.withValues(alpha: 0.3)
-                                  : Colors.white.withValues(alpha: 0.08),
+                                  : (isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFF94A3B8)),
                             ),
                           ),
                           child: Row(
@@ -4827,7 +4832,7 @@ class _CombinedActionRow extends StatelessWidget {
                               Text(
                                 'Rückgabezeit',
                                 style: TextStyle(
-                                  color: returnPending ? cs.primary : Colors.white.withValues(alpha: 0.8),
+                                  color: returnPending ? cs.primary : (isDark ? Colors.white.withValues(alpha: 0.8) : const Color(0xFF1E293B)),
                                   fontWeight: FontWeight.w600,
                                   fontSize: 12,
                                 ),
@@ -4856,19 +4861,19 @@ class _CombinedActionRow extends StatelessWidget {
                   gradient: isActive
                       ? LinearGradient(colors: [cs.primary, cs.primary.withValues(alpha: 0.85)])
                       : null,
-                  color: isActive ? null : Colors.grey.shade700,
+                  color: isActive ? null : (isDark ? Colors.grey.shade700 : const Color(0xFFE2E8F0)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.bolt_rounded, color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.5), size: 18),
+                    Icon(Icons.bolt_rounded, color: isActive ? Colors.white : (isDark ? Colors.white.withValues(alpha: 0.5) : const Color(0xFF64748B)), size: 18),
                     const SizedBox(width: 6),
                     Text(
                       primaryLabel,
                       style: TextStyle(
-                        color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.5),
-                        fontWeight: FontWeight.w700,
+                        color: isActive ? Colors.white : (isDark ? Colors.white.withValues(alpha: 0.5) : const Color(0xFF64748B)),
+                        fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                         fontSize: 14,
                       ),
                     ),
@@ -4885,7 +4890,7 @@ class _CombinedActionRow extends StatelessWidget {
                 ? 'Erst möglich, wenn $counterpartyName deine Übergabezeit bestätigt.'
                 : 'Erst möglich, wenn die Übergabezeit bestätigt ist.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontWeight: FontWeight.w500, height: 1.3, fontSize: 9),
+            style: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.45) : const Color(0xFF64748B), fontWeight: FontWeight.w500, height: 1.3, fontSize: 9),
           ),
         ],
       ],
@@ -5235,6 +5240,7 @@ class _CompactTransactionCTA extends StatelessWidget {
 
     // Button-Farben basierend auf Aktivierung
     final isActive = primaryEnabled && onPrimary != null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final buttonColors = isActive
         ? [cs.primary, cs.primary.withValues(alpha: 0.85)]
         : [Colors.grey.shade600, Colors.grey.shade700];
@@ -5435,14 +5441,19 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasFocus = widget.focusNode.hasFocus;
     final hasText = widget.controller.text.trim().isNotEmpty;
     final effectiveMaxLines = hasText ? 5 : 1;
     final showTimeIcon = widget.chatState == _ChatState.confirmed || widget.chatState == _ChatState.running;
 
     // Focus state: dezent SIT-blau
-    final fieldBorderColor = hasFocus ? cs.primary.withValues(alpha: 0.70) : Colors.white.withValues(alpha: 0.08);
-    final fieldFillColor = hasFocus ? Colors.white.withValues(alpha: 0.11) : Colors.white.withValues(alpha: 0.08);
+    final fieldBorderColor = hasFocus
+        ? cs.primary.withValues(alpha: 0.70)
+        : (isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFF94A3B8));
+    final fieldFillColor = hasFocus
+        ? (isDark ? Colors.white.withValues(alpha: 0.11) : Colors.white)
+        : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.99));
     final fieldShadow = hasFocus
         ? [BoxShadow(color: cs.primary.withValues(alpha: 0.22), blurRadius: 14, offset: const Offset(0, 4))]
         : const <BoxShadow>[];
@@ -5509,14 +5520,14 @@ class _GlassInputBarState extends State<_GlassInputBar> with SingleTickerProvide
                       keyboardType: TextInputType.text,
                       textAlignVertical: TextAlignVertical.center,
                       showCursor: true,
-                      cursorColor: Colors.white.withValues(alpha: 0.92),
+                      cursorColor: isDark ? Colors.white.withValues(alpha: 0.92) : const Color(0xFF0F172A),
                       cursorWidth: 2.0,
                       cursorRadius: const Radius.circular(2),
-                      style: const TextStyle(color: Colors.white, fontSize: _fieldFontSize),
+                      style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontSize: _fieldFontSize),
                       decoration: InputDecoration(
                         hintText: 'Nachricht…',
                         hintStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.45),
+                          color: isDark ? Colors.white.withValues(alpha: 0.45) : const Color(0xFF475569),
                           fontWeight: FontWeight.w500,
                           fontSize: _fieldFontSize,
                         ),
@@ -5617,15 +5628,15 @@ class _InlineFocusedIcon extends StatelessWidget {
       child: InkWell(
         canRequestFocus: false,
         onTap: onTap,
-        splashColor: Colors.white.withValues(alpha: 0.15),
-        highlightColor: Colors.white.withValues(alpha: 0.08),
+        splashColor: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.15) : const Color(0xFF94A3B8).withValues(alpha: 0.35),
+        highlightColor: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFF94A3B8).withValues(alpha: 0.22),
         child: SizedBox(
           width: 28,
           height: 28,
           child: Center(
             child: Icon(
               icon,
-              color: Colors.white.withValues(alpha: 0.7),
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.7) : const Color(0xFF1E293B),
               size: 18,
             ),
           ),
@@ -5650,15 +5661,15 @@ class _InlineIconButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        splashColor: Colors.white.withValues(alpha: 0.15),
-        highlightColor: Colors.white.withValues(alpha: 0.08),
+        splashColor: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.15) : const Color(0xFF94A3B8).withValues(alpha: 0.35),
+        highlightColor: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFF94A3B8).withValues(alpha: 0.22),
         child: SizedBox(
           width: 28,
           height: 28,
           child: Center(
             child: Icon(
               icon,
-              color: Colors.white.withValues(alpha: 0.5),
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.5) : const Color(0xFF475569),
               size: 20,
             ),
           ),
@@ -5688,19 +5699,20 @@ class _GlassIconButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-        splashColor: Colors.white.withValues(alpha: 0.12),
-        highlightColor: Colors.white.withValues(alpha: 0.06),
+        splashColor: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFF94A3B8).withValues(alpha: 0.28),
+        highlightColor: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFF94A3B8).withValues(alpha: 0.18),
         child: Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0).withValues(alpha: 0.96),
             borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.glassStroke(context) : const Color(0xFF94A3B8)),
           ),
           child: Center(
             child: Icon(
               icon,
-              color: Colors.white.withValues(alpha: 0.55),
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.55) : const Color(0xFF1E293B),
               size: iconSize,
             ),
           ),
@@ -5765,7 +5777,7 @@ class _TimeOptionTile extends StatelessWidget {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: AppTheme.textSecondary(context),
                       fontWeight: FontWeight.w400,
                       fontSize: 12,
                     ),
@@ -5836,7 +5848,7 @@ class _StickyTransactionCTA extends StatelessWidget {
                             primaryLabel,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13),
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
                           ),
                         ),
                       ],
@@ -5859,7 +5871,7 @@ class _StickyTransactionCTA extends StatelessWidget {
                     child: Center(
                       child: Text(
                         secondaryLabel!,
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontWeight: FontWeight.w700, fontSize: 12),
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontWeight: FontWeight.w600, fontSize: 12),
                       ),
                     ),
                   ),
@@ -5871,7 +5883,7 @@ class _StickyTransactionCTA extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               explanationText,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.52), fontWeight: FontWeight.w600, height: 1.3, fontSize: 11),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.52), fontWeight: FontWeight.w400, height: 1.3, fontSize: 11),
             ),
           ],
         ],

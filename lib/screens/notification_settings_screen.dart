@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:lendify/theme.dart';
 import 'package:lendify/services/notification_preferences_service.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
@@ -44,8 +45,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     final theme = Theme.of(context);
     final accent = theme.colorScheme.primary;
     final titleStyle = theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800);
-    final bodyStyle = theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.86));
-    final captionStyle = theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.70), height: 1.35);
+    final bodyStyle = theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textBody(context));
+    final captionStyle = theme.textTheme.labelSmall?.copyWith(color: AppTheme.textSecondary(context), height: 1.35);
     final topInset = MediaQuery.paddingOf(context).top;
 
     return Stack(
@@ -260,9 +261,9 @@ class _Section extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
+        color: AppTheme.surfaceSecondary(context),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(color: AppTheme.glassStroke(context)),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 24, offset: const Offset(0, 10))],
       ),
       child: Column(
@@ -276,7 +277,7 @@ class _Section extends StatelessWidget {
                 Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: theme.colorScheme.primary)),
                 if (description != null && description!.trim().isNotEmpty) ...[
                   const SizedBox(height: 6),
-                  Text(description!, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.80))),
+                  Text(description!, style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textBody(context))),
                 ],
               ],
             ),
@@ -313,18 +314,18 @@ class _SettingToggleTile extends StatelessWidget {
     final active = value;
     final locked = !enabled;
 
-    final titleColor = active ? Colors.white : Colors.white.withValues(alpha: 0.70);
-    final bodyColor = Colors.white.withValues(alpha: active ? 0.78 : 0.56);
+    final titleColor = active ? AppTheme.textPrimary(context) : AppTheme.textSecondary(context);
+    final bodyColor = active ? AppTheme.textBody(context) : AppTheme.textDisabled(context);
 
-    final badgeBorder = active ? Colors.white.withValues(alpha: 0.14) : Colors.white.withValues(alpha: 0.10);
+    final badgeBorder = active ? accent.withValues(alpha: 0.24) : AppTheme.glassStroke(context);
     final badgeGradient = active
-        ? [accent.withValues(alpha: 0.42), accent.withValues(alpha: 0.12)]
-        : [Colors.white.withValues(alpha: 0.11), Colors.white.withValues(alpha: 0.04)];
-    final badgeIconColor = active ? Colors.white : Colors.white.withValues(alpha: 0.68);
+        ? [accent.withValues(alpha: 0.28), accent.withValues(alpha: 0.10)]
+        : [AppTheme.surfaceMuted(context), AppTheme.surfacePrimary(context)];
+    final badgeIconColor = active ? accent : AppTheme.textSecondary(context);
 
-    final switchInactiveTrack = Colors.white.withValues(alpha: 0.12);
-    final switchInactiveThumb = Colors.white.withValues(alpha: 0.86);
-    final switchOutline = Colors.white.withValues(alpha: 0.14);
+    final switchInactiveTrack = AppTheme.surfaceMuted(context);
+    final switchInactiveThumb = AppTheme.textPrimary(context);
+    final switchOutline = AppTheme.glassStroke(context);
 
     return Opacity(
       opacity: locked ? 0.82 : 1,
@@ -349,8 +350,8 @@ class _SettingToggleTile extends StatelessWidget {
                     bottom: 6,
                     child: Container(
                       padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(6)),
-                      child: Icon(Icons.lock_outline, size: 12, color: Colors.white.withValues(alpha: 0.85)),
+                      decoration: BoxDecoration(color: AppTheme.surfacePrimary(context), borderRadius: BorderRadius.circular(6)),
+                      child: Icon(Icons.lock_outline, size: 12, color: AppTheme.textPrimary(context)),
                     ),
                   ),
               ]),
@@ -427,9 +428,9 @@ class _SimpleToggleRow extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [accent.withValues(alpha: 0.34), accent.withValues(alpha: 0.10)]),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+              border: Border.all(color: AppTheme.glassStroke(context)),
             ),
-            child: Icon(icon, color: Colors.white, size: 19),
+            child: Icon(icon, color: AppTheme.textPrimary(context), size: 19),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -438,7 +439,7 @@ class _SimpleToggleRow extends StatelessWidget {
               children: [
                 Text(title, softWrap: true, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 3),
-                Text(subtitle, softWrap: true, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.78), height: 1.30)),
+                Text(subtitle, softWrap: true, style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.textBody(context), height: 1.30)),
               ],
             ),
           ),
@@ -467,7 +468,7 @@ class _SimpleToggleRow extends StatelessWidget {
 class _Divider extends StatelessWidget {
   const _Divider();
   @override
-  Widget build(BuildContext context) => Divider(height: 1, thickness: 1, color: Colors.white.withValues(alpha: 0.10));
+  Widget build(BuildContext context) => Divider(height: 1, thickness: 1, color: AppTheme.glassStroke(context));
 }
 
 class _HintCard extends StatelessWidget {
@@ -485,7 +486,7 @@ class _HintCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: [accent.withValues(alpha: 0.14), Colors.white.withValues(alpha: 0.06)]),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(color: AppTheme.glassStroke(context)),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 24, offset: const Offset(0, 10))],
       ),
       child: Row(
@@ -498,7 +499,7 @@ class _HintCard extends StatelessWidget {
               gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [accent.withValues(alpha: 0.90), accent.withValues(alpha: 0.28)]),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.info_outline, color: Colors.white, size: 19),
+            child: Icon(Icons.info_outline, color: AppTheme.textPrimary(context), size: 19),
           ),
           const SizedBox(width: 12),
           Expanded(
