@@ -48,6 +48,8 @@
 	<!-- Photo and camera permissions -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Fotos auswählen, um deine Anzeige attraktiver zu machen.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Wir speichern auf Wunsch Übergabe- und Rückgabefotos zusätzlich in deiner Galerie.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Fotos aufnehmen, um deine Anzeige zu erstellen.</string>
 	<!-- Location permission for automatic city selection -->
