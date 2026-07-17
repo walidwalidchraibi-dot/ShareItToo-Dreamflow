@@ -100,6 +100,18 @@ class MessagesSettings {
     preferredLanguageCode: 'auto',
   );
 
+  MessagesSettings normalizedForCurrentProductRules() => copyWith(
+    muteAll: false,
+    sendReadReceipts: true,
+    newMessagesNotif: true,
+    handoverReturnReminders: true,
+    openTimeConfirmations: true,
+    supportCaseUpdates: true,
+    showQrCodeHints: true,
+    autoArchiveChats: false,
+    hideCompletedChats: false,
+  );
+
   MessagesSettings copyWith({
     bool? muteAll,
     bool? sendReadReceipts,
@@ -141,20 +153,11 @@ class MessagesSettings {
   );
 
   Map<String, dynamic> toJson() => {
-    'muteAll': muteAll,
-    'sendReadReceipts': sendReadReceipts,
     'showChatPreview': showChatPreview,
-    'newMessagesNotif': newMessagesNotif,
-    'handoverReturnReminders': handoverReturnReminders,
-    'openTimeConfirmations': openTimeConfirmations,
-    'supportCaseUpdates': supportCaseUpdates,
     'whoCanWrite': whoCanWrite.name,
     'autoSaveHandoverPhotos': autoSaveHandoverPhotos,
     'handoverReminders': handoverReminders,
     'saveReceiptsLocally': saveReceiptsLocally,
-    'showQrCodeHints': showQrCodeHints,
-    'autoArchiveChats': autoArchiveChats,
-    'hideCompletedChats': hideCompletedChats,
     'mediaAutoDownload': mediaAutoDownload.name,
     'autoTranslateChat': autoTranslateChat,
     'showOriginalMessages': showOriginalMessages,
@@ -225,22 +228,27 @@ class MessagesSettingsService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_key);
-      if (raw == null || raw.isEmpty) return MessagesSettings.defaults();
+      if (raw == null || raw.isEmpty) return MessagesSettings.defaults().normalizedForCurrentProductRules();
       final decoded = jsonDecode(raw);
-      if (decoded is! Map) return MessagesSettings.defaults();
-      return MessagesSettings.fromJson(Map<String, dynamic>.from(decoded));
+      if (decoded is! Map) return MessagesSettings.defaults().normalizedForCurrentProductRules();
+      final settings = MessagesSettings.fromJson(Map<String, dynamic>.from(decoded)).normalizedForCurrentProductRules();
+      final normalizedRaw = jsonEncode(settings.toJson());
+      if (normalizedRaw != raw) {
+        await prefs.setString(_key, normalizedRaw);
+      }
+      return settings;
     } catch (e) {
       debugPrint('[MessagesSettingsService] get failed: $e');
-      return MessagesSettings.defaults();
+      return MessagesSettings.defaults().normalizedForCurrentProductRules();
     }
   }
 
   static Future<void> set(MessagesSettings value) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_key, jsonEncode(value.toJson()));
-    } catch (e) {
-      debugPrint('[MessagesSettingsService] set failed: $e');
+    final prefs = await SharedPreferences.getInstance();
+    final normalized = value.normalizedForCurrentProductRules();
+    final ok = await prefs.setString(_key, jsonEncode(normalized.toJson()));
+    if (!ok) {
+      throw Exception('Messages settings could not be persisted.');
     }
   }
 

@@ -42,8 +42,9 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
   Future<void> _load() async {
     try {
       final value = await MessagesSettingsService.get();
-      final normalized = _normalizeTranslationDefaults(value);
-      if (normalized.preferredLanguageCode != value.preferredLanguageCode) {
+      final normalized = _normalizeTranslationDefaults(value).normalizedForCurrentProductRules();
+      if (normalized.toJson().toString() != value.normalizedForCurrentProductRules().toJson().toString() ||
+          normalized.preferredLanguageCode != value.preferredLanguageCode) {
         await MessagesSettingsService.set(normalized);
       }
       if (!mounted) return;

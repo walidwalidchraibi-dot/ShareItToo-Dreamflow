@@ -10,6 +10,7 @@ import 'package:lendify/screens/messages_settings_screen.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/messages_settings_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/user_avatar.dart';
@@ -40,6 +41,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  MessagesSettings _messageSettings = MessagesSettings.defaults().normalizedForCurrentProductRules();
 
   @override
   void initState() {
@@ -114,6 +116,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       final user = await DataService.getCurrentUser();
       final users = await DataService.getUsers();
       final items = await DataService.getItems();
+      final messageSettings = await MessagesSettingsService.get();
 
       if (user == null) {
         final demo = _buildDemoMessageState();
@@ -126,6 +129,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           _itemsCache = demo.items;
           _blockedUserIds = const {};
           _mutedThreadKeys = const {};
+          _messageSettings = messageSettings;
           _filter = _normalizedFilterForBlocked(const <String>{});
           _isLoading = false;
         });
@@ -159,7 +163,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
             _itemsCache = injected.items;
             _blockedUserIds = blockedUserIds;
             _mutedThreadKeys = mutedThreadKeys;
-              _filter = _normalizedFilterForBlocked(blockedUserIds);
+            _messageSettings = messageSettings;
+            _filter = _normalizedFilterForBlocked(blockedUserIds);
           _isLoading = false;
           });
           return;
@@ -175,6 +180,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           _itemsCache = demo.items;
           _blockedUserIds = blockedUserIds;
           _mutedThreadKeys = mutedThreadKeys;
+          _messageSettings = messageSettings;
           _filter = _normalizedFilterForBlocked(blockedUserIds);
           _isLoading = false;
         });
@@ -764,6 +770,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                       statusLabel: status.label,
                                       statusTone: status.tone,
                                       lastMessage: lastMsg?.text ?? '',
+                                      showPreview: _messageSettings.showChatPreview,
                                       highlighted: highlight,
                                       muted: _isThreadMuted(thread),
                                       blocked: _isOtherUserBlocked(thread),
@@ -1272,6 +1279,7 @@ class _ChatThreadTile extends StatelessWidget {
   final String itemTitle;
   final String? itemImageUrl;
   final String lastMessage;
+  final bool showPreview;
   final String timeLabel;
   final String? avatarUrl;
   final bool isSupport;
@@ -1297,6 +1305,7 @@ class _ChatThreadTile extends StatelessWidget {
     required this.statusLabel,
     required this.statusTone,
     required this.lastMessage,
+    this.showPreview = true,
     required this.highlighted,
     this.muted = false,
     this.blocked = false,
@@ -1495,18 +1504,20 @@ class _ChatThreadTile extends StatelessWidget {
                           ],
                         ),
                       ],
-                      const SizedBox(height: 3),
-                      Text(
-                        lastMessage,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.textSecondary(context),
-                              fontWeight: FontWeight.w400,
-                              fontSize: 14,
-                              height: 20/14,
-                            ),
-                      ),
+                      if (showPreview) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          lastMessage,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppTheme.textSecondary(context),
+                                fontWeight: FontWeight.w400,
+                                fontSize: 14,
+                                height: 20/14,
+                              ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
