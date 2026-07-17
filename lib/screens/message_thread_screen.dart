@@ -19,6 +19,7 @@ import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/messages_settings_service.dart';
+import 'package:lendify/services/local_artifact_storage_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
@@ -1126,6 +1127,21 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         final returnActive = _handoverReturnState['returnActive'] == true;
         if (handoverActive) await DataService.incrementHandoverPhotos(reqId);
         if (returnActive) await DataService.incrementReturnPhotos(reqId);
+        if (source == ImageSource.camera && (handoverActive || returnActive)) {
+          final saveResult = await LocalArtifactStorageService.maybeSaveEvidencePhoto(
+            file: file,
+            bookingId: reqId,
+            isReturn: returnActive,
+            fromCamera: true,
+          );
+          if (mounted && saveResult.shouldNotify) {
+            await AppPopup.toast(
+              context,
+              icon: saveResult.success ? Icons.check_circle_outline : Icons.info_outline,
+              title: saveResult.message!,
+            );
+          }
+        }
       }
       await _load();
       _scrollToBottom(animate: true);

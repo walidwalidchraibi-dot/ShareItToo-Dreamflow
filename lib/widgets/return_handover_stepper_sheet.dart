@@ -12,6 +12,7 @@ import 'package:lendify/widgets/app_popup.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/handover_code.dart';
+import 'package:lendify/services/local_artifact_storage_service.dart';
 
 class ReturnHandoverStepResult {
   final bool confirmed;
@@ -680,13 +681,25 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
       final ImagePicker picker = ImagePicker();
       final XFile? shot = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
       if (shot != null) {
-        // Represent as PlatformFile with bytes for thumbnail rendering
         final bytes = await shot.readAsBytes();
         final pf = PlatformFile(name: shot.name, size: bytes.length, path: shot.path, bytes: bytes);
         setState(() {
           addToList([pf]);
           if (kIsWeb) _galleryUsedInCheckoutPhotos = true;
         });
+        final result = await LocalArtifactStorageService.maybeSaveEvidencePhoto(
+          file: shot,
+          bookingId: widget.request.id,
+          isReturn: widget.mode == ReturnFlowMode.returnFlow,
+          fromCamera: true,
+          webBytes: bytes,
+        );
+        if (!mounted || !result.shouldNotify) return;
+        await AppPopup.toast(
+          context,
+          icon: result.success ? Icons.check_circle_outline : Icons.info_outline,
+          title: result.message!,
+        );
       }
     } catch (e) {
       debugPrint('[handover] camera pick failed: $e');
