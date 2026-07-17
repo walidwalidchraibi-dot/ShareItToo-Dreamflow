@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart';
 import 'package:lendify/models/invoice.dart';
 import 'package:lendify/services/invoice_pdf_service.dart';
+import 'package:lendify/services/local_artifact_storage_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:printing/printing.dart';
 
@@ -31,10 +32,18 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     setState(() => _busy = true);
     try {
       final bytes = await InvoicePdfService.buildPdf(widget.invoice);
-      await Printing.layoutPdf(
-        name: '${widget.invoice.invoiceNumber}.pdf',
-        onLayout: (_) async => bytes,
+      final fileName = 'SIT_Rechnung_${widget.invoice.bookingId}_${widget.invoice.date.toIso8601String().split('T').first}.pdf';
+      final saveResult = await LocalArtifactStorageService.maybeSaveReceiptPdf(
+        bytes: bytes,
+        artifactKey: 'invoice:${widget.invoice.id}:${widget.invoice.updatedAt.toIso8601String()}',
+        filename: fileName,
       );
+      if (!saveResult.handledPrimaryAction) {
+        await Printing.layoutPdf(
+          name: fileName,
+          onLayout: (_) async => bytes,
+        );
+      }
     } catch (e) {
       debugPrint('[InvoiceDetail] download failed: $e');
       if (mounted) {

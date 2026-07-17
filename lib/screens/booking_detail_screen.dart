@@ -8,6 +8,7 @@ import 'package:lendify/widgets/return_reminder_picker_sheet.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/models/invoice.dart';
 import 'package:lendify/services/invoice_pdf_service.dart';
+import 'package:lendify/services/local_artifact_storage_service.dart';
 import 'package:printing/printing.dart';
 import 'package:lendify/services/file_download_stub.dart'
     if (dart.library.html) 'package:lendify/services/file_download_web.dart';
@@ -2555,8 +2556,15 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
     try {
       final bytes = await InvoicePdfService.buildPdf(invoice);
-      final fileName = '${invoice.invoiceNumber}.pdf';
-      await triggerFileDownload(bytes, fileName, mimeType: 'application/pdf');
+      final fileName = 'SIT_Buchungsbeleg_${bookingId}_${DateTime.now().toIso8601String().split('T').first}.pdf';
+      final saveResult = await LocalArtifactStorageService.maybeSaveReceiptPdf(
+        bytes: bytes,
+        artifactKey: 'booking-receipt:${invoice.id}:${invoice.updatedAt.toIso8601String()}',
+        filename: fileName,
+      );
+      if (!saveResult.handledPrimaryAction) {
+        await triggerFileDownload(bytes, fileName, mimeType: 'application/pdf');
+      }
       if (!kIsWeb) {
         await Printing.layoutPdf(
           name: fileName,
