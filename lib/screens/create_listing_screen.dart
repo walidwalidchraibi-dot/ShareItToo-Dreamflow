@@ -21,6 +21,7 @@ import 'package:lendify/services/ai_price_calculator_service.dart';
 import 'package:lendify/openai/openai_config.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
 import 'package:lendify/widgets/selection_controls.dart';
+import 'package:lendify/theme.dart';
 
 // Google Maps Places API key (configure in Dreamflow as environment variable)
 const String kGoogleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
@@ -269,30 +270,53 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.34),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.black.withValues(alpha: 0.34)
+                          : AppTheme.surfacePrimary(context),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08)),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : const Color(0xFFE2E8F0)),
+                      boxShadow: Theme.of(context).brightness == Brightness.dark
+                          ? null
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         ListTile(
-                          leading: const Icon(Icons.photo_camera,
-                              color: Colors.white),
-                          title: const Text('Mit Kamera aufnehmen',
-                              style: TextStyle(color: Colors.white)),
+                          leading: Icon(Icons.photo_camera,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Theme.of(context).colorScheme.primary),
+                          title: Text('Mit Kamera aufnehmen',
+                              style: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : AppTheme.textPrimary(context))),
                           onTap: () async {
                             Navigator.of(context).maybePop();
                             await _pickFromCamera();
                           },
                         ),
-                        const Divider(height: 1, color: Colors.white12),
+                        Divider(height: 1, color: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : const Color(0xFFE2E8F0)),
                         ListTile(
-                          leading: const Icon(Icons.photo_library,
-                              color: Colors.white),
-                          title: const Text('Aus Galerie auswählen',
-                              style: TextStyle(color: Colors.white)),
+                          leading: Icon(Icons.photo_library,
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : AppTheme.textBody(context)),
+                          title: Text('Aus Galerie auswählen',
+                              style: TextStyle(
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.white
+                                      : AppTheme.textPrimary(context))),
                           onTap: () async {
                             Navigator.of(context).maybePop();
                             await _pickFromGallery();
@@ -776,7 +800,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     // Auto-calculate price suggestion when all required fields are filled (only once)
     if (!_hasCalculatedPrice &&
         _titleCtrl.text.trim().isNotEmpty &&
@@ -793,36 +819,60 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           child: Theme(
-            data: Theme.of(context).copyWith(
-                inputDecorationTheme: const InputDecorationTheme(
+            data: theme.copyWith(
+                inputDecorationTheme: InputDecorationTheme(
                   filled: true,
-                  fillColor: Color(0x1FFFFFFF),
-                  labelStyle: TextStyle(color: Colors.white),
-                  floatingLabelStyle: TextStyle(color: Colors.lightBlueAccent),
+                  fillColor: isDark
+                      ? const Color(0x1FFFFFFF)
+                      : const Color(0xFFFFFFFF),
+                  labelStyle: TextStyle(
+                      color: isDark
+                          ? Colors.white
+                          : AppTheme.textSecondary(context),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500),
+                  floatingLabelStyle: TextStyle(
+                      color: colorScheme.primary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600),
                   floatingLabelBehavior: FloatingLabelBehavior.auto,
-                  hintStyle: TextStyle(color: Colors.white70),
+                  hintStyle: TextStyle(
+                      color: isDark
+                          ? Colors.white70
+                          : AppTheme.textDisabled(context),
+                      fontSize: 14),
                   border: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white24),
-                      borderRadius: BorderRadius.all(Radius.circular(12))),
+                      borderSide: BorderSide(
+                          color: isDark
+                              ? Colors.white24
+                              : AppTheme.glassStroke(context)),
+                      borderRadius: const BorderRadius.all(Radius.circular(12))),
                   enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white24),
-                      borderRadius: BorderRadius.all(Radius.circular(12))),
+                      borderSide: BorderSide(
+                          color: isDark
+                              ? Colors.white24
+                              : AppTheme.glassStroke(context)),
+                      borderRadius: const BorderRadius.all(Radius.circular(12))),
                   focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.lightBlueAccent),
-                      borderRadius: BorderRadius.all(Radius.circular(12))),
-                  prefixStyle: TextStyle(color: Colors.white),
+                      borderSide: BorderSide(color: colorScheme.primary),
+                      borderRadius: const BorderRadius.all(Radius.circular(12))),
+                  prefixStyle: TextStyle(
+                      color: isDark
+                          ? Colors.white
+                          : AppTheme.textBody(context)),
                 ),
-                dropdownMenuTheme: const DropdownMenuThemeData(
+                dropdownMenuTheme: DropdownMenuThemeData(
                     menuStyle: MenuStyle(
-                        backgroundColor:
-                            MaterialStatePropertyAll(Color(0xE6000000))))),
+                        backgroundColor: WidgetStatePropertyAll(isDark
+                            ? const Color(0xE6000000)
+                            : const Color(0xFFFFFFFF))))),
             child: Form(
               key: _formKey,
               child: Column(children: [
                 _Section(
                     title: 'Kategorie',
-                    leading: const Icon(Icons.widgets_outlined,
-                        color: Colors.lightBlueAccent, size: 18),
+                    leading: Icon(Icons.widgets_outlined,
+                        color: colorScheme.primary, size: 18),
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -834,13 +884,16 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                   hintText: 'Kategorie wählen'),
                               child: Row(children: [
                                 Icon(_coarseIconForGroup(_currentCoarseLabel()),
-                                    color: Colors.white),
+                                    color: isDark ? Colors.white : AppTheme.textPrimary(context)),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     // In "Neue Anzeige" show the selected category on a single line
                                     _currentCoarseLabel(),
-                                    style: const TextStyle(color: Colors.white),
+                                    style: TextStyle(
+                                        color: isDark ? Colors.white : AppTheme.textBody(context),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500),
                                     maxLines: 1,
                                     softWrap: false,
                                     overflow: TextOverflow.ellipsis,
@@ -854,12 +907,15 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 const SizedBox(height: 12),
                 _Section(
                     title: 'Details',
-                    leading: const Icon(Icons.description_outlined,
-                        color: Colors.lightBlueAccent, size: 18),
+                    leading: Icon(Icons.description_outlined,
+                        color: colorScheme.primary, size: 18),
                     child: Column(children: [
                       TextFormField(
                         controller: _titleCtrl,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(
+                            color: isDark ? Colors.white : AppTheme.textBody(context),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500),
                         decoration: const InputDecoration(
                             labelText: 'Titel', hintText: 'Was bietest du an?'),
                         onChanged: (_) => _schedulePriceRecalc(),
@@ -871,7 +927,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                       TextFormField(
                         controller: _descCtrl,
                         maxLines: 5,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(
+                            color: isDark ? Colors.white : AppTheme.textBody(context),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500),
                         decoration: const InputDecoration(
                             labelText: 'Beschreibung',
                             hintText:
@@ -886,8 +945,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 // Fotos kommt vor Zustand
                 _Section(
                     title: 'Fotos',
-                    leading: const Icon(Icons.photo_library_outlined,
-                        color: Colors.lightBlueAccent, size: 18),
+                    leading: Icon(Icons.photo_library_outlined,
+                        color: colorScheme.primary, size: 18),
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -931,28 +990,32 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             );
                           }),
                           const SizedBox(height: 6),
-                          const Text(
+                          Text(
                               'Füge Fotos hinzu. Tippe auf +, um Kamera oder Galerie zu wählen.',
                               style: TextStyle(
-                                  color: Colors.white70, fontSize: 12)),
+                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                  fontSize: 13,
+                                  height: 1.35)),
                           const SizedBox(height: 8),
                           _Accordion(
                             title: '💬 Tipp',
                             initiallyExpanded: false,
                             bare: true,
-                            child: const Text(
+                            child: Text(
                               'Hochwertige, klare Bilder erhöhen die Chance, dass deine Anzeige öfter gemietet wird.\n'
                               'Zeig den Artikel aus verschiedenen Winkeln – hell, scharf und komplett.',
                               style: TextStyle(
-                                  color: Colors.white70, height: 1.45),
+                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                  fontSize: 13.5,
+                                  height: 1.45),
                             ),
                           ),
                         ])),
                 const SizedBox(height: 12),
                 _Section(
                   title: 'Zustand',
-                  leading: const Icon(Icons.workspace_premium_outlined,
-                      color: Colors.lightBlueAccent, size: 18),
+                  leading: Icon(Icons.workspace_premium_outlined,
+                      color: colorScheme.primary, size: 18),
                   child: _ConditionPager(
                     selected: _condition,
                     onChanged: (v) {
@@ -964,8 +1027,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 const SizedBox(height: 12),
                 _Section(
                     title: 'Übergabeort',
-                    leading: const Icon(Icons.place_outlined,
-                        color: Colors.lightBlueAccent, size: 18),
+                    leading: Icon(Icons.place_outlined,
+                        color: colorScheme.primary, size: 18),
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -988,30 +1051,34 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             apiKeyConfigured: _gmapsKey.isNotEmpty,
                           ),
                           if (_addrSuggestionsUnavailable)
-                            const Padding(
-                              padding: EdgeInsets.only(top: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
                               child: Text(
                                   'Vorschläge sind gerade nicht verfügbar. Du kannst den Ort trotzdem manuell eingeben.',
                                   style: TextStyle(
-                                      color: Colors.white70, fontSize: 12)),
+                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                      fontSize: 13,
+                                      height: 1.35)),
                             ),
                           const SizedBox(height: 8),
                           _Accordion(
                             title: 'Datenschutz & Übergabeort',
                             initiallyExpanded: false,
                             bare: true,
-                            child: const Text(
+                            child: Text(
                                'Der genaue Übergabeort wird nur zur Berechnung der Entfernung genutzt und erst nach bestätigter Anfrage angezeigt, wenn der Mieter Selbstabholer ist.',
                               style: TextStyle(
-                                  color: Colors.white70, height: 1.45),
+                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                  fontSize: 13.5,
+                                  height: 1.45),
                             ),
                           ),
                         ])),
                 const SizedBox(height: 12),
                 _Section(
                   title: 'Lieferung / Abholung anbieten',
-                  leading: const Icon(Icons.local_shipping_outlined,
-                      color: Colors.lightBlueAccent, size: 18),
+                  leading: Icon(Icons.local_shipping_outlined,
+                      color: colorScheme.primary, size: 18),
                   trailing: Switch.adaptive(
                     value: _deliveryOptionsEnabled,
                     onChanged: (v) => setState(() {
@@ -1023,7 +1090,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                         _maxDistanceKm = null;
                       }
                     }),
-                    activeColor: Colors.lightBlueAccent,
+                    activeColor: colorScheme.primary,
                   ),
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1046,15 +1113,28 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                 _offersPickupAtReturn = !_offersPickupAtReturn),
                           ),
                           const SizedBox(height: 8),
-                          _Accordion(
+                                                    _Accordion(
                             title: 'Was bedeutet das?',
                             initiallyExpanded: false,
                             bare: true,
-                            child: const Text(
-                              'Wenn du Lieferung anbietest und der Mieter diese Option bei der Buchung auswählt, bringst du den Artikel zum vereinbarten Übergabeort des Mieters.\n\n'
-                              'Wenn Abholung aktiviert ist und der Mieter diese Option für die Rückgabe auswählt, holst du den Artikel nach der Miete wieder beim Mieter ab.\n\n'
-                              'Wenn Lieferung oder Abholung nicht aktiviert sind, holt der Mieter den Artikel selbst am Übergabeort ab und bringt ihn nach der Miete selbst wieder zurück.',
-                              style: TextStyle(color: Colors.white70, height: 1.45),
+                            bodyPadding: EdgeInsets.zero,
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Text(
+                                'Wenn du Lieferung anbietest und der Mieter diese Option bei der Buchung auswählt, bringst du den Artikel zum vereinbarten Übergabeort des Mieters.
+
+'
+                                'Wenn Abholung aktiviert ist und der Mieter diese Option für die Rückgabe auswählt, holst du den Artikel nach der Miete wieder beim Mieter ab.
+
+'
+                                'Wenn Lieferung oder Abholung nicht aktiviert sind, holt der Mieter den Artikel selbst am Übergabeort ab und bringt ihn nach der Miete selbst wieder zurück.',
+                                style: TextStyle(
+                                  color: isDark ? Colors.white70 : AppTheme.textSecondary(context),
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.45,
+                                ),
+                              ),
                             ),
                           ),
                           if (_offersDeliveryAtDropoff ||
@@ -1067,15 +1147,21 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                       decimal: true),
-                              style: const TextStyle(color: Colors.white),
-                              decoration: const InputDecoration(
+                              style: TextStyle(
+                                  color: isDark ? Colors.white : AppTheme.textBody(context),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500),
+                              decoration: InputDecoration(
                                 labelText:
                                     'Maximale Liefer-/Abholentfernung in km',
                                 // Make the label more subtle/smaller when the field appears
                                 labelStyle: TextStyle(
-                                    color: Colors.white70, fontSize: 12),
+                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                    fontSize: 13),
                                 floatingLabelStyle: TextStyle(
-                                    color: Colors.white70, fontSize: 12),
+                                    color: colorScheme.primary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600),
                               ),
                             ),
                           ],
@@ -1084,21 +1170,27 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             title: 'Vergütung für Fahrtaufwand',
                             initiallyExpanded: false,
                             bare: true,
-                            child: const Column(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text('Die Vergütung wird automatisch anhand der Entfernung berechnet.',
                                     style: TextStyle(
-                                        color: Colors.white70, height: 1.4)),
+                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                        fontSize: 13.5,
+                                        height: 1.4)),
                                 SizedBox(height: 6),
                                 Text(
                                     'Aktuell: 0,30 € pro km für Hin- und Rückfahrt, mindestens 3,00 € pro Lieferung oder Abholung.',
                                     style: TextStyle(
-                                        color: Colors.white70, height: 1.4)),
+                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                        fontSize: 13.5,
+                                        height: 1.4)),
                                 SizedBox(height: 6),
                                 Text('Der Mieter sieht die Kosten vor dem Absenden der Anfrage.',
                                     style: TextStyle(
-                                        color: Colors.white70, height: 1.4)),
+                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                        fontSize: 13.5,
+                                        height: 1.4)),
                               ],
                             ),
                           ),
@@ -1110,35 +1202,53 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [Color(0xFF0C1222), Color(0xFF0A152B)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight),
+                    gradient: isDark
+                        ? const LinearGradient(
+                            colors: [Color(0xFF0C1222), Color(0xFF0A152B)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight)
+                        : const LinearGradient(
+                            colors: [
+                              Color(0xFFFFFFFF),
+                              Color(0xFFF6FBFF)
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.lightBlueAccent.withValues(alpha: 0.14),
-                          blurRadius: 22,
-                          spreadRadius: 1,
-                          offset: const Offset(0, 10)),
-                    ],
+                    border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.12)
+                            : AppTheme.glassStroke(context)),
+                    boxShadow: isDark
+                        ? [
+                            BoxShadow(
+                                color: Colors.lightBlueAccent.withValues(alpha: 0.14),
+                                blurRadius: 22,
+                                spreadRadius: 1,
+                                offset: const Offset(0, 10)),
+                          ]
+                        : [
+                            BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 18,
+                                offset: const Offset(0, 8)),
+                          ],
                   ),
                   padding: const EdgeInsets.all(16),
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(children: const [
-                          _CircleBadge(
+                        Row(children: [
+                          const _CircleBadge(
                               icon: Icons.euro_rounded,
                               color: Colors.lightBlueAccent,
                               diameter: 38),
-                          SizedBox(width: 12),
+                          const SizedBox(width: 12),
                           Text('Preis pro Tag',
                               style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 18)),
+                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16)),
                         ]),
                         const SizedBox(height: 14),
                         _AIPriceCalculatorCard(
@@ -1177,22 +1287,33 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           },
                         ),
                         if (_priceTouched)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
                             child: Text('Du hast den Preis manuell angepasst.',
                                 style: TextStyle(
-                                    color: Colors.white70, fontSize: 12)),
+                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                    fontSize: 13)),
                           ),
                         const SizedBox(height: 16),
                         Container(
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                colors: [Color(0xFF11192B), Color(0xFF0D1424)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight),
+                            gradient: isDark
+                                ? const LinearGradient(
+                                    colors: [Color(0xFF11192B), Color(0xFF0D1424)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight)
+                                : const LinearGradient(
+                                    colors: [
+                                      Color(0xFFFFFFFF),
+                                      Color(0xFFF8FAFC)
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.10)),
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.10)
+                                    : AppTheme.glassStroke(context)),
                           ),
                           padding: const EdgeInsets.symmetric(
                               vertical: 10, horizontal: 10),
@@ -1205,13 +1326,13 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                       color: Colors.lightBlueAccent,
                                       diameter: 24),
                                   const SizedBox(width: 6),
-                                  const Expanded(
+                                  Expanded(
                                       child: Text(
                                           'Rabatt bei längerer Mietdauer',
                                           style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 12))),
+                                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15))),
                                   Transform.scale(
                                     scale: 0.7,
                                     alignment: Alignment.centerRight,
@@ -1219,15 +1340,15 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                       value: _autoApplyDiscounts,
                                       onChanged: (v) => setState(
                                           () => _autoApplyDiscounts = v),
-                                      activeColor: Colors.lightBlueAccent,
+                                      activeColor: colorScheme.primary,
                                     ),
                                   ),
                                   const SizedBox(width: 4),
                                   Text('Rabatt aktiv',
                                       style: TextStyle(
                                           color: _autoApplyDiscounts
-                                              ? Colors.white
-                                              : Colors.white54,
+                                              ? (isDark ? Colors.white : AppTheme.textBody(context))
+                                              : (isDark ? Colors.white54 : AppTheme.textDisabled(context)),
                                           fontWeight: FontWeight.w600,
                                           fontSize: 11)),
                                 ]),
@@ -1239,7 +1360,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                     child: Row(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.center,
-                                        children: const [
+                                        children: [
                                           Expanded(
                                               child: Align(
                                             alignment: Alignment.centerLeft,
@@ -1247,7 +1368,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: TextStyle(
-                                                    color: Colors.white60,
+                                                    color: isDark ? Colors.white60 : AppTheme.textSecondary(context),
                                                     fontSize: 13,
                                                     fontWeight:
                                                         FontWeight.w600)),
@@ -1261,7 +1382,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                                   textAlign:
                                                       TextAlign.center,
                                                   style: TextStyle(
-                                                      color: Colors.white60,
+                                                      color: isDark ? Colors.white60 : AppTheme.textSecondary(context),
                                                       fontSize: 13,
                                                       fontWeight:
                                                           FontWeight.w600)),
@@ -1275,7 +1396,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                                   overflow: TextOverflow.ellipsis,
                                                   textAlign: TextAlign.right,
                                                   style: TextStyle(
-                                                      color: Colors.white60,
+                                                      color: isDark ? Colors.white60 : AppTheme.textSecondary(context),
                                                       fontSize: 13,
                                                       fontWeight:
                                                           FontWeight.w600)),
@@ -1355,8 +1476,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                     }),
                                   ),
                                   const SizedBox(height: 6),
-                                  Row(children: const [
-                                    Icon(Icons.autorenew,
+                                  Row(children: [
+                                    const Icon(Icons.autorenew,
                                         color: Colors.lightBlueAccent,
                                         size: 16),
                                     SizedBox(width: 8),
@@ -1364,8 +1485,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                         child: Text(
                                             'Rabatte greifen automatisch in Preisvorschauen.',
                                             style: TextStyle(
-                                                color: Colors.white70,
-                                                fontSize: 12)))
+                                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                                fontSize: 13)))
                                   ]),
                                 ],
                               ]),
@@ -1373,19 +1494,28 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                         const SizedBox(height: 12),
                         Container(
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                colors: [Color(0xFF0F1C33), Color(0xFF0B1527)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight),
+                            gradient: isDark
+                                ? const LinearGradient(
+                                    colors: [Color(0xFF0F1C33), Color(0xFF0B1527)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight)
+                                : const LinearGradient(
+                                    colors: [
+                                      Color(0xFFF0F9FF),
+                                      Color(0xFFE0F2FE)
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                                color: Colors.lightBlueAccent
-                                    .withValues(alpha: 0.30)),
+                                color: isDark
+                                    ? Colors.lightBlueAccent.withValues(alpha: 0.30)
+                                    : AppTheme.glassStroke(context)),
                           ),
                           padding: const EdgeInsets.all(12),
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
+                              children: [
                                 Row(children: [
                                   _CircleBadge(
                                       icon: Icons.lightbulb_outline,
@@ -1395,14 +1525,16 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                   SizedBox(width: 10),
                                   Text('SIT-Tipp',
                                       style: TextStyle(
-                                          color: Colors.lightBlueAccent,
-                                          fontWeight: FontWeight.w800))
+                                          color: isDark ? Colors.lightBlueAccent : colorScheme.primary,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 16))
                                 ]),
                                 SizedBox(height: 8),
                                 Text(
                                     'Für ähnliche Objekte in dieser Kategorie sind Rabatte wie oben angegeben zu empfehlen, um Mietfrequenz und Mietdauer zu erhöhen. Du kannst den Preis und die Staffelung anpassen oder komplett deaktivieren.',
                                     style: TextStyle(
-                                        color: Colors.white70, height: 1.45))
+                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                        fontSize: 13.5, height: 1.45))
                               ]),
                         ),
                       ]),
@@ -1412,10 +1544,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.20),
+                    color: isDark ? Colors.black.withValues(alpha: 0.20) : AppTheme.surfacePrimary(context),
                     borderRadius: BorderRadius.circular(16),
                     border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                        Border.all(color: isDark ? Colors.white.withValues(alpha: 0.10) : AppTheme.glassStroke(context)),
                   ),
                   child: _OwnerCancellationInfoCard(
                       body: CancellationPolicyText.bodyForOwnerListingCard),
@@ -1433,9 +1565,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                         style: FilledButton.styleFrom(
                             padding:
                                 const EdgeInsets.symmetric(vertical: 14),
-                            backgroundColor:
-                                Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.black,
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: colorScheme.onPrimary,
                             textStyle: const TextStyle(
                                     fontWeight: FontWeight.w500, fontSize: 16)),
                       ),
@@ -1449,11 +1580,15 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                         style: OutlinedButton.styleFrom(
                             padding:
                                 const EdgeInsets.symmetric(vertical: 13),
-                            foregroundColor: Colors.white,
+                            foregroundColor: isDark ? Colors.white : AppTheme.textBody(context),
                             backgroundColor:
-                                Colors.white.withValues(alpha: 0.04),
+                                isDark
+                                    ? Colors.white.withValues(alpha: 0.04)
+                                    : const Color(0xFFF8FAFC),
                             side: BorderSide(
-                                color: Colors.white.withValues(alpha: 0.22)),
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.22)
+                                    : AppTheme.glassStroke(context)),
                             textStyle: const TextStyle(
                                     fontWeight: FontWeight.w500, fontSize: 15)),
                       ),
@@ -1467,6 +1602,17 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     );
   }
 }
+
+
+Color _listingPanelSurface(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: 0.06)
+        : const Color(0xFFFFFFFF);
+
+Color _listingPanelBorder(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: 0.16)
+        : const Color(0xFFE2E8F0);
 
 class _ConditionPager extends StatefulWidget {
   final String selected;
@@ -1497,7 +1643,7 @@ class _ConditionPagerState extends State<_ConditionPager> {
       case 'worn':
         return 3;
       case 'new':
-        return 0; // map legacy "Neu" to "Wie neu"
+        return 0;
       default:
         return 1;
     }
@@ -1505,8 +1651,10 @@ class _ConditionPagerState extends State<_ConditionPager> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final selectedIndex = _indexFor(widget.selected);
     final selectedLabel = _labels[selectedIndex];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
@@ -1516,21 +1664,23 @@ class _ConditionPagerState extends State<_ConditionPager> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
+              color: _listingPanelSurface(context),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+              border: Border.all(color: _listingPanelBorder(context)),
             ),
             child: Row(children: [
               Expanded(
                   child: Text(selectedLabel,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700))),
+                      style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15.5))),
               AnimatedRotation(
                 turns: _expanded ? 0.5 : 0.0,
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
-                child: const Icon(Icons.expand_more, color: Colors.white70),
+                child: Icon(Icons.expand_more,
+                    color: isDark ? Colors.white70 : AppTheme.textSecondary(context)),
               ),
             ]),
           ),
@@ -1570,6 +1720,7 @@ class _ConditionOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
@@ -1577,18 +1728,20 @@ class _ConditionOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           color: selected
-              ? colorScheme.primary.withValues(alpha: 0.08)
-              : Colors.white.withValues(alpha: 0.04),
+              ? colorScheme.primary.withValues(alpha: 0.10)
+              : _listingPanelSurface(context),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
               color: selected
                   ? colorScheme.primary
-                  : Colors.white.withValues(alpha: 0.16)),
+                  : _listingPanelBorder(context)),
         ),
         child: Row(children: [
           Icon(
             selected ? Icons.radio_button_checked : Icons.radio_button_off,
-            color: selected ? colorScheme.primary : Colors.white70,
+            color: selected
+                ? colorScheme.primary
+                : (isDark ? Colors.white70 : AppTheme.textSecondary(context)),
             size: 22,
           ),
           const SizedBox(width: 10),
@@ -1596,8 +1749,10 @@ class _ConditionOption extends StatelessWidget {
               child: Text(label,
                   softWrap: true,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w600))),
+                  style: TextStyle(
+                      color: isDark ? Colors.white : AppTheme.textBody(context),
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15))),
         ]),
       ),
     );
@@ -1629,7 +1784,7 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
   void _showAllCities() async {
     final sel = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.black : const Color(0xFFFFFFFF),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (context) => SafeArea(
@@ -1644,9 +1799,11 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
                   color: Colors.white24,
                   borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 12),
-          const Text('Größstädte',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          Text('Größstädte',
+              style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16)),
           const SizedBox(height: 8),
           SizedBox(
             height: 360,
@@ -1655,7 +1812,10 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
                 final name = _cities[i];
                 return ListTile(
                     title:
-                        Text(name, style: const TextStyle(color: Colors.white)),
+                        Text(name,
+                            style: TextStyle(
+                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context),
+                                fontSize: 15)),
                     onTap: () => Navigator.of(context).pop(name));
               },
               separatorBuilder: (_, __) =>
@@ -1687,13 +1847,16 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
         return TextFormField(
           controller: textCtrl,
           focusNode: focusNode,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context),
+              fontSize: 15),
           decoration: InputDecoration(
               labelText: 'Stadt',
               suffixIcon: IconButton(
                   onPressed: _showAllCities,
                   icon:
-                      const Icon(Icons.arrow_drop_down, color: Colors.white))),
+                      Icon(Icons.arrow_drop_down,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textSecondary(context)))),
           onChanged: widget.onChanged,
           validator: (v) =>
               (v == null || v.trim().isEmpty) ? 'Stadt ist erforderlich' : null,
@@ -1705,7 +1868,7 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
           alignment: Alignment.topLeft,
           child: Material(
             elevation: 8,
-            color: Colors.black,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.black : AppTheme.surfacePrimary(context),
             borderRadius: BorderRadius.circular(12),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 240, minWidth: 280),
@@ -1714,13 +1877,15 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
                 shrinkWrap: true,
                 itemCount: opts.length,
                 separatorBuilder: (_, __) =>
-                    const Divider(height: 1, color: Colors.white12),
+                    Divider(height: 1, color: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : const Color(0xFFE2E8F0)),
                 itemBuilder: (context, index) {
                   final opt = opts[index];
                   return ListTile(
                     dense: true,
                     title:
-                        Text(opt, style: const TextStyle(color: Colors.white)),
+                        Text(opt, style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context),
+                            fontSize: 14.5)),
                     onTap: () => onSelected(opt),
                   );
                 },
@@ -1772,34 +1937,47 @@ class _PricePerDayInput extends StatelessWidget {
       required this.validator});
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       TextFormField(
         controller: controller,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: false),
-        style:
-            const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+        keyboardType:
+            const TextInputType.numberWithOptions(decimal: true, signed: false),
+        style: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+            fontWeight: FontWeight.w700,
+            fontSize: 16),
         decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.euro, color: Colors.white70, size: 18),
-          prefixIconConstraints: const BoxConstraints(minWidth: 38, minHeight: 24),
+          prefixIcon: Icon(Icons.euro,
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+              size: 18),
+          prefixIconConstraints:
+              const BoxConstraints(minWidth: 38, minHeight: 24),
           suffixIcon: Padding(
             padding: const EdgeInsets.only(right: 10),
             child: Text('pro Tag',
-                style: const TextStyle(
-                    color: Colors.white60, fontWeight: FontWeight.w600, fontSize: 14)),
+                style: TextStyle(
+                    color: isDark ? Colors.white60 : AppTheme.textSecondary(context),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14)),
           ),
-          suffixIconConstraints: const BoxConstraints(minWidth: 72, minHeight: 24),
+          suffixIconConstraints:
+              const BoxConstraints(minWidth: 72, minHeight: 24),
           hintText: '0,00',
-          hintStyle:
-              const TextStyle(color: Colors.white38, fontWeight: FontWeight.w600),
+          hintStyle: TextStyle(
+              color: isDark ? Colors.white38 : AppTheme.textDisabled(context),
+              fontWeight: FontWeight.w500),
           filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.06),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          fillColor: _listingPanelSurface(context),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12))),
+              borderSide: BorderSide(color: _listingPanelBorder(context))),
           focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.lightBlueAccent.withValues(alpha: 0.8))),
+              borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8))),
         ),
         onChanged: onChanged,
         validator: validator,
@@ -1817,21 +1995,27 @@ class _Section extends StatelessWidget {
       {required this.title, required this.child, this.leading, this.trailing});
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.30),
+        color: isDark
+            ? Colors.black.withValues(alpha: 0.30)
+            : const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : AppTheme.glassStroke(context)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (leading == null && trailing == null)
           Text(title,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(color: Colors.white, fontWeight: FontWeight.w700))
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16))
         else
           Row(children: [
             if (leading != null) leading!,
@@ -1839,7 +2023,9 @@ class _Section extends StatelessWidget {
             Expanded(
                 child: Text(title,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Colors.white, fontWeight: FontWeight.w700))),
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16))),
             if (trailing != null) ...[const SizedBox(width: 8), trailing!],
           ]),
         const SizedBox(height: 8),
@@ -1861,15 +2047,15 @@ class _AddPhotoTile extends StatelessWidget {
         width: 84,
         height: 84,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: _listingPanelSurface(context),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: Colors.white.withValues(alpha: 0.16),
+              color: _listingPanelBorder(context),
               style: BorderStyle.solid,
               width: 1),
         ),
         alignment: Alignment.center,
-        child: const Icon(Icons.add_a_photo, color: Colors.lightBlueAccent),
+        child: Icon(Icons.add_a_photo, color: Theme.of(context).colorScheme.primary),
       ),
     );
   }
@@ -1902,9 +2088,9 @@ class _PickedThumb extends StatelessWidget {
           width: 84,
           height: 84,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.06),
+            color: _listingPanelSurface(context),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+            border: Border.all(color: _listingPanelBorder(context)),
           ),
           clipBehavior: Clip.antiAlias,
           child: FutureBuilder<Uint8List>(
@@ -1931,10 +2117,10 @@ class _PickedThumb extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: Container(
             decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.black.withValues(alpha: 0.6) : AppTheme.surfacePrimary(context),
                 borderRadius: BorderRadius.circular(12)),
             padding: const EdgeInsets.all(4),
-            child: const Icon(Icons.close, size: 14, color: Colors.white),
+            child: Icon(Icons.close, size: 14, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context)),
           ),
         ),
       ),
@@ -1950,13 +2136,13 @@ class _Bullet extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 6),
-          child: Icon(Icons.circle, size: 6, color: Colors.white70),
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Icon(Icons.circle, size: 6, color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
         ),
         const SizedBox(width: 8),
         Expanded(
-            child: Text(text, style: const TextStyle(color: Colors.white70))),
+            child: Text(text, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 13.5))),
       ]),
     );
   }
@@ -1993,8 +2179,8 @@ class _AccordionState extends State<_Accordion>
   @override
   Widget build(BuildContext context) {
     final titleStyle = widget.bare
-        ? const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)
-        : const TextStyle(color: Colors.white, fontWeight: FontWeight.w700);
+        ? TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontWeight: FontWeight.w600, fontSize: 13.5)
+        : TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w600, fontSize: 15.5);
 
     final header = InkWell(
       onTap: () => setState(() => _expanded = !_expanded),
@@ -2019,7 +2205,7 @@ class _AccordionState extends State<_Accordion>
                 turns: _expanded ? 0.5 : 0.0,
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOut,
-                child: const Icon(Icons.expand_more, color: Colors.white70),
+                child: Icon(Icons.expand_more, color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
               ),
             ),
           ],
@@ -2051,9 +2237,9 @@ class _AccordionState extends State<_Accordion>
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
+        color: _listingPanelSurface(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        border: Border.all(color: _listingPanelBorder(context)),
       ),
       child: Column(children: [header, body]),
     );
@@ -2084,12 +2270,14 @@ class _OwnerCancellationInfoCardState
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Center(
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.policy_outlined, color: Colors.white70),
+                Icon(Icons.policy_outlined, color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
                 const SizedBox(width: 8),
-                        const Text('Stornierungsbedingungen',
+                        Text('Stornierungsbedingungen',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        fontWeight: FontWeight.w700, color: Colors.white)),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15.5,
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context))),
               ]),
             ),
           ),
@@ -2101,8 +2289,10 @@ class _OwnerCancellationInfoCardState
           firstChild: Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             child: Text(widget.body,
-                style: const TextStyle(
-                    color: Colors.white70, fontSize: 12, height: 1.35)),
+                style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                    fontSize: 13,
+                    height: 1.4)),
           ),
           secondChild: const SizedBox(height: 0),
         ),
@@ -2157,9 +2347,13 @@ class _AddressAutocompleteField extends StatelessWidget {
         return TextFormField(
           controller: textCtrl,
           focusNode: focusNode,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search), hintText: 'Übergabeort eingeben'),
+          style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context),
+              fontSize: 15),
+          decoration: InputDecoration(
+              prefixIcon: Icon(Icons.search,
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
+              hintText: 'Übergabeort eingeben'),
           onChanged: onQueryChanged,
         );
       },
@@ -2168,7 +2362,7 @@ class _AddressAutocompleteField extends StatelessWidget {
         return Align(
           alignment: Alignment.topLeft,
           child: Material(
-            color: Colors.black,
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.black : AppTheme.surfacePrimary(context),
             elevation: 8,
             borderRadius: BorderRadius.circular(12),
             child: ConstrainedBox(
@@ -2180,9 +2374,10 @@ class _AddressAutocompleteField extends StatelessWidget {
                   return ListTile(
                     dense: true,
                     leading:
-                        const Icon(Icons.place_outlined, color: Colors.white70),
+                        Icon(Icons.place_outlined,
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
                     title: Text(s.description,
-                        style: const TextStyle(color: Colors.white)),
+                        style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context))),
                     onTap: () async {
                       // Fetch place details for lat/lng
                       final d = await _fetchPlaceDetails(s.placeId);
@@ -2197,7 +2392,7 @@ class _AddressAutocompleteField extends StatelessWidget {
                   );
                 },
                 separatorBuilder: (_, __) =>
-                    const Divider(height: 1, color: Colors.white12),
+                    Divider(height: 1, color: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : const Color(0xFFE2E8F0)),
                 itemCount: list.length,
               ),
             ),
@@ -2280,25 +2475,36 @@ class _AIPriceCalculatorCard extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-            colors: [Color(0xFF111C2F), Color(0xFF0C1424)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight),
+        gradient: isDark
+            ? const LinearGradient(
+                colors: [Color(0xFF111C2F), Color(0xFF0C1424)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight)
+            : const LinearGradient(
+                colors: [Color(0xFFF8FCFF), Color(0xFFF0F9FF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.lightBlueAccent.withValues(alpha: 0.18)),
+        border: Border.all(
+            color: isDark
+                ? Colors.lightBlueAccent.withValues(alpha: 0.18)
+                : const Color(0xFFBAE6FD)),
         boxShadow: [
           BoxShadow(
-              color: Colors.lightBlueAccent.withValues(alpha: 0.12),
+              color: isDark
+                  ? Colors.lightBlueAccent.withValues(alpha: 0.12)
+                  : Colors.black.withValues(alpha: 0.06),
               blurRadius: 18,
               offset: const Offset(0, 8)),
         ],
       ),
       padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: const [
-          _CircleBadge(
+        Row(children: [
+          const _CircleBadge(
               icon: Icons.auto_awesome,
               color: Colors.lightBlueAccent,
               diameter: 28,
@@ -2310,22 +2516,22 @@ class _AIPriceCalculatorCard extends StatelessWidget {
                   children: [
                 Text('KI-Preisberechnung',
                     style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13)),
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15)),
                 SizedBox(height: 4),
                 Text(
                     'Bitte fülle Titel, Kategorie und Übergabeort aus, um eine Preisempfehlung zu erhalten.',
                     style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 10.5,
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                        fontSize: 13,
                         height: 1.35))
               ])),
         ]),
         if (canCalculate && suggestion == null) ...[
           const SizedBox(height: 8),
-          const Text('Berechne Preisvorschlag…',
-              style: TextStyle(color: Colors.white70, fontSize: 11.5)),
+          Text('Berechne Preisvorschlag…',
+              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 13)),
         ],
         if (suggestion != null) ...[
           const SizedBox(height: 9),
@@ -2353,29 +2559,29 @@ class _AIPriceCalculatorCard extends StatelessWidget {
           // Price suggestions
           Container(
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
+              color: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFDBEAFE)),
             ),
             padding: const EdgeInsets.all(9),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Icon(Icons.calendar_today,
-                    color: Colors.white70, size: 14),
+                Icon(Icons.calendar_today,
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), size: 14),
                 const SizedBox(width: 4),
-                const Text('Aktueller Marktpreis (€/Tag):',
+                Text('Aktueller Marktpreis (€/Tag):',
                     style: TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12.5)),
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13.5)),
                 const Spacer(),
                 Text(
                     '${suggestion!.dailyPriceMin.toStringAsFixed(0)}–${suggestion!.dailyPriceMax.toStringAsFixed(0)} €',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14)),
+                    style: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14.5)),
               ]),
             ]),
           ),
@@ -2386,26 +2592,26 @@ class _AIPriceCalculatorCard extends StatelessWidget {
                 ? 'Preis im unteren Marktbereich – erhöht die Buchungswahrscheinlichkeit.'
                 : 'Preis im oberen Marktbereich – optimiert Ertrag pro Vermietung.';
             return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Icon(Icons.info_outline, color: Colors.white54, size: 14),
+              Icon(Icons.info_outline, color: isDark ? Colors.white54 : AppTheme.textSecondary(context), size: 14),
               const SizedBox(width: 4),
               Expanded(
                   child: Text(help,
-                      style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11.5,
+                      style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                          fontSize: 13,
                           height: 1.35))),
             ]);
           }),
           const SizedBox(height: 7),
           // Reasoning
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Icon(Icons.info_outline, color: Colors.white54, size: 14),
+            Icon(Icons.info_outline, color: isDark ? Colors.white54 : AppTheme.textSecondary(context), size: 14),
             const SizedBox(width: 4),
             Expanded(
                 child: Text(suggestion!.reasoning,
-                    style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11.5,
+                    style: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                        fontSize: 13,
                         height: 1.35))),
           ]),
           const SizedBox(height: 7),
@@ -2424,9 +2630,9 @@ class _AIPriceCalculatorCard extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                   child: Text(suggestion!.optimizationTip,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11.5,
+                      style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context),
+                          fontSize: 13,
                           height: 1.35))),
             ]),
           ),
@@ -2448,6 +2654,7 @@ class _StrategyChip extends StatelessWidget {
       required this.onTap});
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
@@ -2455,24 +2662,30 @@ class _StrategyChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? Colors.lightBlueAccent
-              : Colors.white.withValues(alpha: 0.06),
+              : (isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF8FAFC)),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
               color: selected
                   ? Colors.lightBlueAccent
-                  : Colors.white.withValues(alpha: 0.16)),
+                  : (isDark ? Colors.white.withValues(alpha: 0.16) : AppTheme.glassStroke(context))),
         ),
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, color: selected ? Colors.black : Colors.white70, size: 14),
+          Icon(icon,
+              color: selected
+                  ? Colors.black
+                  : (isDark ? Colors.white70 : AppTheme.textSecondary(context)),
+              size: 14),
           const SizedBox(width: 5),
           Expanded(
               child: Text(label,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      color: selected ? Colors.black : Colors.white70,
+                      color: selected
+                          ? Colors.black
+                          : (isDark ? Colors.white70 : AppTheme.textBody(context)),
                       fontWeight: FontWeight.w600,
-                        fontSize: 11.5))),
+                      fontSize: 11.5))),
         ]),
       ),
     );
@@ -2584,9 +2797,9 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         Expanded(
           child: Row(children: [
-            const Text('Ab',
+            Text('Ab',
                 style: TextStyle(
-                    color: Colors.white70,
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
                     fontWeight: FontWeight.w600,
                     fontSize: 14)),
             const SizedBox(width: 4),
@@ -2627,9 +2840,9 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
               ),
             ),
             const SizedBox(width: 2),
-            const Text('Tagen',
+            Text('Tagen',
                 style: TextStyle(
-                    color: Colors.white70,
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
                     fontWeight: FontWeight.w600,
                     fontSize: 14)),
           ]),
@@ -2647,8 +2860,8 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
                   FilteringTextInputFormatter.digitsOnly,
                   LengthLimitingTextInputFormatter(2),
                 ],
-                style: const TextStyle(
-                    color: Colors.white,
+                style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
                     fontWeight: FontWeight.w700,
                     fontSize: 14),
                 textAlign: TextAlign.center,
@@ -2657,22 +2870,22 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
                   contentPadding:
                       const EdgeInsets.symmetric(vertical: 7, horizontal: 8),
                   filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.05),
+                  fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFFFFFFF),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
                       borderSide:
-                          BorderSide(color: Colors.white.withValues(alpha: 0.16))),
+                          BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.16) : const Color(0xFFE2E8F0))),
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
                       borderSide: BorderSide(
                           color: primary.withValues(alpha: 0.9))),
                   suffixText: '%',
-                  suffixStyle: const TextStyle(
-                      color: Colors.white70,
+                  suffixStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
                       fontWeight: FontWeight.w600,
                       fontSize: 13),
                   hintText: '0',
-                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                  hintStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white38 : AppTheme.textDisabled(context), fontSize: 13),
                 ),
                 onChanged: (v) {
                   final n = double.tryParse(v.replaceAll(',', '.'));
@@ -2693,7 +2906,7 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
                   width: 1,
                   height: 18,
                   margin: const EdgeInsets.symmetric(horizontal: 8),
-                  color: Colors.white.withValues(alpha: 0.18)),
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.18) : const Color(0xFFE2E8F0)),
               Expanded(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
@@ -2702,8 +2915,10 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
                       textAlign: TextAlign.right,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
+                      style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : AppTheme.textPrimary(context),
                           fontWeight: FontWeight.w700,
                           fontSize: 14)),
                 ),

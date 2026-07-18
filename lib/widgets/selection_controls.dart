@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lendify/theme.dart';
 
 /// A hollow circular indicator with a centered dot when selected.
 /// Matches the filter sheet's "blue dot in circle" design.
@@ -10,7 +11,7 @@ class DotCircleIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = Colors.white54;
+    final borderColor = Theme.of(context).brightness == Brightness.dark ? Colors.white54 : AppTheme.textDisabled(context);
     final innerSize = size * 0.44;
     return SizedBox(
       width: size,
@@ -51,7 +52,7 @@ class ToggleTextOption extends StatelessWidget {
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           DotCircleIndicator(selected: selected, dotColor: primary),
           const SizedBox(width: 6),
-          Text(label, style: TextStyle(color: selected ? primary : Colors.white, fontWeight: selected ? FontWeight.w700 : FontWeight.w600), overflow: TextOverflow.ellipsis, softWrap: false),
+          Text(label, style: TextStyle(color: selected ? primary : (Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context)), fontWeight: selected ? FontWeight.w700 : FontWeight.w600), overflow: TextOverflow.ellipsis, softWrap: false),
         ]),
       ),
     );
