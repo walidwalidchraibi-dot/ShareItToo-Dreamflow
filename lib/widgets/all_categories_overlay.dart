@@ -3,6 +3,7 @@ import 'package:lendify/widgets/outline_icon.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/utils/category_label.dart';
+import 'package:lendify/theme.dart';
 
 class AllCategoriesOverlay {
   /// Shows the categories picker as a full screen page.
@@ -21,7 +22,9 @@ class AllCategoriesOverlay {
 }
 
 class CategoryChipData {
-  final String id; final String label; final IconData icon;
+  final String id;
+  final String label;
+  final IconData icon;
   const CategoryChipData({required this.id, required this.label, required this.icon});
 }
 
@@ -42,7 +45,7 @@ class AllCategoriesScreen extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () => Navigator.of(context).maybePop(),
-            icon: const Icon(Icons.close, color: Colors.white),
+            icon: Icon(Icons.close, color: AppTheme.textPrimary(context)),
             tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
           ),
           const SizedBox(width: 4),
@@ -52,7 +55,7 @@ class AllCategoriesScreen extends StatelessWidget {
           return Text(
             l10n.t('Alle Kategorien'),
             textAlign: TextAlign.center,
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: Colors.white),
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800, color: AppTheme.textPrimary(context)),
           );
         }),
       ),
@@ -147,7 +150,8 @@ class AllCategoriesScreen extends StatelessWidget {
 }
 
 class _CategoryTile extends StatelessWidget {
-  final IconData icon; final String label;
+  final IconData icon;
+  final String label;
   final VoidCallback onTap;
   const _CategoryTile({required this.icon, required this.label, required this.onTap});
   @override
@@ -156,14 +160,13 @@ class _CategoryTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.26), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.08)), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 8, offset: const Offset(0, 4))]),
+        decoration: BoxDecoration(color: AppTheme.surfacePrimary(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppTheme.glassStroke(context)), boxShadow: AppTheme.cardShadow(context)),
         padding: const EdgeInsets.all(12),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          MaterialOutlineIcon(icon: icon, size: 28, color: Colors.white),
+          MaterialOutlineIcon(icon: icon, size: 28, color: AppTheme.textPrimary(context)),
           const SizedBox(height: 8),
           const SizedBox.shrink(),
-          Text(label, textAlign: TextAlign.center, maxLines: 2, softWrap: true, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 12, height: 1.15)),
-
+          Text(label, textAlign: TextAlign.center, maxLines: 2, softWrap: true, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.textBody(context), fontSize: 12, height: 1.15)),
         ]),
       ),
     );

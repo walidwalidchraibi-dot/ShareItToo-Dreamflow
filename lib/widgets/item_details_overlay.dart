@@ -28,6 +28,7 @@ import 'package:lendify/utils/condition_labels.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 import 'package:lendify/widgets/image_gallery_overlay.dart';
 import 'package:lendify/widgets/login_nudge_sheet.dart';
+import 'package:lendify/theme.dart';
 
 class ItemDetailsOverlay {
   static Future<void> show(BuildContext context, {required Item item, model.User? owner}) async {
@@ -407,12 +408,12 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
                 ),
                 const SizedBox(height: 12),
                 // Title centered under the image
-                Center(child: Text(item.title, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18))),
+                Center(child: Text(item.title, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w800, fontSize: 18))),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.place, size: 14, color: Colors.white70),
+                    Icon(Icons.place, size: 14, color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
@@ -420,7 +421,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white70),
+                        style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
                       ),
                     )
                   ],
@@ -428,9 +429,9 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
                 // Add ~2mm extra spacing before description
                 const SizedBox(height: 18),
                 // Artikelbeschreibung: ohne Card, komplett sichtbar
-                const Text('Artikelbeschreibung', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                Text('Artikelbeschreibung', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
-                Text(item.description, style: const TextStyle(color: Colors.white)),
+                Text(item.description, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context))),
                 const SizedBox(height: 12),
                 // Show combined info table directly under description; includes owner at bottom
                 _ItemMetaSection(item: item),
@@ -491,8 +492,8 @@ class _ActionCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.12))),
-        child: Row(children: [Icon(icon, color: Colors.white70), const SizedBox(width: 8), Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))) ]),
+        decoration: BoxDecoration(color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.06) : AppTheme.surfacePrimary(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.12) : AppTheme.glassStroke(context))),
+        child: Row(children: [Icon(icon, color: Colors.white70), const SizedBox(width: 8), Expanded(child: Text(title, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700))) ]),
       ),
     );
   }
@@ -893,12 +894,12 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
             const SizedBox(height: 12),
 
             // Title centered under the image
-            Center(child: Text(item.title, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18))),
+            Center(child: Text(item.title, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w800, fontSize: 18))),
             const SizedBox(height: 6),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.place, size: 14, color: Colors.white70),
+                Icon(Icons.place, size: 14, color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
@@ -906,7 +907,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white70),
+                    style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
                   ),
                 ),
               ],
@@ -914,9 +915,9 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
 
             // Add ~2mm extra spacing before description
             const SizedBox(height: 18),
-            const Text('Artikelbeschreibung', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            Text('Artikelbeschreibung', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
-            Text(item.description, style: const TextStyle(color: Colors.white)),
+            Text(item.description, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context))),
 
             const SizedBox(height: 12),
             // Infos zum Listing als Kompakttabelle direkt unter der Beschreibung
@@ -1001,9 +1002,9 @@ class _ItemMetaSection extends StatelessWidget {
     // Compact table-style list without a separate title. Owner info is appended at the bottom.
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
+        color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.06) : AppTheme.surfacePrimary(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.12) : AppTheme.glassStroke(context)),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -1024,7 +1025,7 @@ class _ItemMetaSection extends StatelessWidget {
         // Owner profile inline at the bottom (no separate card). If no future was
         // passed in, resolve it here by loading the owner from item.ownerId.
         const SizedBox(height: 6),
-        const Divider(height: 1, color: Colors.white24),
+        Divider(height: 1, color: Theme.of(context).brightness == Brightness.dark ? Colors.white24 : const Color(0xFFE2E8F0)),
         const SizedBox(height: 8),
         FutureBuilder<model.User?>(
           future: ownerFuture ?? ItemDetailsOverlay._loadOwner(item.ownerId),
@@ -1040,32 +1041,32 @@ class _ItemMetaSection extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Expanded(child: Text(u?.displayName ?? l10n.t('Anbieter'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+                  Expanded(child: Text(u?.displayName ?? l10n.t('Anbieter'), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700))),
                   Icon(Icons.verified, size: 16, color: (u?.isVerified == true) ? const Color(0xFF22C55E) : Colors.grey),
                 ]),
                 const SizedBox(height: 2),
                 Row(children: [
-                  Text(u != null ? '${u.reviewCount} ${l10n.t('Bewertungen')}' : l10n.t('Laden …'), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  Text(u != null ? '${u.reviewCount} ${l10n.t('Bewertungen')}' : l10n.t('Laden …'), style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
                   const SizedBox(width: 8),
                   const Icon(Icons.star, size: 14, color: Color(0xFFFB923C)),
                   const SizedBox(width: 4),
-                  Text(u != null ? u.avgRating.toStringAsFixed(1) : '—', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  Text(u != null ? u.avgRating.toStringAsFixed(1) : '—', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
                 ]),
                 if (u?.city != null) ...[
                   const SizedBox(height: 2),
-                  Text('${u!.city}${u.country != null ? ', ${u.country}' : ''}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  Text('${u!.city}${u.country != null ? ', ${u.country}' : ''}', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
                 ],
               ])),
               const SizedBox(width: 12),
               // thin vertical divider between profile infos and "Zum Profil"
-              Container(height: 44, width: 1, color: Colors.white.withValues(alpha: 0.12)),
+              Container(height: 44, width: 1, color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFE2E8F0)),
               const SizedBox(width: 12),
               TextButton.icon(
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   shape: const StadiumBorder(),
-                  side: BorderSide(color: Colors.white.withValues(alpha: 0.20)),
-                  foregroundColor: Colors.white,
+                  side: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.20) : AppTheme.glassStroke(context)),
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
                   textStyle: const TextStyle(fontSize: 13),
                 ),
                 onPressed: () {
@@ -1104,7 +1105,7 @@ class _MetaLine extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       // Make the title bigger than the info as requested
-      Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
+      Text(label, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontSize: 14)),
       const SizedBox(height: 2),
       value,
     ]);
@@ -1123,10 +1124,10 @@ class _TableLine extends StatelessWidget {
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         SizedBox(
           width: 140,
-          child: Text(label, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
+          child: Text(label, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontWeight: FontWeight.w700)),
         ),
         const SizedBox(width: 8),
-        Expanded(child: valueWidget ?? Text(value!, style: const TextStyle(color: Colors.white))),
+        Expanded(child: valueWidget ?? Text(value!, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context)))),
       ]),
     );
   }
@@ -1378,7 +1379,7 @@ class _OwnerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final verified = owner?.isVerified == true;
     return Container(
-      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.12))),
+      decoration: BoxDecoration(color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.06) : AppTheme.surfacePrimary(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.12) : AppTheme.glassStroke(context))),
       padding: const EdgeInsets.all(10),
       child: Row(children: [
         SitUserAvatar(
@@ -1393,7 +1394,7 @@ class _OwnerRow extends StatelessWidget {
             Row(children: [
               Expanded(child: Builder(builder: (context) {
                 final l10n = context.watch<LocalizationController>();
-                return Text(owner?.displayName ?? l10n.t('Anbieter'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700));
+                return Text(owner?.displayName ?? l10n.t('Anbieter'), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700));
               })),
               Icon(Icons.verified, size: 16, color: verified ? const Color(0xFF22C55E) : Colors.grey),
             ]),
@@ -1401,12 +1402,12 @@ class _OwnerRow extends StatelessWidget {
             Row(children: [
               Builder(builder: (context) {
                 final l10n = context.watch<LocalizationController>();
-                return Text(owner != null ? '${owner!.reviewCount} ${l10n.t('Bewertungen')}' : l10n.t('Laden …'), style: const TextStyle(color: Colors.white70, fontSize: 12));
+                return Text(owner != null ? '${owner!.reviewCount} ${l10n.t('Bewertungen')}' : l10n.t('Laden …'), style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12));
               }),
               const SizedBox(width: 8),
               const Icon(Icons.star, size: 14, color: Color(0xFFFB923C)),
               const SizedBox(width: 4),
-              Text(owner != null ? owner!.avgRating.toStringAsFixed(1) : '—', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              Text(owner != null ? owner!.avgRating.toStringAsFixed(1) : '—', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
             ]),
           ]),
         ),
@@ -1437,28 +1438,28 @@ class _ListerDetailsCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
             Row(children: [
-              Expanded(child: Text(u?.displayName ?? l10n.t('Anbieter'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+              Expanded(child: Text(u?.displayName ?? l10n.t('Anbieter'), maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700))),
               Icon(Icons.verified, size: 18, color: (u?.isVerified == true) ? const Color(0xFF22C55E) : Colors.grey)
             ]),
             const SizedBox(height: 2),
             Row(children: [
-              Text(u != null ? '${u.reviewCount} ${l10n.t('Bewertungen')}' : l10n.t('Laden …'), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              Text(u != null ? '${u.reviewCount} ${l10n.t('Bewertungen')}' : l10n.t('Laden …'), style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
               const SizedBox(width: 8),
               const Icon(Icons.star, size: 16, color: Color(0xFFFB923C)), const SizedBox(width: 4),
-              Text(u != null ? u.avgRating.toStringAsFixed(1) : '—', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              Text(u != null ? u.avgRating.toStringAsFixed(1) : '—', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
             ]),
             if (u?.city != null) ...[
               const SizedBox(height: 2),
-              Text('${u!.city}${u.country != null ? ', ${u.country}' : ''}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              Text('${u!.city}${u.country != null ? ', ${u.country}' : ''}', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
             ],
             if (u != null) ...[
               const SizedBox(height: 2),
-              Text('${l10n.t('Dabei seit')}: ${_joinedMonthYear(u.createdAt)}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              Text('${l10n.t('Dabei seit')}: ${_joinedMonthYear(u.createdAt)}', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
             ],
           ])),
 
           // Vertical divider
-          Container(height: 44, width: 1, color: Colors.white.withValues(alpha: 0.12)),
+          Container(height: 44, width: 1, color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFE2E8F0)),
           const SizedBox(width: 12),
 
           // Small profile button aligned to the right
@@ -1546,9 +1547,9 @@ class _ListingReviewsPreviewState extends State<_ListingReviewsPreview> {
           child: Row(children: [
             const Icon(Icons.star, color: Color(0xFFFB923C), size: 16),
             const SizedBox(width: 6),
-            Text(((e['avg'] as double?) ?? 0).toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            Text(((e['avg'] as double?) ?? 0).toStringAsFixed(1), style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700)),
             const SizedBox(width: 10),
-            Expanded(child: Text((e['text'] as String?)?.trim().isEmpty == true ? '—' : (e['text'] as String), style: const TextStyle(color: Colors.white70), maxLines: 2, overflow: TextOverflow.ellipsis)),
+            Expanded(child: Text((e['text'] as String?)?.trim().isEmpty == true ? '—' : (e['text'] as String), style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)), maxLines: 2, overflow: TextOverflow.ellipsis)),
           ]),
         ),
     ]);
@@ -1878,7 +1879,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                         if (canOfferHinweg && _dropoff == _DropoffOption.landlord && widget.item.maxDeliveryKmAtDropoff != null)
                           Padding(
                             padding: const EdgeInsets.only(left: 16.0, bottom: 6),
-                            child: Text('Lieferung bis ${widget.item.maxDeliveryKmAtDropoff!.toStringAsFixed(0)} km verfügbar.', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            child: Text('Lieferung bis ${widget.item.maxDeliveryKmAtDropoff!.toStringAsFixed(0)} km verfügbar.', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
                           ),
                         const SizedBox(height: 4),
                         const Text('Rückgabe (Artikel zurückgeben):', style: TextStyle(color: Colors.white70, fontSize: 12)),
@@ -1912,7 +1913,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                         if (canOfferRueckweg && _returning == _ReturnOption.landlord && widget.item.maxPickupKmAtReturn != null)
                           Padding(
                             padding: const EdgeInsets.only(left: 16.0, bottom: 6),
-                            child: Text('Abholung bis ${widget.item.maxPickupKmAtReturn!.toStringAsFixed(0)} km verfügbar.', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            child: Text('Abholung bis ${widget.item.maxPickupKmAtReturn!.toStringAsFixed(0)} km verfügbar.', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
                           ),
                         const SizedBox(height: 4),
                         if (!canOfferHinweg && !canOfferRueckweg)
@@ -1959,7 +1960,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                             return const SizedBox.shrink();
                           }),
                           const SizedBox(height: 4),
-                          Text('Kilometerpreis: 0,30 Euro pro km (Hin- + Rückweg)', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                          Text('Kilometerpreis: 0,30 Euro pro km (Hin- + Rückweg)', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
                           if (canOfferHinweg && widget.item.offersExpressAtDropoff && _dropoff == _DropoffOption.landlord) ...[
                             const SizedBox(height: 10),
                             CheckboxListTile(
@@ -1972,7 +1973,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                             ),
                           ],
                            if (_wantExpress) const SizedBox(height: 4),
-                           if (_wantExpress) const Text('Priorität (Option): 5,00 € – wird bei Bestätigung automatisch hinzugefügt', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                           if (_wantExpress) Text('Priorität (Option): 5,00 € – wird bei Bestätigung automatisch hinzugefügt', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
                         ] else ...[
                           const SizedBox(height: 6),
                         ],
@@ -2034,7 +2035,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                   if (canOfferHinweg && _dropoff == _DropoffOption.landlord && widget.item.maxDeliveryKmAtDropoff != null)
                     Padding(
                       padding: const EdgeInsets.only(left: 16.0, bottom: 6),
-                      child: Text('Lieferung bis ${widget.item.maxDeliveryKmAtDropoff!.toStringAsFixed(0)} km verfügbar.', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      child: Text('Lieferung bis ${widget.item.maxDeliveryKmAtDropoff!.toStringAsFixed(0)} km verfügbar.', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
                     ),
                   const SizedBox(height: 4),
                   const Text('Rückgabe (Artikel zurückgeben):', style: TextStyle(color: Colors.white70, fontSize: 12)),
@@ -2068,7 +2069,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                   if (canOfferRueckweg && _returning == _ReturnOption.landlord && widget.item.maxPickupKmAtReturn != null)
                     Padding(
                       padding: const EdgeInsets.only(left: 16.0, bottom: 6),
-                      child: Text('Abholung bis ${widget.item.maxPickupKmAtReturn!.toStringAsFixed(0)} km verfügbar.', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      child: Text('Abholung bis ${widget.item.maxPickupKmAtReturn!.toStringAsFixed(0)} km verfügbar.', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
                     ),
                   const SizedBox(height: 4),
                   if (!canOfferHinweg && !canOfferRueckweg)
@@ -2116,7 +2117,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                       return const SizedBox.shrink();
                     }),
                     const SizedBox(height: 4),
-                    Text('Kilometerpreis: 0,30 Euro pro km (Hin- + Rückweg)', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text('Kilometerpreis: 0,30 Euro pro km (Hin- + Rückweg)', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
                     if (canOfferHinweg && widget.item.offersExpressAtDropoff && _dropoff == _DropoffOption.landlord) ...[
                       const SizedBox(height: 10),
                       // Keine weitere Auf-/Zuklapp-UI – einfache Checkbox als Option
@@ -2139,6 +2140,18 @@ class _BottomActionBarState extends State<_BottomActionBar> {
 
             const SizedBox(height: 12),
 
+            if (range != null) ...[
+              Text(
+                'Zusammenfassung',
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 20,
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+
             // Preistitel über dem Datums-Button, wie im Screenshot
             if (widget.priceSummary != null) ...[
               Text(widget.priceSummary!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
@@ -2151,7 +2164,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
             if (range != null) ...[
               Container(
                 width: double.infinity,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.12))),
+                decoration: BoxDecoration(color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.06) : AppTheme.surfacePrimary(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.12) : AppTheme.glassStroke(context))),
                 padding: const EdgeInsets.all(12),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   // Checkout: nur EIN Preis (inkl. Plattformbeitrag)
@@ -2168,14 +2181,14 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
-                          const Text('Gesamtbetrag', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                          Text('${total.toStringAsFixed(2)} €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+                          Text('Gesamtbetrag', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700)),
+                          Text('${total.toStringAsFixed(2)} €', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w900, fontSize: 18)),
                         ],
                       ),
                       const SizedBox(height: 2),
-                      const Text('Inkl. Plattformgebühr', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
+                      Text('Inkl. Plattformgebühr', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 11, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 2),
-                      Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                      Text(subtitle, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 11)),
                     ]);
                   }),
                   if (_isAvailable == false) ...[
@@ -2218,7 +2231,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                 ).copyWith(
                   backgroundColor: MaterialStateProperty.resolveWith<Color?>((states) {
                     if (states.contains(MaterialState.disabled)) {
-                      return Colors.white.withValues(alpha: 0.12);
+                      return Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.12) : AppTheme.surfaceSecondary(context);
                     }
                     return Theme.of(context).colorScheme.primary;
                   }),
@@ -2242,7 +2255,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
               }),
               if (range != null) ...[
                 const SizedBox(height: 6),
-                const Text('Mit Klick auf „Anfrage senden“ akzeptierst du die AGB und die Stornierungsbedingungen.', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                Text('Mit Klick auf „Anfrage senden“ akzeptierst du die AGB und die Stornierungsbedingungen.', style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : AppTheme.textSecondary(context), fontSize: 11)),
               ],
             ],
           ]),
@@ -2358,6 +2371,7 @@ Future<void> _showUnavailablePopup(BuildContext context) async {
 Future<void> _showReservationSentPopup(BuildContext context, {required String requestId, required Item item}) async {
   final owner = await ItemDetailsOverlay._loadOwner(item.ownerId);
   final range = await DataService.getRentalRequestById(requestId);
+  final isDark = Theme.of(context).brightness == Brightness.dark;
 
   String formatDate(DateTime value) {
     final two = (int v) => v.toString().padLeft(2, '0');
@@ -2376,7 +2390,7 @@ Future<void> _showReservationSentPopup(BuildContext context, {required String re
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Anfrage geschickt',
-    barrierColor: Colors.black.withValues(alpha: 0.80),
+    barrierColor: isDark ? Colors.black.withValues(alpha: 0.80) : Colors.black.withValues(alpha: 0.28),
     transitionDuration: const Duration(milliseconds: 220),
     pageBuilder: (ctx, anim, secondaryAnim) {
       return SafeArea(
@@ -2390,11 +2404,11 @@ Future<void> _showReservationSentPopup(BuildContext context, {required String re
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0B111C).withValues(alpha: 0.96),
+                    color: isDark ? const Color(0xFF0B111C).withValues(alpha: 0.96) : AppTheme.surfacePrimary(context),
                     borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0x55000000), blurRadius: 24, offset: Offset(0, 10)),
+                    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFD9E2EC)),
+                    boxShadow: [
+                      BoxShadow(color: isDark ? const Color(0x55000000) : const Color(0x140F172A), blurRadius: 24, offset: const Offset(0, 10)),
                     ],
                   ),
                   child: Column(
@@ -2404,21 +2418,26 @@ Future<void> _showReservationSentPopup(BuildContext context, {required String re
                       Row(
                         children: [
                           Container(
-                            width: 36, height: 36,
-                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.10), shape: BoxShape.circle),
-                            child: const Icon(Icons.mark_email_read_outlined, color: Colors.white),
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withValues(alpha: 0.10) : BrandColors.primary.withValues(alpha: 0.10),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : BrandColors.primary.withValues(alpha: 0.14)),
+                            ),
+                            child: Icon(Icons.mark_email_read_outlined, color: isDark ? Colors.white : BrandColors.primary),
                           ),
                           const SizedBox(width: 10),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Anfrage geschickt',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
+                              style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w800, fontSize: 16),
                               textAlign: TextAlign.left,
                             ),
                           ),
                           IconButton(
                             onPressed: () => Navigator.of(ctx).maybePop(),
-                            icon: const Icon(Icons.close, color: Colors.white70),
+                            icon: Icon(Icons.close, color: isDark ? Colors.white70 : AppTheme.textSecondary(context)),
                           ),
                         ],
                       ),
@@ -2427,15 +2446,15 @@ Future<void> _showReservationSentPopup(BuildContext context, {required String re
                         owner == null
                             ? 'Warte auf die Antwort des Vermieters.'
                             : 'Warte auf die Antwort von ${owner.displayName}.',
-                        style: const TextStyle(color: Colors.white70, fontSize: 13),
+                        style: TextStyle(color: isDark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 13),
                       ),
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.05),
+                          color: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceSecondary(context),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0)),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2460,16 +2479,16 @@ Future<void> _showReservationSentPopup(BuildContext context, {required String re
                                     item.title,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                    style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700),
                                   ),
                                   if (rangeText != null) ...[
                                     const SizedBox(height: 4),
-                                    Text(rangeText, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                    Text(rangeText, style: TextStyle(color: isDark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
                                   ],
                                   const SizedBox(height: 4),
                                   Text(
                                     customerPriceText,
-                                    style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                                    style: TextStyle(color: isDark ? Colors.white70 : AppTheme.textPrimary(context), fontSize: 12, fontWeight: FontWeight.w600),
                                   ),
                                 ],
                               ),
@@ -2483,7 +2502,9 @@ Future<void> _showReservationSentPopup(BuildContext context, {required String re
                           Expanded(
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: Colors.white.withValues(alpha: 0.16)),
+                                side: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.16) : const Color(0xFFD1D9E6)),
+                                foregroundColor: isDark ? Colors.white : AppTheme.textPrimary(context),
+                                backgroundColor: isDark ? Colors.transparent : AppTheme.surfacePrimary(context),
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               ),
                               onPressed: () => Navigator.of(ctx).maybePop(),
@@ -2494,6 +2515,8 @@ Future<void> _showReservationSentPopup(BuildContext context, {required String re
                           Expanded(
                             child: FilledButton.icon(
                               style: FilledButton.styleFrom(
+                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               ),
                               onPressed: () async {
@@ -2605,7 +2628,7 @@ class _CancellationPolicySection extends StatelessWidget {
         collapsedIconColor: Colors.white70,
         iconColor: Colors.white70,
         initiallyExpanded: false,
-        title: Text(_header(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        title: Text(_header(), style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700)),
         children: [
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
@@ -2634,13 +2657,14 @@ class _CancellationPolicyBookingCardState extends State<_CancellationPolicyBooki
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     // Full-width within page padding
     return Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.20),
+          color: isDark ? Colors.black.withValues(alpha: 0.20) : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.10) : const Color(0xFFE2E8F0)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -2654,12 +2678,12 @@ class _CancellationPolicyBookingCardState extends State<_CancellationPolicyBooki
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.policy_outlined, color: Colors.white70),
+                  Icon(Icons.policy_outlined, color: isDark ? Colors.white70 : AppTheme.textSecondary(context)),
                   const SizedBox(width: 8),
                   Text(
                     _header(),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+                    style: TextStyle(fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppTheme.textPrimary(context)),
                   ),
                 ],
               ),
@@ -2671,7 +2695,7 @@ class _CancellationPolicyBookingCardState extends State<_CancellationPolicyBooki
               duration: const Duration(milliseconds: 200),
               firstChild: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: Text(_body(), style: const TextStyle(color: Colors.white70, height: 1.3)),
+                child: Text(_body(), style: TextStyle(color: isDark ? Colors.white70 : AppTheme.textSecondary(context), height: 1.3)),
               ),
               secondChild: const SizedBox(height: 0),
             ),

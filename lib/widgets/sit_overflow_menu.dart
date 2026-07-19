@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:lendify/theme.dart';
 
 class SitMenuOption<T> {
   final IconData icon;
@@ -60,17 +61,16 @@ class _SitMenuPanel<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
       color: Colors.transparent,
       child: Container(
         width: 250,
         decoration: BoxDecoration(
-          color: const Color(0xFF0B1220).withValues(alpha: 0.92),
+          color: isDark ? const Color(0xFF0B1220).withValues(alpha: 0.92) : AppTheme.surfacePrimary(context),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.50), blurRadius: 16, offset: const Offset(0, 10)),
-          ],
+          border: Border.all(color: AppTheme.glassStroke(context)),
+          boxShadow: AppTheme.cardShadow(context),
         ),
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Column(
@@ -79,7 +79,7 @@ class _SitMenuPanel<T> extends StatelessWidget {
             for (int i = 0; i < options.length; i++) ...[
               _SitMenuItem<T>(opt: options[i]),
               if (i != options.length - 1)
-                Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+                Divider(height: 1, color: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0)),
             ]
           ],
         ),
@@ -93,6 +93,7 @@ class _SitMenuItem<T> extends StatelessWidget {
   const _SitMenuItem({required this.opt});
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: () => Navigator.of(context, rootNavigator: true).pop<T>(opt.value),
       child: Padding(
@@ -102,16 +103,16 @@ class _SitMenuItem<T> extends StatelessWidget {
             width: 30,
             height: 30,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
+              color: isDark ? Colors.white.withValues(alpha: 0.08) : AppTheme.surfaceSecondary(context),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(opt.icon, color: Colors.white70, size: 18),
+            child: Icon(opt.icon, color: isDark ? Colors.white70 : AppTheme.textSecondary(context), size: 18),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               opt.label,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+              style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),

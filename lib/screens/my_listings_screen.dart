@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lendify/theme.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/localization_service.dart';
@@ -143,7 +144,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
           tabAlignment: TabAlignment.center,
           labelPadding: const EdgeInsets.symmetric(horizontal: 10),
           labelColor: Theme.of(context).colorScheme.primary,
-          unselectedLabelColor: Colors.white70,
+          unselectedLabelColor: AppTheme.textSecondary(context),
           labelStyle: tabsStyle,
           unselectedLabelStyle: tabsStyle,
           indicatorColor: Theme.of(context).colorScheme.primary,
@@ -173,7 +174,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
             itemBuilder: (_, i) {
               final it = visible[i];
               String statusLabel = switch (it.status) { 'active' => 'Aktiv', 'paused' => 'Pausiert', 'ended' => 'Beendet', 'draft' => 'Entwurf', _ => 'Aktiv' };
-              Color chipColor = switch (it.status) { 'active' => const Color(0x3322C55E), 'paused' => const Color(0x33F59E0B), 'ended' => const Color(0x33F43F5E), 'draft' => Colors.white54, _ => Colors.white54 };
+              Color chipColor = switch (it.status) { 'active' => const Color(0x3322C55E), 'paused' => const Color(0x33F59E0B), 'ended' => const Color(0x33F43F5E), 'draft' => AppTheme.textSecondary(context), _ => AppTheme.textSecondary(context) };
               return InkWell(
                 onTap: () => ItemDetailsOverlay.showFullPage(
                   context,
@@ -183,22 +184,22 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
                 ),
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.30), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
+                  decoration: BoxDecoration(color: Theme.of(context).brightness == Brightness.dark ? Colors.black.withValues(alpha: 0.30) : AppTheme.surfacePrimary(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppTheme.glassStroke(context)), boxShadow: AppTheme.cardShadow(context)),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     ClipRRect(borderRadius: const BorderRadius.vertical(top: Radius.circular(12)), child: AspectRatio(aspectRatio: 16 / 9, child: AppImage(url: it.photos.isNotEmpty ? it.photos.first : '', fit: BoxFit.cover))),
                     Padding(
                       padding: const EdgeInsets.all(6),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(it.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+                        Text(it.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.textPrimary(context), fontWeight: FontWeight.w700)),
                         const SizedBox(height: 2),
                         Row(children: [
-                          Text('${it.pricePerDay.toStringAsFixed(0)} €', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white)),
+                          Text('${it.pricePerDay.toStringAsFixed(0)} €', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textPrimary(context))),
                           const SizedBox(width: 4),
-                          Text(l10n.t('pro Tag'), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70)),
+                          Text(l10n.t('pro Tag'), style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.textSecondary(context))),
                         ]),
                         const SizedBox(height: 4),
                         Row(children: [
-                          Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: chipColor, borderRadius: BorderRadius.circular(8)), child: Text(statusLabel, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white))),
+                          Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: chipColor, borderRadius: BorderRadius.circular(8)), child: Text(statusLabel, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppTheme.textPrimary(context)))),
                           const Spacer(),
                           PopupMenuButton<String>(
                             tooltip: 'Status ändern',
@@ -256,7 +257,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
                                 if (it.status != 'ended') const PopupMenuItem(value: 'ended', child: Text('Beenden')),
                               ];
                             },
-                            child: const Icon(Icons.more_horiz, color: Colors.white70),
+                            child: Icon(Icons.more_horiz, color: AppTheme.textSecondary(context)),
                           )
                         ])
                       ]),
@@ -309,14 +310,14 @@ class _MyListingsEmptyState extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white.withValues(alpha: 0.88), height: 1.4),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.textPrimary(context), height: 1.4),
             ),
             if (hint != null) ...[
               const SizedBox(height: 8),
               Text(
                 hint,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.4),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary(context), height: 1.4),
               ),
             ],
           ],

@@ -418,29 +418,46 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
     final dark = theme.colorScheme.secondary;
+    final isDark = theme.brightness == Brightness.dark;
     final isMainCategoryPage = _selectedMainCategory == null && _selectedSubCategory == null;
     final isSubcategoryPage = _selectedMainCategory != null && _selectedSubCategory == null;
     final shouldCenterTitle = isMainCategoryPage || isSubcategoryPage;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: isDark ? Colors.transparent : AppTheme.surfaceMuted(context),
       body: GestureDetector(
         // Tap außerhalb der Cards = Hintergrund-Preview
         onTap: () {
-          // Nur auf Hauptkategorie/Subkategorie-Seite aktivieren
-          if (_selectedSubCategory == null) _toggleCardsVisibility();
+          // Nur im Dark Theme und nur auf Hauptkategorie/Subkategorie-Seite aktivieren
+          if (isDark && _selectedSubCategory == null) _toggleCardsVisibility();
         },
         behavior: HitTestBehavior.translucent,
         child: Stack(
           children: [
             // SIT Background - Support background
-            Positioned.fill(
-              child: Image.asset(
-                'assets/images/Hintergrund_Support.png',
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
+            if (isDark)
+              Positioned.fill(
+                child: Image.asset(
+                  'assets/images/Hintergrund_Support.png',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
+                ),
               ),
-            ),
+            if (!isDark)
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        AppTheme.surfaceMuted(context),
+                        AppTheme.surfacePrimary(context),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             // Base blur - reduziert bei Background-Preview
             Positioned.fill(
               child: AnimatedOpacity(
@@ -448,7 +465,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                 duration: const Duration(milliseconds: 300),
                 child: ClipRect(
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                    filter: ImageFilter.blur(sigmaX: isDark ? 14 : 6, sigmaY: isDark ? 14 : 6),
                     child: const SizedBox.expand(),
                   ),
                 ),
@@ -459,7 +476,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
               Positioned.fill(
                 child: ClipRect(
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+                    filter: ImageFilter.blur(sigmaX: isDark ? 2 : 1, sigmaY: isDark ? 2 : 1),
                     child: const SizedBox.expand(),
                   ),
                 ),
@@ -474,10 +491,15 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [
-                        Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!.withValues(alpha: 0.45),
-                        Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!.withValues(alpha: 0.38),
-                      ],
+                      colors: isDark
+                          ? [
+                              Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!.withValues(alpha: 0.45),
+                              Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!.withValues(alpha: 0.38),
+                            ]
+                          : [
+                              BrandColors.primary.withValues(alpha: 0.06),
+                              const Color(0xFFF8FAFC),
+                            ],
                     ),
                   ),
                 ),
@@ -494,13 +516,21 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withValues(alpha: 0.78),
-                          Colors.black.withValues(alpha: 0.62),
-                          Colors.black.withValues(alpha: 0.38),
-                          Colors.black.withValues(alpha: 0.18),
-                          Colors.transparent,
-                        ],
+                        colors: isDark
+                            ? [
+                                Colors.black.withValues(alpha: 0.78),
+                                Colors.black.withValues(alpha: 0.62),
+                                Colors.black.withValues(alpha: 0.38),
+                                Colors.black.withValues(alpha: 0.18),
+                                Colors.transparent,
+                              ]
+                            : [
+                                Colors.white.withValues(alpha: 0.68),
+                                Colors.white.withValues(alpha: 0.38),
+                                Colors.transparent,
+                                Colors.transparent,
+                                Colors.transparent,
+                              ],
                         stops: const [0.0, 0.06, 0.14, 0.24, 0.40],
                       ),
                     ),
@@ -519,15 +549,25 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.12),
-                          Colors.black.withValues(alpha: 0.28),
-                          Colors.black.withValues(alpha: 0.48),
-                          Colors.black.withValues(alpha: 0.65),
-                          Colors.black.withValues(alpha: 0.80),
-                        ],
+                        colors: isDark
+                            ? [
+                                Colors.transparent,
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.12),
+                                Colors.black.withValues(alpha: 0.28),
+                                Colors.black.withValues(alpha: 0.48),
+                                Colors.black.withValues(alpha: 0.65),
+                                Colors.black.withValues(alpha: 0.80),
+                              ]
+                            : [
+                                Colors.transparent,
+                                Colors.transparent,
+                                Colors.white.withValues(alpha: 0.12),
+                                Colors.white.withValues(alpha: 0.26),
+                                Colors.white.withValues(alpha: 0.42),
+                                Colors.white.withValues(alpha: 0.56),
+                                Colors.white.withValues(alpha: 0.72),
+                              ],
                         stops: const [0.0, 0.50, 0.64, 0.75, 0.84, 0.92, 1.0],
                       ),
                     ),
@@ -549,7 +589,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                           onPressed: _handleBack,
                           icon: Icon(
                             Icons.arrow_back_ios_new_rounded,
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: isDark ? Colors.white.withValues(alpha: 0.9) : AppTheme.textPrimary(context),
                             size: 20,
                           ),
                         ),
@@ -580,8 +620,8 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                             _currentTitle(),
                             textAlign: shouldCenterTitle ? TextAlign.center : TextAlign.start,
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.95),
-                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white.withValues(alpha: 0.95) : AppTheme.textPrimary(context),
+                              fontWeight: FontWeight.w800,
                               fontSize: shouldCenterTitle ? 26 : 24,
                             ),
                           ),
@@ -590,7 +630,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                             _currentSubline(),
                             textAlign: shouldCenterTitle ? TextAlign.center : TextAlign.start,
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.55),
+                              color: isDark ? Colors.white.withValues(alpha: 0.55) : AppTheme.textBody(context),
                               fontWeight: FontWeight.w500,
                               fontSize: 14,
                               height: 1.4,
@@ -655,14 +695,14 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
+                        color: isDark ? Colors.black.withValues(alpha: 0.55) : AppTheme.surfacePrimary(context),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.12) : AppTheme.glassStroke(context)),
                       ),
                       child: Text(
                         'Tippe erneut, um fortzufahren',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: isDark ? Colors.white.withValues(alpha: 0.8) : AppTheme.textPrimary(context),
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
@@ -748,6 +788,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
   }
 
   Widget _buildDescriptionStep() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final resolvedMainCategory = (_needsProfileReasonStep || _selectedDetailSubCategory != null)
         ? 'profile_report'
         : _selectedMainCategory;
@@ -769,9 +810,9 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                 filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.04),
+                    color: isDark ? Colors.white.withValues(alpha: 0.04) : AppTheme.surfacePrimary(context),
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                    border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFD9E2EC)),
                   ),
                   child: TextField(
                     controller: _descriptionController,
@@ -779,14 +820,14 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                     expands: true,
                     textAlignVertical: TextAlignVertical.top,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.95),
+                      color: isDark ? Colors.white.withValues(alpha: 0.95) : AppTheme.textPrimary(context),
                       fontSize: 15,
                       height: 1.5,
                     ),
                     decoration: InputDecoration(
                       hintText: 'Was ist passiert? Beschreibe die Situation so genau wie möglich …',
                       hintStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.35),
+                        color: isDark ? Colors.white.withValues(alpha: 0.35) : AppTheme.textDisabled(context),
                         fontSize: 15,
                       ),
                       contentPadding: const EdgeInsets.all(18),
@@ -826,7 +867,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                               height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white.withValues(alpha: 0.9),
+                                color: isDark ? Colors.white.withValues(alpha: 0.9) : AppTheme.textPrimary(context),
                               ),
                             )
                           : const Text(
@@ -895,24 +936,25 @@ class _SupportPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
+        color: isDark ? Colors.white.withValues(alpha: 0.06) : AppTheme.surfacePrimary(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.10) : AppTheme.glassStroke(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Vorschau für den Support', style: TextStyle(color: Colors.white.withValues(alpha: 0.92), fontWeight: FontWeight.w700, fontSize: 14)),
+          Text('Vorschau für den Support', style: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.92) : AppTheme.textPrimary(context), fontWeight: FontWeight.w700, fontSize: 14)),
           const SizedBox(height: 8),
-          Text('Kontext: $itemTitle', style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 13)),
+          Text('Kontext: $itemTitle', style: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.78) : AppTheme.textSecondary(context), fontSize: 13)),
           const SizedBox(height: 4),
-          Text('Kategorie: ${_categoryLabel(mainCategory)}', style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 13)),
+          Text('Kategorie: ${_categoryLabel(mainCategory)}', style: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.78) : AppTheme.textSecondary(context), fontSize: 13)),
           const SizedBox(height: 4),
-          Text('Grund: $subCategory', style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 13)),
+          Text('Grund: $subCategory', style: TextStyle(color: isDark ? Colors.white.withValues(alpha: 0.78) : AppTheme.textSecondary(context), fontSize: 13)),
         ],
       ),
     );
@@ -978,6 +1020,7 @@ class _DistinctBookingContextCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final statusCol = _statusColor(bookingStatus);
     
     return ClipRRect(
@@ -987,24 +1030,28 @@ class _DistinctBookingContextCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            // Stärkerer Glass-Effekt, distinkt von Kategoriekarten
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withValues(alpha: 0.08),
-                Colors.white.withValues(alpha: 0.03),
-              ],
+              colors: isDark
+                  ? [
+                      Colors.white.withValues(alpha: 0.08),
+                      Colors.white.withValues(alpha: 0.03),
+                    ]
+                  : [
+                      AppTheme.surfacePrimary(context),
+                      AppTheme.surfaceSecondary(context),
+                    ],
             ),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.12),
+              color: isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFD9E2EC),
               width: 1.2,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 20,
+                color: isDark ? Colors.black.withValues(alpha: 0.25) : Colors.black.withValues(alpha: 0.05),
+                blurRadius: isDark ? 20 : 14,
                 offset: const Offset(0, 6),
               ),
             ],
@@ -1063,8 +1110,8 @@ class _DistinctBookingContextCard extends StatelessWidget {
                       height: 24,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.grey.shade800,
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 2),
+                        color: isDark ? Colors.grey.shade800 : AppTheme.surfacePrimary(context),
+                        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.25) : const Color(0xFFE2E8F0), width: 2),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.35),
@@ -1081,7 +1128,7 @@ class _DistinctBookingContextCard extends StatelessWidget {
                               errorBuilder: (_, __, ___) => Center(
                                 child: Icon(
                                   Icons.person_rounded,
-                                  color: Colors.white.withValues(alpha: 0.7),
+                                  color: isDark ? Colors.white.withValues(alpha: 0.7) : AppTheme.textSecondary(context),
                                   size: 14,
                                 ),
                               ),
@@ -1089,7 +1136,7 @@ class _DistinctBookingContextCard extends StatelessWidget {
                           : Center(
                               child: Icon(
                                 Icons.person_rounded,
-                                color: Colors.white.withValues(alpha: 0.7),
+                                color: isDark ? Colors.white.withValues(alpha: 0.7) : AppTheme.textSecondary(context),
                                 size: 14,
                               ),
                             ),
@@ -1107,7 +1154,7 @@ class _DistinctBookingContextCard extends StatelessWidget {
                       Text(
                         itemTitle,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.95),
+                          color: isDark ? Colors.white.withValues(alpha: 0.95) : AppTheme.textPrimary(context),
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
                         ),
@@ -1120,7 +1167,7 @@ class _DistinctBookingContextCard extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.person_outline_rounded,
-                          color: Colors.white.withValues(alpha: 0.45),
+                          color: isDark ? Colors.white.withValues(alpha: 0.45) : AppTheme.textSecondary(context),
                           size: 13,
                         ),
                         const SizedBox(width: 4),
@@ -1128,7 +1175,7 @@ class _DistinctBookingContextCard extends StatelessWidget {
                           child: Text(
                             otherUserName ?? 'Gegenpartei',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.50),
+                              color: isDark ? Colors.white.withValues(alpha: 0.50) : AppTheme.textSecondary(context),
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -1140,7 +1187,7 @@ class _DistinctBookingContextCard extends StatelessWidget {
                           Text(
                             '#${requestId.length > 6 ? requestId.substring(0, 6) : requestId}',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.35),
+                              color: isDark ? Colors.white.withValues(alpha: 0.35) : AppTheme.textDisabled(context),
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                               fontFamily: 'monospace',
@@ -1194,6 +1241,7 @@ class _GlassySupportCategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return _SupportPressScale(
       onTap: onTap,
       child: ClipRRect(
@@ -1203,9 +1251,9 @@ class _GlassySupportCategoryCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.045),
+              color: isDark ? Colors.white.withValues(alpha: 0.045) : AppTheme.surfacePrimary(context),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFD9E2EC)),
             ),
             child: Row(
               children: [
@@ -1235,7 +1283,7 @@ class _GlassySupportCategoryCard extends StatelessWidget {
                   child: Text(
                     label,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.92),
+                      color: isDark ? Colors.white.withValues(alpha: 0.92) : AppTheme.textPrimary(context),
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -1244,7 +1292,7 @@ class _GlassySupportCategoryCard extends StatelessWidget {
                 if (showChevron)
                   Icon(
                     Icons.chevron_right_rounded,
-                    color: Colors.white.withValues(alpha: 0.4),
+                    color: isDark ? Colors.white.withValues(alpha: 0.4) : AppTheme.textSecondary(context),
                     size: 22,
                   ),
               ],
@@ -1268,6 +1316,7 @@ class _GlassySubcategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return _SupportPressScale(
       onTap: onTap,
       child: ClipRRect(
@@ -1278,9 +1327,9 @@ class _GlassySubcategoryCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               // Transparenter und leichter als Hauptkategorien
-              color: Colors.white.withValues(alpha: 0.035),
+              color: isDark ? Colors.white.withValues(alpha: 0.035) : AppTheme.surfacePrimary(context),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFD9E2EC)),
             ),
             child: Row(
               children: [
@@ -1290,7 +1339,7 @@ class _GlassySubcategoryCard extends StatelessWidget {
                   height: 8,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: BrandColors.primary.withValues(alpha: 0.6),
+                    color: isDark ? BrandColors.primary.withValues(alpha: 0.6) : BrandColors.primary,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -1298,7 +1347,7 @@ class _GlassySubcategoryCard extends StatelessWidget {
                   child: Text(
                     label,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.88),
+                      color: isDark ? Colors.white.withValues(alpha: 0.88) : AppTheme.textPrimary(context),
                       fontWeight: FontWeight.w500,
                       fontSize: 14,
                       height: 1.3,
@@ -1307,7 +1356,7 @@ class _GlassySubcategoryCard extends StatelessWidget {
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: Colors.white.withValues(alpha: 0.32),
+                  color: isDark ? Colors.white.withValues(alpha: 0.32) : AppTheme.textSecondary(context),
                   size: 20,
                 ),
               ],

@@ -385,10 +385,11 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
 
   @override
   Widget build(BuildContext context) {
-    final bg = Colors.black.withValues(alpha: 0.34);
-    final card = Colors.white.withValues(alpha: 0.06);
-    final border = Colors.white.withValues(alpha: 0.12);
-    final sub = Colors.white.withValues(alpha: 0.70);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? Colors.black.withValues(alpha: 0.34) : AppTheme.surfaceMuted(context);
+    final card = isDark ? Colors.white.withValues(alpha: 0.06) : AppTheme.surfacePrimary(context);
+    final border = isDark ? Colors.white.withValues(alpha: 0.12) : AppTheme.glassStroke(context);
+    final sub = isDark ? Colors.white.withValues(alpha: 0.70) : AppTheme.textSecondary(context);
     final primary = BrandColors.primary;
     final danger = BrandColors.danger;
     final chips = _thresholdChips;
@@ -410,20 +411,20 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                       alignment: Alignment.centerLeft,
                       child: IconButton(
                         onPressed: () => Navigator.of(context).maybePop(),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : AppTheme.textPrimary(context)),
                       ),
                     ),
-                    const Center(
+                    Center(
                       child: Text(
                         'Verfügbarkeit prüfen',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
+                        style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w800, fontSize: 16),
                       ),
                     ),
                     Align(
                       alignment: Alignment.centerRight,
                       child: IconButton(
                         onPressed: () => Navigator.of(context).maybePop(),
-                        icon: const Icon(Icons.close, color: Colors.white),
+                        icon: Icon(Icons.close, color: isDark ? Colors.white : AppTheme.textPrimary(context)),
                       ),
                     ),
                   ],
@@ -447,7 +448,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(16), border: Border.all(color: border)),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(_durationLabel(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22)),
+                              Text(_durationLabel(), style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w900, fontSize: 22)),
                               const SizedBox(height: 4),
                               if (_start != null && _end != null)
                                 Text(_dateSpanText(), style: TextStyle(color: sub, fontSize: 13))
@@ -506,10 +507,10 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                                       Expanded(
                                         child: Text(
                                           _calendarExpanded ? 'Kalender' : (_start == null ? 'Kalender öffnen' : 'Zeitraum ändern'),
-                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                          style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700),
                                         ),
                                       ),
-                                      Icon(_calendarExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.white70),
+                                      Icon(_calendarExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: isDark ? Colors.white70 : AppTheme.textSecondary(context)),
                                     ],
                                   ),
                                   AnimatedCrossFade(
@@ -524,19 +525,19 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                                             IconButton(
                                               visualDensity: VisualDensity.compact,
                                               onPressed: () => _prevMonth(),
-                                              icon: const Icon(Icons.chevron_left, color: Colors.white),
+                                              icon: Icon(Icons.chevron_left, color: isDark ? Colors.white : AppTheme.textPrimary(context)),
                                             ),
                                             Expanded(
                                               child: Text(
                                                 '${_monthsDe[_visibleMonth.month - 1]} ${_visibleMonth.year}',
                                                 textAlign: TextAlign.center,
-                                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                                                style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w800),
                                               ),
                                             ),
                                             IconButton(
                                               visualDensity: VisualDensity.compact,
                                               onPressed: () => _nextMonth(),
-                                              icon: const Icon(Icons.chevron_right, color: Colors.white),
+                                              icon: Icon(Icons.chevron_right, color: isDark ? Colors.white : AppTheme.textPrimary(context)),
                                             ),
                                           ],
                                         ),
@@ -551,7 +552,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                                           onTap: _onDayTap,
                                           isBooked: _isBookedDay,
                                           primary: primary,
-                                          textColor: Colors.white,
+                                          textColor: isDark ? Colors.white : AppTheme.textPrimary(context),
                                           subText: sub,
                                           danger: danger,
                                         ),
@@ -698,15 +699,15 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                             _PriceRow(label: 'Liefergebühr', value: preview.deliveryFee, pending: preview.deliveryFeePending),
                           if (_rueckwegLandlord)
                             _PriceRow(label: 'Abholgebühr', value: preview.pickupFee, pending: preview.pickupFeePending),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 10),
-                            child: Divider(color: Colors.white24, height: 1),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Divider(color: isDark ? Colors.white24 : const Color(0xFFE2E8F0), height: 1),
                           ),
-                          const Align(
+                          Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
                               'Preisrelevante Änderungen müssen später von beiden Seiten bestätigt werden.',
-                              style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                              style: TextStyle(color: isDark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12, height: 1.4),
                             ),
                           ),
                         ],
@@ -717,7 +718,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
               ),
             ),
             Container(
-              decoration: BoxDecoration(color: Colors.black, border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08)))),
+              decoration: BoxDecoration(color: isDark ? Colors.black : AppTheme.surfacePrimary(context), border: Border(top: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.08) : AppTheme.glassStroke(context)))),
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               child: SafeArea(
                 top: false,
@@ -731,11 +732,11 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Gesamtbetrag', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                              Text('Gesamtbetrag', style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w800)),
                               const SizedBox(height: 2),
-                              const Text('inkl. Plattformgebühr', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                              Text('inkl. Plattformgebühr', style: TextStyle(color: isDark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12)),
                               const SizedBox(height: 4),
-                              Text('${preview.total.toStringAsFixed(2)} €', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
+                              Text('${preview.total.toStringAsFixed(2)} €', style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w900, fontSize: 20)),
                             ],
                           ),
                         ),
@@ -746,9 +747,9 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                             onPressed: _canContinue ? _confirm : null,
                             style: FilledButton.styleFrom(
                               backgroundColor: BrandColors.primary,
-                              disabledBackgroundColor: Colors.white.withValues(alpha: 0.14),
+                              disabledBackgroundColor: isDark ? Colors.white.withValues(alpha: 0.14) : AppTheme.surfaceSecondary(context),
                               foregroundColor: Colors.white,
-                              disabledForegroundColor: Colors.white70,
+                              disabledForegroundColor: isDark ? Colors.white70 : AppTheme.textSecondary(context),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),
@@ -765,7 +766,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                         alignment: Alignment.centerLeft,
                         child: Text(
                           continueHint,
-                          style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.35),
+                          style: TextStyle(color: isDark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12, height: 1.35),
                         ),
                       ),
                     ],
@@ -828,6 +829,9 @@ class _StepCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = BrandColors.primary;
+    final lineColor = isDark ? Colors.white.withValues(alpha: 0.14) : const Color(0xFFD7E3F4);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -839,23 +843,41 @@ class _StepCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
+              SizedBox(
                 width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(color: BrandColors.primary.withValues(alpha: 0.22), shape: BoxShape.circle, border: Border.all(color: BrandColors.primary)),
-                child: Text(step, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isDark ? accent.withValues(alpha: 0.22) : accent.withValues(alpha: 0.10),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: accent, width: 1.2),
+                      ),
+                      child: Text(step, style: TextStyle(color: isDark ? Colors.white : accent, fontWeight: FontWeight.w800)),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: 1.5,
+                      height: 28,
+                      color: lineColor,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+                Text(title, style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w800, fontSize: 18)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.35)),
+                Text(subtitle, style: TextStyle(color: isDark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12, height: 1.35)),
               ])),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           child,
         ],
       ),
@@ -873,6 +895,7 @@ class _ChoiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final primary = BrandColors.primary;
     return Opacity(
       opacity: enabled ? 1 : 0.55,
@@ -891,15 +914,15 @@ class _ChoiceCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(selected ? Icons.check_circle : Icons.circle_outlined, color: selected ? primary : Colors.white70),
+                Icon(selected ? Icons.check_circle : Icons.circle_outlined, color: selected ? primary : (isDark ? Colors.white70 : AppTheme.textSecondary(context))),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                      Text(title, style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w800)),
                       const SizedBox(height: 4),
-                      Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.35)),
+                      Text(subtitle, style: TextStyle(color: isDark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 12, height: 1.35)),
                     ],
                   ),
                 ),
@@ -939,33 +962,34 @@ class _AddressSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sub = Colors.white70;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sub = isDark ? Colors.white70 : AppTheme.textSecondary(context);
     final danger = BrandColors.danger;
     final canCheck = controller.text.trim().isNotEmpty;
     final hasEstimate = estimatedKm != null;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
+        color: isDark ? Colors.white.withValues(alpha: 0.04) : AppTheme.surfacePrimary(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.10) : AppTheme.glassStroke(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          Text(label, style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           TextField(
             controller: controller,
             onChanged: onChanged,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context)),
             decoration: InputDecoration(
               hintText: 'z. B. Musterstraße 12, Stuttgart',
-              hintStyle: const TextStyle(color: Colors.white54),
+              hintStyle: TextStyle(color: isDark ? Colors.white54 : AppTheme.textDisabled(context)),
               filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.05),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+              fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : AppTheme.surfaceSecondary(context),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.10) : AppTheme.glassStroke(context))),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.10) : AppTheme.glassStroke(context))),
               focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: BrandColors.primary)),
             ),
           ),
@@ -983,7 +1007,7 @@ class _AddressSection extends StatelessWidget {
               Expanded(
                 child: Text(
                   hasEstimate ? 'Entfernung: ca. ${estimatedKm!.toStringAsFixed(1)} km' : 'Kosten können wir aktuell nur berechnen, wenn die Adresse einer bekannten Stadt zugeordnet werden kann.',
-                  style: TextStyle(color: hasEstimate ? Colors.white70 : Colors.white60, fontSize: 12, height: 1.35),
+                  style: TextStyle(color: hasEstimate ? (isDark ? Colors.white70 : AppTheme.textSecondary(context)) : (isDark ? Colors.white60 : AppTheme.textSecondary(context)), fontSize: 12, height: 1.35),
                 ),
               ),
             ],
@@ -991,7 +1015,7 @@ class _AddressSection extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             hasEstimate ? '$feeLabel: ${fee.toStringAsFixed(2)} €' : '${feeLabel}: noch nicht berechnet',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+            style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700),
           ),
           if (overMax) ...[
             const SizedBox(height: 8),
@@ -1015,17 +1039,24 @@ class _PriceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = positiveAccent ? const Color(0xFF86EFAC) : Colors.white70;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final labelColor = positiveAccent
+        ? const Color(0xFF86EFAC)
+        : (isDark ? Colors.white70 : AppTheme.textSecondary(context));
+    final valueColor = positiveAccent
+        ? const Color(0xFF86EFAC)
+        : (isDark ? Colors.white : AppTheme.textPrimary(context));
+    final pendingColor = isDark ? Colors.white60 : AppTheme.textSecondary(context);
     final prefix = value < 0 ? '- ' : '';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: color, fontSize: 13)),
+          Text(label, style: TextStyle(color: labelColor, fontSize: 13)),
           Text(
             pending ? 'noch nicht berechnet' : '$prefix${value.abs().toStringAsFixed(2)} €',
-            style: TextStyle(color: pending ? Colors.white60 : color, fontWeight: FontWeight.w700),
+            style: TextStyle(color: pending ? pendingColor : valueColor, fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -1132,9 +1163,13 @@ class _DayCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (day == null) return const SizedBox(height: 42);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final today = DateTime.now();
+    final todayOnly = DateTime(today.year, today.month, today.day);
     final d = day!;
     final disabled = d.isBefore(firstDate) || d.isAfter(lastDate);
     final booked = isBooked(d);
+    final isToday = _sameDay(d, todayOnly);
     final isStart = start != null && _sameDay(d, start!);
     final isEnd = end != null && _sameDay(d, end!.subtract(const Duration(days: 1)));
     final inRange = start != null && end != null && !d.isBefore(start!) && d.isBefore(end!);
@@ -1142,24 +1177,32 @@ class _DayCell extends StatelessWidget {
 
     Color bg = Colors.transparent;
     BoxBorder? border;
-    Color fg = disabled ? Colors.white38 : textColor;
+    Color fg = disabled
+        ? (isDark ? const Color(0xFF9CA3AF) : AppTheme.textDisabled(context))
+        : textColor;
     if (disabled) {
-      bg = Colors.white.withValues(alpha: 0.04);
+      bg = isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF1F5F9);
+      border = Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0));
     }
     if (booked) {
-      fg = Colors.white38;
+      bg = isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC);
+      fg = isDark ? const Color(0xFF9CA3AF) : AppTheme.textDisabled(context);
+      border = Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE5E7EB));
     } else if (selected) {
       bg = primary;
       fg = Colors.white;
+      border = Border.all(color: primary);
     } else if (inRange) {
       bg = primary.withValues(alpha: 0.18);
+      fg = isDark ? Colors.white : AppTheme.textPrimary(context);
+    } else if (isToday) {
+      border = Border.all(color: primary.withValues(alpha: isDark ? 0.85 : 1.0), width: 1.2);
     }
-    if (selected) border = Border.all(color: primary);
 
     return Padding(
       padding: const EdgeInsets.all(2),
       child: GestureDetector(
-        onTap: booked ? null : () => onTap(d),
+        onTap: (booked || disabled) ? null : () => onTap(d),
         child: Container(
           height: 42,
           alignment: Alignment.center,
@@ -1172,8 +1215,8 @@ class _DayCell extends StatelessWidget {
               ? Stack(
                   alignment: Alignment.center,
                   children: [
-                    Text('${d.day}', style: TextStyle(color: fg)),
-                    Container(width: 20, height: 1.5, color: Colors.white38),
+                    Text('${d.day}', style: TextStyle(color: fg, fontWeight: FontWeight.w500)),
+                    Container(width: 20, height: 1.5, color: isDark ? const Color(0xFF9CA3AF) : AppTheme.textDisabled(context)),
                   ],
                 )
               : Text('${d.day}', style: TextStyle(color: fg, fontWeight: selected ? FontWeight.w800 : FontWeight.w500)),
