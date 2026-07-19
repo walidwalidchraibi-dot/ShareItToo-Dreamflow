@@ -12,6 +12,9 @@ class AppPopup {
     BuildContext context, {
     required List<({String value, IconData icon, String label, Color? color})> items,
   }) async {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
     // Anchor roughly to the top-right under the app bar
     final position = RelativeRect.fromLTRB(size.width - 8, kToolbarHeight + 8, 8, size.height - kToolbarHeight - 8);
@@ -19,8 +22,17 @@ class AppPopup {
     return await showMenu<String>(
       context: context,
       position: position,
-      color: Colors.black.withValues(alpha: 0.92),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+      color: isDark
+          ? Colors.black.withValues(alpha: 0.92)
+          : AppTheme.surfacePrimary(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.10)
+              : cs.onSurface.withValues(alpha: 0.10),
+        ),
+      ),
       elevation: 0,
       items: [
         for (final it in items)
@@ -32,13 +44,33 @@ class AppPopup {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : AppTheme.surfaceSecondary(context),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : cs.onSurface.withValues(alpha: 0.08),
+                  ),
                 ),
-                child: Icon(it.icon, size: 18, color: it.color ?? Colors.white),
+                child: Icon(
+                  it.icon,
+                  size: 18,
+                  color: it.color ??
+                      (isDark ? Colors.white : AppTheme.textPrimary(context)),
+                ),
               ),
               const SizedBox(width: 12),
-              Expanded(child: Text(it.label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700))),
+              Expanded(
+                child: Text(
+                  it.label,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : AppTheme.textPrimary(context),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ]),
           ),
       ],
@@ -289,8 +321,11 @@ class AppPopup {
                               Theme.of(ctx).colorScheme.primary.withValues(alpha: 0.85),
                             ])
                           : null,
-                      // Make the card a bit lighter for better contrast as requested
-                      backgroundColor: cardBackgroundColor ?? Colors.black.withValues(alpha: 0.60),
+                      // Default custom dialogs to light surfaces in light theme and dark glass in dark theme
+                      backgroundColor: cardBackgroundColor ??
+                          (Theme.of(ctx).brightness == Brightness.dark
+                              ? Colors.black.withValues(alpha: 0.60)
+                              : AppTheme.surfacePrimary(ctx)),
                       showLeading: showLeading,
                     ),
                   ),
@@ -385,7 +420,13 @@ class _GlassCard extends StatelessWidget {
     final radius = BorderRadius.circular(20);
     // Make the glass card itself more opaque for better readability on busy backdrops
     final baseColor = backgroundColor ?? (useExploreBackground ? Colors.black.withValues(alpha: 0.28) : Colors.black.withValues(alpha: 0.58));
-    final borderClr = borderColor ?? Colors.white.withValues(alpha: 0.16);
+    final isLightCard = ThemeData.estimateBrightnessForColor(baseColor) == Brightness.light;
+    final titleColor = isLightCard ? AppTheme.textPrimary(context) : Colors.white;
+    final secondaryColor = isLightCard ? AppTheme.textSecondary(context) : Colors.white70;
+    final borderClr = borderColor ??
+        (isLightCard
+            ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.10)
+            : Colors.white.withValues(alpha: 0.16));
     final danger = Theme.of(context).colorScheme.error;
     return ClipRRect(
       borderRadius: radius,
@@ -397,8 +438,14 @@ class _GlassCard extends StatelessWidget {
               child: Image.asset('assets/images/fulllogo.jpg', fit: BoxFit.cover),
             ),
           ),
-          // Subtle darkening layer for contrast
-          Positioned.fill(child: Container(color: Colors.black.withValues(alpha: 0.30))),
+          // Keep light cards bright; only darken dark cards for contrast
+          Positioned.fill(
+            child: Container(
+              color: isLightCard
+                  ? Colors.transparent
+                  : Colors.black.withValues(alpha: 0.30),
+            ),
+          ),
         ],
         Container(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -414,13 +461,13 @@ class _GlassCard extends StatelessWidget {
               Row(
                 children: [
                   if (showLeading) ...[
-                    _buildLeading(),
+                    _buildLeading(context),
                     const SizedBox(width: 10),
                   ],
                   Expanded(
                     child: Text(
                       title,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
+                      style: TextStyle(color: titleColor, fontWeight: FontWeight.w800, fontSize: 16),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -428,7 +475,7 @@ class _GlassCard extends StatelessWidget {
                     (plainCloseIcon
                         ? IconButton(
                             onPressed: onClose,
-                            icon: const Icon(Icons.close, size: 20, color: Colors.white70),
+                            icon: Icon(Icons.close, size: 20, color: secondaryColor),
                             padding: const EdgeInsets.all(4),
                             splashRadius: 18,
                           )
@@ -468,7 +515,7 @@ class _GlassCard extends StatelessWidget {
               ],
               if (message != null) ...[
                 const SizedBox(height: 6),
-                Text(message!, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                Text(message!, style: TextStyle(color: secondaryColor, fontSize: 13)),
               ],
               if (body != null) ...[
                 const SizedBox(height: 12),
@@ -490,7 +537,13 @@ class _GlassCard extends StatelessWidget {
     );
   }
 
-  Widget _buildLeading() {
+  Widget _buildLeading(BuildContext context) {
+    final baseColor = backgroundColor ?? (useExploreBackground ? Colors.black.withValues(alpha: 0.28) : Colors.black.withValues(alpha: 0.58));
+    final isLightCard = ThemeData.estimateBrightnessForColor(baseColor) == Brightness.light;
+    final leadingBg = isLightCard
+        ? AppTheme.surfaceSecondary(context)
+        : Colors.white.withValues(alpha: 0.10);
+    final leadingFg = isLightCard ? AppTheme.textPrimary(context) : Colors.white;
     if (leadingWidget != null) return leadingWidget!;
     return Container(
       width: 36,
@@ -498,9 +551,9 @@ class _GlassCard extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: accentGradient,
-        color: accentGradient == null ? Colors.white.withValues(alpha: 0.10) : null,
+        color: accentGradient == null ? leadingBg : null,
       ),
-      child: Icon(leadingIcon ?? Icons.info_outline, color: Colors.white),
+      child: Icon(leadingIcon ?? Icons.info_outline, color: leadingFg),
     );
   }
 }

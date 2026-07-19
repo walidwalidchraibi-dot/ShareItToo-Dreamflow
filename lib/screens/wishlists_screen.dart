@@ -9,6 +9,7 @@ import 'package:lendify/widgets/listing_options_dialog.dart';
 import 'package:lendify/widgets/wishlist_mosaic_card.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
+import 'package:lendify/theme.dart';
 
 class WishlistsScreen extends StatefulWidget {
   const WishlistsScreen({super.key});
@@ -32,11 +33,16 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     setState(() => _loading = true);
     final lists = await DataService.getWishlists();
     final by = await DataService.getItemsByWishlist();
-    setState(() { _lists = lists; _itemsByList = by; _loading = false; });
+    setState(() {
+      _lists = lists;
+      _itemsByList = by;
+      _loading = false;
+    });
   }
 
   Future<void> _addCustomList() async {
     final controller = TextEditingController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final name = await AppPopup.showCustom<String>(
       context,
       icon: Icons.bookmark_add_outlined,
@@ -44,6 +50,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
       showCloseIcon: false,
       showLeading: false,
       showAccentLine: false,
+      cardBackgroundColor: isDark ? null : AppTheme.surfacePrimary(context),
       body: _CreateWishlistPopupBody(controller: controller),
     );
     if (name != null && name.isNotEmpty) {
@@ -59,10 +66,14 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        leading: IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
+        leading: IconButton(
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.arrow_back)),
         title: Text(l10n.t('Wunschlisten')),
         centerTitle: true,
-        actions: [IconButton(onPressed: _addCustomList, icon: const Icon(Icons.add))],
+        actions: [
+          IconButton(onPressed: _addCustomList, icon: const Icon(Icons.add))
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -77,10 +88,11 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                       child: Text(
                         'Merke dir Artikel, die du bald brauchst oder später mieten möchtest.',
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: cs.onSurface.withValues(alpha: 0.55),
-                          height: 1.5,
-                        ),
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: cs.onSurface.withValues(alpha: 0.55),
+                                  height: 1.5,
+                                ),
                       ),
                     ),
                   ),
@@ -96,7 +108,12 @@ extension on _WishlistsScreenState {
   Widget _buildFolderGrid(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     if (_lists.isEmpty) {
-      return Center(child: Text(context.watch<LocalizationController>().t('Noch keine Wunschlisten'), style: Theme.of(context).textTheme.titleMedium));
+      return Center(
+          child: Text(
+              context
+                  .watch<LocalizationController>()
+                  .t('Noch keine Wunschlisten'),
+              style: Theme.of(context).textTheme.titleMedium));
     }
 
     // Build data for mosaic cards
@@ -151,7 +168,8 @@ extension on _WishlistsScreenState {
   }
 
   String _systemSubtitle(String id) {
-    if (id == DataService.wlSoonId) return 'Ich plane, diesen Artikel bald zu mieten';
+    if (id == DataService.wlSoonId)
+      return 'Ich plane, diesen Artikel bald zu mieten';
     if (id == DataService.wlLaterId) return 'Interessant, aber nicht jetzt';
     if (id == DataService.wlAgainId) return 'Diesen Artikel hatte ich schon';
     return '';
@@ -165,7 +183,8 @@ Route _mosaicRoute(Widget page) {
     pageBuilder: (context, animation, secondaryAnimation) => FadeTransition(
       opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
       child: ScaleTransition(
-        scale: Tween<double>(begin: 0.98, end: 1.0).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+        scale: Tween<double>(begin: 0.98, end: 1.0)
+            .animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
         child: page,
       ),
     ),
@@ -176,7 +195,8 @@ class _WishlistFolderDetail extends StatefulWidget {
   final String listId;
   final String title;
   final bool system;
-  const _WishlistFolderDetail({required this.listId, required this.title, required this.system});
+  const _WishlistFolderDetail(
+      {required this.listId, required this.title, required this.system});
 
   @override
   State<_WishlistFolderDetail> createState() => _WishlistFolderDetailState();
@@ -205,34 +225,44 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
   }
 
   String _headerSubline() {
-    if (widget.listId == DataService.wlSoonId) return 'Plane, was du bald mieten möchtest.';
-    if (widget.listId == DataService.wlLaterId) return 'Sammle Ideen für spätere Mieten.';
-    if (widget.listId == DataService.wlAgainId) return 'Artikel, die du erneut mieten möchtest.';
+    if (widget.listId == DataService.wlSoonId)
+      return 'Plane, was du bald mieten möchtest.';
+    if (widget.listId == DataService.wlLaterId)
+      return 'Sammle Ideen für spätere Mieten.';
+    if (widget.listId == DataService.wlAgainId)
+      return 'Artikel, die du erneut mieten möchtest.';
     return 'Eigene Sammlung';
   }
 
   String _systemDetailSubline(String id) {
-    if (id == DataService.wlSoonId) return 'Speichere passende Artikel aus Erkunden,\num deine nächste Miete zu planen.';
-    if (id == DataService.wlLaterId) return 'Sammle Ideen für spätere Mieten\nund finde sie hier wieder.';
-    if (id == DataService.wlAgainId) return 'Merke dir Artikel, die du bereits\ngemietet hast und erneut mieten möchtest.';
+    if (id == DataService.wlSoonId)
+      return 'Speichere passende Artikel aus Erkunden,\num deine nächste Miete zu planen.';
+    if (id == DataService.wlLaterId)
+      return 'Sammle Ideen für spätere Mieten\nund finde sie hier wieder.';
+    if (id == DataService.wlAgainId)
+      return 'Merke dir Artikel, die du bereits\ngemietet hast und erneut mieten möchtest.';
     return 'Speichere passende Artikel aus Erkunden.';
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        leading: IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
+        leading: IconButton(
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.arrow_back)),
         title: Column(mainAxisSize: MainAxisSize.min, children: [
           Text(_title ?? widget.title),
           Text(
             _headerSubline(),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: cs.onSurface.withValues(alpha: 0.5),
-              fontWeight: FontWeight.w400,
-            ),
+                  color: cs.onSurface.withValues(alpha: 0.5),
+                  fontWeight: FontWeight.w400,
+                ),
           ),
         ]),
         centerTitle: true,
@@ -242,15 +272,43 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
             IconButton(
               icon: const Icon(Icons.more_vert),
               onPressed: () async {
-                final items = <({String value, IconData icon, String label, Color color})>[];
-                items.add((value: 'edit', icon: _editMode ? Icons.check_circle_outline : Icons.edit_outlined, label: _editMode ? 'Fertig' : 'Wunschliste bearbeiten', color: Colors.white));
+                final items = <({
+                  String value,
+                  IconData icon,
+                  String label,
+                  Color color
+                })>[];
+                if (_items.isNotEmpty) {
+                  items.add((
+                    value: 'edit',
+                    icon: _editMode
+                        ? Icons.check_circle_outline
+                        : Icons.edit_outlined,
+                    label: _editMode ? 'Fertig' : 'Wunschliste bearbeiten',
+                    color:
+                        isDark ? Colors.white : AppTheme.textSecondary(context)
+                  ));
+                }
                 if (!widget.system) {
                   items.addAll([
-                    (value: 'rename', icon: Icons.drive_file_rename_outline, label: 'Name ändern', color: Colors.white),
-                    (value: 'delete', icon: Icons.delete_outline, label: 'Wunschliste löschen', color: cs.error),
+                    (
+                      value: 'rename',
+                      icon: Icons.drive_file_rename_outline,
+                      label: 'Name ändern',
+                      color: isDark
+                          ? Colors.white
+                          : AppTheme.textSecondary(context)
+                    ),
+                    (
+                      value: 'delete',
+                      icon: Icons.delete_outline,
+                      label: 'Wunschliste löschen',
+                      color: cs.error
+                    ),
                   ]);
                 }
-                final choice = await AppPopup.showMenuActions(context, items: items);
+                final choice =
+                    await AppPopup.showMenuActions(context, items: items);
                 switch (choice) {
                   case 'rename':
                     await _renameWishlist();
@@ -274,40 +332,70 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                   ? ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
-                        SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+                        SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.2),
                         Center(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 32),
-                            child: Column(mainAxisSize: MainAxisSize.min, children: [
-                              Icon(Icons.favorite_border_rounded, size: 48, color: cs.onSurface.withValues(alpha: 0.18)),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Noch keine Artikel gespeichert',
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: cs.onSurface.withValues(alpha: 0.75), fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                widget.system ? _systemDetailSubline(widget.listId) : 'Speichere passende Artikel aus Erkunden.',
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.5), height: 1.4),
-                              ),
-                              const SizedBox(height: 24),
-                              TextButton.icon(
-                                onPressed: () {
-                                  if (mounted) {
-                                    context.read<MainNavController>().setIndex(0);
-                                  }
-                                  Navigator.of(context).popUntil((r) => r.isFirst);
-                                },
-                                icon: const Icon(Icons.explore_outlined, size: 18),
-                                label: const Text('Artikel entdecken'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: cs.primary,
-                                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                            ]),
+                            child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.favorite_border_rounded,
+                                      size: 48,
+                                      color: isDark
+                                          ? cs.onSurface.withValues(alpha: 0.18)
+                                          : cs.onSurface
+                                              .withValues(alpha: 0.26)),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Noch keine Artikel gespeichert',
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                            color: cs.onSurface
+                                                .withValues(alpha: 0.75),
+                                            fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    widget.system
+                                        ? _systemDetailSubline(widget.listId)
+                                        : 'Speichere passende Artikel aus Erkunden.',
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                            color: cs.onSurface.withValues(
+                                                alpha: isDark ? 0.5 : 0.58),
+                                            height: 1.4),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      if (mounted) {
+                                        context
+                                            .read<MainNavController>()
+                                            .setIndex(0);
+                                      }
+                                      Navigator.of(context)
+                                          .popUntil((r) => r.isFirst);
+                                    },
+                                    icon: const Icon(Icons.explore_outlined,
+                                        size: 18),
+                                    label: const Text('Artikel entdecken'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: cs.primary,
+                                      textStyle: Theme.of(context)
+                                          .textTheme
+                                          .labelLarge
+                                          ?.copyWith(
+                                              fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ]),
                           ),
                         ),
                       ],
@@ -317,24 +405,42 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                         Container(
                           width: double.infinity,
                           margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
                           decoration: BoxDecoration(
-                            color: cs.surface.withValues(alpha: 0.08),
+                            color: isDark
+                                ? cs.surface.withValues(alpha: 0.08)
+                                : cs.primary.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: cs.primary.withValues(alpha: 0.18)),
+                            border: Border.all(
+                                color: cs.primary.withValues(alpha: 0.18)),
                           ),
                           child: Row(children: [
-                            const Icon(Icons.info_outline, size: 18, color: Colors.white70),
+                            Icon(
+                              Icons.info_outline,
+                              size: 18,
+                              color: isDark ? Colors.white70 : cs.primary,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Bearbeitungsmodus: Tippe auf das X, um Artikel zu entfernen.',
-                                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color:
+                                          isDark ? Colors.white : cs.onSurface,
+                                    ),
                               ),
                             ),
                             TextButton(
-                              onPressed: () => setState(() => _editMode = false),
-                              style: TextButton.styleFrom(foregroundColor: Colors.white),
+                              onPressed: () =>
+                                  setState(() => _editMode = false),
+                              style: TextButton.styleFrom(
+                                foregroundColor:
+                                    isDark ? Colors.white : cs.primary,
+                              ),
                               child: const Text('Fertig'),
                             ),
                           ]),
@@ -342,17 +448,24 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                       Expanded(
                         child: GridView.builder(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
                             crossAxisSpacing: 12,
                             mainAxisSpacing: 12,
-                            childAspectRatio: _wishlistDetailChildAspectRatio(context),
+                            childAspectRatio:
+                                _wishlistDetailChildAspectRatio(context),
                           ),
                           itemCount: _items.length,
                           itemBuilder: (_, i) {
                             final item = _items[i];
                             return Stack(children: [
-                              Positioned.fill(child: ItemCard(item: item, longPressContext: ListingOptionsContext.wishlist, onContextActionCompleted: _load)),
+                              Positioned.fill(
+                                  child: ItemCard(
+                                      item: item,
+                                      longPressContext:
+                                          ListingOptionsContext.wishlist,
+                                      onContextActionCompleted: _load)),
                               if (_editMode)
                                 Positioned(
                                   top: 8,
@@ -360,9 +473,13 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                                   child: InkWell(
                                     onTap: () async {
                                       try {
-                                        await DataService.removeItemFromWishlist(item.id);
+                                        await DataService
+                                            .removeItemFromWishlist(item.id);
                                         if (mounted) {
-                                          setState(() { _items = List<Item>.from(_items)..removeAt(i); });
+                                          setState(() {
+                                            _items = List<Item>.from(_items)
+                                              ..removeAt(i);
+                                          });
                                         }
                                       } catch (_) {}
                                     },
@@ -374,7 +491,8 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                                         color: cs.error.withValues(alpha: 0.90),
                                         shape: BoxShape.circle,
                                       ),
-                                      child: const Icon(Icons.close, size: 16, color: Colors.white),
+                                      child: const Icon(Icons.close,
+                                          size: 16, color: Colors.white),
                                     ),
                                   ),
                                 ),
@@ -389,6 +507,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
 
   Future<void> _renameWishlist() async {
     final controller = TextEditingController(text: _title ?? widget.title);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final newName = await AppPopup.showCustom<String>(
       context,
       icon: Icons.drive_file_rename_outline,
@@ -396,16 +515,19 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
       showCloseIcon: false,
       showLeading: false,
       showAccentLine: false,
+      cardBackgroundColor: isDark ? null : AppTheme.surfacePrimary(context),
       body: _RenameWishlistPopupBody(controller: controller),
     );
     if (newName != null && newName.trim().isNotEmpty) {
-      await DataService.renameCustomWishlist(id: widget.listId, newName: newName.trim());
+      await DataService.renameCustomWishlist(
+          id: widget.listId, newName: newName.trim());
       if (mounted) setState(() => _title = newName.trim());
     }
   }
 
   Future<void> _deleteWishlist() async {
     // Simple confirm using AppPopup
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     bool? confirmed = await AppPopup.showCustom<bool>(
       context,
       icon: Icons.delete_outline,
@@ -413,6 +535,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
       showCloseIcon: false,
       showLeading: false,
       showAccentLine: false,
+      cardBackgroundColor: isDark ? null : AppTheme.surfacePrimary(context),
       body: _ConfirmDeleteWishlistBody(name: _title ?? widget.title),
     );
     if (confirmed == true) {
@@ -446,7 +569,8 @@ double _mosaicChildAspectRatio(BuildContext context) {
 
   const mosaicAspect = 1.18; // width / height used in card
   final mosaicHeight = colWidth / mosaicAspect;
-  final textBlockHeight = 6 + titleHeight + 2 + labelHeight + 2; // padding + gaps
+  final textBlockHeight =
+      6 + titleHeight + 2 + labelHeight + 2; // padding + gaps
 
   final totalHeight = mosaicHeight + textBlockHeight;
   final ratio = colWidth / totalHeight;
@@ -469,57 +593,99 @@ class _CreateWishlistPopupBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final inputBg = Colors.white.withValues(alpha: 0.06);
-    final inputBorder = OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10)));
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final inputBg = isDark
+        ? Colors.white.withValues(alpha: 0.06)
+        : AppTheme.surfaceSecondary(context);
+    final inputBorder = OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.10)
+                : cs.onSurface.withValues(alpha: 0.10)));
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Text(
-            'Ordne Artikel nach Anlass, Projekt oder Zeitraum.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.6)),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        TextField(
-          controller: controller,
-          autofocus: true,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (value) => Navigator.of(context).maybePop(controller.text.trim()),
-          style: const TextStyle(color: Colors.white, fontSize: 15),
-          cursorColor: cs.primary,
-          decoration: InputDecoration(
-            hintText: 'z. B. Umzug, Werkzeug, Gartenparty',
-            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 14),
-            filled: true,
-            fillColor: inputBg,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: inputBorder,
-            enabledBorder: inputBorder,
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: cs.primary.withValues(alpha: 0.35), width: 1)),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Row(children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => Navigator.of(context).maybePop(),
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.white.withValues(alpha: 0.7), side: BorderSide(color: Colors.white.withValues(alpha: 0.15)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), padding: const EdgeInsets.symmetric(vertical: 14)),
-              child: const Text('Abbrechen'),
+      child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(
+                'Ordne Artikel nach Anlass, Projekt oder Zeitraum.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.6)
+                        : AppTheme.textSecondary(context)),
+                textAlign: TextAlign.center,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: FilledButton(
-              onPressed: () => Navigator.of(context).maybePop(controller.text.trim()),
-              style: FilledButton.styleFrom(backgroundColor: cs.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), padding: const EdgeInsets.symmetric(vertical: 14)),
-              child: const Text('Erstellen'),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (value) =>
+                  Navigator.of(context).maybePop(controller.text.trim()),
+              style: TextStyle(
+                  color: isDark ? Colors.white : AppTheme.textPrimary(context),
+                  fontSize: 15),
+              cursorColor: cs.primary,
+              decoration: InputDecoration(
+                hintText: 'z. B. Umzug, Werkzeug, Gartenparty',
+                hintStyle: TextStyle(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.4)
+                        : AppTheme.textDisabled(context),
+                    fontSize: 14),
+                filled: true,
+                fillColor: inputBg,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: inputBorder,
+                enabledBorder: inputBorder,
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                        color: cs.primary.withValues(alpha: 0.35), width: 1)),
+              ),
             ),
-          ),
-        ]),
-      ]),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : AppTheme.textPrimary(context),
+                      side: BorderSide(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.15)
+                              : cs.onSurface.withValues(alpha: 0.12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      padding: const EdgeInsets.symmetric(vertical: 14)),
+                  child: const Text('Abbrechen'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () =>
+                      Navigator.of(context).maybePop(controller.text.trim()),
+                  style: FilledButton.styleFrom(
+                      backgroundColor: cs.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      padding: const EdgeInsets.symmetric(vertical: 14)),
+                  child: const Text('Erstellen'),
+                ),
+              ),
+            ]),
+          ]),
     );
   }
 }
@@ -530,47 +696,80 @@ class _RenameWishlistPopupBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final inputBg = Colors.white.withValues(alpha: 0.08);
-    final inputBorder = OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)));
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final inputBg = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : AppTheme.surfaceSecondary(context);
+    final inputBorder = OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.12)
+                : cs.onSurface.withValues(alpha: 0.10)));
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        TextField(
-          controller: controller,
-          autofocus: true,
-          style: const TextStyle(color: Colors.white),
-          cursorColor: cs.primary,
-          decoration: InputDecoration(
-            hintText: 'Neuer Name',
-            hintStyle: const TextStyle(color: Colors.white70),
-            filled: true,
-            fillColor: inputBg,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            border: inputBorder,
-            enabledBorder: inputBorder,
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: cs.primary, width: 1.2)),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => Navigator.of(context).maybePop(),
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.white70, side: BorderSide(color: Colors.white.withValues(alpha: 0.20)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: const Text('Abbrechen'),
+      child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: controller,
+              autofocus: true,
+              style: TextStyle(
+                  color: isDark ? Colors.white : AppTheme.textPrimary(context)),
+              cursorColor: cs.primary,
+              decoration: InputDecoration(
+                hintText: 'Neuer Name',
+                hintStyle: TextStyle(
+                    color: isDark
+                        ? Colors.white70
+                        : AppTheme.textDisabled(context)),
+                filled: true,
+                fillColor: inputBg,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                border: inputBorder,
+                enabledBorder: inputBorder,
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: cs.primary, width: 1.2)),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: FilledButton(
-              onPressed: () => Navigator.of(context).maybePop<String>(controller.text.trim()),
-              style: FilledButton.styleFrom(backgroundColor: cs.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: const Text('Umbenennen'),
-            ),
-          ),
-        ]),
-      ]),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark
+                          ? Colors.white70
+                          : AppTheme.textPrimary(context),
+                      side: BorderSide(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.20)
+                              : cs.onSurface.withValues(alpha: 0.12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12))),
+                  child: const Text('Abbrechen'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => Navigator.of(context)
+                      .maybePop<String>(controller.text.trim()),
+                  style: FilledButton.styleFrom(
+                      backgroundColor: cs.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12))),
+                  child: const Text('Umbenennen'),
+                ),
+              ),
+            ]),
+          ]),
     );
   }
 }
@@ -581,30 +780,55 @@ class _ConfirmDeleteWishlistBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('Möchtest du "' + name + '" wirklich löschen?\nAlle Artikel-Zuordnungen werden entfernt.', style: const TextStyle(color: Colors.white70)),
-        const SizedBox(height: 12),
-        Row(children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => Navigator.of(context).maybePop(false),
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.white70, side: BorderSide(color: Colors.white.withValues(alpha: 0.20)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: const Text('Abbrechen'),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: FilledButton(
-              onPressed: () => Navigator.of(context).maybePop(true),
-              style: FilledButton.styleFrom(backgroundColor: cs.error, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: const Text('Löschen'),
-            ),
-          ),
-        ]),
-      ]),
+      child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+                'Möchtest du "' +
+                    name +
+                    '" wirklich löschen?\nAlle Artikel-Zuordnungen werden entfernt.',
+                style: TextStyle(
+                    color: isDark
+                        ? Colors.white70
+                        : AppTheme.textSecondary(context))),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).maybePop(false),
+                  style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark
+                          ? Colors.white70
+                          : AppTheme.textPrimary(context),
+                      side: BorderSide(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.20)
+                              : cs.onSurface.withValues(alpha: 0.12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12))),
+                  child: const Text('Abbrechen'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => Navigator.of(context).maybePop(true),
+                  style: FilledButton.styleFrom(
+                      backgroundColor: cs.error,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12))),
+                  child: const Text('Löschen'),
+                ),
+              ),
+            ]),
+          ]),
     );
   }
 }

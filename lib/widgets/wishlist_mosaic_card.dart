@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_image.dart';
 
 /// A modern wishlist card showing a 2x2 mosaic of recent item photos and
@@ -12,24 +13,46 @@ class WishlistMosaicCard extends StatelessWidget {
   final List<String> photoUrls; // Most recent photos; up to 4 are shown
   final VoidCallback? onTap;
 
-  const WishlistMosaicCard({super.key, required this.id, required this.title, this.subtitle, required this.count, required this.photoUrls, this.onTap});
+  const WishlistMosaicCard(
+      {super.key,
+      required this.id,
+      required this.title,
+      this.subtitle,
+      required this.count,
+      required this.photoUrls,
+      this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final isEmpty = count == 0;
-    final cardBg = cs.surface.withValues(alpha: isEmpty ? 0.45 : 0.72);
-    final border = cs.onSurface.withValues(alpha: isEmpty ? 0.05 : 0.06);
+    final cardBg = isDark
+        ? cs.surface.withValues(alpha: isEmpty ? 0.45 : 0.72)
+        : AppTheme.surfaceSecondary(context);
+    final border = isDark
+        ? cs.onSurface.withValues(alpha: isEmpty ? 0.05 : 0.06)
+        : cs.onSurface.withValues(alpha: isEmpty ? 0.16 : 0.12);
     // Make wishlist titles slightly smaller per request while keeping strong weight
-    final titleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: cs.primary);
-    final metaStyle = Theme.of(context).textTheme.labelSmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.55));
+    final titleStyle = theme.textTheme.titleSmall?.copyWith(
+      fontWeight: FontWeight.w700,
+      color: isDark ? cs.primary : AppTheme.textPrimary(context),
+    );
+    final metaStyle = theme.textTheme.labelSmall?.copyWith(
+      color: isDark
+          ? cs.onSurface.withValues(alpha: 0.55)
+          : AppTheme.textBody(context),
+    );
 
-    Widget content = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Widget content =
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       _Mosaic(urls: photoUrls, empty: isEmpty, totalCount: count),
       Padding(
         padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle),
+          Text(title,
+              maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle),
           const SizedBox(height: 2),
           Text(isEmpty ? 'Noch leer' : '$count Artikel', style: metaStyle),
         ]),
@@ -38,7 +61,8 @@ class WishlistMosaicCard extends StatelessWidget {
 
     // No splash effects; use InkWell disabled splash via Theme override
     return MouseRegion(
-      cursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      cursor:
+          onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
@@ -48,13 +72,17 @@ class WishlistMosaicCard extends StatelessWidget {
             color: cardBg,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: border),
-            boxShadow: isEmpty ? null : [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            boxShadow: isEmpty
+                ? null
+                : [
+                    BoxShadow(
+                      color: isDark
+                          ? Colors.black.withValues(alpha: 0.12)
+                          : Colors.black.withValues(alpha: 0.08),
+                      blurRadius: isDark ? 8 : 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
           clipBehavior: Clip.antiAlias,
           child: content,
@@ -68,11 +96,14 @@ class _Mosaic extends StatelessWidget {
   final List<String> urls;
   final bool empty;
   final int totalCount;
-  const _Mosaic({required this.urls, required this.empty, required this.totalCount});
+  const _Mosaic(
+      {required this.urls, required this.empty, required this.totalCount});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final radius = 18.0;
 
     if (empty) {
@@ -81,7 +112,9 @@ class _Mosaic extends StatelessWidget {
         aspectRatio: 1.18, // Slightly more compact for empty cards
         child: Container(
           decoration: BoxDecoration(
-            color: cs.onSurface.withValues(alpha: 0.035),
+            color: isDark
+                ? cs.onSurface.withValues(alpha: 0.035)
+                : AppTheme.surfaceMuted(context),
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(radius),
               topRight: Radius.circular(radius),
@@ -91,24 +124,30 @@ class _Mosaic extends StatelessWidget {
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Icon(
                 Icons.favorite_border_rounded,
-                color: cs.onSurface.withValues(alpha: 0.2),
+                color: isDark
+                    ? cs.onSurface.withValues(alpha: 0.2)
+                    : AppTheme.textBody(context),
                 size: 20,
               ),
               const SizedBox(height: 5),
               Text(
                 'Noch keine Artikel',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: cs.onSurface.withValues(alpha: 0.35),
-                  fontSize: 10,
-                ),
+                      color: isDark
+                          ? cs.onSurface.withValues(alpha: 0.35)
+                          : AppTheme.textPrimary(context),
+                      fontSize: 10,
+                    ),
               ),
               const SizedBox(height: 2),
               Text(
                 'Tippe auf ♡ beim Erkunden',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: cs.onSurface.withValues(alpha: 0.28),
-                  fontSize: 9,
-                ),
+                      color: isDark
+                          ? cs.onSurface.withValues(alpha: 0.28)
+                          : AppTheme.textBody(context),
+                      fontSize: 9,
+                    ),
               ),
             ]),
           ),
@@ -124,9 +163,12 @@ class _Mosaic extends StatelessWidget {
     return AspectRatio(
       aspectRatio: 1.18,
       child: ClipRRect(
-        borderRadius: BorderRadius.only(topLeft: Radius.circular(radius), topRight: Radius.circular(radius)),
+        borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(radius),
+            topRight: Radius.circular(radius)),
         child: DecoratedBox(
-          decoration: BoxDecoration(color: cs.onSurface.withValues(alpha: 0.06)),
+          decoration:
+              BoxDecoration(color: cs.onSurface.withValues(alpha: 0.06)),
           child: Builder(builder: (context) {
             final count = slots;
             if (count == 0) {
@@ -143,7 +185,8 @@ class _Mosaic extends StatelessWidget {
             }
 
             final gap = count == 1 ? 0.0 : 4.0;
-            final padding = count == 1 ? EdgeInsets.zero : const EdgeInsets.all(4);
+            final padding =
+                count == 1 ? EdgeInsets.zero : const EdgeInsets.all(4);
 
             Widget tile(String? url, {bool showExtra = false}) {
               final borderRadius = BorderRadius.circular(count == 1 ? 18 : 12);
@@ -155,10 +198,18 @@ class _Mosaic extends StatelessWidget {
                   else
                     Container(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [cs.onSurface.withValues(alpha: 0.12), cs.onSurface.withValues(alpha: 0.08)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                        gradient: LinearGradient(
+                            colors: [
+                              cs.onSurface.withValues(alpha: 0.12),
+                              cs.onSurface.withValues(alpha: 0.08)
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight),
                       ),
                       alignment: Alignment.center,
-                      child: Icon(Icons.inventory_2_outlined, color: Colors.white.withValues(alpha: 0.55), size: 24),
+                      child: Icon(Icons.inventory_2_outlined,
+                          color: Colors.white.withValues(alpha: 0.55),
+                          size: 24),
                     ),
                   if (showExtra && hiddenCount > 0)
                     Container(
@@ -166,7 +217,12 @@ class _Mosaic extends StatelessWidget {
                       child: Center(
                         child: Text(
                           '+$hiddenCount',
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelMedium
+                              ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
@@ -181,7 +237,9 @@ class _Mosaic extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   for (int i = 0; i < count; i++) ...[
-                    Expanded(child: tile(i < photos.length ? photos[i] : null, showExtra: i == count - 1 && hiddenCount > 0)),
+                    Expanded(
+                        child: tile(i < photos.length ? photos[i] : null,
+                            showExtra: i == count - 1 && hiddenCount > 0)),
                     if (i < count - 1) SizedBox(width: gap),
                   ],
                 ],
