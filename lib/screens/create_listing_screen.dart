@@ -1121,12 +1121,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: Text(
-                                'Wenn du Lieferung anbietest und der Mieter diese Option bei der Buchung auswählt, bringst du den Artikel zum vereinbarten Übergabeort des Mieters.
-
-'
-                                'Wenn Abholung aktiviert ist und der Mieter diese Option für die Rückgabe auswählt, holst du den Artikel nach der Miete wieder beim Mieter ab.
-
-'
+                                'Wenn du Lieferung anbietest und der Mieter diese Option bei der Buchung auswählt, bringst du den Artikel zum vereinbarten Übergabeort des Mieters.\n\n'
+                                'Wenn Abholung aktiviert ist und der Mieter diese Option für die Rückgabe auswählt, holst du den Artikel nach der Miete wieder beim Mieter ab.\n\n'
                                 'Wenn Lieferung oder Abholung nicht aktiviert sind, holt der Mieter den Artikel selbst am Übergabeort ab und bringt ihn nach der Miete selbst wieder zurück.',
                                 style: TextStyle(
                                   color: isDark ? Colors.white70 : AppTheme.textSecondary(context),
