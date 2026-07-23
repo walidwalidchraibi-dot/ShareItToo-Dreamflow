@@ -66,7 +66,7 @@ class DataService {
   static const String _wishlistAssignKey = 'wishlist_assign_v1';
   static const String _messageThreadsKey = 'message_threads_v1';
   static const String _demoNotifSeedFlagPrefix = 'demo_notif_seeded_for_';
-  static const String _qaMessagesAndNotifsSeedFlagPrefix = 'qa_messages_notifs_seeded_v2_for_';
+  static const String _qaMessagesAndNotifsSeedFlagPrefix = 'qa_messages_notifs_seeded_v3_for_';
 
   // Security
   static const String _securitySettingsKey = 'security_settings_v1';
@@ -1216,7 +1216,7 @@ class DataService {
 
       final ownerPendingItem = ownerQaItem(
         id: 'qa_owner_item_pending_$userId',
-        title: 'QA Neue Mietanfrage',
+        title: 'QNAP NAS',
       );
       final ownerUpcomingPickupItem = ownerQaItem(
         id: 'qa_owner_item_upcoming_pickup_$userId',
@@ -1634,6 +1634,7 @@ class DataService {
         bool read = false,
         bool critical = false,
         String? ctaLabel,
+        Map<String, dynamic>? payload,
       }) => {
         'id': id,
         'userId': userId,
@@ -1644,6 +1645,7 @@ class DataService {
         'entityType': entityType,
         'entityId': entityId,
         'ctaLabel': ctaLabel,
+        ...?payload,
         'critical': critical,
         'archived': false,
         'ts': ts.toIso8601String(),
@@ -1651,7 +1653,7 @@ class DataService {
       };
 
       notifList.addAll([
-        qaNotif(id: 'qa_notif_pending_$userId', category: 'bookings', priority: 2, title: 'Neue Mietanfrage eingegangen', body: 'Eine neue Anfrage wartet auf Prüfung und enthält bereits einen konkreten Zeitwunsch.', entityType: 'booking', entityId: pendingRequest.id, ts: now.subtract(const Duration(hours: 2, minutes: 10)), read: false, ctaLabel: 'Anfrage öffnen'),
+        qaNotif(id: 'qa_notif_pending_$userId', category: 'bookings', priority: 2, title: 'Neue Mietanfrage eingegangen', body: '${renterA.displayName} möchte „${ownerPendingItem.title}“ vom ${ownerPendingRequest.start.day.toString().padLeft(2, '0')}.${ownerPendingRequest.start.month.toString().padLeft(2, '0')}.${ownerPendingRequest.start.year} bis ${ownerPendingRequest.end.day.toString().padLeft(2, '0')}.${ownerPendingRequest.end.month.toString().padLeft(2, '0')}.${ownerPendingRequest.end.year} mieten.', entityType: 'booking', entityId: ownerPendingRequest.id, ts: now.subtract(const Duration(hours: 2, minutes: 10)), read: false, ctaLabel: 'Anfrage prüfen', payload: {'requestId': ownerPendingRequest.id, 'listingId': ownerPendingItem.id, 'counterpartyUserId': renterA.id, 'counterpartyName': renterA.displayName, 'role': 'owner'}),
         qaNotif(id: 'qa_notif_accepted_$userId', category: 'bookings', priority: 2, title: 'Anfrage bestätigt', body: 'Die Buchung für „${acceptedItem.title}“ ist bestätigt. Prüfe die Abstimmung im Chat.', entityType: 'booking', entityId: acceptedRequest.id, ts: now.subtract(const Duration(hours: 8, minutes: 30)), read: false, ctaLabel: 'Buchung öffnen'),
         qaNotif(id: 'qa_notif_message_$userId', category: 'messages', priority: 3, title: 'Neue Nachricht erhalten', body: 'Mila hat dir zur Rückgabe noch eine kurze Nachricht geschickt.', entityType: 'thread', entityId: runningThread.id, ts: now.subtract(const Duration(hours: 1, minutes: 12)), read: false, ctaLabel: 'Chat öffnen'),
         qaNotif(id: 'qa_notif_handover_$userId', category: 'bookings', priority: 2, title: 'Übergabe-Erinnerung', body: 'Die bestätigte Übergabe für „${acceptedItem.title}“ startet heute Abend.', entityType: 'booking', entityId: acceptedRequest.id, ts: now.subtract(const Duration(hours: 5, minutes: 40)), read: true, ctaLabel: 'Details ansehen'),
@@ -4222,12 +4224,19 @@ class DataService {
           userId: toStore.ownerId,
           category: 'bookings',
           priority: 2,
-          title: 'Neue Mietanfrage',
+          title: 'Neue Mietanfrage eingegangen',
           body:
-              'Neue Anfrage von ${renter?.displayName ?? 'einem Mieter'} für „${item.title}“.',
+              '${renter?.displayName ?? 'Ein Mieter'} möchte „${item.title}“ vom ${toStore.start.day.toString().padLeft(2, '0')}.${toStore.start.month.toString().padLeft(2, '0')}.${toStore.start.year} bis ${toStore.end.day.toString().padLeft(2, '0')}.${toStore.end.month.toString().padLeft(2, '0')}.${toStore.end.year} mieten.',
           entityType: 'booking',
           entityId: toStore.id,
-          ctaLabel: 'Anfrage ansehen',
+          ctaLabel: 'Anfrage prüfen',
+          payload: {
+            'requestId': toStore.id,
+            'listingId': toStore.itemId,
+            'counterpartyUserId': toStore.renterId,
+            'counterpartyName': renter?.displayName ?? '',
+            'role': 'owner',
+          },
         );
       }
     } catch (e) {
@@ -4274,7 +4283,13 @@ class DataService {
                     'Deine Anfrage für „${item.title}“ wurde angenommen. Öffne die Buchung für Details.',
                 entityType: 'booking',
                 entityId: updatedRequest.id,
-                ctaLabel: 'Jetzt ansehen',
+                ctaLabel: 'Zur Buchung',
+                payload: {
+                  'requestId': updatedRequest.id,
+                  'listingId': updatedRequest.itemId,
+                  'counterpartyUserId': updatedRequest.ownerId,
+                  'role': 'renter',
+                },
               );
               // For owner
               await addStructuredNotification(
@@ -4283,10 +4298,16 @@ class DataService {
                 priority: 2,
                 title: 'Buchung bestätigt',
                 body:
-                    'Du hast die Anfrage für „${item.title}“ angenommen. Öffne die Buchung für Übergabe & Rückgabe.',
+                    'Du hast die Anfrage für „${item.title}“ angenommen. Öffne die Vermietung für Übergabe & Rückgabe.',
                 entityType: 'booking',
                 entityId: updatedRequest.id,
-                ctaLabel: 'Jetzt ansehen',
+                ctaLabel: 'Zur Vermietung',
+                payload: {
+                  'requestId': updatedRequest.id,
+                  'listingId': updatedRequest.itemId,
+                  'counterpartyUserId': updatedRequest.renterId,
+                  'role': 'owner',
+                },
               );
             }
           } catch (e) {
@@ -4777,6 +4798,7 @@ class DataService {
     String? entityType, // booking | thread | payment | review | system
     String? entityId,
     String? ctaLabel,
+    Map<String, dynamic>? payload,
     List<Map<String, String>>? actions,
     DateTime? timestamp,
     bool critical = false,
@@ -4797,6 +4819,7 @@ class DataService {
         'entityType': entityType,
         'entityId': entityId,
         'ctaLabel': ctaLabel,
+        ...?payload,
         'actions': actions,
         'critical': critical,
         'archived': false,
@@ -4831,6 +4854,11 @@ class DataService {
     out['entityType'] = (out['entityType'] as String?);
     out['entityId'] = (out['entityId'] as String?);
     out['ctaLabel'] = (out['ctaLabel'] as String?);
+    out['requestId'] = (out['requestId'] as String?);
+    out['listingId'] = (out['listingId'] as String?);
+    out['counterpartyUserId'] = (out['counterpartyUserId'] as String?);
+    out['counterpartyName'] = (out['counterpartyName'] as String?);
+    out['role'] = (out['role'] as String?);
     if (out['actions'] is List) {
       try {
         out['actions'] = (out['actions'] as List)

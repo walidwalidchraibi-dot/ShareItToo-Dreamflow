@@ -391,17 +391,17 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
 
   String _titleFromReq() {
     final r = _req;
-    if (r == null) return 'Laufende Anmietung';
+    if (r == null) return 'Laufende Vermietung';
     switch (_categoryFor(r)) {
       case 'requests':
         return 'Mietanfrage';
       case 'upcoming':
-        return 'Kommende Anmietung';
+        return 'Kommende Vermietung';
       case 'completed':
-        return r.needsReview ? 'Anmietung in Prüfung' : 'Abgeschlossene Anmietung';
+        return r.needsReview ? 'Vermietung in Prüfung' : 'Abgeschlossene Vermietung';
       case 'ongoing':
       default:
-        return 'Laufende Anmietung';
+        return 'Laufende Vermietung';
     }
   }
 
@@ -730,7 +730,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                             context,
                             icon: Icons.cancel_outlined,
                             title: 'Du hast die Anfrage abgelehnt.',
-                            message: 'Du findest sie jetzt unter Abgeschlossene Anmietungen.',
+                            message: 'Du findest sie jetzt unter Abgeschlossene Vermietungen.',
                             barrierDismissible: true,
                             showCloseIcon: false,
                             plainCloseIcon: true,
@@ -743,7 +743,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                                     MaterialPageRoute(builder: (_) => OwnerRequestsScreen(initialTabIndex: 3)),
                                   );
                                 },
-                                child: const Text('Zu Abgeschlossene Anmietungen'),
+                                child: const Text('Zu Abgeschlossene Vermietungen'),
                               ),
                             ],
                           );
@@ -776,7 +776,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                     context,
                     icon: Icons.check_circle_outline,
                     title: 'Du hast die Anfrage akzeptiert.',
-                    message: 'Du findest diese Anmietung jetzt unter Kommende Anmietungen.',
+                    message: 'Du findest diese Vermietung jetzt unter Kommende Vermietungen.',
                     barrierDismissible: true,
                     showCloseIcon: false,
                     plainCloseIcon: true,
@@ -789,7 +789,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                             MaterialPageRoute(builder: (_) => OwnerRequestsScreen(initialTabIndex: 1)),
                           );
                         },
-                        child: const Text('Zu Kommende Anmietungen'),
+                        child: const Text('Zu Kommende Vermietungen'),
                       ),
                     ],
                   );
@@ -1052,7 +1052,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                 children: [
                   if (category == 'requests') ...const [
                     _Bullet(text: 'Prüfe die Details und entscheide, ob du die Anfrage annimmst oder ablehnst.'),
-                    _Bullet(text: 'Wenn du die Anfrage annimmst, erscheint sie unter Kommende Buchungen.'),
+                    _Bullet(text: 'Wenn du die Anfrage annimmst, erscheint sie unter Kommende Vermietungen.'),
                     _Bullet(text: 'Vereinbare mit dem Mieter einen konkreten Zeitpunkt für Übergabe und Rückgabe.'),
                   ] else if (category == 'upcoming') ...const [
                     _Bullet(text: 'Triff dich mit dem Mieter zum vereinbarten Übergabezeitpunkt.'),

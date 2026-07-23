@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lendify/screens/booking_detail_screen.dart';
 import 'package:lendify/screens/help_center_screen.dart';
+import 'package:lendify/screens/ongoing_owner_detail_screen.dart';
+import 'package:lendify/screens/owner_requests_screen.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/notification_detail_screen.dart';
 import 'package:lendify/screens/notification_settings_screen.dart';
@@ -14,6 +16,7 @@ import 'package:lendify/models/message.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/notification_cta_resolver.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/notification_preferences_service.dart';
 import 'package:lendify/theme.dart';
@@ -46,7 +49,7 @@ class NotificationsScreen extends StatefulWidget {
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-enum _NotifFilter { all, important, bookings, handover, messages, support, payments, reviews, system }
+enum _NotifFilter { all, important, bookings, rentals, handover, messages, support, payments, reviews, system }
 
 enum _DateBucket { today, yesterday, week, older }
 
@@ -69,6 +72,7 @@ String _deriveSitCategory(Map<String, dynamic> notification) {
 
   if (raw == 'bookings') {
     if (matchesAny(const ['übergabe', 'rückgabe', 'handover', 'qr-code', 'qr code'])) return 'handover';
+    if (matchesAny(const ['mietanfrage', 'vermietung', 'deiner anzeige']) || lower(notification['ctaLabel']) == 'anfrage prüfen') return 'rentals';
     return 'bookings';
   }
 
@@ -223,6 +227,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return 'important';
       case _NotifFilter.bookings:
         return 'bookings';
+      case _NotifFilter.rentals:
+        return 'rentals';
       case _NotifFilter.handover:
         return 'handover';
       case _NotifFilter.messages:
@@ -275,6 +281,69 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _handleNotificationCta(Map<String, dynamic> n) async {
     final uid = _currentUserId;
     if (uid == null || !mounted) return;
+
+    try {
+      final resolution = await NotificationCtaResolver.resolve(
+        notification: n,
+        currentUserId: uid,
+      );
+
+      switch (resolution.target) {
+        case NotificationTargetKind.ownerRequestDetail:
+          final requestId = resolution.requestId;
+          if (requestId == null || requestId.isEmpty || !mounted) return;
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => OngoingOwnerDetailScreen(
+                requestId: requestId,
+                titleOverride: 'Mietanfrage',
+              ),
+            ),
+          );
+          return;
+        case NotificationTargetKind.ownerRequestsOverview:
+          if (!mounted) return;
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const OwnerRequestsScreen(initialTabIndex: 2),
+            ),
+          );
+          return;
+        case NotificationTargetKind.ownerBookingDetail:
+          final requestId = resolution.requestId;
+          if (requestId == null || requestId.isEmpty || !mounted) return;
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => OngoingOwnerDetailScreen(
+                requestId: requestId,
+                titleOverride: 'Kommende Vermietung',
+              ),
+            ),
+          );
+          return;
+        case NotificationTargetKind.renterBookingDetail:
+          final requestId = resolution.requestId;
+          if (requestId == null || requestId.isEmpty) return;
+          final req = await DataService.getRentalRequestById(requestId);
+          if (req == null) return;
+          final item = await DataService.getItemById(req.itemId);
+          if (item == null) return;
+          final owner = await DataService.getUserById(req.ownerId);
+          final deliverySel = await DataService.getSavedDeliverySelection(req.itemId);
+          final booking = _toBookingMap(req, item, owner, deliverySel);
+          if (!mounted) return;
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => BookingDetailScreen(booking: booking),
+            ),
+          );
+          return;
+        case NotificationTargetKind.none:
+          break;
+      }
+    } catch (e) {
+      debugPrint('[NotificationsScreen] minimal CTA resolver failed: $e');
+    }
 
     final category = (n['category'] ?? '').toString();
     final entityType = (n['entityType'] ?? '').toString();
@@ -355,7 +424,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return;
       }
 
-      // System / Welcome / Tips: CTA is an acknowledgement.
       _showSnack('Alles klar.');
     } catch (e) {
       debugPrint('[NotificationsScreen] CTA handling failed: $e');
@@ -387,6 +455,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return _NotifFilter.important;
       case 'bookings':
         return _NotifFilter.bookings;
+      case 'rentals':
+        return _NotifFilter.rentals;
       case 'handover':
       case 'return':
         return _NotifFilter.handover;
@@ -414,6 +484,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return 'Wichtig';
       case 'bookings':
         return 'Buchungen';
+      case 'rentals':
+        return 'Vermietungen';
       case 'handover':
         return 'Übergabe & Rückgabe';
       case 'messages':
@@ -487,6 +559,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final out = <String, List<Map<String, dynamic>>>{
       'important': [],
       'bookings': [],
+      'rentals': [],
       'handover': [],
       'messages': [],
       'support': [],
@@ -528,12 +601,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final bool isFiltered = _filter != _NotifFilter.all;
       if (categoryMode || isFiltered) {
         final String catKey = categoryMode ? widget.initialCategory! : _categoryKeyForFilter(_filter);
-        final String label = _labelForCategory(catKey);
-        body = _EmptyState(
-          icon: Icons.notifications_none,
-          title: 'Keine Benachrichtigungen in „$label“',
-          subtitle: 'Sobald es neue Updates in dieser Kategorie gibt, erscheinen sie hier.',
-        );
+        if (catKey == 'rentals') {
+          body = _EmptyState(
+            icon: Icons.inventory_2_outlined,
+            title: 'Keine Benachrichtigungen zu Vermietungen',
+            subtitle: 'Sobald jemand eine deiner Anzeigen anfragt, wirst du hier benachrichtigt.',
+          );
+        } else {
+          final String label = _labelForCategory(catKey);
+          body = _EmptyState(
+            icon: Icons.notifications_none,
+            title: 'Keine Benachrichtigungen in „$label“',
+            subtitle: 'Sobald es neue Updates in dieser Kategorie gibt, erscheinen sie hier.',
+          );
+        }
       } else {
         body = _EmptyState(
           icon: Icons.notifications_none,
@@ -708,7 +789,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   List<Widget> _buildCategoryGroupedSlivers(ThemeData theme, List<Map<String, dynamic>> visible) {
     final grouped = _groupBySitCategory(visible);
-    const order = ['important', 'bookings', 'handover', 'messages', 'support', 'payments', 'reviews', 'system'];
+    const order = ['important', 'bookings', 'rentals', 'handover', 'messages', 'support', 'payments', 'reviews', 'system'];
     return [
       for (final key in order)
         if (grouped[key] != null && grouped[key]!.isNotEmpty) ...[
@@ -758,6 +839,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.error_outline;
       case 'bookings':
         return Icons.calendar_month_outlined;
+      case 'rentals':
+        return Icons.inventory_2_outlined;
       case 'handover':
         return Icons.swap_horiz;
       case 'messages':

@@ -250,6 +250,7 @@ class _NotificationDetailModel {
 
     final lowerTitle = title.toLowerCase();
     final lowerBody = body.toLowerCase();
+    final explicitCta = (n['ctaLabel'] ?? '').toString().trim();
     bool hasAny(List<String> needles) => needles.any((x) => lowerTitle.contains(x) || lowerBody.contains(x));
 
     final bool isVerification = entityType == 'verification' || hasAny(['verifiz', 'sicherheits-check', 'sicherheit']);
@@ -288,7 +289,7 @@ class _NotificationDetailModel {
           'Du bekommst ggf. Zugang zu Funktionen, die Verifizierung voraussetzen.',
           'Wenn etwas nicht klappt, kannst du den Support direkt kontaktieren.',
         ],
-        ctaLabel: 'Jetzt verifizieren',
+        ctaLabel: explicitCta.isNotEmpty ? explicitCta : 'Jetzt verifizieren',
         timeLabel: timeLabel,
         headerIcon: Icons.verified_user_outlined,
       );
@@ -305,7 +306,7 @@ class _NotificationDetailModel {
           'Zahlungen werden dir transparent in der Übersicht angezeigt.',
           'Du kannst mehrere Methoden speichern und später wechseln.',
         ],
-        ctaLabel: 'Zahlungsmethode hinzufügen',
+        ctaLabel: explicitCta.isNotEmpty ? explicitCta : 'Zahlungsmethode hinzufügen',
         timeLabel: timeLabel,
         headerIcon: Icons.payments_outlined,
       );
@@ -338,7 +339,7 @@ class _NotificationDetailModel {
           'Wenn Informationen fehlen, ergänze sie direkt im Fall.',
           'Bei Dringlichkeit: antworte kurz mit dem wichtigsten Punkt zuerst.',
         ],
-        ctaLabel: 'Zum Support-Fall',
+        ctaLabel: explicitCta.isNotEmpty ? explicitCta : 'Zum Support-Fall',
         timeLabel: timeLabel,
         headerIcon: Icons.support_agent,
       );
@@ -355,25 +356,59 @@ class _NotificationDetailModel {
           'Halte für die Übergabe ggf. den QR‑Code bereit (falls aktiv).',
           'Nach der Rückgabe: Zustand prüfen und ggf. im Chat dokumentieren.',
         ],
-        ctaLabel: 'Zur Buchung',
+        ctaLabel: explicitCta.isNotEmpty ? explicitCta : 'Zur Buchung',
         timeLabel: timeLabel,
         headerIcon: Icons.swap_horiz,
       );
     }
 
     if (isBooking) {
+      final isOwnerRequest = explicitCta == 'Anfrage prüfen' ||
+          hasAny(['mietanfrage', 'vermietung', 'deiner anzeige']);
+      final isOwnerFlow = isOwnerRequest || hasAny(['zur vermietung']);
+
+      if (isOwnerRequest) {
+        return _NotificationDetailModel(
+          title: title.isNotEmpty ? title : 'Neue Mietanfrage eingegangen',
+          subline: body.isNotEmpty ? body : 'Du hast eine neue Mietanfrage zu deiner Anzeige erhalten.',
+          explanation: 'Du hast eine neue Mietanfrage zu deiner Anzeige erhalten.',
+          bullets: const [
+            'Prüfe Zeitraum, Übergabeart und voraussichtliche Auszahlung.',
+            'Akzeptiere die Anfrage, wenn der Artikel verfügbar ist.',
+            'Lehne sie ab, wenn die Vermietung nicht möglich ist.',
+          ],
+          ctaLabel: explicitCta.isNotEmpty ? explicitCta : 'Anfrage prüfen',
+          timeLabel: timeLabel,
+          headerIcon: Icons.inventory_2_outlined,
+        );
+      }
+
       return _NotificationDetailModel(
         title: title.isNotEmpty ? title : 'Buchungs‑Update',
-        subline: 'Ein Status hat sich geändert – kurz prüfen.',
-        explanation: 'Buchungs‑Benachrichtigungen informieren dich über Anfragen, Annahmen, Stornierungen und Status‑Änderungen.',
-        bullets: const [
-          'Öffne die Buchung, um Status und Details zu prüfen.',
-          'Achte auf Zeiten/Ort und ob eine Aktion nötig ist.',
-          'Bei Rückfragen: schreibe direkt im Chat, damit alles dokumentiert ist.',
-        ],
-        ctaLabel: 'Zur Buchung',
+        subline: isOwnerFlow
+            ? 'Ein Update zu deiner Vermietung – kurz prüfen.'
+            : 'Ein Status hat sich geändert – kurz prüfen.',
+        explanation: isOwnerFlow
+            ? 'Vermietungs-Benachrichtigungen informieren dich über Annahmen, Status-Änderungen und nächste Schritte zu deinen Anzeigen.'
+            : 'Buchungs-Benachrichtigungen informieren dich über Anfragen, Annahmen, Stornierungen und Status-Änderungen.',
+        bullets: isOwnerFlow
+            ? const [
+                'Öffne die Vermietung, um Status und Details zu prüfen.',
+                'Prüfe Zeitraum, Übergabeart und voraussichtliche Auszahlung.',
+                'Bei Rückfragen: schreibe direkt im Chat, damit alles dokumentiert ist.',
+              ]
+            : const [
+                'Öffne die Buchung, um Status und Details zu prüfen.',
+                'Achte auf Zeiten/Ort und ob eine Aktion nötig ist.',
+                'Bei Rückfragen: schreibe direkt im Chat, damit alles dokumentiert ist.',
+              ],
+        ctaLabel: explicitCta.isNotEmpty
+            ? explicitCta
+            : (isOwnerFlow ? 'Zur Vermietung' : 'Zur Buchung'),
         timeLabel: timeLabel,
-        headerIcon: Icons.calendar_month_outlined,
+        headerIcon: isOwnerFlow
+            ? Icons.inventory_2_outlined
+            : Icons.calendar_month_outlined,
       );
     }
 

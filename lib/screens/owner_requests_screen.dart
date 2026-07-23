@@ -71,7 +71,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
         context,
         icon: Icons.star_rate_outlined,
         title: 'Zeit für eine Bewertung',
-        message: 'Magst du die Anmietung bewerten?',
+        message: 'Magst du die Vermietung bewerten?',
         barrierDismissible: true,
         plainCloseIcon: true,
         actions: [
@@ -412,17 +412,17 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
     String title;
     switch (_tabController.index) {
       case 0:
-        title = 'Laufende Anmietungen';
+        title = 'Laufende Vermietungen';
         break;
       case 1:
-        title = 'Kommende Anmietungen';
+        title = 'Kommende Vermietungen';
         break;
       case 2:
         title = 'Mietanfragen';
         break;
       case 3:
       default:
-        title = 'Abgeschlossene Anmietungen';
+        title = 'Abgeschlossene Vermietungen';
     }
     
     // Get unread counts for each tab
@@ -666,28 +666,28 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
   String _titleForCategory(String category) {
     switch (category) {
       case 'upcoming':
-        return 'Kommende Anmietung';
+        return 'Kommende Vermietung';
       case 'requests':
         return 'Mietanfrage';
       case 'completed':
-        return 'Abgeschlossene Anmietung';
+        return 'Abgeschlossene Vermietung';
       case 'ongoing':
       default:
-        return 'Laufende Anmietung';
+        return 'Laufende Vermietung';
     }
   }
 
   (IconData, String) _emptyStateForCategory(String category) {
     switch (category) {
       case 'ongoing':
-        return (Icons.timelapse_outlined, 'Du hast keine laufenden Anmietungen');
+        return (Icons.timelapse_outlined, 'Du hast keine laufenden Vermietungen');
       case 'upcoming':
-        return (Icons.event_available_outlined, 'Du hast keine kommenden Anmietungen');
+        return (Icons.event_available_outlined, 'Du hast keine kommenden Vermietungen');
       case 'requests':
         return (Icons.assignment_outlined, 'Du hast keine Mietanfragen');
       case 'completed':
       default:
-        return (Icons.task_alt_outlined, 'Du hast keine abgeschlossenen Anmietungen');
+        return (Icons.task_alt_outlined, 'Du hast keine abgeschlossenen Vermietungen');
     }
   }
 
@@ -773,7 +773,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
                   context,
                   icon: Icons.check_circle_outline,
                   title: 'Du hast die Anfrage akzeptiert.',
-                  message: 'Du findest diese Anmietung jetzt unter „Kommende Anmietungen“.\n\nDu kannst jetzt mit ${e.renter.displayName} unter Nachrichten einen Chat starten.',
+                  message: 'Du findest diese Anmietung jetzt unter „Kommende Vermietungen“.\n\nDu kannst jetzt mit ${e.renter.displayName} unter Nachrichten einen Chat starten.',
                   barrierDismissible: false,
                   showCloseIcon: false,
                   plainCloseIcon: true,
@@ -789,7 +789,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
                             MaterialPageRoute(
                               builder: (_) => OngoingOwnerDetailScreen(
                                 requestId: e.r.id,
-                                titleOverride: 'Kommende Anmietung',
+                                titleOverride: 'Kommende Vermietung',
                               ),
                             ),
                           );
@@ -797,7 +797,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
                           await _load();
                         });
                       },
-                      child: const Text('Zur kommenden Anmietung'),
+                      child: const Text('Zur kommenden Vermietung'),
                     ),
                   ],
                 );
@@ -850,7 +850,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
                         context,
                         icon: Icons.cancel_outlined,
                         title: 'Du hast die Anfrage abgelehnt.',
-                        message: 'Du findest sie jetzt unter „Abgeschlossene Anmietungen“.',
+                        message: 'Du findest sie jetzt unter „Abgeschlossene Vermietungen“.',
                         barrierDismissible: true,
                         showCloseIcon: false,
                         plainCloseIcon: true,
@@ -865,7 +865,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
                               Navigator.of(context, rootNavigator: true).maybePop();
                               _tabController.animateTo(3);
                             },
-                            child: const Text('Zu „Abgeschlossene Anmietungen“'),
+                            child: const Text('Zu „Abgeschlossene Vermietungen“'),
                           ),
                         ],
                       );
