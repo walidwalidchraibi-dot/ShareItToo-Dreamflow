@@ -19,6 +19,7 @@ import 'package:lendify/screens/account_deleted_screen.dart';
 import 'package:lendify/services/account_deletion_service.dart';
 import 'package:lendify/widgets/account_deletion_dialog.dart';
 import 'package:lendify/screens/background_settings_screen.dart';
+import 'package:lendify/screens/blocked_users_screen.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -175,6 +176,16 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     const SizedBox(height: 28),
                     const _GroupTitle('DATENSCHUTZ'),
                     _SectionCard(children: [
+                      _RowTile(
+                        icon: Icons.block_outlined,
+                        label: 'Blockierte Nutzer',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const BlockedUsersScreen(),
+                          ),
+                        ),
+                      ),
+                      const _Divider(),
                       _RowTile(
                         icon: Icons.shield_outlined,
                         label: l10n.t('account.item.dataPrivacyInfo'),

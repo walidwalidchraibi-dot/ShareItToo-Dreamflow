@@ -57,10 +57,35 @@ class LegalTermsScreen extends StatelessWidget {
           ],
         ),
         LegalSectionCard(
+          icon: Icons.star_outline,
+          title: 'Bewertungen & Bewertungssystem',
+          children: const [
+            LegalParagraph(
+              'Bewertungen können grundsätzlich nur von Nutzern abgegeben werden, die an einer über SIT dokumentierten und abgeschlossenen Vermietung beteiligt waren. SIT überprüft die Berechtigung zur Bewertungsabgabe anhand der zugehörigen Buchung.',
+            ),
+            LegalParagraph(
+              'Eine Bewertung umfasst die Kriterien Kommunikation, Zuverlässigkeit, Artikel wie beschrieben sowie Übergabe und Rückgabe. Die Kriterien werden gleich gewichtet. Die Gesamtbewertung einer einzelnen Vermietung entspricht dem arithmetischen Mittelwert der vier Kriterien und wird auf eine Nachkommastelle gerundet. Die öffentliche Gesamtbewertung eines Nutzers ergibt sich aus dem Durchschnitt aller gültigen, vollständigen und eindeutigen Einzelbewertungen.',
+            ),
+            LegalParagraph(
+              'Beim Kriterium „Artikel wie beschrieben“ wird bewertet, ob der tatsächliche Zustand, die Ausstattung, die Funktionsfähigkeit, Gebrauchsspuren und bekannte Mängel mit den Angaben in der Anzeige übereinstimmen. Nicht maßgeblich ist, ob der Artikel neu, neuwertig oder optisch hochwertig ist. Ein zutreffend als gebraucht oder stark gebraucht beschriebener Artikel kann daher die höchste Bewertung erhalten.',
+            ),
+            LegalParagraph(
+              'Das Kriterium „Übergabe und Rückgabe“ umfasst insbesondere den Ablauf, die Einhaltung vereinbarter Zeiten, Sauberkeit, Funktionsfähigkeit, vollständiges Zubehör sowie die ordnungsgemäße Rückgabe.',
+            ),
+            LegalParagraph(
+              'Preis-Leistung ist kein Bestandteil der öffentlichen Bewertung und fließt nicht in die Gesamtbewertung ein.',
+            ),
+            LegalParagraph(
+              'SIT kann Bewertungen prüfen und erforderlichenfalls ausblenden oder entfernen, wenn konkrete Anhaltspunkte für Manipulation, Mehrfachbewertungen, fehlenden Buchungsbezug, Beleidigungen, rechtswidrige Inhalte oder nachweislich falsche Tatsachenbehauptungen bestehen. Technisch fehlerhafte Berechnungen oder doppelt erfasste Bewertungen dürfen berichtigt werden. Eine inhaltliche Veränderung der persönlichen Meinung des Bewertenden erfolgt nicht.',
+            ),
+          ],
+        ),
+        LegalSectionCard(
           icon: Icons.payments_outlined,
           title: 'Gebührenstruktur',
           children: const [
-            LegalParagraph('ShareItToo kann für die Vermittlung und Zahlungsabwicklung Gebühren erheben. Details findest du unter „Gebühren & Zahlungsbedingungen“.')
+            LegalParagraph(
+                'ShareItToo kann für die Vermittlung und Zahlungsabwicklung Gebühren erheben. Details findest du unter „Gebühren & Zahlungsbedingungen“.')
           ],
         ),
         LegalSectionCard(

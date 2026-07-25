@@ -1,36 +1,89 @@
-import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lendify/models/multi_criteria_review.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/review_metrics_service.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/blur_modal.dart';
+
+class ReviewFormCriterionDefinition {
+  final String key;
+  final String label;
+  final String helpText;
+
+  const ReviewFormCriterionDefinition({
+    required this.key,
+    required this.label,
+    required this.helpText,
+  });
+}
+
+bool areAllReviewCriteriaRated(Iterable<int> starValues) =>
+    starValues.length == buildReviewFormCriteria().length &&
+    starValues.every((stars) => stars >= 1);
+
+List<ReviewFormCriterionDefinition> buildReviewFormCriteria() => const [
+      ReviewFormCriterionDefinition(
+        key: ReviewMetricsService.communication,
+        label: 'Kommunikation',
+        helpText:
+            'Bewerte Erreichbarkeit, Verständlichkeit, rechtzeitige Rückmeldungen und hilfreiche Abstimmung.',
+      ),
+      ReviewFormCriterionDefinition(
+        key: ReviewMetricsService.reliability,
+        label: 'Zuverlässigkeit',
+        helpText:
+            'Bewerte Einhaltung von Vereinbarungen, Pünktlichkeit, Verbindlichkeit und Durchführung wie vereinbart.',
+      ),
+      ReviewFormCriterionDefinition(
+        key: ReviewMetricsService.articleAsDescribed,
+        label: 'Artikel wie beschrieben',
+        helpText:
+            'Bewerte, ob Zustand, Ausstattung, Funktion und bekannte Gebrauchsspuren der Anzeige entsprachen – nicht, ob der Artikel neu oder hochwertig war.',
+      ),
+      ReviewFormCriterionDefinition(
+        key: ReviewMetricsService.handoverReturn,
+        label: 'Übergabe & Rückgabe',
+        helpText:
+            'Bewerte den gesamten Ablauf einschließlich Pünktlichkeit, Sauberkeit, Funktionsfähigkeit, Zubehör und Rückgabe.',
+      ),
+    ];
 
 class ReviewPromptSheet extends StatefulWidget {
   final String requestId;
   final String itemId;
   final String reviewerId;
   final String reviewedUserId;
-  // 'renter_to_owner' or 'owner_to_renter'
   final String direction;
-  const ReviewPromptSheet({super.key, required this.requestId, required this.itemId, required this.reviewerId, required this.reviewedUserId, required this.direction});
 
-  static Future<bool?> show(BuildContext context, {
+  const ReviewPromptSheet({
+    super.key,
+    required this.requestId,
+    required this.itemId,
+    required this.reviewerId,
+    required this.reviewedUserId,
+    required this.direction,
+  });
+
+  static Future<bool?> show(
+    BuildContext context, {
     required String requestId,
     required String itemId,
     required String reviewerId,
     required String reviewedUserId,
     required String direction,
   }) async {
-    // Guard: do not allow double rating
-    final already = await DataService.hasSubmittedReview(requestId: requestId, reviewerId: reviewerId);
-    if (already) {
-      return false;
-    }
-    return showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.30),
-      builder: (_) => ReviewPromptSheet(
+    final isDark = AppTheme.isDark(context);
+    final already = await DataService.hasSubmittedReview(
+      requestId: requestId,
+      reviewerId: reviewerId,
+    );
+    if (already) return false;
+    return showBlurBottomSheet<bool>(
+      context,
+      barrierOpacity: isDark ? 0.30 : 0.16,
+      blurSigma: 10,
+      showHandle: false,
+      child: ReviewPromptSheet(
         requestId: requestId,
         itemId: itemId,
         reviewerId: reviewerId,
@@ -52,8 +105,14 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
   @override
   void initState() {
     super.initState();
-    _criteria = _buildCriteriaFor(widget.direction);
-    // Resolve reviewed user's display name for a personalized title
+    _criteria = [
+      for (final definition in buildReviewFormCriteria())
+        _CriterionState(
+          key: definition.key,
+          label: definition.label,
+          helpText: definition.helpText,
+        ),
+    ];
     Future.microtask(() async {
       try {
         final u = await DataService.getUserById(widget.reviewedUserId);
@@ -64,31 +123,29 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
     });
   }
 
-  List<_CriterionState> _buildCriteriaFor(String direction) {
-    if (direction == 'renter_to_owner') {
-      return [
-        _CriterionState(key: 'communication', label: 'Kommunikation'),
-        _CriterionState(key: 'condition_dropoff', label: 'Zustand des Artikels bei Abgabe'),
-        _CriterionState(key: 'description_accuracy', label: 'Beschreibungstreue'),
-        _CriterionState(key: 'reliability', label: 'Zuverlässigkeit'),
-        _CriterionState(key: 'value_for_money', label: 'Preis-Leistung'),
-        _CriterionState(key: 'process', label: 'Abgabe & Rückgabe-Prozess'),
-      ];
-    }
-    return [
-      _CriterionState(key: 'communication', label: 'Kommunikation'),
-      _CriterionState(key: 'reliability', label: 'Zuverlässigkeit'),
-      _CriterionState(key: 'condition_return', label: 'Zustand des Artikels bei Rückgabe'),
-      _CriterionState(key: 'process', label: 'Abgabe & Rückgabe-Prozess'),
-    ];
-  }
+  bool get _allCriteriaRated =>
+      areAllReviewCriteriaRated(_criteria.map((criterion) => criterion.stars));
 
   Future<void> _submit() async {
     if (_submitting) return;
+    if (!_allCriteriaRated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bitte bewerte alle vier Kriterien.'),
+        ),
+      );
+      return;
+    }
     setState(() => _submitting = true);
     try {
       final list = _criteria
-          .map((c) => ReviewCriterion(key: c.key, stars: c.stars.clamp(1, 5), note: c.note.text.trim().isEmpty ? null : c.note.text.trim()))
+          .map(
+            (c) => ReviewCriterion(
+              key: c.key,
+              stars: c.stars.clamp(1, 5),
+              note: c.note.text.trim().isEmpty ? null : c.note.text.trim(),
+            ),
+          )
           .toList();
       await DataService.addMultiReview(
         requestId: widget.requestId,
@@ -111,58 +168,69 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final baseRole = widget.direction == 'renter_to_owner' ? 'Vermieter' : 'Mieter';
+    final theme = Theme.of(context);
+    final isDark = AppTheme.isDark(context);
+    final baseRole =
+        widget.direction == 'renter_to_owner' ? 'Vermieter' : 'Mieter';
     final name = _reviewedName;
-    final title = ((name != null && name.isNotEmpty) ? name : baseRole) + ' bewerten';
-    final bg = Colors.black.withValues(alpha: 0.45);
-    final border = Colors.white.withValues(alpha: 0.12);
+    final title =
+        '${(name != null && name.isNotEmpty) ? name : baseRole} bewerten';
+    final panelColor = isDark
+        ? Colors.black.withValues(alpha: 0.42)
+        : AppTheme.surfacePrimary(context).withValues(alpha: 0.98);
     return Material(
       color: Colors.transparent,
-      child: Stack(children: [
-        // Blurred SIT app design background
-        const AppGradientBackground(child: SizedBox.shrink()),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Container(
-                decoration: BoxDecoration(color: bg, border: Border.all(color: border)),
-                padding: EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 12 + MediaQuery.of(context).viewInsets.bottom),
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: SafeArea(
-                  top: false,
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Row(children: [
-                      // Removed leading star icon per spec
-                      Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18))),
-                      IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.close, color: Colors.white70)),
-                    ]),
-                    const SizedBox(height: 8),
-                    Flexible(
-                      child: SingleChildScrollView(
-                        child: Column(children: [
-                          for (final c in _criteria) _CriterionTile(data: c),
-                        ]),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _submitting ? null : _submit,
-                        icon: const Icon(Icons.send_rounded),
-                        label: Text(_submitting ? 'Sende…' : 'Bewertung senden'),
-                      ),
-                    ),
-                  ]),
+      child: Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: SheetScaffold(
+            title: title,
+            actions: [
+              IconButton(
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: Icon(Icons.close, color: AppTheme.textSecondary(context)),
+              ),
+            ],
+            body: Theme(
+              data: theme.copyWith(
+                inputDecorationTheme: theme.inputDecorationTheme.copyWith(
+                  filled: true,
+                  fillColor: AppTheme.surfaceMuted(context),
                 ),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: panelColor,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppTheme.glassStroke(context)),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: Column(
+                  children: [
+                    for (final c in _criteria)
+                      _CriterionTile(
+                        data: c,
+                        onStarsChanged: (stars) {
+                          setState(() => c.stars = stars);
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            bottomBar: SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: (_submitting || !_allCriteriaRated) ? null : _submit,
+                icon: const Icon(Icons.send_rounded),
+                label: Text(_submitting ? 'Sende…' : 'Bewertung senden'),
               ),
             ),
           ),
         ),
-      ]),
+      ),
     );
   }
 }
@@ -170,54 +238,106 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
 class _CriterionState {
   final String key;
   final String label;
+  final String helpText;
   int stars;
   final TextEditingController note;
-  _CriterionState({required this.key, required this.label, this.stars = 5}) : note = TextEditingController();
+
+  _CriterionState({
+    required this.key,
+    required this.label,
+    required this.helpText,
+    this.stars = 0,
+  }) : note = TextEditingController();
 }
 
-class _CriterionTile extends StatefulWidget {
+class _CriterionTile extends StatelessWidget {
   final _CriterionState data;
-  const _CriterionTile({required this.data});
-  @override
-  State<_CriterionTile> createState() => _CriterionTileState();
-}
+  final ValueChanged<int> onStarsChanged;
 
-class _CriterionTileState extends State<_CriterionTile> {
+  const _CriterionTile({
+    required this.data,
+    required this.onStarsChanged,
+  });
+
   @override
   Widget build(BuildContext context) {
-    final d = widget.data;
+    final d = data;
+    final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
+        color: AppTheme.surfaceSecondary(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(color: AppTheme.glassStroke(context)),
       ),
       padding: const EdgeInsets.all(12),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(d.label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 4),
-        Row(children: [
-          for (int i = 1; i <= 5; i++)
-            IconButton(
-              padding: const EdgeInsets.all(6),
-              constraints: const BoxConstraints(),
-              onPressed: () => setState(() => d.stars = i),
-              icon: Icon(i <= d.stars ? Icons.star : Icons.star_border, color: const Color(0xFFFB923C)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            d.label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppTheme.textPrimary(context),
+              fontWeight: FontWeight.w700,
             ),
-        ]),
-        const SizedBox(height: 4),
-        TextField(
-          controller: d.note,
-          maxLines: 2,
-          decoration: const InputDecoration(
-            hintText: 'Kommentar (optional)',
-            hintStyle: TextStyle(color: Colors.white54),
-            border: InputBorder.none,
           ),
-          style: const TextStyle(color: Colors.white),
-        ),
-      ]),
+          const SizedBox(height: 4),
+          Text(
+            d.helpText,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppTheme.textSecondary(context),
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              for (int i = 1; i <= 5; i++)
+                IconButton(
+                  padding: const EdgeInsets.all(6),
+                  constraints: const BoxConstraints(),
+                  splashRadius: 20,
+                  onPressed: () => onStarsChanged(i),
+                  icon: Icon(
+                    i <= d.stars ? Icons.star : Icons.star_border,
+                    color: const Color(0xFFFB923C),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          TextField(
+            controller: d.note,
+            maxLines: 2,
+            decoration: InputDecoration(
+              hintText: 'Kommentar (optional)',
+              hintStyle: theme.textTheme.bodySmall?.copyWith(
+                color: AppTheme.textSecondary(context),
+              ),
+              filled: true,
+              fillColor: AppTheme.surfaceMuted(context),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppTheme.glassStroke(context)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppTheme.glassStroke(context)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    BorderSide(color: theme.colorScheme.primary, width: 1.4),
+              ),
+            ),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppTheme.textPrimary(context),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -13,9 +15,21 @@ class BlockedUsersScreen extends StatefulWidget {
   State<BlockedUsersScreen> createState() => _BlockedUsersScreenState();
 }
 
+class _BlockedUserEntry {
+  final String userId;
+  final User? user;
+
+  const _BlockedUserEntry({required this.userId, required this.user});
+
+  String get displayName {
+    final name = user?.displayName.trim() ?? '';
+    return name.isNotEmpty ? name : userId;
+  }
+}
+
 class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
   bool _loading = true;
-  List<User> _blocked = const [];
+  List<_BlockedUserEntry> _blocked = const [];
 
   @override
   void initState() {
@@ -29,10 +43,10 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
     });
     try {
       final ids = await BlockedUsersService.getBlockedUserIds();
-      final users = <User>[];
+      final users = <_BlockedUserEntry>[];
       for (final id in ids) {
         final u = await DataService.getUserById(id);
-        if (u != null) users.add(u);
+        users.add(_BlockedUserEntry(userId: id, user: u));
       }
       if (!mounted) return;
       users.sort((a, b) => a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
@@ -44,78 +58,110 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
     }
   }
 
-  Future<void> _confirmUnblock(User user) async {
+  Future<void> _confirmUnblock(_BlockedUserEntry entry) async {
     final theme = Theme.of(context);
-    final ok = await showModalBottomSheet<bool>(
+    final ok = await showGeneralDialog<bool>(
       context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.62),
-      builder: (context) {
-        return SafeArea(
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 720),
-              margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withValues(alpha: 0.94),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(children: [
-                    Expanded(child: Text('Nutzer entsperren?', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
-                    IconButton(onPressed: () => Navigator.of(context).maybePop(false), icon: const Icon(Icons.close, color: Colors.white)),
-                  ]),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Dieser Nutzer kann dir danach wieder Nachrichten senden und Anfragen stellen.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70, height: 1.45),
-                  ),
-                  const SizedBox(height: 14),
-                  Row(children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 48,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(context).maybePop(false),
-                          style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                          child: const Text('Abbrechen'),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.of(context).maybePop(true),
-                          style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                          child: const Text('Entsperren'),
-                        ),
-                      ),
-                    ),
-                  ]),
-                ],
+      barrierDismissible: true,
+      barrierLabel: 'Nutzer entblockieren?',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (dialogContext, a1, a2) {
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                ignoring: true,
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 26, sigmaY: 26),
+                  child: Container(color: Colors.transparent),
+                ),
               ),
             ),
+            SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface.withValues(alpha: 0.94),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(children: [
+                              Expanded(child: Text('Nutzer entblockieren?', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                              IconButton(onPressed: () => Navigator.of(dialogContext, rootNavigator: true).maybePop(false), icon: const Icon(Icons.close)),
+                            ]),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Dieser Nutzer kann dir danach wieder Nachrichten senden und öffentliche Profile sowie Anzeigen normal sehen.',
+                              style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+                            ),
+                            const SizedBox(height: 14),
+                            Row(children: [
+                              Expanded(
+                                child: SizedBox(
+                                  height: 48,
+                                  child: OutlinedButton(
+                                    onPressed: () => Navigator.of(dialogContext, rootNavigator: true).maybePop(false),
+                                    style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                                    child: const Text('Abbrechen'),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 48,
+                                  child: ElevatedButton(
+                                    onPressed: () => Navigator.of(dialogContext, rootNavigator: true).maybePop(true),
+                                    style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                                    child: const Text('Entblockieren'),
+                                  ),
+                                ),
+                              ),
+                            ]),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      transitionBuilder: (ctx, anim, secondary, child) {
+        final t = Curves.easeOutCubic.transform(anim.value);
+        return Opacity(
+          opacity: anim.value,
+          child: Transform.scale(
+            scale: 0.96 + (0.04 * t),
+            child: child,
           ),
         );
       },
     );
     if (ok != true) return;
     try {
-      await BlockedUsersService.unblockUser(user.id);
+      await BlockedUsersService.unblockUser(entry.userId);
+      if (!mounted) return;
+      setState(() {
+        _blocked = _blocked.where((candidate) => candidate.userId != entry.userId).toList(growable: false);
+      });
     } catch (e) {
       debugPrint('[BlockedUsersScreen] unblock failed: $e');
     }
-    if (!mounted) return;
-    await _load();
   }
 
   @override
@@ -138,8 +184,8 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                     itemCount: _blocked.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      final u = _blocked[index];
-                      return _BlockedUserCard(user: u, onUnblock: () => _confirmUnblock(u));
+                      final entry = _blocked[index];
+                      return _BlockedUserCard(entry: entry, onUnblock: () => _confirmUnblock(entry));
                     },
                   ),
       ),
@@ -148,14 +194,20 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
 }
 
 class _BlockedUserCard extends StatelessWidget {
-  final User user;
+  final _BlockedUserEntry entry;
   final VoidCallback onUnblock;
-  const _BlockedUserCard({required this.user, required this.onUnblock});
+  const _BlockedUserCard({required this.entry, required this.onUnblock});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final ratingText = user.reviewCount > 0 ? '${user.avgRating.toStringAsFixed(1)}★ (${user.reviewCount})' : null;
+    final user = entry.user;
+    final title = entry.displayName;
+    final subtitle = user == null
+        ? entry.userId
+        : user.reviewCount > 0
+            ? '${user.avgRating.toStringAsFixed(1)}★ (${user.reviewCount})'
+            : entry.userId;
 
     return Container(
       decoration: BoxDecoration(
@@ -168,14 +220,14 @@ class _BlockedUserCard extends StatelessWidget {
       ),
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       child: Row(children: [
-        SitUserAvatar(url: user.photoURL, radius: 22),
+        SitUserAvatar(url: user?.photoURL, radius: 22),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(user.displayName, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w900)),
+            Text(title, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w900)),
             const SizedBox(height: 3),
             Text(
-              ratingText ?? 'Zuletzt aktiv: kürzlich',
+              subtitle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.35),
@@ -191,7 +243,7 @@ class _BlockedUserCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
-            child: const Text('Entsperren'),
+            child: const Text('Entblockieren'),
           ),
         ),
       ]),
@@ -233,10 +285,10 @@ class _BlockedUsersEmptyState extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              Text('Keine blockierten Nutzer', textAlign: TextAlign.center, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+              Text('Du hast keine Nutzer blockiert.', textAlign: TextAlign.center, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
               const SizedBox(height: 8),
               Text(
-                'Du hast aktuell keine Nutzer blockiert. Du kannst Nutzer jederzeit in einem Chat blockieren.',
+                'Blockierte Nutzer erscheinen hier, damit du sie jederzeit wieder entblockieren kannst.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70, height: 1.5),
               ),

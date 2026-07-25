@@ -49,6 +49,8 @@ class User {
   final bool showHobbies;
   final bool showHomeLocation;
   final bool showBioPublic;
+  final bool showLanguagesPublic;
+  final bool showInterestsPublic;
   final bool showFavoriteSong;
 
   // Social links (stored as normalized URLs)
@@ -89,6 +91,8 @@ class User {
     this.showHobbies = false,
     this.showHomeLocation = false,
     this.showBioPublic = true,
+    this.showLanguagesPublic = true,
+    this.showInterestsPublic = true,
     this.showFavoriteSong = false,
     this.homeLat,
     this.homeLng,
@@ -138,6 +142,8 @@ class User {
     showHobbies: json['showHobbies'] ?? false,
     showHomeLocation: json['showHomeLocation'] ?? false,
     showBioPublic: json['showBioPublic'] ?? true,
+    showLanguagesPublic: json['showLanguagesPublic'] ?? true,
+    showInterestsPublic: json['showInterestsPublic'] ?? true,
     showFavoriteSong: json['showFavoriteSong'] ?? false,
     homeLat: (json['homeLat'] as num?)?.toDouble(),
     homeLng: (json['homeLng'] as num?)?.toDouble(),
@@ -194,6 +200,8 @@ class User {
     'showHobbies': showHobbies,
     'showHomeLocation': showHomeLocation,
     'showBioPublic': showBioPublic,
+    'showLanguagesPublic': showLanguagesPublic,
+    'showInterestsPublic': showInterestsPublic,
     'showFavoriteSong': showFavoriteSong,
     'homeLat': homeLat,
     'homeLng': homeLng,
@@ -243,6 +251,8 @@ class User {
     bool? showHobbies,
     bool? showHomeLocation,
     bool? showBioPublic,
+    bool? showLanguagesPublic,
+    bool? showInterestsPublic,
     bool? showFavoriteSong,
     double? homeLat,
     double? homeLng,
@@ -290,6 +300,8 @@ class User {
         showHobbies: showHobbies ?? this.showHobbies,
         showHomeLocation: showHomeLocation ?? this.showHomeLocation,
         showBioPublic: showBioPublic ?? this.showBioPublic,
+        showLanguagesPublic: showLanguagesPublic ?? this.showLanguagesPublic,
+        showInterestsPublic: showInterestsPublic ?? this.showInterestsPublic,
         showFavoriteSong: showFavoriteSong ?? this.showFavoriteSong,
         homeLat: homeLat ?? this.homeLat,
         homeLng: homeLng ?? this.homeLng,

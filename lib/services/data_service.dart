@@ -6,12 +6,14 @@ import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
+import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/models/category.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/review.dart';
 import 'package:lendify/models/multi_criteria_review.dart';
+import 'package:lendify/services/review_metrics_service.dart';
 import 'package:lendify/models/message.dart';
 import 'package:lendify/models/security.dart';
 import 'package:lendify/utils/total_subtitle.dart';
@@ -903,10 +905,14 @@ class DataService {
       return map;
     }).toList();
 
-    if (mutated) {
-      await prefs.setString(_usersKey, jsonEncode(fixed));
+    var users = fixed.map((json) => User.fromJson(json)).toList();
+    users = await _applyCentralReviewStatsToUsers(users);
+
+    final correctedJson = users.map((user) => user.toJson()).toList();
+    if (mutated || jsonEncode(fixed) != jsonEncode(correctedJson)) {
+      await prefs.setString(_usersKey, jsonEncode(correctedJson));
     }
-    return fixed.map((json) => User.fromJson(json)).toList();
+    return users;
   }
 
   static Future<User?> getCurrentUser() async {
@@ -930,7 +936,8 @@ class DataService {
       try {
         return prefs.getString(_currentUserKey);
       } catch (e) {
-        debugPrint('[DataService] currentUser malformed; clearing persisted value: $e');
+        debugPrint(
+            '[DataService] currentUser malformed; clearing persisted value: $e');
         try {
           await prefs.remove(_currentUserKey);
         } catch (_) {}
@@ -993,6 +1000,24 @@ class DataService {
 
     var user = User.fromJson(map);
 
+    try {
+      final users = await getUsers();
+      final corrected =
+          users.where((u) => u.id == user.id).cast<User?>().firstWhere(
+                (u) => u != null,
+                orElse: () => null,
+              );
+      if (corrected != null &&
+          (corrected.avgRating != user.avgRating ||
+              corrected.reviewCount != user.reviewCount)) {
+        user = user.copyWith(
+          avgRating: corrected.avgRating,
+          reviewCount: corrected.reviewCount,
+        );
+        mutated = true;
+      }
+    } catch (_) {}
+
     // Developer preview mode: optionally force verification flag on the current user.
     try {
       final preview = await DeveloperPreviewController.readStateOnce();
@@ -1013,7 +1038,6 @@ class DataService {
     await _ensureQaMessagesAndNotificationsForUserOnce(user.id);
     return user;
   }
-
 
   static Future<void> applyQaFixturesForScreenAudit() async {
     final me = await getCurrentUser();
@@ -1967,12 +1991,16 @@ class DataService {
     }
   }
 
+  static bool isPublicCatalogItem(Item item) =>
+      item.status == 'active' && item.isActive == true;
+
   static Future<List<Item>> getPublicItems() async {
     final items = await getItems();
+    final blockedUserIds =
+        (await BlockedUsersService.getBlockedUserIds()).toSet();
     final filtered = items
-        .where((e) =>
-            (e.status == 'active') ||
-            (e.isActive == true && e.status != 'ended'))
+        .where(isPublicCatalogItem)
+        .where((item) => !blockedUserIds.contains(item.ownerId))
         .toList();
     filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return filtered;
@@ -3699,6 +3727,26 @@ class DataService {
     required List<ReviewCriterion> criteria,
   }) async {
     final all = await _getAllMultiReviews();
+    final requests = await _getAllRentalRequests();
+    final request = requests.cast<RentalRequest?>().firstWhere(
+          (entry) => entry?.id == requestId,
+          orElse: () => null,
+        );
+    if (request == null || request.status != 'completed') {
+      throw StateError('Reviews require a completed booking.');
+    }
+
+    final reviewerMatchesDirection =
+        (direction == ReviewMetricsService.renterToOwner &&
+                request.renterId == reviewerId &&
+                request.ownerId == reviewedUserId) ||
+            (direction == ReviewMetricsService.ownerToRenter &&
+                request.ownerId == reviewerId &&
+                request.renterId == reviewedUserId);
+    if (!reviewerMatchesDirection || request.itemId != itemId) {
+      throw StateError('Review context does not match the completed booking.');
+    }
+
     final nextId = (all.fold<int>(
                 0,
                 (p, e) => (int.tryParse(e.id) ?? 0) > p
@@ -3706,6 +3754,10 @@ class DataService {
                     : p) +
             1)
         .toString();
+    final normalizedCriteria = ReviewMetricsService.normalizeCriteria(
+      criteria,
+      direction: direction,
+    );
     final review = MultiCriteriaReview(
       id: nextId,
       requestId: requestId,
@@ -3713,37 +3765,23 @@ class DataService {
       reviewerId: reviewerId,
       reviewedUserId: reviewedUserId,
       direction: direction,
-      criteria: criteria,
+      criteria: normalizedCriteria,
       createdAt: DateTime.now(),
     );
+
+    if (!ReviewMetricsService.isRegularCompleteReview(review)) {
+      throw ArgumentError('Review is incomplete or invalid.');
+    }
+    if (all.any((entry) => entry.id == review.id)) {
+      throw StateError('Duplicate review id.');
+    }
+    if (all.any((entry) =>
+        entry.requestId == requestId && entry.reviewerId == reviewerId)) {
+      throw StateError('Review already exists for this booking context.');
+    }
+
     all.add(review);
     await _saveAllMultiReviews(all);
-
-    // Incrementally update the reviewed user's rating stats
-    try {
-      final users = await getUsers();
-      final idx = users.indexWhere((u) => u.id == reviewedUserId);
-      if (idx != -1) {
-        final u = users[idx];
-        final count = (u.reviewCount) + 1;
-        final avg = ((u.avgRating * (u.reviewCount)) + review.average) / count;
-        final updated = u.copyWith(avgRating: avg, reviewCount: count);
-        final prefs = await SharedPreferences.getInstance();
-        final raw = prefs.getString(_usersKey);
-        if (raw != null) {
-          final List<dynamic> list = jsonDecode(raw);
-          for (int i = 0; i < list.length; i++) {
-            final m = Map<String, dynamic>.from(list[i] as Map);
-            if ((m['id']?.toString() ?? '') == reviewedUserId) {
-              list[i] = updated.toJson();
-              break;
-            }
-          }
-          await prefs.setString(_usersKey, jsonEncode(list));
-        }
-      }
-    } catch (_) {/* non-fatal */}
-
     return review;
   }
 
@@ -3774,63 +3812,291 @@ class DataService {
     return filtered;
   }
 
-  static Future<List<ReviewWithUser>> getReviewSummariesForUser(
-      String userId) async {
-    final classic = await getReviewsForUser(userId);
-    final multi = await getMultiReviewsForUser(userId);
-    final users = await getUsers();
-    final items = await getItems();
+  static const Map<String, String> _demoReviewItemIdByReviewId = {
+    'r1': '5',
+    'r2': '1',
+    'r3': '2',
+    'r4': '2',
+    'r5': '4',
+    'r6': '4',
+    'r7': '1',
+    'r8': '1',
+    'r9': '3',
+    'r10': '3',
+    'r11': '2',
+    'r12': '2',
+    'r13': '5',
+    'r14': '5',
+    'r15': '4',
+    'r16': '4',
+  };
+
+  static final Map<String, List<ReviewCriterion>>
+      _demoReviewCriteriaByReviewId = {
+    'r1': const [
+      ReviewCriterion(
+          key: 'communication', stars: 5, note: 'Schnelle Rückmeldung'),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(
+          key: 'article_as_described', stars: 5, note: 'Genau wie beschrieben'),
+      ReviewCriterion(
+          key: 'handover_return', stars: 5, note: 'Sehr gepflegt übergeben'),
+    ],
+    'r2': const [
+      ReviewCriterion(key: 'communication', stars: 5),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'article_as_described', stars: 5),
+      ReviewCriterion(key: 'handover_return', stars: 5),
+    ],
+    'r3': const [
+      ReviewCriterion(key: 'communication', stars: 5),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'handover_return', stars: 5),
+    ],
+    'r4': const [
+      ReviewCriterion(key: 'communication', stars: 4),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'handover_return', stars: 4),
+    ],
+    'r5': const [
+      ReviewCriterion(key: 'communication', stars: 5),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'article_as_described', stars: 5),
+      ReviewCriterion(key: 'handover_return', stars: 5),
+    ],
+    'r6': const [
+      ReviewCriterion(key: 'communication', stars: 5),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'article_as_described', stars: 5),
+      ReviewCriterion(key: 'handover_return', stars: 4),
+    ],
+    'r7': const [
+      ReviewCriterion(key: 'communication', stars: 5),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'article_as_described', stars: 4),
+      ReviewCriterion(key: 'handover_return', stars: 5),
+    ],
+    'r8': const [
+      ReviewCriterion(key: 'communication', stars: 5),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'article_as_described', stars: 5),
+      ReviewCriterion(key: 'handover_return', stars: 5),
+    ],
+    'r9': const [
+      ReviewCriterion(key: 'communication', stars: 5),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'article_as_described', stars: 5),
+      ReviewCriterion(key: 'handover_return', stars: 5),
+    ],
+    'r10': const [
+      ReviewCriterion(key: 'communication', stars: 5),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'article_as_described', stars: 5),
+      ReviewCriterion(key: 'handover_return', stars: 5),
+    ],
+    'r11': const [
+      ReviewCriterion(key: 'communication', stars: 5),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'article_as_described', stars: 5),
+      ReviewCriterion(key: 'handover_return', stars: 5),
+    ],
+    'r12': const [
+      ReviewCriterion(key: 'communication', stars: 4),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'article_as_described', stars: 4),
+      ReviewCriterion(key: 'handover_return', stars: 4),
+    ],
+    'r13': const [
+      ReviewCriterion(key: 'communication', stars: 5),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'article_as_described', stars: 5),
+      ReviewCriterion(key: 'handover_return', stars: 5),
+    ],
+    'r14': const [
+      ReviewCriterion(key: 'communication', stars: 5),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'article_as_described', stars: 5),
+      ReviewCriterion(key: 'handover_return', stars: 5),
+    ],
+    'r15': const [
+      ReviewCriterion(key: 'communication', stars: 5),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'article_as_described', stars: 4),
+      ReviewCriterion(key: 'handover_return', stars: 5),
+    ],
+    'r16': const [
+      ReviewCriterion(key: 'communication', stars: 5),
+      ReviewCriterion(key: 'reliability', stars: 5),
+      ReviewCriterion(key: 'article_as_described', stars: 5),
+      ReviewCriterion(key: 'handover_return', stars: 5),
+    ],
+  };
+
+  static MultiCriteriaReview? _buildSyntheticMultiReviewForClassic(
+      Review review) {
+    final criteria = _demoReviewCriteriaByReviewId[review.id];
+    if (criteria == null) return null;
+    return MultiCriteriaReview(
+      id: 'seed_${review.id}',
+      requestId: 'seed_${review.id}',
+      itemId: _demoReviewItemIdByReviewId[review.id] ?? '',
+      reviewerId: review.reviewerId,
+      reviewedUserId: review.reviewedUserId,
+      direction: criteria.any((c) =>
+              c.key == 'condition_dropoff' ||
+              c.key == 'description_accuracy' ||
+              c.key == 'value_for_money')
+          ? 'renter_to_owner'
+          : 'owner_to_renter',
+      criteria: criteria,
+      createdAt: review.createdAt,
+    );
+  }
+
+  static Future<List<ReviewWithUser>> _buildReviewSummaryEntries({
+    required List<User> users,
+    List<Item> items = const [],
+    String? reviewedUserId,
+  }) async {
+    final classic = await _getAllReviews();
+    final multi = await _getAllMultiReviews();
     final byId = {for (final u in users) u.id: u};
     final itemsById = {for (final item in items) item.id: item};
-    final multiBySyntheticId = <String, MultiCriteriaReview>{};
+    final entries = <ReviewWithUser>[];
 
-    // Convert multi-criteria into flat Review objects for existing UIs
-    List<Review> folded = List<Review>.from(classic);
-    for (final m in multi) {
-      final combinedText = m.criteria
-          .where((c) => (c.note?.trim().isNotEmpty ?? false))
-          .map((c) => _criterionLabel(c.key) + ': ' + c.note!.trim())
-          .join(' \u00B7 ');
-      final syntheticId = 'mc_${m.id}';
-      multiBySyntheticId[syntheticId] = m;
-      folded.add(Review(
-        id: syntheticId,
-        reviewerId: m.reviewerId,
-        reviewedUserId: m.reviewedUserId,
-        rating: m.average,
-        comment: combinedText,
-        createdAt: m.createdAt,
-      ));
-    }
-    folded.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-    return [
-      for (final r in folded)
+    for (final review in classic) {
+      if (reviewedUserId != null && review.reviewedUserId != reviewedUserId) {
+        continue;
+      }
+      final synthetic = _buildSyntheticMultiReviewForClassic(review);
+      final normalizedSynthetic = synthetic == null
+          ? null
+          : ReviewMetricsService.normalizeReview(synthetic);
+      final correctedRating = normalizedSynthetic == null
+          ? ReviewMetricsService.roundToSingleDecimal(review.rating)
+          : (ReviewMetricsService.calculateReviewScore(normalizedSynthetic) ??
+              ReviewMetricsService.roundToSingleDecimal(review.rating));
+      entries.add(
         ReviewWithUser(
-          review: r,
-          reviewer: byId[r.reviewerId],
-          item: itemsById[multiBySyntheticId[r.id]?.itemId ?? ''],
-          requestId: multiBySyntheticId[r.id]?.requestId,
-        )
+          review: review.copyWith(rating: correctedRating),
+          reviewer: byId[review.reviewerId],
+          item: itemsById[_demoReviewItemIdByReviewId[review.id] ?? ''],
+          requestId: normalizedSynthetic?.requestId,
+          multiReview: normalizedSynthetic,
+        ),
+      );
+    }
+
+    for (final review in multi) {
+      if (reviewedUserId != null && review.reviewedUserId != reviewedUserId) {
+        continue;
+      }
+      final normalizedReview = ReviewMetricsService.normalizeReview(review);
+      final previewComment = _buildCompactReviewPreview(
+        normalizedReview.criteria,
+      );
+      final rating =
+          ReviewMetricsService.calculateReviewScore(normalizedReview) ?? 0.0;
+      entries.add(
+        ReviewWithUser(
+          review: Review(
+            id: 'mc_${review.id}',
+            reviewerId: review.reviewerId,
+            reviewedUserId: review.reviewedUserId,
+            rating: rating,
+            comment: previewComment,
+            createdAt: review.createdAt,
+          ),
+          reviewer: byId[review.reviewerId],
+          item: itemsById[review.itemId],
+          requestId: review.requestId,
+          multiReview: normalizedReview,
+        ),
+      );
+    }
+
+    return ReviewMetricsService.normalizeReviewEntries(entries);
+  }
+
+  static Future<List<User>> _applyCentralReviewStatsToUsers(
+      List<User> users) async {
+    if (users.isEmpty) return users;
+    final entries = await _buildReviewSummaryEntries(users: users);
+    final grouped = <String, List<ReviewWithUser>>{};
+    for (final entry in entries) {
+      grouped
+          .putIfAbsent(entry.review.reviewedUserId, () => <ReviewWithUser>[])
+          .add(entry);
+    }
+    return [
+      for (final user in users)
+        (() {
+          final summary = ReviewMetricsService.calculateUserSummary(
+            grouped[user.id] ?? const <ReviewWithUser>[],
+          );
+          return user.copyWith(
+            avgRating: summary.averageRating,
+            reviewCount: summary.reviewCount,
+          );
+        })(),
     ];
+  }
+
+  static Future<List<ReviewWithUser>> getReviewSummariesForUser(
+      String userId) async {
+    final users = await getUsers();
+    final items = await getItems();
+    return _buildReviewSummaryEntries(
+      users: users,
+      items: items,
+      reviewedUserId: userId,
+    );
+  }
+
+  static String _buildCompactReviewPreview(
+    List<ReviewCriterion> criteria, {
+    String? generalComment,
+  }) {
+    final normalizedGeneralComment = generalComment?.trim();
+    if (normalizedGeneralComment != null &&
+        normalizedGeneralComment.isNotEmpty) {
+      return normalizedGeneralComment;
+    }
+
+    const previewOrder = <String>[
+      'reliability',
+      'article_as_described',
+      'handover_return',
+      'communication',
+    ];
+
+    for (final key in previewOrder) {
+      for (final criterion in criteria) {
+        if (criterion.key != key) continue;
+        final note = criterion.note?.trim();
+        if (note != null && note.isNotEmpty) {
+          return note;
+        }
+      }
+    }
+
+    return '';
   }
 
   static String _criterionLabel(String key) {
     switch (key) {
       case 'communication':
         return 'Kommunikation';
-      case 'condition_dropoff':
-        return 'Zustand bei Abgabe';
-      case 'condition_return':
-        return 'Zustand bei Rückgabe';
-      case 'description_accuracy':
-        return 'Beschreibungstreue';
       case 'reliability':
         return 'Zuverlässigkeit';
-      case 'value_for_money':
-        return 'Preis‑Leistung';
+      case 'article_as_described':
+      case 'description_accuracy':
+        return 'Artikel wie beschrieben';
+      case 'handover_return':
+      case 'condition_dropoff':
+      case 'condition_return':
       case 'process':
-        return 'Abgabe & Rückgabe';
+        return 'Übergabe & Rückgabe';
       default:
         return key;
     }

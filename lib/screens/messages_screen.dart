@@ -7,6 +7,7 @@ import 'package:lendify/models/message.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/messages_settings_screen.dart';
+import 'package:lendify/screens/blocked_users_screen.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/data_service.dart';
@@ -26,6 +27,31 @@ enum _MessagesFilter { all, bookings, active, archived, blocked, support }
 
 const String _translationDemoThreadId = 'demo_translation_thread';
 const String _mutedThreadsKey = 'muted_message_threads_v1';
+
+class MessagesBlockedTabEmptyStateConfig {
+  final String title;
+  final String body;
+  final String buttonLabel;
+
+  const MessagesBlockedTabEmptyStateConfig({
+    required this.title,
+    required this.body,
+    required this.buttonLabel,
+  });
+}
+
+const messagesBlockedTabEmptyStateConfig = MessagesBlockedTabEmptyStateConfig(
+  title: 'Keine blockierten Chats',
+  body:
+      'Blockierte Gespräche erscheinen hier, wenn mit der blockierten Person bereits ein Chat besteht. Alle blockierten Nutzer verwaltest du in den Kontoeinstellungen.',
+  buttonLabel: 'Blockierte Nutzer verwalten',
+);
+
+Future<void> openBlockedUsersManagement(BuildContext context) {
+  return Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => const BlockedUsersScreen()),
+  );
+}
 
 class _MessagesScreenState extends State<MessagesScreen> {
   _MessagesFilter _filter = _MessagesFilter.active;
@@ -87,20 +113,50 @@ class _MessagesScreenState extends State<MessagesScreen> {
     return _filter;
   }
 
-  ({String title, String body}) _emptyStateCopy() {
+  _MessagesEmptyStateConfig _emptyStateConfig() {
     switch (_filter) {
       case _MessagesFilter.active:
-        return (title: 'Keine aktiven Nachrichten', body: 'Sobald eine laufende oder offene Unterhaltung entsteht, erscheint sie hier.');
+        return const _MessagesEmptyStateConfig(
+          title: 'Keine aktiven Nachrichten',
+          body: 'Sobald eine laufende oder offene Unterhaltung entsteht, erscheint sie hier.',
+          buttonLabel: 'Jetzt entdecken',
+          buttonIcon: Icons.explore,
+        );
       case _MessagesFilter.all:
-        return (title: 'Noch keine Nachrichten', body: 'Deine Gespräche erscheinen hier, sobald du eine Anfrage stellst oder annimmst.');
+        return const _MessagesEmptyStateConfig(
+          title: 'Noch keine Nachrichten',
+          body: 'Deine Gespräche erscheinen hier, sobald du eine Anfrage stellst oder annimmst.',
+          buttonLabel: 'Jetzt entdecken',
+          buttonIcon: Icons.explore,
+        );
       case _MessagesFilter.bookings:
-        return (title: 'Keine Buchungsnachrichten', body: 'Sobald es Nachrichten zu Buchungen gibt, erscheinen sie hier.');
+        return const _MessagesEmptyStateConfig(
+          title: 'Keine Buchungsnachrichten',
+          body: 'Sobald es Nachrichten zu Buchungen gibt, erscheinen sie hier.',
+          buttonLabel: 'Jetzt entdecken',
+          buttonIcon: Icons.explore,
+        );
       case _MessagesFilter.archived:
-        return (title: 'Keine archivierten Nachrichten', body: 'Archivierte Gespräche erscheinen hier.');
+        return const _MessagesEmptyStateConfig(
+          title: 'Keine archivierten Nachrichten',
+          body: 'Archivierte Gespräche erscheinen hier.',
+          buttonLabel: 'Jetzt entdecken',
+          buttonIcon: Icons.explore,
+        );
       case _MessagesFilter.support:
-        return (title: 'Keine Support-Nachrichten', body: 'Support-Unterhaltungen erscheinen hier, sobald du den Support kontaktierst.');
+        return const _MessagesEmptyStateConfig(
+          title: 'Keine Support-Nachrichten',
+          body: 'Support-Unterhaltungen erscheinen hier, sobald du den Support kontaktierst.',
+          buttonLabel: 'Jetzt entdecken',
+          buttonIcon: Icons.explore,
+        );
       case _MessagesFilter.blocked:
-        return (title: 'Keine blockierten Kontakte', body: 'Blockierte Gespräche erscheinen hier, solange mindestens ein Kontakt blockiert ist.');
+        return _MessagesEmptyStateConfig(
+          title: messagesBlockedTabEmptyStateConfig.title,
+          body: messagesBlockedTabEmptyStateConfig.body,
+          buttonLabel: messagesBlockedTabEmptyStateConfig.buttonLabel,
+          buttonIcon: Icons.block_outlined,
+        );
     }
   }
 
@@ -712,9 +768,22 @@ class _MessagesScreenState extends State<MessagesScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : (!_hasUser)
-                      ? _EmptyState(title: 'Noch keine Nachrichten', body: 'Deine Gespräche erscheinen hier, sobald du eine Anfrage stellst oder annimmst.', onCta: () => Navigator.of(context).maybePop())
+                      ? _EmptyState(
+                          config: const _MessagesEmptyStateConfig(
+                            title: 'Noch keine Nachrichten',
+                            body: 'Deine Gespräche erscheinen hier, sobald du eine Anfrage stellst oder annimmst.',
+                            buttonLabel: 'Jetzt entdecken',
+                            buttonIcon: Icons.explore,
+                          ),
+                          onCta: () => Navigator.of(context).maybePop(),
+                        )
                       : threads.isEmpty
-                          ? _EmptyState(title: _emptyStateCopy().title, body: _emptyStateCopy().body, onCta: () => Navigator.of(context).maybePop())
+                          ? _EmptyState(
+                              config: _emptyStateConfig(),
+                              onCta: _filter == _MessagesFilter.blocked
+                                  ? () => openBlockedUsersManagement(context)
+                                  : () => Navigator.of(context).maybePop(),
+                            )
                           : ListView.separated(
                               padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
                               itemCount: threads.length,
@@ -1970,11 +2039,24 @@ class _SheetAction extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
+class _MessagesEmptyStateConfig {
   final String title;
   final String body;
+  final String buttonLabel;
+  final IconData buttonIcon;
+
+  const _MessagesEmptyStateConfig({
+    required this.title,
+    required this.body,
+    required this.buttonLabel,
+    required this.buttonIcon,
+  });
+}
+
+class _EmptyState extends StatelessWidget {
+  final _MessagesEmptyStateConfig config;
   final VoidCallback onCta;
-  const _EmptyState({required this.title, required this.body, required this.onCta});
+  const _EmptyState({required this.config, required this.onCta});
 
   @override
   Widget build(BuildContext context) {
@@ -1982,22 +2064,44 @@ class _EmptyState extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppTheme.textPrimary(context), fontWeight: FontWeight.w900)),
+          Text(config.title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppTheme.textPrimary(context), fontWeight: FontWeight.w900)),
           const SizedBox(height: 10),
           Text(
-            body,
+            config.body,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.textBody(context), height: 1.45, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 18),
-          SizedBox(
-            width: 220,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: onCta,
-              icon: const Icon(Icons.explore, color: Colors.black),
-              label: const Text('Jetzt entdecken', style: TextStyle(color: Colors.black)),
-              style: ElevatedButton.styleFrom(backgroundColor: BrandColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 260, maxWidth: 320),
+              child: SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: onCta,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BrandColors.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(config.buttonIcon, color: Colors.black),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(
+                          config.buttonLabel,
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ]),

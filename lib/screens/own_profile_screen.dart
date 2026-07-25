@@ -3,6 +3,7 @@ import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/models/review.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/review_metrics_service.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
@@ -432,10 +433,9 @@ class _ReviewsTabState extends State<_ReviewsTab> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final count = _reviews.isNotEmpty ? _reviews.length : widget.reviewCount;
-    final double avg = _reviews.isNotEmpty
-        ? _reviews.map((e) => e.review.rating).reduce((a, b) => a + b) / _reviews.length
-        : widget.avgRating;
+    final summary = ReviewMetricsService.calculateUserSummary(_reviews);
+    final count = summary.reviewCount > 0 ? summary.reviewCount : widget.reviewCount;
+    final double avg = summary.reviewCount > 0 ? summary.averageRating : widget.avgRating;
 
     if (_reviews.isEmpty) {
       return ListView(
@@ -444,7 +444,7 @@ class _ReviewsTabState extends State<_ReviewsTab> {
           Row(children: [
             const Icon(Icons.star, color: Color(0xFFFB923C)),
             const SizedBox(width: 6),
-            Text('${avg.toStringAsFixed(1)} ($count)', style: theme.textTheme.titleMedium?.copyWith(color: Colors.white)),
+            Text('${ReviewMetricsService.formatRatingValue(avg)} ($count)', style: theme.textTheme.titleMedium?.copyWith(color: Colors.white)),
           ]),
           const SizedBox(height: 12),
           Text('Keine Bewertung vorhanden.', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70)),
@@ -458,7 +458,7 @@ class _ReviewsTabState extends State<_ReviewsTab> {
         Row(children: [
           const Icon(Icons.star, color: Color(0xFFFB923C)),
           const SizedBox(width: 6),
-          Text('${avg.toStringAsFixed(1)} ($count)', style: theme.textTheme.titleMedium?.copyWith(color: Colors.white)),
+          Text('${ReviewMetricsService.formatRatingValue(avg)} ($count)', style: theme.textTheme.titleMedium?.copyWith(color: Colors.white)),
         ]),
         const SizedBox(height: 12),
         ..._reviews.map((entry) {
@@ -495,7 +495,7 @@ class _ReviewsTabState extends State<_ReviewsTab> {
                 children: [
                   const Icon(Icons.star, size: 16, color: Color(0xFFFB923C)),
                   const SizedBox(width: 4),
-                  Text(entry.review.rating.toStringAsFixed(1), style: theme.textTheme.bodySmall?.copyWith(color: Colors.white)),
+                  Text(ReviewMetricsService.formatRatingValue(entry.review.rating), style: theme.textTheme.bodySmall?.copyWith(color: Colors.white)),
                 ],
               ),
             ),

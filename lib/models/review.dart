@@ -1,4 +1,6 @@
+
 import 'package:lendify/models/item.dart';
+import 'package:lendify/models/multi_criteria_review.dart';
 import 'package:lendify/models/user.dart';
 
 /// Simple review model persisted in local storage for the demo.
@@ -25,7 +27,8 @@ class Review {
         reviewedUserId: json['reviewedUserId'] as String,
         rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
         comment: json['comment'] as String? ?? '',
-        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+            DateTime.now(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -36,6 +39,24 @@ class Review {
         'comment': comment,
         'createdAt': createdAt.toIso8601String(),
       };
+
+  Review copyWith({
+    String? id,
+    String? reviewerId,
+    String? reviewedUserId,
+    double? rating,
+    String? comment,
+    DateTime? createdAt,
+  }) {
+    return Review(
+      id: id ?? this.id,
+      reviewerId: reviewerId ?? this.reviewerId,
+      reviewedUserId: reviewedUserId ?? this.reviewedUserId,
+      rating: rating ?? this.rating,
+      comment: comment ?? this.comment,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }
 
 /// Convenience view object bundling the review with the author profile.
@@ -44,11 +65,13 @@ class ReviewWithUser {
   final User? reviewer;
   final Item? item;
   final String? requestId;
+  final MultiCriteriaReview? multiReview;
 
   const ReviewWithUser({
     required this.review,
     required this.reviewer,
     this.item,
     this.requestId,
+    this.multiReview,
   });
 }
