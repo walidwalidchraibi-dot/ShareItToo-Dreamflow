@@ -3671,8 +3671,17 @@ class DataService {
     final prefs = await SharedPreferences.getInstance();
     String? raw = prefs.getString(_reviewsKey);
     if (raw == null) {
-      final users = await getUsers();
-      final seed = _buildDemoReviews(users);
+      List<User> seedUsers = const <User>[];
+      try {
+        final usersJson = prefs.getString(_usersKey);
+        if (usersJson != null && usersJson.isNotEmpty) {
+          final List<dynamic> usersList = jsonDecode(usersJson);
+          seedUsers = usersList
+              .map((e) => User.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+        }
+      } catch (_) {}
+      final seed = _buildDemoReviews(seedUsers);
       await prefs.setString(
           _reviewsKey, jsonEncode(seed.map((e) => e.toJson()).toList()));
       raw = prefs.getString(_reviewsKey);
