@@ -39,6 +39,9 @@ import 'package:lendify/screens/support_flow_screen.dart';
 const String _translationDemoThreadId = 'demo_translation_thread';
 const String _mutedThreadsKey = 'muted_message_threads_v1';
 
+bool didConfirmReturnHandover(ReturnHandoverStepResult? result) =>
+    result?.confirmed == true;
+
 /// Chat detail screen (Communication Hub).
 ///
 /// - Fully data-driven: thread, users, item, and booking state are loaded from local storage.
@@ -1200,7 +1203,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           viewerIsOwner: _viewerIsOwner(),
           mode: mode,
         );
-        if (ok == true) {
+        if (didConfirmReturnHandover(ok)) {
           // Treat as completing 4/4 photos in the active segment.
           if (_handoverReturnState['handoverActive'] == true) {
             for (int i = 0; i < 4; i++) {
