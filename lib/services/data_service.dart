@@ -4675,6 +4675,11 @@ class DataService {
         'Diese Bestätigung ist nur für den Mieter möglich.',
       );
     }
+    if (request.status != 'accepted') {
+      return const RentalRequestTransitionResult.failure(
+        'Übergabe ist gerade nicht verfügbar.',
+      );
+    }
     if (!confirmationContextVerified) {
       return const RentalRequestTransitionResult.failure(
         'Übergabe-Bestätigung konnte nicht verifiziert werden.',
@@ -4735,6 +4740,11 @@ class DataService {
     if (request.ownerId != userId) {
       return const RentalRequestTransitionResult.failure(
         'Diese Bestätigung ist nur für den Vermieter möglich.',
+      );
+    }
+    if (request.status != 'running') {
+      return const RentalRequestTransitionResult.failure(
+        'Rückgabe ist gerade nicht verfügbar.',
       );
     }
     if (!confirmationContextVerified) {

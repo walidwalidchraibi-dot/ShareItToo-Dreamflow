@@ -74,6 +74,82 @@ void main() {
       );
     });
 
+    test('pickup transition rejects requests whose status is not accepted',
+        () async {
+      await DataService.updateRentalRequestStatus(
+        requestId: 'req-pickup',
+        status: 'running',
+      );
+      await DataService.setHandoverActive('req-pickup', active: true);
+      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+        await DataService.incrementHandoverPhotos('req-pickup');
+      }
+
+      final result = await DataService.confirmPickupTransition(
+        requestId: 'req-pickup',
+        confirmedByUserId: renter.id,
+        method: 'manual',
+        confirmationContextVerified: true,
+        galleryAcknowledged: true,
+      );
+
+      final request = await DataService.getRentalRequestById('req-pickup');
+
+      expect(result.success, isFalse);
+      expect(
+          result.errorMessage, contains('Übergabe ist gerade nicht verfügbar'));
+      expect(request!.status, 'running');
+      expect(request.handoverConfirmation, isNull);
+    });
+
+    test(
+        'pickup transition rejects wrong renter role even when status is accepted',
+        () async {
+      await DataService.setHandoverActive('req-pickup', active: true);
+      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+        await DataService.incrementHandoverPhotos('req-pickup');
+      }
+
+      final result = await DataService.confirmPickupTransition(
+        requestId: 'req-pickup',
+        confirmedByUserId: owner.id,
+        method: 'manual',
+        confirmationContextVerified: true,
+        galleryAcknowledged: true,
+      );
+
+      final request = await DataService.getRentalRequestById('req-pickup');
+
+      expect(result.success, isFalse);
+      expect(result.errorMessage, contains('nur für den Mieter'));
+      expect(request!.status, 'accepted');
+      expect(request.handoverConfirmation, isNull);
+    });
+
+    test(
+        'pickup transition rejects accepted request without active handover flow',
+        () async {
+      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+        await DataService.incrementHandoverPhotos('req-pickup');
+      }
+
+      final result = await DataService.confirmPickupTransition(
+        requestId: 'req-pickup',
+        confirmedByUserId: renter.id,
+        method: 'manual',
+        confirmationContextVerified: true,
+        galleryAcknowledged: true,
+      );
+
+      final request = await DataService.getRentalRequestById('req-pickup');
+
+      expect(result.success, isFalse);
+      expect(result.errorMessage,
+          contains('Bitte starte die Übergabe zuerst im Chat'));
+      expect(request!.status, 'accepted');
+      expect(request.handoverConfirmation, isNull);
+    });
+
     test('pickup transition requires active flow and at least four handover photos', () async {
       await DataService.setHandoverActive('req-pickup', active: true);
       await DataService.incrementHandoverPhotos('req-pickup');
@@ -117,6 +193,120 @@ void main() {
       expect(request.handoverConfirmation?['confirmedByRole'], 'renter');
       expect(request.handoverConfirmation?['method'], 'manual');
       expect(state['handoverActive'], isFalse);
+    });
+
+    test(
+        'pickup transition rejects repeated confirmation after booking is already running',
+        () async {
+      await DataService.setHandoverActive('req-pickup', active: true);
+      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+        await DataService.incrementHandoverPhotos('req-pickup');
+      }
+
+      final first = await DataService.confirmPickupTransition(
+        requestId: 'req-pickup',
+        confirmedByUserId: renter.id,
+        method: 'manual',
+        confirmationContextVerified: true,
+        galleryAcknowledged: true,
+      );
+      final afterFirst = await DataService.getRentalRequestById('req-pickup');
+
+      final second = await DataService.confirmPickupTransition(
+        requestId: 'req-pickup',
+        confirmedByUserId: renter.id,
+        method: 'manual',
+        confirmationContextVerified: true,
+        galleryAcknowledged: true,
+      );
+
+      final afterSecond = await DataService.getRentalRequestById('req-pickup');
+
+      expect(first.success, isTrue);
+      expect(afterFirst!.status, 'running');
+      expect(second.success, isFalse);
+      expect(
+          second.errorMessage, contains('Übergabe ist gerade nicht verfügbar'));
+      expect(afterSecond!.status, 'running');
+      expect(afterSecond.handoverConfirmation?['confirmedByRole'], 'renter');
+    });
+
+    test('return transition rejects requests whose status is not running',
+        () async {
+      await DataService.updateRentalRequestStatus(
+        requestId: 'req-return',
+        status: 'completed',
+      );
+      await DataService.setReturnActive('req-return', active: true);
+      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+        await DataService.incrementReturnPhotos('req-return');
+      }
+
+      final result = await DataService.confirmReturnTransition(
+        requestId: 'req-return',
+        confirmedByUserId: owner.id,
+        method: 'manual',
+        confirmationContextVerified: true,
+        galleryAcknowledged: true,
+        reviewPauseSource: 'test',
+      );
+
+      final request = await DataService.getRentalRequestById('req-return');
+
+      expect(result.success, isFalse);
+      expect(
+          result.errorMessage, contains('Rückgabe ist gerade nicht verfügbar'));
+      expect(request!.status, 'completed');
+      expect(request.returnConfirmation, isNull);
+    });
+
+    test(
+        'return transition rejects wrong owner role even when status is running',
+        () async {
+      await DataService.setReturnActive('req-return', active: true);
+      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+        await DataService.incrementReturnPhotos('req-return');
+      }
+
+      final result = await DataService.confirmReturnTransition(
+        requestId: 'req-return',
+        confirmedByUserId: renter.id,
+        method: 'manual',
+        confirmationContextVerified: true,
+        galleryAcknowledged: true,
+        reviewPauseSource: 'test',
+      );
+
+      final request = await DataService.getRentalRequestById('req-return');
+
+      expect(result.success, isFalse);
+      expect(result.errorMessage, contains('nur für den Vermieter'));
+      expect(request!.status, 'running');
+      expect(request.returnConfirmation, isNull);
+    });
+
+    test('return transition rejects running request without active return flow',
+        () async {
+      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+        await DataService.incrementReturnPhotos('req-return');
+      }
+
+      final result = await DataService.confirmReturnTransition(
+        requestId: 'req-return',
+        confirmedByUserId: owner.id,
+        method: 'manual',
+        confirmationContextVerified: true,
+        galleryAcknowledged: true,
+        reviewPauseSource: 'test',
+      );
+
+      final request = await DataService.getRentalRequestById('req-return');
+
+      expect(result.success, isFalse);
+      expect(result.errorMessage,
+          contains('Bitte starte die Rückgabe zuerst im Chat'));
+      expect(request!.status, 'running');
+      expect(request.returnConfirmation, isNull);
     });
 
     test('return transition pauses completion when booking is marked needsReview', () async {
@@ -168,6 +358,44 @@ void main() {
       expect(request.returnConfirmation?['confirmedByRole'], 'owner');
       expect(request.returnConfirmation?['method'], 'manual');
       expect(state['returnActive'], isFalse);
+    });
+
+    test(
+        'return transition rejects repeated confirmation after booking is already completed',
+        () async {
+      await DataService.setReturnActive('req-return', active: true);
+      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+        await DataService.incrementReturnPhotos('req-return');
+      }
+
+      final first = await DataService.confirmReturnTransition(
+        requestId: 'req-return',
+        confirmedByUserId: owner.id,
+        method: 'manual',
+        confirmationContextVerified: true,
+        galleryAcknowledged: true,
+        reviewPauseSource: 'test',
+      );
+      final afterFirst = await DataService.getRentalRequestById('req-return');
+
+      final second = await DataService.confirmReturnTransition(
+        requestId: 'req-return',
+        confirmedByUserId: owner.id,
+        method: 'manual',
+        confirmationContextVerified: true,
+        galleryAcknowledged: true,
+        reviewPauseSource: 'test',
+      );
+
+      final afterSecond = await DataService.getRentalRequestById('req-return');
+
+      expect(first.success, isTrue);
+      expect(afterFirst!.status, 'completed');
+      expect(second.success, isFalse);
+      expect(
+          second.errorMessage, contains('Rückgabe ist gerade nicht verfügbar'));
+      expect(afterSecond!.status, 'completed');
+      expect(afterSecond.returnConfirmation?['confirmedByRole'], 'owner');
     });
   });
 
