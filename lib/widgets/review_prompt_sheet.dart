@@ -22,31 +22,31 @@ bool areAllReviewCriteriaRated(Iterable<int> starValues) =>
     starValues.every((stars) => stars >= 1);
 
 List<ReviewFormCriterionDefinition> buildReviewFormCriteria() => const [
-      ReviewFormCriterionDefinition(
-        key: ReviewMetricsService.communication,
-        label: 'Kommunikation',
-        helpText:
-            'Bewerte Erreichbarkeit, Verständlichkeit, rechtzeitige Rückmeldungen und hilfreiche Abstimmung.',
-      ),
-      ReviewFormCriterionDefinition(
-        key: ReviewMetricsService.reliability,
-        label: 'Zuverlässigkeit',
-        helpText:
-            'Bewerte Einhaltung von Vereinbarungen, Pünktlichkeit, Verbindlichkeit und Durchführung wie vereinbart.',
-      ),
-      ReviewFormCriterionDefinition(
-        key: ReviewMetricsService.articleAsDescribed,
-        label: 'Artikel wie beschrieben',
-        helpText:
-            'Bewerte, ob Zustand, Ausstattung, Funktion und bekannte Gebrauchsspuren der Anzeige entsprachen – nicht, ob der Artikel neu oder hochwertig war.',
-      ),
-      ReviewFormCriterionDefinition(
-        key: ReviewMetricsService.handoverReturn,
-        label: 'Übergabe & Rückgabe',
-        helpText:
-            'Bewerte den gesamten Ablauf einschließlich Pünktlichkeit, Sauberkeit, Funktionsfähigkeit, Zubehör und Rückgabe.',
-      ),
-    ];
+  ReviewFormCriterionDefinition(
+    key: ReviewMetricsService.communication,
+    label: 'Kommunikation',
+    helpText:
+        'Bewerte Erreichbarkeit, Verständlichkeit, rechtzeitige Rückmeldungen und hilfreiche Abstimmung.',
+  ),
+  ReviewFormCriterionDefinition(
+    key: ReviewMetricsService.reliability,
+    label: 'Zuverlässigkeit',
+    helpText:
+        'Bewerte Einhaltung von Vereinbarungen, Pünktlichkeit, Verbindlichkeit und Durchführung wie vereinbart.',
+  ),
+  ReviewFormCriterionDefinition(
+    key: ReviewMetricsService.articleAsDescribed,
+    label: 'Artikel wie beschrieben',
+    helpText:
+        'Bewerte, ob Zustand, Ausstattung, Funktion und bekannte Gebrauchsspuren der Anzeige entsprachen – nicht, ob der Artikel neu oder hochwertig war.',
+  ),
+  ReviewFormCriterionDefinition(
+    key: ReviewMetricsService.handoverReturn,
+    label: 'Übergabe & Rückgabe',
+    helpText:
+        'Bewerte den gesamten Ablauf einschließlich Pünktlichkeit, Sauberkeit, Funktionsfähigkeit, Zubehör und Rückgabe.',
+  ),
+];
 
 class ReviewPromptSheet extends StatefulWidget {
   final String requestId;
@@ -78,6 +78,19 @@ class ReviewPromptSheet extends StatefulWidget {
       reviewerId: reviewerId,
     );
     if (already) return false;
+    final request = await DataService.getRentalRequestById(requestId);
+    if (request?.needsReview == true) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Bewertungen sind blockiert, solange dieser Fall geprüft wird.',
+            ),
+          ),
+        );
+      }
+      return false;
+    }
     return showBlurBottomSheet<bool>(
       context,
       barrierOpacity: isDark ? 0.30 : 0.16,
@@ -130,9 +143,7 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
     if (_submitting) return;
     if (!_allCriteriaRated) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Bitte bewerte alle vier Kriterien.'),
-        ),
+        const SnackBar(content: Text('Bitte bewerte alle vier Kriterien.')),
       );
       return;
     }
@@ -170,8 +181,9 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = AppTheme.isDark(context);
-    final baseRole =
-        widget.direction == 'renter_to_owner' ? 'Vermieter' : 'Mieter';
+    final baseRole = widget.direction == 'renter_to_owner'
+        ? 'Vermieter'
+        : 'Mieter';
     final name = _reviewedName;
     final title =
         '${(name != null && name.isNotEmpty) ? name : baseRole} bewerten';
@@ -181,8 +193,9 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
     return Material(
       color: Colors.transparent,
       child: Padding(
-        padding:
-            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),
           child: SheetScaffold(
@@ -254,10 +267,7 @@ class _CriterionTile extends StatelessWidget {
   final _CriterionState data;
   final ValueChanged<int> onStarsChanged;
 
-  const _CriterionTile({
-    required this.data,
-    required this.onStarsChanged,
-  });
+  const _CriterionTile({required this.data, required this.onStarsChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -316,8 +326,10 @@ class _CriterionTile extends StatelessWidget {
               ),
               filled: true,
               fillColor: AppTheme.surfaceMuted(context),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: AppTheme.glassStroke(context)),
@@ -328,8 +340,10 @@ class _CriterionTile extends StatelessWidget {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide:
-                    BorderSide(color: theme.colorScheme.primary, width: 1.4),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.primary,
+                  width: 1.4,
+                ),
               ),
             ),
             style: theme.textTheme.bodyMedium?.copyWith(

@@ -30,13 +30,13 @@ class RentalRequestTransitionResult {
   });
 
   const RentalRequestTransitionResult.success()
-    : this._(success: true, pausedForReview: false);
+      : this._(success: true, pausedForReview: false);
 
   const RentalRequestTransitionResult.failure(String message)
-    : this._(success: false, pausedForReview: false, errorMessage: message);
+      : this._(success: false, pausedForReview: false, errorMessage: message);
 
   const RentalRequestTransitionResult.paused(String message)
-    : this._(success: false, pausedForReview: true, errorMessage: message);
+      : this._(success: false, pausedForReview: true, errorMessage: message);
 }
 
 class DataService {
@@ -207,9 +207,8 @@ class DataService {
           map = {};
         }
       }
-      final current = (map[bookingId] is num)
-          ? (map[bookingId] as num).toInt()
-          : 0;
+      final current =
+          (map[bookingId] is num) ? (map[bookingId] as num).toInt() : 0;
       final next = current + 1;
       map[bookingId] = next;
       await prefs.setString(_handoverFailCountsKey, jsonEncode(map));
@@ -318,7 +317,7 @@ class DataService {
     // don't drop previously saved delivery selections.
     final existing =
         (map[itemId] as Map?)?.map((k, v) => MapEntry(k.toString(), v)) ??
-        <String, dynamic>{};
+            <String, dynamic>{};
     existing['start'] = start.toIso8601String();
     existing['end'] = end.toIso8601String();
     map[itemId] = existing;
@@ -371,8 +370,7 @@ class DataService {
     double baseTotal,
     double appliedPercent,
     double discountAmount,
-  )
-  computeTotalWithDiscounts({required Item item, required int days}) {
+  ) computeTotalWithDiscounts({required Item item, required int days}) {
     final d = days.clamp(1, 3650);
     final base = (item.pricePerDay * d);
     if (!item.autoApplyDiscounts || item.longRentalDiscounts.isEmpty) {
@@ -398,8 +396,7 @@ class DataService {
   /// Edge case: For a 0 € subtotal, the fee is 0 €.
   /// UI never shows percentages, only the absolute fee.
   static double platformContributionForRental(double rentalSubtotal) {
-    final v =
-        (rentalSubtotal.isNaN ||
+    final v = (rentalSubtotal.isNaN ||
             rentalSubtotal.isInfinite ||
             rentalSubtotal < 0)
         ? 0.0
@@ -437,17 +434,16 @@ class DataService {
     double expressApplied,
     double totalRenter,
     double payoutOwner,
-  })
-  priceBreakdownForRequest({
+  }) priceBreakdownForRequest({
     required Item item,
     required RentalRequest req,
     Map<String, dynamic>? deliverySel,
   }) {
     // Days
     final int days = (req.end.difference(req.start).inHours / 24).ceil().clamp(
-      1,
-      365,
-    );
+          1,
+          365,
+        );
     final priced = computeTotalWithDiscounts(item: item, days: days);
     final double basePerDay = item.pricePerDay;
     final double baseTotal = priced.$2; // before discount
@@ -462,9 +458,8 @@ class DataService {
         req.expressRequested || (req.expressStatus != null);
     final bool inferredOwnerDeliversByAddress =
         ((req.deliveryAddressLine ?? '').toString().trim().isNotEmpty) ||
-        ((req.deliveryCity ?? '').toString().trim().isNotEmpty);
-    final bool ownerDelivers =
-        req.ownerDeliversAtDropoffChosen ||
+            ((req.deliveryCity ?? '').toString().trim().isNotEmpty);
+    final bool ownerDelivers = req.ownerDeliversAtDropoffChosen ||
         inferredOwnerDeliversByTransient ||
         inferredOwnerDeliversByExpress ||
         inferredOwnerDeliversByAddress;
@@ -492,41 +487,33 @@ class DataService {
     }
 
     final double dropoffKm = estimateKm(
-      lat:
-          req.deliveryLat ??
+      lat: req.deliveryLat ??
           (deliverySel?['deliveryLat'] as num?)?.toDouble() ??
           (deliverySel?['lat'] as num?)?.toDouble(),
-      lng:
-          req.deliveryLng ??
+      lng: req.deliveryLng ??
           (deliverySel?['deliveryLng'] as num?)?.toDouble() ??
           (deliverySel?['lng'] as num?)?.toDouble(),
-      line:
-          req.deliveryAddressLine ??
+      line: req.deliveryAddressLine ??
           (deliverySel?['deliveryAddressLine'] as String?) ??
           (deliverySel?['addressLine'] as String?),
-      city:
-          req.deliveryCity ??
+      city: req.deliveryCity ??
           (deliverySel?['deliveryCity'] as String?) ??
           (deliverySel?['city'] as String?),
     );
     final double returnKm = estimateKm(
-      lat:
-          req.returnLat ??
+      lat: req.returnLat ??
           (deliverySel?['returnLat'] as num?)?.toDouble() ??
           req.deliveryLat ??
           (deliverySel?['lat'] as num?)?.toDouble(),
-      lng:
-          req.returnLng ??
+      lng: req.returnLng ??
           (deliverySel?['returnLng'] as num?)?.toDouble() ??
           req.deliveryLng ??
           (deliverySel?['lng'] as num?)?.toDouble(),
-      line:
-          req.returnAddressLine ??
+      line: req.returnAddressLine ??
           (deliverySel?['returnAddressLine'] as String?) ??
           req.deliveryAddressLine ??
           (deliverySel?['addressLine'] as String?),
-      city:
-          req.returnCity ??
+      city: req.returnCity ??
           (deliverySel?['returnCity'] as String?) ??
           req.deliveryCity ??
           (deliverySel?['city'] as String?),
@@ -547,9 +534,8 @@ class DataService {
         req.expressRequested && (req.expressStatus == 'accepted');
     final bool expressRequestedOrSelected =
         expressSelectedTransient || req.expressRequested || expressAccepted;
-    final double expressApplied = expressRequestedOrSelected
-        ? (req.expressFee)
-        : 0.0; // renter-facing
+    final double expressApplied =
+        expressRequestedOrSelected ? (req.expressFee) : 0.0; // renter-facing
     // New rule: add 10% of the Express surcharge to the renter total
     final double expressPlatformPart = expressApplied > 0
         ? double.parse((expressApplied * 0.10).toStringAsFixed(2))
@@ -657,8 +643,7 @@ class DataService {
       List<dynamic> shrunk = list.map((raw) {
         try {
           final m = Map<String, dynamic>.from(raw as Map);
-          final photos =
-              (m['photos'] as List?)
+          final photos = (m['photos'] as List?)
                   ?.map((p) => p?.toString() ?? '')
                   .where((s) => s.isNotEmpty)
                   .toList() ??
@@ -717,9 +702,8 @@ class DataService {
       return getCategories();
     }
     final List<dynamic> categoriesList = jsonDecode(categoriesJson);
-    final List<Category> categories = categoriesList
-        .map((json) => Category.fromJson(json))
-        .toList();
+    final List<Category> categories =
+        categoriesList.map((json) => Category.fromJson(json)).toList();
 
     // Ensure newly added demo categories are present for all users (no lazy backfill).
     final seeds = _buildDemoCategories();
@@ -1367,9 +1351,8 @@ class DataService {
         deliveryCity: 'Berlin',
         createdAt: now.subtract(const Duration(days: 3)),
         handoverConfirmation: {
-          'confirmedAt': now
-              .subtract(const Duration(days: 1, hours: 3))
-              .toIso8601String(),
+          'confirmedAt':
+              now.subtract(const Duration(days: 1, hours: 3)).toIso8601String(),
           'method': 'manual',
         },
         quotedTotalRenter: 126.0,
@@ -1387,9 +1370,8 @@ class DataService {
             'Danke nochmal — das Licht hat für das Shooting perfekt funktioniert.',
         createdAt: now.subtract(const Duration(days: 12)),
         returnConfirmation: {
-          'confirmedAt': now
-              .subtract(const Duration(days: 7, hours: 2))
-              .toIso8601String(),
+          'confirmedAt':
+              now.subtract(const Duration(days: 7, hours: 2)).toIso8601String(),
           'method': 'manual',
         },
         quotedTotalRenter: 74.0,
@@ -1482,9 +1464,8 @@ class DataService {
         ownerDeliversAtDropoffChosen: true,
         ownerPicksUpAtReturnChosen: true,
         handoverConfirmation: {
-          'confirmedAt': now
-              .subtract(const Duration(days: 1, hours: 4))
-              .toIso8601String(),
+          'confirmedAt':
+              now.subtract(const Duration(days: 1, hours: 4)).toIso8601String(),
           'method': 'manual',
         },
         quotedTotalRenter: 134.0,
@@ -1501,9 +1482,8 @@ class DataService {
         message: 'Sauber abgeschlossene Owner-Anmietung für den Audit.',
         createdAt: now.subtract(const Duration(days: 9, hours: 1)),
         returnConfirmation: {
-          'confirmedAt': now
-              .subtract(const Duration(days: 5, hours: 1))
-              .toIso8601String(),
+          'confirmedAt':
+              now.subtract(const Duration(days: 5, hours: 1)).toIso8601String(),
           'method': 'manual',
         },
         needsReview: false,
@@ -1521,9 +1501,8 @@ class DataService {
         message: 'Owner-Review-Hold-Fall für den Audit.',
         createdAt: now.subtract(const Duration(days: 6, hours: 8)),
         returnConfirmation: {
-          'confirmedAt': now
-              .subtract(const Duration(days: 3, hours: 5))
-              .toIso8601String(),
+          'confirmedAt':
+              now.subtract(const Duration(days: 3, hours: 5)).toIso8601String(),
           'method': 'manual',
         },
         needsReview: true,
@@ -1556,8 +1535,7 @@ class DataService {
 
       final requests = await _getAllRentalRequests();
       requests.removeWhere((r) {
-        final isRenterOrOwnerQa =
-            r.id.startsWith('qa_req_') &&
+        final isRenterOrOwnerQa = r.id.startsWith('qa_req_') &&
             (r.renterId == userId || r.ownerId == userId);
         final isOwnerQa = r.id.startsWith('qa_owner_') && r.ownerId == userId;
         return isRenterOrOwnerQa || isOwnerQa;
@@ -1580,8 +1558,8 @@ class DataService {
       final rawThreads = prefs.getString(_messageThreadsKey);
       final List<dynamic> threadList =
           rawThreads != null && rawThreads.isNotEmpty
-          ? (jsonDecode(rawThreads) as List)
-          : <dynamic>[];
+              ? (jsonDecode(rawThreads) as List)
+              : <dynamic>[];
       threadList.removeWhere((e) {
         if (e is! Map) return false;
         final id = (e['id'] ?? '').toString();
@@ -1606,24 +1584,25 @@ class DataService {
         required List<Message> messages,
         required DateTime createdAt,
         DateTime? lastMessageAt,
-      }) => MessageThread(
-        id: id,
-        requestId: requestId,
-        itemId: itemId,
-        itemTitle: itemTitle,
-        user1Id: user1Id,
-        user2Id: user2Id,
-        threadType: threadType,
-        bookingStatus: bookingStatus,
-        handoverAt: handoverAt,
-        returnAt: returnAt,
-        otherUserOnline: otherUserOnline,
-        otherUserLastActive: otherUserLastActive,
-        archivedForUserIds: archivedForUserIds,
-        messages: messages,
-        createdAt: createdAt,
-        lastMessageAt: lastMessageAt,
-      );
+      }) =>
+          MessageThread(
+            id: id,
+            requestId: requestId,
+            itemId: itemId,
+            itemTitle: itemTitle,
+            user1Id: user1Id,
+            user2Id: user2Id,
+            threadType: threadType,
+            bookingStatus: bookingStatus,
+            handoverAt: handoverAt,
+            returnAt: returnAt,
+            otherUserOnline: otherUserOnline,
+            otherUserLastActive: otherUserLastActive,
+            archivedForUserIds: archivedForUserIds,
+            messages: messages,
+            createdAt: createdAt,
+            lastMessageAt: lastMessageAt,
+          );
 
       final acceptedMsgs = <Message>[
         Message(
@@ -1868,22 +1847,23 @@ class DataService {
         bool critical = false,
         String? ctaLabel,
         Map<String, dynamic>? payload,
-      }) => {
-        'id': id,
-        'userId': userId,
-        'category': category,
-        'priority': priority,
-        'title': title,
-        'body': body,
-        'entityType': entityType,
-        'entityId': entityId,
-        'ctaLabel': ctaLabel,
-        ...?payload,
-        'critical': critical,
-        'archived': false,
-        'ts': ts.toIso8601String(),
-        'read': read,
-      };
+      }) =>
+          {
+            'id': id,
+            'userId': userId,
+            'category': category,
+            'priority': priority,
+            'title': title,
+            'body': body,
+            'entityType': entityType,
+            'entityId': entityId,
+            'ctaLabel': ctaLabel,
+            ...?payload,
+            'critical': critical,
+            'archived': false,
+            'ts': ts.toIso8601String(),
+            'read': read,
+          };
 
       notifList.addAll([
         qaNotif(
@@ -2183,8 +2163,7 @@ class DataService {
         final u2 = map['user2Id']?.toString();
         if (u1 != userId && u2 != userId) continue;
 
-        final archived =
-            (map['archivedForUserIds'] as List?)
+        final archived = (map['archivedForUserIds'] as List?)
                 ?.map((e) => e.toString())
                 .toList() ??
             <String>[];
@@ -2267,8 +2246,7 @@ class DataService {
       List<dynamic> shrunk = list.map((raw) {
         try {
           final m = Map<String, dynamic>.from(raw as Map);
-          final photos =
-              (m['photos'] as List?)
+          final photos = (m['photos'] as List?)
                   ?.map((p) => p?.toString() ?? '')
                   .where((s) => s.isNotEmpty)
                   .toList() ??
@@ -2333,8 +2311,8 @@ class DataService {
 
   static Future<List<Item>> getPublicItems() async {
     final items = await getItems();
-    final blockedUserIds = (await BlockedUsersService.getBlockedUserIds())
-        .toSet();
+    final blockedUserIds =
+        (await BlockedUsersService.getBlockedUserIds()).toSet();
     final filtered = items
         .where(isPublicCatalogItem)
         .where((item) => !blockedUserIds.contains(item.ownerId))
@@ -2453,8 +2431,8 @@ class DataService {
         ).compareTo(rank((b['id'] ?? '').toString()));
       }
       return ((a['name'] ?? '').toString()).toLowerCase().compareTo(
-        ((b['name'] ?? '').toString()).toLowerCase(),
-      );
+            ((b['name'] ?? '').toString()).toLowerCase(),
+          );
     });
     return out;
   }
@@ -2749,8 +2727,7 @@ class DataService {
     const R = 6371.0;
     final dLat = _deg2rad(lat2 - lat1);
     final dLon = _deg2rad(lon2 - lon1);
-    final a =
-        (sin(dLat / 2) * sin(dLat / 2)) +
+    final a = (sin(dLat / 2) * sin(dLat / 2)) +
         (cos(_deg2rad(lat1)) *
             cos(_deg2rad(lat2)) *
             sin(dLon / 2) *
@@ -2976,7 +2953,7 @@ class DataService {
     }
     final existing =
         (map[itemId] as Map?)?.map((k, v) => MapEntry(k.toString(), v)) ??
-        <String, dynamic>{};
+            <String, dynamic>{};
     existing['delivery'] = {
       'hinweg': hinweg,
       'rueckweg': rueckweg,
@@ -3062,9 +3039,13 @@ class DataService {
   static List<Category> _buildDemoCategories() {
     final now = DateTime.now();
     final List<
-      (String id, String name, String slug, String iconName, List<String> subs)
-    >
-    data = [
+        (
+          String id,
+          String name,
+          String slug,
+          String iconName,
+          List<String> subs
+        )> data = [
       (
         'cat1',
         'Elektronik',
@@ -3647,8 +3628,7 @@ class DataService {
         ],
       };
 
-      final images =
-          categoryImages[catId] ??
+      final images = categoryImages[catId] ??
           [
             'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=800&fit=crop',
             'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=800&fit=crop',
@@ -3729,9 +3709,8 @@ class DataService {
         title: title,
         description: 'Gut gepflegt, sofort verfügbar. ${cat.name} • ${city.$1}',
         categoryId: cat.id,
-        subcategory: cat.subcategories.isNotEmpty
-            ? cat.subcategories.first
-            : '-',
+        subcategory:
+            cat.subcategories.isNotEmpty ? cat.subcategories.first : '-',
         tags: [cat.slug, city.$1],
         pricePerDay: basePrice.toDouble(),
         currency: 'EUR',
@@ -3739,12 +3718,16 @@ class DataService {
         priceRaw: basePrice.toDouble(),
         deposit: null,
         photos: photosFor(cat.slug, i, cat.id),
-        locationText:
-            '${city.$1}-${['Mitte', 'Nord', 'Süd', 'Ost', 'West'][rnd.nextInt(5)]}',
+        locationText: '${city.$1}-${[
+          'Mitte',
+          'Nord',
+          'Süd',
+          'Ost',
+          'West'
+        ][rnd.nextInt(5)]}',
         lat: lat,
         lng: lng,
-        geohash:
-            'u'
+        geohash: 'u'
             '${rnd.nextInt(9)}'
             '${rnd.nextInt(9)}'
             '${rnd.nextInt(9)}'
@@ -3800,9 +3783,9 @@ class DataService {
           );
     final berlin = _cities['Berlin'] ?? (52.52, 13.405);
     Category cat(String id) => categories.firstWhere(
-      (c) => c.id == id,
-      orElse: () => categories.first,
-    );
+          (c) => c.id == id,
+          orElse: () => categories.first,
+        );
 
     String gh(int i) => 'u${i}3${i}h${i}';
 
@@ -4232,33 +4215,35 @@ class DataService {
     final all = await _getAllMultiReviews();
     final requests = await _getAllRentalRequests();
     final request = requests.cast<RentalRequest?>().firstWhere(
-      (entry) => entry?.id == requestId,
-      orElse: () => null,
-    );
+          (entry) => entry?.id == requestId,
+          orElse: () => null,
+        );
     if (request == null || request.status != 'completed') {
       throw StateError('Reviews require a completed booking.');
+    }
+    if (request.needsReview) {
+      throw StateError(
+          'Reviews are blocked while this booking is under review.');
     }
 
     final reviewerMatchesDirection =
         (direction == ReviewMetricsService.renterToOwner &&
-            request.renterId == reviewerId &&
-            request.ownerId == reviewedUserId) ||
-        (direction == ReviewMetricsService.ownerToRenter &&
-            request.ownerId == reviewerId &&
-            request.renterId == reviewedUserId);
+                request.renterId == reviewerId &&
+                request.ownerId == reviewedUserId) ||
+            (direction == ReviewMetricsService.ownerToRenter &&
+                request.ownerId == reviewerId &&
+                request.renterId == reviewedUserId);
     if (!reviewerMatchesDirection || request.itemId != itemId) {
       throw StateError('Review context does not match the completed booking.');
     }
 
-    final nextId =
-        (all.fold<int>(
-                  0,
-                  (p, e) => (int.tryParse(e.id) ?? 0) > p
-                      ? (int.tryParse(e.id) ?? 0)
-                      : p,
-                ) +
-                1)
-            .toString();
+    final nextId = (all.fold<int>(
+              0,
+              (p, e) =>
+                  (int.tryParse(e.id) ?? 0) > p ? (int.tryParse(e.id) ?? 0) : p,
+            ) +
+            1)
+        .toString();
     final normalizedCriteria = ReviewMetricsService.normalizeCriteria(
       criteria,
       direction: direction,
@@ -4305,19 +4290,19 @@ class DataService {
     String itemId,
   ) async {
     final all = await _getAllMultiReviews();
-    final filtered =
-        all
-            .where((e) => e.reviewedUserId == userId && e.itemId == itemId)
-            .toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final filtered = all
+        .where((e) => e.reviewedUserId == userId && e.itemId == itemId)
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return filtered;
   }
 
   static Future<List<Review>> getReviewsForUser(String userId) async {
     final all = await _getAllReviews();
-    final filtered =
-        all.where((review) => review.reviewedUserId == userId).toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final filtered = all
+        .where((review) => review.reviewedUserId == userId)
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return filtered;
   }
 
@@ -4341,7 +4326,7 @@ class DataService {
   };
 
   static final Map<String, List<ReviewCriterion>>
-  _demoReviewCriteriaByReviewId = {
+      _demoReviewCriteriaByReviewId = {
     'r1': const [
       ReviewCriterion(
         key: 'communication',
@@ -4461,13 +4446,12 @@ class DataService {
       itemId: _demoReviewItemIdByReviewId[review.id] ?? '',
       reviewerId: review.reviewerId,
       reviewedUserId: review.reviewedUserId,
-      direction:
-          criteria.any(
-            (c) =>
-                c.key == 'condition_dropoff' ||
-                c.key == 'description_accuracy' ||
-                c.key == 'value_for_money',
-          )
+      direction: criteria.any(
+        (c) =>
+            c.key == 'condition_dropoff' ||
+            c.key == 'description_accuracy' ||
+            c.key == 'value_for_money',
+      )
           ? 'renter_to_owner'
           : 'owner_to_renter',
       criteria: criteria,
@@ -4497,7 +4481,7 @@ class DataService {
       final correctedRating = normalizedSynthetic == null
           ? ReviewMetricsService.roundToSingleDecimal(review.rating)
           : (ReviewMetricsService.calculateReviewScore(normalizedSynthetic) ??
-                ReviewMetricsService.roundToSingleDecimal(review.rating));
+              ReviewMetricsService.roundToSingleDecimal(review.rating));
       entries.add(
         ReviewWithUser(
           review: review.copyWith(rating: correctedRating),
@@ -4959,15 +4943,13 @@ class DataService {
 
   static Future<RentalRequest> addRentalRequest(RentalRequest req) async {
     final all = await _getAllRentalRequests();
-    final nextId =
-        (all.fold<int>(
-                  0,
-                  (p, e) => (int.tryParse(e.id) ?? 0) > p
-                      ? (int.tryParse(e.id) ?? 0)
-                      : p,
-                ) +
-                1)
-            .toString();
+    final nextId = (all.fold<int>(
+              0,
+              (p, e) =>
+                  (int.tryParse(e.id) ?? 0) > p ? (int.tryParse(e.id) ?? 0) : p,
+            ) +
+            1)
+        .toString();
     final now = DateTime.now();
     // Snapshot current delivery selection for this item so booking details remain accurate
     Map<String, dynamic>? deliverySel;
@@ -5021,17 +5003,13 @@ class DataService {
       expressFee: req.expressFee,
       ownerDeliversAtDropoffChosen: ownerDelivers,
       ownerPicksUpAtReturnChosen: ownerPicksUp,
-      deliveryAddressLine:
-          (deliverySel?['deliveryAddressLine'] as String?) ??
+      deliveryAddressLine: (deliverySel?['deliveryAddressLine'] as String?) ??
           (deliverySel?['addressLine'] as String?),
-      deliveryCity:
-          (deliverySel?['deliveryCity'] as String?) ??
+      deliveryCity: (deliverySel?['deliveryCity'] as String?) ??
           (deliverySel?['city'] as String?),
-      deliveryLat:
-          (deliverySel?['deliveryLat'] as num?)?.toDouble() ??
+      deliveryLat: (deliverySel?['deliveryLat'] as num?)?.toDouble() ??
           (deliverySel?['lat'] as num?)?.toDouble(),
-      deliveryLng:
-          (deliverySel?['deliveryLng'] as num?)?.toDouble() ??
+      deliveryLng: (deliverySel?['deliveryLng'] as num?)?.toDouble() ??
           (deliverySel?['lng'] as num?)?.toDouble(),
       returnAddressLine: (deliverySel?['returnAddressLine'] as String?),
       returnCity: (deliverySel?['returnCity'] as String?),
@@ -5207,9 +5185,8 @@ class DataService {
     for (int i = 0; i < all.length; i++) {
       if (all[i].id == id) {
         all[i] = all[i].copyWith(
-          handoverConfirmation: isReturn
-              ? all[i].handoverConfirmation
-              : payload,
+          handoverConfirmation:
+              isReturn ? all[i].handoverConfirmation : payload,
           returnConfirmation: isReturn ? payload : all[i].returnConfirmation,
         );
         mutated = true;
@@ -5417,9 +5394,8 @@ class DataService {
         final newStatus = accept ? 'accepted' : 'declined';
         all[i] = all[i].copyWith(
           expressStatus: newStatus,
-          expressConfirmedAt: accept
-              ? DateTime.now()
-              : all[i].expressConfirmedAt,
+          expressConfirmedAt:
+              accept ? DateTime.now() : all[i].expressConfirmedAt,
         );
         mutated = true;
         // If accepted/declined, cancel any scheduled timer
@@ -5616,9 +5592,8 @@ class DataService {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_timelineEventsKey);
-    List<dynamic> list = raw != null && raw.isNotEmpty
-        ? (jsonDecode(raw) as List)
-        : [];
+    List<dynamic> list =
+        raw != null && raw.isNotEmpty ? (jsonDecode(raw) as List) : [];
     list.add({
       'requestId': requestId,
       'type': type,
@@ -5653,9 +5628,8 @@ class DataService {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_notificationsKey);
-    List<dynamic> list = raw != null && raw.isNotEmpty
-        ? (jsonDecode(raw) as List)
-        : [];
+    List<dynamic> list =
+        raw != null && raw.isNotEmpty ? (jsonDecode(raw) as List) : [];
     list.add({
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
       'title': title,
@@ -5672,7 +5646,7 @@ class DataService {
   static Future<void> addStructuredNotification({
     required String userId,
     required String
-    category, // important | bookings | messages | reviews | platform
+        category, // important | bookings | messages | reviews | platform
     required String title,
     required String body,
     int priority =
@@ -5688,9 +5662,8 @@ class DataService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_notificationsKey);
-      List<dynamic> list = raw != null && raw.isNotEmpty
-          ? (jsonDecode(raw) as List)
-          : [];
+      List<dynamic> list =
+          raw != null && raw.isNotEmpty ? (jsonDecode(raw) as List) : [];
       final now = timestamp ?? DateTime.now();
       list.add({
         'id': 'n_${now.microsecondsSinceEpoch}',
@@ -5820,8 +5793,7 @@ class DataService {
       return true;
     if (entityType == 'payment' &&
         title == 'zahlungsmethode hinzufügen' &&
-        entityId == 'payment_methods')
-      return true;
+        entityId == 'payment_methods') return true;
 
     return false;
   }
@@ -5856,11 +5828,9 @@ class DataService {
         }
       }
       out.sort((a, b) {
-        final at =
-            DateTime.tryParse((a['ts'] ?? '').toString()) ??
+        final at = DateTime.tryParse((a['ts'] ?? '').toString()) ??
             DateTime.fromMillisecondsSinceEpoch(0);
-        final bt =
-            DateTime.tryParse((b['ts'] ?? '').toString()) ??
+        final bt = DateTime.tryParse((b['ts'] ?? '').toString()) ??
             DateTime.fromMillisecondsSinceEpoch(0);
         return bt.compareTo(at);
       });
@@ -6505,9 +6475,8 @@ class DataService {
         'handoverPhotos': (e['handoverPhotos'] is num)
             ? (e['handoverPhotos'] as num).toInt()
             : 0,
-        'returnPhotos': (e['returnPhotos'] is num)
-            ? (e['returnPhotos'] as num).toInt()
-            : 0,
+        'returnPhotos':
+            (e['returnPhotos'] is num) ? (e['returnPhotos'] as num).toInt() : 0,
         'handoverTimeRequested': (e['handoverTimeRequested'] as String?) ?? '',
         'returnTimeRequested': (e['returnTimeRequested'] as String?) ?? '',
         'handoverTimeIso': (e['handoverTimeIso'] as String?) ?? '',
@@ -6783,9 +6752,8 @@ class DataService {
     existing['${prefix}LocationSharedByUserId'] = sharedByUserId.trim();
     existing['${prefix}LocationSharedByName'] = sharedByName.trim();
     existing['${prefix}LocationSharedByRole'] = sharedByRole.trim();
-    existing['${prefix}LocationAcceptedAs'] = isReturn
-        ? 'returnLocation'
-        : 'handoverLocation';
+    existing['${prefix}LocationAcceptedAs'] =
+        isReturn ? 'returnLocation' : 'handoverLocation';
     if (isReturn) {
       existing['returnLocationReusePromptDismissed'] = false;
     }
@@ -7259,13 +7227,14 @@ class DataService {
       required String text,
       required DateTime at,
       bool isRead = true,
-    }) => Message(
-      id: 'msg_${at.microsecondsSinceEpoch}_${senderId == userId ? 'me' : 'them'}',
-      senderId: senderId,
-      text: text,
-      timestamp: at,
-      isRead: isRead,
-    );
+    }) =>
+        Message(
+          id: 'msg_${at.microsecondsSinceEpoch}_${senderId == userId ? 'me' : 'them'}',
+          senderId: senderId,
+          text: text,
+          timestamp: at,
+          isRead: isRead,
+        );
 
     MessageThread thread({
       required String threadId,
@@ -7278,24 +7247,25 @@ class DataService {
       required List<Message> messages,
       required DateTime createdAt,
       DateTime? lastAt,
-    }) => MessageThread(
-      id: threadId,
-      requestId: 'demo_req_$threadId',
-      itemId: 'demo_item_$threadId',
-      itemTitle: itemTitle,
-      user1Id: userId,
-      user2Id: otherUserId,
-      threadType: threadType,
-      bookingStatus: bookingStatus,
-      handoverAt: handoverAt,
-      returnAt: returnAt,
-      otherUserOnline: threadType == 'support' ? true : null,
-      otherUserLastActive: now.subtract(const Duration(minutes: 6)),
-      archivedForUserIds: const <String>[],
-      messages: messages,
-      createdAt: createdAt,
-      lastMessageAt: lastAt,
-    );
+    }) =>
+        MessageThread(
+          id: threadId,
+          requestId: 'demo_req_$threadId',
+          itemId: 'demo_item_$threadId',
+          itemTitle: itemTitle,
+          user1Id: userId,
+          user2Id: otherUserId,
+          threadType: threadType,
+          bookingStatus: bookingStatus,
+          handoverAt: handoverAt,
+          returnAt: returnAt,
+          otherUserOnline: threadType == 'support' ? true : null,
+          otherUserLastActive: now.subtract(const Duration(minutes: 6)),
+          archivedForUserIds: const <String>[],
+          messages: messages,
+          createdAt: createdAt,
+          lastMessageAt: lastAt,
+        );
 
     final t1Time = now.subtract(const Duration(hours: 2, minutes: 12));
     final t2Time = now.subtract(const Duration(days: 1, hours: 3));
@@ -7432,9 +7402,8 @@ class DataService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_messageThreadsKey);
-      final List<dynamic> list = raw != null && raw.isNotEmpty
-          ? jsonDecode(raw)
-          : [];
+      final List<dynamic> list =
+          raw != null && raw.isNotEmpty ? jsonDecode(raw) : [];
 
       for (final entry in list) {
         if (entry is! Map) continue;
@@ -7442,7 +7411,7 @@ class DataService {
         final isSupport = (thread.threadType ?? '').toLowerCase() == 'support';
         final belongsToUser =
             (thread.user1Id == userId && thread.user2Id == 'support') ||
-            (thread.user2Id == userId && thread.user1Id == 'support');
+                (thread.user2Id == userId && thread.user1Id == 'support');
         if (isSupport && belongsToUser) {
           debugPrint('[DataService] createSupportThread: reusing ${thread.id}');
           return thread;

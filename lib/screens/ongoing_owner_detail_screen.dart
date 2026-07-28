@@ -1816,6 +1816,16 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     double fee,
     double subtotal,
   ) async {
+    if (req.needsReview) {
+      if (mounted) {
+        AppPopup.toast(
+          context,
+          icon: Icons.hourglass_top_outlined,
+          title: 'Beleg gesperrt, solange dieser Fall geprüft wird.',
+        );
+      }
+      return;
+    }
     final bookingId = _computeBookingId(item, req);
     final bool expressRefund = req.expressRequested &&
         req.expressStatus == 'declined' &&

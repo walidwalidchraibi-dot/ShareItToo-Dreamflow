@@ -325,6 +325,56 @@ void main() {
     );
   });
 
+  test('needsReview blockiert review-erstellung auch per service-pfad',
+      () async {
+    final request = RentalRequest(
+      id: 'req_review_hold',
+      itemId: 'item_review_hold',
+      ownerId: 'owner_review_hold',
+      renterId: 'renter_review_hold',
+      start: DateTime(2026, 7, 1),
+      end: DateTime(2026, 7, 2),
+      status: 'completed',
+      needsReview: true,
+      createdAt: DateTime(2026, 7, 1),
+    );
+    SharedPreferences.setMockInitialValues({
+      'rental_requests': jsonEncode([request.toJson()]),
+      'multi_reviews_v1': jsonEncode([]),
+    });
+
+    await expectLater(
+      () => DataService.addMultiReview(
+        requestId: 'req_review_hold',
+        itemId: 'item_review_hold',
+        reviewerId: 'renter_review_hold',
+        reviewedUserId: 'owner_review_hold',
+        direction: 'renter_to_owner',
+        criteria: const [
+          ReviewCriterion(key: 'communication', stars: 5, note: 'Schnell'),
+          ReviewCriterion(key: 'reliability', stars: 4, note: 'Pünktlich'),
+          ReviewCriterion(
+            key: 'article_as_described',
+            stars: 5,
+            note: 'Wie beschrieben',
+          ),
+          ReviewCriterion(
+            key: 'handover_return',
+            stars: 5,
+            note: 'Sauber zurück',
+          ),
+        ],
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('under review'),
+        ),
+      ),
+    );
+  });
+
   test(
       'vollständige review wird gespeichert und unvollständige technisch blockiert',
       () async {

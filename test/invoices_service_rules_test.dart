@@ -8,7 +8,11 @@ void main() {
 
   late final owner = buildTestUser('owner-1', name: 'Walid');
   late final renter = buildTestUser('renter-1', name: 'Julia');
-  late final item = buildTestItem(id: 'item-1', ownerId: 'owner-1', title: 'QNAP NAS');
+  late final item = buildTestItem(
+    id: 'item-1',
+    ownerId: 'owner-1',
+    title: 'QNAP NAS',
+  );
 
   setUp(() async {
     await seedCoreBookingState(
@@ -43,22 +47,61 @@ void main() {
     );
   });
 
-  test('completed renter booking yields invoice and owner booking yields payment plus fee', () async {
-    final renterDocs = await InvoicesService.getInvoicesForUser(renter.id);
+  test(
+    'completed renter booking yields invoice and owner booking yields payment plus fee',
+    () async {
+      final renterDocs = await InvoicesService.getInvoicesForUser(renter.id);
+      final ownerDocs = await InvoicesService.getInvoicesForUser(owner.id);
+
+      expect(
+        renterDocs
+            .where(
+              (d) => d.requestId == 'req-completed' && d.type.name == 'invoice',
+            )
+            .length,
+        1,
+      );
+      expect(
+        ownerDocs
+            .where(
+              (d) => d.requestId == 'req-completed' && d.type.name == 'payment',
+            )
+            .length,
+        1,
+      );
+      expect(
+        ownerDocs
+            .where(
+              (d) => d.requestId == 'req-completed' && d.type.name == 'fee',
+            )
+            .length,
+        1,
+      );
+    },
+  );
+
+  test('needsReview blocks invoice and payout document generation', () async {
     final ownerDocs = await InvoicesService.getInvoicesForUser(owner.id);
-
-    expect(renterDocs.where((d) => d.requestId == 'req-completed' && d.type.name == 'invoice').length, 1);
-    expect(ownerDocs.where((d) => d.requestId == 'req-completed' && d.type.name == 'payment').length, 1);
-    expect(ownerDocs.where((d) => d.requestId == 'req-completed' && d.type.name == 'fee').length, 1);
-  });
-
-  test('needsReview blocks owner payout document generation', () async {
-    final ownerDocs = await InvoicesService.getInvoicesForUser(owner.id);
     final renterDocs = await InvoicesService.getInvoicesForUser(renter.id);
 
-    expect(ownerDocs.where((d) => d.requestId == 'req-review-hold' && d.type.name == 'payment'), isEmpty);
-    expect(ownerDocs.where((d) => d.requestId == 'req-review-hold' && d.type.name == 'fee'), isEmpty);
-    expect(renterDocs.where((d) => d.requestId == 'req-review-hold' && d.type.name == 'invoice').length, 1);
+    expect(
+      ownerDocs.where(
+        (d) => d.requestId == 'req-review-hold' && d.type.name == 'payment',
+      ),
+      isEmpty,
+    );
+    expect(
+      ownerDocs.where(
+        (d) => d.requestId == 'req-review-hold' && d.type.name == 'fee',
+      ),
+      isEmpty,
+    );
+    expect(
+      renterDocs.where(
+        (d) => d.requestId == 'req-review-hold' && d.type.name == 'invoice',
+      ),
+      isEmpty,
+    );
   });
 
   test('owner cancellation produces full renter refund document', () async {

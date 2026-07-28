@@ -46,7 +46,8 @@ class InvoicesService {
       for (final inv in invoices) {
         byId[inv.id] = inv;
       }
-      final out = byId.values.toList()..sort((a, b) => b.date.compareTo(a.date));
+      final out = byId.values.toList()
+        ..sort((a, b) => b.date.compareTo(a.date));
       return out;
     } catch (e) {
       debugPrint('[InvoicesService] getInvoicesForUser failed: $e');
@@ -67,7 +68,10 @@ class InvoicesService {
     }
   }
 
-  static Future<List<Invoice>> _documentsForRequest(RentalRequest req, {required String perspectiveUserId}) async {
+  static Future<List<Invoice>> _documentsForRequest(
+    RentalRequest req, {
+    required String perspectiveUserId,
+  }) async {
     final item = await DataService.getItemById(req.itemId);
     final renter = await DataService.getUserById(req.renterId);
     final owner = await DataService.getUserById(req.ownerId);
@@ -88,61 +92,75 @@ class InvoicesService {
 
     final docs = <Invoice>[];
     final isHeldForReview = req.needsReview;
+    if (isHeldForReview) {
+      return docs;
+    }
 
     // Renter docs
     if (perspectiveUserId == renter.id) {
-      docs.add(_buildInvoice(
-        baseId: 'inv_${req.id}',
-        type: InvoiceType.invoice,
-        bookingId: bookingId,
-        requestId: req.id,
-        date: date,
-        title: '${item.title} – Buchung',
-        amount: breakdown.totalAfterTax,
-        booking: bookingDetails,
-        pricing: breakdown,
-      ));
-
-      if (_isRefund(req)) {
-        final refundAmount = _refundAmount(totalAfterTax: breakdown.totalAfterTax, req: req);
-        docs.add(_buildInvoice(
-          baseId: 'refund_${req.id}',
-          type: InvoiceType.refund,
+      docs.add(
+        _buildInvoice(
+          baseId: 'inv_${req.id}',
+          type: InvoiceType.invoice,
           bookingId: bookingId,
           requestId: req.id,
           date: date,
-          title: '${item.title} – Rückerstattung',
-          amount: refundAmount,
+          title: '${item.title} – Buchung',
+          amount: breakdown.totalAfterTax,
           booking: bookingDetails,
           pricing: breakdown,
-        ));
+        ),
+      );
+
+      if (_isRefund(req)) {
+        final refundAmount = _refundAmount(
+          totalAfterTax: breakdown.totalAfterTax,
+          req: req,
+        );
+        docs.add(
+          _buildInvoice(
+            baseId: 'refund_${req.id}',
+            type: InvoiceType.refund,
+            bookingId: bookingId,
+            requestId: req.id,
+            date: date,
+            title: '${item.title} – Rückerstattung',
+            amount: refundAmount,
+            booking: bookingDetails,
+            pricing: breakdown,
+          ),
+        );
       }
     }
 
     // Owner docs
     if (perspectiveUserId == owner.id && !isHeldForReview) {
-      docs.add(_buildInvoice(
-        baseId: 'payout_${req.id}',
-        type: InvoiceType.payment,
-        bookingId: bookingId,
-        requestId: req.id,
-        date: date,
-        title: '${item.title} – Auszahlung',
-        amount: breakdown.payoutToOwner,
-        booking: bookingDetails,
-        pricing: breakdown,
-      ));
-      docs.add(_buildInvoice(
-        baseId: 'fee_${req.id}',
-        type: InvoiceType.fee,
-        bookingId: bookingId,
-        requestId: req.id,
-        date: date,
-        title: '${item.title} – Plattformgebühr',
-        amount: breakdown.platformFee,
-        booking: bookingDetails,
-        pricing: breakdown,
-      ));
+      docs.add(
+        _buildInvoice(
+          baseId: 'payout_${req.id}',
+          type: InvoiceType.payment,
+          bookingId: bookingId,
+          requestId: req.id,
+          date: date,
+          title: '${item.title} – Auszahlung',
+          amount: breakdown.payoutToOwner,
+          booking: bookingDetails,
+          pricing: breakdown,
+        ),
+      );
+      docs.add(
+        _buildInvoice(
+          baseId: 'fee_${req.id}',
+          type: InvoiceType.fee,
+          bookingId: bookingId,
+          requestId: req.id,
+          date: date,
+          title: '${item.title} – Plattformgebühr',
+          amount: breakdown.platformFee,
+          booking: bookingDetails,
+          pricing: breakdown,
+        ),
+      );
     }
 
     return docs;
@@ -153,14 +171,21 @@ class InvoicesService {
     return s == 'cancelled' || s == 'declined';
   }
 
-  static double _refundAmount({required double totalAfterTax, required RentalRequest req}) {
+  static double _refundAmount({
+    required double totalAfterTax,
+    required RentalRequest req,
+  }) {
     // Demo policy: mirror the app's unified policy when renter cancels;
     // owner cancellation is treated as 100% refund.
     try {
       if ((req.cancelledBy ?? '') == 'owner') {
         return _round2(totalAfterTax);
       }
-      final ratio = DataService.refundRatio(policy: 'unified', start: req.start, cancelAt: DateTime.now());
+      final ratio = DataService.refundRatio(
+        policy: 'unified',
+        start: req.start,
+        cancelAt: DateTime.now(),
+      );
       return _round2(totalAfterTax * ratio);
     } catch (_) {
       return 0.0;
@@ -177,7 +202,10 @@ class InvoicesService {
   }
 
   static int _rentalDays(RentalRequest req) {
-    final days = (req.end.difference(req.start).inHours / 24).ceil().clamp(1, 365);
+    final days = (req.end.difference(req.start).inHours / 24).ceil().clamp(
+      1,
+      365,
+    );
     return days;
   }
 
@@ -189,7 +217,10 @@ class InvoicesService {
     return 'SIT-$n';
   }
 
-  static InvoicePriceBreakdown _pricingForRequest({required Item item, required RentalRequest req}) {
+  static InvoicePriceBreakdown _pricingForRequest({
+    required Item item,
+    required RentalRequest req,
+  }) {
     // Determine total AFTER taxes (this is what the renter effectively paid).
     // Prefer a persisted quote to stay stable across UI changes.
     final fallbackTotal = () {
@@ -254,7 +285,10 @@ class InvoicesService {
     );
   }
 
-  static String _invoiceNumberFor({required String id, required DateTime date}) {
+  static String _invoiceNumberFor({
+    required String id,
+    required DateTime date,
+  }) {
     // e.g. SIT-INV-2026-03-483920
     final y = date.year;
     final m = date.month.toString().padLeft(2, '0');
