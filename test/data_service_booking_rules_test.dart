@@ -74,6 +74,132 @@ void main() {
       );
     });
 
+    test('handover start rejects unknown request id without state mutation',
+        () async {
+      final before = await DataService.getHandoverReturnState('missing-handover');
+
+      await DataService.setHandoverActive('missing-handover', active: true);
+
+      final after = await DataService.getHandoverReturnState('missing-handover');
+
+      expect(before, after);
+      expect(after['handoverActive'], isFalse);
+      expect(after['returnActive'], isFalse);
+    });
+
+    test('handover start rejects non-accepted request without state mutation',
+        () async {
+      await DataService.updateRentalRequestStatus(
+        requestId: 'req-pickup',
+        status: 'running',
+      );
+      final before = await DataService.getHandoverReturnState('req-pickup');
+
+      await DataService.setHandoverActive('req-pickup', active: true);
+
+      final after = await DataService.getHandoverReturnState('req-pickup');
+      final request = await DataService.getRentalRequestById('req-pickup');
+
+      expect(after, before);
+      expect(after['handoverActive'], isFalse);
+      expect(after['returnActive'], isFalse);
+      expect(request!.status, 'running');
+    });
+
+    test('handover start activates accepted request without changing booking status',
+        () async {
+      final beforeRequest = await DataService.getRentalRequestById('req-pickup');
+
+      await DataService.setHandoverActive('req-pickup', active: true);
+
+      final afterState = await DataService.getHandoverReturnState('req-pickup');
+      final afterRequest = await DataService.getRentalRequestById('req-pickup');
+
+      expect(afterState['handoverActive'], isTrue);
+      expect(afterState['returnActive'], isFalse);
+      expect(afterRequest!.status, 'accepted');
+      expect(beforeRequest!.status, 'accepted');
+    });
+
+    test('handover start rejects repeated activation without state mutation',
+        () async {
+      await DataService.setHandoverActive('req-pickup', active: true);
+      final before = await DataService.getHandoverReturnState('req-pickup');
+
+      await DataService.setHandoverActive('req-pickup', active: true);
+
+      final after = await DataService.getHandoverReturnState('req-pickup');
+      final request = await DataService.getRentalRequestById('req-pickup');
+
+      expect(after, before);
+      expect(after['handoverActive'], isTrue);
+      expect(after['returnActive'], isFalse);
+      expect(request!.status, 'accepted');
+    });
+
+    test('return start rejects unknown request id without state mutation',
+        () async {
+      final before = await DataService.getHandoverReturnState('missing-return');
+
+      await DataService.setReturnActive('missing-return', active: true);
+
+      final after = await DataService.getHandoverReturnState('missing-return');
+
+      expect(before, after);
+      expect(after['handoverActive'], isFalse);
+      expect(after['returnActive'], isFalse);
+    });
+
+    test('return start rejects non-running request without state mutation',
+        () async {
+      await DataService.updateRentalRequestStatus(
+        requestId: 'req-return',
+        status: 'accepted',
+      );
+      final before = await DataService.getHandoverReturnState('req-return');
+
+      await DataService.setReturnActive('req-return', active: true);
+
+      final after = await DataService.getHandoverReturnState('req-return');
+      final request = await DataService.getRentalRequestById('req-return');
+
+      expect(after, before);
+      expect(after['handoverActive'], isFalse);
+      expect(after['returnActive'], isFalse);
+      expect(request!.status, 'accepted');
+    });
+
+    test('return start activates running request without changing booking status',
+        () async {
+      final beforeRequest = await DataService.getRentalRequestById('req-return');
+
+      await DataService.setReturnActive('req-return', active: true);
+
+      final afterState = await DataService.getHandoverReturnState('req-return');
+      final afterRequest = await DataService.getRentalRequestById('req-return');
+
+      expect(afterState['handoverActive'], isFalse);
+      expect(afterState['returnActive'], isTrue);
+      expect(afterRequest!.status, 'running');
+      expect(beforeRequest!.status, 'running');
+    });
+
+    test('return start rejects repeated activation without state mutation',
+        () async {
+      await DataService.setReturnActive('req-return', active: true);
+      final before = await DataService.getHandoverReturnState('req-return');
+
+      await DataService.setReturnActive('req-return', active: true);
+
+      final after = await DataService.getHandoverReturnState('req-return');
+      final request = await DataService.getRentalRequestById('req-return');
+
+      expect(after, before);
+      expect(after['handoverActive'], isFalse);
+      expect(after['returnActive'], isTrue);
+      expect(request!.status, 'running');
+    });
+
     test('pickup transition rejects requests whose status is not accepted',
         () async {
       await DataService.updateRentalRequestStatus(

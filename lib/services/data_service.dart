@@ -5887,6 +5887,12 @@ class DataService {
     final existing = (map[id] is Map)
         ? Map<String, dynamic>.from(map[id] as Map)
         : <String, dynamic>{};
+    if (active) {
+      final request = await getRentalRequestById(id);
+      if (request == null) return;
+      if (request.status != 'accepted') return;
+      if (existing['handoverActive'] == true) return;
+    }
     existing['handoverActive'] = active;
     if (active) existing['returnActive'] = false;
     existing['handoverPhotos'] = (existing['handoverPhotos'] is num)
@@ -5907,6 +5913,12 @@ class DataService {
     final existing = (map[id] is Map)
         ? Map<String, dynamic>.from(map[id] as Map)
         : <String, dynamic>{};
+    if (active) {
+      final request = await getRentalRequestById(id);
+      if (request == null) return;
+      if (request.status != 'running') return;
+      if (existing['returnActive'] == true) return;
+    }
     existing['returnActive'] = active;
     if (active) existing['handoverActive'] = false;
     existing['handoverPhotos'] = (existing['handoverPhotos'] is num)
