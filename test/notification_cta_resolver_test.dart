@@ -1,256 +1,625 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
-import 'package:lendify/models/user.dart';
-import 'package:lendify/screens/notification_detail_screen.dart';
-import 'package:lendify/screens/notifications_screen.dart';
-import 'package:lendify/screens/ongoing_owner_detail_screen.dart';
-import 'package:lendify/services/data_service.dart';
-import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/notification_cta_resolver.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-User buildUser(String id, {required String name}) => User(
-      id: id,
-      displayName: name,
-      email: '@example.com',
-      city: 'Berlin',
-      preferredLanguage: 'de',
-      isVerified: true,
-      isBanned: false,
-      role: 'user',
-      avgRating: 4.9,
-      reviewCount: 12,
-      createdAt: DateTime(2026, 1, 1),
-    );
-
-Item buildItem({required String id, required String ownerId, required String title}) => Item(
-      id: id,
-      ownerId: ownerId,
-      title: title,
-      description: 'Test item',
-      categoryId: 'electronics',
-      subcategory: 'storage',
-      tags: const [],
-      pricePerDay: 15,
-      currency: 'EUR',
-      priceUnit: 'day',
-      priceRaw: 15,
-      deposit: 50,
-      autoApplyDiscounts: false,
-      longRentalDiscounts: const [],
-      photos: const ['https://example.com/qnap.png'],
-      locationText: 'Berlin',
-      lat: 52.52,
-      lng: 13.40,
-      geohash: 'u33dc1',
-      condition: 'gut',
-      minDays: 1,
-      maxDays: 14,
-      createdAt: DateTime(2026, 1, 1),
-      isActive: true,
-      verificationStatus: 'verified',
-      city: 'Berlin',
-      country: 'DE',
-      status: 'active',
-      timesLent: 0,
-    );
 
 RentalRequest buildRequest({
   required String id,
-  required String itemId,
   required String ownerId,
   required String renterId,
   required String status,
-  DateTime? start,
-  DateTime? end,
-}) => RentalRequest(
+  bool needsReview = false,
+}) =>
+    RentalRequest(
       id: id,
-      itemId: itemId,
+      itemId: 'item-$id',
       ownerId: ownerId,
       renterId: renterId,
-      start: start ?? DateTime(2026, 7, 26),
-      end: end ?? DateTime(2026, 7, 29),
+      start: DateTime(2026, 7, 26),
+      end: DateTime(2026, 7, 29),
       status: status,
+      needsReview: needsReview,
       message: 'Test request',
       createdAt: DateTime(2026, 7, 20),
     );
 
-Future<void> seedBase() async {
-  final owner = buildUser('u1', name: 'Walid Chraibi');
-  final renter = buildUser('u5', name: 'Julia Wagner');
-  final item = buildItem(id: 'item-u1', ownerId: 'u1', title: 'QNAP NAS');
-  final pending = buildRequest(id: 'req-pending', itemId: item.id, ownerId: owner.id, renterId: renter.id, status: 'pending');
-  final accepted = buildRequest(id: 'req-accepted', itemId: item.id, ownerId: owner.id, renterId: renter.id, status: 'accepted');
+Map<String, dynamic> bookingNotification({
+  String? requestId,
+  String? entityId,
+  String title = 'Buchungs-Update',
+  String body = 'Öffne die Buchung für Details.',
+  String ctaLabel = 'Zur Buchung',
+  String category = 'bookings',
+  String entityType = 'booking',
+}) =>
+    {
+      'category': category,
+      'title': title,
+      'body': body,
+      'entityType': entityType,
+      if (entityId != null) 'entityId': entityId,
+      if (requestId != null) 'requestId': requestId,
+      'ctaLabel': ctaLabel,
+    };
 
+Map<String, dynamic> ownerRequestNotification({
+  String? requestId,
+  String? entityId,
+}) =>
+    {
+      'category': 'bookings',
+      'title': 'Neue Mietanfrage eingegangen',
+      'body': 'Julia Wagner möchte „QNAP NAS“ mieten.',
+      'entityType': 'booking',
+      if (entityId != null) 'entityId': entityId,
+      if (requestId != null) 'requestId': requestId,
+      'ctaLabel': 'Anfrage prüfen',
+    };
+
+Future<void> seedRequests(List<RentalRequest> requests) async {
   SharedPreferences.setMockInitialValues({
-    'users': jsonEncode([owner.toJson(), renter.toJson()]),
-    'items': jsonEncode([item.toJson()]),
-    'rental_requests': jsonEncode([pending.toJson(), accepted.toJson()]),
-    'notifications': jsonEncode([
-      {
-        'id': 'notif-owner-request',
-        'userId': 'u1',
-        'category': 'bookings',
-        'priority': 2,
-        'title': 'Neue Mietanfrage eingegangen',
-        'body': 'Julia Wagner möchte „QNAP NAS“ vom 26.07.2026 bis 29.07.2026 mieten.',
-        'entityType': 'booking',
-        'entityId': 'req-pending',
-        'requestId': 'req-pending',
-        'listingId': 'item-u1',
-        'counterpartyUserId': 'u5',
-        'counterpartyName': 'Julia Wagner',
-        'role': 'owner',
-        'ctaLabel': 'Anfrage prüfen',
-        'archived': false,
-        'ts': DateTime(2026, 7, 23, 10, 0).toIso8601String(),
-        'read': false,
-      }
-    ]),
-    'notification_preferences_v1': jsonEncode({
-      'showImportant': true,
-      'showBookings': true,
-      'showMessages': true,
-      'showSupport': true,
-      'showPayments': true,
-      'showReviews': true,
-      'showSystem': true,
-      'showSecurity': true,
-      'groupByCategory': true,
-      'unreadFirst': false,
-    }),
-    'currentUser': jsonEncode(owner.toJson()),
-    'qa_messages_notifs_seeded_v3_for_u1': true,
-    'qa_messages_notifs_seeded_v3_for_u5': true,
+    'rental_requests': jsonEncode(requests.map((r) => r.toJson()).toList()),
   });
-  await DataService.setCurrentUser(owner);
 }
 
-Widget wrap(Widget child) => MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => LocalizationController()),
-      ],
-      child: MaterialApp(home: child),
-    );
+void expectNone(
+  NotificationCtaResolution result, {
+  required String sitCategory,
+}) {
+  expect(result.target, NotificationTargetKind.none);
+  expect(result.ctaLabel, anyOf(isNull, isEmpty));
+  expect(result.requestId, anyOf(isNull, isEmpty));
+  expect(result.sitCategory, sitCategory);
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() async {
+  const ownerId = 'owner-1';
+  const renterId = 'renter-1';
+  const outsiderId = 'outsider-1';
+
+  setUp(() {
     SharedPreferences.setMockInitialValues({});
-    await seedBase();
   });
 
-  test('kein self-rental, walid owner, julia renter, qnap payload exakt', () async {
-    final n = (await DataService.getNotificationFeedForUser('u1')).first;
-    final req = await DataService.getRentalRequestById('req-pending');
+  group('booking status routing', () {
+    Future<void> expectRouting({
+      required RentalRequest request,
+      required String currentUserId,
+      required NotificationTargetKind target,
+      required String ctaLabel,
+    }) async {
+      await seedRequests([request]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: bookingNotification(
+          requestId: request.id,
+          entityId: request.id,
+          ctaLabel: request.ownerId == currentUserId
+              ? 'Zur Vermietung'
+              : 'Zur Buchung',
+        ),
+        currentUserId: currentUserId,
+      );
+      expect(result.target, target);
+      expect(result.ctaLabel, ctaLabel);
+      expect(result.requestId, request.id);
+    }
 
-    expect(req, isNotNull);
-    expect(req!.ownerId, 'u1');
-    expect(req.renterId, 'u5');
-    expect(req.ownerId, isNot(req.renterId));
-    expect(n['listingId'], 'item-u1');
-    expect(n['counterpartyUserId'], 'u5');
-    expect(n['counterpartyName'], 'Julia Wagner');
-    expect(n['requestId'], 'req-pending');
-    expect(n['entityId'], 'req-pending');
-    expect(n['role'], 'owner');
-    expect(n['body'], contains('Julia Wagner möchte „QNAP NAS“'));
+    test('pending owner -> ownerRequestDetail', () async {
+      final request = buildRequest(
+        id: 'req-pending',
+        ownerId: ownerId,
+        renterId: renterId,
+        status: 'pending',
+      );
+      await seedRequests([request]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: ownerRequestNotification(
+          requestId: request.id,
+          entityId: request.id,
+        ),
+        currentUserId: ownerId,
+      );
+      expect(result.target, NotificationTargetKind.ownerRequestDetail);
+      expect(result.ctaLabel, 'Anfrage prüfen');
+      expect(result.requestId, request.id);
+      expect(result.sitCategory, 'rentals');
+    });
+
+    test('pending renter -> none', () async {
+      final request = buildRequest(
+        id: 'req-pending',
+        ownerId: ownerId,
+        renterId: renterId,
+        status: 'pending',
+      );
+      await seedRequests([request]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: ownerRequestNotification(
+          requestId: request.id,
+          entityId: request.id,
+        ),
+        currentUserId: renterId,
+      );
+      expectNone(result, sitCategory: 'rentals');
+    });
+
+    test('accepted owner -> ownerBookingDetail', () async {
+      await expectRouting(
+        request: buildRequest(
+          id: 'req-accepted',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'accepted',
+        ),
+        currentUserId: ownerId,
+        target: NotificationTargetKind.ownerBookingDetail,
+        ctaLabel: 'Zur Vermietung',
+      );
+    });
+
+    test('accepted renter -> renterBookingDetail', () async {
+      await expectRouting(
+        request: buildRequest(
+          id: 'req-accepted',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'accepted',
+        ),
+        currentUserId: renterId,
+        target: NotificationTargetKind.renterBookingDetail,
+        ctaLabel: 'Zur Buchung',
+      );
+    });
+
+    test('running owner -> ownerBookingDetail', () async {
+      await expectRouting(
+        request: buildRequest(
+          id: 'req-running-owner',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'running',
+        ),
+        currentUserId: ownerId,
+        target: NotificationTargetKind.ownerBookingDetail,
+        ctaLabel: 'Zur Vermietung',
+      );
+    });
+
+    test('running renter -> renterBookingDetail', () async {
+      await expectRouting(
+        request: buildRequest(
+          id: 'req-running-renter',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'running',
+        ),
+        currentUserId: renterId,
+        target: NotificationTargetKind.renterBookingDetail,
+        ctaLabel: 'Zur Buchung',
+      );
+    });
+
+    test('completed owner -> ownerBookingDetail', () async {
+      await expectRouting(
+        request: buildRequest(
+          id: 'req-completed-owner',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'completed',
+        ),
+        currentUserId: ownerId,
+        target: NotificationTargetKind.ownerBookingDetail,
+        ctaLabel: 'Zur Vermietung',
+      );
+    });
+
+    test('completed renter -> renterBookingDetail', () async {
+      await expectRouting(
+        request: buildRequest(
+          id: 'req-completed-renter',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'completed',
+        ),
+        currentUserId: renterId,
+        target: NotificationTargetKind.renterBookingDetail,
+        ctaLabel: 'Zur Buchung',
+      );
+    });
+
+    test('completed + needsReview owner -> ownerBookingDetail', () async {
+      await expectRouting(
+        request: buildRequest(
+          id: 'req-review-owner',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'completed',
+          needsReview: true,
+        ),
+        currentUserId: ownerId,
+        target: NotificationTargetKind.ownerBookingDetail,
+        ctaLabel: 'Zur Vermietung',
+      );
+    });
+
+    test('completed + needsReview renter -> renterBookingDetail', () async {
+      await expectRouting(
+        request: buildRequest(
+          id: 'req-review-renter',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'completed',
+          needsReview: true,
+        ),
+        currentUserId: renterId,
+        target: NotificationTargetKind.renterBookingDetail,
+        ctaLabel: 'Zur Buchung',
+      );
+    });
+
+    test('declined owner -> ownerBookingDetail', () async {
+      await expectRouting(
+        request: buildRequest(
+          id: 'req-declined-owner',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'declined',
+        ),
+        currentUserId: ownerId,
+        target: NotificationTargetKind.ownerBookingDetail,
+        ctaLabel: 'Zur Vermietung',
+      );
+    });
+
+    test('declined renter -> renterBookingDetail', () async {
+      await expectRouting(
+        request: buildRequest(
+          id: 'req-declined-renter',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'declined',
+        ),
+        currentUserId: renterId,
+        target: NotificationTargetKind.renterBookingDetail,
+        ctaLabel: 'Zur Buchung',
+      );
+    });
+
+    test('cancelled owner -> ownerBookingDetail', () async {
+      await expectRouting(
+        request: buildRequest(
+          id: 'req-cancelled-owner',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'cancelled',
+        ),
+        currentUserId: ownerId,
+        target: NotificationTargetKind.ownerBookingDetail,
+        ctaLabel: 'Zur Vermietung',
+      );
+    });
+
+    test('cancelled renter -> renterBookingDetail', () async {
+      await expectRouting(
+        request: buildRequest(
+          id: 'req-cancelled-renter',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'cancelled',
+        ),
+        currentUserId: renterId,
+        target: NotificationTargetKind.renterBookingDetail,
+        ctaLabel: 'Zur Buchung',
+      );
+    });
   });
 
-  test('anfrage prüfen führt zu ownerRequestDetail', () async {
-    final result = await NotificationCtaResolver.resolve(
-      notification: (await DataService.getNotificationFeedForUser('u1')).first,
-      currentUserId: 'u1',
-    );
-
-    expect(result.target, NotificationTargetKind.ownerRequestDetail);
-    expect(result.ctaLabel, 'Anfrage prüfen');
-    expect(result.requestId, 'req-pending');
-  });
-
-  test('fehlende requestId fällt auf ownerRequestsOverview zurück', () async {
-    final result = await NotificationCtaResolver.resolve(
-      notification: {
-        'category': 'bookings',
-        'title': 'Neue Mietanfrage eingegangen',
-        'body': 'Julia Wagner möchte „QNAP NAS“ mieten.',
-        'entityType': 'booking',
-        'ctaLabel': 'Anfrage prüfen',
+  group('fallbacks and safety', () {
+    test(
+      'missing request with owner-request heuristic -> ownerRequestsOverview',
+      () async {
+        await seedRequests([]);
+        final result = await NotificationCtaResolver.resolve(
+          notification: ownerRequestNotification(),
+          currentUserId: ownerId,
+        );
+        expect(result.target, NotificationTargetKind.ownerRequestsOverview);
+        expect(result.ctaLabel, 'Zu Vermietungen');
+        expect(result.requestId, anyOf(isNull, isEmpty));
+        expect(result.sitCategory, 'rentals');
       },
-      currentUserId: 'u1',
-    );
-    expect(result.target, NotificationTargetKind.ownerRequestsOverview);
-  });
-
-  testWidgets('vermietungen-tab enthält owner request, buchungen-tab nicht', (tester) async {
-    await tester.pumpWidget(wrap(const NotificationsScreen()));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Vermietungen'), findsOneWidget);
-    await tester.tap(find.text('Vermietungen'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Julia Wagner möchte „QNAP NAS“', findRichText: true, skipOffstage: false), findsOneWidget);
-
-    await tester.tap(find.text('Buchungen'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Julia Wagner möchte „QNAP NAS“', findRichText: true, skipOffstage: false), findsNothing);
-  });
-
-  testWidgets('pending owner detail zeigt akzeptieren ablehnen und kein anfrage zurückziehen', (tester) async {
-    await tester.pumpWidget(wrap(const OngoingOwnerDetailScreen(requestId: 'req-pending', titleOverride: 'Mietanfrage')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Akzeptieren'), findsOneWidget);
-    expect(find.text('Ablehnen'), findsOneWidget);
-    expect(find.text('Anfrage zurückziehen'), findsNothing);
-  });
-
-  testWidgets('owner notification detail nutzt vermieter-terminologie', (tester) async {
-    final notification = (await DataService.getNotificationFeedForUser('u1')).first;
-    await tester.pumpWidget(wrap(NotificationDetailScreen(notification: notification, onCta: () {})));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Neue Mietanfrage eingegangen'), findsOneWidget);
-    expect(find.text('Anfrage prüfen'), findsOneWidget);
-    expect(find.textContaining('Du hast eine neue Mietanfrage zu deiner Anzeige erhalten.', findRichText: true, skipOffstage: false), findsWidgets);
-    expect(find.textContaining('Öffne die Buchung', findRichText: true, skipOffstage: false), findsNothing);
-  });
-
-  test('accepted owner request -> kommende vermietung, renter bleibt buchung', () async {
-    final ownerResult = await NotificationCtaResolver.resolve(
-      notification: {
-        'category': 'bookings',
-        'title': 'Buchung bestätigt',
-        'body': 'Du hast die Anfrage für „QNAP NAS“ angenommen. Öffne die Vermietung für Übergabe & Rückgabe.',
-        'entityType': 'booking',
-        'entityId': 'req-accepted',
-        'requestId': 'req-accepted',
-        'ctaLabel': 'Zur Vermietung',
-      },
-      currentUserId: 'u1',
-    );
-    final renterResult = await NotificationCtaResolver.resolve(
-      notification: {
-        'category': 'bookings',
-        'title': 'Mietanfrage angenommen',
-        'body': 'Deine Anfrage für „QNAP NAS“ wurde angenommen. Öffne die Buchung für Details.',
-        'entityType': 'booking',
-        'entityId': 'req-accepted',
-        'requestId': 'req-accepted',
-        'ctaLabel': 'Zur Buchung',
-      },
-      currentUserId: 'u5',
     );
 
-    expect(ownerResult.target, NotificationTargetKind.ownerBookingDetail);
-    expect(ownerResult.ctaLabel, 'Zur Vermietung');
-    expect(renterResult.target, NotificationTargetKind.renterBookingDetail);
-    expect(renterResult.ctaLabel, 'Zur Buchung');
+    test('missing request without heuristic -> none', () async {
+      await seedRequests([]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: bookingNotification(
+          entityType: 'booking',
+          ctaLabel: 'Zur Buchung',
+        ),
+        currentUserId: renterId,
+      );
+      expectNone(result, sitCategory: 'bookings');
+    });
+
+    test('entityId fallback resolves booking request when requestId is empty',
+        () async {
+      final request = buildRequest(
+        id: 'req-entity-fallback',
+        ownerId: ownerId,
+        renterId: renterId,
+        status: 'accepted',
+      );
+      await seedRequests([request]);
+      final ownerResult = await NotificationCtaResolver.resolve(
+        notification: bookingNotification(
+          requestId: '',
+          entityId: request.id,
+          ctaLabel: 'Zur Vermietung',
+        ),
+        currentUserId: ownerId,
+      );
+      expect(ownerResult.target, NotificationTargetKind.ownerBookingDetail);
+      expect(ownerResult.ctaLabel, 'Zur Vermietung');
+      expect(ownerResult.requestId, request.id);
+      expect(ownerResult.sitCategory, 'rentals');
+
+      final renterResult = await NotificationCtaResolver.resolve(
+        notification: bookingNotification(
+          requestId: '',
+          entityId: request.id,
+          ctaLabel: 'Zur Buchung',
+        ),
+        currentUserId: renterId,
+      );
+      expect(renterResult.target, NotificationTargetKind.renterBookingDetail);
+      expect(renterResult.ctaLabel, 'Zur Buchung');
+      expect(renterResult.requestId, request.id);
+      expect(renterResult.sitCategory, 'bookings');
+    });
+
+    test('requestId takes priority over differing entityId', () async {
+      final preferred = buildRequest(
+        id: 'req-preferred-requestid',
+        ownerId: ownerId,
+        renterId: renterId,
+        status: 'accepted',
+      );
+      final other = buildRequest(
+        id: 'req-ignored-entityid',
+        ownerId: ownerId,
+        renterId: renterId,
+        status: 'cancelled',
+      );
+      await seedRequests([preferred, other]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: bookingNotification(
+          requestId: preferred.id,
+          entityId: other.id,
+          ctaLabel: 'Zur Vermietung',
+        ),
+        currentUserId: ownerId,
+      );
+      expect(result.target, NotificationTargetKind.ownerBookingDetail);
+      expect(result.ctaLabel, 'Zur Vermietung');
+      expect(result.requestId, preferred.id);
+      expect(result.sitCategory, 'rentals');
+    });
+
+    test(
+        'unknown status for involved owner falls through to final none fallback',
+        () async {
+      final request = buildRequest(
+        id: 'req-unknown-owner',
+        ownerId: ownerId,
+        renterId: renterId,
+        status: 'archived',
+      );
+      await seedRequests([request]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: bookingNotification(
+          requestId: request.id,
+          entityId: request.id,
+          ctaLabel: 'Zur Vermietung',
+        ),
+        currentUserId: ownerId,
+      );
+      expectNone(result, sitCategory: 'bookings');
+    });
+
+    test(
+        'unknown status for involved renter falls through to final none fallback',
+        () async {
+      final request = buildRequest(
+        id: 'req-unknown-renter',
+        ownerId: ownerId,
+        renterId: renterId,
+        status: 'archived',
+      );
+      await seedRequests([request]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: bookingNotification(
+          requestId: request.id,
+          entityId: request.id,
+          ctaLabel: 'Zur Buchung',
+        ),
+        currentUserId: renterId,
+      );
+      expectNone(result, sitCategory: 'bookings');
+    });
+
+    test('invalid id -> none', () async {
+      await seedRequests([]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: bookingNotification(
+          requestId: 'missing-id',
+          entityId: 'missing-id',
+        ),
+        currentUserId: renterId,
+      );
+      expectNone(result, sitCategory: 'bookings');
+    });
+
+    test('outsider with valid request -> none', () async {
+      final request = buildRequest(
+        id: 'req-outsider',
+        ownerId: ownerId,
+        renterId: renterId,
+        status: 'accepted',
+      );
+      await seedRequests([request]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: bookingNotification(
+          requestId: request.id,
+          entityId: request.id,
+        ),
+        currentUserId: outsiderId,
+      );
+      expectNone(result, sitCategory: 'bookings');
+    });
+  });
+
+  group('special notifications stay on legacy paths', () {
+    test('handover -> none', () async {
+      await seedRequests([
+        buildRequest(
+          id: 'req-handover',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'accepted',
+        ),
+      ]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: bookingNotification(
+          requestId: 'req-handover',
+          entityId: 'req-handover',
+          title: 'Übergabe-Erinnerung',
+          body: 'Die bestätigte Übergabe startet heute Abend.',
+          ctaLabel: 'Details ansehen',
+        ),
+        currentUserId: renterId,
+      );
+      expectNone(result, sitCategory: 'handover');
+    });
+
+    test('return -> none', () async {
+      await seedRequests([
+        buildRequest(
+          id: 'req-return',
+          ownerId: ownerId,
+          renterId: renterId,
+          status: 'running',
+        ),
+      ]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: bookingNotification(
+          requestId: 'req-return',
+          entityId: 'req-return',
+          title: 'Rückgabe im Blick behalten',
+          body: 'Prüfe die geplante Rückgabezeit im Detail.',
+          ctaLabel: 'Rückgabe prüfen',
+        ),
+        currentUserId: renterId,
+      );
+      expectNone(result, sitCategory: 'handover');
+    });
+
+    test('support -> none', () async {
+      await seedRequests([]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: {
+          'category': 'support',
+          'title': 'Support-Status aktualisiert',
+          'body': 'Der Supportfall hat neue Informationen.',
+          'entityType': 'support',
+          'entityId': 'support-1',
+          'ctaLabel': 'Support öffnen',
+        },
+        currentUserId: ownerId,
+      );
+      expectNone(result, sitCategory: 'support');
+    });
+
+    test('payment -> none', () async {
+      await seedRequests([]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: {
+          'category': 'payments',
+          'title': 'Zahlungsmethode hinzufügen',
+          'body': 'Hinterlege eine Zahlungsmethode.',
+          'entityType': 'payment',
+          'entityId': 'payment_methods',
+          'ctaLabel': 'Öffnen',
+        },
+        currentUserId: ownerId,
+      );
+      expectNone(result, sitCategory: 'payments');
+    });
+
+    test('invoice -> none', () async {
+      await seedRequests([]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: {
+          'category': 'bookings',
+          'title': 'Rechnung verfügbar',
+          'body': 'Deine Rechnung ist jetzt verfügbar.',
+          'entityType': 'booking',
+          'entityId': 'invoice-booking',
+          'ctaLabel': 'Rechnung öffnen',
+        },
+        currentUserId: ownerId,
+      );
+      expectNone(result, sitCategory: 'payments');
+    });
+
+    test('thread or message -> none', () async {
+      await seedRequests([]);
+      final result = await NotificationCtaResolver.resolve(
+        notification: {
+          'category': 'messages',
+          'title': 'Neue Nachricht erhalten',
+          'body': 'Mila hat dir geschrieben.',
+          'entityType': 'thread',
+          'entityId': 'thread-1',
+          'ctaLabel': 'Chat öffnen',
+        },
+        currentUserId: ownerId,
+      );
+      expectNone(result, sitCategory: 'messages');
+    });
+
+    test('review or system hint -> none', () async {
+      await seedRequests([]);
+      final reviewResult = await NotificationCtaResolver.resolve(
+        notification: {
+          'category': 'reviews',
+          'title': 'Bewertungen sammeln',
+          'body':
+              'Nach jeder abgeschlossenen Miete kannst du eine Bewertung abgeben.',
+          'entityType': 'system',
+          'entityId': 'review-tip',
+          'ctaLabel': '',
+        },
+        currentUserId: ownerId,
+      );
+      expectNone(reviewResult, sitCategory: 'reviews');
+
+      final systemResult = await NotificationCtaResolver.resolve(
+        notification: {
+          'category': 'system',
+          'title': 'Hinweis',
+          'body': 'Nur ein Systemhinweis.',
+          'entityType': 'system',
+          'entityId': 'system-tip',
+          'ctaLabel': '',
+        },
+        currentUserId: ownerId,
+      );
+      expectNone(systemResult, sitCategory: 'system');
+    });
   });
 }

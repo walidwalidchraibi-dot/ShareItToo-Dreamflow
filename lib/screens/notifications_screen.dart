@@ -314,10 +314,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (requestId == null || requestId.isEmpty || !mounted) return;
           await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => OngoingOwnerDetailScreen(
-                requestId: requestId,
-                titleOverride: 'Kommende Vermietung',
-              ),
+              builder: (_) => OngoingOwnerDetailScreen(requestId: requestId),
             ),
           );
           return;
