@@ -18,7 +18,6 @@ import 'package:lendify/models/message.dart';
 import 'package:lendify/models/security.dart';
 import 'package:lendify/utils/total_subtitle.dart';
 
-
 class RentalRequestTransitionResult {
   final bool success;
   final bool pausedForReview;
@@ -31,13 +30,13 @@ class RentalRequestTransitionResult {
   });
 
   const RentalRequestTransitionResult.success()
-      : this._(success: true, pausedForReview: false);
+    : this._(success: true, pausedForReview: false);
 
   const RentalRequestTransitionResult.failure(String message)
-      : this._(success: false, pausedForReview: false, errorMessage: message);
+    : this._(success: false, pausedForReview: false, errorMessage: message);
 
   const RentalRequestTransitionResult.paused(String message)
-      : this._(success: false, pausedForReview: true, errorMessage: message);
+    : this._(success: false, pausedForReview: true, errorMessage: message);
 }
 
 class DataService {
@@ -68,7 +67,8 @@ class DataService {
   static const String _wishlistAssignKey = 'wishlist_assign_v1';
   static const String _messageThreadsKey = 'message_threads_v1';
   static const String _demoNotifSeedFlagPrefix = 'demo_notif_seeded_for_';
-  static const String _qaMessagesAndNotifsSeedFlagPrefix = 'qa_messages_notifs_seeded_v3_for_';
+  static const String _qaMessagesAndNotifsSeedFlagPrefix =
+      'qa_messages_notifs_seeded_v3_for_';
 
   // Security
   static const String _securitySettingsKey = 'security_settings_v1';
@@ -92,7 +92,9 @@ class DataService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
-          _securitySettingsKey, jsonEncode(settings.toJson()));
+        _securitySettingsKey,
+        jsonEncode(settings.toJson()),
+      );
     } catch (e) {
       debugPrint('[DataService] setSecuritySettings failed: ' + e.toString());
     }
@@ -104,8 +106,10 @@ class DataService {
       final raw = prefs.getString(_signedInDevicesKey);
       if (raw == null || raw.isEmpty) {
         final seeded = _seedSignedInDevices();
-        await prefs.setString(_signedInDevicesKey,
-            jsonEncode(seeded.map((e) => e.toJson()).toList()));
+        await prefs.setString(
+          _signedInDevicesKey,
+          jsonEncode(seeded.map((e) => e.toJson()).toList()),
+        );
         return seeded;
       }
       final list = jsonDecode(raw);
@@ -113,8 +117,9 @@ class DataService {
       final parsed = <SecurityDevice>[];
       for (final e in list) {
         if (e is Map) {
-          parsed.add(SecurityDevice.fromJson(
-              e.map((k, v) => MapEntry(k.toString(), v))));
+          parsed.add(
+            SecurityDevice.fromJson(e.map((k, v) => MapEntry(k.toString(), v))),
+          );
         }
       }
       return parsed;
@@ -127,8 +132,10 @@ class DataService {
   static Future<void> setSignedInDevices(List<SecurityDevice> devices) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_signedInDevicesKey,
-          jsonEncode(devices.map((e) => e.toJson()).toList()));
+      await prefs.setString(
+        _signedInDevicesKey,
+        jsonEncode(devices.map((e) => e.toJson()).toList()),
+      );
     } catch (e) {
       debugPrint('[DataService] setSignedInDevices failed: ' + e.toString());
     }
@@ -200,8 +207,9 @@ class DataService {
           map = {};
         }
       }
-      final current =
-          (map[bookingId] is num) ? (map[bookingId] as num).toInt() : 0;
+      final current = (map[bookingId] is num)
+          ? (map[bookingId] as num).toInt()
+          : 0;
       final next = current + 1;
       map[bookingId] = next;
       await prefs.setString(_handoverFailCountsKey, jsonEncode(map));
@@ -219,8 +227,10 @@ class DataService {
 
   /// Set a one-time banner text for a booking to be shown on next open.
   /// Stored under a lightweight map keyed by bookingId.
-  static Future<void> setHandoverBanner(
-      {required String bookingId, required String message}) async {
+  static Future<void> setHandoverBanner({
+    required String bookingId,
+    required String message,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_handoverBannersKey);
@@ -232,10 +242,7 @@ class DataService {
           map = {};
         }
       }
-      map[bookingId] = {
-        'msg': message,
-        'ts': DateTime.now().toIso8601String(),
-      };
+      map[bookingId] = {'msg': message, 'ts': DateTime.now().toIso8601String()};
       await prefs.setString(_handoverBannersKey, jsonEncode(map));
     } catch (e) {
       // ignore but log for debug
@@ -272,7 +279,8 @@ class DataService {
 
   // Persisted availability selection per item
   static Future<(DateTime? start, DateTime? end)> getSavedDateRange(
-      String itemId) async {
+    String itemId,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_bookingSelectionsKey);
     if (raw == null || raw.isEmpty) return (null, null);
@@ -284,15 +292,18 @@ class DataService {
         final e = entry['end'] as String?;
         return (
           s != null ? DateTime.tryParse(s) : null,
-          e != null ? DateTime.tryParse(e) : null
+          e != null ? DateTime.tryParse(e) : null,
         );
       }
     } catch (_) {}
     return (null, null);
   }
 
-  static Future<void> setSavedDateRange(String itemId,
-      {required DateTime start, required DateTime end}) async {
+  static Future<void> setSavedDateRange(
+    String itemId, {
+    required DateTime start,
+    required DateTime end,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_bookingSelectionsKey);
     Map<String, dynamic> map = {};
@@ -307,7 +318,7 @@ class DataService {
     // don't drop previously saved delivery selections.
     final existing =
         (map[itemId] as Map?)?.map((k, v) => MapEntry(k.toString(), v)) ??
-            <String, dynamic>{};
+        <String, dynamic>{};
     existing['start'] = start.toIso8601String();
     existing['end'] = end.toIso8601String();
     map[itemId] = existing;
@@ -359,11 +370,9 @@ class DataService {
     double finalTotal,
     double baseTotal,
     double appliedPercent,
-    double discountAmount
-  ) computeTotalWithDiscounts({
-    required Item item,
-    required int days,
-  }) {
+    double discountAmount,
+  )
+  computeTotalWithDiscounts({required Item item, required int days}) {
     final d = days.clamp(1, 3650);
     final base = (item.pricePerDay * d);
     if (!item.autoApplyDiscounts || item.longRentalDiscounts.isEmpty) {
@@ -389,7 +398,8 @@ class DataService {
   /// Edge case: For a 0 € subtotal, the fee is 0 €.
   /// UI never shows percentages, only the absolute fee.
   static double platformContributionForRental(double rentalSubtotal) {
-    final v = (rentalSubtotal.isNaN ||
+    final v =
+        (rentalSubtotal.isNaN ||
             rentalSubtotal.isInfinite ||
             rentalSubtotal < 0)
         ? 0.0
@@ -427,14 +437,17 @@ class DataService {
     double expressApplied,
     double totalRenter,
     double payoutOwner,
-  }) priceBreakdownForRequest({
+  })
+  priceBreakdownForRequest({
     required Item item,
     required RentalRequest req,
     Map<String, dynamic>? deliverySel,
   }) {
     // Days
-    final int days =
-        (req.end.difference(req.start).inHours / 24).ceil().clamp(1, 365);
+    final int days = (req.end.difference(req.start).inHours / 24).ceil().clamp(
+      1,
+      365,
+    );
     final priced = computeTotalWithDiscounts(item: item, days: days);
     final double basePerDay = item.pricePerDay;
     final double baseTotal = priced.$2; // before discount
@@ -449,8 +462,9 @@ class DataService {
         req.expressRequested || (req.expressStatus != null);
     final bool inferredOwnerDeliversByAddress =
         ((req.deliveryAddressLine ?? '').toString().trim().isNotEmpty) ||
-            ((req.deliveryCity ?? '').toString().trim().isNotEmpty);
-    final bool ownerDelivers = req.ownerDeliversAtDropoffChosen ||
+        ((req.deliveryCity ?? '').toString().trim().isNotEmpty);
+    final bool ownerDelivers =
+        req.ownerDeliversAtDropoffChosen ||
         inferredOwnerDeliversByTransient ||
         inferredOwnerDeliversByExpress ||
         inferredOwnerDeliversByAddress;
@@ -460,17 +474,16 @@ class DataService {
     final bool ownerPicksUp =
         req.ownerPicksUpAtReturnChosen || inferredOwnerPicksUpByTransient;
 
-    double estimateKm({
-      double? lat,
-      double? lng,
-      String? line,
-      String? city,
-    }) {
+    double estimateKm({double? lat, double? lng, String? line, String? city}) {
       if (lat != null && lng != null) {
         return estimateDistanceKm(item.lat, item.lng, lat, lng);
       }
       if ((line ?? '').trim().isNotEmpty) {
-        return estimateDistanceKmFromAddressLine(item.lat, item.lng, line!.trim());
+        return estimateDistanceKmFromAddressLine(
+          item.lat,
+          item.lng,
+          line!.trim(),
+        );
       }
       if ((city ?? '').trim().isNotEmpty) {
         return estimateDistanceKmToCity(item.lat, item.lng, city!.trim());
@@ -479,16 +492,44 @@ class DataService {
     }
 
     final double dropoffKm = estimateKm(
-      lat: req.deliveryLat ?? (deliverySel?['deliveryLat'] as num?)?.toDouble() ?? (deliverySel?['lat'] as num?)?.toDouble(),
-      lng: req.deliveryLng ?? (deliverySel?['deliveryLng'] as num?)?.toDouble() ?? (deliverySel?['lng'] as num?)?.toDouble(),
-      line: req.deliveryAddressLine ?? (deliverySel?['deliveryAddressLine'] as String?) ?? (deliverySel?['addressLine'] as String?),
-      city: req.deliveryCity ?? (deliverySel?['deliveryCity'] as String?) ?? (deliverySel?['city'] as String?),
+      lat:
+          req.deliveryLat ??
+          (deliverySel?['deliveryLat'] as num?)?.toDouble() ??
+          (deliverySel?['lat'] as num?)?.toDouble(),
+      lng:
+          req.deliveryLng ??
+          (deliverySel?['deliveryLng'] as num?)?.toDouble() ??
+          (deliverySel?['lng'] as num?)?.toDouble(),
+      line:
+          req.deliveryAddressLine ??
+          (deliverySel?['deliveryAddressLine'] as String?) ??
+          (deliverySel?['addressLine'] as String?),
+      city:
+          req.deliveryCity ??
+          (deliverySel?['deliveryCity'] as String?) ??
+          (deliverySel?['city'] as String?),
     );
     final double returnKm = estimateKm(
-      lat: req.returnLat ?? (deliverySel?['returnLat'] as num?)?.toDouble() ?? req.deliveryLat ?? (deliverySel?['lat'] as num?)?.toDouble(),
-      lng: req.returnLng ?? (deliverySel?['returnLng'] as num?)?.toDouble() ?? req.deliveryLng ?? (deliverySel?['lng'] as num?)?.toDouble(),
-      line: req.returnAddressLine ?? (deliverySel?['returnAddressLine'] as String?) ?? req.deliveryAddressLine ?? (deliverySel?['addressLine'] as String?),
-      city: req.returnCity ?? (deliverySel?['returnCity'] as String?) ?? req.deliveryCity ?? (deliverySel?['city'] as String?),
+      lat:
+          req.returnLat ??
+          (deliverySel?['returnLat'] as num?)?.toDouble() ??
+          req.deliveryLat ??
+          (deliverySel?['lat'] as num?)?.toDouble(),
+      lng:
+          req.returnLng ??
+          (deliverySel?['returnLng'] as num?)?.toDouble() ??
+          req.deliveryLng ??
+          (deliverySel?['lng'] as num?)?.toDouble(),
+      line:
+          req.returnAddressLine ??
+          (deliverySel?['returnAddressLine'] as String?) ??
+          req.deliveryAddressLine ??
+          (deliverySel?['addressLine'] as String?),
+      city:
+          req.returnCity ??
+          (deliverySel?['returnCity'] as String?) ??
+          req.deliveryCity ??
+          (deliverySel?['city'] as String?),
     );
 
     double dropoffFee = 0.0;
@@ -506,26 +547,31 @@ class DataService {
         req.expressRequested && (req.expressStatus == 'accepted');
     final bool expressRequestedOrSelected =
         expressSelectedTransient || req.expressRequested || expressAccepted;
-    final double expressApplied =
-        expressRequestedOrSelected ? (req.expressFee) : 0.0; // renter-facing
+    final double expressApplied = expressRequestedOrSelected
+        ? (req.expressFee)
+        : 0.0; // renter-facing
     // New rule: add 10% of the Express surcharge to the renter total
     final double expressPlatformPart = expressApplied > 0
         ? double.parse((expressApplied * 0.10).toStringAsFixed(2))
         : 0.0;
 
-    final double totalRenter = double.parse((rentalSubtotal +
-            platformFee +
-            dropoffFee +
-            returnFee +
-            expressApplied +
-            expressPlatformPart)
-        .toStringAsFixed(2));
+    final double totalRenter = double.parse(
+      (rentalSubtotal +
+              platformFee +
+              dropoffFee +
+              returnFee +
+              expressApplied +
+              expressPlatformPart)
+          .toStringAsFixed(2),
+    );
     // Owner payout should only include express when accepted
-    final double payoutOwner = double.parse((rentalSubtotal +
-            dropoffFee +
-            returnFee +
-            (expressAccepted ? req.expressFee : 0.0))
-        .toStringAsFixed(2));
+    final double payoutOwner = double.parse(
+      (rentalSubtotal +
+              dropoffFee +
+              returnFee +
+              (expressAccepted ? req.expressFee : 0.0))
+          .toStringAsFixed(2),
+    );
 
     return (
       days: days,
@@ -604,13 +650,15 @@ class DataService {
       await _persist(list);
     } catch (e) {
       debugPrint(
-          '[DataService] addItem persist failed, attempting to shrink payload: ' +
-              e.toString());
+        '[DataService] addItem persist failed, attempting to shrink payload: ' +
+            e.toString(),
+      );
       // 1) Replace base64 data URLs with lightweight placeholders and limit to max 3 photos per item
       List<dynamic> shrunk = list.map((raw) {
         try {
           final m = Map<String, dynamic>.from(raw as Map);
-          final photos = (m['photos'] as List?)
+          final photos =
+              (m['photos'] as List?)
                   ?.map((p) => p?.toString() ?? '')
                   .where((s) => s.isNotEmpty)
                   .toList() ??
@@ -622,7 +670,8 @@ class DataService {
             if (p.startsWith('data:')) {
               // Deterministic placeholder per item id and index to keep UI varied
               limited.add(
-                  'https://picsum.photos/seed/${m['id'] ?? 'x'}_${idx}/800/800');
+                'https://picsum.photos/seed/${m['id'] ?? 'x'}_${idx}/800/800',
+              );
             } else {
               limited.add(p);
             }
@@ -641,8 +690,9 @@ class DataService {
         await _persist(shrunk);
       } catch (e2) {
         debugPrint(
-            '[DataService] addItem persist still failing after shrink: ' +
-                e2.toString());
+          '[DataService] addItem persist still failing after shrink: ' +
+              e2.toString(),
+        );
         // 2) Last resort: strip photos entirely to guarantee saving
         final stripped = shrunk.map((raw) {
           try {
@@ -667,14 +717,13 @@ class DataService {
       return getCategories();
     }
     final List<dynamic> categoriesList = jsonDecode(categoriesJson);
-    final List<Category> categories =
-        categoriesList.map((json) => Category.fromJson(json)).toList();
+    final List<Category> categories = categoriesList
+        .map((json) => Category.fromJson(json))
+        .toList();
 
     // Ensure newly added demo categories are present for all users (no lazy backfill).
     final seeds = _buildDemoCategories();
-    final orderById = {
-      for (int i = 0; i < seeds.length; i++) seeds[i].id: i,
-    };
+    final orderById = {for (int i = 0; i < seeds.length; i++) seeds[i].id: i};
 
     bool mutated = false;
     for (final seed in seeds) {
@@ -694,7 +743,9 @@ class DataService {
 
     if (mutated) {
       await prefs.setString(
-          _categoriesKey, jsonEncode(categories.map((c) => c.toJson()).toList()));
+        _categoriesKey,
+        jsonEncode(categories.map((c) => c.toJson()).toList()),
+      );
     }
 
     return categories;
@@ -739,12 +790,15 @@ class DataService {
         // Skip bad entry and mark mutated so we can sanitize storage
         mutated = true;
         debugPrint(
-            '[DataService] Skipped corrupted item entry: ' + e.toString());
+          '[DataService] Skipped corrupted item entry: ' + e.toString(),
+        );
       }
     }
     if (mutated) {
       await prefs.setString(
-          _itemsKey, jsonEncode(parsed.map((e) => e.toJson()).toList()));
+        _itemsKey,
+        jsonEncode(parsed.map((e) => e.toJson()).toList()),
+      );
     }
     List<Item> items = parsed;
 
@@ -764,7 +818,9 @@ class DataService {
     }
     if (mutatedAging) {
       await prefs.setString(
-          _itemsKey, jsonEncode(filtered.map((e) => e.toJson()).toList()));
+        _itemsKey,
+        jsonEncode(filtered.map((e) => e.toJson()).toList()),
+      );
       items = filtered;
     }
     items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -801,7 +857,8 @@ class DataService {
   static Future<void> ensureListingsSeededIfEmpty() async {
     if (!_allowDemoSeedDataInRuntime) {
       debugPrint(
-          '[DataService] ensureListingsSeededIfEmpty skipped (demo seed disabled)');
+        '[DataService] ensureListingsSeededIfEmpty skipped (demo seed disabled)',
+      );
       return;
     }
     try {
@@ -816,7 +873,8 @@ class DataService {
       final decoded = jsonDecode(raw);
       if (decoded is List && decoded.isEmpty) {
         debugPrint(
-            '[DataService] Items store empty -> seeding showcase listings');
+          '[DataService] Items store empty -> seeding showcase listings',
+        );
         await prefs.setBool(_purgedToOwnedFlagKey, false);
         await resetItemsAndSeedFive(force: true);
       }
@@ -831,7 +889,8 @@ class DataService {
   static Future<void> resetItemsAndSeedFive({bool force = false}) async {
     if (!_allowDemoSeedDataInRuntime) {
       debugPrint(
-          '[DataService] resetItemsAndSeedFive skipped (demo seed disabled)');
+        '[DataService] resetItemsAndSeedFive skipped (demo seed disabled)',
+      );
       return;
     }
     final prefs = await SharedPreferences.getInstance();
@@ -852,7 +911,9 @@ class DataService {
     final five = _buildFiveShowcaseItems(users, categories);
 
     await prefs.setString(
-        _itemsKey, jsonEncode(five.map((e) => e.toJson()).toList()));
+      _itemsKey,
+      jsonEncode(five.map((e) => e.toJson()).toList()),
+    );
     // Clear related volatile demo stores so UI reflects new dataset
     await prefs.remove(_rentalRequestsKey);
     await prefs.remove(_bookingSelectionsKey);
@@ -937,7 +998,8 @@ class DataService {
         return prefs.getString(_currentUserKey);
       } catch (e) {
         debugPrint(
-            '[DataService] currentUser malformed; clearing persisted value: $e');
+          '[DataService] currentUser malformed; clearing persisted value: $e',
+        );
         try {
           await prefs.remove(_currentUserKey);
         } catch (_) {}
@@ -956,7 +1018,8 @@ class DataService {
     if (userJson == null || userJson.isEmpty) {
       if (!_allowDemoSeedDataInRuntime) {
         debugPrint(
-            '[DataService] getCurrentUser skipped demo init (demo seed disabled)');
+          '[DataService] getCurrentUser skipped demo init (demo seed disabled)',
+        );
         return null;
       }
       try {
@@ -1002,11 +1065,10 @@ class DataService {
 
     try {
       final users = await getUsers();
-      final corrected =
-          users.where((u) => u.id == user.id).cast<User?>().firstWhere(
-                (u) => u != null,
-                orElse: () => null,
-              );
+      final corrected = users
+          .where((u) => u.id == user.id)
+          .cast<User?>()
+          .firstWhere((u) => u != null, orElse: () => null);
       if (corrected != null &&
           (corrected.avgRating != user.avgRating ||
               corrected.reviewCount != user.reviewCount)) {
@@ -1024,7 +1086,10 @@ class DataService {
       if (preview == DeveloperUserState.verifiedUser &&
           user.isVerified != true) {
         user = user.copyWith(
-            isVerified: true, emailVerified: true, phoneVerified: true);
+          isVerified: true,
+          emailVerified: true,
+          phoneVerified: true,
+        );
         mutated = true;
       }
       if (preview == DeveloperUserState.loggedIn && user.isVerified == true) {
@@ -1136,13 +1201,16 @@ class DataService {
       await prefs.setBool(key, true);
     } catch (e) {
       debugPrint(
-          '[DataService] _ensureDemoNotificationsForUserOnce failed: $e');
+        '[DataService] _ensureDemoNotificationsForUserOnce failed: $e',
+      );
     }
   }
 
   static const bool _launchQaSeedingEnabled = true;
 
-  static Future<void> _ensureQaMessagesAndNotificationsForUserOnce(String userId) async {
+  static Future<void> _ensureQaMessagesAndNotificationsForUserOnce(
+    String userId,
+  ) async {
     if (userId.isEmpty || !kDebugMode || !_launchQaSeedingEnabled) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -1154,7 +1222,9 @@ class DataService {
       if (rawCurrentUser == null || rawCurrentUser.isEmpty) return;
       User? me;
       try {
-        me = User.fromJson(Map<String, dynamic>.from(jsonDecode(rawCurrentUser) as Map));
+        me = User.fromJson(
+          Map<String, dynamic>.from(jsonDecode(rawCurrentUser) as Map),
+        );
       } catch (_) {
         return;
       }
@@ -1190,7 +1260,8 @@ class DataService {
       final runningItem = firstOwnedByWithPhoto(ownerB.id) ?? acceptedItem;
       final completedItem = firstOwnedBy(ownerC.id) ?? runningItem;
       final pendingItem = firstOwnedBy(me.id) ?? acceptedItem;
-      final ownerTemplate = firstOwnedByWithPhoto(me.id) ?? firstOwnedBy(me.id) ?? items.first;
+      final ownerTemplate =
+          firstOwnedByWithPhoto(me.id) ?? firstOwnedBy(me.id) ?? items.first;
       final now = DateTime.now();
 
       Item ownerQaItem({
@@ -1274,7 +1345,8 @@ class DataService {
         start: now.add(const Duration(days: 2, hours: 4)),
         end: now.add(const Duration(days: 5, hours: 2)),
         status: 'accepted',
-        message: 'QA PS5 Lieferung — bestätigter Kommend-Testfall für den lokalen Screen-Audit.',
+        message:
+            'QA PS5 Lieferung — bestätigter Kommend-Testfall für den lokalen Screen-Audit.',
         deliveryAddressLine: 'Torstraße 17',
         deliveryCity: 'Berlin',
         createdAt: now.subtract(const Duration(days: 1, hours: 4)),
@@ -1289,12 +1361,15 @@ class DataService {
         start: now.subtract(const Duration(days: 1, hours: 2)),
         end: now.add(const Duration(days: 2, hours: 6)),
         status: 'running',
-        message: 'qa_booking_running — laufender Audit-Fall mit sichtbarer Abholung und Rückgabe.',
+        message:
+            'qa_booking_running — laufender Audit-Fall mit sichtbarer Abholung und Rückgabe.',
         deliveryAddressLine: 'Rosenthaler Straße 44',
         deliveryCity: 'Berlin',
         createdAt: now.subtract(const Duration(days: 3)),
         handoverConfirmation: {
-          'confirmedAt': now.subtract(const Duration(days: 1, hours: 3)).toIso8601String(),
+          'confirmedAt': now
+              .subtract(const Duration(days: 1, hours: 3))
+              .toIso8601String(),
           'method': 'manual',
         },
         quotedTotalRenter: 126.0,
@@ -1308,10 +1383,13 @@ class DataService {
         start: now.subtract(const Duration(days: 10)),
         end: now.subtract(const Duration(days: 7, hours: 3)),
         status: 'completed',
-        message: 'Danke nochmal — das Licht hat für das Shooting perfekt funktioniert.',
+        message:
+            'Danke nochmal — das Licht hat für das Shooting perfekt funktioniert.',
         createdAt: now.subtract(const Duration(days: 12)),
         returnConfirmation: {
-          'confirmedAt': now.subtract(const Duration(days: 7, hours: 2)).toIso8601String(),
+          'confirmedAt': now
+              .subtract(const Duration(days: 7, hours: 2))
+              .toIso8601String(),
           'method': 'manual',
         },
         quotedTotalRenter: 74.0,
@@ -1325,7 +1403,8 @@ class DataService {
         start: now.subtract(const Duration(days: 6)),
         end: now.subtract(const Duration(days: 4, hours: 4)),
         status: 'completed',
-        message: 'QA E-Scooter Prüfung läuft — abgeschlossener Vorgang mit Review-Hold.',
+        message:
+            'QA E-Scooter Prüfung läuft — abgeschlossener Vorgang mit Review-Hold.',
         createdAt: now.subtract(const Duration(days: 6, hours: 8)),
         needsReview: true,
         reviewReason: 'Zusätzliche Prüfung nach Rückgabe',
@@ -1368,7 +1447,8 @@ class DataService {
         start: now.add(const Duration(days: 1, hours: 4)),
         end: now.add(const Duration(days: 3, hours: 4)),
         status: 'accepted',
-        message: 'Bestätigte Owner-Anmietung mit Selbstabholung durch den Mieter.',
+        message:
+            'Bestätigte Owner-Anmietung mit Selbstabholung durch den Mieter.',
         createdAt: now.subtract(const Duration(days: 1, hours: 6)),
         ownerDeliversAtDropoffChosen: false,
         quotedTotalRenter: 82.0,
@@ -1382,7 +1462,8 @@ class DataService {
         start: now.add(const Duration(days: 2, hours: 2)),
         end: now.add(const Duration(days: 4, hours: 8)),
         status: 'accepted',
-        message: 'Bestätigte Owner-Anmietung mit Lieferung durch den Vermieter.',
+        message:
+            'Bestätigte Owner-Anmietung mit Lieferung durch den Vermieter.',
         createdAt: now.subtract(const Duration(days: 1, hours: 2)),
         ownerDeliversAtDropoffChosen: true,
         quotedTotalRenter: 119.0,
@@ -1401,7 +1482,9 @@ class DataService {
         ownerDeliversAtDropoffChosen: true,
         ownerPicksUpAtReturnChosen: true,
         handoverConfirmation: {
-          'confirmedAt': now.subtract(const Duration(days: 1, hours: 4)).toIso8601String(),
+          'confirmedAt': now
+              .subtract(const Duration(days: 1, hours: 4))
+              .toIso8601String(),
           'method': 'manual',
         },
         quotedTotalRenter: 134.0,
@@ -1418,7 +1501,9 @@ class DataService {
         message: 'Sauber abgeschlossene Owner-Anmietung für den Audit.',
         createdAt: now.subtract(const Duration(days: 9, hours: 1)),
         returnConfirmation: {
-          'confirmedAt': now.subtract(const Duration(days: 5, hours: 1)).toIso8601String(),
+          'confirmedAt': now
+              .subtract(const Duration(days: 5, hours: 1))
+              .toIso8601String(),
           'method': 'manual',
         },
         needsReview: false,
@@ -1436,7 +1521,9 @@ class DataService {
         message: 'Owner-Review-Hold-Fall für den Audit.',
         createdAt: now.subtract(const Duration(days: 6, hours: 8)),
         returnConfirmation: {
-          'confirmedAt': now.subtract(const Duration(days: 3, hours: 5)).toIso8601String(),
+          'confirmedAt': now
+              .subtract(const Duration(days: 3, hours: 5))
+              .toIso8601String(),
           'method': 'manual',
         },
         needsReview: true,
@@ -1448,11 +1535,14 @@ class DataService {
       );
 
       final itemJson = prefs.getString(_itemsKey);
-      final List<dynamic> itemList = itemJson != null && itemJson.isNotEmpty ? (jsonDecode(itemJson) as List) : <dynamic>[];
+      final List<dynamic> itemList = itemJson != null && itemJson.isNotEmpty
+          ? (jsonDecode(itemJson) as List)
+          : <dynamic>[];
       itemList.removeWhere((e) {
         if (e is! Map) return false;
         final id = (e['id'] ?? '').toString();
-        return id.startsWith('qa_owner_item_') && ((e['ownerId'] ?? '').toString() == userId);
+        return id.startsWith('qa_owner_item_') &&
+            ((e['ownerId'] ?? '').toString() == userId);
       });
       itemList.addAll([
         ownerPendingItem.toJson(),
@@ -1466,7 +1556,9 @@ class DataService {
 
       final requests = await _getAllRentalRequests();
       requests.removeWhere((r) {
-        final isRenterOrOwnerQa = r.id.startsWith('qa_req_') && (r.renterId == userId || r.ownerId == userId);
+        final isRenterOrOwnerQa =
+            r.id.startsWith('qa_req_') &&
+            (r.renterId == userId || r.ownerId == userId);
         final isOwnerQa = r.id.startsWith('qa_owner_') && r.ownerId == userId;
         return isRenterOrOwnerQa || isOwnerQa;
       });
@@ -1486,11 +1578,15 @@ class DataService {
       await _saveAllRentalRequests(requests);
 
       final rawThreads = prefs.getString(_messageThreadsKey);
-      final List<dynamic> threadList = rawThreads != null && rawThreads.isNotEmpty ? (jsonDecode(rawThreads) as List) : <dynamic>[];
+      final List<dynamic> threadList =
+          rawThreads != null && rawThreads.isNotEmpty
+          ? (jsonDecode(rawThreads) as List)
+          : <dynamic>[];
       threadList.removeWhere((e) {
         if (e is! Map) return false;
         final id = (e['id'] ?? '').toString();
-        return id.startsWith('qa_thread_') || id.startsWith('qa_support_thread_');
+        return id.startsWith('qa_thread_') ||
+            id.startsWith('qa_support_thread_');
       });
 
       MessageThread buildThread({
@@ -1530,30 +1626,139 @@ class DataService {
       );
 
       final acceptedMsgs = <Message>[
-        Message(id: 'qa_msg_acc_1', senderId: 'system', text: 'Buchung bestätigt — ihr könnt jetzt die Übergabe planen.', timestamp: now.subtract(const Duration(hours: 9)), isRead: true),
-        Message(id: 'qa_msg_acc_2', senderId: ownerA.id, text: 'Hi Walid, ich habe alles vorbereitet. Passt dir Donnerstag 18:30 für die Übergabe?', timestamp: now.subtract(const Duration(hours: 8, minutes: 40)), isRead: true),
-        Message(id: 'qa_msg_acc_3', senderId: userId, text: 'Ja, perfekt. Ich bin pünktlich da.', timestamp: now.subtract(const Duration(hours: 8, minutes: 12)), isRead: true),
-        Message(id: 'qa_msg_acc_4', senderId: ownerA.id, text: 'Super — die Adresse bleibt bis kurz vor der Übergabe geschützt sichtbar. Ich schicke dir rechtzeitig die letzten Details.', timestamp: now.subtract(const Duration(hours: 7, minutes: 50)), isRead: false),
+        Message(
+          id: 'qa_msg_acc_1',
+          senderId: 'system',
+          text: 'Buchung bestätigt — ihr könnt jetzt die Übergabe planen.',
+          timestamp: now.subtract(const Duration(hours: 9)),
+          isRead: true,
+        ),
+        Message(
+          id: 'qa_msg_acc_2',
+          senderId: ownerA.id,
+          text:
+              'Hi Walid, ich habe alles vorbereitet. Passt dir Donnerstag 18:30 für die Übergabe?',
+          timestamp: now.subtract(const Duration(hours: 8, minutes: 40)),
+          isRead: true,
+        ),
+        Message(
+          id: 'qa_msg_acc_3',
+          senderId: userId,
+          text: 'Ja, perfekt. Ich bin pünktlich da.',
+          timestamp: now.subtract(const Duration(hours: 8, minutes: 12)),
+          isRead: true,
+        ),
+        Message(
+          id: 'qa_msg_acc_4',
+          senderId: ownerA.id,
+          text:
+              'Super — die Adresse bleibt bis kurz vor der Übergabe geschützt sichtbar. Ich schicke dir rechtzeitig die letzten Details.',
+          timestamp: now.subtract(const Duration(hours: 7, minutes: 50)),
+          isRead: false,
+        ),
       ];
       final runningMsgs = <Message>[
-        Message(id: 'qa_msg_run_1', senderId: 'system', text: 'Übergabe bestätigt — dieser Chat eignet sich für Rückgabezeit und kurze Abstimmung.', timestamp: now.subtract(const Duration(days: 1, hours: 4)), isRead: true),
-        Message(id: 'qa_msg_run_2', senderId: ownerB.id, text: 'Zeitvorschlag Rückgabe: Samstag 11:00 vor dem Studioeingang.', timestamp: now.subtract(const Duration(hours: 20)), isRead: true),
-        Message(id: 'qa_msg_run_3', senderId: userId, text: 'Klappt. Ich bin 10 Minuten früher da.', timestamp: now.subtract(const Duration(hours: 19, minutes: 42)), isRead: true),
-        Message(id: 'qa_msg_run_4', senderId: 'system', text: 'Hinweis: Teile sensible Adressdaten nur im vorgesehenen Übergabe-Kontext. Der Kernprozess bleibt über ShareItToo dokumentiert.', timestamp: now.subtract(const Duration(hours: 19, minutes: 10)), isRead: true),
-        Message(id: 'qa_msg_run_5', senderId: ownerB.id, text: 'Falls du unterwegs festhängst, gib einfach kurz Bescheid. Ich kann notfalls 15 Minuten warten, damit die Rückgabe trotzdem sauber dokumentiert bleibt und wir keine Hektik kurz vor Schluss haben.', timestamp: now.subtract(const Duration(hours: 18, minutes: 55)), isRead: false),
+        Message(
+          id: 'qa_msg_run_1',
+          senderId: 'system',
+          text:
+              'Übergabe bestätigt — dieser Chat eignet sich für Rückgabezeit und kurze Abstimmung.',
+          timestamp: now.subtract(const Duration(days: 1, hours: 4)),
+          isRead: true,
+        ),
+        Message(
+          id: 'qa_msg_run_2',
+          senderId: ownerB.id,
+          text: 'Zeitvorschlag Rückgabe: Samstag 11:00 vor dem Studioeingang.',
+          timestamp: now.subtract(const Duration(hours: 20)),
+          isRead: true,
+        ),
+        Message(
+          id: 'qa_msg_run_3',
+          senderId: userId,
+          text: 'Klappt. Ich bin 10 Minuten früher da.',
+          timestamp: now.subtract(const Duration(hours: 19, minutes: 42)),
+          isRead: true,
+        ),
+        Message(
+          id: 'qa_msg_run_4',
+          senderId: 'system',
+          text:
+              'Hinweis: Teile sensible Adressdaten nur im vorgesehenen Übergabe-Kontext. Der Kernprozess bleibt über ShareItToo dokumentiert.',
+          timestamp: now.subtract(const Duration(hours: 19, minutes: 10)),
+          isRead: true,
+        ),
+        Message(
+          id: 'qa_msg_run_5',
+          senderId: ownerB.id,
+          text:
+              'Falls du unterwegs festhängst, gib einfach kurz Bescheid. Ich kann notfalls 15 Minuten warten, damit die Rückgabe trotzdem sauber dokumentiert bleibt und wir keine Hektik kurz vor Schluss haben.',
+          timestamp: now.subtract(const Duration(hours: 18, minutes: 55)),
+          isRead: false,
+        ),
       ];
       final completedMsgs = <Message>[
-        Message(id: 'qa_msg_compl_1', senderId: 'system', text: 'Diese Miete ist abgeschlossen. Bewertungen und Dokumentation bleiben weiterhin einsehbar.', timestamp: now.subtract(const Duration(days: 7, hours: 3)), isRead: true),
-        Message(id: 'qa_msg_compl_2', senderId: ownerC.id, text: 'Danke dir — alles kam vollständig zurück.', timestamp: now.subtract(const Duration(days: 7, hours: 2, minutes: 40)), isRead: true),
-        Message(id: 'qa_msg_compl_3', senderId: userId, text: 'Top, danke für die unkomplizierte Übergabe.', timestamp: now.subtract(const Duration(days: 7, hours: 2, minutes: 10)), isRead: true),
+        Message(
+          id: 'qa_msg_compl_1',
+          senderId: 'system',
+          text:
+              'Diese Miete ist abgeschlossen. Bewertungen und Dokumentation bleiben weiterhin einsehbar.',
+          timestamp: now.subtract(const Duration(days: 7, hours: 3)),
+          isRead: true,
+        ),
+        Message(
+          id: 'qa_msg_compl_2',
+          senderId: ownerC.id,
+          text: 'Danke dir — alles kam vollständig zurück.',
+          timestamp: now.subtract(
+            const Duration(days: 7, hours: 2, minutes: 40),
+          ),
+          isRead: true,
+        ),
+        Message(
+          id: 'qa_msg_compl_3',
+          senderId: userId,
+          text: 'Top, danke für die unkomplizierte Übergabe.',
+          timestamp: now.subtract(
+            const Duration(days: 7, hours: 2, minutes: 10),
+          ),
+          isRead: true,
+        ),
       ];
       final supportMsgs = <Message>[
-        Message(id: 'qa_msg_sup_1', senderId: 'support', text: 'Hallo Walid, wir haben dein Support-Thema aufgenommen.', timestamp: now.subtract(const Duration(hours: 6)), isRead: true),
-        Message(id: 'qa_msg_sup_2', senderId: userId, text: 'Danke. Ich wollte nur prüfen, ob die neue Benachrichtigungsansicht sauber reagiert.', timestamp: now.subtract(const Duration(hours: 5, minutes: 30)), isRead: true),
-        Message(id: 'qa_msg_sup_3', senderId: 'support', text: 'Perfekt — dieser QA-Fall ist bewusst lokal markiert und verschickt nichts extern.', timestamp: now.subtract(const Duration(hours: 5, minutes: 8)), isRead: false),
+        Message(
+          id: 'qa_msg_sup_1',
+          senderId: 'support',
+          text: 'Hallo Walid, wir haben dein Support-Thema aufgenommen.',
+          timestamp: now.subtract(const Duration(hours: 6)),
+          isRead: true,
+        ),
+        Message(
+          id: 'qa_msg_sup_2',
+          senderId: userId,
+          text:
+              'Danke. Ich wollte nur prüfen, ob die neue Benachrichtigungsansicht sauber reagiert.',
+          timestamp: now.subtract(const Duration(hours: 5, minutes: 30)),
+          isRead: true,
+        ),
+        Message(
+          id: 'qa_msg_sup_3',
+          senderId: 'support',
+          text:
+              'Perfekt — dieser QA-Fall ist bewusst lokal markiert und verschickt nichts extern.',
+          timestamp: now.subtract(const Duration(hours: 5, minutes: 8)),
+          isRead: false,
+        ),
       ];
       final archivedMsgs = <Message>[
-        Message(id: 'qa_msg_arch_1', senderId: ownerA.id, text: 'Das ist ein archivierter Testfall mit langem Vorschautext, damit die Listenansicht Zeilenumbruch, Abschneiden und Status-Kontext sauber zeigt, auch wenn ein Artikelbild gerade nicht vorhanden ist.', timestamp: now.subtract(const Duration(days: 2, hours: 5)), isRead: true),
+        Message(
+          id: 'qa_msg_arch_1',
+          senderId: ownerA.id,
+          text:
+              'Das ist ein archivierter Testfall mit langem Vorschautext, damit die Listenansicht Zeilenumbruch, Abschneiden und Status-Kontext sauber zeigt, auch wenn ein Artikelbild gerade nicht vorhanden ist.',
+          timestamp: now.subtract(const Duration(days: 2, hours: 5)),
+          isRead: true,
+        ),
       ];
 
       final acceptedThread = buildThread(
@@ -1640,10 +1845,14 @@ class DataService {
       await prefs.setString(_messageThreadsKey, jsonEncode(threadList));
 
       final rawNotifs = prefs.getString(_notificationsKey);
-      final List<dynamic> notifList = rawNotifs != null && rawNotifs.isNotEmpty ? (jsonDecode(rawNotifs) as List) : <dynamic>[];
+      final List<dynamic> notifList = rawNotifs != null && rawNotifs.isNotEmpty
+          ? (jsonDecode(rawNotifs) as List)
+          : <dynamic>[];
       notifList.removeWhere((e) {
         if (e is! Map) return false;
-        return ((e['id'] ?? '').toString().startsWith('qa_notif_')) || (((e['entityId'] ?? '').toString().startsWith('qa_')) && (e['userId']?.toString() == userId));
+        return ((e['id'] ?? '').toString().startsWith('qa_notif_')) ||
+            (((e['entityId'] ?? '').toString().startsWith('qa_')) &&
+                (e['userId']?.toString() == userId));
       });
 
       Map<String, dynamic> qaNotif({
@@ -1677,21 +1886,139 @@ class DataService {
       };
 
       notifList.addAll([
-        qaNotif(id: 'qa_notif_pending_$userId', category: 'bookings', priority: 2, title: 'Neue Mietanfrage eingegangen', body: '${renterA.displayName} möchte „${ownerPendingItem.title}“ vom ${ownerPendingRequest.start.day.toString().padLeft(2, '0')}.${ownerPendingRequest.start.month.toString().padLeft(2, '0')}.${ownerPendingRequest.start.year} bis ${ownerPendingRequest.end.day.toString().padLeft(2, '0')}.${ownerPendingRequest.end.month.toString().padLeft(2, '0')}.${ownerPendingRequest.end.year} mieten.', entityType: 'booking', entityId: ownerPendingRequest.id, ts: now.subtract(const Duration(hours: 2, minutes: 10)), read: false, ctaLabel: 'Anfrage prüfen', payload: {'requestId': ownerPendingRequest.id, 'listingId': ownerPendingItem.id, 'counterpartyUserId': renterA.id, 'counterpartyName': renterA.displayName, 'role': 'owner'}),
-        qaNotif(id: 'qa_notif_accepted_$userId', category: 'bookings', priority: 2, title: 'Anfrage bestätigt', body: 'Die Buchung für „${acceptedItem.title}“ ist bestätigt. Prüfe die Abstimmung im Chat.', entityType: 'booking', entityId: acceptedRequest.id, ts: now.subtract(const Duration(hours: 8, minutes: 30)), read: false, ctaLabel: 'Buchung öffnen'),
-        qaNotif(id: 'qa_notif_message_$userId', category: 'messages', priority: 3, title: 'Neue Nachricht erhalten', body: 'Mila hat dir zur Rückgabe noch eine kurze Nachricht geschickt.', entityType: 'thread', entityId: runningThread.id, ts: now.subtract(const Duration(hours: 1, minutes: 12)), read: false, ctaLabel: 'Chat öffnen'),
-        qaNotif(id: 'qa_notif_handover_$userId', category: 'bookings', priority: 2, title: 'Übergabe-Erinnerung', body: 'Die bestätigte Übergabe für „${acceptedItem.title}“ startet heute Abend.', entityType: 'booking', entityId: acceptedRequest.id, ts: now.subtract(const Duration(hours: 5, minutes: 40)), read: true, ctaLabel: 'Details ansehen'),
-        qaNotif(id: 'qa_notif_return_$userId', category: 'bookings', priority: 2, title: 'Rückgabe im Blick behalten', body: 'Deine laufende Miete endet bald. Prüfe die geplante Rückgabezeit im Detail.', entityType: 'booking', entityId: runningRequest.id, ts: now.subtract(const Duration(hours: 3, minutes: 5)), read: false, ctaLabel: 'Rückgabe prüfen'),
-        qaNotif(id: 'qa_notif_payment_$userId', category: 'payments', priority: 2, title: 'Auszahlung & Zahlungsmittel', body: 'Dieser lokale QA-Fall zeigt dir die Zahlungs- und Auszahlungseinstiege ohne echte Bewegung.', entityType: 'payment', entityId: 'payment_methods', ts: now.subtract(const Duration(days: 1, hours: 2)), read: true, ctaLabel: 'Zahlungen öffnen'),
-        qaNotif(id: 'qa_notif_security_$userId', category: 'security', priority: 1, title: 'Verifizierung prüfen', body: 'Teste hier die Sicherheits- und Verifizierungsoberfläche mit einer klaren CTA.', entityType: 'verification', entityId: 'qa_verification', ts: now.subtract(const Duration(days: 1, hours: 6)), read: false, critical: true, ctaLabel: 'Sicherheit öffnen'),
-        qaNotif(id: 'qa_notif_support_$userId', category: 'support', priority: 3, title: 'Support-Status aktualisiert', body: 'Der lokale QA-Supportfall hat neue Informationen für dich bereit.', entityType: 'support', entityId: 'qa_support_case', ts: now.subtract(const Duration(hours: 4, minutes: 15)), read: true, ctaLabel: 'Support öffnen'),
-        qaNotif(id: 'qa_notif_review_$userId', category: 'reviews', priority: 4, title: 'Vorgang wartet auf Prüfung', body: 'Ein abgeschlossener Testfall bleibt vorerst im Review-Hold, damit du diese Oberfläche prüfen kannst.', entityType: 'booking', entityId: needsReviewRequest.id, ts: now.subtract(const Duration(days: 2, hours: 3)), read: false, ctaLabel: 'Fall öffnen'),
+        qaNotif(
+          id: 'qa_notif_pending_$userId',
+          category: 'bookings',
+          priority: 2,
+          title: 'Neue Mietanfrage eingegangen',
+          body:
+              '${renterA.displayName} möchte „${ownerPendingItem.title}“ vom ${ownerPendingRequest.start.day.toString().padLeft(2, '0')}.${ownerPendingRequest.start.month.toString().padLeft(2, '0')}.${ownerPendingRequest.start.year} bis ${ownerPendingRequest.end.day.toString().padLeft(2, '0')}.${ownerPendingRequest.end.month.toString().padLeft(2, '0')}.${ownerPendingRequest.end.year} mieten.',
+          entityType: 'booking',
+          entityId: ownerPendingRequest.id,
+          ts: now.subtract(const Duration(hours: 2, minutes: 10)),
+          read: false,
+          ctaLabel: 'Anfrage prüfen',
+          payload: {
+            'requestId': ownerPendingRequest.id,
+            'listingId': ownerPendingItem.id,
+            'counterpartyUserId': renterA.id,
+            'counterpartyName': renterA.displayName,
+            'role': 'owner',
+          },
+        ),
+        qaNotif(
+          id: 'qa_notif_accepted_$userId',
+          category: 'bookings',
+          priority: 2,
+          title: 'Anfrage bestätigt',
+          body:
+              'Die Buchung für „${acceptedItem.title}“ ist bestätigt. Prüfe die Abstimmung im Chat.',
+          entityType: 'booking',
+          entityId: acceptedRequest.id,
+          ts: now.subtract(const Duration(hours: 8, minutes: 30)),
+          read: false,
+          ctaLabel: 'Buchung öffnen',
+        ),
+        qaNotif(
+          id: 'qa_notif_message_$userId',
+          category: 'messages',
+          priority: 3,
+          title: 'Neue Nachricht erhalten',
+          body:
+              'Mila hat dir zur Rückgabe noch eine kurze Nachricht geschickt.',
+          entityType: 'thread',
+          entityId: runningThread.id,
+          ts: now.subtract(const Duration(hours: 1, minutes: 12)),
+          read: false,
+          ctaLabel: 'Chat öffnen',
+        ),
+        qaNotif(
+          id: 'qa_notif_handover_$userId',
+          category: 'bookings',
+          priority: 2,
+          title: 'Übergabe-Erinnerung',
+          body:
+              'Die bestätigte Übergabe für „${acceptedItem.title}“ startet heute Abend.',
+          entityType: 'booking',
+          entityId: acceptedRequest.id,
+          ts: now.subtract(const Duration(hours: 5, minutes: 40)),
+          read: true,
+          ctaLabel: 'Details ansehen',
+        ),
+        qaNotif(
+          id: 'qa_notif_return_$userId',
+          category: 'bookings',
+          priority: 2,
+          title: 'Rückgabe im Blick behalten',
+          body:
+              'Deine laufende Miete endet bald. Prüfe die geplante Rückgabezeit im Detail.',
+          entityType: 'booking',
+          entityId: runningRequest.id,
+          ts: now.subtract(const Duration(hours: 3, minutes: 5)),
+          read: false,
+          ctaLabel: 'Rückgabe prüfen',
+        ),
+        qaNotif(
+          id: 'qa_notif_payment_$userId',
+          category: 'payments',
+          priority: 2,
+          title: 'Auszahlung & Zahlungsmittel',
+          body:
+              'Dieser lokale QA-Fall zeigt dir die Zahlungs- und Auszahlungseinstiege ohne echte Bewegung.',
+          entityType: 'payment',
+          entityId: 'payment_methods',
+          ts: now.subtract(const Duration(days: 1, hours: 2)),
+          read: true,
+          ctaLabel: 'Zahlungen öffnen',
+        ),
+        qaNotif(
+          id: 'qa_notif_security_$userId',
+          category: 'security',
+          priority: 1,
+          title: 'Verifizierung prüfen',
+          body:
+              'Teste hier die Sicherheits- und Verifizierungsoberfläche mit einer klaren CTA.',
+          entityType: 'verification',
+          entityId: 'qa_verification',
+          ts: now.subtract(const Duration(days: 1, hours: 6)),
+          read: false,
+          critical: true,
+          ctaLabel: 'Sicherheit öffnen',
+        ),
+        qaNotif(
+          id: 'qa_notif_support_$userId',
+          category: 'support',
+          priority: 3,
+          title: 'Support-Status aktualisiert',
+          body:
+              'Der lokale QA-Supportfall hat neue Informationen für dich bereit.',
+          entityType: 'support',
+          entityId: 'qa_support_case',
+          ts: now.subtract(const Duration(hours: 4, minutes: 15)),
+          read: true,
+          ctaLabel: 'Support öffnen',
+        ),
+        qaNotif(
+          id: 'qa_notif_review_$userId',
+          category: 'reviews',
+          priority: 4,
+          title: 'Vorgang wartet auf Prüfung',
+          body:
+              'Ein abgeschlossener Testfall bleibt vorerst im Review-Hold, damit du diese Oberfläche prüfen kannst.',
+          entityType: 'booking',
+          entityId: needsReviewRequest.id,
+          ts: now.subtract(const Duration(days: 2, hours: 3)),
+          read: false,
+          ctaLabel: 'Fall öffnen',
+        ),
       ]);
 
       await prefs.setString(_notificationsKey, jsonEncode(notifList));
       await prefs.setBool(key, true);
     } catch (e) {
-      debugPrint('[DataService] _ensureQaMessagesAndNotificationsForUserOnce failed: $e');
+      debugPrint(
+        '[DataService] _ensureQaMessagesAndNotificationsForUserOnce failed: $e',
+      );
     }
   }
 
@@ -1733,14 +2060,16 @@ class DataService {
       await prefs.setBool(_accountDeletedKey, true);
       await prefs.remove(_currentUserKey);
       debugPrint(
-          '[DataService] Account marked deleted and current user cleared');
+        '[DataService] Account marked deleted and current user cleared',
+      );
     } catch (e) {
       debugPrint('[DataService] clearCurrentUserAndMarkDeleted failed: $e');
     }
   }
 
-  static Future<void> anonymizeAndDeactivateUser(
-      {required String userId}) async {
+  static Future<void> anonymizeAndDeactivateUser({
+    required String userId,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final usersJson = prefs.getString(_usersKey);
@@ -1854,7 +2183,8 @@ class DataService {
         final u2 = map['user2Id']?.toString();
         if (u1 != userId && u2 != userId) continue;
 
-        final archived = (map['archivedForUserIds'] as List?)
+        final archived =
+            (map['archivedForUserIds'] as List?)
                 ?.map((e) => e.toString())
                 .toList() ??
             <String>[];
@@ -1869,7 +2199,8 @@ class DataService {
       if (mutated) {
         await prefs.setString(_messageThreadsKey, jsonEncode(decoded));
         debugPrint(
-            '[DataService] Archived all message threads for user $userId');
+          '[DataService] Archived all message threads for user $userId',
+        );
       }
     } catch (e) {
       debugPrint('[DataService] archiveAllMessageThreadsForUser failed: $e');
@@ -1878,8 +2209,10 @@ class DataService {
 
   static const String _savedItemsKey = 'saved_item_ids';
 
-  static Future<void> updateItemStatus(
-      {required String itemId, required String status}) async {
+  static Future<void> updateItemStatus({
+    required String itemId,
+    required String status,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final itemsJson = prefs.getString(_itemsKey);
     if (itemsJson == null) return;
@@ -1927,13 +2260,15 @@ class DataService {
       await _persist(list);
     } catch (e) {
       debugPrint(
-          '[DataService] updateItem persist failed, attempting to shrink payload: ' +
-              e.toString());
+        '[DataService] updateItem persist failed, attempting to shrink payload: ' +
+            e.toString(),
+      );
       // Shrink photos across all items (limit to 3, replace base64 with placeholders)
       List<dynamic> shrunk = list.map((raw) {
         try {
           final m = Map<String, dynamic>.from(raw as Map);
-          final photos = (m['photos'] as List?)
+          final photos =
+              (m['photos'] as List?)
                   ?.map((p) => p?.toString() ?? '')
                   .where((s) => s.isNotEmpty)
                   .toList() ??
@@ -1944,7 +2279,8 @@ class DataService {
             if (idx >= 3) break;
             if (p.startsWith('data:')) {
               limited.add(
-                  'https://picsum.photos/seed/${m['id'] ?? 'x'}_${idx}/800/800');
+                'https://picsum.photos/seed/${m['id'] ?? 'x'}_${idx}/800/800',
+              );
             } else {
               limited.add(p);
             }
@@ -1963,8 +2299,9 @@ class DataService {
         await _persist(shrunk);
       } catch (e2) {
         debugPrint(
-            '[DataService] updateItem persist still failing after shrink: ' +
-                e2.toString());
+          '[DataService] updateItem persist still failing after shrink: ' +
+              e2.toString(),
+        );
         final stripped = shrunk.map((raw) {
           try {
             final m = Map<String, dynamic>.from(raw as Map);
@@ -1996,8 +2333,8 @@ class DataService {
 
   static Future<List<Item>> getPublicItems() async {
     final items = await getItems();
-    final blockedUserIds =
-        (await BlockedUsersService.getBlockedUserIds()).toSet();
+    final blockedUserIds = (await BlockedUsersService.getBlockedUserIds())
+        .toSet();
     final filtered = items
         .where(isPublicCatalogItem)
         .where((item) => !blockedUserIds.contains(item.ownerId))
@@ -2064,8 +2401,11 @@ class DataService {
         } catch (_) {}
       }
       if (!hasSoon) {
-        list.add(
-            {'id': wlSoonId, 'name': 'Demnächst benötigt', 'system': true});
+        list.add({
+          'id': wlSoonId,
+          'name': 'Demnächst benötigt',
+          'system': true,
+        });
       }
       if (!hasLater) {
         list.add({'id': wlLaterId, 'name': 'Für später', 'system': true});
@@ -2076,7 +2416,8 @@ class DataService {
       await prefs.setString(_wishlistsMetaKey, jsonEncode(list));
     } catch (e) {
       debugPrint(
-          '[DataService] _ensureDefaultWishlists error: ' + e.toString());
+        '[DataService] _ensureDefaultWishlists error: ' + e.toString(),
+      );
     }
   }
 
@@ -2091,7 +2432,7 @@ class DataService {
         final List list = jsonDecode(raw);
         out = [
           for (final e in list)
-            if (e is Map) Map<String, dynamic>.from(e)
+            if (e is Map) Map<String, dynamic>.from(e),
         ];
       } catch (e) {
         debugPrint('[DataService] getWishlists decode failed: ' + e.toString());
@@ -2107,12 +2448,13 @@ class DataService {
         int rank(String id) => id == wlSoonId
             ? 0
             : (id == wlLaterId ? 1 : (id == wlAgainId ? 2 : 99));
-        return rank((a['id'] ?? '').toString())
-            .compareTo(rank((b['id'] ?? '').toString()));
+        return rank(
+          (a['id'] ?? '').toString(),
+        ).compareTo(rank((b['id'] ?? '').toString()));
       }
-      return ((a['name'] ?? '').toString())
-          .toLowerCase()
-          .compareTo(((b['name'] ?? '').toString()).toLowerCase());
+      return ((a['name'] ?? '').toString()).toLowerCase().compareTo(
+        ((b['name'] ?? '').toString()).toLowerCase(),
+      );
     });
     return out;
   }
@@ -2161,8 +2503,10 @@ class DataService {
   }
 
   /// Renames a custom wishlist. No-op for system lists.
-  static Future<void> renameCustomWishlist(
-      {required String id, required String newName}) async {
+  static Future<void> renameCustomWishlist({
+    required String id,
+    required String newName,
+  }) async {
     if (id == wlSoonId || id == wlLaterId || id == wlAgainId)
       return; // cannot rename system
     try {
@@ -2184,7 +2528,9 @@ class DataService {
             }
             break;
           }
-        } catch (_) {/* ignore malformed entry */}
+        } catch (_) {
+          /* ignore malformed entry */
+        }
       }
       if (mutated) {
         await prefs.setString(_wishlistsMetaKey, jsonEncode(list));
@@ -2242,7 +2588,8 @@ class DataService {
       }
     } catch (e) {
       debugPrint(
-          '[DataService] removeItemFromWishlist failed: ' + e.toString());
+        '[DataService] removeItemFromWishlist failed: ' + e.toString(),
+      );
     }
   }
 
@@ -2277,7 +2624,9 @@ class DataService {
 
     final categories = _buildDemoCategories();
     await prefs.setString(
-        _categoriesKey, jsonEncode(categories.map((c) => c.toJson()).toList()));
+      _categoriesKey,
+      jsonEncode(categories.map((c) => c.toJson()).toList()),
+    );
 
     final users = _buildDemoUsers();
     final items = _buildDemoItems(users, categories);
@@ -2286,21 +2635,30 @@ class DataService {
     // Ensure stored review counts reflect actual demo reviews for consistency across the app.
     final reviewCounts = <String, int>{};
     for (final review in reviews) {
-      reviewCounts.update(review.reviewedUserId, (value) => value + 1,
-          ifAbsent: () => 1);
+      reviewCounts.update(
+        review.reviewedUserId,
+        (value) => value + 1,
+        ifAbsent: () => 1,
+      );
     }
 
     final usersWithCounts = [
       for (final user in users)
-        user.copyWith(reviewCount: reviewCounts[user.id] ?? user.reviewCount)
+        user.copyWith(reviewCount: reviewCounts[user.id] ?? user.reviewCount),
     ];
 
     await prefs.setString(
-        _usersKey, jsonEncode(usersWithCounts.map((u) => u.toJson()).toList()));
+      _usersKey,
+      jsonEncode(usersWithCounts.map((u) => u.toJson()).toList()),
+    );
     await prefs.setString(
-        _itemsKey, jsonEncode(items.map((i) => i.toJson()).toList()));
+      _itemsKey,
+      jsonEncode(items.map((i) => i.toJson()).toList()),
+    );
     await prefs.setString(
-        _reviewsKey, jsonEncode(reviews.map((r) => r.toJson()).toList()));
+      _reviewsKey,
+      jsonEncode(reviews.map((r) => r.toJson()).toList()),
+    );
 
     // Sample-data bootstrap must not auto-auth a current user.
     // currentUser should only be established by real login/session hydration.
@@ -2310,7 +2668,8 @@ class DataService {
       await _ensureDefaultWishlists();
     } catch (e) {
       debugPrint(
-          '[DataService] ensureDefaultWishlists failed: ' + e.toString());
+        '[DataService] ensureDefaultWishlists failed: ' + e.toString(),
+      );
     }
   }
 
@@ -2390,7 +2749,8 @@ class DataService {
     const R = 6371.0;
     final dLat = _deg2rad(lat2 - lat1);
     final dLon = _deg2rad(lon2 - lon1);
-    final a = (sin(dLat / 2) * sin(dLat / 2)) +
+    final a =
+        (sin(dLat / 2) * sin(dLat / 2)) +
         (cos(_deg2rad(lat1)) *
             cos(_deg2rad(lat2)) *
             sin(dLon / 2) *
@@ -2403,12 +2763,19 @@ class DataService {
 
   // Delivery helpers
   static double estimateDistanceKm(
-      double fromLat, double fromLng, double toLat, double toLng) {
+    double fromLat,
+    double fromLng,
+    double toLat,
+    double toLng,
+  ) {
     return _haversine(fromLat, fromLng, toLat, toLng);
   }
 
   static double estimateDistanceKmToCity(
-      double fromLat, double fromLng, String cityName) {
+    double fromLat,
+    double fromLng,
+    String cityName,
+  ) {
     final cityPos = _cities[cityName];
     if (cityPos == null) return 0.0;
     return _haversine(fromLat, fromLng, cityPos.$1, cityPos.$2);
@@ -2545,7 +2912,8 @@ class DataService {
   }
 
   static Future<Map<String, dynamic>?> getSavedDeliverySelection(
-      String itemId) async {
+    String itemId,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_bookingSelectionsKey);
     if (raw == null || raw.isEmpty) return null;
@@ -2560,12 +2928,16 @@ class DataService {
         if (!map.containsKey('lat')) map['lat'] = null;
         if (!map.containsKey('lng')) map['lng'] = null;
         if (!map.containsKey('express')) map['express'] = false;
-        if (!map.containsKey('deliveryAddressLine')) map['deliveryAddressLine'] = map['addressLine'] ?? '';
-        if (!map.containsKey('deliveryCity')) map['deliveryCity'] = map['city'] ?? '';
+        if (!map.containsKey('deliveryAddressLine'))
+          map['deliveryAddressLine'] = map['addressLine'] ?? '';
+        if (!map.containsKey('deliveryCity'))
+          map['deliveryCity'] = map['city'] ?? '';
         if (!map.containsKey('deliveryLat')) map['deliveryLat'] = map['lat'];
         if (!map.containsKey('deliveryLng')) map['deliveryLng'] = map['lng'];
-        if (!map.containsKey('returnAddressLine')) map['returnAddressLine'] = map['addressLine'] ?? '';
-        if (!map.containsKey('returnCity')) map['returnCity'] = map['city'] ?? '';
+        if (!map.containsKey('returnAddressLine'))
+          map['returnAddressLine'] = map['addressLine'] ?? '';
+        if (!map.containsKey('returnCity'))
+          map['returnCity'] = map['city'] ?? '';
         if (!map.containsKey('returnLat')) map['returnLat'] = map['lat'];
         if (!map.containsKey('returnLng')) map['returnLng'] = map['lng'];
         return map;
@@ -2604,7 +2976,7 @@ class DataService {
     }
     final existing =
         (map[itemId] as Map?)?.map((k, v) => MapEntry(k.toString(), v)) ??
-            <String, dynamic>{};
+        <String, dynamic>{};
     existing['delivery'] = {
       'hinweg': hinweg,
       'rueckweg': rueckweg,
@@ -2638,7 +3010,10 @@ class DataService {
   // Estimate distance based on a freeform address by resolving it to the nearest known city token.
   // This is a placeholder until a Maps API is connected; it provides a reasonable local demo.
   static double estimateDistanceKmFromAddressLine(
-      double fromLat, double fromLng, String addressLine) {
+    double fromLat,
+    double fromLng,
+    String addressLine,
+  ) {
     final city = deriveCityFromAddress(addressLine);
     if (city.isNotEmpty) {
       return estimateDistanceKmToCity(fromLat, fromLng, city);
@@ -2649,10 +3024,11 @@ class DataService {
   }
 
   // Simple availability check stub – returns true. Replace with real inventory logic when backend is connected.
-  static Future<bool> checkAvailability(
-      {required String itemId,
-      required DateTime start,
-      required DateTime end}) async {
+  static Future<bool> checkAvailability({
+    required String itemId,
+    required DateTime start,
+    required DateTime end,
+  }) async {
     // Quick delay to emulate IO
     await Future<void>.delayed(const Duration(milliseconds: 120));
     // Load all requests and block overlaps with accepted or running bookings
@@ -2671,7 +3047,8 @@ class DataService {
   // when it is >= start and < end (end-exclusive). Used by the calendar to
   // render red blocked days and prevent overlapping selections.
   static Future<List<DateTimeRange>> getUnavailableRangesForItem(
-      String itemId) async {
+    String itemId,
+  ) async {
     final all = await _getAllRentalRequests();
     final ranges = <DateTimeRange>[];
     for (final r in all) {
@@ -2685,40 +3062,36 @@ class DataService {
   static List<Category> _buildDemoCategories() {
     final now = DateTime.now();
     final List<
-        (
-          String id,
-          String name,
-          String slug,
-          String iconName,
-          List<String> subs
-        )> data = [
+      (String id, String name, String slug, String iconName, List<String> subs)
+    >
+    data = [
       (
         'cat1',
         'Elektronik',
         'elektronik',
         'devices',
-        ['Smartphones', 'Tablets', 'Wearables', 'Audio', 'Zubehör']
+        ['Smartphones', 'Tablets', 'Wearables', 'Audio', 'Zubehör'],
       ),
       (
         'cat2',
         'Computer & IT',
         'computer-it',
         'computer',
-        ['Laptops', 'Desktops', 'Monitore', 'Drucker', 'Netzwerk']
+        ['Laptops', 'Desktops', 'Monitore', 'Drucker', 'Netzwerk'],
       ),
       (
         'cat3',
         'Kameras & Drohnen',
         'kameras-drohnen',
         'camera_alt',
-        ['Kameras', 'Objektive', 'Drohnen', 'Stative', 'Licht']
+        ['Kameras', 'Objektive', 'Drohnen', 'Stative', 'Licht'],
       ),
       (
         'cat4',
         'Gaming & VR',
         'gaming-vr',
         'sports_esports',
-        ['Konsolen', 'Gaming-PC', 'VR', 'Lenkräder', 'Retro']
+        ['Konsolen', 'Gaming-PC', 'VR', 'Lenkräder', 'Retro'],
       ),
       (
         'cat5',
@@ -2730,15 +3103,15 @@ class DataService {
           'Mixer',
           'Kaffeemaschinen',
           'Waschmaschinen',
-          'Trockner'
-        ]
+          'Trockner',
+        ],
       ),
       (
         'cat6',
         'Möbel & Wohnen',
         'moebel-wohnen',
         'weekend',
-        ['Sofas', 'Tische', 'Stühle', 'Beleuchtung', 'Deko']
+        ['Sofas', 'Tische', 'Stühle', 'Beleuchtung', 'Deko'],
       ),
       (
         'cat7',
@@ -2750,8 +3123,8 @@ class DataService {
           'Heckenscheren',
           'Gartengeräte',
           'Bewässerung',
-          'Pflanzkisten'
-        ]
+          'Pflanzkisten',
+        ],
       ),
       (
         'cat8',
@@ -2763,118 +3136,131 @@ class DataService {
           'Elektrowerkzeuge',
           'Bohrmaschinen',
           'Sägen',
-          'Schleifer'
-        ]
+          'Schleifer',
+        ],
       ),
       (
         'cat9',
         'Fahrräder & E-Mobility',
         'fahrraeder-e-mobility',
         'pedal_bike',
-        ['Citybikes', 'MTB', 'E-Bikes', 'E-Scooter', 'Zubehör']
+        ['Citybikes', 'MTB', 'E-Bikes', 'E-Scooter', 'Zubehör'],
       ),
       (
         'cat10',
         'Fahrzeuge & Teile',
         'fahrzeuge-teile',
         'directions_car',
-        ['Kleinwagen', 'SUV', 'Transporter', 'Wohnmobil', 'Anhänger']
+        ['Kleinwagen', 'SUV', 'Transporter', 'Wohnmobil', 'Anhänger'],
       ),
       (
         'cat11',
         'Freizeit, Sport & Outdoor',
         'freizeit-sport-outdoor',
         'sports_soccer',
-        ['Fitness', 'Teamsport', 'Racketsport', 'Radsport', 'Wassersport']
+        ['Fitness', 'Teamsport', 'Racketsport', 'Radsport', 'Wassersport'],
       ),
       (
         'cat12',
         'Mode & Accessoires',
         'mode-accessoires',
         'checkroom',
-        ['Kleidung', 'Taschen', 'Schuhe', 'Schmuck', 'Uhren']
+        ['Kleidung', 'Taschen', 'Schuhe', 'Schmuck', 'Uhren'],
       ),
       (
         'cat13',
         'Baby, Kinder & Spielzeug',
         'baby-kinder-spielzeug',
         'child_friendly',
-        ['Kinderwagen', 'Sitze', 'Spielzeug', 'Tragen', 'Sicherheit']
+        ['Kinderwagen', 'Sitze', 'Spielzeug', 'Tragen', 'Sicherheit'],
       ),
       (
         'cat14',
         'Musikinstrumente & DJ',
         'musikinstrumente-dj',
         'music_note',
-        ['Gitarren', 'Tastaturen', 'Schlagzeug', 'Blasinstrumente', 'Studio']
+        ['Gitarren', 'Tastaturen', 'Schlagzeug', 'Blasinstrumente', 'Studio'],
       ),
       (
         'cat15',
         'Bücher, Filme & Medien',
         'buecher-filme-medien',
         'menu_book',
-        ['Bücher', 'Filme', 'Spiele', 'Hörbücher', 'Magazine']
+        ['Bücher', 'Filme', 'Spiele', 'Hörbücher', 'Magazine'],
       ),
       (
         'cat16',
         'Schmuck & Uhren',
         'schmuck-uhren',
         'watch',
-        ['Ringe', 'Ketten', 'Uhren', 'Ohrringe', 'Sets']
+        ['Ringe', 'Ketten', 'Uhren', 'Ohrringe', 'Sets'],
       ),
       (
         'cat17',
         'Kunst & Sammlerstücke',
         'kunst-sammlerstuecke',
         'palette',
-        ['Gemälde', 'Skulpturen', 'Drucke', 'Figuren', 'Seltenes']
+        ['Gemälde', 'Skulpturen', 'Drucke', 'Figuren', 'Seltenes'],
       ),
       (
         'cat18',
         'Beauty & Gesundheit',
         'beauty-gesundheit',
         'spa',
-        ['Kosmetik', 'Pflege', 'Wellness', 'Medizin', 'Zubehör']
+        ['Kosmetik', 'Pflege', 'Wellness', 'Medizin', 'Zubehör'],
       ),
       (
         'cat19',
         'Haustierbedarf',
         'haustierbedarf',
         'pets',
-        ['Hunde', 'Katzen', 'Kleintiere', 'Aquaristik', 'Zubehör']
+        ['Hunde', 'Katzen', 'Kleintiere', 'Aquaristik', 'Zubehör'],
       ),
       (
         'cat20',
         'Büro & Gewerbe',
         'buero-gewerbe',
         'business_center',
-        ['Bürotechnik', 'Präsentation', 'Werkstatt', 'Lager', 'Zubehör']
+        ['Bürotechnik', 'Präsentation', 'Werkstatt', 'Lager', 'Zubehör'],
       ),
       (
         'cat22',
         'Events & Feiern',
         'events-feiern',
         'celebration',
-        ['Party-Deko', 'Eventtechnik', 'Tische & Stühle', 'Pavillons', 'Buffet & Catering']
+        [
+          'Party-Deko',
+          'Eventtechnik',
+          'Tische & Stühle',
+          'Pavillons',
+          'Buffet & Catering',
+        ],
       ),
       (
         'cat23',
         'Reisen & Camping',
         'reisen-camping',
         'travel_explore',
-        ['Zelte', 'Schlafsäcke', 'Rucksäcke & Koffer', 'Campingküche', 'Outdoor-Zubehör']
+        [
+          'Zelte',
+          'Schlafsäcke',
+          'Rucksäcke & Koffer',
+          'Campingküche',
+          'Outdoor-Zubehör',
+        ],
       ),
       ('cat21', 'Sonstiges', 'sonstiges', 'more_horiz', ['Diverses']),
     ];
     return [
       for (final d in data)
         Category(
-            id: d.$1,
-            name: d.$2,
-            slug: d.$3,
-            iconName: d.$4,
-            subcategories: d.$5,
-            createdAt: now)
+          id: d.$1,
+          name: d.$2,
+          slug: d.$3,
+          iconName: d.$4,
+          subcategories: d.$5,
+          createdAt: now,
+        ),
     ];
   }
 
@@ -2882,102 +3268,102 @@ class DataService {
     (
       'u1',
       'Walid Chraibi',
-      'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u2',
       'Max Mustermann',
-      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u3',
       'Sarah Schmidt',
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u4',
       'Thomas Weber',
-      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u5',
       'Julia Wagner',
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u6',
       'David König',
-      'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u7',
       'Anna Keller',
-      'https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1520813792240-56fc4a3765a7?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u8',
       'Laura Krüger',
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u9',
       'Daniel Hoffmann',
-      'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u10',
       'Sophie Lehmann',
-      'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u11',
       'Jonas Maier',
-      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u12',
       'Lea Schuster',
-      'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u13',
       'Felix Braun',
-      'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u14',
       'Mia Sauer',
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u15',
       'Tobias Busch',
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u16',
       'Nina Scholz',
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u17',
       'Sebastian Hartmann',
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u18',
       'Eva Fuchs',
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u19',
       'Paul Engel',
-      'https://images.unsplash.com/photo-1531891437562-4301cf35b7e4?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1531891437562-4301cf35b7e4?w=150&h=150&fit=crop&crop=face',
     ),
     (
       'u20',
       'Clara Wolf',
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=face',
     ),
   ];
 
@@ -3009,16 +3395,18 @@ class DataService {
           createdAt: now.subtract(Duration(days: rnd.nextInt(1200))),
           photoURL: entry.$3,
           languages: const ['Deutsch'],
-        )
+        ),
     ];
   }
 
   static List<Item> _buildDemoItems(
-      List<User> users, List<Category> categories) {
+    List<User> users,
+    List<Category> categories,
+  ) {
     final rnd = Random(99);
     final now = DateTime.now();
     final List<(String city, (double, double) pos)> cities = [
-      for (final e in _cities.entries) (e.key, (e.value.$1, e.value.$2))
+      for (final e in _cities.entries) (e.key, (e.value.$1, e.value.$2)),
     ];
 
     // Title seeds by category
@@ -3028,140 +3416,140 @@ class DataService {
         'Samsung Galaxy S23',
         'iPad Pro 11"',
         'Kindle Paperwhite',
-        'Sony WH-1000XM5'
+        'Sony WH-1000XM5',
       ],
       'cat2': [
         'MacBook Air M2',
         '27" Monitor',
         'WiFi 6 Router',
         'QNAP NAS',
-        'Laserdrucker'
+        'Laserdrucker',
       ],
       'cat3': [
         'Canon EOS R5',
         'Sony A7 IV',
         'DJI Mini 3 Pro',
         'Fujifilm X-T5',
-        'Nikon Z6 II'
+        'Nikon Z6 II',
       ],
       'cat4': [
         'PS5 Konsole',
         'Gaming-PC',
         'VR Headset',
         'Nintendo Switch',
-        'Rennlenkrad'
+        'Rennlenkrad',
       ],
       'cat5': [
         'Dyson Staubsauger',
         'KitchenAid Mixer',
         'Jura Kaffeemaschine',
         'Miele Waschmaschine',
-        'Bosch Trockner'
+        'Bosch Trockner',
       ],
       'cat6': [
         'Samt-Sofa 3-Sitzer',
         'Esstisch Eiche',
         'Design-Lampe',
         'Barhocker',
-        'Sideboard'
+        'Sideboard',
       ],
       'cat7': [
         'Rasenmäher',
         'Heckenschere',
         'Hochdruckreiniger',
         'Gartenhäcksler',
-        'Schubkarre'
+        'Schubkarre',
       ],
       'cat8': [
         'Bosch Bohrmaschine',
         'Makita Akkuschrauber',
         'DeWalt Kreissäge',
         'Einhell Winkelschleifer',
-        'Metabo Stichsäge'
+        'Metabo Stichsäge',
       ],
       'cat9': [
         'E-Bike Trekking',
         'Mountainbike',
         'E-Scooter',
         'Citybike',
-        'Rennrad'
+        'Rennrad',
       ],
       'cat10': [
         'VW Golf',
         'BMW 3er',
         'Mercedes Sprinter',
         'Wohnmobil Ducato',
-        'Dachbox'
+        'Dachbox',
       ],
       'cat11': [
         'SUP-Board',
         'Kletterausrüstung',
         '2-Personen Zelt',
         'Ski-Set',
-        'Inlineskates'
+        'Inlineskates',
       ],
       'cat12': [
         'Abendkleid',
         'Ledertasche',
         'Sneaker',
         'Armbanduhr',
-        'Sonnenbrille'
+        'Sonnenbrille',
       ],
       'cat13': [
         'Kinderwagen',
         'Kindersitz',
         'Laufrad',
         'Babyphone',
-        'Tragehilfe'
+        'Tragehilfe',
       ],
       'cat14': [
         'Akustikgitarre',
         'E-Piano',
         'DJ Controller',
         'Saxophon',
-        'Studio-Mikrofon'
+        'Studio-Mikrofon',
       ],
       'cat15': [
         'Buchpaket Sci-Fi',
         'Blu-ray Sammlung',
         'Brettspiele',
         'Hörbuch-Set',
-        'Manga-Box'
+        'Manga-Box',
       ],
       'cat16': [
         'Armbanduhr',
         'Halskette',
         'Ohrringe',
         'Perlenkette',
-        'Uhrenbox'
+        'Uhrenbox',
       ],
       'cat17': [
         'Gemälde Öl',
         'Skulptur',
         'Vintage Figur',
         'Posterlimit',
-        'Vinyl Sammlung'
+        'Vinyl Sammlung',
       ],
       'cat18': [
         'Massagepistole',
         'Infrarotlampe',
         'Haartrockner',
         'Glätteisen',
-        'Ionenluftreiniger'
+        'Ionenluftreiniger',
       ],
       'cat19': [
         'Hundetransportbox',
         'Kratzbaum',
         'Aquarien-Set',
         'Hundebuggy',
-        'Futterautomat'
+        'Futterautomat',
       ],
       'cat20': [
         'Beamer',
         'Flipchart',
         'Bohrhammer',
         'Industriesauger',
-        'Messestand'
+        'Messestand',
       ],
       'cat21': ['Werkzeugkoffer', 'Überraschungspaket', 'Diverse Dinge'],
     };
@@ -3183,7 +3571,7 @@ class DataService {
           'https://images.unsplash.com/photo-1483736762161-1d107f3c78e1?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800&h=800&fit=crop',
-          'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=800&h=800&fit=crop'
+          'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=800&h=800&fit=crop',
         ],
         'cat2': [
           // Computer & IT
@@ -3195,7 +3583,7 @@ class DataService {
           'https://images.unsplash.com/photo-1616628188540-26abf1d75b5b?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1587831990711-23ca6441447b?w=800&h=800&fit=crop',
-          'https://images.unsplash.com/photo-1484788984921-03950022c9ef?w=800&h=800&fit=crop'
+          'https://images.unsplash.com/photo-1484788984921-03950022c9ef?w=800&h=800&fit=crop',
         ],
         'cat3': [
           // Kameras & Drohnen
@@ -3207,7 +3595,7 @@ class DataService {
           'https://images.unsplash.com/photo-1495592822108-9e6261896da8?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800&h=800&fit=crop',
-          'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=800&h=800&fit=crop'
+          'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=800&h=800&fit=crop',
         ],
         'cat4': [
           // Gaming & VR
@@ -3219,7 +3607,7 @@ class DataService {
           'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1592840331013-9c57c6f3a3b8?w=800&h=800&fit=crop',
-          'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=800&fit=crop'
+          'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=800&fit=crop',
         ],
         'cat5': [
           // Haushaltsgeräte
@@ -3231,7 +3619,7 @@ class DataService {
           'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1556909202-f6d704471045?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1570222094114-d054a817e56b?w=800&h=800&fit=crop',
-          'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=800&fit=crop'
+          'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=800&fit=crop',
         ],
         'cat8': [
           // Werkzeuge & Maschinen
@@ -3243,7 +3631,7 @@ class DataService {
           'https://images.unsplash.com/photo-1611269154421-4e27233ac5c7?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&h=800&fit=crop',
-          'https://images.unsplash.com/photo-1609205842104-8e045f7e3e3c?w=800&h=800&fit=crop'
+          'https://images.unsplash.com/photo-1609205842104-8e045f7e3e3c?w=800&h=800&fit=crop',
         ],
         'cat9': [
           // Fahrräder & E-Mobility
@@ -3255,11 +3643,12 @@ class DataService {
           'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1502744688674-c619d1586c9e?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1544191696-15693074e8b5?w=800&h=800&fit=crop',
-          'https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=800&h=800&fit=crop'
+          'https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=800&h=800&fit=crop',
         ],
       };
 
-      final images = categoryImages[catId] ??
+      final images =
+          categoryImages[catId] ??
           [
             'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=800&fit=crop',
             'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=800&fit=crop',
@@ -3269,7 +3658,7 @@ class DataService {
             'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=800&fit=crop',
             'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800&h=800&fit=crop',
             'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=800&h=800&fit=crop',
-            'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=800&fit=crop'
+            'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=800&fit=crop',
           ];
 
       return images;
@@ -3316,7 +3705,8 @@ class DataService {
 
       final isNewish = i < 80; // ensure at least 80 latest
       final createdAt = now.subtract(
-          Duration(days: isNewish ? rnd.nextInt(10) : 10 + rnd.nextInt(350)));
+        Duration(days: isNewish ? rnd.nextInt(10) : 10 + rnd.nextInt(350)),
+      );
       final verified = rnd.nextDouble() < 0.6; // ~60%
 
       // Determine demo delivery offerings
@@ -3339,8 +3729,9 @@ class DataService {
         title: title,
         description: 'Gut gepflegt, sofort verfügbar. ${cat.name} • ${city.$1}',
         categoryId: cat.id,
-        subcategory:
-            cat.subcategories.isNotEmpty ? cat.subcategories.first : '-',
+        subcategory: cat.subcategories.isNotEmpty
+            ? cat.subcategories.first
+            : '-',
         tags: [cat.slug, city.$1],
         pricePerDay: basePrice.toDouble(),
         currency: 'EUR',
@@ -3348,16 +3739,12 @@ class DataService {
         priceRaw: basePrice.toDouble(),
         deposit: null,
         photos: photosFor(cat.slug, i, cat.id),
-        locationText: '${city.$1}-${[
-          'Mitte',
-          'Nord',
-          'Süd',
-          'Ost',
-          'West'
-        ][rnd.nextInt(5)]}',
+        locationText:
+            '${city.$1}-${['Mitte', 'Nord', 'Süd', 'Ost', 'West'][rnd.nextInt(5)]}',
         lat: lat,
         lng: lng,
-        geohash: 'u'
+        geohash:
+            'u'
             '${rnd.nextInt(9)}'
             '${rnd.nextInt(9)}'
             '${rnd.nextInt(9)}'
@@ -3388,7 +3775,9 @@ class DataService {
   }
 
   static List<Item> _buildFiveShowcaseItems(
-      List<User> users, List<Category> categories) {
+    List<User> users,
+    List<Category> categories,
+  ) {
     final now = DateTime.now();
     // Pick a stable owner and cities
     final owner = users.isNotEmpty
@@ -3410,8 +3799,10 @@ class DataService {
             languages: const ['Deutsch'],
           );
     final berlin = _cities['Berlin'] ?? (52.52, 13.405);
-    Category cat(String id) => categories.firstWhere((c) => c.id == id,
-        orElse: () => categories.first);
+    Category cat(String id) => categories.firstWhere(
+      (c) => c.id == id,
+      orElse: () => categories.first,
+    );
 
     String gh(int i) => 'u${i}3${i}h${i}';
 
@@ -3431,7 +3822,7 @@ class DataService {
         priceRaw: 19.0,
         deposit: null,
         photos: const [
-          'https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=800&h=800&fit=crop'
+          'https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=800&h=800&fit=crop',
         ],
         locationText: 'Berlin-Mitte',
         lat: berlin.$1,
@@ -3467,7 +3858,7 @@ class DataService {
         priceRaw: 45.0,
         deposit: null,
         photos: const [
-          'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&h=800&fit=crop'
+          'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&h=800&fit=crop',
         ],
         locationText: 'Berlin-Prenzlauer Berg',
         lat: berlin.$1 + 0.01,
@@ -3503,7 +3894,7 @@ class DataService {
         priceRaw: 18.0,
         deposit: null,
         photos: const [
-          'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=800&fit=crop'
+          'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=800&fit=crop',
         ],
         locationText: 'Berlin-Friedrichshain',
         lat: berlin.$1 - 0.01,
@@ -3535,7 +3926,7 @@ class DataService {
         priceRaw: 12.0,
         deposit: null,
         photos: const [
-          'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=800&fit=crop'
+          'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=800&fit=crop',
         ],
         locationText: 'Berlin-Charlottenburg',
         lat: berlin.$1 + 0.015,
@@ -3572,7 +3963,7 @@ class DataService {
         priceRaw: 10.0,
         deposit: null,
         photos: const [
-          'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&h=800&fit=crop'
+          'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&h=800&fit=crop',
         ],
         locationText: 'Berlin-Neukölln',
         lat: berlin.$1 - 0.02,
@@ -3606,63 +3997,158 @@ class DataService {
     final List<Review> out = [];
 
     void add(
-        String reviewerId, String reviewedUserId, double rating, String comment,
-        {int daysAgo = 0, int hoursAgo = 0}) {
+      String reviewerId,
+      String reviewedUserId,
+      double rating,
+      String comment, {
+      int daysAgo = 0,
+      int hoursAgo = 0,
+    }) {
       if (!existingIds.contains(reviewerId) ||
           !existingIds.contains(reviewedUserId) ||
           reviewerId == reviewedUserId) {
         return;
       }
-      out.add(Review(
-        id: 'r${out.length + 1}',
-        reviewerId: reviewerId,
-        reviewedUserId: reviewedUserId,
-        rating: rating,
-        comment: comment,
-        createdAt: now.subtract(Duration(days: daysAgo, hours: hoursAgo)),
-      ));
+      out.add(
+        Review(
+          id: 'r${out.length + 1}',
+          reviewerId: reviewerId,
+          reviewedUserId: reviewedUserId,
+          rating: rating,
+          comment: comment,
+          createdAt: now.subtract(Duration(days: daysAgo, hours: hoursAgo)),
+        ),
+      );
     }
 
-    add('u1', 'u2', 4.9,
-        'Werkzeug war in Top-Zustand, Übergabe super flexibel.',
-        daysAgo: 6, hoursAgo: 3);
-    add('u7', 'u2', 5.0,
-        'Sehr hilfsbereit und schnelle Antworten auf Rückfragen.',
-        daysAgo: 20, hoursAgo: 6);
-    add('u11', 'u3', 4.8,
-        'Abholung lief reibungslos, würde wieder bei Sarah mieten.',
-        daysAgo: 9, hoursAgo: 2);
-    add('u5', 'u3', 4.7,
-        'Kamera war wie beschrieben, inklusive voll geladenem Akku.',
-        daysAgo: 32, hoursAgo: 4);
-    add('u10', 'u6', 5.0,
-        'David hat sich Zeit für eine kurze Einweisung genommen, top.',
-        daysAgo: 12, hoursAgo: 5);
-    add('u12', 'u6', 4.9, 'Sehr freundlich und flexibel bei der Rückgabe.',
-        daysAgo: 45, hoursAgo: 7);
-    add('u9', 'u8', 4.8,
-        'Laura hat den Zustand des E-Bikes genau erklärt, alles bestens.',
-        daysAgo: 3, hoursAgo: 1);
-    add('u14', 'u8', 5.0, 'Super Kommunikation und perfektes Zubehör dabei.',
-        daysAgo: 14, hoursAgo: 8);
-    add('u17', 'u10', 4.7, 'Konsole war sauber und sofort einsatzbereit.',
-        daysAgo: 27, hoursAgo: 6);
-    add('u18', 'u10', 4.9, 'Schnelle Übergabe und sehr sympathisch.',
-        daysAgo: 58, hoursAgo: 3);
-    add('u19', 'u9', 4.8, 'MacBook in neuwertigem Zustand, gerne wieder.',
-        daysAgo: 16, hoursAgo: 2);
-    add('u20', 'u9', 4.6, 'Abholung pünktlich und unkompliziert organisiert.',
-        daysAgo: 70, hoursAgo: 5);
-    add('u15', 'u4', 4.9,
-        'Thomas hat alles ausführlich erklärt, super Service.',
-        daysAgo: 22, hoursAgo: 4);
-    add('u13', 'u4', 4.8, 'Sehr zuverlässige Abstimmung und faire Konditionen.',
-        daysAgo: 90, hoursAgo: 6);
-    add('u8', 'u5', 4.7,
-        'Julia hat schnell auf Nachrichten reagiert und war flexibel.',
-        daysAgo: 11, hoursAgo: 7);
-    add('u6', 'u5', 4.9, 'Produkt top gepflegt, klare Empfehlung.',
-        daysAgo: 61, hoursAgo: 2);
+    add(
+      'u1',
+      'u2',
+      4.9,
+      'Werkzeug war in Top-Zustand, Übergabe super flexibel.',
+      daysAgo: 6,
+      hoursAgo: 3,
+    );
+    add(
+      'u7',
+      'u2',
+      5.0,
+      'Sehr hilfsbereit und schnelle Antworten auf Rückfragen.',
+      daysAgo: 20,
+      hoursAgo: 6,
+    );
+    add(
+      'u11',
+      'u3',
+      4.8,
+      'Abholung lief reibungslos, würde wieder bei Sarah mieten.',
+      daysAgo: 9,
+      hoursAgo: 2,
+    );
+    add(
+      'u5',
+      'u3',
+      4.7,
+      'Kamera war wie beschrieben, inklusive voll geladenem Akku.',
+      daysAgo: 32,
+      hoursAgo: 4,
+    );
+    add(
+      'u10',
+      'u6',
+      5.0,
+      'David hat sich Zeit für eine kurze Einweisung genommen, top.',
+      daysAgo: 12,
+      hoursAgo: 5,
+    );
+    add(
+      'u12',
+      'u6',
+      4.9,
+      'Sehr freundlich und flexibel bei der Rückgabe.',
+      daysAgo: 45,
+      hoursAgo: 7,
+    );
+    add(
+      'u9',
+      'u8',
+      4.8,
+      'Laura hat den Zustand des E-Bikes genau erklärt, alles bestens.',
+      daysAgo: 3,
+      hoursAgo: 1,
+    );
+    add(
+      'u14',
+      'u8',
+      5.0,
+      'Super Kommunikation und perfektes Zubehör dabei.',
+      daysAgo: 14,
+      hoursAgo: 8,
+    );
+    add(
+      'u17',
+      'u10',
+      4.7,
+      'Konsole war sauber und sofort einsatzbereit.',
+      daysAgo: 27,
+      hoursAgo: 6,
+    );
+    add(
+      'u18',
+      'u10',
+      4.9,
+      'Schnelle Übergabe und sehr sympathisch.',
+      daysAgo: 58,
+      hoursAgo: 3,
+    );
+    add(
+      'u19',
+      'u9',
+      4.8,
+      'MacBook in neuwertigem Zustand, gerne wieder.',
+      daysAgo: 16,
+      hoursAgo: 2,
+    );
+    add(
+      'u20',
+      'u9',
+      4.6,
+      'Abholung pünktlich und unkompliziert organisiert.',
+      daysAgo: 70,
+      hoursAgo: 5,
+    );
+    add(
+      'u15',
+      'u4',
+      4.9,
+      'Thomas hat alles ausführlich erklärt, super Service.',
+      daysAgo: 22,
+      hoursAgo: 4,
+    );
+    add(
+      'u13',
+      'u4',
+      4.8,
+      'Sehr zuverlässige Abstimmung und faire Konditionen.',
+      daysAgo: 90,
+      hoursAgo: 6,
+    );
+    add(
+      'u8',
+      'u5',
+      4.7,
+      'Julia hat schnell auf Nachrichten reagiert und war flexibel.',
+      daysAgo: 11,
+      hoursAgo: 7,
+    );
+    add(
+      'u6',
+      'u5',
+      4.9,
+      'Produkt top gepflegt, klare Empfehlung.',
+      daysAgo: 61,
+      hoursAgo: 2,
+    );
 
     return out;
   }
@@ -3683,7 +4169,9 @@ class DataService {
       } catch (_) {}
       final seed = _buildDemoReviews(seedUsers);
       await prefs.setString(
-          _reviewsKey, jsonEncode(seed.map((e) => e.toJson()).toList()));
+        _reviewsKey,
+        jsonEncode(seed.map((e) => e.toJson()).toList()),
+      );
       raw = prefs.getString(_reviewsKey);
     }
     if (raw == null) return [];
@@ -3706,7 +4194,7 @@ class DataService {
       final List<dynamic> list = jsonDecode(raw);
       return [
         for (final e in list)
-          MultiCriteriaReview.fromJson(Map<String, dynamic>.from(e as Map))
+          MultiCriteriaReview.fromJson(Map<String, dynamic>.from(e as Map)),
       ];
     } catch (_) {
       return [];
@@ -3714,17 +4202,23 @@ class DataService {
   }
 
   static Future<void> _saveAllMultiReviews(
-      List<MultiCriteriaReview> list) async {
+    List<MultiCriteriaReview> list,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-        _multiReviewsKey, jsonEncode(list.map((e) => e.toJson()).toList()));
+      _multiReviewsKey,
+      jsonEncode(list.map((e) => e.toJson()).toList()),
+    );
   }
 
-  static Future<bool> hasSubmittedReview(
-      {required String requestId, required String reviewerId}) async {
+  static Future<bool> hasSubmittedReview({
+    required String requestId,
+    required String reviewerId,
+  }) async {
     final all = await _getAllMultiReviews();
-    return all
-        .any((r) => r.requestId == requestId && r.reviewerId == reviewerId);
+    return all.any(
+      (r) => r.requestId == requestId && r.reviewerId == reviewerId,
+    );
   }
 
   static Future<MultiCriteriaReview> addMultiReview({
@@ -3738,31 +4232,33 @@ class DataService {
     final all = await _getAllMultiReviews();
     final requests = await _getAllRentalRequests();
     final request = requests.cast<RentalRequest?>().firstWhere(
-          (entry) => entry?.id == requestId,
-          orElse: () => null,
-        );
+      (entry) => entry?.id == requestId,
+      orElse: () => null,
+    );
     if (request == null || request.status != 'completed') {
       throw StateError('Reviews require a completed booking.');
     }
 
     final reviewerMatchesDirection =
         (direction == ReviewMetricsService.renterToOwner &&
-                request.renterId == reviewerId &&
-                request.ownerId == reviewedUserId) ||
-            (direction == ReviewMetricsService.ownerToRenter &&
-                request.ownerId == reviewerId &&
-                request.renterId == reviewedUserId);
+            request.renterId == reviewerId &&
+            request.ownerId == reviewedUserId) ||
+        (direction == ReviewMetricsService.ownerToRenter &&
+            request.ownerId == reviewerId &&
+            request.renterId == reviewedUserId);
     if (!reviewerMatchesDirection || request.itemId != itemId) {
       throw StateError('Review context does not match the completed booking.');
     }
 
-    final nextId = (all.fold<int>(
-                0,
-                (p, e) => (int.tryParse(e.id) ?? 0) > p
-                    ? (int.tryParse(e.id) ?? 0)
-                    : p) +
-            1)
-        .toString();
+    final nextId =
+        (all.fold<int>(
+                  0,
+                  (p, e) => (int.tryParse(e.id) ?? 0) > p
+                      ? (int.tryParse(e.id) ?? 0)
+                      : p,
+                ) +
+                1)
+            .toString();
     final normalizedCriteria = ReviewMetricsService.normalizeCriteria(
       criteria,
       direction: direction,
@@ -3784,8 +4280,9 @@ class DataService {
     if (all.any((entry) => entry.id == review.id)) {
       throw StateError('Duplicate review id.');
     }
-    if (all.any((entry) =>
-        entry.requestId == requestId && entry.reviewerId == reviewerId)) {
+    if (all.any(
+      (entry) => entry.requestId == requestId && entry.reviewerId == reviewerId,
+    )) {
       throw StateError('Review already exists for this booking context.');
     }
 
@@ -3795,7 +4292,8 @@ class DataService {
   }
 
   static Future<List<MultiCriteriaReview>> getMultiReviewsForUser(
-      String userId) async {
+    String userId,
+  ) async {
     final all = await _getAllMultiReviews();
     final filtered = all.where((e) => e.reviewedUserId == userId).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -3803,21 +4301,23 @@ class DataService {
   }
 
   static Future<List<MultiCriteriaReview>> getMultiReviewsForUserByItem(
-      String userId, String itemId) async {
+    String userId,
+    String itemId,
+  ) async {
     final all = await _getAllMultiReviews();
-    final filtered = all
-        .where((e) => e.reviewedUserId == userId && e.itemId == itemId)
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final filtered =
+        all
+            .where((e) => e.reviewedUserId == userId && e.itemId == itemId)
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return filtered;
   }
 
   static Future<List<Review>> getReviewsForUser(String userId) async {
     final all = await _getAllReviews();
-    final filtered = all
-        .where((review) => review.reviewedUserId == userId)
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final filtered =
+        all.where((review) => review.reviewedUserId == userId).toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return filtered;
   }
 
@@ -3841,15 +4341,24 @@ class DataService {
   };
 
   static final Map<String, List<ReviewCriterion>>
-      _demoReviewCriteriaByReviewId = {
+  _demoReviewCriteriaByReviewId = {
     'r1': const [
       ReviewCriterion(
-          key: 'communication', stars: 5, note: 'Schnelle Rückmeldung'),
+        key: 'communication',
+        stars: 5,
+        note: 'Schnelle Rückmeldung',
+      ),
       ReviewCriterion(key: 'reliability', stars: 5),
       ReviewCriterion(
-          key: 'article_as_described', stars: 5, note: 'Genau wie beschrieben'),
+        key: 'article_as_described',
+        stars: 5,
+        note: 'Genau wie beschrieben',
+      ),
       ReviewCriterion(
-          key: 'handover_return', stars: 5, note: 'Sehr gepflegt übergeben'),
+        key: 'handover_return',
+        stars: 5,
+        note: 'Sehr gepflegt übergeben',
+      ),
     ],
     'r2': const [
       ReviewCriterion(key: 'communication', stars: 5),
@@ -3942,7 +4451,8 @@ class DataService {
   };
 
   static MultiCriteriaReview? _buildSyntheticMultiReviewForClassic(
-      Review review) {
+    Review review,
+  ) {
     final criteria = _demoReviewCriteriaByReviewId[review.id];
     if (criteria == null) return null;
     return MultiCriteriaReview(
@@ -3951,10 +4461,13 @@ class DataService {
       itemId: _demoReviewItemIdByReviewId[review.id] ?? '',
       reviewerId: review.reviewerId,
       reviewedUserId: review.reviewedUserId,
-      direction: criteria.any((c) =>
-              c.key == 'condition_dropoff' ||
-              c.key == 'description_accuracy' ||
-              c.key == 'value_for_money')
+      direction:
+          criteria.any(
+            (c) =>
+                c.key == 'condition_dropoff' ||
+                c.key == 'description_accuracy' ||
+                c.key == 'value_for_money',
+          )
           ? 'renter_to_owner'
           : 'owner_to_renter',
       criteria: criteria,
@@ -3984,7 +4497,7 @@ class DataService {
       final correctedRating = normalizedSynthetic == null
           ? ReviewMetricsService.roundToSingleDecimal(review.rating)
           : (ReviewMetricsService.calculateReviewScore(normalizedSynthetic) ??
-              ReviewMetricsService.roundToSingleDecimal(review.rating));
+                ReviewMetricsService.roundToSingleDecimal(review.rating));
       entries.add(
         ReviewWithUser(
           review: review.copyWith(rating: correctedRating),
@@ -4028,7 +4541,8 @@ class DataService {
   }
 
   static Future<List<User>> _applyCentralReviewStatsToUsers(
-      List<User> users) async {
+    List<User> users,
+  ) async {
     if (users.isEmpty) return users;
     final entries = await _buildReviewSummaryEntries(users: users);
     final grouped = <String, List<ReviewWithUser>>{};
@@ -4052,7 +4566,8 @@ class DataService {
   }
 
   static Future<List<ReviewWithUser>> getReviewSummariesForUser(
-      String userId) async {
+    String userId,
+  ) async {
     final users = await getUsers();
     final items = await getItems();
     return _buildReviewSummaryEntries(
@@ -4137,7 +4652,8 @@ class DataService {
       prefs = await SharedPreferences.getInstance();
     } catch (e) {
       debugPrint(
-          '[DataService] _getAllRentalRequests: SharedPreferences unavailable: $e');
+        '[DataService] _getAllRentalRequests: SharedPreferences unavailable: $e',
+      );
       return [];
     }
 
@@ -4146,11 +4662,14 @@ class DataService {
       // Do not seed demo requests anymore. Persist an empty list by default.
       try {
         await prefs.setString(
-            _rentalRequestsKey, jsonEncode(<Map<String, dynamic>>[]));
+          _rentalRequestsKey,
+          jsonEncode(<Map<String, dynamic>>[]),
+        );
         raw = prefs.getString(_rentalRequestsKey);
       } catch (e) {
         debugPrint(
-            '[DataService] _getAllRentalRequests: failed to initialize empty list: $e');
+          '[DataService] _getAllRentalRequests: failed to initialize empty list: $e',
+        );
         return [];
       }
     }
@@ -4161,35 +4680,44 @@ class DataService {
       final parsed = <RentalRequest>[];
       for (final e in list) {
         try {
-          parsed
-              .add(RentalRequest.fromJson(Map<String, dynamic>.from(e as Map)));
+          parsed.add(
+            RentalRequest.fromJson(Map<String, dynamic>.from(e as Map)),
+          );
         } catch (inner) {
           debugPrint(
-              '[DataService] _getAllRentalRequests: skipping corrupted entry: $inner');
+            '[DataService] _getAllRentalRequests: skipping corrupted entry: $inner',
+          );
         }
       }
 
       // Auto-sanitize storage so future loads don't keep failing.
       if (parsed.length != list.length) {
         try {
-          await prefs.setString(_rentalRequestsKey,
-              jsonEncode(parsed.map((e) => e.toJson()).toList()));
+          await prefs.setString(
+            _rentalRequestsKey,
+            jsonEncode(parsed.map((e) => e.toJson()).toList()),
+          );
         } catch (e) {
           debugPrint(
-              '[DataService] _getAllRentalRequests: failed to sanitize storage: $e');
+            '[DataService] _getAllRentalRequests: failed to sanitize storage: $e',
+          );
         }
       }
       return parsed;
     } catch (e) {
       debugPrint(
-          '[DataService] _getAllRentalRequests: failed to decode JSON: $e');
+        '[DataService] _getAllRentalRequests: failed to decode JSON: $e',
+      );
       // Reset to a clean state.
       try {
         await prefs.setString(
-            _rentalRequestsKey, jsonEncode(<Map<String, dynamic>>[]));
+          _rentalRequestsKey,
+          jsonEncode(<Map<String, dynamic>>[]),
+        );
       } catch (e2) {
         debugPrint(
-            '[DataService] _getAllRentalRequests: failed to reset corrupted JSON: $e2');
+          '[DataService] _getAllRentalRequests: failed to reset corrupted JSON: $e2',
+        );
       }
       return [];
     }
@@ -4198,8 +4726,10 @@ class DataService {
   static Future<void> _saveAllRentalRequests(List<RentalRequest> list) async {
     Future<void> persist(List<RentalRequest> payload) async {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_rentalRequestsKey,
-          jsonEncode(payload.map((e) => e.toJson()).toList()));
+      await prefs.setString(
+        _rentalRequestsKey,
+        jsonEncode(payload.map((e) => e.toJson()).toList()),
+      );
     }
 
     bool isQuotaError(Object e) {
@@ -4209,8 +4739,10 @@ class DataService {
           s.contains('QuotaExceeded');
     }
 
-    List<RentalRequest> prune(List<RentalRequest> input,
-        {required int hardCapNewest}) {
+    List<RentalRequest> prune(
+      List<RentalRequest> input, {
+      required int hardCapNewest,
+    }) {
       if (input.isEmpty) return input;
       // Newest first for keeping.
       final newestFirst = [...input]
@@ -4243,12 +4775,14 @@ class DataService {
     try {
       final pruned250 = prune(list, hardCapNewest: 250);
       debugPrint(
-          '[DataService] _saveAllRentalRequests: quota exceeded, pruning from ${list.length} -> ${pruned250.length} and retrying');
+        '[DataService] _saveAllRentalRequests: quota exceeded, pruning from ${list.length} -> ${pruned250.length} and retrying',
+      );
       await persist(pruned250);
       return;
     } catch (e) {
       debugPrint(
-          '[DataService] _saveAllRentalRequests: retry after prune(250) failed: $e');
+        '[DataService] _saveAllRentalRequests: retry after prune(250) failed: $e',
+      );
       if (!isQuotaError(e)) rethrow;
     }
 
@@ -4256,23 +4790,28 @@ class DataService {
     try {
       final pruned80 = prune(list, hardCapNewest: 80);
       debugPrint(
-          '[DataService] _saveAllRentalRequests: quota still exceeded, pruning to newest ${pruned80.length} and retrying');
+        '[DataService] _saveAllRentalRequests: quota still exceeded, pruning to newest ${pruned80.length} and retrying',
+      );
       await persist(pruned80);
       return;
     } catch (e) {
       debugPrint(
-          '[DataService] _saveAllRentalRequests: retry after prune(80) failed: $e');
+        '[DataService] _saveAllRentalRequests: retry after prune(80) failed: $e',
+      );
       rethrow;
     }
   }
 
-  static Future<List<RentalRequest>> getRentalRequestsForOwner(String ownerId,
-      {String? status}) async {
+  static Future<List<RentalRequest>> getRentalRequestsForOwner(
+    String ownerId, {
+    String? status,
+  }) async {
     await _sweepExpressTimeouts();
     final all = await _getAllRentalRequests();
     final filtered = all
-        .where((r) =>
-            r.ownerId == ownerId && (status == null || r.status == status))
+        .where(
+          (r) => r.ownerId == ownerId && (status == null || r.status == status),
+        )
         .toList();
     // Sort newest first
     filtered.sort((a, b) => b.start.compareTo(a.start));
@@ -4308,8 +4847,9 @@ class DataService {
   /// created after that will be considered "new".
   static Future<void> markOwnerRequestsSeen(String ownerId) async {
     if (ownerId.isEmpty) return;
-    final pending =
-        await getRentalRequestsForOwner(ownerId); // include all statuses
+    final pending = await getRentalRequestsForOwner(
+      ownerId,
+    ); // include all statuses
     DateTime nowMarker;
     if (pending.isEmpty) {
       nowMarker = DateTime.now();
@@ -4329,15 +4869,19 @@ class DataService {
       await prefs.setString(_requestsLastSeenKey, jsonEncode(map));
     } catch (_) {
       // Fallback: write fresh map
-      await prefs.setString(_requestsLastSeenKey,
-          jsonEncode({ownerId: nowMarker.toIso8601String()}));
+      await prefs.setString(
+        _requestsLastSeenKey,
+        jsonEncode({ownerId: nowMarker.toIso8601String()}),
+      );
     }
   }
 
   /// Marks a specific rental request as read by a user (owner or renter).
   /// Used to track which individual requests have been viewed.
-  static Future<void> markRequestAsRead(
-      {required String userId, required String requestId}) async {
+  static Future<void> markRequestAsRead({
+    required String userId,
+    required String requestId,
+  }) async {
     if (userId.isEmpty || requestId.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
     try {
@@ -4361,8 +4905,10 @@ class DataService {
   }
 
   /// Checks if a specific request has been read by a user.
-  static Future<bool> isRequestRead(
-      {required String userId, required String requestId}) async {
+  static Future<bool> isRequestRead({
+    required String userId,
+    required String requestId,
+  }) async {
     if (userId.isEmpty || requestId.isEmpty) return false;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -4413,13 +4959,15 @@ class DataService {
 
   static Future<RentalRequest> addRentalRequest(RentalRequest req) async {
     final all = await _getAllRentalRequests();
-    final nextId = (all.fold<int>(
-                0,
-                (p, e) => (int.tryParse(e.id) ?? 0) > p
-                    ? (int.tryParse(e.id) ?? 0)
-                    : p) +
-            1)
-        .toString();
+    final nextId =
+        (all.fold<int>(
+                  0,
+                  (p, e) => (int.tryParse(e.id) ?? 0) > p
+                      ? (int.tryParse(e.id) ?? 0)
+                      : p,
+                ) +
+                1)
+            .toString();
     final now = DateTime.now();
     // Snapshot current delivery selection for this item so booking details remain accurate
     Map<String, dynamic>? deliverySel;
@@ -4437,7 +4985,10 @@ class DataService {
       final item = await getItemById(req.itemId);
       if (item != null) {
         final breakdown = priceBreakdownForRequest(
-            item: item, req: req, deliverySel: deliverySel);
+          item: item,
+          req: req,
+          deliverySel: deliverySel,
+        );
         final bool expressSelectedTransient = (deliverySel?['express'] == true);
         final bool expressAccepted =
             req.expressRequested && (req.expressStatus == 'accepted');
@@ -4445,12 +4996,16 @@ class DataService {
             expressSelectedTransient || req.expressRequested || expressAccepted;
         quotedTotal = breakdown.totalRenter;
         quotedSub = TotalSubtitleHelper.build(
-            delivery: ownerDelivers, pickup: ownerPicksUp, priority: priority);
+          delivery: ownerDelivers,
+          pickup: ownerPicksUp,
+          priority: priority,
+        );
       }
     } catch (e) {
       debugPrint(
-          '[DataService] addRentalRequest: failed to compute quoted total: ' +
-              e.toString());
+        '[DataService] addRentalRequest: failed to compute quoted total: ' +
+            e.toString(),
+      );
     }
     final toStore = RentalRequest(
       id: nextId,
@@ -4466,10 +5021,18 @@ class DataService {
       expressFee: req.expressFee,
       ownerDeliversAtDropoffChosen: ownerDelivers,
       ownerPicksUpAtReturnChosen: ownerPicksUp,
-      deliveryAddressLine: (deliverySel?['deliveryAddressLine'] as String?) ?? (deliverySel?['addressLine'] as String?),
-      deliveryCity: (deliverySel?['deliveryCity'] as String?) ?? (deliverySel?['city'] as String?),
-      deliveryLat: (deliverySel?['deliveryLat'] as num?)?.toDouble() ?? (deliverySel?['lat'] as num?)?.toDouble(),
-      deliveryLng: (deliverySel?['deliveryLng'] as num?)?.toDouble() ?? (deliverySel?['lng'] as num?)?.toDouble(),
+      deliveryAddressLine:
+          (deliverySel?['deliveryAddressLine'] as String?) ??
+          (deliverySel?['addressLine'] as String?),
+      deliveryCity:
+          (deliverySel?['deliveryCity'] as String?) ??
+          (deliverySel?['city'] as String?),
+      deliveryLat:
+          (deliverySel?['deliveryLat'] as num?)?.toDouble() ??
+          (deliverySel?['lat'] as num?)?.toDouble(),
+      deliveryLng:
+          (deliverySel?['deliveryLng'] as num?)?.toDouble() ??
+          (deliverySel?['lng'] as num?)?.toDouble(),
       returnAddressLine: (deliverySel?['returnAddressLine'] as String?),
       returnCity: (deliverySel?['returnCity'] as String?),
       returnLat: (deliverySel?['returnLat'] as num?)?.toDouble(),
@@ -4482,14 +5045,16 @@ class DataService {
     );
     all.add(toStore);
     await _saveAllRentalRequests(all);
-    debugPrint('[DataService] addRentalRequest stored id=' +
-        nextId +
-        ' ownerDeliversAtDropoffChosen=' +
-        ownerDelivers.toString() +
-        ' ownerPicksUpAtReturnChosen=' +
-        ownerPicksUp.toString() +
-        ' expressRequested=' +
-        toStore.expressRequested.toString());
+    debugPrint(
+      '[DataService] addRentalRequest stored id=' +
+          nextId +
+          ' ownerDeliversAtDropoffChosen=' +
+          ownerDelivers.toString() +
+          ' ownerPicksUpAtReturnChosen=' +
+          ownerPicksUp.toString() +
+          ' expressRequested=' +
+          toStore.expressRequested.toString(),
+    );
 
     try {
       final item = await getItemById(toStore.itemId);
@@ -4523,8 +5088,10 @@ class DataService {
     return toStore;
   }
 
-  static Future<void> updateRentalRequestStatus(
-      {required String requestId, required String status}) async {
+  static Future<void> updateRentalRequestStatus({
+    required String requestId,
+    required String status,
+  }) async {
     final all = await _getAllRentalRequests();
     bool mutated = false;
     RentalRequest? updatedRequest;
@@ -4597,26 +5164,27 @@ class DataService {
 
   /// Update status and optionally set the actor who cancelled.
   /// If [status] is 'cancelled' and [cancelledBy] is provided, we persist it.
-  static Future<void> updateRentalRequestStatusWithActor(
-      {required String requestId,
-      required String status,
-      String? cancelledBy}) async {
+  static Future<void> updateRentalRequestStatusWithActor({
+    required String requestId,
+    required String status,
+    String? cancelledBy,
+  }) async {
     final all = await _getAllRentalRequests();
     bool mutated = false;
     for (int i = 0; i < all.length; i++) {
       if (all[i].id == requestId) {
         all[i] = all[i].copyWith(
-            status: status,
-            cancelledBy: (status == 'cancelled')
-                ? (cancelledBy ?? all[i].cancelledBy)
-                : all[i].cancelledBy);
+          status: status,
+          cancelledBy: (status == 'cancelled')
+              ? (cancelledBy ?? all[i].cancelledBy)
+              : all[i].cancelledBy,
+        );
         mutated = true;
         break;
       }
     }
     if (mutated) await _saveAllRentalRequests(all);
   }
-
 
   static Future<void> recordRentalRequestConfirmation({
     required String requestId,
@@ -4639,8 +5207,9 @@ class DataService {
     for (int i = 0; i < all.length; i++) {
       if (all[i].id == id) {
         all[i] = all[i].copyWith(
-          handoverConfirmation:
-              isReturn ? all[i].handoverConfirmation : payload,
+          handoverConfirmation: isReturn
+              ? all[i].handoverConfirmation
+              : payload,
           returnConfirmation: isReturn ? payload : all[i].returnConfirmation,
         );
         mutated = true;
@@ -4800,11 +5369,12 @@ class DataService {
   }
 
   // Update times and express choice for an existing request (edit flow)
-  static Future<void> updateRentalRequestTimes(
-      {required String requestId,
-      required DateTime start,
-      required DateTime end,
-      bool? expressRequested}) async {
+  static Future<void> updateRentalRequestTimes({
+    required String requestId,
+    required DateTime start,
+    required DateTime end,
+    bool? expressRequested,
+  }) async {
     final all = await _getAllRentalRequests();
     bool mutated = false;
     for (int i = 0; i < all.length; i++) {
@@ -4836,17 +5406,21 @@ class DataService {
   }
 
   // Update express confirmation status for a request
-  static Future<void> updateRentalRequestExpress(
-      {required String requestId, required bool accept}) async {
+  static Future<void> updateRentalRequestExpress({
+    required String requestId,
+    required bool accept,
+  }) async {
     final all = await _getAllRentalRequests();
     bool mutated = false;
     for (int i = 0; i < all.length; i++) {
       if (all[i].id == requestId) {
         final newStatus = accept ? 'accepted' : 'declined';
         all[i] = all[i].copyWith(
-            expressStatus: newStatus,
-            expressConfirmedAt:
-                accept ? DateTime.now() : all[i].expressConfirmedAt);
+          expressStatus: newStatus,
+          expressConfirmedAt: accept
+              ? DateTime.now()
+              : all[i].expressConfirmedAt,
+        );
         mutated = true;
         // If accepted/declined, cancel any scheduled timer
         try {
@@ -4859,8 +5433,10 @@ class DataService {
     if (mutated) await _saveAllRentalRequests(all);
   }
 
-  static Future<bool> pauseReturnCompletionIfNeedsReview(String requestId,
-      {required String source}) async {
+  static Future<bool> pauseReturnCompletionIfNeedsReview(
+    String requestId, {
+    required String source,
+  }) async {
     try {
       final request = await getRentalRequestById(requestId);
       if (request == null || !request.needsReview) return false;
@@ -4872,7 +5448,8 @@ class DataService {
         );
       } catch (e) {
         debugPrint(
-            '[DataService] pauseReturnCompletionIfNeedsReview timeline failed: $e');
+          '[DataService] pauseReturnCompletionIfNeedsReview timeline failed: $e',
+        );
       }
       try {
         await addNotification(
@@ -4882,7 +5459,8 @@ class DataService {
         );
       } catch (e) {
         debugPrint(
-            '[DataService] pauseReturnCompletionIfNeedsReview notification failed: $e');
+          '[DataService] pauseReturnCompletionIfNeedsReview notification failed: $e',
+        );
       }
       return true;
     } catch (e) {
@@ -4891,8 +5469,11 @@ class DataService {
     }
   }
 
-  static Future<void> markRentalRequestNeedsReview(String requestId,
-      {required String reason, required String source}) async {
+  static Future<void> markRentalRequestNeedsReview(
+    String requestId, {
+    required String reason,
+    required String source,
+  }) async {
     final all = await _getAllRentalRequests();
     bool mutated = false;
     RentalRequest? updatedRequest;
@@ -4921,7 +5502,8 @@ class DataService {
       );
     } catch (e) {
       debugPrint(
-          '[DataService] markRentalRequestNeedsReview timeline failed: $e');
+        '[DataService] markRentalRequestNeedsReview timeline failed: $e',
+      );
     }
     try {
       await addNotification(
@@ -4930,7 +5512,8 @@ class DataService {
       );
     } catch (e) {
       debugPrint(
-          '[DataService] markRentalRequestNeedsReview notification failed: $e');
+        '[DataService] markRentalRequestNeedsReview notification failed: $e',
+      );
     }
   }
 
@@ -4975,12 +5558,14 @@ class DataService {
           );
           mutated = true;
           debugPrint(
-              '[DataService] Express timeout -> auto-switch to Standard for request ${r.id}');
+            '[DataService] Express timeout -> auto-switch to Standard for request ${r.id}',
+          );
           try {
             await addTimelineEvent(
-                requestId: r.id,
-                type: 'express_timeout_refund',
-                note: 'Priorität abgelaufen; auf Standard umgestellt');
+              requestId: r.id,
+              type: 'express_timeout_refund',
+              note: 'Priorität abgelaufen; auf Standard umgestellt',
+            );
           } catch (_) {}
           // Cancel any pending timer for safety
           try {
@@ -5007,25 +5592,33 @@ class DataService {
   }
 
   // New: requests where the current viewer is the renter
-  static Future<List<RentalRequest>> getRentalRequestsForRenter(String renterId,
-      {String? status}) async {
+  static Future<List<RentalRequest>> getRentalRequestsForRenter(
+    String renterId, {
+    String? status,
+  }) async {
     await _sweepExpressTimeouts();
     final all = await _getAllRentalRequests();
     final filtered = all
-        .where((r) =>
-            r.renterId == renterId && (status == null || r.status == status))
+        .where(
+          (r) =>
+              r.renterId == renterId && (status == null || r.status == status),
+        )
         .toList();
     filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return filtered;
   }
 
   // Timeline events (simple local storage)
-  static Future<void> addTimelineEvent(
-      {required String requestId, required String type, String? note}) async {
+  static Future<void> addTimelineEvent({
+    required String requestId,
+    required String type,
+    String? note,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_timelineEventsKey);
-    List<dynamic> list =
-        raw != null && raw.isNotEmpty ? (jsonDecode(raw) as List) : [];
+    List<dynamic> list = raw != null && raw.isNotEmpty
+        ? (jsonDecode(raw) as List)
+        : [];
     list.add({
       'requestId': requestId,
       'type': type,
@@ -5036,7 +5629,8 @@ class DataService {
   }
 
   static Future<List<Map<String, dynamic>>> getTimelineForRequest(
-      String requestId) async {
+    String requestId,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_timelineEventsKey);
     if (raw == null || raw.isEmpty) return [];
@@ -5053,12 +5647,15 @@ class DataService {
   }
 
   // Notifications (demo)
-  static Future<void> addNotification(
-      {required String title, required String body}) async {
+  static Future<void> addNotification({
+    required String title,
+    required String body,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_notificationsKey);
-    List<dynamic> list =
-        raw != null && raw.isNotEmpty ? (jsonDecode(raw) as List) : [];
+    List<dynamic> list = raw != null && raw.isNotEmpty
+        ? (jsonDecode(raw) as List)
+        : [];
     list.add({
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
       'title': title,
@@ -5075,7 +5672,7 @@ class DataService {
   static Future<void> addStructuredNotification({
     required String userId,
     required String
-        category, // important | bookings | messages | reviews | platform
+    category, // important | bookings | messages | reviews | platform
     required String title,
     required String body,
     int priority =
@@ -5091,8 +5688,9 @@ class DataService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_notificationsKey);
-      List<dynamic> list =
-          raw != null && raw.isNotEmpty ? (jsonDecode(raw) as List) : [];
+      List<dynamic> list = raw != null && raw.isNotEmpty
+          ? (jsonDecode(raw) as List)
+          : [];
       final now = timestamp ?? DateTime.now();
       list.add({
         'id': 'n_${now.microsecondsSinceEpoch}',
@@ -5114,12 +5712,15 @@ class DataService {
       await prefs.setString(_notificationsKey, jsonEncode(list));
     } catch (e) {
       debugPrint(
-          '[DataService] addStructuredNotification failed: ' + e.toString());
+        '[DataService] addStructuredNotification failed: ' + e.toString(),
+      );
     }
   }
 
-  static Map<String, dynamic> _normalizeNotification(Map<String, dynamic> raw,
-      {required String userId}) {
+  static Map<String, dynamic> _normalizeNotification(
+    Map<String, dynamic> raw, {
+    required String userId,
+  }) {
     // Backfill legacy fields to the structured format.
     final out = Map<String, dynamic>.from(raw);
     out['id'] = (out['id'] ?? '').toString().isNotEmpty
@@ -5149,13 +5750,17 @@ class DataService {
         out['actions'] = (out['actions'] as List)
             .whereType<Map>()
             .map((e) => Map<String, dynamic>.from(e))
-            .map((e) => {
-                  'id': (e['id'] ?? '').toString(),
-                  'label': (e['label'] ?? '').toString(),
-                })
-            .where((e) =>
-                (e['id'] ?? '').toString().isNotEmpty &&
-                (e['label'] ?? '').toString().isNotEmpty)
+            .map(
+              (e) => {
+                'id': (e['id'] ?? '').toString(),
+                'label': (e['label'] ?? '').toString(),
+              },
+            )
+            .where(
+              (e) =>
+                  (e['id'] ?? '').toString().isNotEmpty &&
+                  (e['label'] ?? '').toString().isNotEmpty,
+            )
             .toList();
       } catch (_) {
         out.remove('actions');
@@ -5186,9 +5791,9 @@ class DataService {
     }
   }
 
-
   static bool _isVisibleDemoNotification(Map<String, dynamic> notification) {
-    String lower(Object? value) => value == null ? '' : value.toString().trim().toLowerCase();
+    String lower(Object? value) =>
+        value == null ? '' : value.toString().trim().toLowerCase();
     final title = lower(notification['title']);
     final body = lower(notification['body']);
     final entityType = lower(notification['entityType']);
@@ -5203,19 +5808,28 @@ class DataService {
     };
     if (seededPrefixes.any(entityId.startsWith)) return true;
 
-    if (entityType == 'system' && title == 'willkommen bei shareittoo') return true;
+    if (entityType == 'system' && title == 'willkommen bei shareittoo')
+      return true;
     if (entityType == 'system' && title == 'sicherheits‑check') return true;
     if (entityType == 'system' && title == 'bewertungen sammeln') return true;
-    if (entityType == 'system' && title == 'tipp: schnelle abstimmung') return true;
-    if (entityType == 'system' && title == 'neue nachricht' && body == 'du hast eine neue nachricht – antworte direkt aus dem feed.') return true;
-    if (entityType == 'payment' && title == 'zahlungsmethode hinzufügen' && entityId == 'payment_methods') return true;
+    if (entityType == 'system' && title == 'tipp: schnelle abstimmung')
+      return true;
+    if (entityType == 'system' &&
+        title == 'neue nachricht' &&
+        body == 'du hast eine neue nachricht – antworte direkt aus dem feed.')
+      return true;
+    if (entityType == 'payment' &&
+        title == 'zahlungsmethode hinzufügen' &&
+        entityId == 'payment_methods')
+      return true;
 
     return false;
   }
 
   static Future<List<Map<String, dynamic>>> getNotificationFeedForUser(
-      String userId,
-      {bool includeArchived = false}) async {
+    String userId, {
+    bool includeArchived = false,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_notificationsKey);
@@ -5242,9 +5856,11 @@ class DataService {
         }
       }
       out.sort((a, b) {
-        final at = DateTime.tryParse((a['ts'] ?? '').toString()) ??
+        final at =
+            DateTime.tryParse((a['ts'] ?? '').toString()) ??
             DateTime.fromMillisecondsSinceEpoch(0);
-        final bt = DateTime.tryParse((b['ts'] ?? '').toString()) ??
+        final bt =
+            DateTime.tryParse((b['ts'] ?? '').toString()) ??
             DateTime.fromMillisecondsSinceEpoch(0);
         return bt.compareTo(at);
       });
@@ -5266,13 +5882,16 @@ class DataService {
       return out;
     } catch (e) {
       debugPrint(
-          '[DataService] getNotificationFeedForUser failed: ' + e.toString());
+        '[DataService] getNotificationFeedForUser failed: ' + e.toString(),
+      );
       return [];
     }
   }
 
-  static Future<void> markNotificationRead(
-      {required String userId, required String notificationId}) async {
+  static Future<void> markNotificationRead({
+    required String userId,
+    required String notificationId,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_notificationsKey);
@@ -5320,12 +5939,15 @@ class DataService {
       if (mutated) await prefs.setString(_notificationsKey, jsonEncode(list));
     } catch (e) {
       debugPrint(
-          '[DataService] markAllNotificationsRead failed: ' + e.toString());
+        '[DataService] markAllNotificationsRead failed: ' + e.toString(),
+      );
     }
   }
 
-  static Future<void> archiveNotification(
-      {required String userId, required String notificationId}) async {
+  static Future<void> archiveNotification({
+    required String userId,
+    required String notificationId,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_notificationsKey);
@@ -5355,11 +5977,12 @@ class DataService {
 
   // ===== Ride compensation lightweight state =====
   /// Persist a decision for ride compensation per request and segment ('dropoff' | 'return').
-  static Future<void> setRideCompensationDecision(
-      {required String requestId,
-      required String segment,
-      required bool grant,
-      String? reason}) async {
+  static Future<void> setRideCompensationDecision({
+    required String requestId,
+    required String segment,
+    required bool grant,
+    String? reason,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_rideCompKey);
@@ -5381,15 +6004,17 @@ class DataService {
       await prefs.setString(_rideCompKey, jsonEncode(map));
     } catch (e) {
       debugPrint(
-          '[DataService] setRideCompensationDecision failed: ' + e.toString());
+        '[DataService] setRideCompensationDecision failed: ' + e.toString(),
+      );
     }
   }
 
   /// Returns the decision if present. If [consume] is true, removes it after reading.
-  static Future<bool?> getRideCompensationDecision(
-      {required String requestId,
-      required String segment,
-      bool consume = false}) async {
+  static Future<bool?> getRideCompensationDecision({
+    required String requestId,
+    required String segment,
+    bool consume = false,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_rideCompKey);
@@ -5419,7 +6044,8 @@ class DataService {
       return null;
     } catch (e) {
       debugPrint(
-          '[DataService] getRideCompensationDecision failed: ' + e.toString());
+        '[DataService] getRideCompensationDecision failed: ' + e.toString(),
+      );
       return null;
     }
   }
@@ -5460,12 +6086,14 @@ class DataService {
       await prefs.setString(_reviewRemindersKey, jsonEncode(list));
     } catch (e) {
       debugPrint(
-          '[DataService] scheduleReviewReminder failed: ' + e.toString());
+        '[DataService] scheduleReviewReminder failed: ' + e.toString(),
+      );
     }
   }
 
-  static Future<Map<String, dynamic>?> takeDueReviewReminder(
-      {required String reviewerId}) async {
+  static Future<Map<String, dynamic>?> takeDueReviewReminder({
+    required String reviewerId,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_reviewRemindersKey);
@@ -5491,7 +6119,9 @@ class DataService {
             hit = map;
             break;
           }
-        } catch (_) {/* skip */}
+        } catch (_) {
+          /* skip */
+        }
       }
       if (idx >= 0 && hit != null) {
         list.removeAt(idx);
@@ -5544,7 +6174,8 @@ class DataService {
       await prefs.setString(_reviewRemindersKey, jsonEncode(list));
     } catch (e) {
       debugPrint(
-          '[DataService] postponeReviewReminder failed: ' + e.toString());
+        '[DataService] postponeReviewReminder failed: ' + e.toString(),
+      );
     }
   }
 
@@ -5586,7 +6217,9 @@ class DataService {
               ts.day == now.day) {
             count++;
           }
-        } catch (_) {/* skip corrupted entry */}
+        } catch (_) {
+          /* skip corrupted entry */
+        }
       }
       return count;
     } catch (_) {
@@ -5594,8 +6227,10 @@ class DataService {
     }
   }
 
-  static Future<void> addFeedback(
-      {required String userId, required String text}) async {
+  static Future<void> addFeedback({
+    required String userId,
+    required String text,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_feedbacksKey);
     List<dynamic> list = [];
@@ -5668,7 +6303,9 @@ class DataService {
           t.cancel();
         }
         _expressTimers.clear();
-      } catch (_) {/* ignore */}
+      } catch (_) {
+        /* ignore */
+      }
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_rentalRequestsKey);
@@ -5679,29 +6316,65 @@ class DataService {
       await prefs.remove(_handoverBannersKey);
       await prefs.remove(_bookingSelectionsKey);
       debugPrint(
-          '[DataService] Cleared rentals/bookings and related local caches');
+        '[DataService] Cleared rentals/bookings and related local caches',
+      );
     } catch (e) {
       debugPrint(
-          '[DataService] clearAllRentalsAndBookings failed: ' + e.toString());
+        '[DataService] clearAllRentalsAndBookings failed: ' + e.toString(),
+      );
     }
   }
 
   // ===== Message Threads =====
 
+  static Future<bool> _isCurrentUserParticipantForRequestId(
+    String requestId,
+  ) async {
+    final normalizedRequestId = requestId.trim();
+    if (normalizedRequestId.isEmpty) return false;
+
+    final currentUser = await getCurrentUser();
+    if (currentUser == null) return false;
+
+    final request = await getRentalRequestById(normalizedRequestId);
+    if (request == null) return false;
+
+    return request.ownerId == currentUser.id ||
+        request.renterId == currentUser.id;
+  }
+
+  static Future<bool> _isCurrentUserParticipantForThread(
+    MessageThread thread,
+  ) async {
+    final currentUser = await getCurrentUser();
+    if (currentUser == null) return false;
+
+    return thread.user1Id == currentUser.id || thread.user2Id == currentUser.id;
+  }
+
   /// Returns the message thread linked to a rental request, if any.
   static Future<MessageThread?> getMessageThreadByRequestId(
-      String requestId) async {
-    if (requestId.trim().isEmpty) return null;
+    String requestId,
+  ) async {
+    final normalizedRequestId = requestId.trim();
+    if (normalizedRequestId.isEmpty) return null;
+
     try {
+      final isParticipant = await _isCurrentUserParticipantForRequestId(
+        normalizedRequestId,
+      );
+      if (!isParticipant) return null;
+
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_messageThreadsKey);
       if (raw == null || raw.isEmpty) return null;
       final List<dynamic> list = jsonDecode(raw);
       for (final e in list) {
         try {
-          final thread =
-              MessageThread.fromJson(Map<String, dynamic>.from(e as Map));
-          if (thread.requestId == requestId) return thread;
+          final thread = MessageThread.fromJson(
+            Map<String, dynamic>.from(e as Map),
+          );
+          if (thread.requestId == normalizedRequestId) return thread;
         } catch (_) {}
       }
       return null;
@@ -5716,16 +6389,25 @@ class DataService {
   /// This is a local/demo helper to ensure the communication hub can always open
   /// from booking screens.
   static Future<MessageThread?> createOrGetThreadForRequest(
-      String requestId) async {
+    String requestId,
+  ) async {
+    final normalizedRequestId = requestId.trim();
+    if (normalizedRequestId.isEmpty) return null;
+
     try {
-      final existing = await getMessageThreadByRequestId(requestId);
+      final isParticipant = await _isCurrentUserParticipantForRequestId(
+        normalizedRequestId,
+      );
+      if (!isParticipant) return null;
+
+      final existing = await getMessageThreadByRequestId(normalizedRequestId);
       if (existing != null) return existing;
-      final req = await getRentalRequestById(requestId);
+      final req = await getRentalRequestById(normalizedRequestId);
       if (req == null) return null;
 
       // Mirror the internal creation used on accept.
       await _createMessageThreadForRequest(req);
-      return await getMessageThreadByRequestId(requestId);
+      return await getMessageThreadByRequestId(normalizedRequestId);
     } catch (e) {
       debugPrint('[DataService] createOrGetThreadForRequest failed: $e');
       return null;
@@ -5736,8 +6418,10 @@ class DataService {
   ///
   /// If a real [RentalRequest] exists for [requestId], prefer updating that
   /// request via [updateRentalRequestStatus] instead.
-  static Future<void> updateMessageThreadBookingStatus(
-      {required String threadId, required String status}) async {
+  static Future<void> updateMessageThreadBookingStatus({
+    required String threadId,
+    required String status,
+  }) async {
     if (threadId.trim().isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -5761,8 +6445,10 @@ class DataService {
   }
 
   /// Appends a system message to a thread.
-  static Future<void> addSystemMessageToThread(
-      {required String threadId, required String text}) async {
+  static Future<void> addSystemMessageToThread({
+    required String threadId,
+    required String text,
+  }) async {
     if (threadId.trim().isEmpty) return;
     final t = text.trim();
     if (t.isEmpty) return;
@@ -5793,7 +6479,8 @@ class DataService {
   }
 
   static Future<void> _setHandoverReturnStateMap(
-      Map<String, dynamic> map) async {
+    Map<String, dynamic> map,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_handoverReturnStateKey, jsonEncode(map));
@@ -5804,7 +6491,8 @@ class DataService {
 
   /// Returns state for a request: {handoverActive, returnActive, handoverPhotos, returnPhotos}
   static Future<Map<String, dynamic>> getHandoverReturnState(
-      String requestId) async {
+    String requestId,
+  ) async {
     final id = requestId.trim();
     if (id.isEmpty) return const {};
     final map = await _getHandoverReturnStateMap();
@@ -5817,33 +6505,46 @@ class DataService {
         'handoverPhotos': (e['handoverPhotos'] is num)
             ? (e['handoverPhotos'] as num).toInt()
             : 0,
-        'returnPhotos':
-            (e['returnPhotos'] is num) ? (e['returnPhotos'] as num).toInt() : 0,
+        'returnPhotos': (e['returnPhotos'] is num)
+            ? (e['returnPhotos'] as num).toInt()
+            : 0,
         'handoverTimeRequested': (e['handoverTimeRequested'] as String?) ?? '',
         'returnTimeRequested': (e['returnTimeRequested'] as String?) ?? '',
         'handoverTimeIso': (e['handoverTimeIso'] as String?) ?? '',
         'returnTimeIso': (e['returnTimeIso'] as String?) ?? '',
-        'handoverTimeRequestedByUserId': (e['handoverTimeRequestedByUserId'] as String?) ?? '',
-        'returnTimeRequestedByUserId': (e['returnTimeRequestedByUserId'] as String?) ?? '',
+        'handoverTimeRequestedByUserId':
+            (e['handoverTimeRequestedByUserId'] as String?) ?? '',
+        'returnTimeRequestedByUserId':
+            (e['returnTimeRequestedByUserId'] as String?) ?? '',
         'handoverTimeConfirmed': e['handoverTimeConfirmed'] == true,
         'returnTimeConfirmed': e['returnTimeConfirmed'] == true,
         'handoverLocationLat': (e['handoverLocationLat'] as String?) ?? '',
         'handoverLocationLng': (e['handoverLocationLng'] as String?) ?? '',
         'handoverLocationLabel': (e['handoverLocationLabel'] as String?) ?? '',
-        'handoverLocationMapsUrl': (e['handoverLocationMapsUrl'] as String?) ?? '',
-        'handoverLocationSharedByUserId': (e['handoverLocationSharedByUserId'] as String?) ?? '',
-        'handoverLocationSharedByName': (e['handoverLocationSharedByName'] as String?) ?? '',
-        'handoverLocationSharedByRole': (e['handoverLocationSharedByRole'] as String?) ?? '',
-        'handoverLocationAcceptedAs': (e['handoverLocationAcceptedAs'] as String?) ?? 'handoverLocation',
+        'handoverLocationMapsUrl':
+            (e['handoverLocationMapsUrl'] as String?) ?? '',
+        'handoverLocationSharedByUserId':
+            (e['handoverLocationSharedByUserId'] as String?) ?? '',
+        'handoverLocationSharedByName':
+            (e['handoverLocationSharedByName'] as String?) ?? '',
+        'handoverLocationSharedByRole':
+            (e['handoverLocationSharedByRole'] as String?) ?? '',
+        'handoverLocationAcceptedAs':
+            (e['handoverLocationAcceptedAs'] as String?) ?? 'handoverLocation',
         'returnLocationLat': (e['returnLocationLat'] as String?) ?? '',
         'returnLocationLng': (e['returnLocationLng'] as String?) ?? '',
         'returnLocationLabel': (e['returnLocationLabel'] as String?) ?? '',
         'returnLocationMapsUrl': (e['returnLocationMapsUrl'] as String?) ?? '',
-        'returnLocationSharedByUserId': (e['returnLocationSharedByUserId'] as String?) ?? '',
-        'returnLocationSharedByName': (e['returnLocationSharedByName'] as String?) ?? '',
-        'returnLocationSharedByRole': (e['returnLocationSharedByRole'] as String?) ?? '',
-        'returnLocationAcceptedAs': (e['returnLocationAcceptedAs'] as String?) ?? 'returnLocation',
-        'returnLocationReusePromptDismissed': e['returnLocationReusePromptDismissed'] == true,
+        'returnLocationSharedByUserId':
+            (e['returnLocationSharedByUserId'] as String?) ?? '',
+        'returnLocationSharedByName':
+            (e['returnLocationSharedByName'] as String?) ?? '',
+        'returnLocationSharedByRole':
+            (e['returnLocationSharedByRole'] as String?) ?? '',
+        'returnLocationAcceptedAs':
+            (e['returnLocationAcceptedAs'] as String?) ?? 'returnLocation',
+        'returnLocationReusePromptDismissed':
+            e['returnLocationReusePromptDismissed'] == true,
       };
     }
     return {
@@ -5879,8 +6580,10 @@ class DataService {
     };
   }
 
-  static Future<bool> setHandoverActive(String requestId,
-      {required bool active}) async {
+  static Future<bool> setHandoverActive(
+    String requestId, {
+    required bool active,
+  }) async {
     final id = requestId.trim();
     if (id.isEmpty) return false;
     final map = await _getHandoverReturnStateMap();
@@ -5908,8 +6611,10 @@ class DataService {
     return active;
   }
 
-  static Future<bool> setReturnActive(String requestId,
-      {required bool active}) async {
+  static Future<bool> setReturnActive(
+    String requestId, {
+    required bool active,
+  }) async {
     final id = requestId.trim();
     if (id.isEmpty) return false;
     final map = await _getHandoverReturnStateMap();
@@ -5945,8 +6650,10 @@ class DataService {
     await setReturnActive(requestId, active: false);
   }
 
-  static Future<void> incrementHandoverPhotos(String requestId,
-      {int max = 4}) async {
+  static Future<void> incrementHandoverPhotos(
+    String requestId, {
+    int max = 4,
+  }) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
     final map = await _getHandoverReturnStateMap();
@@ -5961,8 +6668,10 @@ class DataService {
     await _setHandoverReturnStateMap(map);
   }
 
-  static Future<void> incrementReturnPhotos(String requestId,
-      {int max = 4}) async {
+  static Future<void> incrementReturnPhotos(
+    String requestId, {
+    int max = 4,
+  }) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
     final map = await _getHandoverReturnStateMap();
@@ -6049,7 +6758,6 @@ class DataService {
     await _setHandoverReturnStateMap(map);
   }
 
-
   static Future<void> setFlowLocation({
     required String requestId,
     required bool isReturn,
@@ -6075,7 +6783,9 @@ class DataService {
     existing['${prefix}LocationSharedByUserId'] = sharedByUserId.trim();
     existing['${prefix}LocationSharedByName'] = sharedByName.trim();
     existing['${prefix}LocationSharedByRole'] = sharedByRole.trim();
-    existing['${prefix}LocationAcceptedAs'] = isReturn ? 'returnLocation' : 'handoverLocation';
+    existing['${prefix}LocationAcceptedAs'] = isReturn
+        ? 'returnLocation'
+        : 'handoverLocation';
     if (isReturn) {
       existing['returnLocationReusePromptDismissed'] = false;
     }
@@ -6083,27 +6793,38 @@ class DataService {
     await _setHandoverReturnStateMap(map);
   }
 
-  static Future<void> copyHandoverLocationToReturn({required String requestId}) async {
+  static Future<void> copyHandoverLocationToReturn({
+    required String requestId,
+  }) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
     final map = await _getHandoverReturnStateMap();
     final existing = (map[id] is Map)
         ? Map<String, dynamic>.from(map[id] as Map)
         : <String, dynamic>{};
-    existing['returnLocationLat'] = (existing['handoverLocationLat'] as String?) ?? '';
-    existing['returnLocationLng'] = (existing['handoverLocationLng'] as String?) ?? '';
-    existing['returnLocationLabel'] = (existing['handoverLocationLabel'] as String?) ?? '';
-    existing['returnLocationMapsUrl'] = (existing['handoverLocationMapsUrl'] as String?) ?? '';
-    existing['returnLocationSharedByUserId'] = (existing['handoverLocationSharedByUserId'] as String?) ?? '';
-    existing['returnLocationSharedByName'] = (existing['handoverLocationSharedByName'] as String?) ?? '';
-    existing['returnLocationSharedByRole'] = (existing['handoverLocationSharedByRole'] as String?) ?? '';
+    existing['returnLocationLat'] =
+        (existing['handoverLocationLat'] as String?) ?? '';
+    existing['returnLocationLng'] =
+        (existing['handoverLocationLng'] as String?) ?? '';
+    existing['returnLocationLabel'] =
+        (existing['handoverLocationLabel'] as String?) ?? '';
+    existing['returnLocationMapsUrl'] =
+        (existing['handoverLocationMapsUrl'] as String?) ?? '';
+    existing['returnLocationSharedByUserId'] =
+        (existing['handoverLocationSharedByUserId'] as String?) ?? '';
+    existing['returnLocationSharedByName'] =
+        (existing['handoverLocationSharedByName'] as String?) ?? '';
+    existing['returnLocationSharedByRole'] =
+        (existing['handoverLocationSharedByRole'] as String?) ?? '';
     existing['returnLocationAcceptedAs'] = 'returnLocation';
     existing['returnLocationReusePromptDismissed'] = false;
     map[id] = existing;
     await _setHandoverReturnStateMap(map);
   }
 
-  static Future<void> dismissReturnLocationReusePrompt({required String requestId}) async {
+  static Future<void> dismissReturnLocationReusePrompt({
+    required String requestId,
+  }) async {
     final id = requestId.trim();
     if (id.isEmpty) return;
     final map = await _getHandoverReturnStateMap();
@@ -6142,13 +6863,25 @@ class DataService {
           await updateRentalRequestTimes(
             requestId: id,
             start: req.start,
-            end: DateTime(req.end.year, req.end.month, req.end.day, parsed.hour, parsed.minute),
+            end: DateTime(
+              req.end.year,
+              req.end.month,
+              req.end.day,
+              parsed.hour,
+              parsed.minute,
+            ),
             expressRequested: req.expressRequested,
           );
         } else {
           await updateRentalRequestTimes(
             requestId: id,
-            start: DateTime(req.start.year, req.start.month, req.start.day, parsed.hour, parsed.minute),
+            start: DateTime(
+              req.start.year,
+              req.start.month,
+              req.start.day,
+              parsed.hour,
+              parsed.minute,
+            ),
             end: req.end,
             expressRequested: req.expressRequested,
           );
@@ -6159,7 +6892,8 @@ class DataService {
 
   /// Erstellt automatisch einen Message Thread wenn eine Anfrage angenommen wird
   static Future<void> _createMessageThreadForRequest(
-      RentalRequest request) async {
+    RentalRequest request,
+  ) async {
     try {
       final item = await getItemById(request.itemId);
       if (item == null) return;
@@ -6220,7 +6954,8 @@ class DataService {
       list.add(thread.toJson());
       await prefs.setString(_messageThreadsKey, jsonEncode(list));
       debugPrint(
-          '[DataService] Created message thread for request ${request.id}');
+        '[DataService] Created message thread for request ${request.id}',
+      );
 
       // Create message notifications for both parties pointing directly into the thread.
       try {
@@ -6256,13 +6991,15 @@ class DataService {
 
   /// Gibt alle Message Threads für einen User zurück
   static Future<List<MessageThread>> getMessageThreadsForUser(
-      String userId) async {
+    String userId,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_messageThreadsKey);
       if (raw == null || raw.isEmpty) {
         debugPrint(
-            '[DataService] message thread seed skipped (demo seed disabled)');
+          '[DataService] message thread seed skipped (demo seed disabled)',
+        );
         return [];
       }
 
@@ -6274,8 +7011,9 @@ class DataService {
 
       for (final e in list) {
         try {
-          final thread =
-              MessageThread.fromJson(Map<String, dynamic>.from(e as Map));
+          final thread = MessageThread.fromJson(
+            Map<String, dynamic>.from(e as Map),
+          );
           // Nur Threads zeigen, die den User betreffen
           if ((thread.user1Id == userId || thread.user2Id == userId) &&
               !thread.archivedForUserIds.contains(userId)) {
@@ -6329,7 +7067,8 @@ class DataService {
         Message(
           id: 'seed_msg_${now.microsecondsSinceEpoch}',
           senderId: 'support',
-          text: 'Hi! Das ist ein lokaler Demo-Chat, damit du das UI testen kannst.',
+          text:
+              'Hi! Das ist ein lokaler Demo-Chat, damit du das UI testen kannst.',
           timestamp: now.subtract(const Duration(minutes: 18)),
           isRead: false,
         ),
@@ -6343,7 +7082,8 @@ class DataService {
         Message(
           id: 'seed_msg_${now.microsecondsSinceEpoch + 2}',
           senderId: 'support',
-          text: 'Super. Schreib einfach eine Testnachricht — nichts wird extern gesendet.',
+          text:
+              'Super. Schreib einfach eine Testnachricht — nichts wird extern gesendet.',
           timestamp: now.subtract(const Duration(minutes: 8)),
           isRead: false,
         ),
@@ -6365,7 +7105,9 @@ class DataService {
       );
 
       await prefs.setString(_messageThreadsKey, jsonEncode([thread.toJson()]));
-      debugPrint('[DataService] Seeded minimal support thread for user=$userId');
+      debugPrint(
+        '[DataService] Seeded minimal support thread for user=$userId',
+      );
       return true;
     } catch (e) {
       debugPrint('[DataService] ensureSeededMessageThreadsForUser failed: $e');
@@ -6375,7 +7117,8 @@ class DataService {
 
   /// Returns threads that were archived by the user.
   static Future<List<MessageThread>> getArchivedMessageThreadsForUser(
-      String userId) async {
+    String userId,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_messageThreadsKey);
@@ -6384,8 +7127,9 @@ class DataService {
       final threads = <MessageThread>[];
       for (final e in list) {
         try {
-          final thread =
-              MessageThread.fromJson(Map<String, dynamic>.from(e as Map));
+          final thread = MessageThread.fromJson(
+            Map<String, dynamic>.from(e as Map),
+          );
           if ((thread.user1Id == userId || thread.user2Id == userId) &&
               thread.archivedForUserIds.contains(userId)) {
             threads.add(thread);
@@ -6406,8 +7150,10 @@ class DataService {
     }
   }
 
-  static Future<void> archiveMessageThreadForUser(
-      {required String threadId, required String userId}) async {
+  static Future<void> archiveMessageThreadForUser({
+    required String threadId,
+    required String userId,
+  }) async {
     if (threadId.isEmpty || userId.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -6434,8 +7180,10 @@ class DataService {
     }
   }
 
-  static Future<void> unarchiveMessageThreadForUser(
-      {required String threadId, required String userId}) async {
+  static Future<void> unarchiveMessageThreadForUser({
+    required String threadId,
+    required String userId,
+  }) async {
     if (threadId.isEmpty || userId.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -6473,7 +7221,8 @@ class DataService {
       final List<dynamic> list = jsonDecode(raw);
       final before = list.length;
       list.removeWhere(
-          (e) => (e is Map) && ((e['id'] ?? '').toString() == threadId));
+        (e) => (e is Map) && ((e['id'] ?? '').toString() == threadId),
+      );
       if (list.length != before) {
         await prefs.setString(_messageThreadsKey, jsonEncode(list));
       }
@@ -6487,8 +7236,9 @@ class DataService {
       final threads = await getMessageThreadsForUser(userId);
       int count = 0;
       for (final t in threads) {
-        final hasUnread =
-            t.messages.any((m) => m.senderId != userId && !m.isRead);
+        final hasUnread = t.messages.any(
+          (m) => m.senderId != userId && !m.isRead,
+        );
         if (hasUnread) count++;
       }
       return count;
@@ -6504,18 +7254,18 @@ class DataService {
     final picks = otherUsers.take(3).toList();
     if (picks.isEmpty) picks.add('u2');
 
-    Message msg(
-            {required String senderId,
-            required String text,
-            required DateTime at,
-            bool isRead = true}) =>
-        Message(
-          id: 'msg_${at.microsecondsSinceEpoch}_${senderId == userId ? 'me' : 'them'}',
-          senderId: senderId,
-          text: text,
-          timestamp: at,
-          isRead: isRead,
-        );
+    Message msg({
+      required String senderId,
+      required String text,
+      required DateTime at,
+      bool isRead = true,
+    }) => Message(
+      id: 'msg_${at.microsecondsSinceEpoch}_${senderId == userId ? 'me' : 'them'}',
+      senderId: senderId,
+      text: text,
+      timestamp: at,
+      isRead: isRead,
+    );
 
     MessageThread thread({
       required String threadId,
@@ -6528,25 +7278,24 @@ class DataService {
       required List<Message> messages,
       required DateTime createdAt,
       DateTime? lastAt,
-    }) =>
-        MessageThread(
-          id: threadId,
-          requestId: 'demo_req_$threadId',
-          itemId: 'demo_item_$threadId',
-          itemTitle: itemTitle,
-          user1Id: userId,
-          user2Id: otherUserId,
-          threadType: threadType,
-          bookingStatus: bookingStatus,
-          handoverAt: handoverAt,
-          returnAt: returnAt,
-          otherUserOnline: threadType == 'support' ? true : null,
-          otherUserLastActive: now.subtract(const Duration(minutes: 6)),
-          archivedForUserIds: const <String>[],
-          messages: messages,
-          createdAt: createdAt,
-          lastMessageAt: lastAt,
-        );
+    }) => MessageThread(
+      id: threadId,
+      requestId: 'demo_req_$threadId',
+      itemId: 'demo_item_$threadId',
+      itemTitle: itemTitle,
+      user1Id: userId,
+      user2Id: otherUserId,
+      threadType: threadType,
+      bookingStatus: bookingStatus,
+      handoverAt: handoverAt,
+      returnAt: returnAt,
+      otherUserOnline: threadType == 'support' ? true : null,
+      otherUserLastActive: now.subtract(const Duration(minutes: 6)),
+      archivedForUserIds: const <String>[],
+      messages: messages,
+      createdAt: createdAt,
+      lastMessageAt: lastAt,
+    );
 
     final t1Time = now.subtract(const Duration(hours: 2, minutes: 12));
     final t2Time = now.subtract(const Duration(days: 1, hours: 3));
@@ -6562,26 +7311,29 @@ class DataService {
       handoverAt: DateTime(now.year, now.month, now.day, 18, 0),
       messages: [
         msg(
-            senderId: 'system',
-            text:
-                'Starte einen Chat, um Übergabe und Rückgabe zu koordinieren.',
-            at: t1Time.subtract(const Duration(minutes: 20)),
-            isRead: true),
+          senderId: 'system',
+          text: 'Starte einen Chat, um Übergabe und Rückgabe zu koordinieren.',
+          at: t1Time.subtract(const Duration(minutes: 20)),
+          isRead: true,
+        ),
         msg(
-            senderId: picks[0],
-            text: 'Hi! Passt dir heute 18:30 für die Übergabe?',
-            at: t1Time.subtract(const Duration(minutes: 7)),
-            isRead: false),
+          senderId: picks[0],
+          text: 'Hi! Passt dir heute 18:30 für die Übergabe?',
+          at: t1Time.subtract(const Duration(minutes: 7)),
+          isRead: false,
+        ),
         msg(
-            senderId: userId,
-            text: 'Ja, 18:30 ist perfekt. Ich bin pünktlich da.',
-            at: t1Time.subtract(const Duration(minutes: 4)),
-            isRead: true),
+          senderId: userId,
+          text: 'Ja, 18:30 ist perfekt. Ich bin pünktlich da.',
+          at: t1Time.subtract(const Duration(minutes: 4)),
+          isRead: true,
+        ),
         msg(
-            senderId: picks[0],
-            text: 'Super — ich schicke dir gleich die genaue Adresse.',
-            at: t1Time,
-            isRead: false),
+          senderId: picks[0],
+          text: 'Super — ich schicke dir gleich die genaue Adresse.',
+          at: t1Time,
+          isRead: false,
+        ),
       ],
     );
 
@@ -6594,22 +7346,24 @@ class DataService {
       bookingStatus: 'pending',
       messages: [
         msg(
-            senderId: 'system',
-            text:
-                'Starte einen Chat, um Übergabe und Rückgabe zu koordinieren.',
-            at: t2Time.subtract(const Duration(hours: 1)),
-            isRead: true),
+          senderId: 'system',
+          text: 'Starte einen Chat, um Übergabe und Rückgabe zu koordinieren.',
+          at: t2Time.subtract(const Duration(hours: 1)),
+          isRead: true,
+        ),
         msg(
-            senderId: userId,
-            text:
-                'Hey! Ist die Bohrmaschine auch mit 10mm Steinbohrer verfügbar?',
-            at: t2Time.subtract(const Duration(minutes: 18)),
-            isRead: true),
+          senderId: userId,
+          text:
+              'Hey! Ist die Bohrmaschine auch mit 10mm Steinbohrer verfügbar?',
+          at: t2Time.subtract(const Duration(minutes: 18)),
+          isRead: true,
+        ),
         msg(
-            senderId: picks.length > 1 ? picks[1] : picks[0],
-            text: 'Ja, ist dabei. Akku ist voll geladen 👍',
-            at: t2Time,
-            isRead: true),
+          senderId: picks.length > 1 ? picks[1] : picks[0],
+          text: 'Ja, ist dabei. Akku ist voll geladen 👍',
+          at: t2Time,
+          isRead: true,
+        ),
       ],
     );
 
@@ -6623,21 +7377,23 @@ class DataService {
       returnAt: DateTime(now.year, now.month, now.day + 1, 12, 0),
       messages: [
         msg(
-            senderId: 'system',
-            text:
-                'Starte einen Chat, um Übergabe und Rückgabe zu koordinieren.',
-            at: t3Time.subtract(const Duration(hours: 2)),
-            isRead: true),
+          senderId: 'system',
+          text: 'Starte einen Chat, um Übergabe und Rückgabe zu koordinieren.',
+          at: t3Time.subtract(const Duration(hours: 2)),
+          isRead: true,
+        ),
         msg(
-            senderId: picks.length > 2 ? picks[2] : picks[0],
-            text: 'Wenn du willst, kann ich dir noch ein Schloss mitgeben.',
-            at: t3Time.subtract(const Duration(minutes: 35)),
-            isRead: true),
+          senderId: picks.length > 2 ? picks[2] : picks[0],
+          text: 'Wenn du willst, kann ich dir noch ein Schloss mitgeben.',
+          at: t3Time.subtract(const Duration(minutes: 35)),
+          isRead: true,
+        ),
         msg(
-            senderId: userId,
-            text: 'Mega, danke! Dann fühle ich mich sicherer.',
-            at: t3Time,
-            isRead: true),
+          senderId: userId,
+          text: 'Mega, danke! Dann fühle ich mich sicherer.',
+          at: t3Time,
+          isRead: true,
+        ),
       ],
     );
 
@@ -6652,15 +7408,17 @@ class DataService {
       lastAt: supportTime,
       messages: [
         msg(
-            senderId: 'support',
-            text: 'Hallo! Wie können wir helfen?',
-            at: supportTime.subtract(const Duration(minutes: 2)),
-            isRead: false),
+          senderId: 'support',
+          text: 'Hallo! Wie können wir helfen?',
+          at: supportTime.subtract(const Duration(minutes: 2)),
+          isRead: false,
+        ),
         msg(
-            senderId: userId,
-            text: 'Kurze Frage zur Rückgabe: kann ich auch früher abgeben?',
-            at: supportTime,
-            isRead: true),
+          senderId: userId,
+          text: 'Kurze Frage zur Rückgabe: kann ich auch früher abgeben?',
+          at: supportTime,
+          isRead: true,
+        ),
       ],
     );
 
@@ -6668,17 +7426,22 @@ class DataService {
   }
 
   /// Erstellt einen neuen Support-Thread für einen User oder verwendet den bestehenden erneut.
-  static Future<MessageThread?> createSupportThread({required String userId}) async {
+  static Future<MessageThread?> createSupportThread({
+    required String userId,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_messageThreadsKey);
-      final List<dynamic> list = raw != null && raw.isNotEmpty ? jsonDecode(raw) : [];
+      final List<dynamic> list = raw != null && raw.isNotEmpty
+          ? jsonDecode(raw)
+          : [];
 
       for (final entry in list) {
         if (entry is! Map) continue;
         final thread = MessageThread.fromJson(Map<String, dynamic>.from(entry));
         final isSupport = (thread.threadType ?? '').toLowerCase() == 'support';
-        final belongsToUser = (thread.user1Id == userId && thread.user2Id == 'support') ||
+        final belongsToUser =
+            (thread.user1Id == userId && thread.user2Id == 'support') ||
             (thread.user2Id == userId && thread.user1Id == 'support');
         if (isSupport && belongsToUser) {
           debugPrint('[DataService] createSupportThread: reusing ${thread.id}');
@@ -6729,6 +7492,9 @@ class DataService {
 
   /// Findet einen Thread anhand der Thread-ID
   static Future<MessageThread?> getMessageThreadById(String threadId) async {
+    final normalizedThreadId = threadId.trim();
+    if (normalizedThreadId.isEmpty) return null;
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_messageThreadsKey);
@@ -6737,9 +7503,17 @@ class DataService {
       final List<dynamic> list = jsonDecode(raw);
       for (final e in list) {
         try {
-          final thread =
-              MessageThread.fromJson(Map<String, dynamic>.from(e as Map));
-          if (thread.id == threadId) return thread;
+          final thread = MessageThread.fromJson(
+            Map<String, dynamic>.from(e as Map),
+          );
+          if (thread.id != normalizedThreadId) continue;
+
+          final isParticipant = await _isCurrentUserParticipantForThread(
+            thread,
+          );
+          if (!isParticipant) return null;
+
+          return thread;
         } catch (_) {}
       }
       return null;

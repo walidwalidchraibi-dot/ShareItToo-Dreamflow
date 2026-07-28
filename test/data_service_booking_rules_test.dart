@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lendify/models/message.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,35 +13,36 @@ void main() {
 
   group('DataService refund policy', () {
     test(
-        'unified cancellation policy returns 100 percent until two calendar days before start',
-        () {
-      final start = DateTime(2026, 7, 29, 12);
+      'unified cancellation policy returns 100 percent until two calendar days before start',
+      () {
+        final start = DateTime(2026, 7, 29, 12);
 
-      expect(
-        DataService.refundRatio(
-          policy: 'unified',
-          start: start,
-          cancelAt: DateTime(2026, 7, 27, 23, 59),
-        ),
-        1.0,
-      );
-      expect(
-        DataService.refundRatio(
-          policy: 'unified',
-          start: start,
-          cancelAt: DateTime(2026, 7, 28, 0, 0),
-        ),
-        0.5,
-      );
-      expect(
-        DataService.refundRatio(
-          policy: 'unified',
-          start: start,
-          cancelAt: DateTime(2026, 7, 29, 0, 0),
-        ),
-        0.0,
-      );
-    });
+        expect(
+          DataService.refundRatio(
+            policy: 'unified',
+            start: start,
+            cancelAt: DateTime(2026, 7, 27, 23, 59),
+          ),
+          1.0,
+        );
+        expect(
+          DataService.refundRatio(
+            policy: 'unified',
+            start: start,
+            cancelAt: DateTime(2026, 7, 28, 0, 0),
+          ),
+          0.5,
+        );
+        expect(
+          DataService.refundRatio(
+            policy: 'unified',
+            start: start,
+            cancelAt: DateTime(2026, 7, 29, 0, 0),
+          ),
+          0.0,
+        );
+      },
+    );
   });
 
   group('DataService booking transitions', () {
@@ -50,6 +52,18 @@ void main() {
     late final item = buildTestItem(id: 'item-1', ownerId: 'owner-1');
 
     Future<void> seedBookingState({User? currentUser}) async {
+      final bookingThread = MessageThread(
+        id: 'thread-booking',
+        requestId: 'req-pickup',
+        itemId: item.id,
+        itemTitle: item.title,
+        user1Id: renter.id,
+        user2Id: owner.id,
+        messages: const [],
+        createdAt: DateTime(2026, 7, 20, 10),
+        lastMessageAt: DateTime(2026, 7, 20, 10),
+      );
+
       SharedPreferences.setMockInitialValues({
         'users': jsonEncode([
           owner.toJson(),
@@ -57,6 +71,7 @@ void main() {
           outsider.toJson(),
         ]),
         'items': jsonEncode([item.toJson()]),
+        'message_threads_v1': jsonEncode([bookingThread.toJson()]),
         'rental_requests': jsonEncode([
           buildTestRequest(
             id: 'req-pickup',
@@ -90,11 +105,84 @@ void main() {
       await seedBookingState(currentUser: owner);
     });
 
+    test('thread lookup allows owner participant', () async {
+      await seedBookingState(currentUser: owner);
+
+      final thread = await DataService.getMessageThreadById('thread-booking');
+
+      expect(thread, isNotNull);
+      expect(thread!.requestId, 'req-pickup');
+    });
+
+    test('thread lookup allows renter participant', () async {
+      await seedBookingState(currentUser: renter);
+
+      final thread = await DataService.getMessageThreadById('thread-booking');
+
+      expect(thread, isNotNull);
+      expect(thread!.requestId, 'req-pickup');
+    });
+
+    test('thread lookup blocks uninvolved user on foreign thread id', () async {
+      await seedBookingState(currentUser: outsider);
+
+      final thread = await DataService.getMessageThreadById('thread-booking');
+
+      expect(thread, isNull);
+    });
+
+    test('thread lookup blocks when no current user is logged in', () async {
+      await seedBookingState();
+
+      final thread = await DataService.getMessageThreadById('thread-booking');
+
+      expect(thread, isNull);
+    });
+
+    test('thread creation/open allows owner for own request id', () async {
+      await seedBookingState(currentUser: owner);
+
+      final thread = await DataService.createOrGetThreadForRequest(
+        'req-pickup',
+      );
+
+      expect(thread, isNotNull);
+      expect(thread!.id, 'thread-booking');
+    });
+
+    test(
+      'thread creation/open blocks uninvolved user on foreign request id',
+      () async {
+        await seedBookingState(currentUser: outsider);
+
+        final thread = await DataService.createOrGetThreadForRequest(
+          'req-pickup',
+        );
+
+        expect(thread, isNull);
+      },
+    );
+
+    test(
+      'thread creation/open blocks when no current user is logged in',
+      () async {
+        await seedBookingState();
+
+        final thread = await DataService.createOrGetThreadForRequest(
+          'req-pickup',
+        );
+
+        expect(thread, isNull);
+      },
+    );
+
     test('handover start allows logged-in owner on accepted request', () async {
       await seedBookingState(currentUser: owner);
 
-      final result =
-          await DataService.setHandoverActive('req-pickup', active: true);
+      final result = await DataService.setHandoverActive(
+        'req-pickup',
+        active: true,
+      );
 
       final state = await DataService.getHandoverReturnState('req-pickup');
       final request = await DataService.getRentalRequestById('req-pickup');
@@ -105,166 +193,212 @@ void main() {
       expect(request!.status, 'accepted');
     });
 
-    test('handover start rejects involved renter on accepted request',
-        () async {
-      await seedBookingState(currentUser: renter);
-      final before = await DataService.getHandoverReturnState('req-pickup');
+    test(
+      'handover start rejects involved renter on accepted request',
+      () async {
+        await seedBookingState(currentUser: renter);
+        final before = await DataService.getHandoverReturnState('req-pickup');
 
-      final result =
-          await DataService.setHandoverActive('req-pickup', active: true);
+        final result = await DataService.setHandoverActive(
+          'req-pickup',
+          active: true,
+        );
 
-      final after = await DataService.getHandoverReturnState('req-pickup');
+        final after = await DataService.getHandoverReturnState('req-pickup');
 
-      expect(result, isFalse);
-      expect(after, before);
-      expect(after['handoverActive'], isFalse);
-    });
+        expect(result, isFalse);
+        expect(after, before);
+        expect(after['handoverActive'], isFalse);
+      },
+    );
 
-    test('handover start rejects uninvolved user on accepted request',
-        () async {
-      await seedBookingState(currentUser: outsider);
-      final before = await DataService.getHandoverReturnState('req-pickup');
+    test(
+      'handover start rejects uninvolved user on accepted request',
+      () async {
+        await seedBookingState(currentUser: outsider);
+        final before = await DataService.getHandoverReturnState('req-pickup');
 
-      final result =
-          await DataService.setHandoverActive('req-pickup', active: true);
+        final result = await DataService.setHandoverActive(
+          'req-pickup',
+          active: true,
+        );
 
-      final after = await DataService.getHandoverReturnState('req-pickup');
+        final after = await DataService.getHandoverReturnState('req-pickup');
 
-      expect(result, isFalse);
-      expect(after, before);
-      expect(after['handoverActive'], isFalse);
-    });
+        expect(result, isFalse);
+        expect(after, before);
+        expect(after['handoverActive'], isFalse);
+      },
+    );
 
     test('handover start rejects when no current user is logged in', () async {
       await seedBookingState();
       final before = await DataService.getHandoverReturnState('req-pickup');
 
-      final result =
-          await DataService.setHandoverActive('req-pickup', active: true);
-
-      final after = await DataService.getHandoverReturnState('req-pickup');
-
-      expect(result, isFalse);
-      expect(after, before);
-      expect(after['handoverActive'], isFalse);
-    });
-
-    test('handover start rejects unknown request id without state mutation',
-        () async {
-      final before =
-          await DataService.getHandoverReturnState('missing-handover');
-
-      final result =
-          await DataService.setHandoverActive('missing-handover', active: true);
-
-      final after =
-          await DataService.getHandoverReturnState('missing-handover');
-
-      expect(result, isFalse);
-      expect(before, after);
-      expect(after['handoverActive'], isFalse);
-      expect(after['returnActive'], isFalse);
-    });
-
-    test('handover start rejects non-accepted request without state mutation',
-        () async {
-      await DataService.updateRentalRequestStatus(
-        requestId: 'req-pickup',
-        status: 'running',
+      final result = await DataService.setHandoverActive(
+        'req-pickup',
+        active: true,
       );
-      final before = await DataService.getHandoverReturnState('req-pickup');
-
-      final result =
-          await DataService.setHandoverActive('req-pickup', active: true);
 
       final after = await DataService.getHandoverReturnState('req-pickup');
-      final request = await DataService.getRentalRequestById('req-pickup');
 
       expect(result, isFalse);
       expect(after, before);
       expect(after['handoverActive'], isFalse);
-      expect(after['returnActive'], isFalse);
-      expect(request!.status, 'running');
     });
 
     test(
-        'handover start activates accepted request without changing booking status',
-        () async {
-      final beforeRequest =
-          await DataService.getRentalRequestById('req-pickup');
+      'handover start rejects unknown request id without state mutation',
+      () async {
+        final before = await DataService.getHandoverReturnState(
+          'missing-handover',
+        );
 
-      final result =
-          await DataService.setHandoverActive('req-pickup', active: true);
+        final result = await DataService.setHandoverActive(
+          'missing-handover',
+          active: true,
+        );
 
-      final afterState = await DataService.getHandoverReturnState('req-pickup');
-      final afterRequest = await DataService.getRentalRequestById('req-pickup');
+        final after = await DataService.getHandoverReturnState(
+          'missing-handover',
+        );
 
-      expect(result, isTrue);
-      expect(afterState['handoverActive'], isTrue);
-      expect(afterState['returnActive'], isFalse);
-      expect(afterRequest!.status, 'accepted');
-      expect(beforeRequest!.status, 'accepted');
-    });
+        expect(result, isFalse);
+        expect(before, after);
+        expect(after['handoverActive'], isFalse);
+        expect(after['returnActive'], isFalse);
+      },
+    );
 
-    test('handover start rejects repeated activation without state mutation',
-        () async {
-      await DataService.setHandoverActive('req-pickup', active: true);
-      final before = await DataService.getHandoverReturnState('req-pickup');
+    test(
+      'handover start rejects non-accepted request without state mutation',
+      () async {
+        await DataService.updateRentalRequestStatus(
+          requestId: 'req-pickup',
+          status: 'running',
+        );
+        final before = await DataService.getHandoverReturnState('req-pickup');
 
-      final result =
-          await DataService.setHandoverActive('req-pickup', active: true);
+        final result = await DataService.setHandoverActive(
+          'req-pickup',
+          active: true,
+        );
 
-      final after = await DataService.getHandoverReturnState('req-pickup');
-      final request = await DataService.getRentalRequestById('req-pickup');
+        final after = await DataService.getHandoverReturnState('req-pickup');
+        final request = await DataService.getRentalRequestById('req-pickup');
 
-      expect(result, isFalse);
-      expect(after, before);
-      expect(after['handoverActive'], isTrue);
-      expect(after['returnActive'], isFalse);
-      expect(request!.status, 'accepted');
-    });
+        expect(result, isFalse);
+        expect(after, before);
+        expect(after['handoverActive'], isFalse);
+        expect(after['returnActive'], isFalse);
+        expect(request!.status, 'running');
+      },
+    );
 
-    test('return start rejects unknown request id without state mutation',
-        () async {
-      final before = await DataService.getHandoverReturnState('missing-return');
+    test(
+      'handover start activates accepted request without changing booking status',
+      () async {
+        final beforeRequest = await DataService.getRentalRequestById(
+          'req-pickup',
+        );
 
-      final result =
-          await DataService.setReturnActive('missing-return', active: true);
+        final result = await DataService.setHandoverActive(
+          'req-pickup',
+          active: true,
+        );
 
-      final after = await DataService.getHandoverReturnState('missing-return');
+        final afterState = await DataService.getHandoverReturnState(
+          'req-pickup',
+        );
+        final afterRequest = await DataService.getRentalRequestById(
+          'req-pickup',
+        );
 
-      expect(result, isFalse);
-      expect(before, after);
-      expect(after['handoverActive'], isFalse);
-      expect(after['returnActive'], isFalse);
-    });
+        expect(result, isTrue);
+        expect(afterState['handoverActive'], isTrue);
+        expect(afterState['returnActive'], isFalse);
+        expect(afterRequest!.status, 'accepted');
+        expect(beforeRequest!.status, 'accepted');
+      },
+    );
 
-    test('return start rejects non-running request without state mutation',
-        () async {
-      await DataService.updateRentalRequestStatus(
-        requestId: 'req-return',
-        status: 'accepted',
-      );
-      final before = await DataService.getHandoverReturnState('req-return');
+    test(
+      'handover start rejects repeated activation without state mutation',
+      () async {
+        await DataService.setHandoverActive('req-pickup', active: true);
+        final before = await DataService.getHandoverReturnState('req-pickup');
 
-      final result =
-          await DataService.setReturnActive('req-return', active: true);
+        final result = await DataService.setHandoverActive(
+          'req-pickup',
+          active: true,
+        );
 
-      final after = await DataService.getHandoverReturnState('req-return');
-      final request = await DataService.getRentalRequestById('req-return');
+        final after = await DataService.getHandoverReturnState('req-pickup');
+        final request = await DataService.getRentalRequestById('req-pickup');
 
-      expect(result, isFalse);
-      expect(after, before);
-      expect(after['handoverActive'], isFalse);
-      expect(after['returnActive'], isFalse);
-      expect(request!.status, 'accepted');
-    });
+        expect(result, isFalse);
+        expect(after, before);
+        expect(after['handoverActive'], isTrue);
+        expect(after['returnActive'], isFalse);
+        expect(request!.status, 'accepted');
+      },
+    );
+
+    test(
+      'return start rejects unknown request id without state mutation',
+      () async {
+        final before = await DataService.getHandoverReturnState(
+          'missing-return',
+        );
+
+        final result = await DataService.setReturnActive(
+          'missing-return',
+          active: true,
+        );
+
+        final after = await DataService.getHandoverReturnState(
+          'missing-return',
+        );
+
+        expect(result, isFalse);
+        expect(before, after);
+        expect(after['handoverActive'], isFalse);
+        expect(after['returnActive'], isFalse);
+      },
+    );
+
+    test(
+      'return start rejects non-running request without state mutation',
+      () async {
+        await DataService.updateRentalRequestStatus(
+          requestId: 'req-return',
+          status: 'accepted',
+        );
+        final before = await DataService.getHandoverReturnState('req-return');
+
+        final result = await DataService.setReturnActive(
+          'req-return',
+          active: true,
+        );
+
+        final after = await DataService.getHandoverReturnState('req-return');
+        final request = await DataService.getRentalRequestById('req-return');
+
+        expect(result, isFalse);
+        expect(after, before);
+        expect(after['handoverActive'], isFalse);
+        expect(after['returnActive'], isFalse);
+        expect(request!.status, 'accepted');
+      },
+    );
 
     test('return start allows logged-in renter on running request', () async {
       await seedBookingState(currentUser: renter);
 
-      final result =
-          await DataService.setReturnActive('req-return', active: true);
+      final result = await DataService.setReturnActive(
+        'req-return',
+        active: true,
+      );
 
       final state = await DataService.getHandoverReturnState('req-return');
       final request = await DataService.getRentalRequestById('req-return');
@@ -279,8 +413,10 @@ void main() {
       await seedBookingState(currentUser: owner);
       final before = await DataService.getHandoverReturnState('req-return');
 
-      final result =
-          await DataService.setReturnActive('req-return', active: true);
+      final result = await DataService.setReturnActive(
+        'req-return',
+        active: true,
+      );
 
       final after = await DataService.getHandoverReturnState('req-return');
 
@@ -293,8 +429,10 @@ void main() {
       await seedBookingState(currentUser: outsider);
       final before = await DataService.getHandoverReturnState('req-return');
 
-      final result =
-          await DataService.setReturnActive('req-return', active: true);
+      final result = await DataService.setReturnActive(
+        'req-return',
+        active: true,
+      );
 
       final after = await DataService.getHandoverReturnState('req-return');
 
@@ -307,8 +445,10 @@ void main() {
       await seedBookingState();
       final before = await DataService.getHandoverReturnState('req-return');
 
-      final result =
-          await DataService.setReturnActive('req-return', active: true);
+      final result = await DataService.setReturnActive(
+        'req-return',
+        active: true,
+      );
 
       final after = await DataService.getHandoverReturnState('req-return');
 
@@ -318,420 +458,468 @@ void main() {
     });
 
     test(
-        'return start activates running request without changing booking status',
-        () async {
-      await seedBookingState(currentUser: renter);
-      final beforeRequest =
-          await DataService.getRentalRequestById('req-return');
+      'return start activates running request without changing booking status',
+      () async {
+        await seedBookingState(currentUser: renter);
+        final beforeRequest = await DataService.getRentalRequestById(
+          'req-return',
+        );
 
-      final result =
-          await DataService.setReturnActive('req-return', active: true);
+        final result = await DataService.setReturnActive(
+          'req-return',
+          active: true,
+        );
 
-      final afterState = await DataService.getHandoverReturnState('req-return');
-      final afterRequest = await DataService.getRentalRequestById('req-return');
+        final afterState = await DataService.getHandoverReturnState(
+          'req-return',
+        );
+        final afterRequest = await DataService.getRentalRequestById(
+          'req-return',
+        );
 
-      expect(result, isTrue);
-      expect(afterState['handoverActive'], isFalse);
-      expect(afterState['returnActive'], isTrue);
-      expect(afterRequest!.status, 'running');
-      expect(beforeRequest!.status, 'running');
-    });
+        expect(result, isTrue);
+        expect(afterState['handoverActive'], isFalse);
+        expect(afterState['returnActive'], isTrue);
+        expect(afterRequest!.status, 'running');
+        expect(beforeRequest!.status, 'running');
+      },
+    );
 
-    test('return start rejects repeated activation without state mutation',
-        () async {
-      await seedBookingState(currentUser: renter);
-      await DataService.setReturnActive('req-return', active: true);
-      final before = await DataService.getHandoverReturnState('req-return');
+    test(
+      'return start rejects repeated activation without state mutation',
+      () async {
+        await seedBookingState(currentUser: renter);
+        await DataService.setReturnActive('req-return', active: true);
+        final before = await DataService.getHandoverReturnState('req-return');
 
-      final result =
-          await DataService.setReturnActive('req-return', active: true);
+        final result = await DataService.setReturnActive(
+          'req-return',
+          active: true,
+        );
 
-      final after = await DataService.getHandoverReturnState('req-return');
-      final request = await DataService.getRentalRequestById('req-return');
+        final after = await DataService.getHandoverReturnState('req-return');
+        final request = await DataService.getRentalRequestById('req-return');
 
-      expect(result, isFalse);
-      expect(after, before);
-      expect(after['handoverActive'], isFalse);
-      expect(after['returnActive'], isTrue);
-      expect(request!.status, 'running');
-    });
+        expect(result, isFalse);
+        expect(after, before);
+        expect(after['handoverActive'], isFalse);
+        expect(after['returnActive'], isTrue);
+        expect(request!.status, 'running');
+      },
+    );
 
-    test('pickup transition rejects requests whose status is not accepted',
-        () async {
-      await DataService.updateRentalRequestStatus(
-        requestId: 'req-pickup',
-        status: 'running',
-      );
-      await DataService.setHandoverActive('req-pickup', active: true);
-      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+    test(
+      'pickup transition rejects requests whose status is not accepted',
+      () async {
+        await DataService.updateRentalRequestStatus(
+          requestId: 'req-pickup',
+          status: 'running',
+        );
+        await DataService.setHandoverActive('req-pickup', active: true);
+        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+          await DataService.incrementHandoverPhotos('req-pickup');
+        }
+
+        final result = await DataService.confirmPickupTransition(
+          requestId: 'req-pickup',
+          confirmedByUserId: renter.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+        );
+
+        final request = await DataService.getRentalRequestById('req-pickup');
+
+        expect(result.success, isFalse);
+        expect(
+          result.errorMessage,
+          contains('Übergabe ist gerade nicht verfügbar'),
+        );
+        expect(request!.status, 'running');
+        expect(request.handoverConfirmation, isNull);
+      },
+    );
+
+    test(
+      'pickup transition rejects wrong renter role even when status is accepted',
+      () async {
+        await DataService.setHandoverActive('req-pickup', active: true);
+        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+          await DataService.incrementHandoverPhotos('req-pickup');
+        }
+
+        final result = await DataService.confirmPickupTransition(
+          requestId: 'req-pickup',
+          confirmedByUserId: owner.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+        );
+
+        final request = await DataService.getRentalRequestById('req-pickup');
+
+        expect(result.success, isFalse);
+        expect(result.errorMessage, contains('nur für den Mieter'));
+        expect(request!.status, 'accepted');
+        expect(request.handoverConfirmation, isNull);
+      },
+    );
+
+    test(
+      'pickup transition rejects accepted request without active handover flow',
+      () async {
+        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+          await DataService.incrementHandoverPhotos('req-pickup');
+        }
+
+        final result = await DataService.confirmPickupTransition(
+          requestId: 'req-pickup',
+          confirmedByUserId: renter.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+        );
+
+        final request = await DataService.getRentalRequestById('req-pickup');
+
+        expect(result.success, isFalse);
+        expect(
+          result.errorMessage,
+          contains('Bitte starte die Übergabe zuerst im Chat'),
+        );
+        expect(request!.status, 'accepted');
+        expect(request.handoverConfirmation, isNull);
+      },
+    );
+
+    test(
+      'pickup transition requires active flow and at least four handover photos',
+      () async {
+        await DataService.setHandoverActive('req-pickup', active: true);
         await DataService.incrementHandoverPhotos('req-pickup');
-      }
-
-      final result = await DataService.confirmPickupTransition(
-        requestId: 'req-pickup',
-        confirmedByUserId: renter.id,
-        method: 'manual',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-      );
-
-      final request = await DataService.getRentalRequestById('req-pickup');
-
-      expect(result.success, isFalse);
-      expect(
-          result.errorMessage, contains('Übergabe ist gerade nicht verfügbar'));
-      expect(request!.status, 'running');
-      expect(request.handoverConfirmation, isNull);
-    });
-
-    test(
-        'pickup transition rejects wrong renter role even when status is accepted',
-        () async {
-      await DataService.setHandoverActive('req-pickup', active: true);
-      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
         await DataService.incrementHandoverPhotos('req-pickup');
-      }
-
-      final result = await DataService.confirmPickupTransition(
-        requestId: 'req-pickup',
-        confirmedByUserId: owner.id,
-        method: 'manual',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-      );
-
-      final request = await DataService.getRentalRequestById('req-pickup');
-
-      expect(result.success, isFalse);
-      expect(result.errorMessage, contains('nur für den Mieter'));
-      expect(request!.status, 'accepted');
-      expect(request.handoverConfirmation, isNull);
-    });
-
-    test(
-        'pickup transition rejects accepted request without active handover flow',
-        () async {
-      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
         await DataService.incrementHandoverPhotos('req-pickup');
-      }
 
-      final result = await DataService.confirmPickupTransition(
-        requestId: 'req-pickup',
-        confirmedByUserId: renter.id,
-        method: 'manual',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-      );
+        final result = await DataService.confirmPickupTransition(
+          requestId: 'req-pickup',
+          confirmedByUserId: renter.id,
+          method: 'qr',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+        );
 
-      final request = await DataService.getRentalRequestById('req-pickup');
+        final request = await DataService.getRentalRequestById('req-pickup');
 
-      expect(result.success, isFalse);
-      expect(result.errorMessage,
-          contains('Bitte starte die Übergabe zuerst im Chat'));
-      expect(request!.status, 'accepted');
-      expect(request.handoverConfirmation, isNull);
-    });
+        expect(result.success, isFalse);
+        expect(result.errorMessage, contains('mindestens 4 Fotos'));
+        expect(request!.status, 'accepted');
+      },
+    );
 
     test(
-        'pickup transition requires active flow and at least four handover photos',
-        () async {
-      await DataService.setHandoverActive('req-pickup', active: true);
-      await DataService.incrementHandoverPhotos('req-pickup');
-      await DataService.incrementHandoverPhotos('req-pickup');
-      await DataService.incrementHandoverPhotos('req-pickup');
+      'pickup transition moves accepted booking to running after verified renter confirmation',
+      () async {
+        await DataService.setHandoverActive('req-pickup', active: true);
+        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+          await DataService.incrementHandoverPhotos('req-pickup');
+        }
 
-      final result = await DataService.confirmPickupTransition(
-        requestId: 'req-pickup',
-        confirmedByUserId: renter.id,
-        method: 'qr',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-      );
+        final result = await DataService.confirmPickupTransition(
+          requestId: 'req-pickup',
+          confirmedByUserId: renter.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+        );
 
-      final request = await DataService.getRentalRequestById('req-pickup');
+        final request = await DataService.getRentalRequestById('req-pickup');
+        final state = await DataService.getHandoverReturnState('req-pickup');
 
-      expect(result.success, isFalse);
-      expect(result.errorMessage, contains('mindestens 4 Fotos'));
-      expect(request!.status, 'accepted');
-    });
-
-    test(
-        'pickup transition moves accepted booking to running after verified renter confirmation',
-        () async {
-      await DataService.setHandoverActive('req-pickup', active: true);
-      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-        await DataService.incrementHandoverPhotos('req-pickup');
-      }
-
-      final result = await DataService.confirmPickupTransition(
-        requestId: 'req-pickup',
-        confirmedByUserId: renter.id,
-        method: 'manual',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-      );
-
-      final request = await DataService.getRentalRequestById('req-pickup');
-      final state = await DataService.getHandoverReturnState('req-pickup');
-
-      expect(result.success, isTrue);
-      expect(request!.status, 'running');
-      expect(request.handoverConfirmation?['confirmedByRole'], 'renter');
-      expect(request.handoverConfirmation?['method'], 'manual');
-      expect(state['handoverActive'], isFalse);
-    });
+        expect(result.success, isTrue);
+        expect(request!.status, 'running');
+        expect(request.handoverConfirmation?['confirmedByRole'], 'renter');
+        expect(request.handoverConfirmation?['method'], 'manual');
+        expect(state['handoverActive'], isFalse);
+      },
+    );
 
     test(
-        'pickup transition rejects repeated confirmation after booking is already running',
-        () async {
-      await DataService.setHandoverActive('req-pickup', active: true);
-      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-        await DataService.incrementHandoverPhotos('req-pickup');
-      }
+      'pickup transition rejects repeated confirmation after booking is already running',
+      () async {
+        await DataService.setHandoverActive('req-pickup', active: true);
+        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+          await DataService.incrementHandoverPhotos('req-pickup');
+        }
 
-      final first = await DataService.confirmPickupTransition(
-        requestId: 'req-pickup',
-        confirmedByUserId: renter.id,
-        method: 'manual',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-      );
-      final afterFirst = await DataService.getRentalRequestById('req-pickup');
+        final first = await DataService.confirmPickupTransition(
+          requestId: 'req-pickup',
+          confirmedByUserId: renter.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+        );
+        final afterFirst = await DataService.getRentalRequestById('req-pickup');
 
-      final second = await DataService.confirmPickupTransition(
-        requestId: 'req-pickup',
-        confirmedByUserId: renter.id,
-        method: 'manual',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-      );
+        final second = await DataService.confirmPickupTransition(
+          requestId: 'req-pickup',
+          confirmedByUserId: renter.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+        );
 
-      final afterSecond = await DataService.getRentalRequestById('req-pickup');
+        final afterSecond = await DataService.getRentalRequestById(
+          'req-pickup',
+        );
 
-      expect(first.success, isTrue);
-      expect(afterFirst!.status, 'running');
-      expect(second.success, isFalse);
-      expect(
-          second.errorMessage, contains('Übergabe ist gerade nicht verfügbar'));
-      expect(afterSecond!.status, 'running');
-      expect(afterSecond.handoverConfirmation?['confirmedByRole'], 'renter');
-    });
-
-    test('return transition rejects requests whose status is not running',
-        () async {
-      await seedBookingState(currentUser: renter);
-      await DataService.updateRentalRequestStatus(
-        requestId: 'req-return',
-        status: 'completed',
-      );
-      await DataService.setReturnActive('req-return', active: true);
-      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-        await DataService.incrementReturnPhotos('req-return');
-      }
-
-      final result = await DataService.confirmReturnTransition(
-        requestId: 'req-return',
-        confirmedByUserId: owner.id,
-        method: 'manual',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-        reviewPauseSource: 'test',
-      );
-
-      final request = await DataService.getRentalRequestById('req-return');
-
-      expect(result.success, isFalse);
-      expect(
-          result.errorMessage, contains('Rückgabe ist gerade nicht verfügbar'));
-      expect(request!.status, 'completed');
-      expect(request.returnConfirmation, isNull);
-    });
+        expect(first.success, isTrue);
+        expect(afterFirst!.status, 'running');
+        expect(second.success, isFalse);
+        expect(
+          second.errorMessage,
+          contains('Übergabe ist gerade nicht verfügbar'),
+        );
+        expect(afterSecond!.status, 'running');
+        expect(afterSecond.handoverConfirmation?['confirmedByRole'], 'renter');
+      },
+    );
 
     test(
-        'return transition rejects wrong owner role even when status is running',
-        () async {
-      await seedBookingState(currentUser: renter);
-      await DataService.setReturnActive('req-return', active: true);
-      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-        await DataService.incrementReturnPhotos('req-return');
-      }
+      'return transition rejects requests whose status is not running',
+      () async {
+        await seedBookingState(currentUser: renter);
+        await DataService.updateRentalRequestStatus(
+          requestId: 'req-return',
+          status: 'completed',
+        );
+        await DataService.setReturnActive('req-return', active: true);
+        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+          await DataService.incrementReturnPhotos('req-return');
+        }
 
-      final result = await DataService.confirmReturnTransition(
-        requestId: 'req-return',
-        confirmedByUserId: renter.id,
-        method: 'manual',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-        reviewPauseSource: 'test',
-      );
+        final result = await DataService.confirmReturnTransition(
+          requestId: 'req-return',
+          confirmedByUserId: owner.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+          reviewPauseSource: 'test',
+        );
 
-      final request = await DataService.getRentalRequestById('req-return');
+        final request = await DataService.getRentalRequestById('req-return');
 
-      expect(result.success, isFalse);
-      expect(result.errorMessage, contains('nur für den Vermieter'));
-      expect(request!.status, 'running');
-      expect(request.returnConfirmation, isNull);
-    });
-
-    test('return transition rejects running request without active return flow',
-        () async {
-      await seedBookingState(currentUser: renter);
-      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-        await DataService.incrementReturnPhotos('req-return');
-      }
-
-      final result = await DataService.confirmReturnTransition(
-        requestId: 'req-return',
-        confirmedByUserId: owner.id,
-        method: 'manual',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-        reviewPauseSource: 'test',
-      );
-
-      final request = await DataService.getRentalRequestById('req-return');
-
-      expect(result.success, isFalse);
-      expect(result.errorMessage,
-          contains('Bitte starte die Rückgabe zuerst im Chat'));
-      expect(request!.status, 'running');
-      expect(request.returnConfirmation, isNull);
-    });
+        expect(result.success, isFalse);
+        expect(
+          result.errorMessage,
+          contains('Rückgabe ist gerade nicht verfügbar'),
+        );
+        expect(request!.status, 'completed');
+        expect(request.returnConfirmation, isNull);
+      },
+    );
 
     test(
-        'return transition pauses completion when booking is marked needsReview',
-        () async {
-      await seedBookingState(currentUser: renter);
-      await DataService.setReturnActive('req-review', active: true);
-      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-        await DataService.incrementReturnPhotos('req-review');
-      }
+      'return transition rejects wrong owner role even when status is running',
+      () async {
+        await seedBookingState(currentUser: renter);
+        await DataService.setReturnActive('req-return', active: true);
+        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+          await DataService.incrementReturnPhotos('req-return');
+        }
 
-      final result = await DataService.confirmReturnTransition(
-        requestId: 'req-review',
-        confirmedByUserId: owner.id,
-        method: 'qr',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-        reviewPauseSource: 'test',
-      );
+        final result = await DataService.confirmReturnTransition(
+          requestId: 'req-return',
+          confirmedByUserId: renter.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+          reviewPauseSource: 'test',
+        );
 
-      final request = await DataService.getRentalRequestById('req-review');
-      final state = await DataService.getHandoverReturnState('req-review');
+        final request = await DataService.getRentalRequestById('req-return');
 
-      expect(result.success, isFalse);
-      expect(result.pausedForReview, isTrue);
-      expect(request!.status, 'running');
-      expect(request.returnConfirmation, isNull);
-      expect(state['returnActive'], isTrue);
-    });
-
-    test(
-        'return transition completes running booking after owner confirmation and required photos',
-        () async {
-      await seedBookingState(currentUser: renter);
-      await DataService.setReturnActive('req-return', active: true);
-      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-        await DataService.incrementReturnPhotos('req-return');
-      }
-
-      final result = await DataService.confirmReturnTransition(
-        requestId: 'req-return',
-        confirmedByUserId: owner.id,
-        method: 'manual',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-        reviewPauseSource: 'test',
-      );
-
-      final request = await DataService.getRentalRequestById('req-return');
-      final state = await DataService.getHandoverReturnState('req-return');
-
-      expect(result.success, isTrue);
-      expect(result.pausedForReview, isFalse);
-      expect(request!.status, 'completed');
-      expect(request.returnConfirmation?['confirmedByRole'], 'owner');
-      expect(request.returnConfirmation?['method'], 'manual');
-      expect(state['returnActive'], isFalse);
-    });
+        expect(result.success, isFalse);
+        expect(result.errorMessage, contains('nur für den Vermieter'));
+        expect(request!.status, 'running');
+        expect(request.returnConfirmation, isNull);
+      },
+    );
 
     test(
-        'return transition rejects repeated confirmation after booking is already completed',
-        () async {
-      await seedBookingState(currentUser: renter);
-      await DataService.setReturnActive('req-return', active: true);
-      for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-        await DataService.incrementReturnPhotos('req-return');
-      }
+      'return transition rejects running request without active return flow',
+      () async {
+        await seedBookingState(currentUser: renter);
+        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+          await DataService.incrementReturnPhotos('req-return');
+        }
 
-      final first = await DataService.confirmReturnTransition(
-        requestId: 'req-return',
-        confirmedByUserId: owner.id,
-        method: 'manual',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-        reviewPauseSource: 'test',
-      );
-      final afterFirst = await DataService.getRentalRequestById('req-return');
+        final result = await DataService.confirmReturnTransition(
+          requestId: 'req-return',
+          confirmedByUserId: owner.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+          reviewPauseSource: 'test',
+        );
 
-      final second = await DataService.confirmReturnTransition(
-        requestId: 'req-return',
-        confirmedByUserId: owner.id,
-        method: 'manual',
-        confirmationContextVerified: true,
-        galleryAcknowledged: true,
-        reviewPauseSource: 'test',
-      );
+        final request = await DataService.getRentalRequestById('req-return');
 
-      final afterSecond = await DataService.getRentalRequestById('req-return');
+        expect(result.success, isFalse);
+        expect(
+          result.errorMessage,
+          contains('Bitte starte die Rückgabe zuerst im Chat'),
+        );
+        expect(request!.status, 'running');
+        expect(request.returnConfirmation, isNull);
+      },
+    );
 
-      expect(first.success, isTrue);
-      expect(afterFirst!.status, 'completed');
-      expect(second.success, isFalse);
-      expect(
-          second.errorMessage, contains('Rückgabe ist gerade nicht verfügbar'));
-      expect(afterSecond!.status, 'completed');
-      expect(afterSecond.returnConfirmation?['confirmedByRole'], 'owner');
-    });
+    test(
+      'return transition pauses completion when booking is marked needsReview',
+      () async {
+        await seedBookingState(currentUser: renter);
+        await DataService.setReturnActive('req-review', active: true);
+        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+          await DataService.incrementReturnPhotos('req-review');
+        }
+
+        final result = await DataService.confirmReturnTransition(
+          requestId: 'req-review',
+          confirmedByUserId: owner.id,
+          method: 'qr',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+          reviewPauseSource: 'test',
+        );
+
+        final request = await DataService.getRentalRequestById('req-review');
+        final state = await DataService.getHandoverReturnState('req-review');
+
+        expect(result.success, isFalse);
+        expect(result.pausedForReview, isTrue);
+        expect(request!.status, 'running');
+        expect(request.returnConfirmation, isNull);
+        expect(state['returnActive'], isTrue);
+      },
+    );
+
+    test(
+      'return transition completes running booking after owner confirmation and required photos',
+      () async {
+        await seedBookingState(currentUser: renter);
+        await DataService.setReturnActive('req-return', active: true);
+        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+          await DataService.incrementReturnPhotos('req-return');
+        }
+
+        final result = await DataService.confirmReturnTransition(
+          requestId: 'req-return',
+          confirmedByUserId: owner.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+          reviewPauseSource: 'test',
+        );
+
+        final request = await DataService.getRentalRequestById('req-return');
+        final state = await DataService.getHandoverReturnState('req-return');
+
+        expect(result.success, isTrue);
+        expect(result.pausedForReview, isFalse);
+        expect(request!.status, 'completed');
+        expect(request.returnConfirmation?['confirmedByRole'], 'owner');
+        expect(request.returnConfirmation?['method'], 'manual');
+        expect(state['returnActive'], isFalse);
+      },
+    );
+
+    test(
+      'return transition rejects repeated confirmation after booking is already completed',
+      () async {
+        await seedBookingState(currentUser: renter);
+        await DataService.setReturnActive('req-return', active: true);
+        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+          await DataService.incrementReturnPhotos('req-return');
+        }
+
+        final first = await DataService.confirmReturnTransition(
+          requestId: 'req-return',
+          confirmedByUserId: owner.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+          reviewPauseSource: 'test',
+        );
+        final afterFirst = await DataService.getRentalRequestById('req-return');
+
+        final second = await DataService.confirmReturnTransition(
+          requestId: 'req-return',
+          confirmedByUserId: owner.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+          reviewPauseSource: 'test',
+        );
+
+        final afterSecond = await DataService.getRentalRequestById(
+          'req-return',
+        );
+
+        expect(first.success, isTrue);
+        expect(afterFirst!.status, 'completed');
+        expect(second.success, isFalse);
+        expect(
+          second.errorMessage,
+          contains('Rückgabe ist gerade nicht verfügbar'),
+        );
+        expect(afterSecond!.status, 'completed');
+        expect(afterSecond.returnConfirmation?['confirmedByRole'], 'owner');
+      },
+    );
   });
 
   group('DataService price breakdown', () {
     test(
-        'delivery return and express fees affect renter total and owner payout as implemented',
-        () {
-      final item = buildTestItem(
-        id: 'item-priced',
-        ownerId: 'owner-1',
-        pricePerDay: 20,
-        lat: 52.52,
-        lng: 13.405,
-      );
-      final request = buildTestRequest(
-        id: 'req-priced',
-        itemId: item.id,
-        ownerId: 'owner-1',
-        renterId: 'renter-1',
-        expressRequested: true,
-        expressStatus: 'accepted',
-        ownerPicksUpAtReturnChosen: true,
-        deliveryLat: 52.53,
-        deliveryLng: 13.405,
-        returnLat: 52.53,
-        returnLng: 13.405,
-      );
+      'delivery return and express fees affect renter total and owner payout as implemented',
+      () {
+        final item = buildTestItem(
+          id: 'item-priced',
+          ownerId: 'owner-1',
+          pricePerDay: 20,
+          lat: 52.52,
+          lng: 13.405,
+        );
+        final request = buildTestRequest(
+          id: 'req-priced',
+          itemId: item.id,
+          ownerId: 'owner-1',
+          renterId: 'renter-1',
+          expressRequested: true,
+          expressStatus: 'accepted',
+          ownerPicksUpAtReturnChosen: true,
+          deliveryLat: 52.53,
+          deliveryLng: 13.405,
+          returnLat: 52.53,
+          returnLng: 13.405,
+        );
 
-      final breakdown = DataService.priceBreakdownForRequest(
-        item: item,
-        req: request,
-        deliverySel: const {'hinweg': true, 'rueckweg': true, 'express': true},
-      );
+        final breakdown = DataService.priceBreakdownForRequest(
+          item: item,
+          req: request,
+          deliverySel: const {
+            'hinweg': true,
+            'rueckweg': true,
+            'express': true,
+          },
+        );
 
-      expect(breakdown.dropoffFee, 3.0);
-      expect(breakdown.returnFee, 3.0);
-      expect(breakdown.expressApplied, 5.0);
-      expect(breakdown.platformFee, 4.0);
-      expect(breakdown.totalRenter, 55.5);
-      expect(breakdown.payoutOwner, 51.0);
-    });
+        expect(breakdown.dropoffFee, 3.0);
+        expect(breakdown.returnFee, 3.0);
+        expect(breakdown.expressApplied, 5.0);
+        expect(breakdown.platformFee, 4.0);
+        expect(breakdown.totalRenter, 55.5);
+        expect(breakdown.payoutOwner, 51.0);
+      },
+    );
   });
 }
