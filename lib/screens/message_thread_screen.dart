@@ -72,6 +72,28 @@ class MessageThreadScreen extends StatefulWidget {
   State<MessageThreadScreen> createState() => _MessageThreadScreenState();
 }
 
+enum BookingChatState { requestOpen, confirmed, running, returnPlanned, completed, support }
+
+bool canStartPrimaryBookingAction({
+  required BookingChatState chatState,
+  required bool viewerIsOwner,
+}) {
+  switch (chatState) {
+    case BookingChatState.confirmed:
+      return viewerIsOwner;
+    case BookingChatState.running:
+    case BookingChatState.returnPlanned:
+      return !viewerIsOwner;
+    case BookingChatState.requestOpen:
+    case BookingChatState.completed:
+    case BookingChatState.support:
+      return false;
+  }
+}
+
+bool shouldSendStartSystemMessage({required bool activationSucceeded}) =>
+    activationSucceeded;
+
 enum _ChatState { requestOpen, confirmed, running, returnPlanned, completed, support }
 
 enum _LocationIntent { handover, returnTrip, unknown }
@@ -951,7 +973,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
             AppPopup.toast(context, icon: Icons.error_outline, title: 'Übergabe-Daten fehlen');
             break;
           }
-          await DataService.setHandoverActive(r.id, active: true);
+          final activated = await DataService.setHandoverActive(r.id, active: true);
+          if (!shouldSendStartSystemMessage(activationSucceeded: activated)) {
+            break;
+          }
           await DataService.addSystemMessageToThread(threadId: t.id, text: 'Übergabe gestartet');
           if (mounted) {
             AppPopup.toast(context, icon: Icons.qr_code_2, title: 'Übergabe gestartet', message: 'Bestätige die Übergabe jetzt im Buchungsdetail per QR-Code oder manuellem Code.');
@@ -963,7 +988,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
             AppPopup.toast(context, icon: Icons.error_outline, title: 'Rückgabe-Daten fehlen');
             break;
           }
-          await DataService.setReturnActive(r.id, active: true);
+          final activated = await DataService.setReturnActive(r.id, active: true);
+          if (!shouldSendStartSystemMessage(activationSucceeded: activated)) {
+            break;
+          }
           await DataService.addSystemMessageToThread(threadId: t.id, text: 'Rückgabe gestartet');
           if (mounted) {
             AppPopup.toast(context, icon: Icons.assignment_return_outlined, title: 'Rückgabe gestartet', message: 'Bestätige die Rückgabe jetzt im Buchungsdetail per QR-Code oder manuellem Code.');
@@ -1030,12 +1058,22 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   bool _shouldShowActions(_ChatState st) {
-    // Nur aktive Buchungszustände zeigen Aktionen
     switch (st) {
       case _ChatState.confirmed:
+        return canStartPrimaryBookingAction(
+          chatState: BookingChatState.confirmed,
+          viewerIsOwner: _viewerIsOwner(),
+        );
       case _ChatState.running:
+        return canStartPrimaryBookingAction(
+          chatState: BookingChatState.running,
+          viewerIsOwner: _viewerIsOwner(),
+        );
       case _ChatState.returnPlanned:
-        return true;
+        return canStartPrimaryBookingAction(
+          chatState: BookingChatState.returnPlanned,
+          viewerIsOwner: _viewerIsOwner(),
+        );
       case _ChatState.requestOpen: // Chat blockiert
       case _ChatState.completed: // Chat blockiert
       case _ChatState.support:

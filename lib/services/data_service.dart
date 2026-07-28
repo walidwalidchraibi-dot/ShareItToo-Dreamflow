@@ -5879,19 +5879,21 @@ class DataService {
     };
   }
 
-  static Future<void> setHandoverActive(String requestId,
+  static Future<bool> setHandoverActive(String requestId,
       {required bool active}) async {
     final id = requestId.trim();
-    if (id.isEmpty) return;
+    if (id.isEmpty) return false;
     final map = await _getHandoverReturnStateMap();
     final existing = (map[id] is Map)
         ? Map<String, dynamic>.from(map[id] as Map)
         : <String, dynamic>{};
     if (active) {
       final request = await getRentalRequestById(id);
-      if (request == null) return;
-      if (request.status != 'accepted') return;
-      if (existing['handoverActive'] == true) return;
+      final currentUser = await getCurrentUser();
+      if (request == null || currentUser == null) return false;
+      if (request.status != 'accepted') return false;
+      if (currentUser.id != request.ownerId) return false;
+      if (existing['handoverActive'] == true) return false;
     }
     existing['handoverActive'] = active;
     if (active) existing['returnActive'] = false;
@@ -5903,21 +5905,24 @@ class DataService {
         : 0;
     map[id] = existing;
     await _setHandoverReturnStateMap(map);
+    return active;
   }
 
-  static Future<void> setReturnActive(String requestId,
+  static Future<bool> setReturnActive(String requestId,
       {required bool active}) async {
     final id = requestId.trim();
-    if (id.isEmpty) return;
+    if (id.isEmpty) return false;
     final map = await _getHandoverReturnStateMap();
     final existing = (map[id] is Map)
         ? Map<String, dynamic>.from(map[id] as Map)
         : <String, dynamic>{};
     if (active) {
       final request = await getRentalRequestById(id);
-      if (request == null) return;
-      if (request.status != 'running') return;
-      if (existing['returnActive'] == true) return;
+      final currentUser = await getCurrentUser();
+      if (request == null || currentUser == null) return false;
+      if (request.status != 'running') return false;
+      if (currentUser.id != request.renterId) return false;
+      if (existing['returnActive'] == true) return false;
     }
     existing['returnActive'] = active;
     if (active) existing['handoverActive'] = false;
@@ -5929,6 +5934,7 @@ class DataService {
         : 0;
     map[id] = existing;
     await _setHandoverReturnStateMap(map);
+    return active;
   }
 
   static Future<void> clearHandoverActive(String requestId) async {
