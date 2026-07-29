@@ -1244,7 +1244,6 @@ class DataService {
       final acceptedItem = firstOwnedByWithPhoto(ownerA.id) ?? items.first;
       final runningItem = firstOwnedByWithPhoto(ownerB.id) ?? acceptedItem;
       final completedItem = firstOwnedBy(ownerC.id) ?? runningItem;
-      final pendingItem = firstOwnedBy(me.id) ?? acceptedItem;
       final ownerTemplate =
           firstOwnedByWithPhoto(me.id) ?? firstOwnedBy(me.id) ?? items.first;
       final now = DateTime.now();
@@ -1321,6 +1320,66 @@ class DataService {
         id: 'qa_owner_item_completed_problem_$userId',
         title: 'QA E-Scooter Prüfung läuft',
       );
+
+      final User? sharedOwner = users
+          .where((u) => u.id == 'u1')
+          .cast<User?>()
+          .firstWhere((u) => u != null, orElse: () => null);
+      final User? sharedRenter = users
+          .where((u) => u.id == 'u2')
+          .cast<User?>()
+          .firstWhere((u) => u != null, orElse: () => null);
+      final Item? sharedOwnerTemplate = sharedOwner == null
+          ? null
+          : (firstOwnedByWithPhoto(sharedOwner.id) ??
+              firstOwnedBy(sharedOwner.id));
+      final sharedItem = (sharedOwner != null && sharedRenter != null)
+          ? Item(
+              id: 'qa_shared_item_u1_u2',
+              ownerId: sharedOwner.id,
+              title: 'QA Gemeinsame Übergabe Abholung',
+              description:
+                  'Lokaler QA-Fixture-Artikel für den gemeinsamen Owner↔Renter-Verifikationsfall.',
+              categoryId: (sharedOwnerTemplate ?? acceptedItem).categoryId,
+              subcategory: (sharedOwnerTemplate ?? acceptedItem).subcategory,
+              tags: (sharedOwnerTemplate ?? acceptedItem).tags,
+              pricePerDay: (sharedOwnerTemplate ?? acceptedItem).pricePerDay,
+              currency: (sharedOwnerTemplate ?? acceptedItem).currency,
+              priceUnit: (sharedOwnerTemplate ?? acceptedItem).priceUnit,
+              priceRaw: (sharedOwnerTemplate ?? acceptedItem).priceRaw,
+              deposit: (sharedOwnerTemplate ?? acceptedItem).deposit,
+              autoApplyDiscounts:
+                  (sharedOwnerTemplate ?? acceptedItem).autoApplyDiscounts,
+              longRentalDiscounts:
+                  (sharedOwnerTemplate ?? acceptedItem).longRentalDiscounts,
+              photos: (sharedOwnerTemplate ?? acceptedItem).photos,
+              locationText: (sharedOwnerTemplate ?? acceptedItem).locationText,
+              lat: (sharedOwnerTemplate ?? acceptedItem).lat,
+              lng: (sharedOwnerTemplate ?? acceptedItem).lng,
+              geohash: (sharedOwnerTemplate ?? acceptedItem).geohash,
+              condition: (sharedOwnerTemplate ?? acceptedItem).condition,
+              minDays: (sharedOwnerTemplate ?? acceptedItem).minDays,
+              maxDays: (sharedOwnerTemplate ?? acceptedItem).maxDays,
+              createdAt: now.subtract(const Duration(days: 1, hours: 2)),
+              isActive: true,
+              verificationStatus:
+                  (sharedOwnerTemplate ?? acceptedItem).verificationStatus,
+              city: (sharedOwnerTemplate ?? acceptedItem).city,
+              country: (sharedOwnerTemplate ?? acceptedItem).country,
+              status: 'active',
+              timesLent: (sharedOwnerTemplate ?? acceptedItem).timesLent,
+              offersDeliveryAtDropoff: false,
+              offersPickupAtReturn: false,
+              offersExpressAtDropoff:
+                  (sharedOwnerTemplate ?? acceptedItem).offersExpressAtDropoff,
+              maxDeliveryKmAtDropoff:
+                  (sharedOwnerTemplate ?? acceptedItem).maxDeliveryKmAtDropoff,
+              maxPickupKmAtReturn:
+                  (sharedOwnerTemplate ?? acceptedItem).maxPickupKmAtReturn,
+              cancellationPolicy:
+                  (sharedOwnerTemplate ?? acceptedItem).cancellationPolicy,
+            )
+          : null;
 
       final acceptedRequest = RentalRequest(
         id: 'qa_req_accepted_$userId',
@@ -1514,6 +1573,25 @@ class DataService {
         quotedSubtitle: 'abgeschlossen / prüfung',
       );
 
+      final sharedOwnerRenterRequest =
+          (sharedOwner != null && sharedRenter != null && sharedItem != null)
+              ? RentalRequest(
+                  id: 'qa_shared_request_u1_u2',
+                  itemId: sharedItem.id,
+                  ownerId: sharedOwner.id,
+                  renterId: sharedRenter.id,
+                  start: now.add(const Duration(days: 1, hours: 3)),
+                  end: now.add(const Duration(days: 3, hours: 2)),
+                  status: 'accepted',
+                  message:
+                      'Gemeinsamer QA-Fall für Owner↔Renter-Live-Verifikation mit Abholung durch den Mieter.',
+                  createdAt: now.subtract(const Duration(hours: 20)),
+                  ownerDeliversAtDropoffChosen: false,
+                  quotedTotalRenter: 88.0,
+                  quotedSubtitle: 'shared qa / pickup',
+                )
+              : null;
+
       final itemJson = prefs.getString(_itemsKey);
       final List<dynamic> itemList = itemJson != null && itemJson.isNotEmpty
           ? (jsonDecode(itemJson) as List)
@@ -1524,6 +1602,10 @@ class DataService {
         return id.startsWith('qa_owner_item_') &&
             ((e['ownerId'] ?? '').toString() == userId);
       });
+      itemList.removeWhere((e) {
+        if (e is! Map) return false;
+        return (e['id'] ?? '').toString() == 'qa_shared_item_u1_u2';
+      });
       itemList.addAll([
         ownerPendingItem.toJson(),
         ownerUpcomingPickupItem.toJson(),
@@ -1531,6 +1613,7 @@ class DataService {
         ownerRunningItem.toJson(),
         ownerCompletedCleanItem.toJson(),
         ownerCompletedProblemItem.toJson(),
+        if (sharedItem != null) sharedItem.toJson(),
       ]);
       await prefs.setString(_itemsKey, jsonEncode(itemList));
 
@@ -1541,6 +1624,7 @@ class DataService {
         final isOwnerQa = r.id.startsWith('qa_owner_') && r.ownerId == userId;
         return isRenterOrOwnerQa || isOwnerQa;
       });
+      requests.removeWhere((r) => r.id == 'qa_shared_request_u1_u2');
       requests.addAll([
         acceptedRequest,
         runningRequest,
@@ -1553,6 +1637,7 @@ class DataService {
         ownerRunningRequest,
         ownerCompletedCleanRequest,
         ownerCompletedProblemRequest,
+        if (sharedOwnerRenterRequest != null) sharedOwnerRenterRequest,
       ]);
       await _saveAllRentalRequests(requests);
 
@@ -1741,6 +1826,33 @@ class DataService {
         ),
       ];
 
+      final sharedMsgs = <Message>[
+        Message(
+          id: 'qa_msg_shared_1',
+          senderId: 'system',
+          text:
+              'Gemeinsamer QA-Fall aktiviert — beide Seiten sollen denselben Thread und dieselbe Buchung sehen.',
+          timestamp: now.subtract(const Duration(hours: 18)),
+          isRead: true,
+        ),
+        if (sharedOwner != null)
+          Message(
+            id: 'qa_msg_shared_2',
+            senderId: sharedOwner.id,
+            text: 'Perfekt — ich bereite die Übergabe für morgen vor.',
+            timestamp: now.subtract(const Duration(hours: 17, minutes: 24)),
+            isRead: true,
+          ),
+        if (sharedRenter != null)
+          Message(
+            id: 'qa_msg_shared_3',
+            senderId: sharedRenter.id,
+            text: 'Top, ich hole den Artikel selbst ab und bestätige vor Ort.',
+            timestamp: now.subtract(const Duration(hours: 17, minutes: 2)),
+            isRead: true,
+          ),
+      ];
+
       final acceptedThread = buildThread(
         id: 'qa_thread_accepted_$userId',
         requestId: acceptedRequest.id,
@@ -1815,12 +1927,38 @@ class DataService {
         lastMessageAt: archivedMsgs.last.timestamp,
       );
 
+      final sharedThread =
+          (sharedOwnerRenterRequest != null && sharedItem != null)
+              ? buildThread(
+                  id: 'qa_shared_thread_u1_u2',
+                  requestId: sharedOwnerRenterRequest.id,
+                  itemId: sharedItem.id,
+                  itemTitle: sharedItem.title,
+                  user1Id: sharedOwner!.id,
+                  user2Id: sharedRenter!.id,
+                  bookingStatus: 'accepted',
+                  handoverAt: sharedOwnerRenterRequest.start
+                      .subtract(const Duration(hours: 1)),
+                  returnAt: sharedOwnerRenterRequest.end
+                      .subtract(const Duration(hours: 2)),
+                  otherUserOnline: true,
+                  messages: sharedMsgs,
+                  createdAt: now.subtract(const Duration(hours: 19)),
+                  lastMessageAt: sharedMsgs.last.timestamp,
+                )
+              : null;
+
+      threadList.removeWhere((e) {
+        if (e is! Map) return false;
+        return (e['id'] ?? '').toString() == 'qa_shared_thread_u1_u2';
+      });
       threadList.addAll([
         acceptedThread.toJson(),
         runningThread.toJson(),
         completedThread.toJson(),
         supportThread.toJson(),
         archivedThread.toJson(),
+        if (sharedThread != null) sharedThread.toJson(),
       ]);
       await prefs.setString(_messageThreadsKey, jsonEncode(threadList));
 
