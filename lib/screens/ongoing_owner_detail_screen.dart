@@ -2253,7 +2253,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         return;
       }
       final ownerUserId = await _guardAuthenticatedOwner(request.ownerId);
-      if (!mounted) return;
+      if (!context.mounted) return;
       if (ownerUserId == null) return;
       if (!_canStartOwnerHandover(request)) {
         AppPopup.toast(
@@ -2279,7 +2279,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         confirmationContextVerified: true,
         galleryAcknowledged: galleryAcknowledged,
       );
-      if (!mounted) return;
+      if (!context.mounted) return;
       if (!result.success) {
         AppPopup.toast(
           context,
@@ -2296,7 +2296,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       await _load();
     } catch (e) {
       debugPrint('[handover] qr scan verification failed: $e');
-      if (!mounted) return;
+      if (!context.mounted) return;
       AppPopup.toast(
         context,
         icon: Icons.error_outline,
@@ -2344,6 +2344,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   }) async {
     // Set completed, add timeline + notification, send receipt
     final ownerUserId = await _guardAuthenticatedOwner(req.ownerId);
+    if (!context.mounted) return;
     if (ownerUserId == null) return;
     if (!_canCompleteOwnerReturn(req)) {
       AppPopup.toast(
