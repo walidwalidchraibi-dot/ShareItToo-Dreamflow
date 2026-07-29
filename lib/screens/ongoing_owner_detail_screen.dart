@@ -102,10 +102,12 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         ((_flowState['${prefix}LocationLabel'] as String?) ?? '').trim();
     final name =
         ((_flowState['${prefix}LocationSharedByName'] as String?) ?? '').trim();
-    if (label.isNotEmpty)
+    if (label.isNotEmpty) {
       return '${isReturn ? 'Rückgabeort' : 'Übergabeort'}: $label';
-    if (name.isNotEmpty)
+    }
+    if (name.isNotEmpty) {
       return '${isReturn ? 'Rückgabeort' : 'Übergabeort'}: Standort von $name';
+    }
     return null;
   }
 
@@ -568,15 +570,17 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
           final r = _req;
           final it = _item;
           final rn = _renter;
-          if (r == null || it == null || rn == null)
+          if (r == null || it == null || rn == null) {
             return const SizedBox.shrink();
+          }
           final cat = _categoryFor(r);
           // Show for all "completed" bucket items that are not cancelled/declined
           final isTrulyCompleted = (cat == 'completed') &&
               r.status != 'cancelled' &&
               r.status != 'declined';
-          if (!isTrulyCompleted || r.needsReview)
+          if (!isTrulyCompleted || r.needsReview) {
             return const SizedBox.shrink();
+          }
           return SafeArea(
             top: false,
             child: Padding(
@@ -623,8 +627,9 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     if (s == 'pending') return 'requests';
     if (s == 'accepted') return 'upcoming';
     if (s == 'running') return 'ongoing';
-    if (s == 'completed' || s == 'cancelled' || s == 'declined')
+    if (s == 'completed' || s == 'cancelled' || s == 'declined') {
       return 'completed';
+    }
     // Fallback
     return 'upcoming';
   }
@@ -897,10 +902,11 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                                     : const Color(0xFF22C55E))
                                 .withValues(alpha: 0.12);
                           }
-                          if (isCompleted)
+                          if (isCompleted) {
                             return const Color(
                               0xFF22C55E,
                             ).withValues(alpha: 0.12);
+                          }
                           switch (category) {
                             case 'requests':
                               return Colors.grey.withValues(alpha: 0.12);
@@ -925,8 +931,9 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                           if (category == 'completed') {
                             final isCancelled = req.status == 'cancelled';
                             final isDeclined = req.status == 'declined';
-                            if (isCancelled && (req.cancelledBy == 'renter'))
+                            if (isCancelled && (req.cancelledBy == 'renter')) {
                               return 'Zurückgezogen';
+                            }
                             if (isCancelled || isDeclined) return 'Storniert';
                             return 'Abgeschlossen';
                           }
@@ -1143,11 +1150,12 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                             await _load();
                             // Auto-close after 3 seconds
                             Future.delayed(const Duration(seconds: 3), () {
-                              if (mounted)
+                              if (mounted) {
                                 Navigator.of(
                                   context,
                                   rootNavigator: true,
                                 ).maybePop();
+                              }
                             });
                             // Result popup
                             // ignore: unawaited_futures
@@ -1215,8 +1223,9 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                     await _load();
                     // Auto-close after 3 seconds
                     Future.delayed(const Duration(seconds: 3), () {
-                      if (mounted)
+                      if (mounted) {
                         Navigator.of(context, rootNavigator: true).maybePop();
+                      }
                     });
                     // Result popup
                     // ignore: unawaited_futures
@@ -1588,7 +1597,9 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                   label: 'Status',
                   value: () {
                     if (req.status == 'cancelled' &&
-                        (req.cancelledBy == 'renter')) return 'Zurückgezogen';
+                        (req.cancelledBy == 'renter')) {
+                      return 'Zurückgezogen';
+                    }
                     if (req.status == 'cancelled') return 'Storniert';
                     if (isHeldForReview) return 'Wird geprüft';
                     return 'Abgeschlossen';
@@ -1758,7 +1769,9 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                             if (!await _timeConfirmedForStart(
                               req: req,
                               isReturn: false,
-                            )) return;
+                            )) {
+                              return;
+                            }
                             await _startPickupFlowOwner(
                               context,
                               req,
@@ -1787,7 +1800,9 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                             if (!await _timeConfirmedForStart(
                               req: req,
                               isReturn: true,
-                            )) return;
+                            )) {
+                              return;
+                            }
                             await _startReturnFlow(context, req, item, renter);
                           },
                           icon: const Icon(Icons.qr_code_scanner),
@@ -2238,6 +2253,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         return;
       }
       final ownerUserId = await _guardAuthenticatedOwner(request.ownerId);
+      if (!mounted) return;
       if (ownerUserId == null) return;
       if (!_canStartOwnerHandover(request)) {
         AppPopup.toast(
