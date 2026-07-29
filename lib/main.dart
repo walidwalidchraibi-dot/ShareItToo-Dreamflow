@@ -12,6 +12,7 @@ import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/screens/onboarding_flow_screen.dart';
 import 'package:lendify/services/background_theme_service.dart';
+import 'package:lendify/services/qa_bootstrap_service.dart';
 
 Future<void> main() async {
   // Initialize bindings once in the same zone as runApp to avoid zone mismatch warnings.
@@ -65,9 +66,11 @@ Future<void> main() async {
   debugPrint('[Main] runApp(MyApp)');
   DeveloperUserState? initialPreview;
   try {
-    initialPreview = await DeveloperPreviewController.readStateOnce();
+    initialPreview =
+        await QaBootstrapService.maybeBootstrap() ??
+        await DeveloperPreviewController.readStateOnce();
   } catch (e) {
-    debugPrint('[Main] readStateOnce failed: $e');
+    debugPrint('[Main] bootstrap/readStateOnce failed: $e');
   }
   runApp(MyApp(initialPreviewState: initialPreview));
 }
@@ -81,9 +84,11 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<LocalizationController>(
-            create: (_) => LocalizationController()..loadFromPrefs()),
+          create: (_) => LocalizationController()..loadFromPrefs(),
+        ),
         ChangeNotifierProvider<MainNavController>(
-            create: (_) => MainNavController()),
+          create: (_) => MainNavController(),
+        ),
         ChangeNotifierProvider<DeveloperPreviewController>(
           create: (_) =>
               DeveloperPreviewController(initialState: initialPreviewState)
@@ -141,7 +146,8 @@ class AppRoot extends StatelessWidget {
     switch (preview.state) {
       case DeveloperUserState.firstLaunch:
         return FirstLaunchFlowScreen(
-            onFinished: () => preview.setState(DeveloperUserState.loggedOut));
+          onFinished: () => preview.setState(DeveloperUserState.loggedOut),
+        );
       case DeveloperUserState.loggedOut:
         return const LoggedOutLandingScreen();
       case DeveloperUserState.loggedIn:
@@ -183,19 +189,28 @@ class _StartupBrandLoader extends StatefulWidget {
 class _StartupBrandLoaderState extends State<_StartupBrandLoader>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 900))
-    ..repeat();
-  late final Animation<double> _turns = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic));
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat();
+  late final Animation<double> _turns = Tween<double>(
+    begin: 0,
+    end: 1,
+  ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic));
   late final Animation<double> _scale = TweenSequence<double>([
     TweenSequenceItem(
-        tween: Tween<double>(begin: 0.75, end: 1.25)
-            .chain(CurveTween(curve: Curves.easeInOutCubic)),
-        weight: 1),
+      tween: Tween<double>(
+        begin: 0.75,
+        end: 1.25,
+      ).chain(CurveTween(curve: Curves.easeInOutCubic)),
+      weight: 1,
+    ),
     TweenSequenceItem(
-        tween: Tween<double>(begin: 1.25, end: 0.75)
-            .chain(CurveTween(curve: Curves.easeInOutCubic)),
-        weight: 1),
+      tween: Tween<double>(
+        begin: 1.25,
+        end: 0.75,
+      ).chain(CurveTween(curve: Curves.easeInOutCubic)),
+      weight: 1,
+    ),
   ]).animate(_controller);
 
   @override
@@ -227,9 +242,11 @@ class _StartupBrandLoaderState extends State<_StartupBrandLoader>
                     width: baseSize,
                     height: baseSize,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Icon(Icons.all_inclusive,
-                        color: theme.colorScheme.onSurface,
-                        size: baseSize * 0.55),
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.all_inclusive,
+                      color: theme.colorScheme.onSurface,
+                      size: baseSize * 0.55,
+                    ),
                   ),
                 ),
               );
