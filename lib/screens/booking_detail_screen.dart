@@ -204,11 +204,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final id = _computeBookingId();
       final fails = await DataService.getPickupFailCountForBooking(id);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _ownerPickupFailCount = fails;
           _manualPickupAllowed = fails >= 3;
         });
+      }
       // Show one-time banner if a handover confirmation happened on the other side
       final msg = await DataService.takeHandoverBanner(id);
       if (msg != null && msg.isNotEmpty && mounted) {
@@ -221,11 +222,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         final itemId = widget.booking['itemId'] as String?;
         if (itemId != null && itemId.isNotEmpty) {
           final item = await DataService.getItemById(itemId);
-          if (mounted)
+          if (mounted) {
             setState(() {
               _itemLat = item?.lat;
               _itemLng = item?.lng;
             });
+          }
         }
         final requestId =
             (widget.booking['requestId'] as String?)?.trim() ?? '';
@@ -464,10 +466,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         ((_flowState['${prefix}LocationLabel'] as String?) ?? '').trim();
     final name =
         ((_flowState['${prefix}LocationSharedByName'] as String?) ?? '').trim();
-    if (label.isNotEmpty)
+    if (label.isNotEmpty) {
       return '${isReturn ? 'Rückgabeort' : 'Übergabeort'}: $label';
-    if (name.isNotEmpty)
+    }
+    if (name.isNotEmpty) {
       return '${isReturn ? 'Rückgabeort' : 'Übergabeort'}: Standort von $name';
+    }
     return null;
   }
 
@@ -859,7 +863,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                         if (current == null ||
                             requestId == null ||
                             itemId == null ||
-                            listerId == null) return;
+                            listerId == null) {
+                          return;
+                        }
                         final ok = await ReviewPromptSheet.show(
                           context,
                           requestId: requestId,
@@ -1163,7 +1169,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             final eff = _effectiveCategory(start: s, end: e);
             if (eff == 'pending' ||
                 widget.booking['needsReview'] == true ||
-                eff == 'completed') return null;
+                eff == 'completed') {
+              return null;
+            }
             return () {
               final reqId = (widget.booking['requestId'] ?? '').toString();
               Navigator.of(context).push(
