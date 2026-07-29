@@ -78,8 +78,9 @@ class DataService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_securitySettingsKey);
-      if (raw == null || raw.isEmpty)
+      if (raw == null || raw.isEmpty) {
         return const SecuritySettings(enabled: false, method: 'sms');
+      }
       final map = jsonDecode(raw) as Map<String, dynamic>;
       return SecuritySettings.fromJson(map);
     } catch (e) {
@@ -2455,8 +2456,9 @@ class DataService {
 
   /// Deletes a custom wishlist by id (no-op for system lists). Also clears its assignments.
   static Future<void> deleteCustomWishlist(String id) async {
-    if (id == wlSoonId || id == wlLaterId || id == wlAgainId)
+    if (id == wlSoonId || id == wlLaterId || id == wlAgainId) {
       return; // cannot delete system
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_wishlistsMetaKey);
@@ -2485,8 +2487,9 @@ class DataService {
     required String id,
     required String newName,
   }) async {
-    if (id == wlSoonId || id == wlLaterId || id == wlAgainId)
+    if (id == wlSoonId || id == wlLaterId || id == wlAgainId) {
       return; // cannot rename system
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_wishlistsMetaKey);
@@ -5781,19 +5784,24 @@ class DataService {
     };
     if (seededPrefixes.any(entityId.startsWith)) return true;
 
-    if (entityType == 'system' && title == 'willkommen bei shareittoo')
+    if (entityType == 'system' && title == 'willkommen bei shareittoo') {
       return true;
+    }
     if (entityType == 'system' && title == 'sicherheits‑check') return true;
     if (entityType == 'system' && title == 'bewertungen sammeln') return true;
-    if (entityType == 'system' && title == 'tipp: schnelle abstimmung')
+    if (entityType == 'system' && title == 'tipp: schnelle abstimmung') {
       return true;
+    }
     if (entityType == 'system' &&
         title == 'neue nachricht' &&
-        body == 'du hast eine neue nachricht – antworte direkt aus dem feed.')
+        body == 'du hast eine neue nachricht – antworte direkt aus dem feed.') {
       return true;
+    }
     if (entityType == 'payment' &&
         title == 'zahlungsmethode hinzufügen' &&
-        entityId == 'payment_methods') return true;
+        entityId == 'payment_methods') {
+      return true;
+    }
 
     return false;
   }
@@ -6439,8 +6447,9 @@ class DataService {
       final raw = prefs.getString(_handoverReturnStateKey);
       if (raw == null || raw.isEmpty) return <String, dynamic>{};
       final decoded = jsonDecode(raw);
-      if (decoded is Map)
+      if (decoded is Map) {
         return decoded.map((k, v) => MapEntry(k.toString(), v));
+      }
       return <String, dynamic>{};
     } catch (e) {
       debugPrint('[DataService] _getHandoverReturnStateMap failed: $e');

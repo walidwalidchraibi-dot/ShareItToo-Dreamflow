@@ -311,8 +311,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   _ChatState _deriveChatState() {
     final t = _thread;
     final r = _request;
-    final isSupport =
-        ((t?.threadType ?? '').toLowerCase() == 'support') ||
+    final isSupport = ((t?.threadType ?? '').toLowerCase() == 'support') ||
         (t?.user1Id == 'support') ||
         (t?.user2Id == 'support');
     if (isSupport) return _ChatState.support;
@@ -366,9 +365,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   static Future<void> _setMutedThreadKeys(List<String> keys) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final cleaned =
-          keys.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet().toList()
-            ..sort();
+      final cleaned = keys
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
       await prefs.setString(_mutedThreadsKey, jsonEncode(cleaned));
     } catch (e) {
       debugPrint('[MessageThreadScreen] _setMutedThreadKeys failed: $e');
@@ -425,10 +427,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   ({User user, User otherUser, Item item, MessageThread thread})
-  _buildTranslationDemoState(User? baseUser) {
+      _buildTranslationDemoState(User? baseUser) {
     final now = DateTime.now();
-    final me =
-        baseUser ??
+    final me = baseUser ??
         User(
           id: 'demo_me',
           displayName: 'Du',
@@ -544,8 +545,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final showOriginal = translationActive && !isMe && _showOriginalIncoming;
     final locationMessage = _parseLocationShareMessage(message.text);
 
-    final canTranslate =
-        translationActive &&
+    final canTranslate = translationActive &&
         !isMe &&
         message.senderId != 'system' &&
         message.text.trim().isNotEmpty &&
@@ -574,13 +574,15 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   String _localTranslate(String text, String targetLang) {
     final lang = targetLang.toLowerCase();
-    if (lang.startsWith('en'))
+    if (lang.startsWith('en')) {
       return _translateWithDictionary(text, _toEnglish);
-    if (lang.startsWith('de'))
+    }
+    if (lang.startsWith('de')) {
       return _translateWithDictionary(
         _preprocessSpanishToGerman(text),
         _toGerman,
       );
+    }
     if (lang.startsWith('fr')) return _translateWithDictionary(text, _toFrench);
     if (lang.startsWith('ar')) return _translateWithDictionary(text, _toArabic);
     return text;
@@ -855,7 +857,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         showOriginalEnabled: showingOriginal,
         showLanguagesOnlyWhenTranslationOn: true,
         onTranslationToggle: (enabled) async {
-          if (enabled)
+          if (enabled) {
             await _updateTranslationSettings(
               _messageSettings.copyWith(
                 autoTranslateChat: true,
@@ -863,13 +865,15 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                 preferredLanguageCode: currentLang,
               ),
             );
-          if (!enabled)
+          }
+          if (!enabled) {
             await _updateTranslationSettings(
               _messageSettings.copyWith(
                 autoTranslateChat: false,
                 showOriginalMessages: false,
               ),
             );
+          }
         },
         onShowOriginalToggle: (show) async {
           await _updateTranslationSettings(
@@ -947,8 +951,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final i = _item;
     if (i != null) return i.title;
     if (t != null && t.itemTitle.trim().isNotEmpty) return t.itemTitle.trim();
-    if (widget.itemTitle?.trim().isNotEmpty == true)
+    if (widget.itemTitle?.trim().isNotEmpty == true) {
       return widget.itemTitle!.trim();
+    }
     return '';
   }
 
@@ -988,8 +993,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
     final isSupportThread =
         ((t?.threadType ?? '').toLowerCase() == 'support') ||
-        (t?.user1Id.toLowerCase() == 'support') ||
-        (t?.user2Id.toLowerCase() == 'support');
+            (t?.user1Id.toLowerCase() == 'support') ||
+            (t?.user2Id.toLowerCase() == 'support');
     if (isSupportThread) return null;
 
     String? sanitize(String? raw) {
@@ -1315,12 +1320,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       _scrollToBottom(animate: true);
     } catch (e) {
       debugPrint('[MessageThreadScreen] _sendText failed: $e');
-      if (mounted)
+      if (mounted) {
         AppPopup.toast(
           context,
           icon: Icons.error_outline,
           title: 'Fehler beim Senden',
         );
+      }
     }
   }
 
@@ -1328,13 +1334,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final t = _thread;
     if (t == null) return;
     if (t.id == _translationDemoThreadId) {
-      if (mounted)
+      if (mounted) {
         AppPopup.toast(
           context,
           icon: Icons.visibility_outlined,
           title: 'Demo-Chat',
           message: 'Anhänge sind in der Demo deaktiviert.',
         );
+      }
       return;
     }
 
@@ -1342,9 +1349,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       title: 'Foto hinzufügen',
       bodyBuilder: (sheetContext) {
         final hintStyle = Theme.of(sheetContext).textTheme.bodySmall?.copyWith(
-          color: Colors.white.withValues(alpha: 0.64),
-          height: 1.35,
-        );
+              color: Colors.white.withValues(alpha: 0.64),
+              height: 1.35,
+            );
         return Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1399,11 +1406,11 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         if (source == ImageSource.camera && (handoverActive || returnActive)) {
           final saveResult =
               await LocalArtifactStorageService.maybeSaveEvidencePhoto(
-                file: file,
-                bookingId: reqId,
-                isReturn: returnActive,
-                fromCamera: true,
-              );
+            file: file,
+            bookingId: reqId,
+            isReturn: returnActive,
+            fromCamera: true,
+          );
           if (mounted && saveResult.shouldNotify) {
             await AppPopup.toast(
               context,
@@ -1435,13 +1442,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final t = _thread;
     if (t == null) return;
     if (t.id == _translationDemoThreadId) {
-      if (mounted)
+      if (mounted) {
         AppPopup.toast(
           context,
           icon: Icons.visibility_outlined,
           title: 'Demo-Chat',
           message: 'Anhänge sind in der Demo deaktiviert.',
         );
+      }
       return;
     }
     try {
@@ -1456,12 +1464,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       _scrollToBottom(animate: true);
     } catch (e) {
       debugPrint('[MessageThreadScreen] _pickFile failed: $e');
-      if (mounted)
+      if (mounted) {
         AppPopup.toast(
           context,
           icon: Icons.error_outline,
           title: 'Anhang nicht verfügbar',
         );
+      }
     }
   }
 
@@ -1595,8 +1604,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final savedLabel =
         ((_handoverReturnState['${prefix}LocationLabel'] as String?) ?? '')
             .trim();
-    final sameCoords =
-        savedLat == data.latitude.trim() &&
+    final sameCoords = savedLat == data.latitude.trim() &&
         savedLng == data.longitude.trim() &&
         savedLat.isNotEmpty &&
         savedLng.isNotEmpty;
@@ -1652,16 +1660,15 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final hadSavedLocation = _hasSavedLocation(isReturn);
     final noun = data.isAddressShare ? 'Adresse' : 'Standort';
     final accusativeNoun = data.isAddressShare ? 'die Adresse' : 'den Standort';
-    final replacementNoun = data.isAddressShare
-        ? 'diese Adresse'
-        : 'diesen Standort';
+    final replacementNoun =
+        data.isAddressShare ? 'diese Adresse' : 'diesen Standort';
     final title = hadSavedLocation
         ? 'Ort ändern?'
         : (isReturn ? 'Rückgabeort übernehmen?' : 'Übergabeort übernehmen?');
     final msg = hadSavedLocation
         ? (isReturn
-              ? 'Es ist bereits ein Rückgabeort gespeichert. Möchtest du ihn durch $replacementNoun ersetzen?'
-              : 'Es ist bereits ein Übergabeort gespeichert. Möchtest du ihn durch $replacementNoun ersetzen?')
+            ? 'Es ist bereits ein Rückgabeort gespeichert. Möchtest du ihn durch $replacementNoun ersetzen?'
+            : 'Es ist bereits ein Übergabeort gespeichert. Möchtest du ihn durch $replacementNoun ersetzen?')
         : 'Möchtest du $accusativeNoun von $sharedByName als ${isReturn ? 'Rückgabeort' : 'Übergabeort'} für diese Buchung speichern?';
     final ok = await _showLocationFlowSheet<bool>(
       title: title,
@@ -1795,8 +1802,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final r = _request;
     if (r == null) return false;
     // If there's no address snapshot yet, warn about time-based address release.
-    final hasAddress =
-        (r.deliveryAddressLine ?? '').trim().isNotEmpty ||
+    final hasAddress = (r.deliveryAddressLine ?? '').trim().isNotEmpty ||
         (r.deliveryCity ?? '').trim().isNotEmpty;
     if (hasAddress) return false;
 
@@ -1808,8 +1814,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         ((_handoverReturnState['handoverTimeIso'] as String?) ?? '').trim();
     final confirmedHandover =
         _handoverReturnState['handoverTimeConfirmed'] == true
-        ? DateTime.tryParse(handoverIso)?.toLocal()
-        : null;
+            ? DateTime.tryParse(handoverIso)?.toLocal()
+            : null;
     final revealAt = (confirmedHandover ?? r.start).subtract(
       const Duration(hours: 6),
     );
@@ -1823,16 +1829,17 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         ((_handoverReturnState['handoverTimeIso'] as String?) ?? '').trim();
     final confirmedHandover =
         _handoverReturnState['handoverTimeConfirmed'] == true
-        ? DateTime.tryParse(handoverIso)?.toLocal()
-        : null;
+            ? DateTime.tryParse(handoverIso)?.toLocal()
+            : null;
     if (confirmedHandover == null) {
       return 'Hinweis zur Adressfreigabe: Die genaue Adresse wird automatisch etwa 6 h vor der bestätigten Übergabe angezeigt.';
     }
     final revealAt = confirmedHandover.subtract(const Duration(hours: 6));
     final minutes = revealAt.difference(DateTime.now()).inMinutes;
     if (minutes <= 0) return 'Hinweis: Die Adresse wird in Kürze freigegeben.';
-    if (minutes < 60)
+    if (minutes < 60) {
       return 'Hinweis zur Adressfreigabe: Die genaue Adresse wird in weniger als 1 h vor der bestätigten Übergabe angezeigt.';
+    }
     final hours = (minutes / 60).ceil();
     return 'Hinweis zur Adressfreigabe: Die genaue Adresse wird automatisch etwa $hours h vor der bestätigten Übergabe angezeigt.';
   }
@@ -1968,8 +1975,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                   16,
                                   18,
                                 ),
-                                itemCount:
-                                    displayMessages.length +
+                                itemCount: displayMessages.length +
                                     (showAddressHint ? 1 : 0) +
                                     (showInlineFlowCard ? 1 : 0) +
                                     (_shouldOfferReuseHandoverAsReturn()
@@ -2023,8 +2029,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                       if (locationShare != null) {
                                         final legacyIsMe =
                                             _legacyLocationLooksLikeCurrentUser(
-                                              locationShare,
-                                            );
+                                          locationShare,
+                                        );
                                         messageRow = _AvatarMessageRow(
                                           isMe: legacyIsMe,
                                           avatarUrl: legacyIsMe
@@ -2035,38 +2041,38 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                             data: locationShare,
                                             me: legacyIsMe,
                                             time: _formatTime(m.timestamp),
-                                            onAcceptPlace:
-                                                _request == null ||
+                                            onAcceptPlace: _request == null ||
                                                     _request!.needsReview
                                                 ? null
                                                 : (
                                                     intent,
-                                                  ) => _acceptSharedLocation(
-                                                    data: locationShare,
-                                                    sharedByUserId: legacyIsMe
-                                                        ? (_currentUser?.id ??
+                                                  ) =>
+                                                    _acceptSharedLocation(
+                                                      data: locationShare,
+                                                      sharedByUserId: legacyIsMe
+                                                          ? (_currentUser?.id ??
                                                               '')
-                                                        : (_otherUser?.id ??
+                                                          : (_otherUser?.id ??
                                                               ''),
-                                                    sharedByName:
-                                                        _sharedByNameFromLocation(
-                                                          locationShare,
-                                                        ),
-                                                    sharedByRole:
-                                                        _roleKeyForUserId(
-                                                          legacyIsMe
-                                                              ? _currentUser?.id
-                                                              : _otherUser?.id,
-                                                        ),
-                                                    forcedIntent: intent,
-                                                  ),
+                                                      sharedByName:
+                                                          _sharedByNameFromLocation(
+                                                        locationShare,
+                                                      ),
+                                                      sharedByRole:
+                                                          _roleKeyForUserId(
+                                                        legacyIsMe
+                                                            ? _currentUser?.id
+                                                            : _otherUser?.id,
+                                                      ),
+                                                      forcedIntent: intent,
+                                                    ),
                                             acceptIntent:
                                                 _locationIntentForCurrentContext(),
                                             handoverSaved:
                                                 _savedLocationMatches(
-                                                  locationShare,
-                                                  isReturn: false,
-                                                ),
+                                              locationShare,
+                                              isReturn: false,
+                                            ),
                                             returnSaved: _savedLocationMatches(
                                               locationShare,
                                               isReturn: true,
@@ -2105,15 +2111,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                         child: () {
                                           final handle = (!isMe && !isSystem)
                                               ? _TranslationHandleButton(
-                                                  active:
-                                                      _messageSettings
+                                                  active: _messageSettings
                                                           .autoTranslateChat &&
                                                       !_showOriginalIncoming,
                                                   onTap: () =>
                                                       _showTranslationMenu(
-                                                        m,
-                                                        isMe: isMe,
-                                                      ),
+                                                    m,
+                                                    isMe: isMe,
+                                                  ),
                                                 )
                                               : null;
 
@@ -2124,38 +2129,40 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                                   time: _formatTime(
                                                     m.timestamp,
                                                   ),
-                                                  onAcceptPlace:
-                                                      _request == null ||
+                                                  onAcceptPlace: _request ==
+                                                              null ||
                                                           _request!.needsReview
                                                       ? null
                                                       : (
                                                           intent,
-                                                        ) => _acceptSharedLocation(
-                                                          data: locationShare,
-                                                          sharedByUserId:
-                                                              m.senderId,
-                                                          sharedByName:
-                                                              _sharedByNameFromLocation(
-                                                                locationShare,
-                                                              ),
-                                                          sharedByRole:
-                                                              _roleKeyForUserId(
+                                                        ) =>
+                                                          _acceptSharedLocation(
+                                                            data: locationShare,
+                                                            sharedByUserId:
                                                                 m.senderId,
-                                                              ),
-                                                          forcedIntent: intent,
-                                                        ),
+                                                            sharedByName:
+                                                                _sharedByNameFromLocation(
+                                                              locationShare,
+                                                            ),
+                                                            sharedByRole:
+                                                                _roleKeyForUserId(
+                                                              m.senderId,
+                                                            ),
+                                                            forcedIntent:
+                                                                intent,
+                                                          ),
                                                   acceptIntent:
                                                       _locationIntentForCurrentContext(),
                                                   handoverSaved:
                                                       _savedLocationMatches(
-                                                        locationShare,
-                                                        isReturn: false,
-                                                      ),
+                                                    locationShare,
+                                                    isReturn: false,
+                                                  ),
                                                   returnSaved:
                                                       _savedLocationMatches(
-                                                        locationShare,
-                                                        isReturn: true,
-                                                      ),
+                                                    locationShare,
+                                                    isReturn: true,
+                                                  ),
                                                 )
                                               : _ChatBubble(
                                                   text: translation.original,
@@ -2163,16 +2170,16 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                                       translation.translated,
                                                   translationLabel:
                                                       (translation.translated !=
-                                                              null ||
-                                                          translation
-                                                              .placeholder)
-                                                      ? _translationLabel(
-                                                          translation
-                                                              .languageCode,
-                                                          translation
-                                                              .placeholder,
-                                                        )
-                                                      : null,
+                                                                  null ||
+                                                              translation
+                                                                  .placeholder)
+                                                          ? _translationLabel(
+                                                              translation
+                                                                  .languageCode,
+                                                              translation
+                                                                  .placeholder,
+                                                            )
+                                                          : null,
                                                   translationPlaceholder:
                                                       translation.placeholder,
                                                   showOriginalUnderTranslation:
@@ -2191,8 +2198,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                                 Padding(
                                                   padding:
                                                       const EdgeInsets.only(
-                                                        right: 28,
-                                                      ),
+                                                    right: 28,
+                                                  ),
                                                   child: bubble,
                                                 ),
                                                 Positioned(
@@ -2227,17 +2234,18 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                       ),
                                     );
                                   }
-                                  if (_shouldOfferReuseHandoverAsReturn())
+                                  if (_shouldOfferReuseHandoverAsReturn()) {
                                     i -= 1;
+                                  }
                                   if (showInlineFlowCard && i == 0) {
                                     final maxPhotos = 4;
                                     final photoCount = handoverActive
-                                        ? ((_handoverReturnState['handoverPhotos']
-                                                  as int?) ??
-                                              0)
+                                        ? ((_handoverReturnState[
+                                                'handoverPhotos'] as int?) ??
+                                            0)
                                         : ((_handoverReturnState['returnPhotos']
-                                                  as int?) ??
-                                              0);
+                                                as int?) ??
+                                            0);
                                     final statusText = handoverActive
                                         ? 'Übergabe läuft'
                                         : 'Rückgabe läuft';
@@ -2303,9 +2311,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                         _handoverReturnState['returnTimeConfirmed'] == true,
                     confirmedHandoverTime:
                         _handoverReturnState['handoverTimeConfirmed'] == true
-                        ? (_request?.start ??
-                              DateTime.now().add(const Duration(days: 2)))
-                        : null,
+                            ? (_request?.start ??
+                                DateTime.now().add(const Duration(days: 2)))
+                            : null,
                     counterpartyName: _displayName(),
                   ),
               ],
@@ -2313,8 +2321,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
             if (_showJumpToBottom)
               Positioned(
                 right: 16,
-                bottom:
-                    (MediaQuery.of(context).viewInsets.bottom > 0
+                bottom: (MediaQuery.of(context).viewInsets.bottom > 0
                         ? MediaQuery.of(context).viewInsets.bottom
                         : 0) +
                     72,
@@ -2407,8 +2414,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       category,
       subCategory,
       description,
-    ].every((e) => e == null))
+    ].every((e) => e == null)) {
       return null;
+    }
 
     return _SupportCaseData(
       itemTitle: itemTitle?.isNotEmpty == true ? itemTitle! : null,
@@ -2447,9 +2455,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     List<Message> messages, {
     required bool isHandover,
   }) {
-    final searchTerm = isHandover
-        ? 'Übergabezeit angefragt'
-        : 'Rückgabezeit angefragt';
+    final searchTerm =
+        isHandover ? 'Übergabezeit angefragt' : 'Rückgabezeit angefragt';
     for (final m in messages.reversed) {
       if (m.senderId == 'system' && m.text.contains(searchTerm)) {
         // Extrahiere Zeit aus dem Text (z.B. "Mo, 14:00 Uhr")
@@ -2603,8 +2610,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         .toList();
     final hasStreet =
         parts.isNotEmpty && parts.first.split(RegExp(r'\s+')).length >= 2;
-    final hasCityLikeTail =
-        parts.length >= 2 ||
+    final hasCityLikeTail = parts.length >= 2 ||
         RegExp(r'\b[A-Za-zÄÖÜäöüß-]{3,}\b').allMatches(trimmed).length >= 3;
     return hasStreet && hasHouseNumber && (hasPostalCode || hasCityLikeTail);
   }
@@ -2658,14 +2664,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                           setAs: _LocationIntent.handover,
                           onBackToPreview: () =>
                               _showPreparedLocationShareSheet(
-                                data,
-                                title:
-                                    title ??
-                                    (data.isAddressShare
-                                        ? 'Adresse teilen'
-                                        : 'Standort teilen'),
-                                onBack: onBack,
-                              ),
+                            data,
+                            title: title ??
+                                (data.isAddressShare
+                                    ? 'Adresse teilen'
+                                    : 'Standort teilen'),
+                            onBack: onBack,
+                          ),
                         );
                       },
                       child: const Text('Als Übergabeort teilen'),
@@ -2683,14 +2688,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                           setAs: _LocationIntent.returnTrip,
                           onBackToPreview: () =>
                               _showPreparedLocationShareSheet(
-                                data,
-                                title:
-                                    title ??
-                                    (data.isAddressShare
-                                        ? 'Adresse teilen'
-                                        : 'Standort teilen'),
-                                onBack: onBack,
-                              ),
+                            data,
+                            title: title ??
+                                (data.isAddressShare
+                                    ? 'Adresse teilen'
+                                    : 'Standort teilen'),
+                            onBack: onBack,
+                          ),
                         );
                       },
                       child: const Text('Als Rückgabeort teilen'),
@@ -3144,9 +3148,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         if (itemId.isNotEmpty) item = await DataService.getItemById(itemId);
       }
 
-      final owner = req != null
-          ? await DataService.getUserById(req.ownerId)
-          : null;
+      final owner =
+          req != null ? await DataService.getUserById(req.ownerId) : null;
       final viewerIsOwner = _isViewerOwnerFor(req, thread, me);
 
       final resolvedReq = req;
@@ -3188,12 +3191,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       );
     } catch (e) {
       debugPrint('[MessageThreadScreen] _navigateToBookingDetail failed: $e');
-      if (mounted)
+      if (mounted) {
         AppPopup.toast(
           context,
           icon: Icons.error_outline,
           title: 'Buchung nicht verfügbar',
         );
+      }
     }
   }
 
@@ -3307,8 +3311,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       'offersPickupAtReturn': item?.offersPickupAtReturn,
       'ownerDeliversAtDropoffChosen': req.ownerDeliversAtDropoffChosen,
       'ownerPicksUpAtReturnChosen': req.ownerPicksUpAtReturnChosen,
-      'deliveryAddressLine':
-          req.deliveryAddressLine ??
+      'deliveryAddressLine': req.deliveryAddressLine ??
           (deliverySel?['addressLine'] as String?) ??
           '',
       'deliveryCity':
@@ -3351,8 +3354,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     }
 
     // Support-Threads können nicht blockiert werden
-    final isSupport =
-        ((t.threadType ?? '').toLowerCase() == 'support') ||
+    final isSupport = ((t.threadType ?? '').toLowerCase() == 'support') ||
         (t.user1Id == 'support') ||
         (t.user2Id == 'support');
     if (isSupport) {
@@ -3403,7 +3405,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       }
     } catch (e) {
       debugPrint('[MessageThreadScreen] _toggleBlockUser failed: $e');
-      if (mounted)
+      if (mounted) {
         AppPopup.toast(
           context,
           icon: Icons.error_outline,
@@ -3411,6 +3413,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
               ? 'Entblocken fehlgeschlagen'
               : 'Blockieren fehlgeschlagen',
         );
+      }
     }
   }
 
@@ -3469,16 +3472,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                     as String?) ??
                 '')
             .trim();
-    final requestedBy =
-        ((state[isReturn
-                        ? 'returnTimeRequestedByUserId'
-                        : 'handoverTimeRequestedByUserId']
-                    as String?) ??
-                '')
-            .trim();
+    final requestedBy = ((state[isReturn
+                ? 'returnTimeRequestedByUserId'
+                : 'handoverTimeRequestedByUserId'] as String?) ??
+            '')
+        .trim();
     final confirmed =
         state[isReturn ? 'returnTimeConfirmed' : 'handoverTimeConfirmed'] ==
-        true;
+            true;
     final flowLabel = isReturn ? 'Rückgabezeit' : 'Übergabezeit';
 
     if (requestedLabel.isNotEmpty && !confirmed) {
@@ -3555,12 +3556,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       await _handleTimeProposal(isReturn: false);
     } catch (e) {
       debugPrint('[MessageThreadScreen] _proposeHandoverTime failed: $e');
-      if (mounted)
+      if (mounted) {
         AppPopup.toast(
           context,
           icon: Icons.error_outline,
           title: 'Fehler beim Senden',
         );
+      }
     }
   }
 
@@ -3570,12 +3572,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       await _handleTimeProposal(isReturn: true);
     } catch (e) {
       debugPrint('[MessageThreadScreen] _proposeReturnTime failed: $e');
-      if (mounted)
+      if (mounted) {
         AppPopup.toast(
           context,
           icon: Icons.error_outline,
           title: 'Fehler beim Senden',
         );
+      }
     }
   }
 
@@ -3646,13 +3649,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     }
 
     if (t.id == _translationDemoThreadId) {
-      if (mounted)
+      if (mounted) {
         AppPopup.toast(
           context,
           icon: Icons.visibility_outlined,
           title: 'Demo-Chat',
           message: 'Archivieren ist in der Demo deaktiviert.',
         );
+      }
       return;
     }
     try {
@@ -3673,15 +3677,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         setState(() => _isThreadArchived = nextArchived);
         AppPopup.toast(
           context,
-          icon: nextArchived
-              ? Icons.archive_outlined
-              : Icons.unarchive_outlined,
+          icon:
+              nextArchived ? Icons.archive_outlined : Icons.unarchive_outlined,
           title: nextArchived ? 'Chat archiviert' : 'Aus Archiv geholt',
         );
       }
     } catch (e) {
       debugPrint('[MessageThreadScreen] _toggleArchiveChat failed: $e');
-      if (mounted)
+      if (mounted) {
         AppPopup.toast(
           context,
           icon: Icons.error_outline,
@@ -3689,6 +3692,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
               ? 'Wiederherstellen fehlgeschlagen'
               : 'Archivieren fehlgeschlagen',
         );
+      }
     }
   }
 
@@ -3701,9 +3705,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       viewerIsOwner: _viewerIsOwner(),
       otherUserName: _displayName(),
       threadId: _thread?.id,
-      itemImageUrl: _item?.photos.isNotEmpty == true
-          ? _item!.photos.first
-          : null,
+      itemImageUrl:
+          _item?.photos.isNotEmpty == true ? _item!.photos.first : null,
       otherUserImageUrl: _otherUser?.photoURL,
     );
 
@@ -3751,13 +3754,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
       final threads = await DataService.getMessageThreadsForUser(me.id);
       MessageThread? supportThread = threads.cast<MessageThread?>().firstWhere(
-        (t) =>
-            t != null &&
-            ((t.threadType ?? '').toLowerCase() == 'support' ||
-                t.user1Id == 'support' ||
-                t.user2Id == 'support'),
-        orElse: () => null,
-      );
+            (t) =>
+                t != null &&
+                ((t.threadType ?? '').toLowerCase() == 'support' ||
+                    t.user1Id == 'support' ||
+                    t.user2Id == 'support'),
+            orElse: () => null,
+          );
 
       supportThread ??= await DataService.createSupportThread(userId: me.id);
 
@@ -4409,8 +4412,7 @@ class _CompactBookingCard extends StatelessWidget {
                           Text(
                             'Details',
                             style: TextStyle(
-                              color:
-                                  Theme.of(context).brightness ==
+                              color: Theme.of(context).brightness ==
                                       Brightness.dark
                                   ? AppTheme.textSecondary(context)
                                   : const Color(0xFF1E293B),
@@ -4423,8 +4425,8 @@ class _CompactBookingCard extends StatelessWidget {
                             Icons.chevron_right,
                             color:
                                 Theme.of(context).brightness == Brightness.dark
-                                ? AppTheme.textDisabled(context)
-                                : const Color(0xFF475569),
+                                    ? AppTheme.textDisabled(context)
+                                    : const Color(0xFF475569),
                             size: 14,
                           ),
                         ],
@@ -4441,12 +4443,12 @@ class _CompactBookingCard extends StatelessWidget {
   }
 
   Widget _placeholder(BuildContext context) => Center(
-    child: Icon(
-      Icons.inventory_2_outlined,
-      color: AppTheme.textDisabled(context),
-      size: 20,
-    ),
-  );
+        child: Icon(
+          Icons.inventory_2_outlined,
+          color: AppTheme.textDisabled(context),
+          size: 20,
+        ),
+      );
 }
 
 class _InfoRow extends StatelessWidget {
@@ -4612,7 +4614,8 @@ class _SITButton extends StatelessWidget {
   factory _SITButton.secondary({
     required String label,
     required IconData icon,
-  }) => _SITButton._(label: label, icon: icon, primary: false);
+  }) =>
+      _SITButton._(label: label, icon: icon, primary: false);
 
   @override
   Widget build(BuildContext context) {
@@ -4741,8 +4744,8 @@ class _ChatBubble extends StatelessWidget {
     final bg = me
         ? cs.primary.withValues(alpha: 0.85)
         : (isDark
-              ? AppTheme.surfaceSecondary(context)
-              : Colors.white.withValues(alpha: 0.99));
+            ? AppTheme.surfaceSecondary(context)
+            : Colors.white.withValues(alpha: 0.99));
     final maxWidth = MediaQuery.of(context).size.width * 0.72;
     final hasTranslation =
         translatedText != null && translatedText!.trim().isNotEmpty;
@@ -4967,9 +4970,8 @@ class _AvatarMessageRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        mainAxisAlignment: isMe
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[avatar, const SizedBox(width: 6)],
@@ -5051,8 +5053,8 @@ class _SupportCaseMessageState extends State<_SupportCaseMessage> {
       description: widget.data.description ?? 'Keine Beschreibung vorhanden.',
       counterpart:
           widget.fallbackCounterparty?.displayName?.trim().isNotEmpty == true
-          ? widget.fallbackCounterparty!.displayName!.trim()
-          : 'Unbekannt',
+              ? widget.fallbackCounterparty!.displayName!.trim()
+              : 'Unbekannt',
       period: 'Nicht angegeben',
       imageUrl: widget.fallbackItem?.photos.isNotEmpty == true
           ? widget.fallbackItem!.photos.first
@@ -5194,8 +5196,7 @@ class _SupportCaseMessageState extends State<_SupportCaseMessage> {
                                 vertical: 5,
                               ),
                               decoration: BoxDecoration(
-                                color:
-                                    Theme.of(context).brightness ==
+                                color: Theme.of(context).brightness ==
                                         Brightness.dark
                                     ? AppTheme.surfaceMuted(context)
                                     : const Color(0xFFF1F5F9),
@@ -5223,8 +5224,7 @@ class _SupportCaseMessageState extends State<_SupportCaseMessage> {
                               width: 60,
                               height: 60,
                               decoration: BoxDecoration(
-                                color:
-                                    Theme.of(context).brightness ==
+                                color: Theme.of(context).brightness ==
                                         Brightness.dark
                                     ? AppTheme.surfaceMuted(context)
                                     : const Color(0xFFF1F5F9),
@@ -5233,8 +5233,7 @@ class _SupportCaseMessageState extends State<_SupportCaseMessage> {
                                   color: Colors.white.withValues(alpha: 0.10),
                                 ),
                               ),
-                              child:
-                                  d.imageUrl != null &&
+                              child: d.imageUrl != null &&
                                       d.imageUrl!.trim().isNotEmpty
                                   ? AppImage(
                                       url: d.imageUrl,
@@ -5481,9 +5480,8 @@ class _TimeRequestCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: isMe
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[avatar, const SizedBox(width: 6)],
@@ -6115,8 +6113,7 @@ class _TransactionComposerState extends State<_TransactionComposer> {
         // - Rückgabezeit-Button: ausblenden wenn completed (Rückgabe abgeschlossen)
         final showHandoverTimeButton =
             !isComposing && widget.chatState == _ChatState.confirmed;
-        final showReturnTimeButton =
-            !isComposing &&
+        final showReturnTimeButton = !isComposing &&
             (widget.chatState == _ChatState.confirmed ||
                 widget.chatState == _ChatState.running ||
                 widget.chatState == _ChatState.returnPlanned);
@@ -6167,12 +6164,10 @@ class _TransactionComposerState extends State<_TransactionComposer> {
                     ? Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: _CombinedActionRow(
-                          showHandoverTimeButton:
-                              showHandoverTimeButton &&
+                          showHandoverTimeButton: showHandoverTimeButton &&
                               !widget.handoverConfirmed,
                           showReturnTimeButton: showReturnTimeButton,
-                          showPrimaryAction:
-                              showActions &&
+                          showPrimaryAction: showActions &&
                               !((widget.chatState == _ChatState.confirmed &&
                                       widget.handoverConfirmed) ||
                                   ((widget.chatState == _ChatState.running ||
@@ -6186,12 +6181,12 @@ class _TransactionComposerState extends State<_TransactionComposer> {
                           primaryLabel: widget.primaryLabel ?? '',
                           primaryEnabled:
                               widget.chatState == _ChatState.confirmed
-                              ? widget.handoverConfirmed
-                              : ((widget.chatState == _ChatState.running ||
-                                        widget.chatState ==
-                                            _ChatState.returnPlanned)
-                                    ? widget.returnConfirmed
-                                    : true),
+                                  ? widget.handoverConfirmed
+                                  : ((widget.chatState == _ChatState.running ||
+                                          widget.chatState ==
+                                              _ChatState.returnPlanned)
+                                      ? widget.returnConfirmed
+                                      : true),
                           counterpartyName: widget.counterpartyName,
                           onProposeHandover: widget.onProposeHandoverTime,
                           onProposeReturn: widget.onProposeReturnTime,
@@ -6269,12 +6264,10 @@ class _CombinedActionRow extends StatelessWidget {
     const cardboardBrown = Color(0xFFB8956C);
 
     // Pendingstatus für Zeitbuttons
-    final handoverPending =
-        handoverTimeRequested != null &&
+    final handoverPending = handoverTimeRequested != null &&
         handoverTimeRequested!.isNotEmpty &&
         !handoverConfirmed;
-    final returnPending =
-        returnTimeRequested != null &&
+    final returnPending = returnTimeRequested != null &&
         returnTimeRequested!.isNotEmpty &&
         !returnConfirmed;
 
@@ -6375,15 +6368,15 @@ class _CombinedActionRow extends StatelessWidget {
                             color: handoverPending
                                 ? cs.primary.withValues(alpha: 0.12)
                                 : (isDark
-                                      ? Colors.white.withValues(alpha: 0.06)
-                                      : Colors.white),
+                                    ? Colors.white.withValues(alpha: 0.06)
+                                    : Colors.white),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: handoverPending
                                   ? cs.primary.withValues(alpha: 0.3)
                                   : (isDark
-                                        ? Colors.white.withValues(alpha: 0.08)
-                                        : const Color(0xFF94A3B8)),
+                                      ? Colors.white.withValues(alpha: 0.08)
+                                      : const Color(0xFF94A3B8)),
                             ),
                           ),
                           child: Row(
@@ -6401,10 +6394,10 @@ class _CombinedActionRow extends StatelessWidget {
                                   color: handoverPending
                                       ? cs.primary
                                       : (isDark
-                                            ? Colors.white.withValues(
-                                                alpha: 0.8,
-                                              )
-                                            : const Color(0xFF1E293B)),
+                                          ? Colors.white.withValues(
+                                              alpha: 0.8,
+                                            )
+                                          : const Color(0xFF1E293B)),
                                   fontWeight: FontWeight.w600,
                                   fontSize: 12,
                                 ),
@@ -6428,15 +6421,15 @@ class _CombinedActionRow extends StatelessWidget {
                             color: returnPending
                                 ? cs.primary.withValues(alpha: 0.12)
                                 : (isDark
-                                      ? Colors.white.withValues(alpha: 0.06)
-                                      : Colors.white),
+                                    ? Colors.white.withValues(alpha: 0.06)
+                                    : Colors.white),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: returnPending
                                   ? cs.primary.withValues(alpha: 0.3)
                                   : (isDark
-                                        ? Colors.white.withValues(alpha: 0.08)
-                                        : const Color(0xFF94A3B8)),
+                                      ? Colors.white.withValues(alpha: 0.08)
+                                      : const Color(0xFF94A3B8)),
                             ),
                           ),
                           child: Row(
@@ -6477,10 +6470,10 @@ class _CombinedActionRow extends StatelessWidget {
                                   color: returnPending
                                       ? cs.primary
                                       : (isDark
-                                            ? Colors.white.withValues(
-                                                alpha: 0.8,
-                                              )
-                                            : const Color(0xFF1E293B)),
+                                          ? Colors.white.withValues(
+                                              alpha: 0.8,
+                                            )
+                                          : const Color(0xFF1E293B)),
                                   fontWeight: FontWeight.w600,
                                   fontSize: 12,
                                 ),
@@ -6517,8 +6510,8 @@ class _CombinedActionRow extends StatelessWidget {
                   color: isActive
                       ? null
                       : (isDark
-                            ? Colors.grey.shade700
-                            : const Color(0xFFE2E8F0)),
+                          ? Colors.grey.shade700
+                          : const Color(0xFFE2E8F0)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -6529,8 +6522,8 @@ class _CombinedActionRow extends StatelessWidget {
                       color: isActive
                           ? Colors.white
                           : (isDark
-                                ? Colors.white.withValues(alpha: 0.5)
-                                : const Color(0xFF64748B)),
+                              ? Colors.white.withValues(alpha: 0.5)
+                              : const Color(0xFF64748B)),
                       size: 18,
                     ),
                     const SizedBox(width: 6),
@@ -6540,11 +6533,10 @@ class _CombinedActionRow extends StatelessWidget {
                         color: isActive
                             ? Colors.white
                             : (isDark
-                                  ? Colors.white.withValues(alpha: 0.5)
-                                  : const Color(0xFF64748B)),
-                        fontWeight: isActive
-                            ? FontWeight.w600
-                            : FontWeight.w500,
+                                ? Colors.white.withValues(alpha: 0.5)
+                                : const Color(0xFF64748B)),
+                        fontWeight:
+                            isActive ? FontWeight.w600 : FontWeight.w500,
                         fontSize: 14,
                       ),
                     ),
@@ -6604,8 +6596,9 @@ class _TimeAgreementButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Wenn beide unsichtbar, nichts anzeigen
-    if (!showHandoverButton && !showReturnButton)
+    if (!showHandoverButton && !showReturnButton) {
       return const SizedBox.shrink();
+    }
 
     // Wenn nur einer sichtbar, zentriert anzeigen
     if (!showHandoverButton) {
@@ -6852,8 +6845,9 @@ class _HandoverCountdownState extends State<_HandoverCountdown> {
     final parts = <String>[];
     if (days > 0) parts.add('$days ${days == 1 ? 'Tag' : 'Tage'}');
     if (hours > 0) parts.add('$hours ${hours == 1 ? 'Stunde' : 'Stunden'}');
-    if (minutes > 0 || parts.isEmpty)
+    if (minutes > 0 || parts.isEmpty) {
       parts.add('$minutes ${minutes == 1 ? 'Minute' : 'Minuten'}');
+    }
 
     return parts.join(' ');
   }
@@ -6953,12 +6947,10 @@ class _CompactTransactionCTA extends StatelessWidget {
     final buttonColors = isActive
         ? [cs.primary, cs.primary.withValues(alpha: 0.85)]
         : [Colors.grey.shade600, Colors.grey.shade700];
-    final iconColor = isActive
-        ? Colors.white
-        : Colors.white.withValues(alpha: 0.5);
-    final textColor = isActive
-        ? Colors.white
-        : Colors.white.withValues(alpha: 0.5);
+    final iconColor =
+        isActive ? Colors.white : Colors.white.withValues(alpha: 0.5);
+    final textColor =
+        isActive ? Colors.white : Colors.white.withValues(alpha: 0.5);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -7184,21 +7176,20 @@ class _GlassInputBarState extends State<_GlassInputBar>
     final hasFocus = widget.focusNode.hasFocus;
     final hasText = widget.controller.text.trim().isNotEmpty;
     final effectiveMaxLines = hasText ? 5 : 1;
-    final showTimeIcon =
-        widget.chatState == _ChatState.confirmed ||
+    final showTimeIcon = widget.chatState == _ChatState.confirmed ||
         widget.chatState == _ChatState.running;
 
     // Focus state: dezent SIT-blau
     final fieldBorderColor = hasFocus
         ? cs.primary.withValues(alpha: 0.70)
         : (isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : const Color(0xFF94A3B8));
+            ? Colors.white.withValues(alpha: 0.08)
+            : const Color(0xFF94A3B8));
     final fieldFillColor = hasFocus
         ? (isDark ? Colors.white.withValues(alpha: 0.11) : Colors.white)
         : (isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.white.withValues(alpha: 0.99));
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.99));
     final fieldShadow = hasFocus
         ? [
             BoxShadow(
@@ -7920,8 +7911,8 @@ class _LocationShareData {
     final latRad = lat * math.pi / 180.0;
     final y =
         (1.0 - math.log(math.tan(latRad) + 1 / math.cos(latRad)) / math.pi) /
-        2.0 *
-        n;
+            2.0 *
+            n;
     return y.floor();
   }
 
@@ -8213,14 +8204,13 @@ class _LocationShareMessage extends StatelessWidget {
         ? 'https://www.google.com/maps/search/?api=1&query=${data.latitudeValue},${data.longitudeValue}'
         : '';
     final effectiveUrl = data.mapsUrl.isNotEmpty ? data.mapsUrl : fallbackUrl;
-    final titleText = data.label.trim().isNotEmpty
-        ? data.label.trim()
-        : 'Standort geteilt';
+    final titleText =
+        data.label.trim().isNotEmpty ? data.label.trim() : 'Standort geteilt';
     final detailText = data.hasCoordinates
         ? '${data.latitude}, ${data.longitude}'
         : (data.addressText.trim().isNotEmpty
-              ? data.addressText.trim()
-              : 'Adresse geteilt');
+            ? data.addressText.trim()
+            : 'Adresse geteilt');
 
     return MouseRegion(
       cursor: effectiveUrl.isNotEmpty
@@ -8343,8 +8333,8 @@ class _LocationShareMessage extends StatelessWidget {
                                           onPressed: handoverSaved
                                               ? null
                                               : () => onAcceptPlace!(
-                                                  _LocationIntent.handover,
-                                                ),
+                                                    _LocationIntent.handover,
+                                                  ),
                                           style: FilledButton.styleFrom(
                                             backgroundColor: BrandColors.primary
                                                 .withValues(alpha: 0.18),
@@ -8371,8 +8361,8 @@ class _LocationShareMessage extends StatelessWidget {
                                           onPressed: returnSaved
                                               ? null
                                               : () => onAcceptPlace!(
-                                                  _LocationIntent.returnTrip,
-                                                ),
+                                                    _LocationIntent.returnTrip,
+                                                  ),
                                           style: FilledButton.styleFrom(
                                             backgroundColor: BrandColors.primary
                                                 .withValues(alpha: 0.18),
