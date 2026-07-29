@@ -13,6 +13,7 @@ import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/box_chat_icon.dart';
 import 'package:lendify/widgets/review_prompt_sheet.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
+import 'package:lendify/utils/booking_status_copy.dart';
 
 class BookingsScreen extends StatefulWidget {
   final int? initialTabIndex; // Neue Reihenfolge: 0: Laufend, 1: Kommend, 2: Ausstehend, 3: Abgeschlossen
@@ -896,42 +897,22 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
 
   // Status chip with countdown for list card (German, renter view)
   Widget _buildStatusChipForCard(String category, DateTime? start, DateTime? end, [Map<String, dynamic>? booking]) {
-    final now = DateTime.now();
-    final toPickup = start != null ? start.difference(now) : null;
-    // final toReturn = end != null ? end.difference(now) : null; // not used for countdown per latest copy
-
-    String label;
+    final label = bookingCardStatusLabel(
+      category: category,
+      start: start,
+      end: end,
+      booking: booking,
+    );
     Color color;
 
     switch (category) {
       case 'upcoming':
-        final txt = toPickup == null
-            ? null
-            : _formatTwoUnitsCountdown(toPickup.isNegative ? Duration.zero : toPickup);
-        label = txt == null ? 'Kommend' : 'Abholung in $txt';
         color = const Color(0xFF0EA5E9); // Blau
         break;
       case 'ongoing':
-        // Show "Laufend bis {Datum Uhrzeit}" (no countdown)
-        final endText = end != null ? _formatGermanDateTime(end) : '';
-        label = endText.isEmpty ? 'Laufend' : 'Laufend bis $endText';
         color = const Color(0xFFFB923C); // Orange
         break;
       case 'pending':
-        // If express requested and pending, show countdown
-        Duration? remain;
-        final expReq = booking?['expressRequested'] == true;
-        final expStatus = booking?['expressStatus'] as String?;
-        final expAtIso = booking?['expressRequestedAt'] as String?;
-        if (expReq && (expStatus == null || expStatus == 'pending') && expAtIso != null && expAtIso.isNotEmpty) {
-          final expAt = DateTime.tryParse(expAtIso);
-          if (expAt != null) {
-            final endAt = expAt.add(const Duration(minutes: 30));
-            final left = endAt.difference(now);
-            remain = left.isNegative ? Duration.zero : left;
-          }
-        }
-        label = remain != null ? 'Priorität: ${_formatTwoUnitsCountdown(remain)}' : 'Wartet auf Bestätigung';
         color = Colors.grey; // Grau
         break;
       case 'completed':
@@ -939,21 +920,16 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
         final wasCancelled = rawStatus == 'cancelled' || (booking?['status'] == 'Storniert');
         final wasDeclined = rawStatus == 'declined' || (booking?['status'] == 'Abgelehnt');
         if (wasCancelled) {
-          label = 'Storniert';
           color = const Color(0xFFF43F5E);
         } else if (wasDeclined) {
-          label = 'Abgelehnt';
           color = Colors.grey; // neutral grey for declined
         } else if (booking?['needsReview'] == true) {
-          label = 'In Prüfung';
           color = const Color(0xFFF59E0B);
         } else {
-          label = 'Abgeschlossen';
           color = const Color(0xFF22C55E);
         }
         break;
       default:
-        label = '—';
         color = Colors.grey;
     }
 
