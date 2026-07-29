@@ -163,12 +163,47 @@ void main() {
       },
     );
 
+    test('thread lookup by request id allows owner participant', () async {
+      await seedBookingState(currentUser: owner);
+
+      final thread = await DataService.getMessageThreadByRequestId(
+        'req-pickup',
+      );
+
+      expect(thread, isNotNull);
+      expect(thread!.id, 'thread-booking');
+    });
+
+    test('thread lookup by request id allows renter participant', () async {
+      await seedBookingState(currentUser: renter);
+
+      final thread = await DataService.getMessageThreadByRequestId(
+        'req-pickup',
+      );
+
+      expect(thread, isNotNull);
+      expect(thread!.id, 'thread-booking');
+    });
+
     test(
-      'thread creation/open blocks when no current user is logged in',
+      'thread lookup by request id blocks uninvolved user on foreign request id',
+      () async {
+        await seedBookingState(currentUser: outsider);
+
+        final thread = await DataService.getMessageThreadByRequestId(
+          'req-pickup',
+        );
+
+        expect(thread, isNull);
+      },
+    );
+
+    test(
+      'thread lookup by request id blocks when no current user is logged in',
       () async {
         await seedBookingState();
 
-        final thread = await DataService.createOrGetThreadForRequest(
+        final thread = await DataService.getMessageThreadByRequestId(
           'req-pickup',
         );
 
@@ -876,6 +911,108 @@ void main() {
         expect(afterSecond.returnConfirmation?['confirmedByRole'], 'owner');
       },
     );
+  });
+
+  group('DataService review reminder guards', () {
+    late final owner = buildTestUser('owner-reminder', name: 'Walid');
+    late final renter = buildTestUser('renter-reminder', name: 'Julia');
+    late final item =
+        buildTestItem(id: 'item-reminder', ownerId: 'owner-reminder');
+
+    Future<void> seedReminderState({
+      required bool needsReview,
+      String requestId = 'req-reminder',
+    }) async {
+      SharedPreferences.setMockInitialValues({
+        'users': jsonEncode([owner.toJson(), renter.toJson()]),
+        'items': jsonEncode([item.toJson()]),
+        'rental_requests': jsonEncode([
+          buildTestRequest(
+            id: requestId,
+            itemId: item.id,
+            ownerId: owner.id,
+            renterId: renter.id,
+            status: 'completed',
+            needsReview: needsReview,
+          ).toJson(),
+        ]),
+        'review_reminders_v1': '[]',
+      });
+    }
+
+    test('review reminder round-trip works for completed booking without hold',
+        () async {
+      await seedReminderState(
+          needsReview: false, requestId: 'req-reminder-open');
+
+      final dueAt = DateTime.now().subtract(const Duration(minutes: 1));
+      await DataService.scheduleReviewReminder(
+        requestId: 'req-reminder-open',
+        itemId: item.id,
+        reviewerId: renter.id,
+        reviewedUserId: owner.id,
+        direction: 'renter_to_owner',
+        dueAt: dueAt,
+      );
+
+      final reminder = await DataService.takeDueReviewReminder(
+        reviewerId: renter.id,
+      );
+
+      expect(reminder, isNotNull);
+      expect(reminder!['requestId'], 'req-reminder-open');
+      expect(reminder['reviewerId'], renter.id);
+    });
+
+    test('needsReview skips review reminder scheduling centrally', () async {
+      await seedReminderState(
+          needsReview: true, requestId: 'req-reminder-held');
+
+      final dueAt = DateTime.now().add(const Duration(minutes: 5));
+      await DataService.scheduleReviewReminder(
+        requestId: 'req-reminder-held',
+        itemId: item.id,
+        reviewerId: renter.id,
+        reviewedUserId: owner.id,
+        direction: 'renter_to_owner',
+        dueAt: dueAt,
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('review_reminders_v1'), anyOf(isNull, '[]'));
+    });
+
+    test('needsReview suppresses already-due reminder delivery centrally',
+        () async {
+      await seedReminderState(
+          needsReview: true, requestId: 'req-reminder-held-due');
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'review_reminders_v1',
+        jsonEncode([
+          {
+            'id': 'held-reminder',
+            'requestId': 'req-reminder-held-due',
+            'itemId': item.id,
+            'reviewerId': renter.id,
+            'reviewedUserId': owner.id,
+            'direction': 'renter_to_owner',
+            'dueAt': DateTime.now()
+                .subtract(const Duration(minutes: 1))
+                .toIso8601String(),
+            'createdAt': DateTime.now().toIso8601String(),
+          },
+        ]),
+      );
+
+      final reminder = await DataService.takeDueReviewReminder(
+        reviewerId: renter.id,
+      );
+
+      expect(reminder, isNull);
+      expect(prefs.getString('review_reminders_v1'), '[]');
+    });
   });
 
   group('DataService price breakdown', () {

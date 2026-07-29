@@ -1,6 +1,12 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/services/review_metrics_service.dart';
 import 'package:lendify/widgets/review_prompt_sheet.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/test_builders.dart';
 
 void main() {
   test('formular zeigt nur vier kriteriendefinitionen', () {
@@ -38,5 +44,64 @@ void main() {
   test('button-logik wird erst bei allen 4 kriterien aktiv', () {
     expect(areAllReviewCriteriaRated(const [1, 1, 1, 1]), isTrue);
     expect(areAllReviewCriteriaRated(const [5, 4, 5, 5]), isTrue);
+  });
+
+  testWidgets('needsReview blockiert prompt-anzeige mit snackbar', (
+    tester,
+  ) async {
+    final owner = buildTestUser('owner-review-sheet', name: 'Walid');
+    final renter = buildTestUser('renter-review-sheet', name: 'Julia');
+    final item = buildTestItem(
+      id: 'item-review-sheet',
+      ownerId: owner.id,
+    );
+    final request = buildTestRequest(
+      id: 'req-review-sheet',
+      itemId: item.id,
+      ownerId: owner.id,
+      renterId: renter.id,
+      status: 'completed',
+      needsReview: true,
+    );
+
+    SharedPreferences.setMockInitialValues({
+      'users': jsonEncode([owner.toJson(), renter.toJson()]),
+      'items': jsonEncode([item.toJson()]),
+      'rental_requests': jsonEncode([request.toJson()]),
+      'multi_reviews_v1': '[]',
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async {
+                await ReviewPromptSheet.show(
+                  context,
+                  requestId: request.id,
+                  itemId: item.id,
+                  reviewerId: renter.id,
+                  reviewedUserId: owner.id,
+                  direction: 'renter_to_owner',
+                );
+              },
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pump();
+
+    expect(find.byType(ReviewPromptSheet), findsNothing);
+    expect(
+      find.text(
+        'Bewertungen sind blockiert, solange dieser Fall geprüft wird.',
+      ),
+      findsOneWidget,
+    );
   });
 }
