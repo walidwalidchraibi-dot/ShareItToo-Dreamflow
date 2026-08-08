@@ -53,6 +53,12 @@ systemctl status shareittoo-health.service
 journalctl -u shareittoo-health.service
 ```
 
+The health, backup and restore-check services call `shareittoo-alert@.service`
+on failure. `alert.sh` uses the already configured SMTP transport to deliver a
+critical notification to `ALERT_EMAIL_TO` (default:
+`contact@shareittoo.com`). It keeps SMTP credentials out of process arguments
+and suppresses repeat alerts for the same service for one hour by default.
+
 After the first version-labelled rollout and successful isolated restore, set
 `REQUIRE_RELEASE_IDENTITY=true` and `REQUIRE_RECENT_RESTORE_CHECK=true` in the
 production `.env`. The health service will then also reject an unknown runtime
@@ -62,6 +68,7 @@ Install the included units in `/etc/systemd/system`, reload systemd, run the
 backup, health and restore-check services once, then enable all three timers.
 
 ```sh
+install -m 0750 ops/alert.sh /docker/shareittoo/backend/ops/alert.sh
 install -m 0644 ops/systemd/shareittoo-*.service /etc/systemd/system/
 install -m 0644 ops/systemd/shareittoo-*.timer /etc/systemd/system/
 systemctl daemon-reload

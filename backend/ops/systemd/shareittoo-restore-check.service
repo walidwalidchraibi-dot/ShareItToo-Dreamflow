@@ -2,6 +2,7 @@
 Description=ShareItToo isolated backup restore verification
 Requires=docker.service
 After=docker.service shareittoo-backup.service
+OnFailure=shareittoo-alert@%n.service
 
 [Service]
 Type=oneshot
