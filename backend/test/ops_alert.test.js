@@ -35,7 +35,6 @@ test('critical alerts use SMTP without putting the password in curl arguments', 
       'SMTP_SECURE=false',
       'SMTP_REQUIRE_TLS=true',
       'SMTP_USER=alerts@example.com',
-      'SMTP_PASSWORD=super-secret-password',
       'MAIL_FROM=ShareItToo <alerts@example.com>',
       'ALERT_EMAIL_TO=contact@example.com',
       '',
@@ -48,6 +47,12 @@ cp "$2" "$ALERT_CAPTURE_CONFIG"
 printf 'called\\n' >>"$ALERT_CAPTURE_COUNT"
 `);
     await fs.chmod(fakeCurl, 0o755);
+    const fakeDocker = path.join(fakeBin, 'docker');
+    await fs.writeFile(fakeDocker, `#!/usr/bin/env bash
+set -euo pipefail
+printf 'SMTP_PASSWORD=super-secret-password\\n'
+`);
+    await fs.chmod(fakeDocker, 0o755);
 
     const currentDir = path.dirname(fileURLToPath(import.meta.url));
     const script = path.resolve(currentDir, '../ops/alert.sh');

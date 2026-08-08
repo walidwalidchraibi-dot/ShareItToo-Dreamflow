@@ -29,6 +29,27 @@ task_env_value() {
   printf '%s' "$task_value"
 }
 
+task_container_env_value() {
+  local task_key="$1"
+  local task_container="${ALERT_CONTAINER_NAME:-shareittoo-api}"
+  local task_line=''
+  local task_value=''
+  task_line=$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$task_container" 2>/dev/null \
+    | awk -v key="$task_key" 'index($0, key "=") == 1 { print; exit }' || true)
+  task_value="${task_line#*=}"
+  printf '%s' "$task_value"
+}
+
+task_alert_value() {
+  local task_key="$1"
+  local task_value=''
+  task_value=$(task_env_value "$task_key")
+  if [[ -z "$task_value" ]]; then
+    task_value=$(task_container_env_value "$task_key")
+  fi
+  printf '%s' "$task_value"
+}
+
 task_config_escape() {
   local task_value="$1"
   task_value="${task_value//\\/\\\\}"
@@ -48,15 +69,15 @@ if [[ "$task_last" =~ ^[0-9]+$ ]] && (( task_now - task_last < task_cooldown_sec
   exit 0
 fi
 
-task_mail_transport=$(task_env_value MAIL_TRANSPORT)
-task_smtp_host=$(task_env_value SMTP_HOST)
-task_smtp_port=$(task_env_value SMTP_PORT)
-task_smtp_secure=$(task_env_value SMTP_SECURE)
-task_smtp_require_tls=$(task_env_value SMTP_REQUIRE_TLS)
-task_smtp_user=$(task_env_value SMTP_USER)
-task_smtp_password=$(task_env_value SMTP_PASSWORD)
-task_mail_from=$(task_env_value MAIL_FROM)
-task_alert_to=$(task_env_value ALERT_EMAIL_TO)
+task_mail_transport=$(task_alert_value MAIL_TRANSPORT)
+task_smtp_host=$(task_alert_value SMTP_HOST)
+task_smtp_port=$(task_alert_value SMTP_PORT)
+task_smtp_secure=$(task_alert_value SMTP_SECURE)
+task_smtp_require_tls=$(task_alert_value SMTP_REQUIRE_TLS)
+task_smtp_user=$(task_alert_value SMTP_USER)
+task_smtp_password=$(task_alert_value SMTP_PASSWORD)
+task_mail_from=$(task_alert_value MAIL_FROM)
+task_alert_to=$(task_alert_value ALERT_EMAIL_TO)
 
 task_smtp_port="${task_smtp_port:-587}"
 task_mail_from="${task_mail_from:-ShareItToo <contact@shareittoo.com>}"
