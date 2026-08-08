@@ -5,6 +5,8 @@ import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/services/auth_service.dart';
+import 'package:lendify/services/backend_config.dart';
+import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
@@ -78,8 +80,31 @@ class DataService {
     SharedPreferences prefs,
     List<dynamic> threads,
   ) async {
-    await prefs.setString(_messageThreadsKey, jsonEncode(threads));
+    var payload = threads
+        .whereType<Map>()
+        .map((entry) => Map<String, dynamic>.from(entry))
+        .toList();
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      payload = await BackendRepository.syncMessageThreads(payload);
+    }
+    await prefs.setString(_messageThreadsKey, jsonEncode(payload));
     SharedPersistenceSync.notify(SharedPersistenceSync.messageThreadsKey);
+  }
+
+  static Future<String?> _readMessageThreads(
+    SharedPreferences prefs,
+  ) async {
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      try {
+        final remote = await BackendRepository.getMessageThreads();
+        final encoded = jsonEncode(remote);
+        await prefs.setString(_messageThreadsKey, encoded);
+        return encoded;
+      } catch (error) {
+        debugPrint('[DataService] remote message load failed: $error');
+      }
+    }
+    return prefs.getString(_messageThreadsKey);
   }
 
   // Security
@@ -592,6 +617,17 @@ class DataService {
     final prefs = await SharedPreferences.getInstance();
     final itemsJson = prefs.getString(_itemsKey);
     final List<dynamic> list = itemsJson == null ? [] : jsonDecode(itemsJson);
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final remote = await BackendRepository.createListing(item.toJson());
+      final saved = Item.fromJson(remote);
+      list.removeWhere(
+        (entry) =>
+            entry is Map && entry['id']?.toString() == saved.id.toString(),
+      );
+      list.add(saved.toJson());
+      await prefs.setString(_itemsKey, jsonEncode(list));
+      return saved;
+    }
     // Compute next numeric id
     int maxId = 0;
     for (final e in list) {
@@ -750,6 +786,27 @@ class DataService {
 
   static Future<List<Item>> getItems() async {
     final prefs = await SharedPreferences.getInstance();
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      try {
+        final remote = await BackendRepository.getListings();
+        final items = <Item>[];
+        for (final entry in remote) {
+          try {
+            items.add(Item.fromJson(entry));
+          } catch (error) {
+            debugPrint('[DataService] skipped invalid remote listing: $error');
+          }
+        }
+        items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        await prefs.setString(
+          _itemsKey,
+          jsonEncode(items.map((item) => item.toJson()).toList()),
+        );
+        return items;
+      } catch (error) {
+        debugPrint('[DataService] remote listings load failed: $error');
+      }
+    }
     final itemsJson = prefs.getString(_itemsKey);
     if (itemsJson == null) {
       await _initializeSampleData();
@@ -1023,6 +1080,19 @@ class DataService {
     }
 
     String? userJson = await safeReadCurrentUser();
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final session = await AuthService.readSession();
+      var localUserId = '';
+      if (userJson != null && userJson.isNotEmpty) {
+        try {
+          localUserId = (jsonDecode(userJson) as Map)['id']?.toString() ?? '';
+        } catch (_) {}
+      }
+      if (session != null && localUserId != session.userId) {
+        await syncCurrentUserForSessionEmail(session.email);
+        userJson = await safeReadCurrentUser();
+      }
+    }
     if (userJson == null || userJson.isEmpty) {
       final session = await AuthService.readSession();
       if (session != null) {
@@ -1680,7 +1750,7 @@ class DataService {
       ]);
       await _saveAllRentalRequests(requests);
 
-      final rawThreads = prefs.getString(_messageThreadsKey);
+      final rawThreads = await _readMessageThreads(prefs);
       final List<dynamic> threadList =
           rawThreads != null && rawThreads.isNotEmpty
               ? (jsonDecode(rawThreads) as List)
@@ -2188,7 +2258,18 @@ class DataService {
       return;
     }
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_currentUserKey, jsonEncode(user.toJson()));
+    var effectiveUser = user;
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final remote = await BackendRepository.updateCurrentProfile(
+        user.toJson(),
+      );
+      effectiveUser = User.fromJson(remote);
+    }
+    await prefs.setString(
+      _currentUserKey,
+      jsonEncode(effectiveUser.toJson()),
+    );
+    await _upsertCachedUser(prefs, effectiveUser);
   }
 
   static Future<void> clearCurrentUser() async {
@@ -2203,6 +2284,15 @@ class DataService {
   static Future<void> syncCurrentUserForSessionEmail(String email) async {
     final normalized = email.trim().toLowerCase();
     if (normalized.isEmpty) return;
+
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final remote = await BackendRepository.getCurrentProfile();
+      final user = User.fromJson(remote);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_currentUserKey, jsonEncode(user.toJson()));
+      await _upsertCachedUser(prefs, user);
+      return;
+    }
 
     final users = await getUsers();
     User? match;
@@ -2220,6 +2310,29 @@ class DataService {
     if (match != null) {
       await setCurrentUser(match);
     }
+  }
+
+  static Future<void> _upsertCachedUser(
+    SharedPreferences prefs,
+    User user,
+  ) async {
+    List<dynamic> users = <dynamic>[];
+    final raw = prefs.getString(_usersKey);
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) users = decoded;
+      } catch (_) {}
+    }
+    final index = users.indexWhere(
+      (entry) => entry is Map && entry['id']?.toString() == user.id,
+    );
+    if (index >= 0) {
+      users[index] = user.toJson();
+    } else {
+      users.add(user.toJson());
+    }
+    await prefs.setString(_usersKey, jsonEncode(users));
   }
 
   static Future<void> clearCurrentUserAndMarkDeleted() async {
@@ -2338,7 +2451,7 @@ class DataService {
   static Future<void> archiveAllMessageThreadsForUser(String userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return;
       final decoded = jsonDecode(raw);
       if (decoded is! List) return;
@@ -2381,9 +2494,15 @@ class DataService {
     required String status,
   }) async {
     final prefs = await SharedPreferences.getInstance();
+    Map<String, dynamic>? remoteListing;
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      remoteListing = await BackendRepository.updateListingStatus(
+        id: itemId,
+        status: status,
+      );
+    }
     final itemsJson = prefs.getString(_itemsKey);
-    if (itemsJson == null) return;
-    final List<dynamic> list = jsonDecode(itemsJson);
+    final List<dynamic> list = itemsJson == null ? [] : jsonDecode(itemsJson);
     bool mutated = false;
     for (int i = 0; i < list.length; i++) {
       final map = Map<String, dynamic>.from(list[i] as Map);
@@ -2399,6 +2518,10 @@ class DataService {
         break;
       }
     }
+    if (!mutated && remoteListing != null) {
+      list.add(remoteListing);
+      mutated = true;
+    }
     if (mutated) {
       await prefs.setString(_itemsKey, jsonEncode(list));
     }
@@ -2406,19 +2529,23 @@ class DataService {
 
   static Future<void> updateItem(Item updated) async {
     final prefs = await SharedPreferences.getInstance();
+    var effectiveUpdated = updated;
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final remote = await BackendRepository.updateListing(updated.toJson());
+      effectiveUpdated = Item.fromJson(remote);
+    }
     final itemsJson = prefs.getString(_itemsKey);
-    if (itemsJson == null) return;
-    final List<dynamic> list = jsonDecode(itemsJson);
+    final List<dynamic> list = itemsJson == null ? [] : jsonDecode(itemsJson);
     bool mutated = false;
     for (int i = 0; i < list.length; i++) {
       final map = Map<String, dynamic>.from(list[i] as Map);
-      if (map['id'].toString() == updated.id.toString()) {
-        list[i] = updated.toJson();
+      if (map['id'].toString() == effectiveUpdated.id.toString()) {
+        list[i] = effectiveUpdated.toJson();
         mutated = true;
         break;
       }
     }
-    if (!mutated) return;
+    if (!mutated) list.add(effectiveUpdated.toJson());
     Future<void> _persist(List<dynamic> payload) async {
       await prefs.setString(_itemsKey, jsonEncode(payload));
     }
@@ -2484,6 +2611,9 @@ class DataService {
 
   static Future<void> deleteItemById(String itemId) async {
     final prefs = await SharedPreferences.getInstance();
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      await BackendRepository.deleteListing(itemId);
+    }
     final itemsJson = prefs.getString(_itemsKey);
     if (itemsJson == null) return;
     final List<dynamic> list = jsonDecode(itemsJson);
@@ -4815,6 +4945,19 @@ class DataService {
     try {
       return users.firstWhere((e) => e.id.toString() == id.toString());
     } catch (_) {
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        try {
+          final remote = await BackendRepository.getPublicProfile(id);
+          if (remote != null) {
+            final user = User.fromJson(remote);
+            final prefs = await SharedPreferences.getInstance();
+            await _upsertCachedUser(prefs, user);
+            return user;
+          }
+        } catch (error) {
+          debugPrint('[DataService] public profile load failed: $error');
+        }
+      }
       return null;
     }
   }
@@ -4831,7 +4974,17 @@ class DataService {
       return [];
     }
 
-    String? raw = prefs.getString(_rentalRequestsKey);
+    String? raw;
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      try {
+        final remote = await BackendRepository.getRentalRequests();
+        raw = jsonEncode(remote);
+        await prefs.setString(_rentalRequestsKey, raw);
+      } catch (error) {
+        debugPrint('[DataService] remote request load failed: $error');
+      }
+    }
+    raw ??= prefs.getString(_rentalRequestsKey);
     if (raw == null) {
       // Do not seed demo requests anymore. Persist an empty list by default.
       try {
@@ -4900,9 +5053,13 @@ class DataService {
   static Future<void> _saveAllRentalRequests(List<RentalRequest> list) async {
     Future<void> persist(List<RentalRequest> payload) async {
       final prefs = await SharedPreferences.getInstance();
+      var maps = payload.map((entry) => entry.toJson()).toList();
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        maps = await BackendRepository.syncRentalRequests(maps);
+      }
       await prefs.setString(
         _rentalRequestsKey,
-        jsonEncode(payload.map((e) => e.toJson()).toList()),
+        jsonEncode(maps),
       );
       SharedPersistenceSync.notify(SharedPersistenceSync.rentalRequestsKey);
     }
@@ -5134,13 +5291,16 @@ class DataService {
 
   static Future<RentalRequest> addRentalRequest(RentalRequest req) async {
     final all = await _getAllRentalRequests();
-    final nextId = (all.fold<int>(
-              0,
-              (p, e) =>
-                  (int.tryParse(e.id) ?? 0) > p ? (int.tryParse(e.id) ?? 0) : p,
-            ) +
-            1)
-        .toString();
+    final nextId = BackendConfig.enabled && !QaRuntimeService.isEnabled
+        ? 'request_${DateTime.now().microsecondsSinceEpoch}'
+        : (all.fold<int>(
+                  0,
+                  (p, e) => (int.tryParse(e.id) ?? 0) > p
+                      ? (int.tryParse(e.id) ?? 0)
+                      : p,
+                ) +
+                1)
+            .toString();
     final now = DateTime.now();
     // Snapshot current delivery selection for this item so booking details remain accurate
     Map<String, dynamic>? deliverySel;
@@ -6532,7 +6692,7 @@ class DataService {
       if (!isParticipant) return null;
 
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return null;
       final List<dynamic> list = jsonDecode(raw);
       for (final e in list) {
@@ -6591,7 +6751,7 @@ class DataService {
     if (threadId.trim().isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return;
       final List<dynamic> list = jsonDecode(raw);
       bool mutated = false;
@@ -7084,7 +7244,7 @@ class DataService {
       if (renter == null || owner == null) return;
 
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
       List<dynamic> list = [];
       if (raw != null && raw.isNotEmpty) {
         try {
@@ -7176,7 +7336,7 @@ class DataService {
   ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) {
         debugPrint(
           '[DataService] message thread seed skipped (demo seed disabled)',
@@ -7184,7 +7344,7 @@ class DataService {
         return [];
       }
 
-      final effectiveRaw = prefs.getString(_messageThreadsKey);
+      final effectiveRaw = await _readMessageThreads(prefs);
       if (effectiveRaw == null || effectiveRaw.isEmpty) return [];
 
       final List<dynamic> list = jsonDecode(effectiveRaw);
@@ -7228,7 +7388,7 @@ class DataService {
   static Future<bool> ensureSeededMessageThreadsForUser(String userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
 
       List<dynamic> list = <dynamic>[];
       if (raw != null && raw.trim().isNotEmpty) {
@@ -7302,7 +7462,7 @@ class DataService {
   ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return [];
       final List<dynamic> list = jsonDecode(raw);
       final threads = <MessageThread>[];
@@ -7338,7 +7498,7 @@ class DataService {
     if (threadId.isEmpty || userId.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return;
       final List<dynamic> list = jsonDecode(raw);
       bool mutated = false;
@@ -7368,7 +7528,7 @@ class DataService {
     if (threadId.isEmpty || userId.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return;
       final List<dynamic> list = jsonDecode(raw);
       bool mutated = false;
@@ -7397,7 +7557,7 @@ class DataService {
     if (threadId.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return;
       final List<dynamic> list = jsonDecode(raw);
       final before = list.length;
@@ -7614,7 +7774,7 @@ class DataService {
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
       final List<dynamic> list =
           raw != null && raw.isNotEmpty ? jsonDecode(raw) : [];
 
@@ -7679,7 +7839,7 @@ class DataService {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return null;
 
       final List<dynamic> list = jsonDecode(raw);
@@ -7725,7 +7885,7 @@ class DataService {
       if (currentUser == null) return;
 
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return;
 
       final List<dynamic> list = jsonDecode(raw);
@@ -7778,7 +7938,7 @@ class DataService {
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_messageThreadsKey);
+      final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return;
 
       final List<dynamic> list = jsonDecode(raw);

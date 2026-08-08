@@ -1,0 +1,54 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+process.env.DATABASE_URL ??= 'postgres://example:example@localhost:5432/example';
+process.env.JWT_SECRET ??= 'test-secret-that-is-longer-than-thirty-two-characters';
+
+const security = await import('../src/security.js');
+
+test('passwords use salted scrypt hashes', async () => {
+  const acceptedCandidate = ['fixture', 'accepted', Date.now()].join('-');
+  const rejectedCandidate = ['fixture', 'rejected', Date.now()].join('-');
+  const first = await security.hashPassword(acceptedCandidate);
+  const second = await security.hashPassword(acceptedCandidate);
+  assert.notEqual(first, second);
+  assert.equal(await security.verifyPassword(acceptedCandidate, first), true);
+  assert.equal(await security.verifyPassword(rejectedCandidate, first), false);
+  assert.equal(first.includes(acceptedCandidate), false);
+});
+
+test('access tokens reject tampering', () => {
+  const token = security.signAccessToken({ id: 'user-1', email: 'test@example.com' });
+  assert.equal(security.verifyAccessToken(token).sub, 'user-1');
+  assert.throws(() => security.verifyAccessToken(`${token}x`));
+});
+
+test('profile updates cannot elevate privileges', () => {
+  const cleaned = security.sanitizeProfileUpdate({
+    displayName: '  Walid  ',
+    role: 'admin',
+    isVerified: true,
+    avgRating: 5,
+    bio: 'Hallo',
+  });
+  assert.deepEqual(cleaned, { displayName: 'Walid', bio: 'Hallo' });
+});
+
+test('public profiles omit private contact and address fields', () => {
+  const shaped = security.shapeUser({
+    id: 'u1',
+    email: 'private@example.com',
+    profile: {
+      displayName: 'Privat',
+      phone: '+4912345',
+      addressStreet: 'Teststraße',
+      city: 'Berlin',
+    },
+    created_at: new Date('2026-01-01T00:00:00Z'),
+    deactivated_at: null,
+  }, { publicOnly: true });
+  assert.equal(shaped.email, '');
+  assert.equal(shaped.phone, undefined);
+  assert.equal(shaped.addressStreet, undefined);
+  assert.equal(shaped.city, 'Berlin');
+});

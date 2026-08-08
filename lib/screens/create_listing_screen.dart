@@ -9,6 +9,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/category.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/backend_config.dart';
+import 'package:lendify/services/backend_repository.dart';
+import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/navigation/main_navigation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -55,7 +58,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   // Map coarse label -> fine categories in that group
   Map<String, List<Category>> _catsByCoarse = {};
   String _priceUnit = 'day'; // only 'day' is supported in UI
-  String _condition = 'new'; // 'new' | 'like-new' | 'good' | 'acceptable' | 'worn'
+  String _condition =
+      'new'; // 'new' | 'like-new' | 'good' | 'acceptable' | 'worn'
   // Delivery options
   bool _offersDeliveryAtDropoff = false; // Lieferung bei Abgabe (Hinweg)
   bool _offersPickupAtReturn = false; // Abholung bei Rückgabe (Rückweg)
@@ -293,12 +297,14 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                       children: [
                         ListTile(
                           leading: Icon(Icons.photo_camera,
-                              color: Theme.of(context).brightness == Brightness.dark
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? Colors.white
                                   : Theme.of(context).colorScheme.primary),
                           title: Text('Mit Kamera aufnehmen',
                               style: TextStyle(
-                                  color: Theme.of(context).brightness == Brightness.dark
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
                                       ? Colors.white
                                       : AppTheme.textPrimary(context))),
                           onTap: () async {
@@ -306,15 +312,22 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             await _pickFromCamera();
                           },
                         ),
-                        Divider(height: 1, color: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : const Color(0xFFE2E8F0)),
+                        Divider(
+                            height: 1,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white12
+                                    : const Color(0xFFE2E8F0)),
                         ListTile(
                           leading: Icon(Icons.photo_library,
-                              color: Theme.of(context).brightness == Brightness.dark
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? Colors.white
                                   : AppTheme.textBody(context)),
                           title: Text('Aus Galerie auswählen',
                               style: TextStyle(
-                                  color: Theme.of(context).brightness == Brightness.dark
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
                                       ? Colors.white
                                       : AppTheme.textPrimary(context))),
                           onTap: () async {
@@ -394,18 +407,29 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         break;
     }
 
-    // Persist actual uploaded images. For web, store as data: URLs. For mobile, we also
-    // store as data: URLs to keep things simple and fully offline.
-    // Build photos from existing (edit) and newly picked images
+    // Production uploads images to the central backend. Debug/QA keeps the
+    // existing local data-URL behavior for deterministic offline fixtures.
     final List<String> photos = List<String>.from(_existingPhotos);
     if (_pickedImages.isNotEmpty) {
       for (final f in _pickedImages) {
         try {
           final bytes = await f.readAsBytes();
-          final b64 = base64Encode(bytes);
-          final mime = _inferMimeFromName(f.name);
-          photos.add('data:' + mime + ';base64,' + b64);
-        } catch (_) {/* skip */}
+          if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+            photos.add(
+              await BackendRepository.uploadImage(
+                bytes: bytes,
+                filename: f.name,
+              ),
+            );
+          } else {
+            final b64 = base64Encode(bytes);
+            final mime = _inferMimeFromName(f.name);
+            photos.add('data:$mime;base64,$b64');
+          }
+        } catch (error) {
+          if (BackendConfig.enabled && !QaRuntimeService.isEnabled) rethrow;
+          debugPrint('Local image processing failed: $error');
+        }
       }
     }
     if (photos.isEmpty) {
@@ -664,14 +688,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
 
   Future<void> _pickCategory() async {
     if (_coarseCats.isEmpty) return;
-    final tiles = _coarseCats
-        .map((label) {
-          final list = _catsByCoarse[label] ?? const <Category>[];
-          final id = list.isNotEmpty ? list.first.id : label;
-          return CategoryChipData(
-              id: id, label: label, icon: _coarseIconForGroup(label));
-        })
-        .toList();
+    final tiles = _coarseCats.map((label) {
+      final list = _catsByCoarse[label] ?? const <Category>[];
+      final id = list.isNotEmpty ? list.first.id : label;
+      return CategoryChipData(
+          id: id, label: label, icon: _coarseIconForGroup(label));
+    }).toList();
 
     final selected = await AllCategoriesOverlay.show(context, tiles);
     if (selected != null) {
@@ -846,20 +868,22 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           color: isDark
                               ? Colors.white24
                               : AppTheme.glassStroke(context)),
-                      borderRadius: const BorderRadius.all(Radius.circular(12))),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(12))),
                   enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(
                           color: isDark
                               ? Colors.white24
                               : AppTheme.glassStroke(context)),
-                      borderRadius: const BorderRadius.all(Radius.circular(12))),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(12))),
                   focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: colorScheme.primary),
-                      borderRadius: const BorderRadius.all(Radius.circular(12))),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(12))),
                   prefixStyle: TextStyle(
-                      color: isDark
-                          ? Colors.white
-                          : AppTheme.textBody(context)),
+                      color:
+                          isDark ? Colors.white : AppTheme.textBody(context)),
                 ),
                 dropdownMenuTheme: DropdownMenuThemeData(
                     menuStyle: MenuStyle(
@@ -884,14 +908,18 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                   hintText: 'Kategorie wählen'),
                               child: Row(children: [
                                 Icon(_coarseIconForGroup(_currentCoarseLabel()),
-                                    color: isDark ? Colors.white : AppTheme.textPrimary(context)),
+                                    color: isDark
+                                        ? Colors.white
+                                        : AppTheme.textPrimary(context)),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     // In "Neue Anzeige" show the selected category on a single line
                                     _currentCoarseLabel(),
                                     style: TextStyle(
-                                        color: isDark ? Colors.white : AppTheme.textBody(context),
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppTheme.textBody(context),
                                         fontSize: 15,
                                         fontWeight: FontWeight.w500),
                                     maxLines: 1,
@@ -913,7 +941,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                       TextFormField(
                         controller: _titleCtrl,
                         style: TextStyle(
-                            color: isDark ? Colors.white : AppTheme.textBody(context),
+                            color: isDark
+                                ? Colors.white
+                                : AppTheme.textBody(context),
                             fontSize: 15,
                             fontWeight: FontWeight.w500),
                         decoration: const InputDecoration(
@@ -928,7 +958,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                         controller: _descCtrl,
                         maxLines: 5,
                         style: TextStyle(
-                            color: isDark ? Colors.white : AppTheme.textBody(context),
+                            color: isDark
+                                ? Colors.white
+                                : AppTheme.textBody(context),
                             fontSize: 15,
                             fontWeight: FontWeight.w500),
                         decoration: const InputDecoration(
@@ -993,7 +1025,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           Text(
                               'Füge Fotos hinzu. Tippe auf +, um Kamera oder Galerie zu wählen.',
                               style: TextStyle(
-                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white70
+                                      : AppTheme.textSecondary(context),
                                   fontSize: 13,
                                   height: 1.35)),
                           const SizedBox(height: 8),
@@ -1005,7 +1040,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                               'Hochwertige, klare Bilder erhöhen die Chance, dass deine Anzeige öfter gemietet wird.\n'
                               'Zeig den Artikel aus verschiedenen Winkeln – hell, scharf und komplett.',
                               style: TextStyle(
-                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white70
+                                      : AppTheme.textSecondary(context),
                                   fontSize: 13.5,
                                   height: 1.45),
                             ),
@@ -1056,7 +1094,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                               child: Text(
                                   'Vorschläge sind gerade nicht verfügbar. Du kannst den Ort trotzdem manuell eingeben.',
                                   style: TextStyle(
-                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white70
+                                          : AppTheme.textSecondary(context),
                                       fontSize: 13,
                                       height: 1.35)),
                             ),
@@ -1066,9 +1107,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             initiallyExpanded: false,
                             bare: true,
                             child: Text(
-                               'Der genaue Übergabeort wird nur zur Berechnung der Entfernung genutzt und erst nach bestätigter Anfrage angezeigt, wenn der Mieter Selbstabholer ist.',
+                              'Der genaue Übergabeort wird nur zur Berechnung der Entfernung genutzt und erst nach bestätigter Anfrage angezeigt, wenn der Mieter Selbstabholer ist.',
                               style: TextStyle(
-                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white70
+                                      : AppTheme.textSecondary(context),
                                   fontSize: 13.5,
                                   height: 1.45),
                             ),
@@ -1113,7 +1157,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                 _offersPickupAtReturn = !_offersPickupAtReturn),
                           ),
                           const SizedBox(height: 8),
-                                                    _Accordion(
+                          _Accordion(
                             title: 'Was bedeutet das?',
                             initiallyExpanded: false,
                             bare: true,
@@ -1125,7 +1169,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                 'Wenn Abholung aktiviert ist und der Mieter diese Option für die Rückgabe auswählt, holst du den Artikel nach der Miete wieder beim Mieter ab.\n\n'
                                 'Wenn Lieferung oder Abholung nicht aktiviert sind, holt der Mieter den Artikel selbst am Übergabeort ab und bringt ihn nach der Miete selbst wieder zurück.',
                                 style: TextStyle(
-                                  color: isDark ? Colors.white70 : AppTheme.textSecondary(context),
+                                  color: isDark
+                                      ? Colors.white70
+                                      : AppTheme.textSecondary(context),
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w400,
                                   height: 1.45,
@@ -1144,7 +1190,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                   const TextInputType.numberWithOptions(
                                       decimal: true),
                               style: TextStyle(
-                                  color: isDark ? Colors.white : AppTheme.textBody(context),
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppTheme.textBody(context),
                                   fontSize: 15,
                                   fontWeight: FontWeight.w500),
                               decoration: InputDecoration(
@@ -1152,7 +1200,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                     'Maximale Liefer-/Abholentfernung in km',
                                 // Make the label more subtle/smaller when the field appears
                                 labelStyle: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white70
+                                        : AppTheme.textSecondary(context),
                                     fontSize: 13),
                                 floatingLabelStyle: TextStyle(
                                     color: colorScheme.primary,
@@ -1169,22 +1220,33 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Die Vergütung wird automatisch anhand der Entfernung berechnet.',
+                                Text(
+                                    'Die Vergütung wird automatisch anhand der Entfernung berechnet.',
                                     style: TextStyle(
-                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white70
+                                            : AppTheme.textSecondary(context),
                                         fontSize: 13.5,
                                         height: 1.4)),
                                 SizedBox(height: 6),
                                 Text(
                                     'Aktuell: 0,30 € pro km für Hin- und Rückfahrt, mindestens 3,00 € pro Lieferung oder Abholung.',
                                     style: TextStyle(
-                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white70
+                                            : AppTheme.textSecondary(context),
                                         fontSize: 13.5,
                                         height: 1.4)),
                                 SizedBox(height: 6),
-                                Text('Der Mieter sieht die Kosten vor dem Absenden der Anfrage.',
+                                Text(
+                                    'Der Mieter sieht die Kosten vor dem Absenden der Anfrage.',
                                     style: TextStyle(
-                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white70
+                                            : AppTheme.textSecondary(context),
                                         fontSize: 13.5,
                                         height: 1.4)),
                               ],
@@ -1204,10 +1266,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight)
                         : const LinearGradient(
-                            colors: [
-                              Color(0xFFFFFFFF),
-                              Color(0xFFF6FBFF)
-                            ],
+                            colors: [Color(0xFFFFFFFF), Color(0xFFF6FBFF)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight),
                     borderRadius: BorderRadius.circular(18),
@@ -1218,7 +1277,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     boxShadow: isDark
                         ? [
                             BoxShadow(
-                                color: Colors.lightBlueAccent.withValues(alpha: 0.14),
+                                color: Colors.lightBlueAccent
+                                    .withValues(alpha: 0.14),
                                 blurRadius: 22,
                                 spreadRadius: 1,
                                 offset: const Offset(0, 10)),
@@ -1242,7 +1302,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           const SizedBox(width: 12),
                           Text('Preis pro Tag',
                               style: TextStyle(
-                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : AppTheme.textPrimary(context),
                                   fontWeight: FontWeight.w700,
                                   fontSize: 16)),
                         ]),
@@ -1275,8 +1338,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             _priceTouched = true;
                           }),
                           validator: (v) {
-                            final n = double.tryParse(
-                                (v ?? '').replaceAll(',', '.'));
+                            final n =
+                                double.tryParse((v ?? '').replaceAll(',', '.'));
                             if (n == null || n <= 0)
                               return 'Gültigen Preis eingeben';
                             return null;
@@ -1287,7 +1350,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             padding: const EdgeInsets.only(top: 8),
                             child: Text('Du hast den Preis manuell angepasst.',
                                 style: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white70
+                                        : AppTheme.textSecondary(context),
                                     fontSize: 13)),
                           ),
                         const SizedBox(height: 16),
@@ -1295,14 +1361,17 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           decoration: BoxDecoration(
                             gradient: isDark
                                 ? const LinearGradient(
-                                    colors: [Color(0xFF11192B), Color(0xFF0D1424)],
+                                    colors: [
+                                        Color(0xFF11192B),
+                                        Color(0xFF0D1424)
+                                      ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight)
                                 : const LinearGradient(
                                     colors: [
-                                      Color(0xFFFFFFFF),
-                                      Color(0xFFF8FAFC)
-                                    ],
+                                        Color(0xFFFFFFFF),
+                                        Color(0xFFF8FAFC)
+                                      ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight),
                             borderRadius: BorderRadius.circular(14),
@@ -1326,7 +1395,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                       child: Text(
                                           'Rabatt bei längerer Mietdauer',
                                           style: TextStyle(
-                                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                                              color: Theme.of(context)
+                                                          .brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.white
+                                                  : AppTheme.textPrimary(
+                                                      context),
                                               fontWeight: FontWeight.w600,
                                               fontSize: 15))),
                                   Transform.scale(
@@ -1343,8 +1417,13 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                   Text('Rabatt aktiv',
                                       style: TextStyle(
                                           color: _autoApplyDiscounts
-                                              ? (isDark ? Colors.white : AppTheme.textBody(context))
-                                              : (isDark ? Colors.white54 : AppTheme.textDisabled(context)),
+                                              ? (isDark
+                                                  ? Colors.white
+                                                  : AppTheme.textBody(context))
+                                              : (isDark
+                                                  ? Colors.white54
+                                                  : AppTheme.textDisabled(
+                                                      context)),
                                           fontWeight: FontWeight.w600,
                                           fontSize: 11)),
                                 ]),
@@ -1364,7 +1443,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: TextStyle(
-                                                    color: isDark ? Colors.white60 : AppTheme.textSecondary(context),
+                                                    color: isDark
+                                                        ? Colors.white60
+                                                        : AppTheme
+                                                            .textSecondary(
+                                                                context),
                                                     fontSize: 13,
                                                     fontWeight:
                                                         FontWeight.w600)),
@@ -1374,11 +1457,15 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                               alignment: Alignment.center,
                                               child: Text('Rabatt',
                                                   maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  textAlign:
-                                                      TextAlign.center,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  textAlign: TextAlign.center,
                                                   style: TextStyle(
-                                                      color: isDark ? Colors.white60 : AppTheme.textSecondary(context),
+                                                      color: isDark
+                                                          ? Colors.white60
+                                                          : AppTheme
+                                                              .textSecondary(
+                                                                  context),
                                                       fontSize: 13,
                                                       fontWeight:
                                                           FontWeight.w600)),
@@ -1389,10 +1476,15 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                               alignment: Alignment.centerRight,
                                               child: Text('Preis pro Tag',
                                                   maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                   textAlign: TextAlign.right,
                                                   style: TextStyle(
-                                                      color: isDark ? Colors.white60 : AppTheme.textSecondary(context),
+                                                      color: isDark
+                                                          ? Colors.white60
+                                                          : AppTheme
+                                                              .textSecondary(
+                                                                  context),
                                                       fontSize: 13,
                                                       fontWeight:
                                                           FontWeight.w600)),
@@ -1405,9 +1497,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                         'tier1_' + _strategyEpoch.toString()),
                                     days: _tier1Days,
                                     percent: _tier1Pct,
-                                    pricePerDay: double.tryParse(
-                                            _priceCtrl.text
-                                                .replaceAll(',', '.')) ??
+                                    pricePerDay: double.tryParse(_priceCtrl.text
+                                            .replaceAll(',', '.')) ??
                                         0.0,
                                     onDaysChanged: (v) => setState(() {
                                       _tier1Days = v;
@@ -1429,9 +1520,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                         'tier2_' + _strategyEpoch.toString()),
                                     days: _tier2Days,
                                     percent: _tier2Pct,
-                                    pricePerDay: double.tryParse(
-                                            _priceCtrl.text
-                                                .replaceAll(',', '.')) ??
+                                    pricePerDay: double.tryParse(_priceCtrl.text
+                                            .replaceAll(',', '.')) ??
                                         0.0,
                                     onDaysChanged: (v) => setState(() {
                                       _tier2Days = v;
@@ -1453,9 +1543,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                         'tier3_' + _strategyEpoch.toString()),
                                     days: _tier3Days,
                                     percent: _tier3Pct,
-                                    pricePerDay: double.tryParse(
-                                            _priceCtrl.text
-                                                .replaceAll(',', '.')) ??
+                                    pricePerDay: double.tryParse(_priceCtrl.text
+                                            .replaceAll(',', '.')) ??
                                         0.0,
                                     onDaysChanged: (v) => setState(() {
                                       _tier3Days = v;
@@ -1481,7 +1570,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                         child: Text(
                                             'Rabatte greifen automatisch in Preisvorschauen.',
                                             style: TextStyle(
-                                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                                                color: Theme.of(context)
+                                                            .brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.white70
+                                                    : AppTheme.textSecondary(
+                                                        context),
                                                 fontSize: 13)))
                                   ]),
                                 ],
@@ -1492,20 +1586,24 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           decoration: BoxDecoration(
                             gradient: isDark
                                 ? const LinearGradient(
-                                    colors: [Color(0xFF0F1C33), Color(0xFF0B1527)],
+                                    colors: [
+                                        Color(0xFF0F1C33),
+                                        Color(0xFF0B1527)
+                                      ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight)
                                 : const LinearGradient(
                                     colors: [
-                                      Color(0xFFF0F9FF),
-                                      Color(0xFFE0F2FE)
-                                    ],
+                                        Color(0xFFF0F9FF),
+                                        Color(0xFFE0F2FE)
+                                      ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                                 color: isDark
-                                    ? Colors.lightBlueAccent.withValues(alpha: 0.30)
+                                    ? Colors.lightBlueAccent
+                                        .withValues(alpha: 0.30)
                                     : AppTheme.glassStroke(context)),
                           ),
                           padding: const EdgeInsets.all(12),
@@ -1521,7 +1619,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                   SizedBox(width: 10),
                                   Text('SIT-Tipp',
                                       style: TextStyle(
-                                          color: isDark ? Colors.lightBlueAccent : colorScheme.primary,
+                                          color: isDark
+                                              ? Colors.lightBlueAccent
+                                              : colorScheme.primary,
                                           fontWeight: FontWeight.w700,
                                           fontSize: 16))
                                 ]),
@@ -1529,8 +1629,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                 Text(
                                     'Für ähnliche Objekte in dieser Kategorie sind Rabatte wie oben angegeben zu empfehlen, um Mietfrequenz und Mietdauer zu erhöhen. Du kannst den Preis und die Staffelung anpassen oder komplett deaktivieren.',
                                     style: TextStyle(
-                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
-                                        fontSize: 13.5, height: 1.45))
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white70
+                                            : AppTheme.textSecondary(context),
+                                        fontSize: 13.5,
+                                        height: 1.45))
                               ]),
                         ),
                       ]),
@@ -1540,10 +1644,14 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.black.withValues(alpha: 0.20) : AppTheme.surfacePrimary(context),
+                    color: isDark
+                        ? Colors.black.withValues(alpha: 0.20)
+                        : AppTheme.surfacePrimary(context),
                     borderRadius: BorderRadius.circular(16),
-                    border:
-                        Border.all(color: isDark ? Colors.white.withValues(alpha: 0.10) : AppTheme.glassStroke(context)),
+                    border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.10)
+                            : AppTheme.glassStroke(context)),
                   ),
                   child: _OwnerCancellationInfoCard(
                       body: CancellationPolicyText.bodyForOwnerListingCard),
@@ -1559,12 +1667,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             ? 'Anzeige veröffentlichen'
                             : 'Anzeige erstellen'),
                         style: FilledButton.styleFrom(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                             backgroundColor: colorScheme.primary,
                             foregroundColor: colorScheme.onPrimary,
                             textStyle: const TextStyle(
-                                    fontWeight: FontWeight.w500, fontSize: 16)),
+                                fontWeight: FontWeight.w500, fontSize: 16)),
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
@@ -1574,19 +1681,19 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                             ? 'Bearbeitung speichern'
                             : 'Für später speichern'),
                         style: OutlinedButton.styleFrom(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 13),
-                            foregroundColor: isDark ? Colors.white : AppTheme.textBody(context),
-                            backgroundColor:
-                                isDark
-                                    ? Colors.white.withValues(alpha: 0.04)
-                                    : const Color(0xFFF8FAFC),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            foregroundColor: isDark
+                                ? Colors.white
+                                : AppTheme.textBody(context),
+                            backgroundColor: isDark
+                                ? Colors.white.withValues(alpha: 0.04)
+                                : const Color(0xFFF8FAFC),
                             side: BorderSide(
                                 color: isDark
                                     ? Colors.white.withValues(alpha: 0.22)
                                     : AppTheme.glassStroke(context)),
                             textStyle: const TextStyle(
-                                    fontWeight: FontWeight.w500, fontSize: 15)),
+                                fontWeight: FontWeight.w500, fontSize: 15)),
                       ),
                     ])
               ]),
@@ -1598,7 +1705,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     );
   }
 }
-
 
 Color _listingPanelSurface(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark
@@ -1668,7 +1774,9 @@ class _ConditionPagerState extends State<_ConditionPager> {
               Expanded(
                   child: Text(selectedLabel,
                       style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : AppTheme.textPrimary(context),
                           fontWeight: FontWeight.w600,
                           fontSize: 15.5))),
               AnimatedRotation(
@@ -1676,7 +1784,9 @@ class _ConditionPagerState extends State<_ConditionPager> {
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
                 child: Icon(Icons.expand_more,
-                    color: isDark ? Colors.white70 : AppTheme.textSecondary(context)),
+                    color: isDark
+                        ? Colors.white70
+                        : AppTheme.textSecondary(context)),
               ),
             ]),
           ),
@@ -1692,7 +1802,8 @@ class _ConditionPagerState extends State<_ConditionPager> {
                     children: List.generate(_labels.length, (i) {
                   final selected = i == selectedIndex;
                   return Padding(
-                    padding: EdgeInsets.only(bottom: i == _labels.length - 1 ? 0 : 8),
+                    padding: EdgeInsets.only(
+                        bottom: i == _labels.length - 1 ? 0 : 8),
                     child: _ConditionOption(
                         label: _labels[i],
                         selected: selected,
@@ -1780,7 +1891,9 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
   void _showAllCities() async {
     final sel = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.black : const Color(0xFFFFFFFF),
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.black
+          : const Color(0xFFFFFFFF),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (context) => SafeArea(
@@ -1797,7 +1910,9 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
           const SizedBox(height: 12),
           Text('Größstädte',
               style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : AppTheme.textPrimary(context),
                   fontWeight: FontWeight.w600,
                   fontSize: 16)),
           const SizedBox(height: 8),
@@ -1807,11 +1922,13 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
               itemBuilder: (context, i) {
                 final name = _cities[i];
                 return ListTile(
-                    title:
-                        Text(name,
-                            style: TextStyle(
-                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context),
-                                fontSize: 15)),
+                    title: Text(name,
+                        style: TextStyle(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : AppTheme.textBody(context),
+                            fontSize: 15)),
                     onTap: () => Navigator.of(context).pop(name));
               },
               separatorBuilder: (_, __) =>
@@ -1844,15 +1961,18 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
           controller: textCtrl,
           focusNode: focusNode,
           style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : AppTheme.textBody(context),
               fontSize: 15),
           decoration: InputDecoration(
               labelText: 'Stadt',
               suffixIcon: IconButton(
                   onPressed: _showAllCities,
-                  icon:
-                      Icon(Icons.arrow_drop_down,
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textSecondary(context)))),
+                  icon: Icon(Icons.arrow_drop_down,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : AppTheme.textSecondary(context)))),
           onChanged: widget.onChanged,
           validator: (v) =>
               (v == null || v.trim().isEmpty) ? 'Stadt ist erforderlich' : null,
@@ -1864,7 +1984,9 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
           alignment: Alignment.topLeft,
           child: Material(
             elevation: 8,
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.black : AppTheme.surfacePrimary(context),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.black
+                : AppTheme.surfacePrimary(context),
             borderRadius: BorderRadius.circular(12),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 240, minWidth: 280),
@@ -1872,15 +1994,21 @@ class _CityAutocompleteFieldState extends State<_CityAutocompleteField> {
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 shrinkWrap: true,
                 itemCount: opts.length,
-                separatorBuilder: (_, __) =>
-                    Divider(height: 1, color: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : const Color(0xFFE2E8F0)),
+                separatorBuilder: (_, __) => Divider(
+                    height: 1,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white12
+                        : const Color(0xFFE2E8F0)),
                 itemBuilder: (context, index) {
                   final opt = opts[index];
                   return ListTile(
                     dense: true,
-                    title:
-                        Text(opt, style: TextStyle(
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context),
+                    title: Text(opt,
+                        style: TextStyle(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : AppTheme.textBody(context),
                             fontSize: 14.5)),
                     onTap: () => onSelected(opt),
                   );
@@ -1915,7 +2043,9 @@ class _CircleBadge extends StatelessWidget {
         color: color.withValues(alpha: backgroundAlpha),
         boxShadow: [
           BoxShadow(
-              color: color.withValues(alpha: 0.18), blurRadius: 10, offset: const Offset(0, 4)),
+              color: color.withValues(alpha: 0.18),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Icon(icon, color: color, size: diameter * 0.58),
@@ -1940,12 +2070,16 @@ class _PricePerDayInput extends StatelessWidget {
         keyboardType:
             const TextInputType.numberWithOptions(decimal: true, signed: false),
         style: TextStyle(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : AppTheme.textPrimary(context),
             fontWeight: FontWeight.w700,
             fontSize: 16),
         decoration: InputDecoration(
           prefixIcon: Icon(Icons.euro,
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white70
+                  : AppTheme.textSecondary(context),
               size: 18),
           prefixIconConstraints:
               const BoxConstraints(minWidth: 38, minHeight: 24),
@@ -1953,7 +2087,9 @@ class _PricePerDayInput extends StatelessWidget {
             padding: const EdgeInsets.only(right: 10),
             child: Text('pro Tag',
                 style: TextStyle(
-                    color: isDark ? Colors.white60 : AppTheme.textSecondary(context),
+                    color: isDark
+                        ? Colors.white60
+                        : AppTheme.textSecondary(context),
                     fontWeight: FontWeight.w500,
                     fontSize: 14)),
           ),
@@ -1973,7 +2109,10 @@ class _PricePerDayInput extends StatelessWidget {
           focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8))),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.8))),
         ),
         onChanged: onChanged,
         validator: validator,
@@ -2009,7 +2148,9 @@ class _Section extends StatelessWidget {
         if (leading == null && trailing == null)
           Text(title,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : AppTheme.textPrimary(context),
                   fontWeight: FontWeight.w600,
                   fontSize: 16))
         else
@@ -2019,7 +2160,9 @@ class _Section extends StatelessWidget {
             Expanded(
                 child: Text(title,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : AppTheme.textPrimary(context),
                         fontWeight: FontWeight.w600,
                         fontSize: 16))),
             if (trailing != null) ...[const SizedBox(width: 8), trailing!],
@@ -2051,7 +2194,8 @@ class _AddPhotoTile extends StatelessWidget {
               width: 1),
         ),
         alignment: Alignment.center,
-        child: Icon(Icons.add_a_photo, color: Theme.of(context).colorScheme.primary),
+        child: Icon(Icons.add_a_photo,
+            color: Theme.of(context).colorScheme.primary),
       ),
     );
   }
@@ -2113,10 +2257,16 @@ class _PickedThumb extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: Container(
             decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.black.withValues(alpha: 0.6) : AppTheme.surfacePrimary(context),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.black.withValues(alpha: 0.6)
+                    : AppTheme.surfacePrimary(context),
                 borderRadius: BorderRadius.circular(12)),
             padding: const EdgeInsets.all(4),
-            child: Icon(Icons.close, size: 14, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context)),
+            child: Icon(Icons.close,
+                size: 14,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : AppTheme.textPrimary(context)),
           ),
         ),
       ),
@@ -2134,11 +2284,20 @@ class _Bullet extends StatelessWidget {
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
           padding: const EdgeInsets.only(top: 6),
-          child: Icon(Icons.circle, size: 6, color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
+          child: Icon(Icons.circle,
+              size: 6,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white70
+                  : AppTheme.textSecondary(context)),
         ),
         const SizedBox(width: 8),
         Expanded(
-            child: Text(text, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 13.5))),
+            child: Text(text,
+                style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : AppTheme.textSecondary(context),
+                    fontSize: 13.5))),
       ]),
     );
   }
@@ -2175,8 +2334,18 @@ class _AccordionState extends State<_Accordion>
   @override
   Widget build(BuildContext context) {
     final titleStyle = widget.bare
-        ? TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontWeight: FontWeight.w600, fontSize: 13.5)
-        : TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w600, fontSize: 15.5);
+        ? TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white70
+                : AppTheme.textSecondary(context),
+            fontWeight: FontWeight.w600,
+            fontSize: 13.5)
+        : TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : AppTheme.textPrimary(context),
+            fontWeight: FontWeight.w600,
+            fontSize: 15.5);
 
     final header = InkWell(
       onTap: () => setState(() => _expanded = !_expanded),
@@ -2201,7 +2370,10 @@ class _AccordionState extends State<_Accordion>
                 turns: _expanded ? 0.5 : 0.0,
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOut,
-                child: Icon(Icons.expand_more, color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
+                child: Icon(Icons.expand_more,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : AppTheme.textSecondary(context)),
               ),
             ),
           ],
@@ -2266,14 +2438,19 @@ class _OwnerCancellationInfoCardState
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Center(
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.policy_outlined, color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
+                Icon(Icons.policy_outlined,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : AppTheme.textSecondary(context)),
                 const SizedBox(width: 8),
-                        Text('Stornierungsbedingungen',
+                Text('Stornierungsbedingungen',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 15.5,
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context))),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : AppTheme.textPrimary(context))),
               ]),
             ),
           ),
@@ -2286,7 +2463,9 @@ class _OwnerCancellationInfoCardState
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             child: Text(widget.body,
                 style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : AppTheme.textSecondary(context),
                     fontSize: 13,
                     height: 1.4)),
           ),
@@ -2344,11 +2523,15 @@ class _AddressAutocompleteField extends StatelessWidget {
           controller: textCtrl,
           focusNode: focusNode,
           style: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : AppTheme.textBody(context),
               fontSize: 15),
           decoration: InputDecoration(
               prefixIcon: Icon(Icons.search,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white70
+                      : AppTheme.textSecondary(context)),
               hintText: 'Übergabeort eingeben'),
           onChanged: onQueryChanged,
         );
@@ -2358,7 +2541,9 @@ class _AddressAutocompleteField extends StatelessWidget {
         return Align(
           alignment: Alignment.topLeft,
           child: Material(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.black : AppTheme.surfacePrimary(context),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.black
+                : AppTheme.surfacePrimary(context),
             elevation: 8,
             borderRadius: BorderRadius.circular(12),
             child: ConstrainedBox(
@@ -2369,11 +2554,16 @@ class _AddressAutocompleteField extends StatelessWidget {
                   final s = list[i];
                   return ListTile(
                     dense: true,
-                    leading:
-                        Icon(Icons.place_outlined,
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context)),
+                    leading: Icon(Icons.place_outlined,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : AppTheme.textSecondary(context)),
                     title: Text(s.description,
-                        style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context))),
+                        style: TextStyle(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : AppTheme.textBody(context))),
                     onTap: () async {
                       // Fetch place details for lat/lng
                       final d = await _fetchPlaceDetails(s.placeId);
@@ -2387,8 +2577,11 @@ class _AddressAutocompleteField extends StatelessWidget {
                     },
                   );
                 },
-                separatorBuilder: (_, __) =>
-                    Divider(height: 1, color: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : const Color(0xFFE2E8F0)),
+                separatorBuilder: (_, __) => Divider(
+                    height: 1,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white12
+                        : const Color(0xFFE2E8F0)),
                 itemCount: list.length,
               ),
             ),
@@ -2512,14 +2705,18 @@ class _AIPriceCalculatorCard extends StatelessWidget {
                   children: [
                 Text('KI-Preisberechnung',
                     style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : AppTheme.textPrimary(context),
                         fontWeight: FontWeight.w600,
                         fontSize: 15)),
                 SizedBox(height: 4),
                 Text(
                     'Bitte fülle Titel, Kategorie und Übergabeort aus, um eine Preisempfehlung zu erhalten.',
                     style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : AppTheme.textSecondary(context),
                         fontSize: 13,
                         height: 1.35))
               ])),
@@ -2527,7 +2724,11 @@ class _AIPriceCalculatorCard extends StatelessWidget {
         if (canCalculate && suggestion == null) ...[
           const SizedBox(height: 8),
           Text('Berechne Preisvorschlag…',
-              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), fontSize: 13)),
+              style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white70
+                      : AppTheme.textSecondary(context),
+                  fontSize: 13)),
         ],
         if (suggestion != null) ...[
           const SizedBox(height: 9),
@@ -2555,27 +2756,39 @@ class _AIPriceCalculatorCard extends StatelessWidget {
           // Price suggestions
           Container(
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFFFFFFF),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFDBEAFE)),
+              border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : const Color(0xFFDBEAFE)),
             ),
             padding: const EdgeInsets.all(9),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Icon(Icons.calendar_today,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context), size: 14),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : AppTheme.textSecondary(context),
+                    size: 14),
                 const SizedBox(width: 4),
                 Text('Aktueller Marktpreis (€/Tag):',
                     style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : AppTheme.textSecondary(context),
                         fontWeight: FontWeight.w500,
                         fontSize: 13.5)),
                 const Spacer(),
                 Text(
                     '${suggestion!.dailyPriceMin.toStringAsFixed(0)}–${suggestion!.dailyPriceMax.toStringAsFixed(0)} €',
                     style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : AppTheme.textPrimary(context),
                         fontWeight: FontWeight.w600,
                         fontSize: 14.5)),
               ]),
@@ -2588,12 +2801,17 @@ class _AIPriceCalculatorCard extends StatelessWidget {
                 ? 'Preis im unteren Marktbereich – erhöht die Buchungswahrscheinlichkeit.'
                 : 'Preis im oberen Marktbereich – optimiert Ertrag pro Vermietung.';
             return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Icons.info_outline, color: isDark ? Colors.white54 : AppTheme.textSecondary(context), size: 14),
+              Icon(Icons.info_outline,
+                  color:
+                      isDark ? Colors.white54 : AppTheme.textSecondary(context),
+                  size: 14),
               const SizedBox(width: 4),
               Expanded(
                   child: Text(help,
                       style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white70
+                              : AppTheme.textSecondary(context),
                           fontSize: 13,
                           height: 1.35))),
             ]);
@@ -2601,12 +2819,17 @@ class _AIPriceCalculatorCard extends StatelessWidget {
           const SizedBox(height: 7),
           // Reasoning
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Icon(Icons.info_outline, color: isDark ? Colors.white54 : AppTheme.textSecondary(context), size: 14),
+            Icon(Icons.info_outline,
+                color:
+                    isDark ? Colors.white54 : AppTheme.textSecondary(context),
+                size: 14),
             const SizedBox(width: 4),
             Expanded(
                 child: Text(suggestion!.reasoning,
                     style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : AppTheme.textSecondary(context),
                         fontSize: 13,
                         height: 1.35))),
           ]),
@@ -2627,7 +2850,9 @@ class _AIPriceCalculatorCard extends StatelessWidget {
               Expanded(
                   child: Text(suggestion!.optimizationTip,
                       style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textBody(context),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : AppTheme.textBody(context),
                           fontSize: 13,
                           height: 1.35))),
             ]),
@@ -2658,12 +2883,16 @@ class _StrategyChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? Colors.lightBlueAccent
-              : (isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF8FAFC)),
+              : (isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : const Color(0xFFF8FAFC)),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
               color: selected
                   ? Colors.lightBlueAccent
-                  : (isDark ? Colors.white.withValues(alpha: 0.16) : AppTheme.glassStroke(context))),
+                  : (isDark
+                      ? Colors.white.withValues(alpha: 0.16)
+                      : AppTheme.glassStroke(context))),
         ),
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -2679,7 +2908,9 @@ class _StrategyChip extends StatelessWidget {
                   style: TextStyle(
                       color: selected
                           ? Colors.black
-                          : (isDark ? Colors.white70 : AppTheme.textBody(context)),
+                          : (isDark
+                              ? Colors.white70
+                              : AppTheme.textBody(context)),
                       fontWeight: FontWeight.w600,
                       fontSize: 11.5))),
         ]),
@@ -2795,7 +3026,9 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
           child: Row(children: [
             Text('Ab',
                 style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : AppTheme.textSecondary(context),
                     fontWeight: FontWeight.w600,
                     fontSize: 14)),
             const SizedBox(width: 4),
@@ -2838,7 +3071,9 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
             const SizedBox(width: 2),
             Text('Tagen',
                 style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : AppTheme.textSecondary(context),
                     fontWeight: FontWeight.w600,
                     fontSize: 14)),
           ]),
@@ -2857,7 +3092,9 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
                   LengthLimitingTextInputFormatter(2),
                 ],
                 style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.textPrimary(context),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : AppTheme.textPrimary(context),
                     fontWeight: FontWeight.w700,
                     fontSize: 14),
                 textAlign: TextAlign.center,
@@ -2866,22 +3103,32 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
                   contentPadding:
                       const EdgeInsets.symmetric(vertical: 7, horizontal: 8),
                   filled: true,
-                  fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFFFFFFF),
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.05)
+                      : const Color(0xFFFFFFFF),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
-                      borderSide:
-                          BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.16) : const Color(0xFFE2E8F0))),
+                      borderSide: BorderSide(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.16)
+                              : const Color(0xFFE2E8F0))),
                   focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide(
-                          color: primary.withValues(alpha: 0.9))),
+                      borderSide:
+                          BorderSide(color: primary.withValues(alpha: 0.9))),
                   suffixText: '%',
                   suffixStyle: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppTheme.textSecondary(context),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white70
+                          : AppTheme.textSecondary(context),
                       fontWeight: FontWeight.w600,
                       fontSize: 13),
                   hintText: '0',
-                  hintStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white38 : AppTheme.textDisabled(context), fontSize: 13),
+                  hintStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white38
+                          : AppTheme.textDisabled(context),
+                      fontSize: 13),
                 ),
                 onChanged: (v) {
                   final n = double.tryParse(v.replaceAll(',', '.'));
@@ -2902,7 +3149,9 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
                   width: 1,
                   height: 18,
                   margin: const EdgeInsets.symmetric(horizontal: 8),
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.18) : const Color(0xFFE2E8F0)),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.18)
+                      : const Color(0xFFE2E8F0)),
               Expanded(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
