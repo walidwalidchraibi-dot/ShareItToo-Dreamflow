@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/qa_bootstrap_service.dart';
+import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/test_builders.dart';
@@ -35,6 +36,7 @@ void main() {
   ];
 
   Future<void> seedQaBase({String currentUserId = 'u1'}) async {
+    QaRuntimeService.reset();
     final currentUser = baseUsers.singleWhere((u) => u.id == currentUserId);
     SharedPreferences.setMockInitialValues({
       'users': jsonEncode(baseUsers.map((u) => u.toJson()).toList()),
@@ -87,6 +89,24 @@ void main() {
     expect(current, isNotNull);
     expect(current!.id, 'u2');
     expect(current.displayName, 'Max Mustermann');
+  });
+
+  test('qa persona stays tab-local across shared preferences reload', () async {
+    await QaBootstrapService.maybeBootstrap(
+      uri: Uri.parse('http://127.0.0.1:8131/?qa=1&persona=u2'),
+      debugMode: true,
+    );
+    final prefs = await SharedPreferences.getInstance();
+    final persistedBeforeReload = jsonDecode(
+      prefs.getString('currentUser')!,
+    ) as Map<String, dynamic>;
+
+    await prefs.reload();
+    final runtimeCurrent = await DataService.getCurrentUser();
+
+    expect(runtimeCurrent?.id, 'u2');
+    expect(persistedBeforeReload['id'], 'u1');
+    expect(jsonDecode(prefs.getString('currentUser')!)['id'], 'u1');
   });
 
   test('unknown persona falls back to u1 default safely', () async {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
@@ -11,6 +12,7 @@ import 'package:lendify/screens/blocked_users_screen.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/services/messages_settings_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
@@ -68,11 +70,21 @@ class _MessagesScreenState extends State<MessagesScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   MessagesSettings _messageSettings = MessagesSettings.defaults().normalizedForCurrentProductRules();
+  StreamSubscription<String>? _sharedPersistenceSub;
+  final SharedPersistenceRefreshCoordinator _sharedPersistenceRefresh =
+      SharedPersistenceRefreshCoordinator();
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _sharedPersistenceSub = SharedPersistenceSync.changes.listen((key) {
+      if (!mounted || !SharedPersistenceSync.affectsBookingSync(key)) return;
+      unawaited(_sharedPersistenceRefresh.schedule(() async {
+        await SharedPersistenceSync.reloadPreferences();
+        if (mounted) await _loadData();
+      }));
+    });
   }
 
 
@@ -162,6 +174,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   @override
   void dispose() {
+    _sharedPersistenceSub?.cancel();
+    _sharedPersistenceRefresh.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -2109,4 +2123,3 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
-

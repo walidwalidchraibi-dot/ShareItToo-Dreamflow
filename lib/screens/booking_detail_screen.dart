@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:lendify/widgets/return_reminder_picker_sheet.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/models/invoice.dart';
 import 'package:lendify/services/invoice_pdf_service.dart';
 import 'package:lendify/services/local_artifact_storage_service.dart';
@@ -68,6 +71,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   double? _itemLng;
   Map<String, dynamic> _flowState = const {};
   bool _reviewAlreadySubmitted = false;
+  StreamSubscription<String>? _sharedPersistenceSub;
+  final SharedPersistenceRefreshCoordinator _sharedPersistenceRefresh =
+      SharedPersistenceRefreshCoordinator();
 
   List<String> get _photos {
     final b = widget.booking;
@@ -200,6 +206,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    _sharedPersistenceSub = SharedPersistenceSync.changes.listen((key) {
+      if (!mounted || !SharedPersistenceSync.affectsBookingSync(key)) return;
+      unawaited(
+        _sharedPersistenceRefresh.schedule(_reloadFromSharedPersistence),
+      );
+    });
     // Load owner-side failed confirmations to decide when to show manual pickup confirmation for renter
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final id = _computeBookingId();
@@ -253,8 +265,38 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     });
   }
 
+  Future<void> _reloadFromSharedPersistence() async {
+    await SharedPersistenceSync.reloadPreferences();
+    if (!mounted) return;
+
+    final requestId = (widget.booking['requestId'] as String?)?.trim() ?? '';
+    if (requestId.isEmpty) return;
+    final request = await DataService.getRentalRequestById(requestId);
+    final state = await DataService.getHandoverReturnState(requestId);
+    final current = await DataService.getCurrentUser();
+    final alreadyReviewed = current != null
+        ? await DataService.hasSubmittedReview(
+            requestId: requestId,
+            reviewerId: current.id,
+          )
+        : false;
+    if (!mounted) return;
+
+    setState(() {
+      _flowState = state;
+      _reviewAlreadySubmitted = alreadyReviewed;
+      if (request != null) {
+        widget.booking['startIso'] = request.start.toIso8601String();
+        widget.booking['endIso'] = request.end.toIso8601String();
+      }
+    });
+    await _syncBookingLifecycleFromRequest(requestId);
+  }
+
   @override
   void dispose() {
+    _sharedPersistenceSub?.cancel();
+    _sharedPersistenceRefresh.dispose();
     _pageController.dispose();
     _manualPickupCodeCtrl.dispose();
     _manualReturnCodeCtrl.dispose();

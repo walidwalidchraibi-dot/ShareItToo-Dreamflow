@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lendify/screens/booking_detail_screen.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart' as model;
@@ -35,6 +36,9 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   String? _currentUserId;
   // Track unread counts per category
   final Map<String, int> _unreadCounts = {};
+  StreamSubscription<String>? _sharedPersistenceSub;
+  final SharedPersistenceRefreshCoordinator _sharedPersistenceRefresh =
+      SharedPersistenceRefreshCoordinator();
 
   String get _sectionTitle {
     switch (_tabController.index) {
@@ -61,6 +65,13 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     });
     _highlightRequestId = widget.highlightRequestId;
     _load();
+    _sharedPersistenceSub = SharedPersistenceSync.changes.listen((key) {
+      if (!mounted || !SharedPersistenceSync.affectsBookingSync(key)) return;
+      unawaited(_sharedPersistenceRefresh.schedule(() async {
+        await SharedPersistenceSync.reloadPreferences();
+        if (mounted) await _load();
+      }));
+    });
     // Periodically refresh to update countdowns and move cards between tabs
     _ticker = Timer.periodic(const Duration(minutes: 1), (_) async {
       if (!mounted) return;
@@ -73,6 +84,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
 
   @override
   void dispose() {
+    _sharedPersistenceSub?.cancel();
+    _sharedPersistenceRefresh.dispose();
     _ticker?.cancel();
     _tabController.dispose();
     super.dispose();

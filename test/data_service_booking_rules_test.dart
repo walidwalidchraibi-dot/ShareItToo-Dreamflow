@@ -96,6 +96,11 @@ void main() {
             needsReview: true,
           ).toJson(),
         ]),
+        'handover_return_state_v1': jsonEncode({
+          'req-pickup': {'handoverTimeConfirmed': true},
+          'req-return': {'returnTimeConfirmed': true},
+          'req-review': {'returnTimeConfirmed': true},
+        }),
         if (currentUser != null)
           'currentUser': jsonEncode(currentUser.toJson()),
       });
@@ -211,7 +216,8 @@ void main() {
       },
     );
 
-    test('handover start allows logged-in owner on accepted request', () async {
+    test('handover start allows logged-in owner after confirmed handover time',
+        () async {
       await seedBookingState(currentUser: owner);
 
       final result = await DataService.setHandoverActive(
@@ -226,6 +232,27 @@ void main() {
       expect(state['handoverActive'], isTrue);
       expect(state['returnActive'], isFalse);
       expect(request!.status, 'accepted');
+    });
+
+    test('handover start rejects an unconfirmed handover time', () async {
+      await DataService.requestFlowTime(
+        requestId: 'req-pickup',
+        isReturn: false,
+        label: '10:00',
+        time: DateTime(2026, 7, 29, 10),
+        requestedByUserId: renter.id,
+      );
+      final before = await DataService.getHandoverReturnState('req-pickup');
+
+      final result = await DataService.setHandoverActive(
+        'req-pickup',
+        active: true,
+      );
+
+      final after = await DataService.getHandoverReturnState('req-pickup');
+      expect(result, isFalse);
+      expect(after, before);
+      expect(after['handoverActive'], isFalse);
     });
 
     test(
@@ -427,7 +454,8 @@ void main() {
       },
     );
 
-    test('return start allows logged-in renter on running request', () async {
+    test('return start allows logged-in renter after confirmed return time',
+        () async {
       await seedBookingState(currentUser: renter);
 
       final result = await DataService.setReturnActive(
@@ -442,6 +470,42 @@ void main() {
       expect(state['handoverActive'], isFalse);
       expect(state['returnActive'], isTrue);
       expect(request!.status, 'running');
+    });
+
+    test('return start rejects an unconfirmed return time', () async {
+      await seedBookingState(currentUser: renter);
+      await DataService.requestFlowTime(
+        requestId: 'req-return',
+        isReturn: true,
+        label: '18:00',
+        time: DateTime(2026, 7, 31, 18),
+        requestedByUserId: owner.id,
+      );
+      final before = await DataService.getHandoverReturnState('req-return');
+
+      final result = await DataService.setReturnActive(
+        'req-return',
+        active: true,
+      );
+
+      final after = await DataService.getHandoverReturnState('req-return');
+      expect(result, isFalse);
+      expect(after, before);
+      expect(after['returnActive'], isFalse);
+    });
+
+    test('return start remains available while completion is held for review',
+        () async {
+      await seedBookingState(currentUser: renter);
+
+      final result = await DataService.setReturnActive(
+        'req-review',
+        active: true,
+      );
+
+      final after = await DataService.getHandoverReturnState('req-review');
+      expect(result, isTrue);
+      expect(after['returnActive'], isTrue);
     });
 
     test('return start rejects involved owner on running request', () async {

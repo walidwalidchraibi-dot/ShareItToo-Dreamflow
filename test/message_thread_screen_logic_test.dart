@@ -26,6 +26,7 @@ void main() {
         canStartPrimaryBookingAction(
           chatState: BookingChatState.confirmed,
           viewerIsOwner: true,
+          handoverTimeConfirmed: true,
         ),
         isTrue,
       );
@@ -33,6 +34,7 @@ void main() {
         canStartPrimaryBookingAction(
           chatState: BookingChatState.confirmed,
           viewerIsOwner: false,
+          handoverTimeConfirmed: true,
         ),
         isFalse,
       );
@@ -43,6 +45,7 @@ void main() {
         canStartPrimaryBookingAction(
           chatState: BookingChatState.running,
           viewerIsOwner: false,
+          returnTimeConfirmed: true,
         ),
         isTrue,
       );
@@ -50,6 +53,7 @@ void main() {
         canStartPrimaryBookingAction(
           chatState: BookingChatState.returnPlanned,
           viewerIsOwner: false,
+          returnTimeConfirmed: true,
         ),
         isTrue,
       );
@@ -57,6 +61,7 @@ void main() {
         canStartPrimaryBookingAction(
           chatState: BookingChatState.running,
           viewerIsOwner: true,
+          returnTimeConfirmed: true,
         ),
         isFalse,
       );
@@ -64,6 +69,33 @@ void main() {
         canStartPrimaryBookingAction(
           chatState: BookingChatState.returnPlanned,
           viewerIsOwner: true,
+          returnTimeConfirmed: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('unconfirmed times and pre-handover review holds hide actions', () {
+      expect(
+        canStartPrimaryBookingAction(
+          chatState: BookingChatState.confirmed,
+          viewerIsOwner: true,
+        ),
+        isFalse,
+      );
+      expect(
+        canStartPrimaryBookingAction(
+          chatState: BookingChatState.running,
+          viewerIsOwner: false,
+        ),
+        isFalse,
+      );
+      expect(
+        canStartPrimaryBookingAction(
+          chatState: BookingChatState.confirmed,
+          viewerIsOwner: true,
+          handoverTimeConfirmed: true,
+          needsReview: true,
         ),
         isFalse,
       );
