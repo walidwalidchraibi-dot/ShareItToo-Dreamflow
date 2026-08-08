@@ -169,8 +169,10 @@ Migration `002_b4_auth_lifecycle.up.sql` ergänzt:
 - Push-Geräte mit Sitzungszuordnung.
 
 Die Migration ist additiv. Bestehende Refresh-Tokens erhalten jeweils eine
-eigene Legacy-Sitzung. Ein App-Rollback darf deshalb auf das vorherige Image
-zurückschalten, ohne das Schema zurückzudrehen. Änderungen an einer bereits
+eigene Legacy-Sitzung. Ein Datenbank-Trigger ergänzt auch bei einem temporären
+Rollback neu angelegte Refresh-Tokens der älteren App automatisch um Sitzung
+und Token-Familie. Das vorherige Image kann deshalb weiter anmelden und
+erneuern, ohne das Schema zurückzudrehen. Änderungen an einer bereits
 ausgeführten Migration sind verboten; Korrekturen erfolgen vorwärtsgerichtet
 in einer neuen Datei.
 

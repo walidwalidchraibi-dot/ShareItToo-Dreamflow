@@ -51,6 +51,23 @@ if (!databaseUrl) {
            ('outsider', 'outsider@example.com', '{}'::jsonb, 'user', 'active'),
            ('suspended', 'suspended@example.com', '{}'::jsonb, 'user', 'suspended')`,
       );
+      const legacyRefresh = await setupPool.query(
+        `INSERT INTO refresh_tokens (
+           user_id, token_hash, expires_at, user_agent
+         ) VALUES (
+           'owner', $1, now() + interval '1 day', 'Legacy rollback probe'
+         )
+         RETURNING id, session_id, family_id`,
+        ['a'.repeat(64)],
+      );
+      assert.equal(legacyRefresh.rows[0].session_id, legacyRefresh.rows[0].id);
+      assert.equal(legacyRefresh.rows[0].family_id, legacyRefresh.rows[0].id);
+      const legacySession = await setupPool.query(
+        `SELECT user_id, device_label FROM auth_sessions WHERE id = $1`,
+        [legacyRefresh.rows[0].session_id],
+      );
+      assert.equal(legacySession.rows[0].user_id, 'owner');
+      assert.equal(legacySession.rows[0].device_label, 'Legacy-App-Sitzung');
       const sessionIds = {
         owner: '11111111-1111-4111-8111-111111111111',
         'renter-a': '22222222-2222-4222-8222-222222222222',

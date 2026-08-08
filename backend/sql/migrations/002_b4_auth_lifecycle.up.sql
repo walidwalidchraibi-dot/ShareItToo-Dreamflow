@@ -62,6 +62,39 @@ ALTER TABLE refresh_tokens
   ALTER COLUMN session_id SET NOT NULL,
   ALTER COLUMN family_id SET NOT NULL;
 
+CREATE OR REPLACE FUNCTION sit_assign_legacy_refresh_session()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.id IS NULL THEN
+    NEW.id := gen_random_uuid();
+  END IF;
+  IF NEW.session_id IS NULL THEN
+    NEW.session_id := NEW.id;
+    INSERT INTO auth_sessions (
+      id, user_id, device_label, user_agent, created_at, last_seen_at,
+      revoked_at, revoked_reason
+    ) VALUES (
+      NEW.session_id, NEW.user_id, 'Legacy-App-Sitzung', NEW.user_agent,
+      COALESCE(NEW.created_at, now()), COALESCE(NEW.created_at, now()),
+      NEW.revoked_at,
+      CASE WHEN NEW.revoked_at IS NULL THEN NULL ELSE 'legacy_revoked' END
+    )
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+  IF NEW.family_id IS NULL THEN
+    NEW.family_id := NEW.session_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS refresh_tokens_assign_legacy_session ON refresh_tokens;
+CREATE TRIGGER refresh_tokens_assign_legacy_session
+BEFORE INSERT ON refresh_tokens
+FOR EACH ROW EXECUTE FUNCTION sit_assign_legacy_refresh_session();
+
 CREATE INDEX refresh_tokens_session_active_idx
   ON refresh_tokens(session_id, expires_at DESC)
   WHERE revoked_at IS NULL;
