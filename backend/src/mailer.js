@@ -1,6 +1,9 @@
 import nodemailer from 'nodemailer';
 
 import { config } from './config.js';
+import { buildTransactionalEmail } from './transactional_mail_templates.js';
+
+export { buildTransactionalEmail } from './transactional_mail_templates.js';
 
 let transporter = null;
 let status = config.mail.transport === 'disabled' ? 'disabled' : 'unverified';
@@ -141,5 +144,15 @@ export async function sendPasswordResetEmail({ email, displayName, token }) {
       expiryText: 'Dieser Link ist 30 Minuten gültig und kann nur einmal verwendet werden.',
       footer: 'Wenn du diese Änderung nicht angefordert hast, bleibt dein bisheriges Passwort unverändert.',
     }),
+  });
+}
+
+export async function sendTransactionalEmail({ email, ...templateInput }) {
+  const message = buildTransactionalEmail(templateInput);
+  return send({
+    to: email,
+    subject: message.subject,
+    text: message.text,
+    html: message.html,
   });
 }

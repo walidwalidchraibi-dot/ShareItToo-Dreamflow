@@ -112,7 +112,7 @@ class LegalScreen extends StatelessWidget {
                 AppPopup.toast(
                   context,
                   icon: Icons.mail_outline,
-                  title: 'Kontakt: contact@shareittoo.de',
+                  title: 'Kontakt: contact@shareittoo.com',
                 );
               },
               style: TextButton.styleFrom(
