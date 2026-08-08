@@ -38,8 +38,10 @@ if (!databaseUrl) {
       assert.deepEqual(migrationRows.rows.map((row) => row.name), [
         '001_b3_foundation.up.sql',
         '002_b4_auth_lifecycle.up.sql',
+        '003_b4_phone_constraint_fix.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
+      assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
 
       await setupPool.query('TRUNCATE users CASCADE');
       await setupPool.query(
@@ -50,6 +52,13 @@ if (!databaseUrl) {
            ('renter-b', 'renter-b@example.com', '{}'::jsonb, 'user', 'active'),
            ('outsider', 'outsider@example.com', '{}'::jsonb, 'user', 'active'),
            ('suspended', 'suspended@example.com', '{}'::jsonb, 'user', 'suspended')`,
+      );
+      await setupPool.query(
+        `UPDATE users SET phone_e164 = '+4915212345678' WHERE id = 'owner'`,
+      );
+      await assert.rejects(
+        setupPool.query(`UPDATE users SET phone_e164 = '015212345678' WHERE id = 'owner'`),
+        (error) => error?.code === '23514' && error?.constraint === 'users_phone_e164_check',
       );
       const legacyRefresh = await setupPool.query(
         `INSERT INTO refresh_tokens (
