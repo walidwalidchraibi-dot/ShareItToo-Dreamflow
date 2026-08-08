@@ -1,0 +1,13 @@
+[Unit]
+Description=ShareItToo production health check
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/docker/shareittoo/backend/ops/healthcheck.sh
+User=root
+Group=root
+NoNewPrivileges=true
+PrivateTmp=true

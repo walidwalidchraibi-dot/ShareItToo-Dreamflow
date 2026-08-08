@@ -4,6 +4,8 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lendify/models/user.dart';
+import 'package:lendify/services/auth_service.dart';
+import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/approx_location_map.dart';
@@ -309,6 +311,17 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
       return;
     }
 
+    final sent = await AuthService.requestEmailVerification();
+    if (!mounted) return;
+    if (!sent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte versuche es erneut.'),
+        ),
+      );
+      return;
+    }
+
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -343,24 +356,47 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                           try {
                             final u = _user;
                             if (u == null) return;
-                            final updated = u.copyWith(emailVerified: true);
-                            await DataService.setCurrentUser(updated);
-                            if (!mounted) return;
+                            late final User updated;
+                            if (BackendConfig.enabled) {
+                              await DataService.syncCurrentUserForSessionEmail(
+                                _emailCtrl.text.trim(),
+                              );
+                              final refreshed = await DataService.getCurrentUser();
+                              if (refreshed == null || !refreshed.emailVerified) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Der Link wurde noch nicht bestätigt.'),
+                                  ),
+                                );
+                                return;
+                              }
+                              updated = refreshed;
+                            } else {
+                              updated = u.copyWith(emailVerified: true);
+                              await DataService.setCurrentUser(updated);
+                            }
+                            if (!context.mounted) return;
                             setState(() => _user = updated);
                             Navigator.of(context).pop();
                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('E‑Mail bestätigt')));
                           } catch (e) {
                             debugPrint('[ContactData] verify email failed: $e');
+                            if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bestätigung fehlgeschlagen.')));
                           } finally {
-                            setLocal(() => confirming = false);
+                            if (context.mounted) {
+                              setLocal(() => confirming = false);
+                            }
                           }
                         },
                   child: confirming ? const _BusyButtonLabel() : const Text('Ich habe bestätigt'),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Tipp: Ohne Backend ist das hier eine Demo‑Bestätigung. Später kann das an echte E‑Mail-Verifizierung gekoppelt werden.',
+                  BackendConfig.enabled
+                      ? 'Der Link ist 24 Stunden gültig und kann nur einmal verwendet werden.'
+                      : 'Im lokalen Demo-Modus wird die Bestätigung simuliert.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
                 ),
               ]);
@@ -544,10 +580,17 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                               TextFormField(
                                 controller: _emailCtrl,
+                                readOnly: BackendConfig.enabled,
                                 keyboardType: TextInputType.emailAddress,
                                 autofillHints: const [AutofillHints.email],
                                 validator: _validateEmail,
-                                decoration: const InputDecoration(labelText: 'E‑Mail‑Adresse', prefixIcon: Icon(Icons.alternate_email)),
+                                decoration: InputDecoration(
+                                  labelText: 'E‑Mail‑Adresse',
+                                  prefixIcon: const Icon(Icons.alternate_email),
+                                  helperText: BackendConfig.enabled
+                                      ? 'Die Konto-E-Mail kann derzeit nicht direkt geändert werden.'
+                                      : null,
+                                ),
                               ),
                               const SizedBox(height: 10),
                               _VerifyStatusRow(
@@ -668,7 +711,6 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
     ]);
   }
 }
-
 class _ParsedAddress {
   final String? street;
   final String? houseNumber;

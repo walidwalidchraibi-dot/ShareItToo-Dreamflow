@@ -120,7 +120,10 @@ class AuthService {
           body: {'email': email.trim(), 'password': password},
         );
         final session = await _saveRemoteSession(response);
-        return AuthResult.success(session: session);
+        return AuthResult.success(
+          session: session,
+          verificationEmailSent: response['verificationEmailSent'] == true,
+        );
       } on BackendException catch (error) {
         if (error.statusCode == 401) {
           return const AuthResult.failure(AuthFailure.invalidCredentials);
@@ -238,6 +241,56 @@ class AuthService {
     return refreshAccessToken();
   }
 
+  static Future<bool> requestPasswordReset(String email) async {
+    if (!BackendConfig.enabled) return true;
+    try {
+      await BackendHttp.requestJson(
+        method: 'POST',
+        path: '/auth/password-reset/request',
+        body: {'email': email.trim()},
+      );
+      return true;
+    } catch (error) {
+      debugPrint('[AuthService] password reset request failed: $error');
+      return false;
+    }
+  }
+
+  static Future<bool> requestEmailVerification() async {
+    if (!BackendConfig.enabled) return true;
+    var token = await accessToken() ?? '';
+    if (token.isEmpty) return false;
+    try {
+      await BackendHttp.requestJson(
+        method: 'POST',
+        path: '/auth/email-verification/request',
+        accessToken: token,
+      );
+      return true;
+    } on BackendException catch (error) {
+      if (error.statusCode != 401) {
+        debugPrint('[AuthService] verification request failed: $error');
+        return false;
+      }
+      token = await refreshAccessToken() ?? '';
+      if (token.isEmpty) return false;
+      try {
+        await BackendHttp.requestJson(
+          method: 'POST',
+          path: '/auth/email-verification/request',
+          accessToken: token,
+        );
+        return true;
+      } catch (retryError) {
+        debugPrint('[AuthService] verification retry failed: $retryError');
+        return false;
+      }
+    } catch (error) {
+      debugPrint('[AuthService] verification request failed: $error');
+      return false;
+    }
+  }
+
   static Future<String?> refreshAccessToken() async {
     if (!BackendConfig.enabled) return null;
     final inFlight = _refreshInFlight;
@@ -334,7 +387,6 @@ class AuthService {
     }
   }
 }
-
 enum AuthSocialProvider { google, apple }
 
 class AuthSession {
@@ -361,10 +413,14 @@ class AuthResult {
   final bool ok;
   final AuthFailure? failure;
   final AuthSession? session;
+  final bool verificationEmailSent;
 
-  const AuthResult.success({this.session}) : ok = true, failure = null;
+  const AuthResult.success({this.session, this.verificationEmailSent = false})
+      : ok = true,
+        failure = null;
   const AuthResult.failure(AuthFailure failure)
       : ok = false,
         failure = failure,
-        session = null;
+        session = null,
+        verificationEmailSent = false;
 }

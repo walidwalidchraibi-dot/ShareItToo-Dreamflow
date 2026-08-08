@@ -7,6 +7,7 @@ Production API for ShareItToo. It provides:
 - central profiles, listings, rental requests and message threads;
 - authenticated image uploads with MIME inspection and an 8 MB limit;
 - WebSocket change notifications for live client refreshes;
+- one-time email verification and password-reset links;
 - PostgreSQL persistence with ownership and participant checks.
 
 The production stack is intentionally isolated from the existing OpenClaw and
@@ -23,5 +24,13 @@ pnpm run check
 
 ## Required production secrets
 
-Copy `.env.example` to `.env` outside Git, then replace both passwords with
-independent cryptographically random values. Never commit `.env`.
+Copy `.env.example` to `.env` outside Git, then replace the database password
+and JWT secret with independent cryptographically random values. Never commit
+`.env`.
+
+Production email is sent through Google Workspace SMTP relay. The relay must
+allow both VPS egress addresses (`2.24.194.2` and
+`2a02:4780:75:1ad1::1`), require TLS, and restrict senders to the ShareItToo
+domain. Keep `MAIL_TRANSPORT=disabled` until a relay test succeeds, then change
+it to `smtp`. If authenticated SMTP is used instead, set `SMTP_USER` and
+`SMTP_PASSWORD` in the untracked production `.env` file.

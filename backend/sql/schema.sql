@@ -7,8 +7,16 @@ CREATE TABLE IF NOT EXISTS users (
   profile JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  deactivated_at TIMESTAMPTZ
+  deactivated_at TIMESTAMPTZ,
+  email_verified_at TIMESTAMPTZ,
+  password_changed_at TIMESTAMPTZ
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ;
+UPDATE users
+SET email_verified_at = COALESCE(email_verified_at, created_at)
+WHERE profile->>'emailVerified' = 'true' AND email_verified_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS refresh_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -22,6 +30,20 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 );
 CREATE INDEX IF NOT EXISTS refresh_tokens_user_idx ON refresh_tokens(user_id);
 CREATE INDEX IF NOT EXISTS refresh_tokens_expiry_idx ON refresh_tokens(expires_at);
+
+CREATE TABLE IF NOT EXISTS auth_action_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('verify_email', 'reset_password')),
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  consumed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS auth_action_tokens_user_kind_idx
+  ON auth_action_tokens(user_id, kind, created_at DESC);
+CREATE INDEX IF NOT EXISTS auth_action_tokens_expiry_idx
+  ON auth_action_tokens(expires_at);
 
 CREATE TABLE IF NOT EXISTS listings (
   id TEXT PRIMARY KEY,

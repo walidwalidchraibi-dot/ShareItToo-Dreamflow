@@ -28,4 +28,18 @@ export const config = Object.freeze({
   accessTokenLifetime: '15m',
   accessTokenLifetimeSeconds: 15 * 60,
   refreshTokenLifetimeDays: 30,
+  emailVerificationLifetimeHours: 24,
+  passwordResetLifetimeMinutes: 30,
+  appPublicUrl: (process.env.APP_PUBLIC_URL ?? 'https://shareittoo.com').replace(/\/$/, ''),
+  mail: Object.freeze({
+    transport: (process.env.MAIL_TRANSPORT ?? 'disabled').trim().toLowerCase(),
+    host: process.env.SMTP_HOST?.trim() ?? '',
+    port: Number.parseInt(process.env.SMTP_PORT ?? '587', 10),
+    secure: (process.env.SMTP_SECURE ?? 'false').trim().toLowerCase() === 'true',
+    requireTls: (process.env.SMTP_REQUIRE_TLS ?? 'true').trim().toLowerCase() !== 'false',
+    user: process.env.SMTP_USER?.trim() ?? '',
+    password: process.env.SMTP_PASSWORD ?? '',
+    from: process.env.MAIL_FROM?.trim() ?? 'ShareItToo <contact@shareittoo.com>',
+    replyTo: process.env.MAIL_REPLY_TO?.trim() ?? 'contact@shareittoo.com',
+  }),
 });

@@ -166,6 +166,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       }
 
+      if (result.verificationEmailSent && mounted) {
+        await AppPopup.toast(
+          context,
+          icon: Icons.mark_email_read_outlined,
+          title: 'Bestätigungs-E-Mail gesendet',
+          message: 'Öffne den Link in deiner E-Mail, um dein Konto zu bestätigen.',
+        );
+      }
+
+      if (!mounted) return;
       await context
           .read<DeveloperPreviewController>()
           .setState(DeveloperUserState.loggedIn);
@@ -549,7 +559,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
-
 class _RegisterBackdrop extends StatelessWidget {
   final bool peekClear;
   const _RegisterBackdrop({required this.peekClear});

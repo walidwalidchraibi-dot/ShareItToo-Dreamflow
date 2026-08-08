@@ -78,8 +78,8 @@ const demoListings = [
 export async function seedPublicCatalog() {
   await inTransaction(async (client) => {
     await client.query(
-      `INSERT INTO users (id, email, password_hash, profile)
-       VALUES ($1, $2, NULL, $3::jsonb)
+      `INSERT INTO users (id, email, password_hash, profile, email_verified_at)
+       VALUES ($1, $2, NULL, $3::jsonb, now())
        ON CONFLICT (id) DO NOTHING`,
       [demoOwner.id, demoOwner.email, JSON.stringify(demoOwner.profile)],
     );
