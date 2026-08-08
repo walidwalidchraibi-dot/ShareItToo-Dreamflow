@@ -24,6 +24,7 @@ function getTransporter() {
   transporter = nodemailer.createTransport({
     host: config.mail.host,
     port: config.mail.port,
+    name: new URL(config.appPublicUrl).hostname,
     secure: config.mail.secure,
     requireTLS: config.mail.requireTls,
     auth: config.mail.user && config.mail.password

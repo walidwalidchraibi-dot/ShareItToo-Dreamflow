@@ -33,4 +33,6 @@ allow both VPS egress addresses (`2.24.194.2` and
 `2a02:4780:75:1ad1::1`), require TLS, and restrict senders to the ShareItToo
 domain. Keep `MAIL_TRANSPORT=disabled` until a relay test succeeds, then change
 it to `smtp`. If authenticated SMTP is used instead, set `SMTP_USER` and
-`SMTP_PASSWORD` in the untracked production `.env` file.
+`SMTP_PASSWORD` in the untracked production `.env` file. The SMTP client uses
+the hostname from `APP_PUBLIC_URL` as its EHLO identity so relays do not receive
+an internal container name.
