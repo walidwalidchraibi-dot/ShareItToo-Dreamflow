@@ -134,6 +134,13 @@ ausgeführt und das erzeugte JSON-Protokoll gesichert.
   läuft wöchentlich; der Healthcheck läuft alle fünf Minuten.
 - Produktion wurde für diesen Nachweis nicht ausgerollt oder verändert und
   blieb gesund.
+- Kritische Fehler von Health-, Backup- und Restore-Prüfung lösen nun über
+  `shareittoo-alert@.service` eine externe E-Mail an
+  `contact@shareittoo.com` aus. Der Dienst begrenzt Wiederholungen je Ursache
+  auf einmal pro Stunde und unterstützt sowohl authentifiziertes SMTP als
+  auch den eingesetzten, per VPS-IP freigegebenen Google-Workspace-Relay.
+  Installation, Unit-Prüfung und eine echte Testzustellung waren am
+  8./9. August 2026 erfolgreich (`alert_test_rc=0`).
 
 Hostingers Docker Manager zieht bei einer Compose-Bereitstellung zunächst
 Images und baut den `build`-Abschnitt nicht zuverlässig selbst. Der
@@ -167,7 +174,8 @@ Hostinger zu hinterlegen oder das Paket öffentlich zu machen.
 | Täglicher Backup-Timer aktiv | aktiviert, aktiv und nächster Lauf terminiert | bestanden |
 | Isolierter Restore erfolgreich | Backup `20260808T155836Z`, acht Tabellen wiederhergestellt | bestanden |
 | Produktions-Version meldet Commit | Code vorbereitet, noch nicht ausgerollt | offen |
-| Kritische Alarmzustellung | Health-Timer aktiv; externe Adresse sowie Fehlerquoten-/Webhook-Signale sind noch verbindlich zu konfigurieren | offen |
+| Kritische Alarmzustellung | On-Failure-Units installiert; echte Zustellung an `contact@shareittoo.com` erfolgreich | bestanden |
+| Fehlerquoten-/Webhook-Signale | wird mit den entsprechenden Zahlungs-/Webhook-Endpunkten ergänzt; heute existiert noch kein produktiver Payment-Webhook | offen |
 
 ## Maximus-Checkpoint
 

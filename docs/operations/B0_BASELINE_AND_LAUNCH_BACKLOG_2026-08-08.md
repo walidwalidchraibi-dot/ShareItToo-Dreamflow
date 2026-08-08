@@ -301,7 +301,11 @@ Für den formalen B0/B1-Abschluss werden folgende Entscheidungen benötigt:
 | Unveränderbarer Baseline-Tag | erfüllt |
 | Repository/Branches/PRs inventarisiert | erfüllt |
 | Datenbank/Container/Domain/Mail inventarisiert | erfüllt |
-| Backups/Monitoring vollständig aktiv verifiziert | offen |
+| Backups/Monitoring vollständig aktiv verifiziert | erfüllt: drei Timer aktiv, isolierter Restore sowie externe Alarmzustellung bestanden |
 | Jede bekannte Launch-Lücke priorisiert, mit Owner und Exit | erfüllt |
 | Bestehende lokale Dirty-Änderungen unangetastet | erfüllt |
 | Geschäfts-/Launchprioritäten von Walid bestätigt | offen |
+
+Mit B2/B3 sind außerdem `P0-02`, `P0-03`, `P0-04`, `P0-14` und `P1-03`
+technisch erfüllt. `P0-01` bleibt bis zum ersten commit-markierten
+Produktionsrollout offen; Staging meldet die Release-ID bereits exakt.

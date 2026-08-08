@@ -1,6 +1,7 @@
 # B3 — Buchungs-, Daten- und Berechtigungsfundament
 
-Stand: 8. August 2026  
+Stand: 9. August 2026
+
 Branch: `codex/master-workflow-20260808`
 
 ## Ergebnisziel
@@ -126,12 +127,49 @@ markiert und keine stillschweigende Rechtsannahme.
   keinen privaten Upload; ein berechtigter Teilnehmer kann denselben Upload
   lesen.
 
-## Noch zu erfüllende B3-Gates
+## Verifizierter B3-Lauf vom 8./9. August 2026
 
-- CI-Lauf mit echtem PostgreSQL muss vollständig grün sein.
-- Staging-Migration und Datenqualitätsabfragen müssen grün sein.
-- Staging-Konkurrenztest muss genau eine erfolgreiche Annahme nachweisen.
-- Backup vor Migration, Vorwärtsmigration, Image-Rollback und isolierter
-  Restore müssen gemeinsam nachgewiesen werden.
-- Aufbewahrungsfristen brauchen vor dem öffentlichen Start eine bestätigte
-  Produkt-/Rechtsentscheidung.
+- Implementierung: Commit `c4dc2b7fed27666f608e2a83445b9cb381af36e3`;
+  geprüfter Staging-Release:
+  `f059d3b5739c36dac3f829dac27d9c78e9f3cbb4`.
+- GitHub-CI-Lauf `31276879546`: Backend, echter PostgreSQL-Test, Flutter und
+  Image-Veröffentlichung vollständig erfolgreich.
+- Staging meldet über `/version` exakt Commit `f059d3b…`; Container,
+  Datenbank und Memory-Mail sind gesund.
+- Migration `001_b3_foundation.up.sql` wurde genau einmal mit gespeicherter
+  SHA-256-Prüfsumme
+  `203e757d98b6d00dd40f7749dac69d57773f0872fd2c227d53afa4e62d2885ee`
+  angewendet. Die Datenqualitätsprüfung meldete null fehlende
+  Buchungsprojektionen und genau eine aktive Overlap-Constraint.
+- Vor der Migration wurde das Staging-Dump
+  `/docker/sit-staging/backups/pre-b3-20260808T214536Z.dump` mit SHA-256
+  `d31136b0fb842f6c71c84e7cab8e703b367da072c50c22ea59f9c737b6a011d2`
+  erstellt.
+- Konkurrenzprobe auf Staging: erste Annahme erfolgreich (`rc=0`), zweite
+  gleichzeitig überlappende Annahme abgewiesen (`rc=1`), genau eine Buchung
+  angenommen und Exclusion-Constraint als Ursache bestätigt. Alle Probe-Daten
+  wurden anschließend entfernt (`probe_rows=0`).
+- Isolierter Restore des Vor-Migrations-Dumps in einen Wegwerfcontainer war
+  erfolgreich; acht öffentliche Tabellen wurden wiederhergestellt. Container
+  und temporäres Volume wurden danach entfernt.
+- Rückwärtsstrategie real geprüft: `f059d3b…` → `dd9aade…`; alter App-Stand
+  blieb mit dem additiven B3-Schema gesund, Migration und Overlap-Constraint
+  blieben erhalten. Anschließend Rückkehr auf `f059d3b…`, Readiness grün.
+- Produktion wurde nicht auf B3 ausgerollt und blieb mit Website, API,
+  Datenbank, Mail sowie allen drei Betriebs-Timern gesund.
+
+## B3-Abnahme
+
+| Gate | Nachweis | Ergebnis |
+|---|---|---|
+| Normalisiertes Schema und Migration | Migration in CI und Staging, Prüfsumme fixiert | bestanden |
+| Kein doppeltes Reservieren | CI-API-Test und echte Staging-Konkurrenzprobe | bestanden |
+| Keine fremden privaten Ressourcen | Auth-Matrix plus PostgreSQL/API-Grenztest | bestanden |
+| Vorwärts- und Rückwärtsstrategie | additiv, alter App-Stand auf neuem Schema gesund | bestanden |
+| Backup und isolierter Restore | Pre-B3-Dump, acht Tabellen, temporäre Ressourcen entfernt | bestanden |
+| Datenqualität | null Projektionslücken; Constraints und Indizes vorhanden | bestanden |
+| Aufbewahrung | sicherer Default ohne automatische Löschung; finale Fristen als B10-Launch-Gate | bestanden mit Folgepunkt |
+
+B3 ist damit technisch bestanden. Der nächste Hauptbaustein ist B4. Die
+rechtliche Bestätigung konkreter Aufbewahrungsfristen bleibt bewusst als
+Launch-Gate in B10 und ändert den sicheren B3-Default nicht rückwirkend.
