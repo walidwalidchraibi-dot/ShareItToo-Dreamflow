@@ -4,7 +4,11 @@ Stand: 9. August 2026
 
 Branch: `codex/master-workflow-20260808`
 
-Status: Implementierung lokal geprüft; PostgreSQL-CI und Staging-Abnahme folgen.
+Status: technisch bestanden; CI, Staging, Rückrollung und isolierter Restore sind belegt.
+
+Abgenommener Code-Stand: `2114b45d2509be2da1c391419d04c270e271d78c`
+
+CI-Nachweis: GitHub Actions `regression` Lauf `31284125036`
 
 ## Ergebnisziel
 
@@ -176,6 +180,14 @@ erneuern, ohne das Schema zurückzudrehen. Änderungen an einer bereits
 ausgeführten Migration sind verboten; Korrekturen erfolgen vorwärtsgerichtet
 in einer neuen Datei.
 
+Die reale Staging-Probe deckte dabei eine fehlerhaft maskierte PostgreSQL-
+Regel für das führende `+` einer E.164-Telefonnummer auf. Die bereits
+ausgeführte Migration 002 wurde nicht verändert. Stattdessen ersetzt die
+vorwärtsgerichtete Migration `003_b4_phone_constraint_fix.up.sql` nur diese
+Constraint durch die eindeutige Zeichenklasse `[+]`. Ein PostgreSQL-
+Integrationstest beweist nun sowohl eine gültige internationale Nummer als
+auch die Ablehnung eines nationalen Formats ohne `+`.
+
 ## Automatische Nachweise
 
 - Einheiten-Tests für Passwortregel, Access-Token mit Sitzungs-ID, Einmal-Tokens
@@ -188,18 +200,78 @@ in einer neuen Datei.
   E-Mail-Wechsel, kontobezogene Brute-Force-Sperre, Löschung, Anonymisierung,
   Datei-Löschung, Enumeration und Rate-Limit.
 
+## Reale Staging-Abnahme
+
+### Geprüfter Rollout
+
+- Vor der ersten B4-Migration wurden Datenbank und Uploads gesichert:
+  `pre-b4-20260808T230112Z.dump` und
+  `pre-b4-20260808T230112Z-uploads.tar.gz` einschließlich erfolgreicher
+  SHA-256-Prüfung.
+- Das erste isolierte B4-Image zeigte beim Telefon-Probeaufruf den genannten
+  Constraintfehler. Der Rollout wurde deshalb nicht freigegeben.
+- Staging wurde auf das vorherige exakte Image
+  `f059d3b5739c36dac3f829dac27d9c78e9f3cbb4` zurückgesetzt. API, Datenbank und
+  Mail-Readiness blieben gesund.
+- Auf dem erweiterten Schema erzeugte die ältere B3-App zwei Refresh-Tokens.
+  Beide erhielten durch den Kompatibilitätstrigger automatisch eine passende
+  Legacy-Sitzung und Familie; Login, Rotation und geschützter Zugriff waren
+  erfolgreich. Damit ist die Rückrollfähigkeit praktisch bewiesen.
+- Das Pre-B4-Backup wurde in einem getrennten PostgreSQL-Container
+  wiederhergestellt. Nachweis:
+  `/docker/sit-staging/backups/restore-checks/restore-check-20260808T233056Z-127345.json`.
+- Nach grüner CI wurde das korrigierte exakte Image
+  `shareittoo-api:2114b45d2509be2da1c391419d04c270e271d78c` ausgerollt.
+  `/version`, `/health`, `/health/live` und `/health/ready` meldeten den
+  erwarteten Commit, Umgebung `staging`, Datenbank `ok` und Mail `ok`.
+- Die unter B3 erzeugte aktive Legacy-Refresh-Sitzung ließ sich nach dem
+  Vorwärtsrollout durch B4 rotieren und ergab einen gültigen B4-Access-Token.
+
+### Geprüfter Kontolebenszyklus
+
+Die Staging-API-Proben haben ohne Produktionszugriff nachgewiesen:
+
+- gleichförmige Registrierung mit HTTP 202 und verweigerte Anmeldung vor
+  E-Mail-Bestätigung;
+- zwei aktive Sitzungen, Refresh-Rotation und Sperre der betroffenen Sitzung
+  nach Wiederverwendung des alten Refresh-Tokens;
+- verifizierter E-Mail-Wechsel mit globaler Abmeldung;
+- Passwortwechsel mit globaler Abmeldung und Ablehnung des alten Passworts;
+- Kontosperre nach dem zehnten Fehlversuch;
+- drei sichtbare Sitzungen und funktionierendes „Alle Geräte abmelden“;
+- E.164-Telefon `+4915212345678` als bewusst nicht verifiziert;
+- Speicherung eines echten Bild-Uploads;
+- Lösch-Preflight ohne Blocker, Kontolöschung, Entfernung der Upload-Datei
+  und jeweils null verbleibende Sitzungen, Refresh-Tokens, Aktions-Tokens,
+  Push-Geräte, Identitäten und Upload-Datensätze;
+- anonymisierten Nutzer-Restsatz mit geschlossenem Konto, gelöschtem
+  Passwort, anonymisierter Adresse, entferntem Telefon und dokumentiertem
+  Löschzeitpunkt;
+- weiterhin grünen Readiness-Status und keine API-, Migrations- oder
+  Datei-Löschfehler im finalen Containerlog.
+
+Die drei auf Staging registrierten Migrationsprüfsummen lauten:
+
+| Migration | SHA-256 |
+|---|---|
+| `001_b3_foundation.up.sql` | `203e757d98b6d00dd40f7749dac69d57773f0872fd2c227d53afa4e62d2885ee` |
+| `002_b4_auth_lifecycle.up.sql` | `5707b0c3ecbe98f52d73d8cfa3f8968a20cb6777e6a1c8faa24696d3ba2fb9d8` |
+| `003_b4_phone_constraint_fix.up.sql` | `d2ddf0a1790694218ea40a0a5ddc800c8816078fd06356bc164323afb95047b4` |
+
 ## Abnahmeplan
 
 | Gate | Erforderlicher Nachweis | Status |
 |---|---|---|
 | Lokale Backend-Prüfung | Syntax plus 29 Tests, nur PostgreSQL lokal übersprungen | bestanden |
 | Flutter-Änderungen | gezielte Analyse ohne Befund | bestanden |
-| App-Regression | 150 Tests, Web-Build und Android-Debug-APK | bestanden vor letzter Sicherheitserweiterung; Wiederholung folgt |
-| PostgreSQL-Migration | echte PostgreSQL-16-CI inklusive wiederholtem Migrationslauf | offen |
-| Auth-Lebenszyklus | CI-Integration und reale Staging-API-Proben | offen |
-| Löschung/Anonymisierung | CI plus Staging-Datei- und Datenbanknachweis | offen |
-| Rollback/Restore | Pre-B4-Backup, isolierter Restore, altes Image auf additivem Schema | offen |
-| Reale Geräte | Kernfluss auf iOS und Android | offen |
+| App-Regression | 150 Tests, Web-Build und Android-Debug-APK im finalen Lauf | bestanden |
+| PostgreSQL-Migration | PostgreSQL 16, drei Migrationen, Wiederholung und Telefon-Constraint | bestanden |
+| Auth-Lebenszyklus | CI-Integration und reale Staging-API-Proben | bestanden |
+| Löschung/Anonymisierung | CI plus Staging-Datei- und Datenbanknachweis | bestanden |
+| Rollback/Restore | Pre-B4-Backup, isolierter Restore, B3 auf additivem Schema und Vorwärtsrotation | bestanden |
+| Reale Geräte | Kernfluss auf signierten iOS-/Android-Builds | B11 Store-/Pilot-Gate |
 
-B4 gilt erst als technisch bestanden, wenn CI, isoliertes Staging,
-Rollback/Restore und die erforderlichen Geräte-Nachweise dokumentiert sind.
+B4 ist damit technisch bestanden. Die physische Geräte- und Store-Abnahme
+bleibt bewusst im späteren B11-Gate, weil sie Signierung und Store-Zugänge
+benötigt; ein dort gefundener Kontofehler öffnet B4 wieder. Produktion wurde
+bei dieser Abnahme nicht verändert.
