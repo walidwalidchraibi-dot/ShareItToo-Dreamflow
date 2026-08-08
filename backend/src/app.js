@@ -1581,7 +1581,7 @@ export function createApp() {
         participants.add(existing.renter_id);
       }
       return listRentalRequests(client, req.auth.userId);
-    });
+    }, { deadlockRetries: 2 });
     publishToUsers([...participants], { type: 'changed', resource: 'rental_requests' });
     res.json({ requests });
   }));
