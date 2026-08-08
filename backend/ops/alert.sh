@@ -83,8 +83,21 @@ task_smtp_port="${task_smtp_port:-587}"
 task_mail_from="${task_mail_from:-ShareItToo <contact@shareittoo.com>}"
 task_alert_to="${task_alert_to:-contact@shareittoo.com}"
 
-if [[ "$task_mail_transport" != smtp || -z "$task_smtp_host" || -z "$task_smtp_user" || -z "$task_smtp_password" ]]; then
-  echo "SMTP alert delivery is not configured" >&2
+task_missing_settings=()
+if [[ "$task_mail_transport" != smtp ]]; then
+  task_missing_settings+=(MAIL_TRANSPORT)
+fi
+if [[ -z "$task_smtp_host" ]]; then
+  task_missing_settings+=(SMTP_HOST)
+fi
+if [[ -z "$task_smtp_user" ]]; then
+  task_missing_settings+=(SMTP_USER)
+fi
+if [[ -z "$task_smtp_password" ]]; then
+  task_missing_settings+=(SMTP_PASSWORD)
+fi
+if [[ "${#task_missing_settings[@]}" -gt 0 ]]; then
+  printf 'SMTP alert delivery is not configured: %s\n' "${task_missing_settings[*]}" >&2
   exit 1
 fi
 
