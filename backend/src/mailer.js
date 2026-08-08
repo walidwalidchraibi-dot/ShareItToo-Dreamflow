@@ -73,7 +73,7 @@ async function send({ to, subject, text, html }) {
     status = 'ok';
     return info;
   } catch (error) {
-    status = 'error';
+    if (config.mail.transport !== 'disabled') status = 'error';
     throw mailError('mail_delivery_failed', error);
   }
 }
