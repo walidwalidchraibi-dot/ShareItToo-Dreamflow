@@ -18,9 +18,23 @@ test('passwords use salted scrypt hashes', async () => {
 });
 
 test('access tokens reject tampering', () => {
-  const token = security.signAccessToken({ id: 'user-1', email: 'test@example.com' });
+  const token = security.signAccessToken(
+    { id: 'user-1', email: 'test@example.com' },
+    { sessionId: '11111111-1111-4111-8111-111111111111' },
+  );
   assert.equal(security.verifyAccessToken(token).sub, 'user-1');
+  assert.equal(
+    security.verifyAccessToken(token).sid,
+    '11111111-1111-4111-8111-111111111111',
+  );
   assert.throws(() => security.verifyAccessToken(`${token}x`));
+});
+
+test('new passwords require length, a letter, and a number', () => {
+  assert.equal(security.passwordPolicyError('short1'), 'password_too_short');
+  assert.equal(security.passwordPolicyError('abcdefghijk'), 'password_too_weak');
+  assert.equal(security.passwordPolicyError('12345678901'), 'password_too_weak');
+  assert.equal(security.passwordPolicyError('sicheresPasswort1'), null);
 });
 
 test('profile updates cannot elevate privileges', () => {

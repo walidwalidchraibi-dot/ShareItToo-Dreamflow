@@ -56,9 +56,12 @@ export function attachRealtime(server) {
         if (message.type !== 'auth' || typeof message.token !== 'string') throw new Error('invalid auth');
         const payload = verifyAccessToken(message.token);
         const actor = await pool.query(
-          `SELECT 1 FROM users
-           WHERE id = $1 AND account_status = 'active' AND deactivated_at IS NULL`,
-          [payload.sub],
+          `SELECT 1
+           FROM users AS u
+           JOIN auth_sessions AS session
+             ON session.id = $2 AND session.user_id = u.id AND session.revoked_at IS NULL
+           WHERE u.id = $1 AND u.account_status = 'active' AND u.deactivated_at IS NULL`,
+          [payload.sub, payload.sid],
         );
         if (!actor.rowCount) throw new Error('inactive account');
         userId = payload.sub;

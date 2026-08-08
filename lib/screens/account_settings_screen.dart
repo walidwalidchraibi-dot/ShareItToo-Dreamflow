@@ -253,7 +253,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   Future<void> _showDeleteDialogStep2() async {
     if (!mounted) return;
     final ctrl = TextEditingController();
+    final passwordCtrl = TextEditingController();
     bool confirmed = false;
+    String confirmedPassword = '';
 
     await showGeneralDialog<void>(
       context: context,
@@ -269,6 +271,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               title: 'Bist du sicher?',
               body: _DeleteAccountStep2Body(
                 controller: ctrl,
+                passwordController: passwordCtrl,
                 onChanged: (_) => setLocalState(() {}),
               ),
               leftAction: AccountDeletionDialogAction(
@@ -278,9 +281,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               rightAction: AccountDeletionDialogAction(
                 label: 'Ja, Konto endgültig löschen',
                 isDestructive: true,
-                onPressed: ctrl.text.trim().toUpperCase() == 'LÖSCHEN'
+                onPressed: ctrl.text.trim().toUpperCase() == 'LÖSCHEN' &&
+                        passwordCtrl.text.isNotEmpty
                     ? () {
                         confirmed = true;
+                        confirmedPassword = passwordCtrl.text;
                         Navigator.of(ctx, rootNavigator: true).maybePop();
                       }
                     : null,
@@ -298,11 +303,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     );
 
     ctrl.dispose();
+    passwordCtrl.dispose();
     if (!mounted || !confirmed) return;
-    await _runPreflightAndDelete();
+    await _runPreflightAndDelete(confirmedPassword);
   }
 
-  Future<void> _runPreflightAndDelete() async {
+  Future<void> _runPreflightAndDelete(String currentPassword) async {
     final user = _user ?? await DataService.getCurrentUser();
     if (user == null) return;
     setState(() => _deleteBusy = true);
@@ -315,7 +321,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         return;
       }
 
-      await AccountDeletionService.deleteAccount(user: user);
+      await AccountDeletionService.deleteAccount(
+        user: user,
+        currentPassword: currentPassword,
+      );
       if (!mounted) return;
 
       // After deletion: jump to success screen and reset tab to Explore.
@@ -435,9 +444,12 @@ class _DeleteAccountStep1Body extends StatelessWidget {
 
 class _DeleteAccountStep2Body extends StatelessWidget {
   final TextEditingController controller;
+  final TextEditingController passwordController;
   final ValueChanged<String> onChanged;
   const _DeleteAccountStep2Body(
-      {required this.controller, required this.onChanged});
+      {required this.controller,
+      required this.passwordController,
+      required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -494,9 +506,32 @@ class _DeleteAccountStep2Body extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            ),
+            child: TextField(
+              controller: passwordController,
+              onChanged: onChanged,
+              obscureText: true,
+              autofillHints: const [AutofillHints.password],
+              decoration: InputDecoration(
+                hintText: 'Aktuelles Passwort',
+                prefixIcon: const Icon(Icons.password_outlined),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.02),
+              ),
+            ),
+          ),
           const SizedBox(height: 8),
           Text(
-              'Optional (später): Passwort oder E-Mail-Code als zusätzliche Sicherheitsstufe.',
+              'Das Passwort schützt vor einer Löschung durch eine fremde Person mit offenem Gerät.',
               style: t.textTheme.labelSmall
                   ?.copyWith(color: Colors.white60, height: 1.4)),
         ]);

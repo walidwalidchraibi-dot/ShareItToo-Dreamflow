@@ -18,7 +18,14 @@ export function isValidEmail(value) {
 }
 
 export function isValidPassword(value) {
-  return typeof value === 'string' && value.length >= 8 && value.length <= 200;
+  return passwordPolicyError(value) === null;
+}
+
+export function passwordPolicyError(value) {
+  if (typeof value !== 'string' || value.length < 10) return 'password_too_short';
+  if (value.length > 200) return 'password_too_long';
+  if (!/\p{L}/u.test(value) || !/\d/u.test(value)) return 'password_too_weak';
+  return null;
 }
 
 export async function hashPassword(password) {
@@ -41,9 +48,10 @@ export async function verifyPassword(password, encoded) {
   }
 }
 
-export function signAccessToken(user) {
+export function signAccessToken(user, { sessionId } = {}) {
+  if (typeof sessionId !== 'string' || !sessionId) throw new Error('Missing session id');
   return jwt.sign(
-    { sub: user.id, email: user.email, type: 'access' },
+    { sub: user.id, sid: sessionId, email: user.email, type: 'access' },
     config.jwtSecret,
     {
       algorithm: 'HS256',
@@ -60,7 +68,7 @@ export function verifyAccessToken(token) {
     issuer: 'shareittoo-api',
     audience: 'shareittoo-app',
   });
-  if (payload.type !== 'access' || typeof payload.sub !== 'string') {
+  if (payload.type !== 'access' || typeof payload.sub !== 'string' || typeof payload.sid !== 'string') {
     throw new Error('Invalid access token');
   }
   return payload;
@@ -93,7 +101,7 @@ export function requireAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'authentication_required' });
   try {
     const payload = verifyAccessToken(token);
-    req.auth = { userId: payload.sub, email: payload.email };
+    req.auth = { userId: payload.sub, sessionId: payload.sid, email: payload.email };
     return next();
   } catch {
     return res.status(401).json({ error: 'invalid_or_expired_session' });
@@ -189,7 +197,25 @@ export function shapeUser(row, { publicOnly = false } = {}) {
     isDeactivated: Boolean(row.deactivated_at),
     deactivatedAt: row.deactivated_at ? new Date(row.deactivated_at).toISOString() : null,
     emailVerified: Boolean(row.email_verified_at),
+    ...(!publicOnly ? {
+      phoneVerified: Boolean(row.phone_verified_at),
+      termsAccepted: Boolean(row.terms_accepted_at),
+      privacyAccepted: Boolean(row.privacy_accepted_at),
+      minimumAgeConfirmed: Boolean(row.minimum_age_confirmed_at),
+    } : {}),
   };
+}
+
+export function isValidBirthDate(value, minimumAge = config.minimumAccountAge) {
+  if (value === null || value === undefined || value === '') return true;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const birthDate = new Date(`${value}T00:00:00Z`);
+  if (!Number.isFinite(birthDate.getTime())) return false;
+  const today = new Date();
+  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+  const month = today.getUTCMonth() - birthDate.getUTCMonth();
+  if (month < 0 || (month === 0 && today.getUTCDate() < birthDate.getUTCDate())) age -= 1;
+  return age >= minimumAge && age <= 120;
 }
 
 export function safeText(value, maxLength = 4000) {

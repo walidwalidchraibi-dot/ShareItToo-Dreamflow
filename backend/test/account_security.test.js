@@ -66,6 +66,41 @@ test('memory mail transport produces a one-time verification link', async () => 
   assert.match(message.text, /24 Stunden/);
 });
 
+test('memory mail transport protects an email-address change', async () => {
+  const verificationInfo = await mailer.sendEmailChangeVerification({
+    email: 'new-address@example.com',
+    displayName: 'Test Person',
+    token: 'secret-email-change-token',
+  });
+  const verification = JSON.parse(verificationInfo.message);
+  assert.equal(verification.to[0].address, 'new-address@example.com');
+  assert.match(verification.subject, /neue ShareItToo-E-Mail-Adresse/);
+  assert.match(verification.html, /secret-email-change-token/);
+  assert.match(verification.text, /24 Stunden/);
+
+  const alertInfo = await mailer.sendEmailChangeAlert({
+    email: 'old-address@example.com',
+    displayName: 'Test Person',
+  });
+  const alert = JSON.parse(alertInfo.message);
+  assert.equal(alert.to[0].address, 'old-address@example.com');
+  assert.match(alert.subject, /Änderung/);
+  assert.doesNotMatch(alert.text, /secret-email-change-token/);
+});
+
+test('memory mail transport produces a one-time account deletion link', async () => {
+  const info = await mailer.sendAccountDeletionEmail({
+    email: 'person@example.com',
+    displayName: 'Test Person',
+    token: 'secret-deletion-token',
+  });
+  const message = JSON.parse(info.message);
+  assert.equal(message.to[0].address, 'person@example.com');
+  assert.match(message.subject, /Löschung/);
+  assert.match(message.html, /secret-deletion-token/);
+  assert.match(message.text, /30 Minuten/);
+});
+
 test('account result pages escape untrusted content', () => {
   const page = accountActions.resultPage({
     success: false,

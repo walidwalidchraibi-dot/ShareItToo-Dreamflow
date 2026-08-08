@@ -1,12 +1,12 @@
 import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lendify/navigation/main_navigation.dart';
 import 'package:lendify/screens/legal_privacy_screen.dart';
 import 'package:lendify/screens/legal_terms_screen.dart';
 import 'package:lendify/services/auth_service.dart';
+import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/theme.dart';
@@ -41,6 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _pwVisible = false;
   bool _pw2Visible = false;
   bool _peekBackdrop = false;
+  bool _minimumAgeConfirmed = false;
 
   bool _didInteract = false;
 
@@ -121,7 +122,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _validatePassword(String? v) {
     final value = (v ?? '');
     if (value.trim().isEmpty) return 'Bitte gib dein Passwort ein.';
-    if (value.length < 8) return 'Das Passwort ist zu kurz.';
+    if (value.length < 10) return 'Mindestens 10 Zeichen erforderlich.';
+    if (!RegExp(r'\p{L}', unicode: true).hasMatch(value) ||
+        !RegExp(r'\d').hasMatch(value)) {
+      return 'Nutze mindestens einen Buchstaben und eine Zahl.';
+    }
     return null;
   }
 
@@ -137,21 +142,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
     FocusScope.of(context).unfocus();
     final ok = _formKey.currentState?.validate() ?? false;
     if (!ok) return;
+    if (!_minimumAgeConfirmed) {
+      await AppPopup.toast(
+        context,
+        icon: Icons.cake_outlined,
+        title: 'Bitte bestätige, dass du mindestens 18 Jahre alt bist.',
+      );
+      return;
+    }
 
     setState(() => _busy = true);
     try {
       await Future<void>.delayed(const Duration(milliseconds: 600));
       final result = await AuthService.registerLocalAccount(
-          email: _emailCtrl.text.trim(), password: _pwCtrl.text);
+        email: _emailCtrl.text.trim(),
+        password: _pwCtrl.text,
+        displayName: _nameCtrl.text.trim(),
+        minimumAgeConfirmed: _minimumAgeConfirmed,
+      );
       if (!mounted) return;
       if (!result.ok) {
         final msg = switch (result.failure) {
           AuthFailure.emailInUse => 'Diese E-Mail ist bereits registriert.',
+          AuthFailure.weakPassword =>
+            'Das Passwort muss mindestens 10 Zeichen, einen Buchstaben und eine Zahl enthalten.',
+          AuthFailure.consentRequired =>
+            'Bitte bestätige Mindestalter, AGB und Datenschutz.',
           AuthFailure.network =>
             'Es ist ein Netzwerkfehler aufgetreten. Bitte versuche es erneut.',
           _ => 'Es ist ein Fehler aufgetreten. Bitte versuche es erneut.',
         };
         await AppPopup.toast(context, icon: Icons.error_outline, title: msg);
+        return;
+      }
+
+      if (result.session == null) {
+        await AppPopup.toast(
+          context,
+          icon: Icons.mark_email_read_outlined,
+          title: 'Prüfe deine E-Mail',
+          message:
+              'Wenn die Registrierung möglich war, haben wir einen Bestätigungslink gesendet. Danach kannst du dich anmelden.',
+        );
+        if (mounted) Navigator.of(context).maybePop();
         return;
       }
 
@@ -171,7 +204,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           context,
           icon: Icons.mark_email_read_outlined,
           title: 'Bestätigungs-E-Mail gesendet',
-          message: 'Öffne den Link in deiner E-Mail, um dein Konto zu bestätigen.',
+          message:
+              'Öffne den Link in deiner E-Mail, um dein Konto zu bestätigen.',
         );
       }
 
@@ -439,7 +473,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                             .check_circle_outline,
                                                         ok: pwOk,
                                                         text:
-                                                            'Mind. 8 Zeichen'),
+                                                            'Mind. 10 Zeichen, Buchstabe und Zahl'),
                                                     const SizedBox(height: 10),
                                                     _SITTextField(
                                                       label:
@@ -492,29 +526,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                         text:
                                                             'Passwörter müssen übereinstimmen'),
                                                     const SizedBox(height: 10),
-                                                    const SocialAuthOrDivider(),
-                                                    const SizedBox(height: 10),
-                                                    SocialAuthButton(
-                                                        brand: SocialAuthBrand
-                                                            .google,
-                                                        label:
-                                                            'Mit Google registrieren',
-                                                        onTap: _busy
-                                                            ? null
-                                                            : () => _socialRegister(
-                                                                AuthSocialProvider
-                                                                    .google)),
-                                                    const SizedBox(height: 8),
-                                                    SocialAuthButton(
-                                                        brand: SocialAuthBrand
-                                                            .apple,
-                                                        label:
-                                                            'Mit Apple registrieren',
-                                                        onTap: _busy
-                                                            ? null
-                                                            : () => _socialRegister(
-                                                                AuthSocialProvider
-                                                                    .apple)),
+                                                    CheckboxListTile(
+                                                      value:
+                                                          _minimumAgeConfirmed,
+                                                      onChanged: _busy
+                                                          ? null
+                                                          : (value) => setState(
+                                                              () =>
+                                                                  _minimumAgeConfirmed =
+                                                                      value ==
+                                                                          true),
+                                                      controlAffinity:
+                                                          ListTileControlAffinity
+                                                              .leading,
+                                                      contentPadding:
+                                                          EdgeInsets.zero,
+                                                      dense: true,
+                                                      title: const Text(
+                                                        'Ich bestätige, dass ich mindestens 18 Jahre alt bin.',
+                                                      ),
+                                                    ),
+                                                    if (!BackendConfig
+                                                        .enabled) ...[
+                                                      const SizedBox(
+                                                          height: 10),
+                                                      const SocialAuthOrDivider(),
+                                                      const SizedBox(
+                                                          height: 10),
+                                                      SocialAuthButton(
+                                                          brand: SocialAuthBrand
+                                                              .google,
+                                                          label:
+                                                              'Mit Google registrieren',
+                                                          onTap: _busy
+                                                              ? null
+                                                              : () => _socialRegister(
+                                                                  AuthSocialProvider
+                                                                      .google)),
+                                                      const SizedBox(height: 8),
+                                                      SocialAuthButton(
+                                                          brand: SocialAuthBrand
+                                                              .apple,
+                                                          label:
+                                                              'Mit Apple registrieren',
+                                                          onTap: _busy
+                                                              ? null
+                                                              : () => _socialRegister(
+                                                                  AuthSocialProvider
+                                                                      .apple)),
+                                                    ],
                                                   ]),
                                             ),
                                           ),
@@ -559,6 +619,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
+
 class _RegisterBackdrop extends StatelessWidget {
   final bool peekClear;
   const _RegisterBackdrop({required this.peekClear});

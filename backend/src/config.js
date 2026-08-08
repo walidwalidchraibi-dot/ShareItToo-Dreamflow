@@ -30,6 +30,10 @@ export const config = Object.freeze({
   refreshTokenLifetimeDays: 30,
   emailVerificationLifetimeHours: 24,
   passwordResetLifetimeMinutes: 30,
+  accountDeletionLifetimeMinutes: 30,
+  minimumAccountAge: 18,
+  failedLoginLimit: 10,
+  failedLoginLockMinutes: 15,
   appPublicUrl: (process.env.APP_PUBLIC_URL ?? 'https://shareittoo.com').replace(/\/$/, ''),
   mail: Object.freeze({
     transport: (process.env.MAIL_TRANSPORT ?? 'disabled').trim().toLowerCase(),

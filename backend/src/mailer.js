@@ -129,6 +129,41 @@ export async function sendVerificationEmail({ email, displayName, token }) {
   });
 }
 
+export async function sendEmailChangeVerification({ email, displayName, token }) {
+  const url = `${config.publicBaseUrl}/auth/email-change/confirm?token=${encodeURIComponent(token)}`;
+  const greeting = displayName ? `Hallo ${displayName},` : 'Hallo,';
+  return send({
+    to: email,
+    subject: 'Bestätige deine neue ShareItToo-E-Mail-Adresse',
+    text: `${greeting}\n\nBitte bestätige diese neue E-Mail-Adresse für dein ShareItToo-Konto: ${url}\n\nDer Link ist 24 Stunden gültig. Wenn du das nicht angefordert hast, bestätige den Link nicht.`,
+    html: emailShell({
+      title: 'Neue E-Mail-Adresse bestätigen',
+      intro: `${greeting} bestätige diese Adresse, damit sie künftig für deine ShareItToo-Anmeldung verwendet wird. Danach werden alle bestehenden Sitzungen aus Sicherheitsgründen beendet.`,
+      buttonLabel: 'Neue E-Mail bestätigen',
+      url,
+      expiryText: 'Dieser Link ist 24 Stunden gültig und kann nur einmal verwendet werden.',
+      footer: 'Wenn du diese Änderung nicht angefordert hast, bestätige den Link nicht und wende dich an den Support.',
+    }),
+  });
+}
+
+export async function sendEmailChangeAlert({ email, displayName }) {
+  const greeting = displayName ? `Hallo ${displayName},` : 'Hallo,';
+  return send({
+    to: email,
+    subject: 'Änderung deiner ShareItToo-E-Mail-Adresse angefordert',
+    text: `${greeting}\n\nFür dein ShareItToo-Konto wurde eine neue E-Mail-Adresse angefordert. Die bisherige Adresse bleibt aktiv, bis die neue Adresse bestätigt wird. Wenn du das nicht warst, ändere bitte sofort dein Passwort und kontaktiere den Support.`,
+    html: emailShell({
+      title: 'E-Mail-Änderung angefordert',
+      intro: `${greeting} für dein Konto wurde eine neue E-Mail-Adresse angefordert. Deine bisherige Adresse bleibt aktiv, bis die neue Adresse bestätigt wurde.`,
+      buttonLabel: 'ShareItToo öffnen',
+      url: config.appPublicUrl,
+      expiryText: 'Wenn du die Änderung selbst gestartet hast, ist nichts weiter zu tun, bis du die neue Adresse bestätigt hast.',
+      footer: 'Wenn du das nicht warst, ändere bitte sofort dein Passwort und kontaktiere den Support.',
+    }),
+  });
+}
+
 export async function sendPasswordResetEmail({ email, displayName, token }) {
   const url = `${config.publicBaseUrl}/auth/password-reset/form?token=${encodeURIComponent(token)}`;
   const greeting = displayName ? `Hallo ${displayName},` : 'Hallo,';
@@ -143,6 +178,24 @@ export async function sendPasswordResetEmail({ email, displayName, token }) {
       url,
       expiryText: 'Dieser Link ist 30 Minuten gültig und kann nur einmal verwendet werden.',
       footer: 'Wenn du diese Änderung nicht angefordert hast, bleibt dein bisheriges Passwort unverändert.',
+    }),
+  });
+}
+
+export async function sendAccountDeletionEmail({ email, displayName, token }) {
+  const url = `${config.publicBaseUrl}/account-deletion/confirm?token=${encodeURIComponent(token)}`;
+  const greeting = displayName ? `Hallo ${displayName},` : 'Hallo,';
+  return send({
+    to: email,
+    subject: 'Bestätige die Löschung deines ShareItToo-Kontos',
+    text: `${greeting}\n\nÜber diesen Link kannst du die Löschung deines ShareItToo-Kontos bestätigen: ${url}\n\nDer Link ist 30 Minuten gültig. Wenn du das nicht angefordert hast, ignoriere diese E-Mail und dein Konto bleibt unverändert.`,
+    html: emailShell({
+      title: 'Kontolöschung bestätigen',
+      intro: `${greeting} bestätige die Kontolöschung nur, wenn du sie selbst angefordert hast. Offene Buchungen, Auszahlungen oder Streitfälle können die Löschung vorübergehend blockieren.`,
+      buttonLabel: 'Kontolöschung prüfen',
+      url,
+      expiryText: 'Dieser Link ist 30 Minuten gültig und kann nur einmal verwendet werden.',
+      footer: 'Wenn du diese Löschung nicht angefordert hast, bleibt dein Konto unverändert.',
     }),
   });
 }

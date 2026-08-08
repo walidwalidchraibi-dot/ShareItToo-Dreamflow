@@ -10,6 +10,8 @@ import helmet from 'helmet';
 import multer from 'multer';
 
 import {
+  accountDeletionConfirmForm,
+  accountDeletionRequestForm,
   consumeActionToken,
   createActionToken,
   lockValidActionToken,
@@ -27,6 +29,9 @@ import {
 } from './booking_domain.js';
 import {
   getMailerStatus,
+  sendAccountDeletionEmail,
+  sendEmailChangeAlert,
+  sendEmailChangeVerification,
   sendPasswordResetEmail,
   sendVerificationEmail,
 } from './mailer.js';
@@ -37,10 +42,12 @@ import {
   defaultProfile,
   hashPassword,
   hashRefreshToken,
+  isValidBirthDate,
   isValidEmail,
   isValidPassword,
   newRefreshToken,
   normalizeEmail,
+  passwordPolicyError,
   requireAuth,
   safeText,
   sanitizeProfileUpdate,
@@ -88,12 +95,17 @@ function ensureObject(value, code = 'invalid_payload') {
 
 const requireActiveAccount = asyncRoute(async (req, _res, next) => {
   const result = await pool.query(
-    `SELECT id, email, role, account_status, deactivated_at
-     FROM users WHERE id = $1`,
-    [req.auth.userId],
+    `SELECT u.id, u.email, u.role, u.account_status, u.deactivated_at,
+            session.id AS session_id, session.revoked_at AS session_revoked_at
+     FROM users AS u
+     LEFT JOIN auth_sessions AS session
+       ON session.id = $2 AND session.user_id = u.id
+     WHERE u.id = $1`,
+    [req.auth.userId, req.auth.sessionId],
   );
   const user = result.rows[0];
-  if (!user || user.deactivated_at || user.account_status !== 'active') {
+  if (!user || user.deactivated_at || user.account_status !== 'active'
+      || !user.session_id || user.session_revoked_at) {
     throw new HttpError(401, 'account_not_active');
   }
   req.actor = {
@@ -227,19 +239,70 @@ function threadPayload(raw, { id, requestId, itemId, user1Id, user2Id, createdAt
   };
 }
 
-async function issueSession(client, user, userAgent) {
+function requestIp(req) {
+  const value = safeText(req.ip, 64);
+  return value || null;
+}
+
+function normalizePhoneE164(value) {
+  const raw = safeText(value, 40);
+  if (!raw) return null;
+  const compact = raw.replace(/[\s().-]/g, '').replace(/^00/, '+');
+  return /^\+[1-9][0-9]{7,14}$/.test(compact) ? compact : undefined;
+}
+
+function deviceLabel(userAgent) {
+  const agent = safeText(userAgent, 500).toLowerCase();
+  if (/iphone|ipad/.test(agent)) return 'iPhone/iPad';
+  if (/android/.test(agent)) return 'Android';
+  if (/macintosh|mac os/.test(agent)) return 'Mac';
+  if (/windows/.test(agent)) return 'Windows';
+  if (/linux/.test(agent)) return 'Linux';
+  if (/chrome|safari|firefox|edge/.test(agent)) return 'Browser';
+  return 'Unbekanntes Gerät';
+}
+
+async function issueSession(client, user, {
+  userAgent,
+  ipAddress,
+  sessionId = null,
+  familyId = null,
+} = {}) {
+  const normalizedAgent = safeText(userAgent, 500) || null;
+  const normalizedIp = safeText(ipAddress, 64) || null;
+  const activeSessionId = sessionId ?? crypto.randomUUID();
+  const activeFamilyId = familyId ?? crypto.randomUUID();
+  if (!sessionId) {
+    await client.query(
+      `INSERT INTO auth_sessions (
+         id, user_id, device_label, user_agent, ip_address
+       ) VALUES ($1, $2, $3, $4, $5::inet)`,
+      [activeSessionId, user.id, deviceLabel(normalizedAgent), normalizedAgent, normalizedIp],
+    );
+  } else {
+    await client.query(
+      `UPDATE auth_sessions
+       SET last_seen_at = now(), user_agent = COALESCE($2, user_agent),
+           device_label = CASE WHEN $2 IS NULL THEN device_label ELSE $3 END,
+           ip_address = COALESCE($4::inet, ip_address)
+       WHERE id = $1 AND revoked_at IS NULL`,
+      [activeSessionId, normalizedAgent, deviceLabel(normalizedAgent), normalizedIp],
+    );
+  }
   const refreshToken = newRefreshToken();
   const refreshHash = hashRefreshToken(refreshToken);
   const expiresAt = new Date(Date.now() + config.refreshTokenLifetimeDays * 24 * 60 * 60 * 1000);
   await client.query(
-    `INSERT INTO refresh_tokens (user_id, token_hash, expires_at, user_agent)
-     VALUES ($1, $2, $3, $4)`,
-    [user.id, refreshHash, expiresAt, safeText(userAgent, 500) || null],
+    `INSERT INTO refresh_tokens (
+       user_id, token_hash, expires_at, user_agent, session_id, family_id
+     ) VALUES ($1, $2, $3, $4, $5, $6)`,
+    [user.id, refreshHash, expiresAt, normalizedAgent, activeSessionId, activeFamilyId],
   );
   return {
-    accessToken: signAccessToken(user),
+    accessToken: signAccessToken(user, { sessionId: activeSessionId }),
     refreshToken,
     expiresIn: config.accessTokenLifetimeSeconds,
+    sessionId: activeSessionId,
     user: shapeUser(user),
   };
 }
@@ -257,14 +320,16 @@ async function createAndSendVerification(user) {
 }
 
 async function resetPasswordWithToken(token, password) {
-  if (!isValidPassword(password)) throw new HttpError(400, 'password_too_short');
+  const policyError = passwordPolicyError(password);
+  if (policyError) throw new HttpError(400, policyError);
   const passwordHash = await hashPassword(password);
   return inTransaction(async (client) => {
     const row = await lockValidActionToken(client, { token, kind: 'reset_password' });
     if (!row) throw new HttpError(400, 'invalid_or_expired_reset_link');
     await client.query(
       `UPDATE users
-       SET password_hash = $2, password_changed_at = now()
+       SET password_hash = $2, password_changed_at = now(),
+           failed_login_attempts = 0, login_locked_until = NULL
        WHERE id = $1`,
       [row.id, passwordHash],
     );
@@ -279,8 +344,154 @@ async function resetPasswordWithToken(token, password) {
       'UPDATE refresh_tokens SET revoked_at = COALESCE(revoked_at, now()) WHERE user_id = $1',
       [row.id],
     );
+    await client.query(
+      `UPDATE auth_sessions
+       SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'password_reset')
+       WHERE user_id = $1`,
+      [row.id],
+    );
+    await writeAudit(client, {
+      actor: { id: row.id, role: row.role ?? 'user' },
+      action: 'auth.password_reset',
+      resourceType: 'user',
+      resourceId: row.id,
+    });
     return row;
   });
+}
+
+async function accountDeletionPreflight(client, userId) {
+  const result = await client.query(
+    `SELECT
+       (SELECT count(*)::int FROM bookings
+        WHERE (owner_id = $1 OR renter_id = $1)
+          AND status IN ('pending', 'accepted', 'running')) AS active_bookings,
+       (SELECT count(*)::int FROM payouts
+        WHERE payee_id = $1 AND status IN ('scheduled', 'pending')) AS open_payouts,
+       (SELECT count(*)::int FROM payments AS payment
+        JOIN bookings AS booking ON booking.id = payment.booking_id
+        WHERE (booking.owner_id = $1 OR booking.renter_id = $1)
+          AND payment.status IN ('created', 'requires_action', 'authorized')) AS active_payments,
+       (SELECT count(*)::int FROM disputes AS dispute
+        JOIN bookings AS booking ON booking.id = dispute.booking_id
+        WHERE (booking.owner_id = $1 OR booking.renter_id = $1)
+          AND dispute.status IN ('open', 'investigating', 'waiting_for_user')) AS open_disputes`,
+    [userId],
+  );
+  const counts = result.rows[0] ?? {};
+  const definitions = [
+    ['active_bookings', 'Aktive oder bevorstehende Buchungen'],
+    ['open_payouts', 'Offene Auszahlungen'],
+    ['active_payments', 'Laufende Zahlungsabwicklung'],
+    ['open_disputes', 'Offene Streitfälle'],
+  ];
+  const blockers = definitions
+    .map(([id, label]) => ({ id, label, count: Number(counts[id] ?? 0) }))
+    .filter((blocker) => blocker.count > 0);
+  return { canDelete: blockers.length === 0, blockers };
+}
+
+async function eraseAccount(client, user, { actorRole = 'user', source = 'app' } = {}) {
+  const preflight = await accountDeletionPreflight(client, user.id);
+  if (!preflight.canDelete) throw new HttpError(409, 'account_deletion_blocked', preflight);
+  const anonymousEmail = `deleted+${crypto.randomUUID()}@anonymized.invalid`;
+  await client.query(
+    `UPDATE listings
+     SET is_active = false,
+         payload = jsonb_build_object(
+           'id', id,
+           'ownerId', owner_id,
+           'title', COALESCE(NULLIF(payload->>'title', ''), 'Gelöschtes Angebot'),
+           'status', 'ended',
+           'isActive', false,
+           'photos', '[]'::jsonb,
+           'createdAt', COALESCE(payload->>'createdAt', created_at::text)
+         )
+     WHERE owner_id = $1`,
+    [user.id],
+  );
+  await client.query(
+    `UPDATE rental_requests
+     SET payload = payload - ARRAY[
+       'addressLine', 'deliveryAddressLine', 'deliveryCity', 'deliveryPostalCode',
+       'returnAddressLine', 'returnCity', 'returnPostalCode',
+       'renterName', 'listerName', 'ownerName', 'email', 'phone'
+     ]::text[]
+     WHERE owner_id = $1 OR renter_id = $1`,
+    [user.id],
+  );
+  await client.query(
+    `UPDATE message_threads
+     SET payload = payload - ARRAY['renterName', 'listerName', 'ownerName', 'email', 'phone']::text[]
+     WHERE user1_id = $1 OR user2_id = $1`,
+    [user.id],
+  );
+  await client.query(
+    `UPDATE messages
+     SET body = '[Nachricht nach Kontolöschung entfernt]', sender_id = NULL
+     WHERE sender_id = $1`,
+    [user.id],
+  );
+  await client.query('UPDATE reviews SET body = NULL WHERE reviewer_id = $1', [user.id]);
+  const erasedUploads = await client.query(
+    'DELETE FROM uploads WHERE owner_id = $1 RETURNING storage_name',
+    [user.id],
+  );
+  await client.query('DELETE FROM push_devices WHERE user_id = $1', [user.id]);
+  await client.query('DELETE FROM auth_identities WHERE user_id = $1', [user.id]);
+  await client.query('DELETE FROM auth_action_tokens WHERE user_id = $1', [user.id]);
+  await client.query('DELETE FROM refresh_tokens WHERE user_id = $1', [user.id]);
+  await client.query('DELETE FROM auth_sessions WHERE user_id = $1', [user.id]);
+  await client.query(
+    `UPDATE users
+     SET email = $2,
+         password_hash = NULL,
+         profile = '{"displayName":"Gelöschter Nutzer","emailVerified":false,"phoneVerified":false,"isVerified":false,"isBanned":false,"role":"user"}'::jsonb,
+         account_status = 'closed',
+         deactivated_at = COALESCE(deactivated_at, now()),
+         personal_data_erased_at = now(),
+         email_verified_at = NULL,
+         phone_e164 = NULL,
+         phone_verified_at = NULL,
+         failed_login_attempts = 0,
+         login_locked_until = NULL
+     WHERE id = $1`,
+    [user.id, anonymousEmail],
+  );
+  await writeAudit(client, {
+    actor: { id: user.id, role: actorRole },
+    action: 'account.deleted',
+    resourceType: 'user',
+    resourceId: user.id,
+    metadata: {
+      source,
+      retained: ['pseudonymous_booking_records', 'legally_required_financial_records', 'audit_log'],
+      erasedUploadCount: erasedUploads.rowCount,
+    },
+  });
+  return {
+    deleted: true,
+    erasedUploadStorageNames: erasedUploads.rows.map((row) => row.storage_name),
+  };
+}
+
+async function removeErasedUploadFiles(storageNames) {
+  const failures = [];
+  for (const storageName of storageNames) {
+    if (!/^[0-9a-f-]{36}\.[a-z0-9]+$/i.test(storageName)) {
+      failures.push({ storageName, code: 'invalid_storage_name' });
+      continue;
+    }
+    try {
+      await fs.unlink(path.join(config.uploadDir, storageName));
+    } catch (error) {
+      if (error?.code !== 'ENOENT') failures.push({ storageName, code: error?.code ?? 'unlink_failed' });
+    }
+  }
+  if (failures.length) {
+    console.error('[account] erased upload file cleanup failed', failures);
+  }
+  return failures;
 }
 
 async function listRentalRequests(client, userId) {
@@ -346,9 +557,13 @@ export function createApp() {
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: false, limit: '20kb' }));
 
-  const generalLimiter = rateLimit({ windowMs: 60_000, limit: 240, standardHeaders: 'draft-8', legacyHeaders: false });
-  const authLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false });
-  const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false });
+  const limitHandler = (_req, res) => res.status(429).json({ error: 'rate_limit_exceeded' });
+  const generalLimiter = rateLimit({ windowMs: 60_000, limit: 240, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const registrationLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const loginLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
+  const refreshLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const deletionLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   app.use(generalLimiter);
 
   app.get('/health', asyncRoute(async (_req, res) => {
@@ -383,40 +598,60 @@ export function createApp() {
     res.set('Cache-Control', 'no-store').json(releaseMetadata);
   });
 
-  app.post('/v1/auth/register', authLimiter, asyncRoute(async (req, res) => {
+  app.post('/v1/auth/register', registrationLimiter, asyncRoute(async (req, res) => {
     const email = normalizeEmail(req.body?.email);
     const password = req.body?.password;
+    const displayName = safeText(req.body?.displayName, 80);
     if (!isValidEmail(email)) throw new HttpError(400, 'invalid_email');
-    if (!isValidPassword(password)) throw new HttpError(400, 'password_too_short');
+    const policyError = passwordPolicyError(password);
+    if (policyError) throw new HttpError(400, policyError);
+    if (req.body?.termsAccepted !== true
+        || req.body?.privacyAccepted !== true
+        || req.body?.minimumAgeConfirmed !== true) {
+      throw new HttpError(400, 'registration_consents_required');
+    }
     const passwordHash = await hashPassword(password);
     const userId = crypto.randomUUID();
+    let verificationUser = null;
 
-    const session = await inTransaction(async (client) => {
-      const existing = await client.query('SELECT 1 FROM users WHERE email = $1', [email]);
-      if (existing.rowCount) throw new HttpError(409, 'email_in_use');
+    await inTransaction(async (client) => {
+      const existing = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+      if (existing.rowCount) {
+        const user = existing.rows[0];
+        if (!user.email_verified_at && !user.deactivated_at && user.account_status === 'active') {
+          verificationUser = user;
+        }
+        return;
+      }
+      const profile = { ...defaultProfile({ email }), ...(displayName ? { displayName } : {}) };
       const result = await client.query(
-        `INSERT INTO users (id, email, password_hash, profile)
-         VALUES ($1, $2, $3, $4::jsonb)
+        `INSERT INTO users (
+           id, email, password_hash, profile,
+           terms_accepted_at, privacy_accepted_at, minimum_age_confirmed_at
+         ) VALUES ($1, $2, $3, $4::jsonb, now(), now(), now())
          RETURNING *`,
-        [userId, email, passwordHash, JSON.stringify(defaultProfile({ email }))],
+        [userId, email, passwordHash, JSON.stringify(profile)],
       );
-      return issueSession(client, result.rows[0], req.get('user-agent'));
-    });
-    let verificationEmailSent = false;
-    try {
-      await createAndSendVerification({
-        id: session.user.id,
-        email: session.user.email,
-        profile: session.user,
+      verificationUser = result.rows[0];
+      await writeAudit(client, {
+        actor: { id: userId, role: 'user' },
+        action: 'account.registered',
+        resourceType: 'user',
+        resourceId: userId,
+        metadata: { method: 'email_password' },
       });
-      verificationEmailSent = true;
-    } catch (error) {
-      console.error('[auth] registration verification delivery failed', error?.code ?? error?.message ?? error);
+    });
+    if (verificationUser) {
+      try {
+        await createAndSendVerification(verificationUser);
+      } catch (error) {
+        console.error('[auth] registration verification delivery failed', error?.code ?? error?.message ?? error);
+      }
     }
-    res.status(201).json({ ...session, verificationEmailSent });
+    res.status(202).json({ accepted: true });
   }));
 
-  app.post('/v1/auth/login', authLimiter, asyncRoute(async (req, res) => {
+  app.post('/v1/auth/login', loginLimiter, asyncRoute(async (req, res) => {
     const email = normalizeEmail(req.body?.email);
     const password = req.body?.password;
     if (!isValidEmail(email) || typeof password !== 'string') throw new HttpError(401, 'invalid_credentials');
@@ -426,69 +661,163 @@ export function createApp() {
       [email],
     );
     const user = result.rows[0];
-    if (!user?.password_hash || !(await verifyPassword(password, user.password_hash))) {
+    if (!user?.password_hash) {
+      await hashPassword('invalid-login-candidate-12345');
       throw new HttpError(401, 'invalid_credentials');
     }
-    const session = await inTransaction((client) => issueSession(client, user, req.get('user-agent')));
+    const accountLocked = user.login_locked_until
+      && new Date(user.login_locked_until).getTime() > Date.now();
+    const passwordMatches = await verifyPassword(password, user.password_hash);
+    if (accountLocked || !passwordMatches) {
+      if (!accountLocked) {
+        await pool.query(
+          `UPDATE users
+           SET failed_login_attempts = LEAST(failed_login_attempts + 1, 1000),
+               login_locked_until = CASE
+                 WHEN failed_login_attempts + 1 >= $2
+                   THEN now() + ($3::int * interval '1 minute')
+                 ELSE login_locked_until
+               END
+           WHERE id = $1`,
+          [user.id, config.failedLoginLimit, config.failedLoginLockMinutes],
+        );
+      }
+      throw new HttpError(401, 'invalid_credentials');
+    }
+    if (!user.email_verified_at) throw new HttpError(403, 'email_verification_required');
+    const session = await inTransaction(async (client) => {
+      await client.query(
+        `UPDATE users
+         SET failed_login_attempts = 0, login_locked_until = NULL
+         WHERE id = $1`,
+        [user.id],
+      );
+      const issued = await issueSession(client, user, {
+        userAgent: req.get('user-agent'),
+        ipAddress: requestIp(req),
+      });
+      await writeAudit(client, {
+        actor: { id: user.id, role: user.role ?? 'user' },
+        action: 'auth.login',
+        resourceType: 'auth_session',
+        resourceId: issued.sessionId,
+      });
+      return issued;
+    });
     res.json(session);
   }));
 
-  app.post('/v1/auth/refresh', authLimiter, asyncRoute(async (req, res) => {
+  app.post('/v1/auth/refresh', refreshLimiter, asyncRoute(async (req, res) => {
     const refreshToken = safeText(req.body?.refreshToken, 500);
     if (!refreshToken) throw new HttpError(401, 'invalid_refresh_token');
     const currentHash = hashRefreshToken(refreshToken);
-    const session = await inTransaction(async (client) => {
+    const outcome = await inTransaction(async (client) => {
       const result = await client.query(
         `SELECT u.id, u.email, u.password_hash, u.profile, u.created_at,
                 u.updated_at, u.deactivated_at, u.email_verified_at,
                 u.password_changed_at, u.role, u.account_status,
+                u.terms_accepted_at, u.privacy_accepted_at,
+                u.minimum_age_confirmed_at, u.phone_verified_at,
                 rt.id AS refresh_id, rt.user_id AS refresh_user_id,
-                rt.expires_at AS refresh_expires_at, rt.revoked_at AS refresh_revoked_at
-         FROM refresh_tokens rt JOIN users u ON u.id = rt.user_id
+                rt.expires_at AS refresh_expires_at, rt.revoked_at AS refresh_revoked_at,
+                rt.replaced_by_hash, rt.session_id, rt.family_id,
+                session.revoked_at AS session_revoked_at
+         FROM refresh_tokens AS rt
+         JOIN users AS u ON u.id = rt.user_id
+         JOIN auth_sessions AS session ON session.id = rt.session_id
          WHERE rt.token_hash = $1 FOR UPDATE`,
         [currentHash],
       );
       const row = result.rows[0];
-      if (!row || row.refresh_revoked_at || new Date(row.refresh_expires_at) <= new Date()
-          || row.deactivated_at || row.account_status !== 'active') {
-        throw new HttpError(401, 'invalid_refresh_token');
+      if (!row) return { invalid: true };
+      if (row.refresh_revoked_at && row.replaced_by_hash) {
+        await client.query(
+          `UPDATE auth_sessions
+           SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = 'refresh_token_reuse'
+           WHERE id = $1`,
+          [row.session_id],
+        );
+        await client.query(
+          `UPDATE refresh_tokens
+           SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'refresh_token_reuse')
+           WHERE session_id = $1`,
+          [row.session_id],
+        );
+        await writeAudit(client, {
+          actor: { id: row.id, role: row.role ?? 'user' },
+          action: 'auth.refresh_reuse_detected',
+          resourceType: 'auth_session',
+          resourceId: row.session_id,
+        });
+        return { reuseDetected: true };
       }
-      const next = await issueSession(client, row, req.get('user-agent'));
+      if (row.refresh_revoked_at || row.session_revoked_at
+          || new Date(row.refresh_expires_at) <= new Date()
+          || row.deactivated_at || row.account_status !== 'active') {
+        return { invalid: true };
+      }
+      const next = await issueSession(client, row, {
+        userAgent: req.get('user-agent'),
+        ipAddress: requestIp(req),
+        sessionId: row.session_id,
+        familyId: row.family_id,
+      });
       await client.query(
-        `UPDATE refresh_tokens SET revoked_at = now(), replaced_by_hash = $2 WHERE token_hash = $1`,
+        `UPDATE refresh_tokens
+         SET used_at = now(), revoked_at = now(), revoked_reason = 'rotated', replaced_by_hash = $2
+         WHERE token_hash = $1`,
         [currentHash, hashRefreshToken(next.refreshToken)],
       );
-      return next;
+      return { session: next };
     });
-    res.json(session);
+    if (outcome.reuseDetected) throw new HttpError(401, 'refresh_token_reuse_detected');
+    if (outcome.invalid || !outcome.session) throw new HttpError(401, 'invalid_refresh_token');
+    res.json(outcome.session);
   }));
 
   app.post('/v1/auth/logout', asyncRoute(async (req, res) => {
     const refreshToken = safeText(req.body?.refreshToken, 500);
     if (refreshToken) {
-      await pool.query(
-        `UPDATE refresh_tokens SET revoked_at = COALESCE(revoked_at, now()) WHERE token_hash = $1`,
-        [hashRefreshToken(refreshToken)],
-      );
+      await inTransaction(async (client) => {
+        const found = await client.query(
+          `SELECT user_id, session_id FROM refresh_tokens WHERE token_hash = $1 FOR UPDATE`,
+          [hashRefreshToken(refreshToken)],
+        );
+        const row = found.rows[0];
+        if (!row) return;
+        await client.query(
+          `UPDATE auth_sessions
+           SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'logout')
+           WHERE id = $1`,
+          [row.session_id],
+        );
+        await client.query(
+          `UPDATE refresh_tokens
+           SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'logout')
+           WHERE session_id = $1`,
+          [row.session_id],
+        );
+      });
     }
     res.status(204).end();
   }));
 
-  app.post('/v1/auth/email-verification/request', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
+  app.post('/v1/auth/email-verification/request', actionLimiter, asyncRoute(async (req, res) => {
+    const email = normalizeEmail(req.body?.email);
     const result = await pool.query(
-      'SELECT * FROM users WHERE id = $1 AND deactivated_at IS NULL',
-      [req.auth.userId],
+      `SELECT * FROM users
+       WHERE email = $1 AND deactivated_at IS NULL AND account_status = 'active'`,
+      [email],
     );
     const user = result.rows[0];
-    if (!user) throw new HttpError(404, 'user_not_found');
-    if (user.email_verified_at) return res.status(204).end();
-    try {
-      await createAndSendVerification(user);
-    } catch (error) {
-      console.error('[auth] verification delivery failed', error?.code ?? error?.message ?? error);
-      throw new HttpError(503, 'mail_delivery_unavailable');
+    if (user && !user.email_verified_at) {
+      try {
+        await createAndSendVerification(user);
+      } catch (error) {
+        console.error('[auth] verification delivery failed', error?.code ?? error?.message ?? error);
+      }
     }
-    return res.status(202).json({ sent: true });
+    return res.status(202).json({ accepted: true });
   }));
 
   const confirmEmail = async (token) => inTransaction(async (client) => {
@@ -528,11 +857,139 @@ export function createApp() {
     res.json({ verified: true });
   }));
 
+  app.post('/v1/auth/email-change/request', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
+    const nextEmail = normalizeEmail(req.body?.newEmail);
+    const currentPassword = req.body?.currentPassword;
+    if (!isValidEmail(nextEmail)) throw new HttpError(400, 'invalid_email');
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.auth.userId]);
+    const user = result.rows[0];
+    if (!user?.password_hash || !(await verifyPassword(currentPassword, user.password_hash))) {
+      throw new HttpError(401, 'invalid_credentials');
+    }
+    if (nextEmail === user.email) throw new HttpError(400, 'email_unchanged');
+
+    const token = await inTransaction(async (client) => {
+      const conflict = await client.query(
+        'SELECT 1 FROM users WHERE email = $1 AND id <> $2',
+        [nextEmail, user.id],
+      );
+      if (conflict.rowCount) throw new HttpError(409, 'email_in_use');
+      const actionToken = await createActionToken(client, {
+        userId: user.id,
+        kind: 'change_email',
+        payload: { newEmail: nextEmail },
+      });
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'auth.email_change_requested',
+        resourceType: 'user',
+        resourceId: user.id,
+        metadata: {
+          newEmailHash: crypto.createHash('sha256').update(nextEmail).digest('hex'),
+        },
+      });
+      return actionToken;
+    });
+
+    await sendEmailChangeVerification({
+      email: nextEmail,
+      displayName: user.profile?.displayName,
+      token,
+    });
+    try {
+      await sendEmailChangeAlert({
+        email: user.email,
+        displayName: user.profile?.displayName,
+      });
+    } catch (error) {
+      console.error('[auth] old-address email change alert failed', error?.code ?? error?.message ?? error);
+    }
+    res.status(202).json({ accepted: true });
+  }));
+
+  const confirmEmailChange = async (token) => inTransaction(async (client) => {
+    const row = await lockValidActionToken(client, { token, kind: 'change_email' });
+    const nextEmail = normalizeEmail(row?.action_payload?.newEmail);
+    if (!row || !isValidEmail(nextEmail)) throw new HttpError(400, 'invalid_or_expired_email_change_link');
+    const conflict = await client.query(
+      'SELECT 1 FROM users WHERE email = $1 AND id <> $2',
+      [nextEmail, row.id],
+    );
+    if (conflict.rowCount) throw new HttpError(409, 'email_in_use');
+    await client.query(
+      `UPDATE users
+       SET email = $2,
+           email_verified_at = now(),
+           profile = jsonb_set(profile - 'email', '{emailVerified}', 'true'::jsonb, true),
+           failed_login_attempts = 0,
+           login_locked_until = NULL
+       WHERE id = $1`,
+      [row.id, nextEmail],
+    );
+    await consumeActionToken(client, row.action_token_id);
+    await client.query(
+      `UPDATE auth_action_tokens
+       SET consumed_at = COALESCE(consumed_at, now())
+       WHERE user_id = $1 AND kind = 'change_email'`,
+      [row.id],
+    );
+    await client.query('DELETE FROM push_devices WHERE user_id = $1', [row.id]);
+    await client.query(
+      `UPDATE auth_sessions
+       SET revoked_at = COALESCE(revoked_at, now()),
+           revoked_reason = COALESCE(revoked_reason, 'email_changed')
+       WHERE user_id = $1`,
+      [row.id],
+    );
+    await client.query(
+      `UPDATE refresh_tokens
+       SET revoked_at = COALESCE(revoked_at, now()),
+           revoked_reason = COALESCE(revoked_reason, 'email_changed')
+       WHERE user_id = $1`,
+      [row.id],
+    );
+    await writeAudit(client, {
+      actor: { id: row.id, role: row.role ?? 'user' },
+      action: 'auth.email_changed',
+      resourceType: 'user',
+      resourceId: row.id,
+      metadata: {
+        newEmailHash: crypto.createHash('sha256').update(nextEmail).digest('hex'),
+      },
+    });
+    return { changed: true };
+  });
+
+  app.get('/v1/auth/email-change/confirm', actionLimiter, asyncRoute(async (req, res) => {
+    try {
+      await confirmEmailChange(safeText(req.query?.token, 500));
+      return sendHtml(res, 200, resultPage({
+        success: true,
+        title: 'E-Mail-Adresse geändert',
+        message: 'Deine neue E-Mail-Adresse ist bestätigt. Alle bisherigen Sitzungen wurden beendet. Melde dich jetzt erneut an.',
+      }));
+    } catch (error) {
+      if (!(error instanceof HttpError)) throw error;
+      return sendHtml(res, error.status, resultPage({
+        success: false,
+        title: 'E-Mail-Adresse nicht geändert',
+        message: error.code === 'email_in_use'
+          ? 'Diese E-Mail-Adresse wird bereits verwendet. Starte die Änderung in der App erneut.'
+          : 'Dieser Link ist ungültig, abgelaufen oder wurde bereits verwendet.',
+      }));
+    }
+  }));
+
+  app.post('/v1/auth/email-change/confirm', actionLimiter, asyncRoute(async (req, res) => {
+    res.json(await confirmEmailChange(safeText(req.body?.token, 500)));
+  }));
+
   app.post('/v1/auth/password-reset/request', actionLimiter, asyncRoute(async (req, res) => {
     const email = normalizeEmail(req.body?.email);
     if (isValidEmail(email)) {
       const result = await pool.query(
-        'SELECT * FROM users WHERE email = $1 AND deactivated_at IS NULL',
+        `SELECT * FROM users
+         WHERE email = $1 AND deactivated_at IS NULL AND account_status = 'active'`,
         [email],
       );
       const user = result.rows[0];
@@ -579,7 +1036,7 @@ export function createApp() {
         token,
         error: password !== passwordConfirm
           ? 'Die Passwörter stimmen nicht überein.'
-          : 'Das Passwort muss mindestens acht Zeichen lang sein.',
+          : 'Das Passwort muss mindestens zehn Zeichen, einen Buchstaben und eine Zahl enthalten.',
       }));
     }
     try {
@@ -610,11 +1067,267 @@ export function createApp() {
     res.json({ user: shapeUser(result.rows[0]) });
   }));
 
+  app.get('/v1/auth/sessions', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await pool.query(
+      `SELECT id, device_label, created_at, last_seen_at
+       FROM auth_sessions
+       WHERE user_id = $1 AND revoked_at IS NULL
+       ORDER BY last_seen_at DESC`,
+      [req.auth.userId],
+    );
+    res.json({
+      sessions: result.rows.map((session) => ({
+        id: session.id,
+        name: session.device_label,
+        location: session.id === req.auth.sessionId ? 'Aktuelle Sitzung' : 'Letzte bekannte Sitzung',
+        createdAt: new Date(session.created_at).toISOString(),
+        lastActive: new Date(session.last_seen_at).toISOString(),
+        isThisDevice: session.id === req.auth.sessionId,
+      })),
+    });
+  }));
+
+  app.delete('/v1/auth/sessions/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const sessionId = safeText(req.params.id, 80);
+    await inTransaction(async (client) => {
+      const result = await client.query(
+        `UPDATE auth_sessions
+         SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'user_revoked')
+         WHERE id::text = $1 AND user_id = $2 AND revoked_at IS NULL
+         RETURNING id`,
+        [sessionId, req.auth.userId],
+      );
+      if (!result.rowCount) throw new HttpError(404, 'session_not_found');
+      await client.query(
+        `UPDATE refresh_tokens
+         SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'user_revoked')
+         WHERE session_id = $1`,
+        [sessionId],
+      );
+      await client.query('DELETE FROM push_devices WHERE session_id = $1', [sessionId]);
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'auth.session_revoked',
+        resourceType: 'auth_session',
+        resourceId: sessionId,
+      });
+    });
+    res.status(204).end();
+  }));
+
+  app.post('/v1/auth/logout-all', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
+    await inTransaction(async (client) => {
+      await client.query(
+        `UPDATE auth_sessions
+         SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'logout_all')
+         WHERE user_id = $1`,
+        [req.auth.userId],
+      );
+      await client.query(
+        `UPDATE refresh_tokens
+         SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'logout_all')
+         WHERE user_id = $1`,
+        [req.auth.userId],
+      );
+      await client.query('DELETE FROM push_devices WHERE user_id = $1', [req.auth.userId]);
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'auth.logout_all',
+        resourceType: 'user',
+        resourceId: req.auth.userId,
+      });
+    });
+    res.status(204).end();
+  }));
+
+  app.post('/v1/auth/password/change', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
+    const currentPassword = req.body?.currentPassword;
+    const nextPassword = req.body?.newPassword;
+    const policyError = passwordPolicyError(nextPassword);
+    if (policyError) throw new HttpError(400, policyError);
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.auth.userId]);
+    const user = result.rows[0];
+    if (!user?.password_hash || !(await verifyPassword(currentPassword, user.password_hash))) {
+      throw new HttpError(401, 'invalid_credentials');
+    }
+    const passwordHash = await hashPassword(nextPassword);
+    await inTransaction(async (client) => {
+      await client.query(
+        `UPDATE users
+         SET password_hash = $2, password_changed_at = now(),
+             failed_login_attempts = 0, login_locked_until = NULL
+         WHERE id = $1`,
+        [req.auth.userId, passwordHash],
+      );
+      await client.query(
+        `UPDATE auth_sessions
+         SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'password_changed')
+         WHERE user_id = $1`,
+        [req.auth.userId],
+      );
+      await client.query(
+        `UPDATE refresh_tokens
+         SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'password_changed')
+         WHERE user_id = $1`,
+        [req.auth.userId],
+      );
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'auth.password_changed',
+        resourceType: 'user',
+        resourceId: req.auth.userId,
+      });
+    });
+    res.status(204).end();
+  }));
+
+  app.put('/v1/auth/devices/push', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const token = safeText(req.body?.token, 4096);
+    const platform = safeText(req.body?.platform, 20).toLowerCase();
+    const locale = safeText(req.body?.locale, 20) || null;
+    if (!token || !['ios', 'android', 'web'].includes(platform)) {
+      throw new HttpError(400, 'invalid_push_device');
+    }
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const result = await pool.query(
+      `INSERT INTO push_devices (
+         user_id, session_id, platform, token, token_hash, locale
+       ) VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (token_hash) DO UPDATE
+       SET user_id = EXCLUDED.user_id,
+           session_id = EXCLUDED.session_id,
+           platform = EXCLUDED.platform,
+           token = EXCLUDED.token,
+           locale = EXCLUDED.locale,
+           enabled = true,
+           last_seen_at = now()
+       RETURNING id, platform, locale, enabled, last_seen_at`,
+      [req.auth.userId, req.auth.sessionId, platform, token, tokenHash, locale],
+    );
+    res.json({ device: result.rows[0] });
+  }));
+
+  app.delete('/v1/auth/devices/push/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await pool.query(
+      `DELETE FROM push_devices WHERE id::text = $1 AND user_id = $2 RETURNING id`,
+      [safeText(req.params.id, 80), req.auth.userId],
+    );
+    if (!result.rowCount) throw new HttpError(404, 'push_device_not_found');
+    res.status(204).end();
+  }));
+
+  app.get('/v1/account/deletion-preflight', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    res.json(await accountDeletionPreflight(pool, req.auth.userId));
+  }));
+
+  app.post('/v1/account/deletion', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
+    const currentPassword = req.body?.currentPassword;
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.auth.userId]);
+    const user = result.rows[0];
+    if (!user?.password_hash || !(await verifyPassword(currentPassword, user.password_hash))) {
+      throw new HttpError(401, 'invalid_credentials');
+    }
+    const outcome = await inTransaction((client) => eraseAccount(client, user, {
+      actorRole: req.actor.role,
+      source: 'app',
+    }));
+    await removeErasedUploadFiles(outcome.erasedUploadStorageNames);
+    res.json({ deleted: true });
+  }));
+
+  app.get('/v1/account-deletion', deletionLimiter, (_req, res) => {
+    sendHtml(res, 200, accountDeletionRequestForm({ submitted: false }));
+  });
+
+  app.post('/v1/account-deletion/request', deletionLimiter, asyncRoute(async (req, res) => {
+    const email = normalizeEmail(req.body?.email);
+    const result = await pool.query(
+      `SELECT * FROM users
+       WHERE email = $1 AND account_status = 'active' AND deactivated_at IS NULL`,
+      [email],
+    );
+    const user = result.rows[0];
+    if (user) {
+      try {
+        const token = await inTransaction((client) => createActionToken(client, {
+          userId: user.id,
+          kind: 'delete_account',
+        }));
+        await sendAccountDeletionEmail({
+          email: user.email,
+          displayName: user.profile?.displayName,
+          token,
+        });
+      } catch (error) {
+        console.error('[account] deletion link delivery failed', error?.code ?? error?.message ?? error);
+      }
+    }
+    sendHtml(res, 202, accountDeletionRequestForm({ submitted: true }));
+  }));
+
+  app.get('/v1/account-deletion/confirm', deletionLimiter, asyncRoute(async (req, res) => {
+    const token = safeText(req.query?.token, 500);
+    const valid = await inTransaction(async (client) => Boolean(
+      await lockValidActionToken(client, { token, kind: 'delete_account' }),
+    ));
+    if (!valid) {
+      return sendHtml(res, 400, resultPage({
+        success: false,
+        title: 'Link nicht mehr gültig',
+        message: 'Dieser Löschlink ist ungültig, abgelaufen oder wurde bereits verwendet.',
+      }));
+    }
+    return sendHtml(res, 200, accountDeletionConfirmForm({ token }));
+  }));
+
+  app.post('/v1/account-deletion/confirm', deletionLimiter, asyncRoute(async (req, res) => {
+    const token = safeText(req.body?.token, 500);
+    try {
+      const outcome = await inTransaction(async (client) => {
+        const user = await lockValidActionToken(client, { token, kind: 'delete_account' });
+        if (!user) throw new HttpError(400, 'invalid_or_expired_deletion_link');
+        return eraseAccount(client, user, { actorRole: user.role ?? 'user', source: 'web' });
+      });
+      await removeErasedUploadFiles(outcome.erasedUploadStorageNames);
+      return sendHtml(res, 200, resultPage({
+        success: true,
+        title: 'Konto gelöscht',
+        message: 'Dein ShareItToo-Konto wurde geschlossen und deine personenbezogenen Daten wurden gelöscht oder anonymisiert.',
+      }));
+    } catch (error) {
+      if (error instanceof HttpError && error.code === 'account_deletion_blocked') {
+        return sendHtml(res, 409, accountDeletionConfirmForm({
+          token,
+          error: 'Die Löschung ist aktuell wegen einer offenen Buchung, Zahlung, Auszahlung oder eines Streitfalls blockiert. Bitte kläre den Vorgang zuerst in der App oder mit dem Support.',
+        }));
+      }
+      if (!(error instanceof HttpError)) throw error;
+      return sendHtml(res, 400, resultPage({
+        success: false,
+        title: 'Link nicht mehr gültig',
+        message: 'Dieser Löschlink ist ungültig, abgelaufen oder wurde bereits verwendet.',
+      }));
+    }
+  }));
+
   app.patch('/v1/profile', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const update = sanitizeProfileUpdate(req.body?.profile ?? req.body);
+    if (!isValidBirthDate(update.birthDate)) throw new HttpError(400, 'minimum_age_required');
+    const updatesPhone = Object.hasOwn(update, 'phone');
+    const normalizedPhone = updatesPhone ? normalizePhoneE164(update.phone) : null;
+    if (normalizedPhone === undefined) throw new HttpError(400, 'invalid_phone');
+    if (updatesPhone) update.phone = normalizedPhone;
     const result = await pool.query(
-      `UPDATE users SET profile = profile || $2::jsonb WHERE id = $1 AND deactivated_at IS NULL RETURNING *`,
-      [req.auth.userId, JSON.stringify(update)],
+      `UPDATE users
+       SET profile = profile || $2::jsonb,
+           phone_e164 = CASE WHEN $3::boolean THEN $4 ELSE phone_e164 END,
+           phone_verified_at = CASE
+             WHEN $3::boolean AND phone_e164 IS DISTINCT FROM $4 THEN NULL
+             ELSE phone_verified_at
+           END
+       WHERE id = $1 AND deactivated_at IS NULL
+       RETURNING *`,
+      [req.auth.userId, JSON.stringify(update), updatesPhone, normalizedPhone],
     );
     if (!result.rowCount) throw new HttpError(404, 'user_not_found');
     publishToUsers([req.auth.userId], { type: 'changed', resource: 'profiles' });
@@ -1050,16 +1763,22 @@ export function createApp() {
     if (uploadRecord.visibility !== 'public') {
       const token = bearerToken(req);
       let userId = null;
+      let sessionId = null;
       try {
-        userId = token ? verifyAccessToken(token).sub : null;
+        const payload = token ? verifyAccessToken(token) : null;
+        userId = payload?.sub ?? null;
+        sessionId = payload?.sid ?? null;
       } catch {
         throw new HttpError(401, 'invalid_or_expired_session');
       }
-      if (!userId) throw new HttpError(401, 'authentication_required');
+      if (!userId || !sessionId) throw new HttpError(401, 'authentication_required');
       const actor = await pool.query(
-        `SELECT id FROM users
-         WHERE id = $1 AND account_status = 'active' AND deactivated_at IS NULL`,
-        [userId],
+        `SELECT u.id
+         FROM users AS u
+         JOIN auth_sessions AS session
+           ON session.id = $2 AND session.user_id = u.id AND session.revoked_at IS NULL
+         WHERE u.id = $1 AND u.account_status = 'active' AND u.deactivated_at IS NULL`,
+        [userId, sessionId],
       );
       if (!actor.rowCount) throw new HttpError(401, 'account_not_active');
       if (![uploadRecord.owner_id, uploadRecord.user1_id, uploadRecord.user2_id].includes(userId)) {

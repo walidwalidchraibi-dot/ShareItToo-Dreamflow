@@ -1,11 +1,13 @@
 import { config } from './config.js';
 import { hashActionToken, newActionToken } from './security.js';
 
-export async function createActionToken(client, { userId, kind }) {
+export async function createActionToken(client, { userId, kind, payload = {} }) {
   const token = newActionToken();
-  const lifetimeMs = kind === 'verify_email'
+  const lifetimeMs = ['verify_email', 'change_email'].includes(kind)
     ? config.emailVerificationLifetimeHours * 60 * 60 * 1000
-    : config.passwordResetLifetimeMinutes * 60 * 1000;
+    : (kind === 'delete_account'
+      ? config.accountDeletionLifetimeMinutes
+      : config.passwordResetLifetimeMinutes) * 60 * 1000;
   const expiresAt = new Date(Date.now() + lifetimeMs);
   await client.query(
     `UPDATE auth_action_tokens
@@ -14,9 +16,9 @@ export async function createActionToken(client, { userId, kind }) {
     [userId, kind],
   );
   await client.query(
-    `INSERT INTO auth_action_tokens (user_id, kind, token_hash, expires_at)
-     VALUES ($1, $2, $3, $4)`,
-    [userId, kind, hashActionToken(token), expiresAt],
+    `INSERT INTO auth_action_tokens (user_id, kind, token_hash, expires_at, payload)
+     VALUES ($1, $2, $3, $4, $5::jsonb)`,
+    [userId, kind, hashActionToken(token), expiresAt, JSON.stringify(payload)],
   );
   return token;
 }
@@ -25,8 +27,11 @@ export async function lockValidActionToken(client, { token, kind }) {
   if (typeof token !== 'string' || token.length < 32 || token.length > 500) return null;
   const result = await client.query(
     `SELECT aat.id AS action_token_id, aat.user_id, aat.expires_at,
+            aat.payload AS action_payload,
             u.id, u.email, u.password_hash, u.profile, u.created_at,
-            u.updated_at, u.deactivated_at, u.email_verified_at, u.password_changed_at
+            u.updated_at, u.deactivated_at, u.email_verified_at, u.password_changed_at,
+            u.role, u.account_status, u.terms_accepted_at, u.privacy_accepted_at,
+            u.minimum_age_confirmed_at, u.phone_verified_at
      FROM auth_action_tokens aat
      JOIN users u ON u.id = aat.user_id
      WHERE aat.token_hash = $1 AND aat.kind = $2
@@ -72,12 +77,36 @@ export function resultPage({ success, title, message }) {
 export function passwordResetForm({ token, error = '' }) {
   return pageShell({
     title: 'Passwort zurücksetzen',
-    content: `<h1>Neues Passwort festlegen</h1><p>Wähle ein neues Passwort mit mindestens acht Zeichen.</p>
+    content: `<h1>Neues Passwort festlegen</h1><p>Wähle ein neues Passwort mit mindestens zehn Zeichen, einem Buchstaben und einer Zahl.</p>
 ${error ? `<p class="error">${escapeHtml(error)}</p>` : ''}
 <form method="post" action="${escapeHtml(config.publicBaseUrl)}/auth/password-reset/form" autocomplete="off">
 <input type="hidden" name="token" value="${escapeHtml(token)}">
-<label for="password">Neues Passwort</label><input id="password" name="password" type="password" minlength="8" maxlength="200" autocomplete="new-password" required>
-<label for="passwordConfirm">Passwort wiederholen</label><input id="passwordConfirm" name="passwordConfirm" type="password" minlength="8" maxlength="200" autocomplete="new-password" required>
+<label for="password">Neues Passwort</label><input id="password" name="password" type="password" minlength="10" maxlength="200" autocomplete="new-password" required>
+<label for="passwordConfirm">Passwort wiederholen</label><input id="passwordConfirm" name="passwordConfirm" type="password" minlength="10" maxlength="200" autocomplete="new-password" required>
 <p class="hint">Der Link kann nur einmal verwendet werden.</p><button type="submit">Passwort speichern</button></form>`,
+  });
+}
+
+export function accountDeletionRequestForm({ submitted = false }) {
+  return pageShell({
+    title: 'ShareItToo-Konto löschen',
+    content: submitted
+      ? `<h1>Anfrage erhalten</h1><p>Wenn ein aktives Konto zu dieser Adresse gehört, senden wir einen einmal verwendbaren Bestätigungslink. Prüfe auch den Spam-Ordner.</p>`
+      : `<h1>Konto löschen</h1><p>Du kannst die Löschung direkt in der App unter Konto → Konto löschen starten. Alternativ senden wir dir hier einen sicheren Bestätigungslink.</p>
+<form method="post" action="${escapeHtml(config.publicBaseUrl)}/account-deletion/request" autocomplete="off">
+<label for="email">E-Mail-Adresse</label><input id="email" name="email" type="email" maxlength="254" autocomplete="email" required>
+<p class="hint">Offene Buchungen, Auszahlungen oder Streitfälle müssen zuerst abgeschlossen werden. Gesetzlich erforderliche Transaktionsnachweise werden nur pseudonymisiert aufbewahrt.</p>
+<button type="submit">Löschung anfordern</button></form>`,
+  });
+}
+
+export function accountDeletionConfirmForm({ token, error = '' }) {
+  return pageShell({
+    title: 'Kontolöschung bestätigen',
+    content: `<h1>Konto endgültig löschen?</h1><p>Profil-, Kontakt-, Geräte- und Zugangsdaten werden gelöscht oder anonymisiert. Gesetzlich erforderliche Buchungs- und Zahlungsnachweise bleiben pseudonymisiert erhalten.</p>
+${error ? `<p class="error">${escapeHtml(error)}</p>` : ''}
+<form method="post" action="${escapeHtml(config.publicBaseUrl)}/account-deletion/confirm" autocomplete="off">
+<input type="hidden" name="token" value="${escapeHtml(token)}">
+<button type="submit">Konto endgültig löschen</button></form>`,
   });
 }

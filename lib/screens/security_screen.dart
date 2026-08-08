@@ -1,11 +1,16 @@
 import 'dart:ui' show ImageFilter;
 
-import 'package:flutter/foundation.dart' show debugPrint, kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show debugPrint, kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:lendify/models/security.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/screens/verification_intro_screen.dart';
 import 'package:lendify/screens/verification_screen.dart';
+import 'package:lendify/screens/login_screen.dart';
+import 'package:lendify/services/auth_service.dart';
+import 'package:lendify/services/backend_config.dart';
+import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/theme.dart';
 
@@ -56,7 +61,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
     try {
       final u = await DataService.getCurrentUser();
       final s = await DataService.getSecuritySettings();
-      final d = await DataService.getSignedInDevices();
+      final d = BackendConfig.enabled
+          ? (await BackendRepository.getAuthSessions())
+              .map(SecurityDevice.fromJson)
+              .toList()
+          : await DataService.getSignedInDevices();
       if (!mounted) return;
       setState(() {
         _user = u;
@@ -76,17 +85,18 @@ class _SecurityScreenState extends State<SecurityScreen> {
     final current = _currentCtrl.text;
     final next = _nextCtrl.text;
     final confirm = _confirmCtrl.text;
-    return current.isNotEmpty && _validateNewPassword(next) == null && next == confirm;
+    return current.isNotEmpty &&
+        _validateNewPassword(next) == null &&
+        next == confirm;
   }
 
   String? _validateNewPassword(String v) {
     final s = v.trim();
-    if (s.length < 8) return 'Mindestens 8 Zeichen';
+    if (s.length < 10) return 'Mindestens 10 Zeichen';
+    final hasLetter = RegExp(r'\p{L}', unicode: true).hasMatch(s);
     final hasNumber = RegExp(r'\d').hasMatch(s);
-    // Raw-string regex to avoid escaping hell; include common special chars.
-    final hasSpecial = RegExp(r'[!@#$%^&*(),.?":{}|<>\[\]\\/\-_=+;`~]').hasMatch(s);
+    if (!hasLetter) return 'Mindestens ein Buchstabe';
     if (!hasNumber) return 'Mindestens eine Zahl';
-    if (!hasSpecial) return 'Mindestens ein Sonderzeichen';
     return null;
   }
 
@@ -94,7 +104,23 @@ class _SecurityScreenState extends State<SecurityScreen> {
     if (!_passwordValid || _pwBusy) return;
     setState(() => _pwBusy = true);
     try {
-      // No backend connected – this is a demo flow.
+      if (BackendConfig.enabled) {
+        await BackendRepository.changePassword(
+          currentPassword: _currentCtrl.text,
+          newPassword: _nextCtrl.text,
+        );
+        await AuthService.clearSession();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Passwort geändert. Bitte melde dich erneut an.')),
+        );
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (_) => false,
+        );
+        return;
+      }
       await Future<void>.delayed(const Duration(milliseconds: 650));
       if (!mounted) return;
       _currentCtrl.clear();
@@ -126,7 +152,8 @@ class _SecurityScreenState extends State<SecurityScreen> {
     } catch (e) {
       debugPrint('[SecurityScreen] setSecuritySettings failed: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Konnte 2FA nicht speichern.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Konnte 2FA nicht speichern.')));
     } finally {
       if (mounted) setState(() => _twoFactorBusy = false);
     }
@@ -160,7 +187,8 @@ class _SecurityScreenState extends State<SecurityScreen> {
       _twoFactorBusy = true;
     });
     try {
-      await DataService.setSecuritySettings(SecuritySettings(enabled: _twoFactorEnabled, method: method));
+      await DataService.setSecuritySettings(
+          SecuritySettings(enabled: _twoFactorEnabled, method: method));
     } catch (e) {
       debugPrint('[SecurityScreen] setTwoFactorMethod failed: $e');
     } finally {
@@ -177,8 +205,12 @@ class _SecurityScreenState extends State<SecurityScreen> {
             title: const Text('Gerät abmelden?'),
             content: Text('Du wirst auf „${device.name}“ abgemeldet.'),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
-              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Abmelden')),
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Abbrechen')),
+              FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Abmelden')),
             ],
           ),
         ) ??
@@ -188,13 +220,65 @@ class _SecurityScreenState extends State<SecurityScreen> {
     setState(() => _devicesBusy = true);
     try {
       final next = _devices.where((d) => d.id != device.id).toList();
-      await DataService.setSignedInDevices(next);
+      if (BackendConfig.enabled) {
+        await BackendRepository.revokeAuthSession(device.id);
+      } else {
+        await DataService.setSignedInDevices(next);
+      }
       if (!mounted) return;
       setState(() => _devices = next);
     } catch (e) {
       debugPrint('[SecurityScreen] signOutDevice failed: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gerät konnte nicht abgemeldet werden.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Gerät konnte nicht abgemeldet werden.')));
+    } finally {
+      if (mounted) setState(() => _devicesBusy = false);
+    }
+  }
+
+  Future<void> _logoutAllDevices() async {
+    if (_devicesBusy) return;
+    final ok = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Alle Geräte abmelden?'),
+            content: const Text(
+                'Alle Sitzungen werden sofort beendet. Du musst dich anschließend neu anmelden.'),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Abbrechen')),
+              FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Alle abmelden')),
+            ],
+          ),
+        ) ??
+        false;
+    if (!ok) return;
+    setState(() => _devicesBusy = true);
+    try {
+      if (BackendConfig.enabled) {
+        await BackendRepository.logoutAllSessions();
+        await AuthService.clearSession();
+        if (!mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (_) => false,
+        );
+      } else {
+        await DataService.setSignedInDevices(const []);
+        if (mounted) setState(() => _devices = const []);
+      }
+    } catch (e) {
+      debugPrint('[SecurityScreen] logoutAllDevices failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Geräte konnten nicht abgemeldet werden.')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _devicesBusy = false);
     }
@@ -203,7 +287,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
   void _openVerification() {
     final verified = _user?.isVerified == true;
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => verified ? const VerificationScreen() : const VerificationIntroScreen()),
+      MaterialPageRoute(
+          builder: (_) => verified
+              ? const VerificationScreen()
+              : const VerificationIntroScreen()),
     );
   }
 
@@ -248,254 +335,366 @@ class _SecurityScreenState extends State<SecurityScreen> {
           surfaceTintColor: Colors.transparent,
           title: const Text('Sicherheit'),
           centerTitle: true,
-          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
+          leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).maybePop()),
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
             : SafeArea(
                 top: false,
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 18, 16, 22),
+                  padding: const EdgeInsets.fromLTRB(
+                      16, kToolbarHeight + 18, 16, 22),
                   children: [
-                    Text('Sicherheit', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                    Text('Sicherheit',
+                        style: theme.textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w900)),
                     const SizedBox(height: 6),
                     Text(
                       'Schütze dein Konto und bestätige deine Identität, um Vertrauen auf der Plattform aufzubauen.',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70, height: 1.45),
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: Colors.white70, height: 1.45),
                     ),
                     const SizedBox(height: 18),
-
-                    _SectionHeader(title: 'Identitätsverifizierung', icon: Icons.verified_user_outlined),
+                    _SectionHeader(
+                        title: 'Identitätsverifizierung',
+                        icon: Icons.verified_user_outlined),
                     const SizedBox(height: 10),
                     _SectionCard(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                        _StatusPill(
-                          icon: verified ? Icons.check_circle_rounded : Icons.error_outline_rounded,
-                          label: verified ? 'Verifiziert' : 'Nicht verifiziert',
-                          tone: verified ? _PillTone.success : _PillTone.danger,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Eine verifizierte Identität erhöht das Vertrauen zwischen Mietern und Vermietern.',
-                          style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.45),
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          onPressed: _openVerification,
-                          icon: const Icon(Icons.badge_outlined, color: Colors.white),
-                          label: Text(verified ? 'Verifizierung ansehen' : 'Identität verifizieren', style: const TextStyle(color: Colors.white)),
-                        ),
-                        const SizedBox(height: 10),
-                        _MiniBullets(items: const [
-                          'Ausweisdokument hochladen',
-                          'Selfie‑Verifizierung',
-                          'Automatische Identitätsprüfung',
-                        ]),
-                      ]),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _StatusPill(
+                              icon: verified
+                                  ? Icons.check_circle_rounded
+                                  : Icons.error_outline_rounded,
+                              label: verified
+                                  ? 'Verifiziert'
+                                  : 'Nicht verifiziert',
+                              tone: verified
+                                  ? _PillTone.success
+                                  : _PillTone.danger,
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Eine verifizierte Identität erhöht das Vertrauen zwischen Mietern und Vermietern.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.white70, height: 1.45),
+                            ),
+                            const SizedBox(height: 12),
+                            FilledButton.icon(
+                              onPressed: _openVerification,
+                              icon: const Icon(Icons.badge_outlined,
+                                  color: Colors.white),
+                              label: Text(
+                                  verified
+                                      ? 'Verifizierung ansehen'
+                                      : 'Identität verifizieren',
+                                  style: const TextStyle(color: Colors.white)),
+                            ),
+                            const SizedBox(height: 10),
+                            _MiniBullets(items: const [
+                              'Ausweisdokument hochladen',
+                              'Selfie‑Verifizierung',
+                              'Automatische Identitätsprüfung',
+                            ]),
+                          ]),
                     ),
                     const SizedBox(height: 18),
-
                     _SectionHeader(title: 'Passwort', icon: Icons.lock_outline),
                     const SizedBox(height: 10),
                     _SectionCard(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                        TextField(
-                          controller: _currentCtrl,
-                          obscureText: _pwObscureCurrent,
-                          onChanged: (_) => setState(() {}),
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            labelText: 'Aktuelles Passwort',
-                            suffixIcon: IconButton(
-                              tooltip: _pwObscureCurrent ? 'Anzeigen' : 'Verbergen',
-                              onPressed: () => setState(() => _pwObscureCurrent = !_pwObscureCurrent),
-                              icon: Icon(_pwObscureCurrent ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _nextCtrl,
-                          obscureText: _pwObscureNext,
-                          onChanged: (_) => setState(() {}),
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.password_outlined),
-                            labelText: 'Neues Passwort',
-                            errorText: _nextCtrl.text.isEmpty ? null : _validateNewPassword(_nextCtrl.text),
-                            suffixIcon: IconButton(
-                              tooltip: _pwObscureNext ? 'Anzeigen' : 'Verbergen',
-                              onPressed: () => setState(() => _pwObscureNext = !_pwObscureNext),
-                              icon: Icon(_pwObscureNext ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _confirmCtrl,
-                          obscureText: _pwObscureConfirm,
-                          onChanged: (_) => setState(() {}),
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.check_circle_outline),
-                            labelText: 'Neues Passwort bestätigen',
-                            errorText: _confirmCtrl.text.isEmpty
-                                ? null
-                                : (_confirmCtrl.text == _nextCtrl.text ? null : 'Passwörter stimmen nicht überein'),
-                            suffixIcon: IconButton(
-                              tooltip: _pwObscureConfirm ? 'Anzeigen' : 'Verbergen',
-                              onPressed: () => setState(() => _pwObscureConfirm = !_pwObscureConfirm),
-                              icon: Icon(_pwObscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        _MiniBullets(items: const ['Mindestens 8 Zeichen', 'Mindestens eine Zahl', 'Mindestens ein Sonderzeichen']),
-                        const SizedBox(height: 14),
-                        FilledButton(
-                          onPressed: _passwordValid && !_pwBusy ? _changePassword : null,
-                          style: FilledButton.styleFrom(backgroundColor: primary),
-                          child: _pwBusy
-                              ? const SizedBox(
-                                  height: 18,
-                                  width: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                              : const Text('Passwort ändern', style: TextStyle(color: Colors.white)),
-                        ),
-                      ]),
-                    ),
-                    const SizedBox(height: 18),
-
-                    _SectionHeader(title: 'Zwei‑Faktor‑Authentifizierung', icon: Icons.phonelink_lock_outlined),
-                    const SizedBox(height: 10),
-                    _SectionCard(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                        Text(
-                          'Aktiviere eine zusätzliche Sicherheitsebene für dein Konto.',
-                          style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.45),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(children: [
-                          Expanded(
-                            child: _StatusPill(
-                              icon: _twoFactorEnabled ? Icons.check_circle_rounded : Icons.remove_circle_outline,
-                              label: _twoFactorEnabled ? 'Aktiviert' : 'Deaktiviert',
-                              tone: _twoFactorEnabled ? _PillTone.success : _PillTone.neutral,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          if (_twoFactorEnabled)
-                            TextButton(
-                              onPressed: _twoFactorBusy ? null : () => _toggleTwoFactor(false),
-                              child: const Text('Deaktivieren', style: TextStyle(color: Colors.white)),
-                            ),
-                        ]),
-                        const SizedBox(height: 12),
-                        if (_twoFactorEnabled)
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-                            ),
-                            child: Row(children: [
-                              Icon(
-                                _twoFactorMethod == 'sms' ? Icons.sms_outlined : Icons.shield_outlined,
-                                color: primary,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  _twoFactorMethod == 'sms' ? 'Methode: SMS‑Code' : 'Methode: Authenticator‑App',
-                                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.35),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextField(
+                              controller: _currentCtrl,
+                              obscureText: _pwObscureCurrent,
+                              onChanged: (_) => setState(() {}),
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                labelText: 'Aktuelles Passwort',
+                                suffixIcon: IconButton(
+                                  tooltip: _pwObscureCurrent
+                                      ? 'Anzeigen'
+                                      : 'Verbergen',
+                                  onPressed: () => setState(() =>
+                                      _pwObscureCurrent = !_pwObscureCurrent),
+                                  icon: Icon(_pwObscureCurrent
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined),
                                 ),
                               ),
-                              TextButton(
-                                onPressed: _twoFactorBusy
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _nextCtrl,
+                              obscureText: _pwObscureNext,
+                              onChanged: (_) => setState(() {}),
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(Icons.password_outlined),
+                                labelText: 'Neues Passwort',
+                                errorText: _nextCtrl.text.isEmpty
                                     ? null
-                                    : () async {
-                                        final method = await showModalBottomSheet<String>(
-                                          context: context,
-                                          useSafeArea: true,
-                                          isScrollControlled: true,
-                                          backgroundColor: Colors.transparent,
-                                          builder: (ctx) => _TwoFactorSetupSheet(
-                                            initialMethod: _twoFactorMethod,
-                                            primary: primary,
-                                            showEnableButton: false,
-                                          ),
-                                        );
-                                        if (!mounted || method == null) return;
-                                        await _setTwoFactorMethod(method);
-                                      },
-                                child: const Text('Ändern', style: TextStyle(color: Colors.white)),
+                                    : _validateNewPassword(_nextCtrl.text),
+                                suffixIcon: IconButton(
+                                  tooltip:
+                                      _pwObscureNext ? 'Anzeigen' : 'Verbergen',
+                                  onPressed: () => setState(
+                                      () => _pwObscureNext = !_pwObscureNext),
+                                  icon: Icon(_pwObscureNext
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined),
+                                ),
                               ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _confirmCtrl,
+                              obscureText: _pwObscureConfirm,
+                              onChanged: (_) => setState(() {}),
+                              decoration: InputDecoration(
+                                prefixIcon:
+                                    const Icon(Icons.check_circle_outline),
+                                labelText: 'Neues Passwort bestätigen',
+                                errorText: _confirmCtrl.text.isEmpty
+                                    ? null
+                                    : (_confirmCtrl.text == _nextCtrl.text
+                                        ? null
+                                        : 'Passwörter stimmen nicht überein'),
+                                suffixIcon: IconButton(
+                                  tooltip: _pwObscureConfirm
+                                      ? 'Anzeigen'
+                                      : 'Verbergen',
+                                  onPressed: () => setState(() =>
+                                      _pwObscureConfirm = !_pwObscureConfirm),
+                                  icon: Icon(_pwObscureConfirm
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            _MiniBullets(items: const [
+                              'Mindestens 10 Zeichen',
+                              'Mindestens ein Buchstabe',
+                              'Mindestens eine Zahl'
                             ]),
-                          )
-                        else
-                          FilledButton.icon(
-                            onPressed: _twoFactorBusy ? null : _openTwoFactorSetupSheet,
-                            icon: const Icon(Icons.verified_user_outlined, color: Colors.white),
-                            label: const Text('2‑Faktor‑Authentifizierung aktivieren', style: TextStyle(color: Colors.white)),
-                          ),
-                      ]),
+                            const SizedBox(height: 14),
+                            FilledButton(
+                              onPressed: _passwordValid && !_pwBusy
+                                  ? _changePassword
+                                  : null,
+                              style: FilledButton.styleFrom(
+                                  backgroundColor: primary),
+                              child: _pwBusy
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : const Text('Passwort ändern',
+                                      style: TextStyle(color: Colors.white)),
+                            ),
+                          ]),
                     ),
                     const SizedBox(height: 18),
-
-                    _SectionHeader(title: 'Angemeldete Geräte', icon: Icons.devices_outlined),
+                    if (!BackendConfig.enabled) ...[
+                      _SectionHeader(
+                          title: 'Zwei‑Faktor‑Authentifizierung',
+                          icon: Icons.phonelink_lock_outlined),
+                      const SizedBox(height: 10),
+                      _SectionCard(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                'Aktiviere eine zusätzliche Sicherheitsebene für dein Konto.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.white70, height: 1.45),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(children: [
+                                Expanded(
+                                  child: _StatusPill(
+                                    icon: _twoFactorEnabled
+                                        ? Icons.check_circle_rounded
+                                        : Icons.remove_circle_outline,
+                                    label: _twoFactorEnabled
+                                        ? 'Aktiviert'
+                                        : 'Deaktiviert',
+                                    tone: _twoFactorEnabled
+                                        ? _PillTone.success
+                                        : _PillTone.neutral,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                if (_twoFactorEnabled)
+                                  TextButton(
+                                    onPressed: _twoFactorBusy
+                                        ? null
+                                        : () => _toggleTwoFactor(false),
+                                    child: const Text('Deaktivieren',
+                                        style: TextStyle(color: Colors.white)),
+                                  ),
+                              ]),
+                              const SizedBox(height: 12),
+                              if (_twoFactorEnabled)
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.06),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.10)),
+                                  ),
+                                  child: Row(children: [
+                                    Icon(
+                                      _twoFactorMethod == 'sms'
+                                          ? Icons.sms_outlined
+                                          : Icons.shield_outlined,
+                                      color: primary,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        _twoFactorMethod == 'sms'
+                                            ? 'Methode: SMS‑Code'
+                                            : 'Methode: Authenticator‑App',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                                color: Colors.white70,
+                                                height: 1.35),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: _twoFactorBusy
+                                          ? null
+                                          : () async {
+                                              final method =
+                                                  await showModalBottomSheet<
+                                                      String>(
+                                                context: context,
+                                                useSafeArea: true,
+                                                isScrollControlled: true,
+                                                backgroundColor:
+                                                    Colors.transparent,
+                                                builder: (ctx) =>
+                                                    _TwoFactorSetupSheet(
+                                                  initialMethod:
+                                                      _twoFactorMethod,
+                                                  primary: primary,
+                                                  showEnableButton: false,
+                                                ),
+                                              );
+                                              if (!mounted || method == null) {
+                                                return;
+                                              }
+                                              await _setTwoFactorMethod(method);
+                                            },
+                                      child: const Text('Ändern',
+                                          style:
+                                              TextStyle(color: Colors.white)),
+                                    ),
+                                  ]),
+                                )
+                              else
+                                FilledButton.icon(
+                                  onPressed: _twoFactorBusy
+                                      ? null
+                                      : _openTwoFactorSetupSheet,
+                                  icon: const Icon(Icons.verified_user_outlined,
+                                      color: Colors.white),
+                                  label: const Text(
+                                      '2‑Faktor‑Authentifizierung aktivieren',
+                                      style: TextStyle(color: Colors.white)),
+                                ),
+                            ]),
+                      ),
+                      const SizedBox(height: 18),
+                    ],
+                    _SectionHeader(
+                        title: 'Angemeldete Geräte',
+                        icon: Icons.devices_outlined),
                     const SizedBox(height: 10),
                     _SectionCard(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                        Text(
-                          'Hier siehst du, auf welchen Geräten dein Konto aktuell angemeldet ist.',
-                          style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.45),
-                        ),
-                        const SizedBox(height: 12),
-                        if (_devices.isEmpty)
-                          Text('Keine Geräte gefunden.', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white60))
-                        else
-                          for (final d in _devices) ...[
-                            _DeviceTile(
-                              device: d,
-                              isThisDevice: d.isThisDevice,
-                              onSignOut: (d.isThisDevice || _devicesBusy) ? null : () => _signOutDevice(d),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Hier siehst du, auf welchen Geräten dein Konto aktuell angemeldet ist.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.white70, height: 1.45),
                             ),
-                            if (d.id != _devices.last.id)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                child: Divider(height: 1, thickness: 1, color: Colors.white.withValues(alpha: 0.10)),
+                            const SizedBox(height: 12),
+                            if (_devices.isEmpty)
+                              Text('Keine Geräte gefunden.',
+                                  style: theme.textTheme.bodySmall
+                                      ?.copyWith(color: Colors.white60))
+                            else
+                              for (final d in _devices) ...[
+                                _DeviceTile(
+                                  device: d,
+                                  isThisDevice: d.isThisDevice,
+                                  onSignOut: (d.isThisDevice || _devicesBusy)
+                                      ? null
+                                      : () => _signOutDevice(d),
+                                ),
+                                if (d.id != _devices.last.id)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    child: Divider(
+                                        height: 1,
+                                        thickness: 1,
+                                        color: Colors.white
+                                            .withValues(alpha: 0.10)),
+                                  ),
+                              ],
+                            const SizedBox(height: 4),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Dieses Gerät: ${_deviceNameThisPlatform()}',
+                                style: theme.textTheme.bodySmall
+                                    ?.copyWith(color: Colors.white60),
                               ),
-                          ],
-                        const SizedBox(height: 4),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Dieses Gerät: ${_deviceNameThisPlatform()}',
-                            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white60),
-                          ),
-                        ),
-                      ]),
+                            ),
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              onPressed:
+                                  _devicesBusy ? null : _logoutAllDevices,
+                              icon: const Icon(Icons.logout_outlined),
+                              label: const Text('Alle Geräte abmelden'),
+                            ),
+                          ]),
                     ),
-
                     const SizedBox(height: 18),
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.10)),
                       ),
-                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Icon(Icons.info_outline_rounded, color: primary),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Teile dein Passwort niemals mit anderen und überprüfe regelmäßig deine Sicherheits­einstellungen.',
-                            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.45),
-                          ),
-                        ),
-                      ]),
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline_rounded, color: primary),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Teile dein Passwort niemals mit anderen und überprüfe regelmäßig deine Sicherheits­einstellungen.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.white70, height: 1.45),
+                              ),
+                            ),
+                          ]),
                     ),
                   ],
                 ),
@@ -516,7 +715,10 @@ class _SectionHeader extends StatelessWidget {
     return Row(children: [
       Icon(icon, size: 18, color: theme.colorScheme.primary),
       const SizedBox(width: 10),
-      Expanded(child: Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
+      Expanded(
+          child: Text(title,
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800))),
     ]);
   }
 }
@@ -545,7 +747,8 @@ class _StatusPill extends StatelessWidget {
   final IconData icon;
   final String label;
   final _PillTone tone;
-  const _StatusPill({required this.icon, required this.label, required this.tone});
+  const _StatusPill(
+      {required this.icon, required this.label, required this.tone});
 
   @override
   Widget build(BuildContext context) {
@@ -572,11 +775,17 @@ class _StatusPill extends StatelessWidget {
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(14), border: Border.all(color: border)),
+      decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: border)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(icon, size: 18, color: fg),
         const SizedBox(width: 8),
-        Flexible(child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800))),
+        Flexible(
+            child: Text(label,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w800))),
       ]),
     );
   }
@@ -598,10 +807,14 @@ class _MiniBullets extends StatelessWidget {
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Padding(
                 padding: const EdgeInsets.only(top: 2),
-                child: Icon(Icons.check_rounded, size: 16, color: theme.colorScheme.primary),
+                child: Icon(Icons.check_rounded,
+                    size: 16, color: theme.colorScheme.primary),
               ),
               const SizedBox(width: 8),
-              Expanded(child: Text(t, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.35))),
+              Expanded(
+                  child: Text(t,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: Colors.white70, height: 1.35))),
             ]),
           ),
       ],
@@ -613,7 +826,10 @@ class _DeviceTile extends StatelessWidget {
   final SecurityDevice device;
   final bool isThisDevice;
   final VoidCallback? onSignOut;
-  const _DeviceTile({required this.device, required this.isThisDevice, required this.onSignOut});
+  const _DeviceTile(
+      {required this.device,
+      required this.isThisDevice,
+      required this.onSignOut});
 
   @override
   Widget build(BuildContext context) {
@@ -625,9 +841,12 @@ class _DeviceTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.primary.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.22)),
+          border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.22)),
         ),
-        child: Center(child: Icon(device.icon, color: theme.colorScheme.primary, size: 18)),
+        child: Center(
+            child:
+                Icon(device.icon, color: theme.colorScheme.primary, size: 18)),
       ),
       const SizedBox(width: 10),
       Expanded(
@@ -636,13 +855,15 @@ class _DeviceTile extends StatelessWidget {
             Expanded(
               child: Text(
                 device.name + (isThisDevice ? ' (Dieses Gerät)' : ''),
-                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white, fontWeight: FontWeight.w800),
               ),
             ),
             if (onSignOut != null)
               TextButton(
                 onPressed: onSignOut,
-                child: const Text('Abmelden', style: TextStyle(color: Colors.white)),
+                child: const Text('Abmelden',
+                    style: TextStyle(color: Colors.white)),
               ),
           ]),
           const SizedBox(height: 2),
@@ -660,7 +881,10 @@ class _TwoFactorSetupSheet extends StatefulWidget {
   final String initialMethod;
   final Color primary;
   final bool showEnableButton;
-  const _TwoFactorSetupSheet({required this.initialMethod, required this.primary, this.showEnableButton = true});
+  const _TwoFactorSetupSheet(
+      {required this.initialMethod,
+      required this.primary,
+      this.showEnableButton = true});
 
   @override
   State<_TwoFactorSetupSheet> createState() => _TwoFactorSetupSheetState();
@@ -688,52 +912,63 @@ class _TwoFactorSetupSheetState extends State<_TwoFactorSetupSheet> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
         ),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Row(children: [
-            Expanded(child: Text('2‑Faktor‑Authentifizierung', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
-            IconButton(
-              tooltip: 'Schließen',
-              onPressed: () => Navigator.of(context).maybePop(),
-              icon: const Icon(Icons.close_rounded, color: Colors.white),
-            ),
-          ]),
-          const SizedBox(height: 6),
-          Text(
-            'Wähle eine Methode. Beim Login musst du dann zusätzlich einen Code bestätigen.',
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.4),
-          ),
-          const SizedBox(height: 14),
-          _TwoFactorMethodTile(
-            title: 'SMS‑Code',
-            subtitle: 'Code wird per SMS gesendet.',
-            icon: Icons.sms_outlined,
-            primary: widget.primary,
-            selected: _method == 'sms',
-            onTap: () => setState(() => _method = 'sms'),
-          ),
-          const SizedBox(height: 10),
-          _TwoFactorMethodTile(
-            title: 'Authenticator‑App',
-            subtitle: 'Bestätigung über z. B. Google Authenticator.',
-            icon: Icons.shield_outlined,
-            primary: widget.primary,
-            selected: _method == 'auth',
-            onTap: () => setState(() => _method = 'auth'),
-          ),
-          const SizedBox(height: 16),
-          if (widget.showEnableButton)
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(_method),
-              style: FilledButton.styleFrom(backgroundColor: widget.primary),
-              child: const Text('Aktivieren', style: TextStyle(color: Colors.white)),
-            )
-          else
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(_method),
-              style: FilledButton.styleFrom(backgroundColor: widget.primary),
-              child: const Text('Speichern', style: TextStyle(color: Colors.white)),
-            ),
-        ]),
+        child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(children: [
+                Expanded(
+                    child: Text('2‑Faktor‑Authentifizierung',
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w900))),
+                IconButton(
+                  tooltip: 'Schließen',
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: const Icon(Icons.close_rounded, color: Colors.white),
+                ),
+              ]),
+              const SizedBox(height: 6),
+              Text(
+                'Wähle eine Methode. Beim Login musst du dann zusätzlich einen Code bestätigen.',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: Colors.white70, height: 1.4),
+              ),
+              const SizedBox(height: 14),
+              _TwoFactorMethodTile(
+                title: 'SMS‑Code',
+                subtitle: 'Code wird per SMS gesendet.',
+                icon: Icons.sms_outlined,
+                primary: widget.primary,
+                selected: _method == 'sms',
+                onTap: () => setState(() => _method = 'sms'),
+              ),
+              const SizedBox(height: 10),
+              _TwoFactorMethodTile(
+                title: 'Authenticator‑App',
+                subtitle: 'Bestätigung über z. B. Google Authenticator.',
+                icon: Icons.shield_outlined,
+                primary: widget.primary,
+                selected: _method == 'auth',
+                onTap: () => setState(() => _method = 'auth'),
+              ),
+              const SizedBox(height: 16),
+              if (widget.showEnableButton)
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(_method),
+                  style:
+                      FilledButton.styleFrom(backgroundColor: widget.primary),
+                  child: const Text('Aktivieren',
+                      style: TextStyle(color: Colors.white)),
+                )
+              else
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(_method),
+                  style:
+                      FilledButton.styleFrom(backgroundColor: widget.primary),
+                  child: const Text('Speichern',
+                      style: TextStyle(color: Colors.white)),
+                ),
+            ]),
       ),
     );
   }
@@ -767,35 +1002,56 @@ class _TwoFactorMethodTile extends StatelessWidget {
           duration: const Duration(milliseconds: 160),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: selected ? primary.withValues(alpha: 0.12) : Colors.white.withValues(alpha: 0.06),
+            color: selected
+                ? primary.withValues(alpha: 0.12)
+                : Colors.white.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: selected ? primary.withValues(alpha: 0.45) : Colors.white.withValues(alpha: 0.10)),
+            border: Border.all(
+                color: selected
+                    ? primary.withValues(alpha: 0.45)
+                    : Colors.white.withValues(alpha: 0.10)),
           ),
           child: Row(children: [
             Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: selected ? primary.withValues(alpha: 0.18) : Colors.white.withValues(alpha: 0.06),
+                color: selected
+                    ? primary.withValues(alpha: 0.18)
+                    : Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: selected ? primary.withValues(alpha: 0.45) : Colors.white.withValues(alpha: 0.10)),
+                border: Border.all(
+                    color: selected
+                        ? primary.withValues(alpha: 0.45)
+                        : Colors.white.withValues(alpha: 0.10)),
               ),
-              child: Center(child: Icon(icon, color: selected ? primary : Colors.white70, size: 20)),
+              child: Center(
+                  child: Icon(icon,
+                      color: selected ? primary : Colors.white70, size: 20)),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 2),
-                Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.35)),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.white, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: Colors.white70, height: 1.35)),
+                  ]),
             ),
             const SizedBox(width: 10),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 140),
               child: selected
-                  ? const Icon(Icons.check_circle_rounded, key: ValueKey('on'), color: Colors.white)
-                  : Icon(Icons.circle_outlined, key: const ValueKey('off'), color: Colors.white.withValues(alpha: 0.35)),
+                  ? const Icon(Icons.check_circle_rounded,
+                      key: ValueKey('on'), color: Colors.white)
+                  : Icon(Icons.circle_outlined,
+                      key: const ValueKey('off'),
+                      color: Colors.white.withValues(alpha: 0.35)),
             ),
           ]),
         ),
@@ -803,5 +1059,3 @@ class _TwoFactorMethodTile extends StatelessWidget {
     );
   }
 }
-
-

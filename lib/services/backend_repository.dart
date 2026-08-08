@@ -55,6 +55,67 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['user'] as Map);
   }
 
+  static Future<List<Map<String, dynamic>>> getAuthSessions() async {
+    final response = await _authorized(method: 'GET', path: '/auth/sessions');
+    return _maps(response['sessions']);
+  }
+
+  static Future<void> revokeAuthSession(String sessionId) async {
+    await _authorized(
+      method: 'DELETE',
+      path: '/auth/sessions/${Uri.encodeComponent(sessionId)}',
+    );
+  }
+
+  static Future<void> logoutAllSessions() async {
+    await _authorized(method: 'POST', path: '/auth/logout-all');
+  }
+
+  static Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _authorized(
+      method: 'POST',
+      path: '/auth/password/change',
+      body: {
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      },
+    );
+  }
+
+  static Future<Map<String, dynamic>> accountDeletionPreflight() async {
+    return _authorized(method: 'GET', path: '/account/deletion-preflight');
+  }
+
+  static Future<void> deleteAccount({required String currentPassword}) async {
+    await _authorized(
+      method: 'POST',
+      path: '/account/deletion',
+      body: {'currentPassword': currentPassword},
+    );
+  }
+
+  static Future<Map<String, dynamic>> registerPushDevice({
+    required String token,
+    required String platform,
+    String? locale,
+  }) async {
+    return _authorized(
+      method: 'PUT',
+      path: '/auth/devices/push',
+      body: {'token': token, 'platform': platform, 'locale': locale},
+    );
+  }
+
+  static Future<void> deletePushDevice(String id) async {
+    await _authorized(
+      method: 'DELETE',
+      path: '/auth/devices/push/${Uri.encodeComponent(id)}',
+    );
+  }
+
   static Future<Map<String, dynamic>> updateCurrentProfile(
     Map<String, dynamic> profile,
   ) async {
