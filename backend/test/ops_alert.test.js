@@ -50,7 +50,9 @@ printf 'called\\n' >>"$ALERT_CAPTURE_COUNT"
     const fakeDocker = path.join(fakeBin, 'docker');
     await fs.writeFile(fakeDocker, `#!/usr/bin/env bash
 set -euo pipefail
-printf 'SMTP_PASSWORD=super-secret-password\\n'
+if [[ "\${ALERT_FAKE_DOCKER_EMPTY:-false}" != true ]]; then
+  printf 'SMTP_PASSWORD=super-secret-password\\n'
+fi
 `);
     await fs.chmod(fakeDocker, 0o755);
 
@@ -78,6 +80,30 @@ printf 'SMTP_PASSWORD=super-secret-password\\n'
     assert.equal(second.code, 0, second.stderr);
     assert.match(second.stdout, /suppressed by cooldown/);
     assert.equal(await fs.readFile(countCapture, 'utf8'), 'called\n');
+
+    const relayEnvFile = path.join(temporaryDir, 'relay.env');
+    await fs.writeFile(relayEnvFile, [
+      'MAIL_TRANSPORT=smtp',
+      'SMTP_HOST=smtp-relay.example.com',
+      'SMTP_PORT=587',
+      'SMTP_SECURE=false',
+      'SMTP_REQUIRE_TLS=true',
+      'MAIL_FROM=ShareItToo <contact@example.com>',
+      'ALERT_EMAIL_TO=contact@example.com',
+      '',
+    ].join('\n'));
+    const relay = await run('bash', [script, 'shareittoo-relay-test.service'], {
+      env: {
+        ...environment,
+        ALERT_ENV_FILE: relayEnvFile,
+        ALERT_STATE_DIR: path.join(temporaryDir, 'relay-state'),
+        ALERT_FAKE_DOCKER_EMPTY: 'true',
+      },
+    });
+    assert.equal(relay.code, 0, relay.stderr);
+    assert.match(relay.stdout, /alert delivered/);
+    assert.doesNotMatch(await fs.readFile(configCapture, 'utf8'), /^user\s*=/m);
+    assert.match(await fs.readFile(configCapture, 'utf8'), /mail-from = "contact@example.com"/);
   } finally {
     await fs.rm(temporaryDir, { recursive: true, force: true });
   }

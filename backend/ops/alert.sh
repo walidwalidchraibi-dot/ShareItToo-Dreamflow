@@ -82,6 +82,12 @@ task_alert_to=$(task_alert_value ALERT_EMAIL_TO)
 task_smtp_port="${task_smtp_port:-587}"
 task_mail_from="${task_mail_from:-ShareItToo <contact@shareittoo.com>}"
 task_alert_to="${task_alert_to:-contact@shareittoo.com}"
+task_envelope_from='contact@shareittoo.com'
+if [[ "$task_mail_from" =~ \<([^\>]+)\> ]]; then
+  task_envelope_from="${BASH_REMATCH[1]}"
+elif [[ "$task_mail_from" =~ ^[^[:space:]@]+@[^[:space:]@]+$ ]]; then
+  task_envelope_from="$task_mail_from"
+fi
 
 task_missing_settings=()
 if [[ "$task_mail_transport" != smtp ]]; then
@@ -90,11 +96,10 @@ fi
 if [[ -z "$task_smtp_host" ]]; then
   task_missing_settings+=(SMTP_HOST)
 fi
-if [[ -z "$task_smtp_user" ]]; then
-  task_missing_settings+=(SMTP_USER)
-fi
-if [[ -z "$task_smtp_password" ]]; then
+if [[ -n "$task_smtp_user" && -z "$task_smtp_password" ]]; then
   task_missing_settings+=(SMTP_PASSWORD)
+elif [[ -z "$task_smtp_user" && -n "$task_smtp_password" ]]; then
+  task_missing_settings+=(SMTP_USER)
 fi
 if [[ "${#task_missing_settings[@]}" -gt 0 ]]; then
   printf 'SMTP alert delivery is not configured: %s\n' "${task_missing_settings[*]}" >&2
@@ -121,9 +126,11 @@ fi
 {
   printf 'url = "%s://%s:%s"\n' "$task_scheme" \
     "$(task_config_escape "$task_smtp_host")" "$(task_config_escape "$task_smtp_port")"
-  printf 'user = "%s:%s"\n' \
-    "$(task_config_escape "$task_smtp_user")" "$(task_config_escape "$task_smtp_password")"
-  printf 'mail-from = "%s"\n' "$(task_config_escape "$task_smtp_user")"
+  if [[ -n "$task_smtp_user" ]]; then
+    printf 'user = "%s:%s"\n' \
+      "$(task_config_escape "$task_smtp_user")" "$(task_config_escape "$task_smtp_password")"
+  fi
+  printf 'mail-from = "%s"\n' "$(task_config_escape "$task_envelope_from")"
   printf 'mail-rcpt = "%s"\n' "$(task_config_escape "$task_alert_to")"
   printf 'upload-file = "%s"\n' "$(task_config_escape "$task_message_file")"
   printf 'fail\nsilent\nshow-error\nmax-time = 30\n'
