@@ -171,6 +171,12 @@ export function sanitizeProfileUpdate(value) {
 
 export function shapeUser(row, { publicOnly = false } = {}) {
   const profile = { ...defaultProfile({ email: row.email }), ...(row.profile ?? {}) };
+  const role = ['user', 'support', 'admin'].includes(row.role) ? row.role : 'user';
+  const accountStatus = ['active', 'suspended', 'closed'].includes(row.account_status)
+    ? row.account_status
+    : (row.deactivated_at ? 'closed' : 'active');
+  profile.role = role;
+  profile.isBanned = accountStatus === 'suspended';
   if (publicOnly) {
     for (const key of privateProfileKeys) delete profile[key];
   }
@@ -178,6 +184,7 @@ export function shapeUser(row, { publicOnly = false } = {}) {
     ...profile,
     id: row.id,
     email: publicOnly ? '' : row.email,
+    ...(!publicOnly ? { accountStatus } : {}),
     createdAt: new Date(row.created_at).toISOString(),
     isDeactivated: Boolean(row.deactivated_at),
     deactivatedAt: row.deactivated_at ? new Date(row.deactivated_at).toISOString() : null,

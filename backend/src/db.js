@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 
 import { config } from './config.js';
+import { runMigrations } from './migrations.js';
 
 const { Pool } = pg;
 
@@ -23,6 +24,7 @@ export async function initializeDatabase() {
   const schemaPath = path.resolve(currentDir, '../sql/schema.sql');
   const schema = await fs.readFile(schemaPath, 'utf8');
   await pool.query(schema);
+  await runMigrations(pool);
 }
 
 export async function inTransaction(fn) {

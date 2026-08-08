@@ -19,6 +19,13 @@ import {
 import { config } from './config.js';
 import { inTransaction, pool } from './db.js';
 import {
+  amountToMinor,
+  canTransitionBooking,
+  normalizeBookingStatus,
+  normalizeCurrency,
+  parseBookingPeriod,
+} from './booking_domain.js';
+import {
   getMailerStatus,
   sendPasswordResetEmail,
   sendVerificationEmail,
@@ -26,6 +33,7 @@ import {
 import { publishToAll, publishToUsers } from './realtime.js';
 import { releaseMetadata } from './release.js';
 import {
+  bearerToken,
   defaultProfile,
   hashPassword,
   hashRefreshToken,
@@ -38,6 +46,7 @@ import {
   sanitizeProfileUpdate,
   shapeUser,
   signAccessToken,
+  verifyAccessToken,
   verifyPassword,
 } from './security.js';
 
@@ -77,19 +86,53 @@ function ensureObject(value, code = 'invalid_payload') {
   return { ...value };
 }
 
-function allowedStatus(value) {
-  const allowed = new Set(['pending', 'accepted', 'declined', 'cancelled', 'running', 'completed']);
-  return allowed.has(value) ? value : 'pending';
+const requireActiveAccount = asyncRoute(async (req, _res, next) => {
+  const result = await pool.query(
+    `SELECT id, email, role, account_status, deactivated_at
+     FROM users WHERE id = $1`,
+    [req.auth.userId],
+  );
+  const user = result.rows[0];
+  if (!user || user.deactivated_at || user.account_status !== 'active') {
+    throw new HttpError(401, 'account_not_active');
+  }
+  req.actor = {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    accountStatus: user.account_status,
+    deactivatedAt: user.deactivated_at,
+  };
+  next();
+});
+
+async function writeAudit(client, {
+  actor = null,
+  action,
+  resourceType,
+  resourceId,
+  metadata = {},
+}) {
+  await client.query(
+    `INSERT INTO audit_log (actor_id, actor_role, action, resource_type, resource_id, metadata)
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+    [
+      actor?.id ?? null,
+      actor?.role ?? 'system',
+      action,
+      resourceType,
+      resourceId,
+      JSON.stringify(metadata),
+    ],
+  );
 }
 
-function canTransition({ current, next, actorId, ownerId, renterId }) {
-  if (current === next) return true;
-  if (current === 'pending' && (next === 'accepted' || next === 'declined')) return actorId === ownerId;
-  if (current === 'pending' && next === 'cancelled') return actorId === renterId;
-  if (current === 'accepted' && next === 'running') return actorId === renterId;
-  if (current === 'accepted' && next === 'cancelled') return actorId === ownerId || actorId === renterId;
-  if (current === 'running' && next === 'completed') return actorId === ownerId;
-  return false;
+function listingFinancials(payload) {
+  return {
+    currency: normalizeCurrency(payload.currency),
+    pricePerDayMinor: amountToMinor(payload.pricePerDay),
+    securityDepositMinor: amountToMinor(payload.deposit),
+  };
 }
 
 function listingPayload(raw, { id, ownerId, existingCreatedAt = null }) {
@@ -114,10 +157,9 @@ function listingPayload(raw, { id, ownerId, existingCreatedAt = null }) {
 
 function rentalPayload(raw, { id, itemId, ownerId, renterId, existingStatus = null }) {
   const payload = ensureObject(raw);
-  const status = allowedStatus(payload.status ?? existingStatus);
-  const start = Date.parse(payload.start);
-  const end = Date.parse(payload.end);
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+  const status = normalizeBookingStatus(payload.status ?? existingStatus);
+  const period = parseBookingPeriod(payload.start, payload.end);
+  if (!period) {
     throw new HttpError(400, 'invalid_rental_period');
   }
   return {
@@ -127,6 +169,8 @@ function rentalPayload(raw, { id, itemId, ownerId, renterId, existingStatus = nu
     ownerId,
     renterId,
     status,
+    start: period.startsAt.toISOString(),
+    end: period.endsAt.toISOString(),
     createdAt: Date.parse(payload.createdAt) ? new Date(payload.createdAt).toISOString() : new Date().toISOString(),
   };
 }
@@ -156,7 +200,7 @@ function existingRentalPayload(raw, existing, actorId) {
     merged.expressConfirmedAt = candidate.expressConfirmedAt ?? null;
   }
 
-  const nextStatus = allowedStatus(candidate.status ?? existing.status);
+  const nextStatus = normalizeBookingStatus(candidate.status ?? existing.status);
   merged.status = nextStatus;
   if (nextStatus === 'cancelled') merged.cancelledBy = isRenter ? 'renter' : 'owner';
   return rentalPayload(merged, {
@@ -377,7 +421,8 @@ export function createApp() {
     const password = req.body?.password;
     if (!isValidEmail(email) || typeof password !== 'string') throw new HttpError(401, 'invalid_credentials');
     const result = await pool.query(
-      `SELECT * FROM users WHERE email = $1 AND deactivated_at IS NULL`,
+      `SELECT * FROM users
+       WHERE email = $1 AND deactivated_at IS NULL AND account_status = 'active'`,
       [email],
     );
     const user = result.rows[0];
@@ -396,7 +441,7 @@ export function createApp() {
       const result = await client.query(
         `SELECT u.id, u.email, u.password_hash, u.profile, u.created_at,
                 u.updated_at, u.deactivated_at, u.email_verified_at,
-                u.password_changed_at,
+                u.password_changed_at, u.role, u.account_status,
                 rt.id AS refresh_id, rt.user_id AS refresh_user_id,
                 rt.expires_at AS refresh_expires_at, rt.revoked_at AS refresh_revoked_at
          FROM refresh_tokens rt JOIN users u ON u.id = rt.user_id
@@ -404,7 +449,8 @@ export function createApp() {
         [currentHash],
       );
       const row = result.rows[0];
-      if (!row || row.refresh_revoked_at || new Date(row.refresh_expires_at) <= new Date() || row.deactivated_at) {
+      if (!row || row.refresh_revoked_at || new Date(row.refresh_expires_at) <= new Date()
+          || row.deactivated_at || row.account_status !== 'active') {
         throw new HttpError(401, 'invalid_refresh_token');
       }
       const next = await issueSession(client, row, req.get('user-agent'));
@@ -428,7 +474,7 @@ export function createApp() {
     res.status(204).end();
   }));
 
-  app.post('/v1/auth/email-verification/request', requireAuth, actionLimiter, asyncRoute(async (req, res) => {
+  app.post('/v1/auth/email-verification/request', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
     const result = await pool.query(
       'SELECT * FROM users WHERE id = $1 AND deactivated_at IS NULL',
       [req.auth.userId],
@@ -558,13 +604,13 @@ export function createApp() {
     res.json({ changed: true });
   }));
 
-  app.get('/v1/auth/me', requireAuth, asyncRoute(async (req, res) => {
+  app.get('/v1/auth/me', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const result = await pool.query('SELECT * FROM users WHERE id = $1 AND deactivated_at IS NULL', [req.auth.userId]);
     if (!result.rowCount) throw new HttpError(404, 'user_not_found');
     res.json({ user: shapeUser(result.rows[0]) });
   }));
 
-  app.patch('/v1/profile', requireAuth, asyncRoute(async (req, res) => {
+  app.patch('/v1/profile', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const update = sanitizeProfileUpdate(req.body?.profile ?? req.body);
     const result = await pool.query(
       `UPDATE users SET profile = profile || $2::jsonb WHERE id = $1 AND deactivated_at IS NULL RETURNING *`,
@@ -588,7 +634,7 @@ export function createApp() {
     res.json({ listings: result.rows.map((row) => row.payload) });
   }));
 
-  app.get('/v1/listings/mine', requireAuth, asyncRoute(async (req, res) => {
+  app.get('/v1/listings/mine', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const result = await pool.query(
       `SELECT payload FROM listings WHERE owner_id = $1 ORDER BY created_at DESC LIMIT 500`,
       [req.auth.userId],
@@ -596,20 +642,42 @@ export function createApp() {
     res.json({ listings: result.rows.map((row) => row.payload) });
   }));
 
-  app.post('/v1/listings', requireAuth, asyncRoute(async (req, res) => {
+  app.post('/v1/listings', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const id = identifier(req.body?.id === 'new' ? '' : req.body?.id, 'listing');
     const payload = listingPayload(req.body, { id, ownerId: req.auth.userId });
-    const result = await pool.query(
-      `INSERT INTO listings (id, owner_id, payload, is_active, created_at)
-       VALUES ($1, $2, $3::jsonb, $4, $5::timestamptz)
-       RETURNING payload`,
-      [id, req.auth.userId, JSON.stringify(payload), payload.isActive, payload.createdAt],
-    );
+    const financials = listingFinancials(payload);
+    const result = await inTransaction(async (client) => {
+      const inserted = await client.query(
+        `INSERT INTO listings (
+           id, owner_id, payload, is_active, currency, price_per_day_minor,
+           security_deposit_minor, created_at
+         )
+         VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8::timestamptz)
+         RETURNING payload`,
+        [
+          id,
+          req.auth.userId,
+          JSON.stringify(payload),
+          payload.isActive,
+          financials.currency,
+          financials.pricePerDayMinor,
+          financials.securityDepositMinor,
+          payload.createdAt,
+        ],
+      );
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'listing.created',
+        resourceType: 'listing',
+        resourceId: id,
+      });
+      return inserted;
+    });
     publishToAll({ type: 'changed', resource: 'listings' });
     res.status(201).json({ listing: result.rows[0].payload });
   }));
 
-  app.put('/v1/listings/:id', requireAuth, asyncRoute(async (req, res) => {
+  app.put('/v1/listings/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const id = safeText(req.params.id, 120);
     const existing = await pool.query('SELECT * FROM listings WHERE id = $1', [id]);
     if (!existing.rowCount) throw new HttpError(404, 'listing_not_found');
@@ -619,15 +687,36 @@ export function createApp() {
       ownerId: req.auth.userId,
       existingCreatedAt: new Date(existing.rows[0].created_at).toISOString(),
     });
-    const result = await pool.query(
-      `UPDATE listings SET payload = $2::jsonb, is_active = $3 WHERE id = $1 RETURNING payload`,
-      [id, JSON.stringify(payload), payload.isActive],
-    );
+    const financials = listingFinancials(payload);
+    const result = await inTransaction(async (client) => {
+      const updated = await client.query(
+        `UPDATE listings
+         SET payload = $2::jsonb, is_active = $3, currency = $4,
+             price_per_day_minor = $5, security_deposit_minor = $6
+         WHERE id = $1
+         RETURNING payload`,
+        [
+          id,
+          JSON.stringify(payload),
+          payload.isActive,
+          financials.currency,
+          financials.pricePerDayMinor,
+          financials.securityDepositMinor,
+        ],
+      );
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'listing.updated',
+        resourceType: 'listing',
+        resourceId: id,
+      });
+      return updated;
+    });
     publishToAll({ type: 'changed', resource: 'listings' });
     res.json({ listing: result.rows[0].payload });
   }));
 
-  app.patch('/v1/listings/:id/status', requireAuth, asyncRoute(async (req, res) => {
+  app.patch('/v1/listings/:id/status', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const id = safeText(req.params.id, 120);
     const status = safeText(req.body?.status, 30);
     if (!['active', 'paused', 'ended'].includes(status)) throw new HttpError(400, 'invalid_listing_status');
@@ -645,7 +734,7 @@ export function createApp() {
     res.json({ listing: result.rows[0].payload });
   }));
 
-  app.delete('/v1/listings/:id', requireAuth, asyncRoute(async (req, res) => {
+  app.delete('/v1/listings/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const result = await pool.query(
       `UPDATE listings
        SET is_active = false,
@@ -659,21 +748,32 @@ export function createApp() {
     res.status(204).end();
   }));
 
-  app.get('/v1/rental-requests', requireAuth, asyncRoute(async (req, res) => {
+  app.get('/v1/rental-requests', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     res.json({ requests: await listRentalRequests(pool, req.auth.userId) });
   }));
 
-  app.put('/v1/rental-requests/sync', requireAuth, asyncRoute(async (req, res) => {
+  app.put('/v1/rental-requests/sync', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     if (!Array.isArray(req.body?.requests) || req.body.requests.length > 500) throw new HttpError(400, 'invalid_requests');
     const participants = new Set([req.auth.userId]);
     const requests = await inTransaction(async (client) => {
       for (const raw of req.body.requests) {
         const candidate = ensureObject(raw, 'invalid_request');
         const id = identifier(candidate.id, 'request');
-        const existingResult = await client.query('SELECT * FROM rental_requests WHERE id = $1 FOR UPDATE', [id]);
+        const existingResult = await client.query(
+          `SELECT request.*, booking.status AS booking_status
+           FROM rental_requests AS request
+           LEFT JOIN bookings AS booking ON booking.id = request.id
+           WHERE request.id = $1
+           FOR UPDATE OF request`,
+          [id],
+        );
         if (!existingResult.rowCount) {
           const itemId = safeText(candidate.itemId, 120);
-          const listingResult = await client.query('SELECT owner_id FROM listings WHERE id = $1 AND is_active = true', [itemId]);
+          const listingResult = await client.query(
+            `SELECT owner_id, currency, security_deposit_minor
+             FROM listings WHERE id = $1 AND is_active = true`,
+            [itemId],
+          );
           if (!listingResult.rowCount) throw new HttpError(404, 'listing_not_found', { itemId });
           const ownerId = listingResult.rows[0].owner_id;
           if (ownerId === req.auth.userId) throw new HttpError(409, 'cannot_rent_own_listing');
@@ -686,6 +786,39 @@ export function createApp() {
              VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::timestamptz)`,
             [id, itemId, ownerId, req.auth.userId, payload.status, JSON.stringify(payload), payload.createdAt],
           );
+          await client.query(
+            `INSERT INTO bookings (
+               id, listing_id, owner_id, renter_id, status, starts_at, ends_at,
+               currency, quoted_total_minor, security_deposit_minor, created_at
+             )
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            [
+              id,
+              itemId,
+              ownerId,
+              req.auth.userId,
+              payload.status,
+              payload.start,
+              payload.end,
+              normalizeCurrency(listingResult.rows[0].currency),
+              amountToMinor(payload.quotedTotalRenter),
+              listingResult.rows[0].security_deposit_minor,
+              payload.createdAt,
+            ],
+          );
+          await client.query(
+            `INSERT INTO booking_events (
+               booking_id, actor_id, event_type, to_status, metadata
+             ) VALUES ($1, $2, 'booking.created', $3, '{}'::jsonb)`,
+            [id, req.auth.userId, payload.status],
+          );
+          await writeAudit(client, {
+            actor: req.actor,
+            action: 'booking.created',
+            resourceType: 'booking',
+            resourceId: id,
+            metadata: { listingId: itemId },
+          });
           participants.add(ownerId);
           continue;
         }
@@ -695,13 +828,42 @@ export function createApp() {
           throw new HttpError(403, 'request_forbidden');
         }
         const payload = existingRentalPayload(candidate, existing, req.auth.userId);
-        if (!canTransition({ current: existing.status, next: payload.status, actorId: req.auth.userId, ownerId: existing.owner_id, renterId: existing.renter_id })) {
+        if (existing.booking_status === null) {
+          throw new HttpError(500, 'booking_projection_missing');
+        }
+        if (!canTransitionBooking({ current: existing.status, next: payload.status, actorId: req.auth.userId, ownerId: existing.owner_id, renterId: existing.renter_id })) {
           throw new HttpError(409, 'invalid_status_transition', { current: existing.status, next: payload.status });
         }
         await client.query(
           `UPDATE rental_requests SET status = $2, payload = $3::jsonb WHERE id = $1`,
           [id, payload.status, JSON.stringify(payload)],
         );
+        await client.query(
+          `UPDATE bookings
+           SET status = $2, starts_at = $3, ends_at = $4,
+               quoted_total_minor = $5, version = version + 1
+           WHERE id = $1`,
+          [id, payload.status, payload.start, payload.end, amountToMinor(payload.quotedTotalRenter)],
+        );
+        await client.query(
+          `INSERT INTO booking_events (
+             booking_id, actor_id, event_type, from_status, to_status, metadata
+           ) VALUES ($1, $2, $3, $4, $5, '{}'::jsonb)`,
+          [
+            id,
+            req.auth.userId,
+            existing.status === payload.status ? 'booking.updated' : 'booking.status_changed',
+            existing.status,
+            payload.status,
+          ],
+        );
+        await writeAudit(client, {
+          actor: req.actor,
+          action: existing.status === payload.status ? 'booking.updated' : 'booking.status_changed',
+          resourceType: 'booking',
+          resourceId: id,
+          metadata: { fromStatus: existing.status, toStatus: payload.status },
+        });
         participants.add(existing.owner_id);
         participants.add(existing.renter_id);
       }
@@ -711,11 +873,11 @@ export function createApp() {
     res.json({ requests });
   }));
 
-  app.get('/v1/message-threads', requireAuth, asyncRoute(async (req, res) => {
+  app.get('/v1/message-threads', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     res.json({ threads: await listThreads(pool, req.auth.userId) });
   }));
 
-  app.put('/v1/message-threads/sync', requireAuth, asyncRoute(async (req, res) => {
+  app.put('/v1/message-threads/sync', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     if (!Array.isArray(req.body?.threads) || req.body.threads.length > 500) throw new HttpError(400, 'invalid_threads');
     const affectedUsers = new Set([req.auth.userId]);
     const threads = await inTransaction(async (client) => {
@@ -797,29 +959,138 @@ export function createApp() {
   }));
 
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024, files: 1 } });
-  app.post('/v1/uploads', requireAuth, upload.single('file'), asyncRoute(async (req, res) => {
+  app.post('/v1/uploads', requireAuth, requireActiveAccount, upload.single('file'), asyncRoute(async (req, res) => {
     if (!req.file?.buffer) throw new HttpError(400, 'file_required');
     const detected = await fileTypeFromBuffer(req.file.buffer);
     const allowed = new Set(['image/jpeg', 'image/png', 'image/webp']);
     if (!detected || !allowed.has(detected.mime)) throw new HttpError(415, 'unsupported_image_type');
+    const allowedPurposes = new Set([
+      'listing_image',
+      'profile_image',
+      'message_attachment',
+      'handover_evidence',
+      'return_evidence',
+    ]);
+    const purpose = safeText(req.body?.purpose, 40) || 'listing_image';
+    if (!allowedPurposes.has(purpose)) throw new HttpError(400, 'invalid_upload_purpose');
+    const listingId = safeText(req.body?.listingId, 120) || null;
+    const threadId = safeText(req.body?.threadId, 120) || null;
+    const visibility = ['listing_image', 'profile_image'].includes(purpose) ? 'public' : 'private';
+
+    if (listingId) {
+      const listing = await pool.query(
+        'SELECT owner_id FROM listings WHERE id = $1',
+        [listingId],
+      );
+      if (!listing.rowCount) throw new HttpError(404, 'listing_not_found');
+      if (listing.rows[0].owner_id !== req.auth.userId) throw new HttpError(403, 'upload_forbidden');
+    }
+    if (visibility === 'private') {
+      if (!threadId) throw new HttpError(400, 'private_upload_thread_required');
+      const thread = await pool.query(
+        `SELECT user1_id, user2_id FROM message_threads WHERE id = $1`,
+        [threadId],
+      );
+      if (!thread.rowCount) throw new HttpError(404, 'thread_not_found');
+      if (![thread.rows[0].user1_id, thread.rows[0].user2_id].includes(req.auth.userId)) {
+        throw new HttpError(403, 'upload_forbidden');
+      }
+    }
+
     const storageName = `${crypto.randomUUID()}.${detected.ext}`;
     await fs.mkdir(config.uploadDir, { recursive: true });
     await fs.writeFile(path.join(config.uploadDir, storageName), req.file.buffer, { flag: 'wx', mode: 0o640 });
-    await pool.query(
-      `INSERT INTO uploads (owner_id, storage_name, mime_type, byte_size) VALUES ($1, $2, $3, $4)`,
-      [req.auth.userId, storageName, detected.mime, req.file.buffer.length],
-    );
+    try {
+      await inTransaction(async (client) => {
+        const result = await client.query(
+          `INSERT INTO uploads (
+             owner_id, storage_name, mime_type, byte_size, purpose, visibility,
+             listing_id, thread_id
+           )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           RETURNING id`,
+          [
+            req.auth.userId,
+            storageName,
+            detected.mime,
+            req.file.buffer.length,
+            purpose,
+            visibility,
+            listingId,
+            threadId,
+          ],
+        );
+        await writeAudit(client, {
+          actor: req.actor,
+          action: 'upload.created',
+          resourceType: 'upload',
+          resourceId: result.rows[0].id,
+          metadata: { purpose, visibility },
+        });
+      });
+    } catch (error) {
+      await fs.unlink(path.join(config.uploadDir, storageName)).catch(() => {});
+      throw error;
+    }
     res.status(201).json({ url: `${config.publicBaseUrl}/uploads/${storageName}` });
   }));
-  app.use('/v1/uploads', express.static(config.uploadDir, { immutable: true, maxAge: '1y', fallthrough: false }));
+
+  app.get('/v1/uploads/:storageName', asyncRoute(async (req, res) => {
+    const storageName = safeText(req.params.storageName, 160);
+    const result = await pool.query(
+      `SELECT upload.*, thread.user1_id, thread.user2_id
+       FROM uploads AS upload
+       LEFT JOIN message_threads AS thread ON thread.id = upload.thread_id
+       WHERE upload.storage_name = $1`,
+      [storageName],
+    );
+    const uploadRecord = result.rows[0];
+    if (!uploadRecord) throw new HttpError(404, 'upload_not_found');
+
+    if (uploadRecord.visibility !== 'public') {
+      const token = bearerToken(req);
+      let userId = null;
+      try {
+        userId = token ? verifyAccessToken(token).sub : null;
+      } catch {
+        throw new HttpError(401, 'invalid_or_expired_session');
+      }
+      if (!userId) throw new HttpError(401, 'authentication_required');
+      const actor = await pool.query(
+        `SELECT id FROM users
+         WHERE id = $1 AND account_status = 'active' AND deactivated_at IS NULL`,
+        [userId],
+      );
+      if (!actor.rowCount) throw new HttpError(401, 'account_not_active');
+      if (![uploadRecord.owner_id, uploadRecord.user1_id, uploadRecord.user2_id].includes(userId)) {
+        throw new HttpError(403, 'upload_forbidden');
+      }
+    }
+
+    const contents = await fs.readFile(path.join(config.uploadDir, uploadRecord.storage_name));
+    res.set({
+      'Content-Type': uploadRecord.mime_type,
+      'Content-Length': String(uploadRecord.byte_size),
+      'Cache-Control': uploadRecord.visibility === 'public'
+        ? 'public, max-age=31536000, immutable'
+        : 'private, no-store',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    res.send(contents);
+  }));
 
   app.use((_req, res) => res.status(404).json({ error: 'not_found' }));
   app.use((error, _req, res, _next) => {
     const uploadTooLarge = error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE';
-    const status = uploadTooLarge ? 413 : (error instanceof HttpError ? error.status : (error?.status ?? 500));
+    const bookingConflict = error?.code === '23P01';
+    const status = bookingConflict
+      ? 409
+      : (uploadTooLarge ? 413 : (error instanceof HttpError ? error.status : (error?.status ?? 500)));
     const code = uploadTooLarge
       ? 'image_too_large'
-      : (error instanceof HttpError ? error.code : (status === 500 ? 'internal_error' : 'request_failed'));
+      : (bookingConflict
+          ? 'booking_period_unavailable'
+          : (error instanceof HttpError ? error.code : (status === 500 ? 'internal_error' : 'request_failed')));
     if (status >= 500) console.error('[api]', error);
     res.status(status).json({ error: code, ...(error?.details ? { details: error.details } : {}) });
   });

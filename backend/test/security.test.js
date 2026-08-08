@@ -46,9 +46,27 @@ test('public profiles omit private contact and address fields', () => {
     },
     created_at: new Date('2026-01-01T00:00:00Z'),
     deactivated_at: null,
+    role: 'user',
+    account_status: 'active',
   }, { publicOnly: true });
   assert.equal(shaped.email, '');
   assert.equal(shaped.phone, undefined);
   assert.equal(shaped.addressStreet, undefined);
   assert.equal(shaped.city, 'Berlin');
+});
+
+test('database role and account state override legacy profile claims', () => {
+  const shaped = security.shapeUser({
+    id: 'u2',
+    email: 'support@example.com',
+    profile: { role: 'admin', isBanned: false },
+    role: 'support',
+    account_status: 'suspended',
+    created_at: new Date('2026-01-01T00:00:00Z'),
+    deactivated_at: null,
+    email_verified_at: null,
+  });
+  assert.equal(shaped.role, 'support');
+  assert.equal(shaped.accountStatus, 'suspended');
+  assert.equal(shaped.isBanned, true);
 });

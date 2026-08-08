@@ -86,10 +86,21 @@ export async function seedPublicCatalog() {
 
     for (const item of demoListings) {
       await client.query(
-        `INSERT INTO listings (id, owner_id, payload, is_active, created_at)
-         VALUES ($1, $2, $3::jsonb, true, $4::timestamptz)
+        `INSERT INTO listings (
+           id, owner_id, payload, is_active, currency, price_per_day_minor,
+           security_deposit_minor, created_at
+         )
+         VALUES ($1, $2, $3::jsonb, true, $4, $5, $6, $7::timestamptz)
          ON CONFLICT (id) DO NOTHING`,
-        [item.id, demoOwner.id, JSON.stringify(item), item.createdAt],
+        [
+          item.id,
+          demoOwner.id,
+          JSON.stringify(item),
+          item.currency,
+          Math.round(item.pricePerDay * 100),
+          item.deposit === null ? null : Math.round(item.deposit * 100),
+          item.createdAt,
+        ],
       );
     }
   });
