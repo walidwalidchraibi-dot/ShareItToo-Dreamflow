@@ -144,22 +144,33 @@ void main() {
       expect(ownerIds, contains('qa_owner_completed_clean_${ownerMain.id}'));
       expect(ownerIds, contains('qa_owner_completed_problem_${ownerMain.id}'));
 
+      final pickupRequestId = 'qa_owner_upcoming_pickup_${ownerMain.id}';
+      await DataService.requestFlowTime(
+        requestId: pickupRequestId,
+        isReturn: false,
+        label: '10:00',
+        time: DateTime.now().add(const Duration(days: 1)),
+        requestedByUserId: ownerA.id,
+      );
+      await DataService.confirmFlowTime(
+        requestId: pickupRequestId,
+        isReturn: false,
+        confirmedByUserId: ownerMain.id,
+      );
       expect(
         await DataService.setHandoverActive(
-          'qa_owner_upcoming_pickup_${ownerMain.id}',
+          pickupRequestId,
           active: true,
         ),
         isTrue,
       );
       for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-        await DataService.incrementHandoverPhotos(
-          'qa_owner_upcoming_pickup_${ownerMain.id}',
-        );
+        await DataService.incrementHandoverPhotos(pickupRequestId);
       }
 
       await triggerQaSeed(ownerA.id);
       final pickup = await DataService.confirmPickupTransition(
-        requestId: 'qa_owner_upcoming_pickup_${ownerMain.id}',
+        requestId: pickupRequestId,
         confirmedByUserId: ownerA.id,
         method: 'manual',
         confirmationContextVerified: true,
@@ -168,29 +179,40 @@ void main() {
       expect(pickup.success, isTrue);
       expect(
         (await DataService.getRentalRequestById(
-          'qa_owner_upcoming_pickup_${ownerMain.id}',
+          pickupRequestId,
         ))!
             .status,
         'running',
       );
 
+      final returnRequestId = 'qa_owner_running_${ownerMain.id}';
+      await DataService.requestFlowTime(
+        requestId: returnRequestId,
+        isReturn: true,
+        label: '18:00',
+        time: DateTime.now().add(const Duration(days: 1, hours: 8)),
+        requestedByUserId: ownerMain.id,
+      );
       await triggerQaSeed(ownerC.id);
+      await DataService.confirmFlowTime(
+        requestId: returnRequestId,
+        isReturn: true,
+        confirmedByUserId: ownerC.id,
+      );
       expect(
         await DataService.setReturnActive(
-          'qa_owner_running_${ownerMain.id}',
+          returnRequestId,
           active: true,
         ),
         isTrue,
       );
       for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-        await DataService.incrementReturnPhotos(
-          'qa_owner_running_${ownerMain.id}',
-        );
+        await DataService.incrementReturnPhotos(returnRequestId);
       }
 
       await triggerQaSeed(ownerMain.id);
       final completion = await DataService.confirmReturnTransition(
-        requestId: 'qa_owner_running_${ownerMain.id}',
+        requestId: returnRequestId,
         confirmedByUserId: ownerMain.id,
         method: 'manual',
         confirmationContextVerified: true,
@@ -200,7 +222,7 @@ void main() {
       expect(completion.success, isTrue);
       expect(
         (await DataService.getRentalRequestById(
-          'qa_owner_running_${ownerMain.id}',
+          returnRequestId,
         ))!
             .status,
         'completed',

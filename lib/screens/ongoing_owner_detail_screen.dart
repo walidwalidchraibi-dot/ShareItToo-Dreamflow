@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:lendify/models/user.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/widgets/return_handover_stepper_sheet.dart';
 import 'package:lendify/widgets/review_prompt_sheet.dart';
@@ -52,11 +54,21 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   Map<String, dynamic>? _deliverySel;
   Map<String, dynamic> _flowState = const {};
   bool _reviewAlreadySubmitted = false;
+  StreamSubscription<String>? _sharedPersistenceSub;
+  final SharedPersistenceRefreshCoordinator _sharedPersistenceRefresh =
+      SharedPersistenceRefreshCoordinator();
 
   @override
   void initState() {
     super.initState();
     _load();
+    _sharedPersistenceSub = SharedPersistenceSync.changes.listen((key) {
+      if (!mounted || !SharedPersistenceSync.affectsBookingSync(key)) return;
+      unawaited(_sharedPersistenceRefresh.schedule(() async {
+        await SharedPersistenceSync.reloadPreferences();
+        if (mounted) await _load();
+      }));
+    });
   }
 
   Future<void> _load() async {
@@ -75,6 +87,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
             reviewerId: owner.id,
           )
         : false;
+    if (!mounted) return;
     setState(() {
       _req = req;
       _item = item;
@@ -92,6 +105,14 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
         AppPopup.toast(context, icon: Icons.check_circle_outline, title: msg);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _sharedPersistenceSub?.cancel();
+    _sharedPersistenceRefresh.dispose();
+    _manualCodeCtrl.dispose();
+    super.dispose();
   }
 
   List<String> get _photos => (_item?.photos ?? const <String>[]);

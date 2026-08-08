@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 import 'dart:math' as math;
@@ -17,6 +18,7 @@ import 'package:lendify/models/message.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/messages_settings_service.dart';
 import 'package:lendify/services/local_artifact_storage_service.dart';
@@ -35,6 +37,7 @@ import 'package:lendify/screens/ongoing_owner_detail_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:lendify/utils/booking_flow_policy.dart';
 
 const String _translationDemoThreadId = 'demo_translation_thread';
 const String _mutedThreadsKey = 'muted_message_threads_v1';
@@ -84,13 +87,29 @@ enum BookingChatState {
 bool canStartPrimaryBookingAction({
   required BookingChatState chatState,
   required bool viewerIsOwner,
+  bool handoverTimeConfirmed = false,
+  bool returnTimeConfirmed = false,
+  bool handoverActive = false,
+  bool returnActive = false,
+  bool needsReview = false,
 }) {
   switch (chatState) {
     case BookingChatState.confirmed:
-      return viewerIsOwner;
+      return canStartHandover(
+        requestStatus: 'accepted',
+        viewerIsOwner: viewerIsOwner,
+        handoverTimeConfirmed: handoverTimeConfirmed,
+        handoverActive: handoverActive,
+        needsReview: needsReview,
+      );
     case BookingChatState.running:
     case BookingChatState.returnPlanned:
-      return !viewerIsOwner;
+      return canStartReturn(
+        requestStatus: 'running',
+        viewerIsOwner: viewerIsOwner,
+        returnTimeConfirmed: returnTimeConfirmed,
+        returnActive: returnActive,
+      );
     case BookingChatState.requestOpen:
     case BookingChatState.completed:
     case BookingChatState.support:
@@ -149,6 +168,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   bool _isAtBottom = true;
   bool _showJumpToBottom = false;
   double _lastViewInsetBottom = 0;
+  StreamSubscription<String>? _sharedPersistenceSub;
+  final SharedPersistenceRefreshCoordinator _sharedPersistenceRefresh =
+      SharedPersistenceRefreshCoordinator();
 
   // Keep these sizes centralized to make the composer compact without breaking touch targets.
   static const double _composerIconSize = 20;
@@ -161,6 +183,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   void initState() {
     super.initState();
     _load();
+    _sharedPersistenceSub = SharedPersistenceSync.changes.listen((key) {
+      if (!mounted || !SharedPersistenceSync.affectsBookingSync(key)) return;
+      unawaited(_sharedPersistenceRefresh.schedule(() async {
+        await SharedPersistenceSync.reloadPreferences();
+        if (mounted) await _load();
+      }));
+    });
     _listController.addListener(_onScroll);
     _inputFocus.addListener(_onInputFocusChange);
   }
@@ -176,6 +205,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   @override
   void dispose() {
+    _sharedPersistenceSub?.cancel();
+    _sharedPersistenceRefresh.dispose();
     _inputFocus.removeListener(_onInputFocusChange);
     _controller.dispose();
     _inputFocus.dispose();
@@ -1269,16 +1300,28 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         return canStartPrimaryBookingAction(
           chatState: BookingChatState.confirmed,
           viewerIsOwner: _viewerIsOwner(),
+          handoverTimeConfirmed:
+              _handoverReturnState['handoverTimeConfirmed'] == true,
+          handoverActive: _handoverReturnState['handoverActive'] == true,
+          needsReview: _request?.needsReview ?? false,
         );
       case _ChatState.running:
         return canStartPrimaryBookingAction(
           chatState: BookingChatState.running,
           viewerIsOwner: _viewerIsOwner(),
+          returnTimeConfirmed:
+              _handoverReturnState['returnTimeConfirmed'] == true,
+          returnActive: _handoverReturnState['returnActive'] == true,
+          needsReview: _request?.needsReview ?? false,
         );
       case _ChatState.returnPlanned:
         return canStartPrimaryBookingAction(
           chatState: BookingChatState.returnPlanned,
           viewerIsOwner: _viewerIsOwner(),
+          returnTimeConfirmed:
+              _handoverReturnState['returnTimeConfirmed'] == true,
+          returnActive: _handoverReturnState['returnActive'] == true,
+          needsReview: _request?.needsReview ?? false,
         );
       case _ChatState.requestOpen: // Chat blockiert
       case _ChatState.completed: // Chat blockiert

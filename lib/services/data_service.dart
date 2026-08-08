@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/blocked_users_service.dart';
+import 'package:lendify/services/qa_runtime_service.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/models/category.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart';
@@ -16,6 +18,7 @@ import 'package:lendify/models/multi_criteria_review.dart';
 import 'package:lendify/services/review_metrics_service.dart';
 import 'package:lendify/models/message.dart';
 import 'package:lendify/models/security.dart';
+import 'package:lendify/utils/booking_flow_policy.dart';
 import 'package:lendify/utils/total_subtitle.dart';
 
 class RentalRequestTransitionResult {
@@ -69,6 +72,15 @@ class DataService {
   static const String _demoNotifSeedFlagPrefix = 'demo_notif_seeded_for_';
   static const String _qaMessagesAndNotifsSeedFlagPrefix =
       'qa_messages_notifs_seeded_v3_for_';
+  static final Set<String> _qaSeedUsersInProgress = <String>{};
+
+  static Future<void> _persistMessageThreads(
+    SharedPreferences prefs,
+    List<dynamic> threads,
+  ) async {
+    await prefs.setString(_messageThreadsKey, jsonEncode(threads));
+    SharedPersistenceSync.notify(SharedPersistenceSync.messageThreadsKey);
+  }
 
   // Security
   static const String _securitySettingsKey = 'security_settings_v1';
@@ -962,6 +974,24 @@ class DataService {
   }
 
   static Future<User?> getCurrentUser() async {
+    if (QaRuntimeService.isEnabled) {
+      final runtimeUser = QaRuntimeService.runtimeUserJson;
+      if (runtimeUser != null) {
+        final user = User.fromJson(runtimeUser);
+        await _ensureQaMessagesAndNotificationsForUserOnce(user.id);
+        return user;
+      }
+
+      final users = await getUsers();
+      final user = users.firstWhere(
+        (candidate) => candidate.id == QaRuntimeService.personaId,
+        orElse: () => users.firstWhere((candidate) => candidate.id == 'u1'),
+      );
+      QaRuntimeService.setRuntimeUserJson(user.toJson());
+      await _ensureQaMessagesAndNotificationsForUserOnce(user.id);
+      return user;
+    }
+
     // Developer preview mode: allow simulating guest/first launch without touching persisted user data.
     try {
       final preview = await DeveloperPreviewController.readStateOnce();
@@ -1197,23 +1227,32 @@ class DataService {
     String userId,
   ) async {
     if (userId.isEmpty || !kDebugMode || !_launchQaSeedingEnabled) return;
+    if (_qaSeedUsersInProgress.contains(userId)) return;
+    _qaSeedUsersInProgress.add(userId);
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = '$_qaMessagesAndNotifsSeedFlagPrefix$userId';
       final done = prefs.getBool(key) ?? false;
       if (done) return;
 
-      final rawCurrentUser = prefs.getString(_currentUserKey);
-      if (rawCurrentUser == null || rawCurrentUser.isEmpty) return;
       User? me;
-      try {
-        me = User.fromJson(
-          Map<String, dynamic>.from(jsonDecode(rawCurrentUser) as Map),
-        );
-      } catch (_) {
-        return;
+      if (QaRuntimeService.isEnabled) {
+        final runtimeUser = QaRuntimeService.runtimeUserJson;
+        if (runtimeUser != null) {
+          try {
+            me = User.fromJson(runtimeUser);
+          } catch (_) {}
+        }
+      } else {
+        final rawCurrentUser = prefs.getString(_currentUserKey);
+        if (rawCurrentUser == null || rawCurrentUser.isEmpty) return;
+        try {
+          me = User.fromJson(
+            Map<String, dynamic>.from(jsonDecode(rawCurrentUser) as Map),
+          );
+        } catch (_) {}
       }
-      if (me.id != userId) return;
+      if (me == null || me.id != userId) return;
 
       final users = await getUsers();
       final items = await getItems();
@@ -1960,7 +1999,7 @@ class DataService {
         archivedThread.toJson(),
         if (sharedThread != null) sharedThread.toJson(),
       ]);
-      await prefs.setString(_messageThreadsKey, jsonEncode(threadList));
+      await _persistMessageThreads(prefs, threadList);
 
       final rawNotifs = prefs.getString(_notificationsKey);
       final List<dynamic> notifList = rawNotifs != null && rawNotifs.isNotEmpty
@@ -2138,15 +2177,25 @@ class DataService {
       debugPrint(
         '[DataService] _ensureQaMessagesAndNotificationsForUserOnce failed: $e',
       );
+    } finally {
+      _qaSeedUsersInProgress.remove(userId);
     }
   }
 
   static Future<void> setCurrentUser(User user) async {
+    if (QaRuntimeService.isEnabled) {
+      QaRuntimeService.setRuntimeUserJson(user.toJson());
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_currentUserKey, jsonEncode(user.toJson()));
   }
 
   static Future<void> clearCurrentUser() async {
+    if (QaRuntimeService.isEnabled) {
+      QaRuntimeService.clearRuntimeUser();
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_currentUserKey);
   }
@@ -2315,7 +2364,7 @@ class DataService {
       }
 
       if (mutated) {
-        await prefs.setString(_messageThreadsKey, jsonEncode(decoded));
+        await _persistMessageThreads(prefs, decoded);
         debugPrint(
           '[DataService] Archived all message threads for user $userId',
         );
@@ -4855,6 +4904,7 @@ class DataService {
         _rentalRequestsKey,
         jsonEncode(payload.map((e) => e.toJson()).toList()),
       );
+      SharedPersistenceSync.notify(SharedPersistenceSync.rentalRequestsKey);
     }
 
     bool isQuotaError(Object e) {
@@ -6554,7 +6604,7 @@ class DataService {
         mutated = true;
         break;
       }
-      if (mutated) await prefs.setString(_messageThreadsKey, jsonEncode(list));
+      if (mutated) await _persistMessageThreads(prefs, list);
     } catch (e) {
       debugPrint('[DataService] updateMessageThreadBookingStatus error: $e');
     }
@@ -6601,6 +6651,9 @@ class DataService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_handoverReturnStateKey, jsonEncode(map));
+      SharedPersistenceSync.notify(
+        SharedPersistenceSync.handoverReturnStateKey,
+      );
     } catch (e) {
       debugPrint('[DataService] _setHandoverReturnStateMap failed: $e');
     }
@@ -6710,9 +6763,16 @@ class DataService {
       final request = await getRentalRequestById(id);
       final currentUser = await getCurrentUser();
       if (request == null || currentUser == null) return false;
-      if (request.status != 'accepted') return false;
       if (currentUser.id != request.ownerId) return false;
-      if (existing['handoverActive'] == true) return false;
+      if (!canStartHandover(
+        requestStatus: request.status,
+        viewerIsOwner: true,
+        handoverTimeConfirmed: existing['handoverTimeConfirmed'] == true,
+        handoverActive: existing['handoverActive'] == true,
+        needsReview: request.needsReview,
+      )) {
+        return false;
+      }
     }
     existing['handoverActive'] = active;
     if (active) existing['returnActive'] = false;
@@ -6741,9 +6801,15 @@ class DataService {
       final request = await getRentalRequestById(id);
       final currentUser = await getCurrentUser();
       if (request == null || currentUser == null) return false;
-      if (request.status != 'running') return false;
       if (currentUser.id != request.renterId) return false;
-      if (existing['returnActive'] == true) return false;
+      if (!canStartReturn(
+        requestStatus: request.status,
+        viewerIsOwner: false,
+        returnTimeConfirmed: existing['returnTimeConfirmed'] == true,
+        returnActive: existing['returnActive'] == true,
+      )) {
+        return false;
+      }
     }
     existing['returnActive'] = active;
     if (active) existing['handoverActive'] = false;
@@ -7067,7 +7133,7 @@ class DataService {
       );
 
       list.add(thread.toJson());
-      await prefs.setString(_messageThreadsKey, jsonEncode(list));
+      await _persistMessageThreads(prefs, list);
       debugPrint(
         '[DataService] Created message thread for request ${request.id}',
       );
@@ -7219,7 +7285,7 @@ class DataService {
         archivedForUserIds: const <String>[],
       );
 
-      await prefs.setString(_messageThreadsKey, jsonEncode([thread.toJson()]));
+      await _persistMessageThreads(prefs, [thread.toJson()]);
       debugPrint(
         '[DataService] Seeded minimal support thread for user=$userId',
       );
@@ -7289,7 +7355,7 @@ class DataService {
         }
         break;
       }
-      if (mutated) await prefs.setString(_messageThreadsKey, jsonEncode(list));
+      if (mutated) await _persistMessageThreads(prefs, list);
     } catch (e) {
       debugPrint('[DataService] archiveMessageThreadForUser error: $e');
     }
@@ -7318,7 +7384,7 @@ class DataService {
         }
         break;
       }
-      if (mutated) await prefs.setString(_messageThreadsKey, jsonEncode(list));
+      if (mutated) await _persistMessageThreads(prefs, list);
     } catch (e) {
       debugPrint('[DataService] unarchiveMessageThreadForUser error: $e');
     }
@@ -7339,7 +7405,7 @@ class DataService {
         (e) => (e is Map) && ((e['id'] ?? '').toString() == threadId),
       );
       if (list.length != before) {
-        await prefs.setString(_messageThreadsKey, jsonEncode(list));
+        await _persistMessageThreads(prefs, list);
       }
     } catch (e) {
       debugPrint('[DataService] deleteMessageThread error: $e');
@@ -7596,7 +7662,7 @@ class DataService {
       );
 
       list.add(supportThread.toJson());
-      await prefs.setString(_messageThreadsKey, jsonEncode(list));
+      await _persistMessageThreads(prefs, list);
 
       debugPrint('[DataService] createSupportThread: created $threadId');
       return supportThread;
@@ -7646,6 +7712,18 @@ class DataService {
     required String text,
   }) async {
     try {
+      final normalizedThreadId = threadId.trim();
+      final normalizedSenderId = senderId.trim();
+      final normalizedText = text.trim();
+      if (normalizedThreadId.isEmpty ||
+          normalizedSenderId.isEmpty ||
+          normalizedText.isEmpty) {
+        return;
+      }
+
+      final currentUser = await getCurrentUser();
+      if (currentUser == null) return;
+
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_messageThreadsKey);
       if (raw == null || raw.isEmpty) return;
@@ -7656,13 +7734,19 @@ class DataService {
       for (int i = 0; i < list.length; i++) {
         try {
           final map = Map<String, dynamic>.from(list[i] as Map);
-          if ((map['id']?.toString() ?? '') == threadId) {
+          if ((map['id']?.toString() ?? '') == normalizedThreadId) {
             final thread = MessageThread.fromJson(map);
+            final isParticipant = thread.user1Id == currentUser.id ||
+                thread.user2Id == currentUser.id;
+            final senderIsAllowed = normalizedSenderId == 'system' ||
+                normalizedSenderId == currentUser.id;
+            if (!isParticipant || !senderIsAllowed) return;
+
             final now = DateTime.now();
             final newMessage = Message(
               id: 'msg_${now.microsecondsSinceEpoch}',
-              senderId: senderId,
-              text: text,
+              senderId: normalizedSenderId,
+              text: normalizedText,
               timestamp: now,
               isRead: false,
             );
@@ -7680,7 +7764,7 @@ class DataService {
       }
 
       if (mutated) {
-        await prefs.setString(_messageThreadsKey, jsonEncode(list));
+        await _persistMessageThreads(prefs, list);
       }
     } catch (e) {
       debugPrint('[DataService] addMessageToThread error: $e');
@@ -7705,23 +7789,27 @@ class DataService {
           final map = Map<String, dynamic>.from(list[i] as Map);
           if ((map['id']?.toString() ?? '') == threadId) {
             final thread = MessageThread.fromJson(map);
+            var threadMutated = false;
             final updatedMessages = thread.messages.map((msg) {
               if (msg.senderId != userId && !msg.isRead) {
+                threadMutated = true;
                 return msg.copyWith(isRead: true);
               }
               return msg;
             }).toList();
 
-            final updatedThread = thread.copyWith(messages: updatedMessages);
-            list[i] = updatedThread.toJson();
-            mutated = true;
+            if (threadMutated) {
+              final updatedThread = thread.copyWith(messages: updatedMessages);
+              list[i] = updatedThread.toJson();
+              mutated = true;
+            }
             break;
           }
         } catch (_) {}
       }
 
       if (mutated) {
-        await prefs.setString(_messageThreadsKey, jsonEncode(list));
+        await _persistMessageThreads(prefs, list);
       }
     } catch (e) {
       debugPrint('[DataService] markThreadMessagesAsRead error: $e');
