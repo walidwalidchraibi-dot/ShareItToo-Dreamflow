@@ -70,7 +70,15 @@ export function newRefreshToken() {
   return crypto.randomBytes(48).toString('base64url');
 }
 
+export function newActionToken() {
+  return crypto.randomBytes(48).toString('base64url');
+}
+
 export function hashRefreshToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+export function hashActionToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
@@ -173,6 +181,7 @@ export function shapeUser(row, { publicOnly = false } = {}) {
     createdAt: new Date(row.created_at).toISOString(),
     isDeactivated: Boolean(row.deactivated_at),
     deactivatedAt: row.deactivated_at ? new Date(row.deactivated_at).toISOString() : null,
+    emailVerified: Boolean(row.email_verified_at),
   };
 }
 

@@ -32,11 +32,21 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGINS: https://shareittoo.com,https://www.shareittoo.com,https://srv1580960.hstgr.cloud
       PUBLIC_BASE_URL: https://shareittoo.com/api/v1
+      APP_PUBLIC_URL: https://shareittoo.com
       UPLOAD_DIR: /data/uploads
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-disabled}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: "${MAIL_FROM:-ShareItToo <contact@shareittoo.com>}"
+      MAIL_REPLY_TO: "${MAIL_REPLY_TO:-contact@shareittoo.com}"
     volumes:
       - shareittoo_uploads:/data/uploads
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/health"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/health/live"]
       interval: 10s
       timeout: 5s
       retries: 12

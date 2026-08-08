@@ -9,8 +9,20 @@ import { fileTypeFromBuffer } from 'file-type';
 import helmet from 'helmet';
 import multer from 'multer';
 
+import {
+  consumeActionToken,
+  createActionToken,
+  lockValidActionToken,
+  passwordResetForm,
+  resultPage,
+} from './account_actions.js';
 import { config } from './config.js';
 import { inTransaction, pool } from './db.js';
+import {
+  getMailerStatus,
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from './mailer.js';
 import { publishToAll, publishToUsers } from './realtime.js';
 import {
   defaultProfile,
@@ -39,6 +51,18 @@ class HttpError extends Error {
 
 function asyncRoute(handler) {
   return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
+}
+
+function sendHtml(res, status, html) {
+  res.set({
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+    'Referrer-Policy': 'no-referrer',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+  });
+  res.status(status).send(html);
 }
 
 function identifier(value, prefix) {
@@ -175,6 +199,45 @@ async function issueSession(client, user, userAgent) {
   };
 }
 
+async function createAndSendVerification(user) {
+  const token = await inTransaction((client) => createActionToken(client, {
+    userId: user.id,
+    kind: 'verify_email',
+  }));
+  await sendVerificationEmail({
+    email: user.email,
+    displayName: user.profile?.displayName,
+    token,
+  });
+}
+
+async function resetPasswordWithToken(token, password) {
+  if (!isValidPassword(password)) throw new HttpError(400, 'password_too_short');
+  const passwordHash = await hashPassword(password);
+  return inTransaction(async (client) => {
+    const row = await lockValidActionToken(client, { token, kind: 'reset_password' });
+    if (!row) throw new HttpError(400, 'invalid_or_expired_reset_link');
+    await client.query(
+      `UPDATE users
+       SET password_hash = $2, password_changed_at = now()
+       WHERE id = $1`,
+      [row.id, passwordHash],
+    );
+    await consumeActionToken(client, row.action_token_id);
+    await client.query(
+      `UPDATE auth_action_tokens
+       SET consumed_at = COALESCE(consumed_at, now())
+       WHERE user_id = $1 AND kind = 'reset_password'`,
+      [row.id],
+    );
+    await client.query(
+      'UPDATE refresh_tokens SET revoked_at = COALESCE(revoked_at, now()) WHERE user_id = $1',
+      [row.id],
+    );
+    return row;
+  });
+}
+
 async function listRentalRequests(client, userId) {
   const result = await client.query(
     `SELECT payload FROM rental_requests
@@ -236,14 +299,27 @@ export function createApp() {
     allowedHeaders: ['Authorization', 'Content-Type'],
   }));
   app.use(express.json({ limit: '2mb' }));
+  app.use(express.urlencoded({ extended: false, limit: '20kb' }));
 
   const generalLimiter = rateLimit({ windowMs: 60_000, limit: 240, standardHeaders: 'draft-8', legacyHeaders: false });
   const authLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false });
+  const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false });
   app.use(generalLimiter);
 
   app.get('/health', asyncRoute(async (_req, res) => {
     await pool.query('SELECT 1');
-    res.json({ status: 'ok', service: 'shareittoo-api', time: new Date().toISOString() });
+    const mail = getMailerStatus();
+    res.json({
+      status: mail === 'ok' ? 'ok' : 'degraded',
+      service: 'shareittoo-api',
+      checks: { database: 'ok', mail },
+      time: new Date().toISOString(),
+    });
+  }));
+
+  app.get('/health/live', asyncRoute(async (_req, res) => {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok', service: 'shareittoo-api' });
   }));
 
   app.post('/v1/auth/register', authLimiter, asyncRoute(async (req, res) => {
@@ -265,7 +341,18 @@ export function createApp() {
       );
       return issueSession(client, result.rows[0], req.get('user-agent'));
     });
-    res.status(201).json(session);
+    let verificationEmailSent = false;
+    try {
+      await createAndSendVerification({
+        id: session.user.id,
+        email: session.user.email,
+        profile: session.user,
+      });
+      verificationEmailSent = true;
+    } catch (error) {
+      console.error('[auth] registration verification delivery failed', error?.code ?? error?.message ?? error);
+    }
+    res.status(201).json({ ...session, verificationEmailSent });
   }));
 
   app.post('/v1/auth/login', authLimiter, asyncRoute(async (req, res) => {
@@ -291,7 +378,8 @@ export function createApp() {
     const session = await inTransaction(async (client) => {
       const result = await client.query(
         `SELECT u.id, u.email, u.password_hash, u.profile, u.created_at,
-                u.updated_at, u.deactivated_at,
+                u.updated_at, u.deactivated_at, u.email_verified_at,
+                u.password_changed_at,
                 rt.id AS refresh_id, rt.user_id AS refresh_user_id,
                 rt.expires_at AS refresh_expires_at, rt.revoked_at AS refresh_revoked_at
          FROM refresh_tokens rt JOIN users u ON u.id = rt.user_id
@@ -321,6 +409,136 @@ export function createApp() {
       );
     }
     res.status(204).end();
+  }));
+
+  app.post('/v1/auth/email-verification/request', requireAuth, actionLimiter, asyncRoute(async (req, res) => {
+    const result = await pool.query(
+      'SELECT * FROM users WHERE id = $1 AND deactivated_at IS NULL',
+      [req.auth.userId],
+    );
+    const user = result.rows[0];
+    if (!user) throw new HttpError(404, 'user_not_found');
+    if (user.email_verified_at) return res.status(204).end();
+    try {
+      await createAndSendVerification(user);
+    } catch (error) {
+      console.error('[auth] verification delivery failed', error?.code ?? error?.message ?? error);
+      throw new HttpError(503, 'mail_delivery_unavailable');
+    }
+    return res.status(202).json({ sent: true });
+  }));
+
+  const confirmEmail = async (token) => inTransaction(async (client) => {
+    const row = await lockValidActionToken(client, { token, kind: 'verify_email' });
+    if (!row) throw new HttpError(400, 'invalid_or_expired_verification_link');
+    await client.query(
+      `UPDATE users
+       SET email_verified_at = COALESCE(email_verified_at, now()),
+           profile = jsonb_set(profile, '{emailVerified}', 'true'::jsonb)
+       WHERE id = $1`,
+      [row.id],
+    );
+    await consumeActionToken(client, row.action_token_id);
+    return row;
+  });
+
+  app.get('/v1/auth/email-verification/confirm', actionLimiter, asyncRoute(async (req, res) => {
+    try {
+      await confirmEmail(safeText(req.query?.token, 500));
+      sendHtml(res, 200, resultPage({
+        success: true,
+        title: 'E-Mail bestätigt',
+        message: 'Deine E-Mail-Adresse wurde erfolgreich bestätigt. Du kannst zu ShareItToo zurückkehren.',
+      }));
+    } catch (error) {
+      if (!(error instanceof HttpError)) throw error;
+      sendHtml(res, 400, resultPage({
+        success: false,
+        title: 'Link nicht mehr gültig',
+        message: 'Dieser Bestätigungslink ist ungültig, abgelaufen oder wurde bereits verwendet. Fordere in der App einen neuen Link an.',
+      }));
+    }
+  }));
+
+  app.post('/v1/auth/email-verification/confirm', actionLimiter, asyncRoute(async (req, res) => {
+    await confirmEmail(safeText(req.body?.token, 500));
+    res.json({ verified: true });
+  }));
+
+  app.post('/v1/auth/password-reset/request', actionLimiter, asyncRoute(async (req, res) => {
+    const email = normalizeEmail(req.body?.email);
+    if (isValidEmail(email)) {
+      const result = await pool.query(
+        'SELECT * FROM users WHERE email = $1 AND deactivated_at IS NULL',
+        [email],
+      );
+      const user = result.rows[0];
+      if (user?.password_hash) {
+        try {
+          const token = await inTransaction((client) => createActionToken(client, {
+            userId: user.id,
+            kind: 'reset_password',
+          }));
+          await sendPasswordResetEmail({
+            email: user.email,
+            displayName: user.profile?.displayName,
+            token,
+          });
+        } catch (error) {
+          console.error('[auth] password reset delivery failed', error?.code ?? error?.message ?? error);
+        }
+      }
+    }
+    res.status(202).json({ accepted: true });
+  }));
+
+  app.get('/v1/auth/password-reset/form', actionLimiter, asyncRoute(async (req, res) => {
+    const token = safeText(req.query?.token, 500);
+    const valid = await inTransaction(async (client) => Boolean(
+      await lockValidActionToken(client, { token, kind: 'reset_password' }),
+    ));
+    if (!valid) {
+      return sendHtml(res, 400, resultPage({
+        success: false,
+        title: 'Link nicht mehr gültig',
+        message: 'Dieser Link ist ungültig, abgelaufen oder wurde bereits verwendet. Fordere in der App einen neuen Link an.',
+      }));
+    }
+    return sendHtml(res, 200, passwordResetForm({ token }));
+  }));
+
+  app.post('/v1/auth/password-reset/form', actionLimiter, asyncRoute(async (req, res) => {
+    const token = safeText(req.body?.token, 500);
+    const password = req.body?.password;
+    const passwordConfirm = req.body?.passwordConfirm;
+    if (password !== passwordConfirm || !isValidPassword(password)) {
+      return sendHtml(res, 400, passwordResetForm({
+        token,
+        error: password !== passwordConfirm
+          ? 'Die Passwörter stimmen nicht überein.'
+          : 'Das Passwort muss mindestens acht Zeichen lang sein.',
+      }));
+    }
+    try {
+      await resetPasswordWithToken(token, password);
+      return sendHtml(res, 200, resultPage({
+        success: true,
+        title: 'Passwort geändert',
+        message: 'Dein Passwort wurde sicher geändert. Melde dich jetzt mit dem neuen Passwort an.',
+      }));
+    } catch (error) {
+      if (!(error instanceof HttpError)) throw error;
+      return sendHtml(res, 400, resultPage({
+        success: false,
+        title: 'Link nicht mehr gültig',
+        message: 'Dieser Link ist ungültig, abgelaufen oder wurde bereits verwendet.',
+      }));
+    }
+  }));
+
+  app.post('/v1/auth/password-reset/confirm', actionLimiter, asyncRoute(async (req, res) => {
+    await resetPasswordWithToken(safeText(req.body?.token, 500), req.body?.password);
+    res.json({ changed: true });
   }));
 
   app.get('/v1/auth/me', requireAuth, asyncRoute(async (req, res) => {

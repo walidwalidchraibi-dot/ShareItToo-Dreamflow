@@ -875,8 +875,19 @@ class _PasswordResetSheetState extends State<_PasswordResetSheet> {
 
     setState(() => _busy = true);
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 520));
+      final sent = await AuthService.requestPasswordReset(
+        _emailCtrl.text.trim(),
+      );
       if (!mounted) return;
+      if (!sent) {
+        await AppPopup.toast(
+          context,
+          icon: Icons.wifi_off_outlined,
+          title: 'E-Mail konnte nicht angefordert werden',
+          message: 'Bitte prüfe deine Verbindung und versuche es erneut.',
+        );
+        return;
+      }
       Navigator.of(context).maybePop();
       await AppPopup.toast(
         context,
