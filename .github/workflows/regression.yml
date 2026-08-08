@@ -79,3 +79,35 @@ jobs:
 
       - name: Run regression script
         run: bash scripts/technical_regression_check.sh
+
+  publish-api-image:
+    if: github.event_name == 'push'
+    needs:
+      - backend-regression
+      - flutter-regression
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build and publish the verified API image
+        working-directory: backend
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_IMAGE: ghcr.io/walidwalidchraibi-dot/shareittoo-api
+        run: |
+          APP_VERSION="0.1.0-${GITHUB_SHA::12}"
+          APP_BUILD_TIME="$(git show -s --format=%cI "$GITHUB_SHA")"
+          IMAGE_REF="$REGISTRY_IMAGE:$GITHUB_SHA"
+
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker build \
+            --build-arg "APP_VERSION=$APP_VERSION" \
+            --build-arg "APP_COMMIT=$GITHUB_SHA" \
+            --build-arg "APP_BUILD_TIME=$APP_BUILD_TIME" \
+            --tag "$IMAGE_REF" \
+            .
+          test "$(docker image inspect "$IMAGE_REF" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" = "$GITHUB_SHA"
+          docker push "$IMAGE_REF"
