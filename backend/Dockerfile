@@ -1,7 +1,10 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json ./
-RUN npm install --omit=dev --ignore-scripts && npm cache clean --force
+COPY package.json pnpm-lock.yaml ./
+RUN npm install --global pnpm@11.16.0 \
+    && pnpm install --prod --frozen-lockfile \
+    && pnpm store prune \
+    && npm cache clean --force
 
 FROM node:22-alpine
 ENV NODE_ENV=production
