@@ -1,21 +1,21 @@
 services:
   postgres:
     image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
-    container_name: shareittoo-postgres
+    container_name: shareittoo-staging-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: shareittoo
-      POSTGRES_USER: shareittoo
+      POSTGRES_DB: shareittoo_staging
+      POSTGRES_USER: shareittoo_staging
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - shareittoo_postgres_data:/var/lib/postgresql/data
+      - shareittoo_staging_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U shareittoo -d shareittoo"]
+      test: ["CMD-SHELL", "pg_isready -U shareittoo_staging -d shareittoo_staging"]
       interval: 5s
       timeout: 5s
       retries: 20
     networks:
-      - backend
+      - staging_backend
 
   api:
     image: shareittoo-api:${APP_COMMIT:-local}
@@ -25,49 +25,45 @@ services:
         APP_VERSION: ${APP_VERSION:-development}
         APP_COMMIT: ${APP_COMMIT:-unknown}
         APP_BUILD_TIME: ${APP_BUILD_TIME:-unknown}
-    container_name: shareittoo-api
+    container_name: shareittoo-staging-api
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       NODE_ENV: production
-      DEPLOYMENT_ENVIRONMENT: production
+      DEPLOYMENT_ENVIRONMENT: staging
       APP_VERSION: ${APP_VERSION:-development}
       APP_COMMIT: ${APP_COMMIT:-unknown}
       APP_BUILD_TIME: ${APP_BUILD_TIME:-unknown}
       PORT: 8080
-      DATABASE_URL: postgres://shareittoo:${POSTGRES_PASSWORD}@postgres:5432/shareittoo
+      DATABASE_URL: postgres://shareittoo_staging:${POSTGRES_PASSWORD}@postgres:5432/shareittoo_staging
       JWT_SECRET: ${JWT_SECRET}
-      CORS_ORIGINS: https://shareittoo.com,https://www.shareittoo.com,https://srv1580960.hstgr.cloud
-      PUBLIC_BASE_URL: https://shareittoo.com/api/v1
-      APP_PUBLIC_URL: https://shareittoo.com
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://staging.shareittoo.com}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://staging.shareittoo.com/api/v1}
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-https://staging.shareittoo.com}
       UPLOAD_DIR: /data/uploads
-      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-disabled}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_SECURE: ${SMTP_SECURE:-false}
-      SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:-true}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      MAIL_FROM: "${MAIL_FROM:-ShareItToo <contact@shareittoo.com>}"
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-memory}
+      MAIL_FROM: "${MAIL_FROM:-ShareItToo Staging <contact@shareittoo.com>}"
       MAIL_REPLY_TO: "${MAIL_REPLY_TO:-contact@shareittoo.com}"
+    ports:
+      - "127.0.0.1:${STAGING_API_PORT:-18080}:8080"
     volumes:
-      - shareittoo_uploads:/data/uploads
+      - shareittoo_staging_uploads:/data/uploads
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/health/ready"]
       interval: 10s
       timeout: 5s
       retries: 12
     networks:
-      - backend
+      - staging_backend
 
 volumes:
-  shareittoo_postgres_data:
-    name: shareittoo_postgres_data
-  shareittoo_uploads:
-    name: shareittoo_uploads
+  shareittoo_staging_postgres_data:
+    name: shareittoo_staging_postgres_data
+  shareittoo_staging_uploads:
+    name: shareittoo_staging_uploads
 
 networks:
-  backend:
-    name: shareittoo_backend
+  staging_backend:
+    name: shareittoo_staging_backend

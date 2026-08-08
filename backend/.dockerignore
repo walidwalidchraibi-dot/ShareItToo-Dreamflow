@@ -1,4 +1,7 @@
-node_modules
-npm-debug.log
-.env
-test
+*
+!package.json
+!pnpm-lock.yaml
+!src/
+!src/**
+!sql/
+!sql/**

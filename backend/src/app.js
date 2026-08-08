@@ -24,6 +24,7 @@ import {
   sendVerificationEmail,
 } from './mailer.js';
 import { publishToAll, publishToUsers } from './realtime.js';
+import { releaseMetadata } from './release.js';
 import {
   defaultProfile,
   hashPassword,
@@ -313,14 +314,30 @@ export function createApp() {
       status: mail === 'ok' ? 'ok' : 'degraded',
       service: 'shareittoo-api',
       checks: { database: 'ok', mail },
+      release: releaseMetadata,
       time: new Date().toISOString(),
     });
   }));
 
-  app.get('/health/live', asyncRoute(async (_req, res) => {
+  app.get('/health/live', (_req, res) => {
+    res.json({ status: 'ok', service: 'shareittoo-api', release: releaseMetadata });
+  });
+
+  app.get('/health/ready', asyncRoute(async (_req, res) => {
     await pool.query('SELECT 1');
-    res.json({ status: 'ok', service: 'shareittoo-api' });
+    const mail = getMailerStatus();
+    const ready = mail !== 'error' && mail !== 'unverified';
+    res.status(ready ? 200 : 503).json({
+      status: ready ? 'ok' : 'degraded',
+      service: 'shareittoo-api',
+      checks: { database: 'ok', mail },
+      release: releaseMetadata,
+    });
   }));
+
+  app.get('/version', (_req, res) => {
+    res.set('Cache-Control', 'no-store').json(releaseMetadata);
+  });
 
   app.post('/v1/auth/register', authLimiter, asyncRoute(async (req, res) => {
     const email = normalizeEmail(req.body?.email);
