@@ -47,6 +47,13 @@ Zahlungsereignisse und die spätere Store-Einreichung.
 
 ### Technische Mailabnahme
 
+- Eine bereits am 8. August 2026 um 18:37 Uhr empfangene produktive
+  Verifizierungs-Mail wurde in Gmail geprüft. `From` und `Reply-To` zeigen
+  `contact@shareittoo.com`, die Übertragung war TLS-verschlüsselt und der
+  Bestätigungslink zeigte auf die produktive HTTPS-API. Die Nachricht wurde
+  jedoch vor der neuen DKIM-/DMARC-Konfiguration versendet und mit dem alten
+  delegierten Google-Schlüssel signiert; sie ist deshalb nur ein
+  Funktionsnachweis und kein aktueller Authentifizierungsnachweis.
 - Eine echte Testmail an Gmail senden und im empfangenen Original
   `SPF=PASS`, `DKIM=PASS` und `DMARC=PASS` nachweisen.
 - Eine zweite Testmail an einen unabhängigen Anbieter senden und dort dieselben
