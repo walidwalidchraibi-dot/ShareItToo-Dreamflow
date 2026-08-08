@@ -7,6 +7,7 @@ import 'package:lendify/navigation/main_navigation.dart';
 import 'package:lendify/screens/legal_privacy_screen.dart';
 import 'package:lendify/screens/legal_terms_screen.dart';
 import 'package:lendify/services/auth_service.dart';
+import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
@@ -80,8 +81,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-
-
   bool _isOutsideInteractiveArea(Offset globalPosition) {
     final cardCtx = _cardKey.currentContext;
     if (cardCtx != null) {
@@ -103,6 +102,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
     return true;
   }
+
   String? _validateName(String? v) {
     final value = (v ?? '').trim();
     if (value.isEmpty) return 'Bitte gib deinen Namen ein.';
@@ -155,13 +155,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return;
       }
 
+      await DataService.syncCurrentUserForSessionEmail(
+        _emailCtrl.text.trim(),
+      );
+      final registeredUser = await DataService.getCurrentUser();
+      final displayName = _nameCtrl.text.trim();
+      if (registeredUser != null && displayName.isNotEmpty) {
+        await DataService.setCurrentUser(
+          registeredUser.copyWith(displayName: displayName),
+        );
+      }
+
       await context
           .read<DeveloperPreviewController>()
           .setState(DeveloperUserState.loggedIn);
       if (!mounted) return;
       final targetIndex = widget.returnTabIndex;
       Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => MainNavigation(initialIndex: targetIndex ?? 0)),
+          MaterialPageRoute(
+              builder: (_) => MainNavigation(initialIndex: targetIndex ?? 0)),
           (route) => false);
     } catch (e) {
       debugPrint('[RegisterScreen] register failed: $e');
@@ -188,517 +200,696 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   @override
-Widget build(BuildContext context) {
-final theme = Theme.of(context);
-final media = MediaQuery.of(context);
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final media = MediaQuery.of(context);
 
-final nameOk = _validateName(_nameCtrl.text) == null;
-final emailOk = _validateEmail(_emailCtrl.text) == null;
-final pwOk = _validatePassword(_pwCtrl.text) == null;
-final pw2Ok = _validatePassword2(_pw2Ctrl.text) == null;
+    final nameOk = _validateName(_nameCtrl.text) == null;
+    final emailOk = _validateEmail(_emailCtrl.text) == null;
+    final pwOk = _validatePassword(_pwCtrl.text) == null;
+    final pw2Ok = _validatePassword2(_pw2Ctrl.text) == null;
 
-return Scaffold(
-backgroundColor: Colors.transparent,
-body: Stack(
-children: [
-Positioned.fill(child: IgnorePointer(child: _RegisterBackdrop(peekClear: _peekBackdrop))),
-Listener(
-behavior: HitTestBehavior.translucent,
-onPointerDown: (e) {
-if (_isOutsideInteractiveArea(e.position)) {
-setState(() => _peekBackdrop = true);
-}
-},
-onPointerUp: (_) {
-if (_peekBackdrop) setState(() => _peekBackdrop = false);
-},
-onPointerCancel: (_) {
-if (_peekBackdrop) setState(() => _peekBackdrop = false);
-},
-child: SafeArea(
-child: Column(
-children: [
-AnimatedOpacity(
-duration: const Duration(milliseconds: 140),
-curve: Curves.easeOut,
-opacity: _peekBackdrop ? 0.0 : 1.0,
-child: Padding(
-padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-child: Row(children: [
-_GlassIconButton(icon: Icons.arrow_back, onTap: () => Navigator.of(context).maybePop()),
-const SizedBox(width: 10),
-Expanded(
-child: Text('Dein SIT-Konto erstellen', textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontSize: 17, fontWeight: FontWeight.w900, color: Colors.white, height: 1.15)),
-),
-const SizedBox(width: 54),
-]),
-),
-),
-Expanded(
-child: LayoutBuilder(
-builder: (context, constraints) {
-const bottomBarHeight = _StickyAuthBar.kMinHeight;
-final bottomPadding = bottomBarHeight + 8 + media.padding.bottom;
-final availableHeight = constraints.maxHeight - bottomPadding - 8;
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          Positioned.fill(
+              child: IgnorePointer(
+                  child: _RegisterBackdrop(peekClear: _peekBackdrop))),
+          Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (e) {
+              if (_isOutsideInteractiveArea(e.position)) {
+                setState(() => _peekBackdrop = true);
+              }
+            },
+            onPointerUp: (_) {
+              if (_peekBackdrop) setState(() => _peekBackdrop = false);
+            },
+            onPointerCancel: (_) {
+              if (_peekBackdrop) setState(() => _peekBackdrop = false);
+            },
+            child: SafeArea(
+              child: Column(
+                children: [
+                  AnimatedOpacity(
+                    duration: const Duration(milliseconds: 140),
+                    curve: Curves.easeOut,
+                    opacity: _peekBackdrop ? 0.0 : 1.0,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                      child: Row(children: [
+                        _GlassIconButton(
+                            icon: Icons.arrow_back,
+                            onTap: () => Navigator.of(context).maybePop()),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text('Dein SIT-Konto erstellen',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  height: 1.15)),
+                        ),
+                        const SizedBox(width: 54),
+                      ]),
+                    ),
+                  ),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        const bottomBarHeight = _StickyAuthBar.kMinHeight;
+                        final bottomPadding =
+                            bottomBarHeight + 8 + media.padding.bottom;
+                        final availableHeight =
+                            constraints.maxHeight - bottomPadding - 8;
 
-return SingleChildScrollView(
-keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPadding),
-child: ConstrainedBox(
-constraints: BoxConstraints(minHeight: availableHeight),
-child: Center(
-child: ConstrainedBox(
-constraints: const BoxConstraints(maxWidth: 520),
-child: AnimatedOpacity(
-duration: const Duration(milliseconds: 140),
-curve: Curves.easeOut,
-opacity: _peekBackdrop ? 0.0 : 1.0,
-child: Column(
-mainAxisSize: MainAxisSize.min,
-children: [
-Padding(
-padding: const EdgeInsets.only(bottom: 16),
-child: Text('Miete und vermiete Dinge sicher in deiner Nähe.', textAlign: TextAlign.center, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.85), height: 1.3, fontWeight: FontWeight.w600, fontSize: 14)),
-),
-KeyedSubtree(
-key: _cardKey,
-child: _GlassCard(
-child: Padding(
-padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-child: Form(
-key: _formKey,
-autovalidateMode: _didInteract ? AutovalidateMode.onUserInteraction : AutovalidateMode.disabled,
-child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-_SITTextField(
-label: 'Name',
-placeholder: 'Max Mustermann',
-controller: _nameCtrl,
-focusNode: _nameFocus,
-nextFocusNode: _emailFocus,
-keyboardType: TextInputType.name,
-textInputAction: TextInputAction.next,
-validator: _validateName,
-prefixIcon: Icons.person_outline,
-status: _didInteract && _nameCtrl.text.trim().isNotEmpty ? (nameOk ? _FieldStatus.success : _FieldStatus.error) : _FieldStatus.neutral,
-autocorrect: true,
-enableSuggestions: true,
-textCapitalization: TextCapitalization.words,
-),
-const SizedBox(height: 10),
-_SITTextField(
-label: 'E-Mail',
-placeholder: 'deine@email.com',
-controller: _emailCtrl,
-focusNode: _emailFocus,
-nextFocusNode: _pwFocus,
-keyboardType: TextInputType.emailAddress,
-textInputAction: TextInputAction.next,
-validator: _validateEmail,
-prefixIcon: Icons.alternate_email,
-status: _didInteract && _emailCtrl.text.trim().isNotEmpty ? (emailOk ? _FieldStatus.success : _FieldStatus.error) : _FieldStatus.neutral,
-autocorrect: false,
-enableSuggestions: false,
-textCapitalization: TextCapitalization.none,
-),
-const SizedBox(height: 10),
-_SITTextField(
-label: 'Passwort',
-placeholder: '••••••••',
-controller: _pwCtrl,
-focusNode: _pwFocus,
-nextFocusNode: _pw2Focus,
-keyboardType: TextInputType.visiblePassword,
-textInputAction: TextInputAction.next,
-validator: _validatePassword,
-prefixIcon: Icons.lock_outline,
-status: _didInteract && _pwCtrl.text.isNotEmpty ? (pwOk ? _FieldStatus.success : _FieldStatus.error) : _FieldStatus.neutral,
-obscureText: !_pwVisible,
-autocorrect: false,
-enableSuggestions: false,
-textCapitalization: TextCapitalization.none,
-suffix: _GlassSuffixIconButton(icon: _pwVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined, onTap: () => setState(() => _pwVisible = !_pwVisible)),
-),
-const SizedBox(height: 4),
-_HintRow(icon: Icons.check_circle_outline, ok: pwOk, text: 'Mind. 8 Zeichen'),
-const SizedBox(height: 10),
-_SITTextField(
-label: 'Passwort wiederholen',
-placeholder: '••••••••',
-controller: _pw2Ctrl,
-focusNode: _pw2Focus,
-keyboardType: TextInputType.visiblePassword,
-textInputAction: TextInputAction.done,
-validator: _validatePassword2,
-prefixIcon: Icons.lock_outline,
-status: _didInteract && _pw2Ctrl.text.isNotEmpty ? (pw2Ok ? _FieldStatus.success : _FieldStatus.error) : _FieldStatus.neutral,
-obscureText: !_pw2Visible,
-autocorrect: false,
-enableSuggestions: false,
-textCapitalization: TextCapitalization.none,
-onSubmitted: (_) => _register(),
-suffix: _GlassSuffixIconButton(icon: _pw2Visible ? Icons.visibility_off_outlined : Icons.visibility_outlined, onTap: () => setState(() => _pw2Visible = !_pw2Visible)),
-),
-const SizedBox(height: 4),
-_HintRow(icon: Icons.verified_outlined, ok: pw2Ok, text: 'Passwörter müssen übereinstimmen'),
-const SizedBox(height: 10),
-const SocialAuthOrDivider(),
-const SizedBox(height: 10),
-SocialAuthButton(brand: SocialAuthBrand.google, label: 'Mit Google registrieren', onTap: _busy ? null : () => _socialRegister(AuthSocialProvider.google)),
-const SizedBox(height: 8),
-SocialAuthButton(brand: SocialAuthBrand.apple, label: 'Mit Apple registrieren', onTap: _busy ? null : () => _socialRegister(AuthSocialProvider.apple)),
-]),
-),
-),
-),
-),
-],
-),
-),
-),
-),
-),
-);
-},
-),
-),
-],
-),
-),
-),
-Positioned(
-left: 0,
-right: 0,
-bottom: 0,
-child: AnimatedOpacity(
-duration: const Duration(milliseconds: 140),
-curve: Curves.easeOut,
-opacity: _peekBackdrop ? 0.0 : 1.0,
-child: KeyedSubtree(
-key: _stickyBarKey,
-child: _StickyAuthBar(
-busy: _busy,
-onSubmit: _busy ? null : _register,
-onOpenTerms: _openTerms,
-onOpenPrivacy: _openPrivacy,
-onLogin: () => Navigator.of(context).maybePop(),
-),
-),
-),
-),
-],
-),
-);
-}
+                        return SingleChildScrollView(
+                          keyboardDismissBehavior:
+                              ScrollViewKeyboardDismissBehavior.onDrag,
+                          padding:
+                              EdgeInsets.fromLTRB(16, 12, 16, bottomPadding),
+                          child: ConstrainedBox(
+                            constraints:
+                                BoxConstraints(minHeight: availableHeight),
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 520),
+                                child: AnimatedOpacity(
+                                  duration: const Duration(milliseconds: 140),
+                                  curve: Curves.easeOut,
+                                  opacity: _peekBackdrop ? 0.0 : 1.0,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 16),
+                                        child: Text(
+                                            'Miete und vermiete Dinge sicher in deiner Nähe.',
+                                            textAlign: TextAlign.center,
+                                            style: theme.textTheme.bodyMedium
+                                                ?.copyWith(
+                                                    color: Colors.white
+                                                        .withValues(
+                                                            alpha: 0.85),
+                                                    height: 1.3,
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 14)),
+                                      ),
+                                      KeyedSubtree(
+                                        key: _cardKey,
+                                        child: _GlassCard(
+                                          child: Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                                14, 12, 14, 12),
+                                            child: Form(
+                                              key: _formKey,
+                                              autovalidateMode: _didInteract
+                                                  ? AutovalidateMode
+                                                      .onUserInteraction
+                                                  : AutovalidateMode.disabled,
+                                              child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment
+                                                          .stretch,
+                                                  children: [
+                                                    _SITTextField(
+                                                      label: 'Name',
+                                                      placeholder:
+                                                          'Max Mustermann',
+                                                      controller: _nameCtrl,
+                                                      focusNode: _nameFocus,
+                                                      nextFocusNode:
+                                                          _emailFocus,
+                                                      keyboardType:
+                                                          TextInputType.name,
+                                                      textInputAction:
+                                                          TextInputAction.next,
+                                                      validator: _validateName,
+                                                      prefixIcon:
+                                                          Icons.person_outline,
+                                                      status: _didInteract &&
+                                                              _nameCtrl.text
+                                                                  .trim()
+                                                                  .isNotEmpty
+                                                          ? (nameOk
+                                                              ? _FieldStatus
+                                                                  .success
+                                                              : _FieldStatus
+                                                                  .error)
+                                                          : _FieldStatus
+                                                              .neutral,
+                                                      autocorrect: true,
+                                                      enableSuggestions: true,
+                                                      textCapitalization:
+                                                          TextCapitalization
+                                                              .words,
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    _SITTextField(
+                                                      label: 'E-Mail',
+                                                      placeholder:
+                                                          'deine@email.com',
+                                                      controller: _emailCtrl,
+                                                      focusNode: _emailFocus,
+                                                      nextFocusNode: _pwFocus,
+                                                      keyboardType:
+                                                          TextInputType
+                                                              .emailAddress,
+                                                      textInputAction:
+                                                          TextInputAction.next,
+                                                      validator: _validateEmail,
+                                                      prefixIcon:
+                                                          Icons.alternate_email,
+                                                      status: _didInteract &&
+                                                              _emailCtrl.text
+                                                                  .trim()
+                                                                  .isNotEmpty
+                                                          ? (emailOk
+                                                              ? _FieldStatus
+                                                                  .success
+                                                              : _FieldStatus
+                                                                  .error)
+                                                          : _FieldStatus
+                                                              .neutral,
+                                                      autocorrect: false,
+                                                      enableSuggestions: false,
+                                                      textCapitalization:
+                                                          TextCapitalization
+                                                              .none,
+                                                    ),
+                                                    const SizedBox(height: 10),
+                                                    _SITTextField(
+                                                      label: 'Passwort',
+                                                      placeholder: '••••••••',
+                                                      controller: _pwCtrl,
+                                                      focusNode: _pwFocus,
+                                                      nextFocusNode: _pw2Focus,
+                                                      keyboardType:
+                                                          TextInputType
+                                                              .visiblePassword,
+                                                      textInputAction:
+                                                          TextInputAction.next,
+                                                      validator:
+                                                          _validatePassword,
+                                                      prefixIcon:
+                                                          Icons.lock_outline,
+                                                      status: _didInteract &&
+                                                              _pwCtrl.text
+                                                                  .isNotEmpty
+                                                          ? (pwOk
+                                                              ? _FieldStatus
+                                                                  .success
+                                                              : _FieldStatus
+                                                                  .error)
+                                                          : _FieldStatus
+                                                              .neutral,
+                                                      obscureText: !_pwVisible,
+                                                      autocorrect: false,
+                                                      enableSuggestions: false,
+                                                      textCapitalization:
+                                                          TextCapitalization
+                                                              .none,
+                                                      suffix: _GlassSuffixIconButton(
+                                                          icon: _pwVisible
+                                                              ? Icons
+                                                                  .visibility_off_outlined
+                                                              : Icons
+                                                                  .visibility_outlined,
+                                                          onTap: () => setState(
+                                                              () => _pwVisible =
+                                                                  !_pwVisible)),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    _HintRow(
+                                                        icon: Icons
+                                                            .check_circle_outline,
+                                                        ok: pwOk,
+                                                        text:
+                                                            'Mind. 8 Zeichen'),
+                                                    const SizedBox(height: 10),
+                                                    _SITTextField(
+                                                      label:
+                                                          'Passwort wiederholen',
+                                                      placeholder: '••••••••',
+                                                      controller: _pw2Ctrl,
+                                                      focusNode: _pw2Focus,
+                                                      keyboardType:
+                                                          TextInputType
+                                                              .visiblePassword,
+                                                      textInputAction:
+                                                          TextInputAction.done,
+                                                      validator:
+                                                          _validatePassword2,
+                                                      prefixIcon:
+                                                          Icons.lock_outline,
+                                                      status: _didInteract &&
+                                                              _pw2Ctrl.text
+                                                                  .isNotEmpty
+                                                          ? (pw2Ok
+                                                              ? _FieldStatus
+                                                                  .success
+                                                              : _FieldStatus
+                                                                  .error)
+                                                          : _FieldStatus
+                                                              .neutral,
+                                                      obscureText: !_pw2Visible,
+                                                      autocorrect: false,
+                                                      enableSuggestions: false,
+                                                      textCapitalization:
+                                                          TextCapitalization
+                                                              .none,
+                                                      onSubmitted: (_) =>
+                                                          _register(),
+                                                      suffix: _GlassSuffixIconButton(
+                                                          icon: _pw2Visible
+                                                              ? Icons
+                                                                  .visibility_off_outlined
+                                                              : Icons
+                                                                  .visibility_outlined,
+                                                          onTap: () => setState(
+                                                              () => _pw2Visible =
+                                                                  !_pw2Visible)),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    _HintRow(
+                                                        icon: Icons
+                                                            .verified_outlined,
+                                                        ok: pw2Ok,
+                                                        text:
+                                                            'Passwörter müssen übereinstimmen'),
+                                                    const SizedBox(height: 10),
+                                                    const SocialAuthOrDivider(),
+                                                    const SizedBox(height: 10),
+                                                    SocialAuthButton(
+                                                        brand: SocialAuthBrand
+                                                            .google,
+                                                        label:
+                                                            'Mit Google registrieren',
+                                                        onTap: _busy
+                                                            ? null
+                                                            : () => _socialRegister(
+                                                                AuthSocialProvider
+                                                                    .google)),
+                                                    const SizedBox(height: 8),
+                                                    SocialAuthButton(
+                                                        brand: SocialAuthBrand
+                                                            .apple,
+                                                        label:
+                                                            'Mit Apple registrieren',
+                                                        onTap: _busy
+                                                            ? null
+                                                            : () => _socialRegister(
+                                                                AuthSocialProvider
+                                                                    .apple)),
+                                                  ]),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOut,
+              opacity: _peekBackdrop ? 0.0 : 1.0,
+              child: KeyedSubtree(
+                key: _stickyBarKey,
+                child: _StickyAuthBar(
+                  busy: _busy,
+                  onSubmit: _busy ? null : _register,
+                  onOpenTerms: _openTerms,
+                  onOpenPrivacy: _openPrivacy,
+                  onLogin: () => Navigator.of(context).maybePop(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _RegisterBackdrop extends StatelessWidget {
-final bool peekClear;
-const _RegisterBackdrop({required this.peekClear});
+  final bool peekClear;
+  const _RegisterBackdrop({required this.peekClear});
 
-@override
-Widget build(BuildContext context) {
-final theme = Theme.of(context);
-final primary = theme.colorScheme.primary;
-final dark = theme.colorScheme.secondary;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final dark = theme.colorScheme.secondary;
 
-return Stack(
-fit: StackFit.expand,
-children: [
-Image.asset('assets/images/Register_Login_Hintergrund.png', fit: BoxFit.cover, alignment: Alignment.topCenter),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset('assets/images/Register_Login_Hintergrund.png',
+            fit: BoxFit.cover, alignment: Alignment.topCenter),
 // Base blur - removed when peeking
-ClipRect(
-child: BackdropFilter(
-filter: ImageFilter.blur(
-sigmaX: peekClear ? 0.0 : 1.0,
-sigmaY: peekClear ? 0.0 : 1.0,
-),
-child: const SizedBox.expand(),
-),
-),
+        ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: peekClear ? 0.0 : 1.0,
+              sigmaY: peekClear ? 0.0 : 1.0,
+            ),
+            child: const SizedBox.expand(),
+          ),
+        ),
 // Color tint overlay - reduced when peeking
-AnimatedOpacity(
-duration: const Duration(milliseconds: 140),
-opacity: peekClear ? 0.15 : 1.0,
-child: DecoratedBox(
-decoration: BoxDecoration(
-gradient: LinearGradient(
-begin: Alignment.topLeft,
-end: Alignment.bottomRight,
-colors: [
-Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!.withValues(alpha: 0.34),
-Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!.withValues(alpha: 0.26),
-],
-),
-),
-),
-),
+        AnimatedOpacity(
+          duration: const Duration(milliseconds: 140),
+          opacity: peekClear ? 0.15 : 1.0,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.lerp(primary, BrandColors.logoGradientStart, 0.35)!
+                      .withValues(alpha: 0.34),
+                  Color.lerp(dark, BrandColors.logoGradientEnd, 0.55)!
+                      .withValues(alpha: 0.26),
+                ],
+              ),
+            ),
+          ),
+        ),
 // Top gradient overlay (soft vignette from top) - hidden when peeking
-AnimatedOpacity(
-duration: const Duration(milliseconds: 140),
-opacity: peekClear ? 0.0 : 1.0,
-child: IgnorePointer(
-child: DecoratedBox(
-decoration: BoxDecoration(
-gradient: LinearGradient(
-begin: Alignment.topCenter,
-end: Alignment.bottomCenter,
-colors: [
-Colors.black.withValues(alpha: 0.72),
-Colors.black.withValues(alpha: 0.55),
-Colors.black.withValues(alpha: 0.28),
-Colors.transparent,
-],
-stops: const [0.0, 0.08, 0.18, 0.36],
-),
-),
-),
-),
-),
+        AnimatedOpacity(
+          duration: const Duration(milliseconds: 140),
+          opacity: peekClear ? 0.0 : 1.0,
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.72),
+                    Colors.black.withValues(alpha: 0.55),
+                    Colors.black.withValues(alpha: 0.28),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.08, 0.18, 0.36],
+                ),
+              ),
+            ),
+          ),
+        ),
 // Bottom gradient overlay - hidden when peeking
-AnimatedOpacity(
-duration: const Duration(milliseconds: 140),
-opacity: peekClear ? 0.0 : 1.0,
-child: IgnorePointer(
-child: DecoratedBox(
-decoration: BoxDecoration(
-gradient: LinearGradient(
-begin: Alignment.topCenter,
-end: Alignment.bottomCenter,
-colors: [
-Colors.transparent,
-Colors.transparent,
-Colors.black.withValues(alpha: 0.08),
-Colors.black.withValues(alpha: 0.22),
-Colors.black.withValues(alpha: 0.40),
-Colors.black.withValues(alpha: 0.58),
-Colors.black.withValues(alpha: 0.72),
-],
-stops: const [0.0, 0.55, 0.68, 0.78, 0.86, 0.93, 1.0],
-),
-),
-),
-),
-),
+        AnimatedOpacity(
+          duration: const Duration(milliseconds: 140),
+          opacity: peekClear ? 0.0 : 1.0,
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.08),
+                    Colors.black.withValues(alpha: 0.22),
+                    Colors.black.withValues(alpha: 0.40),
+                    Colors.black.withValues(alpha: 0.58),
+                    Colors.black.withValues(alpha: 0.72),
+                  ],
+                  stops: const [0.0, 0.55, 0.68, 0.78, 0.86, 0.93, 1.0],
+                ),
+              ),
+            ),
+          ),
+        ),
 // Extra bottom blur zone - hidden when peeking
-if (!peekClear)
-Positioned(
-left: 0,
-right: 0,
-bottom: 0,
-height: 180,
-child: IgnorePointer(
-child: ClipRect(
-child: BackdropFilter(
-filter: ImageFilter.blur(sigmaX: 1.2, sigmaY: 1.2),
-child: ShaderMask(
-shaderCallback: (Rect bounds) {
-return LinearGradient(
-begin: Alignment.topCenter,
-end: Alignment.bottomCenter,
-colors: [
-Colors.transparent,
-Colors.white.withValues(alpha: 0.3),
-Colors.white.withValues(alpha: 0.7),
-Colors.white,
-],
-stops: const [0.0, 0.25, 0.55, 1.0],
-).createShader(bounds);
-},
-blendMode: BlendMode.dstIn,
-child: Container(color: Colors.transparent),
-),
-),
-),
-),
-),
-],
-);
-}
+        if (!peekClear)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 180,
+            child: IgnorePointer(
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 1.2, sigmaY: 1.2),
+                  child: ShaderMask(
+                    shaderCallback: (Rect bounds) {
+                      return LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.white.withValues(alpha: 0.3),
+                          Colors.white.withValues(alpha: 0.7),
+                          Colors.white,
+                        ],
+                        stops: const [0.0, 0.25, 0.55, 1.0],
+                      ).createShader(bounds);
+                    },
+                    blendMode: BlendMode.dstIn,
+                    child: Container(color: Colors.transparent),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _GlassIconButton extends StatelessWidget {
-final IconData icon;
-final VoidCallback onTap;
-const _GlassIconButton({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+  const _GlassIconButton({required this.icon, required this.onTap});
 
-@override
-Widget build(BuildContext context) {
-return _Pressable(
-onTap: onTap,
-borderRadius: BorderRadius.circular(14),
-child: Container(
-width: 44,
-height: 44,
-alignment: Alignment.center,
-decoration: BoxDecoration(
-color: Colors.white.withValues(alpha: 0.06),
-borderRadius: BorderRadius.circular(14),
-border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-),
-child: Icon(icon, color: Colors.white, size: 20),
-),
-);
-}
+  @override
+  Widget build(BuildContext context) {
+    return _Pressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 44,
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        ),
+        child: Icon(icon, color: Colors.white, size: 20),
+      ),
+    );
+  }
 }
 
 class _GlassSuffixIconButton extends StatelessWidget {
-final IconData icon;
-final VoidCallback onTap;
-const _GlassSuffixIconButton({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+  const _GlassSuffixIconButton({required this.icon, required this.onTap});
 
-@override
-Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
 // Keep it “free-floating” inside the text field (no chip/background).
-return _Pressable(
-onTap: onTap,
-borderRadius: BorderRadius.circular(999),
-child: SizedBox(
-width: 40,
-height: 40,
-child: Center(child: Icon(icon, color: Colors.white.withValues(alpha: 0.85), size: 20)),
-),
-);
-}
+    return _Pressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Center(
+            child: Icon(icon,
+                color: Colors.white.withValues(alpha: 0.85), size: 20)),
+      ),
+    );
+  }
 }
 
 class _GlassCard extends StatelessWidget {
-final Widget child;
-const _GlassCard({required this.child});
+  final Widget child;
+  const _GlassCard({required this.child});
 
-@override
-Widget build(BuildContext context) {
-return ClipRRect(
-borderRadius: BorderRadius.circular(26),
-child: BackdropFilter(
-filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
-child: Container(
-decoration: BoxDecoration(
-color: Colors.black.withValues(alpha: 0.38),
-borderRadius: BorderRadius.circular(26),
-border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-),
-child: child,
-),
-),
-);
-}
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(26),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.38),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
 }
 
 enum _FieldStatus { neutral, success, error }
 
 class _SITTextField extends StatelessWidget {
-final String label;
-final String placeholder;
-final TextEditingController controller;
-final FocusNode focusNode;
-final FocusNode? nextFocusNode;
-final TextInputType keyboardType;
-final TextInputAction textInputAction;
-final String? Function(String?) validator;
-final IconData prefixIcon;
-final _FieldStatus status;
-final bool obscureText;
-final Widget? suffix;
-final bool autocorrect;
-final bool enableSuggestions;
-final TextCapitalization textCapitalization;
-final ValueChanged<String>? onSubmitted;
+  final String label;
+  final String placeholder;
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final FocusNode? nextFocusNode;
+  final TextInputType keyboardType;
+  final TextInputAction textInputAction;
+  final String? Function(String?) validator;
+  final IconData prefixIcon;
+  final _FieldStatus status;
+  final bool obscureText;
+  final Widget? suffix;
+  final bool autocorrect;
+  final bool enableSuggestions;
+  final TextCapitalization textCapitalization;
+  final ValueChanged<String>? onSubmitted;
 
-const _SITTextField({
-required this.label,
-required this.placeholder,
-required this.controller,
-required this.focusNode,
-this.nextFocusNode,
-required this.keyboardType,
-required this.textInputAction,
-required this.validator,
-required this.prefixIcon,
-this.status = _FieldStatus.neutral,
-this.obscureText = false,
-this.suffix,
-this.autocorrect = false,
-this.enableSuggestions = false,
-this.textCapitalization = TextCapitalization.none,
-this.onSubmitted,
-});
+  const _SITTextField({
+    required this.label,
+    required this.placeholder,
+    required this.controller,
+    required this.focusNode,
+    this.nextFocusNode,
+    required this.keyboardType,
+    required this.textInputAction,
+    required this.validator,
+    required this.prefixIcon,
+    this.status = _FieldStatus.neutral,
+    this.obscureText = false,
+    this.suffix,
+    this.autocorrect = false,
+    this.enableSuggestions = false,
+    this.textCapitalization = TextCapitalization.none,
+    this.onSubmitted,
+  });
 
-@override
-Widget build(BuildContext context) {
-final theme = Theme.of(context);
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
 
-final border = switch (status) {
-_FieldStatus.success => BrandColors.success.withValues(alpha: 0.90),
-_FieldStatus.error => BrandColors.danger.withValues(alpha: 0.95),
-_FieldStatus.neutral => Colors.white.withValues(alpha: 0.12),
-};
-final focusedBorder = switch (status) {
-_FieldStatus.success => BrandColors.success,
-_FieldStatus.error => BrandColors.danger,
-_FieldStatus.neutral => BrandColors.primary,
-};
+    final border = switch (status) {
+      _FieldStatus.success => BrandColors.success.withValues(alpha: 0.90),
+      _FieldStatus.error => BrandColors.danger.withValues(alpha: 0.95),
+      _FieldStatus.neutral => Colors.white.withValues(alpha: 0.12),
+    };
+    final focusedBorder = switch (status) {
+      _FieldStatus.success => BrandColors.success,
+      _FieldStatus.error => BrandColors.danger,
+      _FieldStatus.neutral => BrandColors.primary,
+    };
 
-return TextFormField(
-controller: controller,
-focusNode: focusNode,
-keyboardType: keyboardType,
-textInputAction: textInputAction,
-obscureText: obscureText,
-autocorrect: autocorrect,
-enableSuggestions: enableSuggestions,
-textCapitalization: textCapitalization,
-style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
-validator: validator,
-onFieldSubmitted: (v) {
-if (nextFocusNode != null) {
-FocusScope.of(context).requestFocus(nextFocusNode);
-} else {
-onSubmitted?.call(v);
-}
-},
-decoration: InputDecoration(
-labelText: label,
-hintText: placeholder,
-hintStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.42), fontWeight: FontWeight.w600),
-labelStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.78), fontWeight: FontWeight.w700),
-prefixIcon: Padding(
-padding: const EdgeInsets.only(left: 12, right: 10),
-child: Icon(prefixIcon, color: Colors.white.withValues(alpha: 0.78), size: 18),
-),
-prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-suffixIcon: suffix == null ? null : Padding(padding: const EdgeInsets.only(right: 8), child: suffix),
-filled: true,
-fillColor: Colors.black.withValues(alpha: 0.10),
-contentPadding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
-enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: border, width: 1.0)),
-focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: focusedBorder.withValues(alpha: 0.90), width: 1.35)),
-errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: BrandColors.danger.withValues(alpha: 0.9), width: 1.2)),
-focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide(color: BrandColors.danger.withValues(alpha: 0.95), width: 1.3)),
-errorStyle: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.92), height: 1.25, fontWeight: FontWeight.w700),
-),
-);
-}
+    return TextFormField(
+      controller: controller,
+      focusNode: focusNode,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      obscureText: obscureText,
+      autocorrect: autocorrect,
+      enableSuggestions: enableSuggestions,
+      textCapitalization: textCapitalization,
+      style: theme.textTheme.bodyMedium?.copyWith(
+          fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+      validator: validator,
+      onFieldSubmitted: (v) {
+        if (nextFocusNode != null) {
+          FocusScope.of(context).requestFocus(nextFocusNode);
+        } else {
+          onSubmitted?.call(v);
+        }
+      },
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: placeholder,
+        hintStyle: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white.withValues(alpha: 0.42),
+            fontWeight: FontWeight.w600),
+        labelStyle: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white.withValues(alpha: 0.78),
+            fontWeight: FontWeight.w700),
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(left: 12, right: 10),
+          child: Icon(prefixIcon,
+              color: Colors.white.withValues(alpha: 0.78), size: 18),
+        ),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+        suffixIcon: suffix == null
+            ? null
+            : Padding(padding: const EdgeInsets.only(right: 8), child: suffix),
+        filled: true,
+        fillColor: Colors.black.withValues(alpha: 0.10),
+        contentPadding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(color: border, width: 1.0)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(
+                color: focusedBorder.withValues(alpha: 0.90), width: 1.35)),
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(
+                color: BrandColors.danger.withValues(alpha: 0.9), width: 1.2)),
+        focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(
+                color: BrandColors.danger.withValues(alpha: 0.95), width: 1.3)),
+        errorStyle: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white.withValues(alpha: 0.92),
+            height: 1.25,
+            fontWeight: FontWeight.w700),
+      ),
+    );
+  }
 }
 
 class _HintRow extends StatelessWidget {
-final IconData icon;
-final bool ok;
-final String text;
-const _HintRow({required this.icon, required this.ok, required this.text});
+  final IconData icon;
+  final bool ok;
+  final String text;
+  const _HintRow({required this.icon, required this.ok, required this.text});
 
-@override
-Widget build(BuildContext context) {
-final theme = Theme.of(context);
-final c = ok ? BrandColors.success.withValues(alpha: 0.95) : Colors.white.withValues(alpha: 0.55);
-return Padding(
-padding: const EdgeInsets.symmetric(horizontal: 6),
-child: Row(children: [
-Icon(icon, size: 14, color: c),
-const SizedBox(width: 8),
-Expanded(child: Text(text, style: theme.textTheme.labelSmall?.copyWith(color: c, height: 1.2, fontWeight: FontWeight.w700))),
-]),
-);
-}
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final c = ok
+        ? BrandColors.success.withValues(alpha: 0.95)
+        : Colors.white.withValues(alpha: 0.55);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Row(children: [
+        Icon(icon, size: 14, color: c),
+        const SizedBox(width: 8),
+        Expanded(
+            child: Text(text,
+                style: theme.textTheme.labelSmall?.copyWith(
+                    color: c, height: 1.2, fontWeight: FontWeight.w700))),
+      ]),
+    );
+  }
 }
 
 class _StickyAuthBar extends StatelessWidget {
@@ -708,7 +899,12 @@ class _StickyAuthBar extends StatelessWidget {
   final VoidCallback onOpenTerms;
   final VoidCallback onOpenPrivacy;
   final VoidCallback onLogin;
-  const _StickyAuthBar({required this.busy, required this.onSubmit, required this.onOpenTerms, required this.onOpenPrivacy, required this.onLogin});
+  const _StickyAuthBar(
+      {required this.busy,
+      required this.onSubmit,
+      required this.onOpenTerms,
+      required this.onOpenPrivacy,
+      required this.onLogin});
 
   @override
   Widget build(BuildContext context) {
@@ -717,7 +913,8 @@ class _StickyAuthBar extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 8, 16, 8 + (media.padding.bottom > 0 ? 0 : 4)),
+        padding: EdgeInsets.fromLTRB(
+            16, 8, 16, 8 + (media.padding.bottom > 0 ? 0 : 4)),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
@@ -725,12 +922,19 @@ class _StickyAuthBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _PrimaryCTAButton(busy: busy, label: busy ? 'Registrieren…' : 'Kostenlos registrieren', onTap: onSubmit),
+                _PrimaryCTAButton(
+                    busy: busy,
+                    label: busy ? 'Registrieren…' : 'Kostenlos registrieren',
+                    onTap: onSubmit),
                 const SizedBox(height: 8),
-                _LegalText(onOpenTerms: onOpenTerms, onOpenPrivacy: onOpenPrivacy),
+                _LegalText(
+                    onOpenTerms: onOpenTerms, onOpenPrivacy: onOpenPrivacy),
                 const SizedBox(height: 6),
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Text('Schon bei SIT? ', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.85), fontSize: 13)),
+                  Text('Schon bei SIT? ',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: 13)),
                   _TextLink(label: 'Anmelden', onTap: onLogin),
                 ]),
               ],
@@ -742,47 +946,80 @@ class _StickyAuthBar extends StatelessWidget {
   }
 }
 
-
 class _PrimaryCTAButton extends StatelessWidget {
-final bool busy;
-final String label;
-final VoidCallback? onTap;
-const _PrimaryCTAButton({required this.busy, required this.label, required this.onTap});
+  final bool busy;
+  final String label;
+  final VoidCallback? onTap;
+  const _PrimaryCTAButton(
+      {required this.busy, required this.label, required this.onTap});
 
-@override
-Widget build(BuildContext context) {
-final theme = Theme.of(context);
-return _Pressable(
-onTap: onTap,
-borderRadius: BorderRadius.circular(20),
-child: AnimatedContainer(
-duration: const Duration(milliseconds: 180),
-height: 56,
-decoration: BoxDecoration(
-gradient: onTap == null
-? LinearGradient(colors: [Colors.white.withValues(alpha: 0.10), Colors.white.withValues(alpha: 0.08)])
-: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [theme.colorScheme.primary, theme.colorScheme.primary.withValues(alpha: 0.82)]),
-borderRadius: BorderRadius.circular(20),
-border: Border.all(color: onTap == null ? Colors.white.withValues(alpha: 0.10) : theme.colorScheme.primary.withValues(alpha: 0.55)),
-boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: onTap == null ? 0.14 : 0.30), blurRadius: 26, offset: const Offset(0, 16))],
-),
-padding: const EdgeInsets.symmetric(horizontal: 16),
-child: Row(
-mainAxisAlignment: MainAxisAlignment.center,
-children: [
-if (busy) ...[
-SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white.withValues(alpha: onTap == null ? 0.75 : 1.0))),
-const SizedBox(width: 10),
-] else ...[
-Icon(Icons.person_add_alt_1, color: Colors.white.withValues(alpha: onTap == null ? 0.75 : 1.0), size: 20),
-const SizedBox(width: 10),
-],
-Flexible(child: Text(label, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white))),
-],
-),
-),
-);
-}
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return _Pressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: onTap == null
+              ? LinearGradient(colors: [
+                  Colors.white.withValues(alpha: 0.10),
+                  Colors.white.withValues(alpha: 0.08)
+                ])
+              : LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                      theme.colorScheme.primary,
+                      theme.colorScheme.primary.withValues(alpha: 0.82)
+                    ]),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: onTap == null
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : theme.colorScheme.primary.withValues(alpha: 0.55)),
+          boxShadow: [
+            BoxShadow(
+                color:
+                    Colors.black.withValues(alpha: onTap == null ? 0.14 : 0.30),
+                blurRadius: 26,
+                offset: const Offset(0, 16))
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (busy) ...[
+              SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white
+                          .withValues(alpha: onTap == null ? 0.75 : 1.0))),
+              const SizedBox(width: 10),
+            ] else ...[
+              Icon(Icons.person_add_alt_1,
+                  color: Colors.white
+                      .withValues(alpha: onTap == null ? 0.75 : 1.0),
+                  size: 20),
+              const SizedBox(width: 10),
+            ],
+            Flexible(
+                child: Text(label,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white))),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _LegalText extends StatelessWidget {
@@ -793,7 +1030,8 @@ class _LegalText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final base = theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.75), height: 1.3, fontSize: 11);
+    final base = theme.textTheme.labelSmall?.copyWith(
+        color: Colors.white.withValues(alpha: 0.75), height: 1.3, fontSize: 11);
     final link = theme.textTheme.labelSmall?.copyWith(
       color: Colors.white.withValues(alpha: 0.95),
       height: 1.3,
@@ -807,10 +1045,18 @@ class _LegalText extends StatelessWidget {
       child: Text.rich(
         TextSpan(
           children: [
-            TextSpan(text: 'Mit dem Erstellen eines Kontos stimmst du unseren ', style: base),
-            TextSpan(text: 'AGB', style: link, recognizer: TapGestureRecognizer()..onTap = onOpenTerms),
+            TextSpan(
+                text: 'Mit dem Erstellen eines Kontos stimmst du unseren ',
+                style: base),
+            TextSpan(
+                text: 'AGB',
+                style: link,
+                recognizer: TapGestureRecognizer()..onTap = onOpenTerms),
             TextSpan(text: ' und ', style: base),
-            TextSpan(text: 'Datenschutzbestimmungen', style: link, recognizer: TapGestureRecognizer()..onTap = onOpenPrivacy),
+            TextSpan(
+                text: 'Datenschutzbestimmungen',
+                style: link,
+                recognizer: TapGestureRecognizer()..onTap = onOpenPrivacy),
             TextSpan(text: ' zu.', style: base),
           ],
         ),
@@ -819,7 +1065,6 @@ class _LegalText extends StatelessWidget {
     );
   }
 }
-
 
 class _TextLink extends StatelessWidget {
   final String label;
@@ -834,44 +1079,48 @@ class _TextLink extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        child: Text(label, style: theme.textTheme.bodySmall?.copyWith(color: BrandColors.logoAccent, fontWeight: FontWeight.w900, fontSize: 13)),
+        child: Text(label,
+            style: theme.textTheme.bodySmall?.copyWith(
+                color: BrandColors.logoAccent,
+                fontWeight: FontWeight.w900,
+                fontSize: 13)),
       ),
     );
   }
 }
 
 class _Pressable extends StatefulWidget {
-final Widget child;
-final VoidCallback? onTap;
-final BorderRadius borderRadius;
-const _Pressable({required this.child, required this.onTap, required this.borderRadius});
+  final Widget child;
+  final VoidCallback? onTap;
+  final BorderRadius borderRadius;
+  const _Pressable(
+      {required this.child, required this.onTap, required this.borderRadius});
 
-@override
-State<_Pressable> createState() => _PressableState();
+  @override
+  State<_Pressable> createState() => _PressableState();
 }
 
 class _PressableState extends State<_Pressable> {
-bool _down = false;
+  bool _down = false;
 
-@override
-Widget build(BuildContext context) {
-final enabled = widget.onTap != null;
-return GestureDetector(
-onTap: widget.onTap,
-onTapDown: enabled ? (_) => setState(() => _down = true) : null,
-onTapCancel: enabled ? () => setState(() => _down = false) : null,
-onTapUp: enabled ? (_) => setState(() => _down = false) : null,
-child: AnimatedScale(
-duration: const Duration(milliseconds: 140),
-curve: Curves.easeOut,
-scale: _down ? 0.985 : 1.0,
-child: AnimatedOpacity(
-duration: const Duration(milliseconds: 140),
-opacity: enabled ? 1.0 : 0.55,
-child: widget.child,
-),
-),
-);
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.onTap != null;
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: enabled ? (_) => setState(() => _down = true) : null,
+      onTapCancel: enabled ? () => setState(() => _down = false) : null,
+      onTapUp: enabled ? (_) => setState(() => _down = false) : null,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOut,
+        scale: _down ? 0.985 : 1.0,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 140),
+          opacity: enabled ? 1.0 : 0.55,
+          child: widget.child,
+        ),
+      ),
+    );
+  }
 }
-}
-

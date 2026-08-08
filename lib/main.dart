@@ -10,6 +10,8 @@ import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/auth_service.dart';
+import 'package:lendify/services/backend_config.dart';
+import 'package:lendify/services/backend_realtime_service.dart';
 import 'package:lendify/screens/onboarding_flow_screen.dart';
 import 'package:lendify/services/background_theme_service.dart';
 import 'package:lendify/services/qa_bootstrap_service.dart';
@@ -66,8 +68,7 @@ Future<void> main() async {
   debugPrint('[Main] runApp(MyApp)');
   DeveloperUserState? initialPreview;
   try {
-    initialPreview =
-        await QaBootstrapService.maybeBootstrap() ??
+    initialPreview = await QaBootstrapService.maybeBootstrap() ??
         await DeveloperPreviewController.readStateOnce();
   } catch (e) {
     debugPrint('[Main] bootstrap/readStateOnce failed: $e');
@@ -125,7 +126,12 @@ class AppRoot extends StatelessWidget {
   Future<AuthSession?> _loadSessionWithPreviewFallback() async {
     try {
       final existing = await AuthService.readSession();
-      if (existing != null) return existing;
+      if (existing != null) {
+        if (BackendConfig.enabled && (existing.accessToken ?? '').isNotEmpty) {
+          await BackendRealtimeService.connect(existing.accessToken!);
+        }
+        return existing;
+      }
       if (_enableDreamflowPreviewDemoAuth && !kReleaseMode) {
         await AuthService.ensureSeeded();
         final result = await AuthService.signInWithEmailPassword(
