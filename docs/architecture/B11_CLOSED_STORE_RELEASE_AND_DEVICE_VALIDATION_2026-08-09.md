@@ -176,6 +176,12 @@ angeschlossen. Diese Punkte dürfen nicht als bestanden markiert werden.
 
 ## Noch auszuführende Kernmatrix
 
+Das ausführbare Test- und Evidenzprotokoll liegt unter
+`docs/operations/B11_CLOSED_STORE_AND_DEVICE_TEST_RUNBOOK_2026-08-09.md`. Es
+definiert Release-Eintrag, Eintrittsbedingungen, reale Geräte-/Rollenmatrix,
+Store-Installation, Push-/Offline-Fälle, Barrierefreiheit, Datenschutz,
+Fehlerklassen, Stop-Regeln, Rückfall und B11-Go/No-Go.
+
 Auf beiden Plattformen und mit Vermieter- sowie Mieterrolle:
 
 1. Installation, Erststart, Berechtigungen, Login und Neustart.
