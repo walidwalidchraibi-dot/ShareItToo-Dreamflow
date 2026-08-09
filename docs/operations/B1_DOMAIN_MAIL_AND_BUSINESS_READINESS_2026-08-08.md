@@ -68,8 +68,12 @@ Zahlungsereignisse und die spätere Store-Einreichung.
   From-Domain sind auf `shareittoo.com` ausgerichtet. Gmail zeigt außerdem
   TLS-Transport. Das bestehende Relay und alle übrigen Dienste blieben
   unverändert.
-- Eine zweite Testmail an einen unabhängigen Anbieter senden und dort dieselben
-  Ergebnisse sowie das Fehlen sichtbarer Warnungen bestätigen.
+- Eine zweite Testmail wurde am 9. August 2026 über denselben unveränderten
+  Versandweg an die neutrale Prüfinstanz `dmarctester.com` gesendet. Der
+  unabhängige Empfänger bestätigte `SPF=PASS`, `DKIM=PASS` mit
+  RSA-SHA256/2048 Bit und Selector `google`, SPF- und DKIM-Ausrichtung jeweils
+  `PASS` sowie `DMARC=PASS`. Der Abschlussstatus enthält keine Warnung; die
+  Richtlinie bleibt bewusst `p=none`.
 - `From`, `Reply-To`, Support-Adresse, Passwort-Reset-Link und Buchungslink auf
   Desktop und Mobilgerät prüfen.
 - DMARC-Berichte mindestens eine Woche im Modus `p=none` beobachten, bevor
