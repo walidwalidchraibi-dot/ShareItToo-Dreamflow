@@ -263,6 +263,24 @@ Validator im Standardmodus grün und im strengen Modus mit exakt drei URL- und
 elf Release-Gates erwartungsgemäß geschlossen. Caddy und die echte
 PostgreSQL-Integration werden zusätzlich in GitHub Actions geprüft.
 
+GitHub-Actions-Lauf `31312753286` bestätigte anschließend Commit
+`396d843a92c362c6ffc22ae25550a3eb6a9f0318` vollständig:
+
+- 56 von 56 Backendtests einschließlich echter PostgreSQL-16-Integration;
+- Secret- und Produktionsabhängigkeitsprüfung bestanden;
+- Produktions- und Staging-Compose sowie die neuen Caddy-Root-Routen
+  erfolgreich validiert;
+- 167 von 167 Fluttertests, Analyzer-Basis 696, Web-Debug und Android-Debug;
+- separater signierter und commitgebundener Android-Release-Kandidat;
+- Store-Validator im normalen Entwurfsmodus sowohl in Regression als auch im
+  Release-Preflight grün;
+- API-Image erst nach beiden grünen Hauptjobs veröffentlicht.
+
+Der veröffentlichte und ausdrücklich nicht ausgerollte Registry-Digest lautet
+`sha256:7a9aa907b0b4a8f17e49f2090631c5fa2796010f0f0d05cc416f4ea24cf9be40`.
+Das CI-Android-Artefakt bleibt Build `2026080902`, ohne Firebase und mit einem
+kurzlebigen CI-Schlüssel; es ist kein Store-Kandidat.
+
 Detail-Runbook:
 `docs/operations/B11_PUBLIC_STORE_PAGES_READINESS_2026-08-09.md`.
 

@@ -100,10 +100,17 @@ kein Store-Build.
 
 ## Aktueller Schutzstatus
 
+- Implementierungscommit:
+  `396d843a92c362c6ffc22ae25550a3eb6a9f0318`.
+- GitHub-Actions-Lauf `31312753286` vollständig grün: 56/56 Backendtests
+  einschließlich PostgreSQL-16, Caddy/Compose, 167/167 Fluttertests,
+  Analyzer-Basis 696, Web/Android und signierter commitgebundener
+  Android-Kandidat.
+- Veröffentlichtes, nicht ausgerolltes API-Image:
+  `sha256:7a9aa907b0b4a8f17e49f2090631c5fa2796010f0f0d05cc416f4ea24cf9be40`.
 - Keine unbestätigte Rechtsidentität wurde übernommen.
 - Keine Support- oder Datenschutzseite wurde als freigegeben markiert.
 - Kein Staging- oder Produktionsdeploy wurde ausgeführt.
 - Produktion, Stripe-Live und Echtgeld bleiben geschützt.
 - Die bestehende technische Staging-Kontolöschung bleibt unter
   `https://staging.shareittoo.com/api/v1/account-deletion` erreichbar.
-
