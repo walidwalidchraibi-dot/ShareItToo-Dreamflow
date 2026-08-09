@@ -118,7 +118,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             body: _HelpBody(
               intro: 'Du kannst ShareItToo im MVP ohne komplizierte Schritte starten. Später kommen mehr Login-Optionen hinzu.',
               steps: [
-                'Öffne „Profil“ und folge dem Hinweis zur Anmeldung/Registrierung (Demo).',
+                'Öffne „Profil“ und wähle „Anmelden“ oder „Konto erstellen“.',
                 'Vervollständige Profilangaben (Name, Stadt).',
                 'Optional: Verifizierung durchführen, um Vertrauen zu erhöhen.',
               ],
@@ -206,7 +206,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             body: _HelpBody(
               intro: 'Je klarer deine Anzeige, desto weniger Rückfragen und desto höher die Buchungsrate.',
               steps: [
-                'Öffne „Vermieter“ → „Anzeige erstellen“.',
+                'Öffne „Erkunden“ und wähle „Neue Anzeige erstellen“.',
                 'Wähle Kategorie, Titel und Beschreibung.',
                 'Lege Standort und Verfügbarkeit fest.',
               ],

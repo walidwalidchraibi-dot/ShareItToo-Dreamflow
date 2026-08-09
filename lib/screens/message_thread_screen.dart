@@ -2020,7 +2020,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                       return true;
                                     }).toList()
                                   : messages;
-                              final showDemo = filteredMessages.isEmpty;
+                              final showDemo = QaRuntimeService.isEnabled &&
+                                  _thread?.id == _translationDemoThreadId &&
+                                  filteredMessages.isEmpty;
                               final displayMessages = showDemo
                                   ? _demoTranslationMessages()
                                   : _dedupeSupportCases(filteredMessages);

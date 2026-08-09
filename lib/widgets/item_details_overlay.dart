@@ -1985,9 +1985,7 @@ class _ListerDetailsCard extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           SitUserAvatar(
-            url: (u?.photoURL != null && (u!.photoURL ?? '').isNotEmpty)
-                ? u.photoURL
-                : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+            url: u?.photoURL,
             radius: 22,
             borderColor: Colors.white.withValues(alpha: 0.12),
           ),

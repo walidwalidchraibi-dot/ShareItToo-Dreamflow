@@ -353,26 +353,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  User _placeholderUser() {
-    final now = DateTime.now();
-    return User(
-      id: 'placeholder-user',
-      displayName: 'Walid Chraibi',
-      email: 'walid.placeholder@shareittoo.demo',
-      city: 'Berlin',
-      country: 'Deutschland',
-      preferredLanguage: 'de-DE',
-      isVerified: false,
-      isBanned: false,
-      role: 'user',
-      avgRating: 4.7,
-      reviewCount: 32,
-      createdAt: now.subtract(const Duration(days: 480)),
-      photoURL: 'https://images.unsplash.com/photo-1544723795-3fb6469f5b39?w=150&h=150&fit=crop&crop=face',
-      languages: const ['Deutsch'],
-    );
-  }
-
   User _guestUser() {
     final now = DateTime.now();
     return User(
@@ -398,7 +378,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final l10n = context.watch<LocalizationController>();
     context.watch<DeveloperPreviewController>();
     final isGuest = !_hasActiveSession || _isLoggedOutUser;
-    final userForDisplay = _user ?? (isGuest ? _guestUser() : _placeholderUser());
+    // Never invent account details while the real profile is loading.
+    final userForDisplay = _user ?? _guestUser();
     final verified = userForDisplay.isVerified;
     final bool _hasAnyNotifications = _hasNewRequests; // extend when adding more sources
     final hasProfileQuery = _isProfileSearchOpen && _profileSearchCtrl.text.trim().isNotEmpty;
@@ -410,10 +391,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'primaryActions': [
         {
           'id': 'verify_now',
-          'labelKey': 'profile.action.verifyNow',
+          'labelKey': 'profile.action.verificationUnavailable',
           'icon': 'badge-check',
           'route': '/verify',
           'visibleWhen': !verified,
+          'enabled': false,
         },
         {
           'id': 'view_public_profile',
@@ -625,8 +607,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
             const ProfileLoggedOutBanner(),
           ],
-          const SizedBox(height: 12),
-          if (!_isLoading) _ResponseTimeCard(responseTimeMinutes: 42),
           const SizedBox(height: 16),
           // Primary actions (from JSON spec)
           Column(children: [
@@ -635,7 +615,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: () {
+                    onPressed: action['enabled'] == false ? null : () {
                       final route = action['route'] as String;
                       if (isGuest && _isLoginRequiredRoute(route)) {
                         showGuestRestrictionSheet(context, gateContext: _guestGateContextForRoute(route));
@@ -1120,37 +1100,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         message: 'Bitte versuche es erneut.',
       );
     }
-  }
-}
-
-class _ResponseTimeCard extends StatelessWidget {
-  final int responseTimeMinutes;
-  const _ResponseTimeCard({required this.responseTimeMinutes});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = context.watch<LocalizationController>();
-    final minutes = responseTimeMinutes.clamp(1, 24 * 60);
-    final text = l10n.language == AppLanguage.de
-        ? 'Du antwortest durchschnittlich in $minutes Minuten'
-        : 'You reply on average in $minutes minutes';
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.22),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.schedule, color: theme.colorScheme.primary.withValues(alpha: 0.95), size: 18),
-          const SizedBox(width: 10),
-          Expanded(child: Text(text, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, height: 1.25))),
-        ],
-      ),
-    );
   }
 }
 

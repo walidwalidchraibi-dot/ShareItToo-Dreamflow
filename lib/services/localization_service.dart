@@ -118,6 +118,9 @@ class LocalizationController extends ChangeNotifier {
     'Abbrechen': 'Abbrechen',
     'Bald verfügbar': 'Bald verfügbar',
     'Nicht verfügbar': 'Nicht verfügbar',
+    'Ort hinzufügen': 'Ort hinzufügen',
+    'Noch keine Anzeigen': 'Noch keine Anzeigen',
+    'Noch keine Daten': 'Noch keine Daten',
     'Jetzt suchen': 'Jetzt suchen',
     'Zurücksetzen': 'Zurücksetzen',
     'Anwenden': 'Anwenden',
@@ -133,6 +136,8 @@ class LocalizationController extends ChangeNotifier {
     'Gefiltert nach:': 'Gefiltert nach:',
     'Nicht verifiziert': 'Nicht verifiziert',
     'Verifiziert': 'Verifiziert',
+    'Identität bestätigt': 'Identität bestätigt',
+    'Identität noch nicht geprüft': 'Identität noch nicht geprüft',
     'Eingestellt am': 'Eingestellt am',
     '€/Tag': '€/Tag',
 
@@ -195,6 +200,7 @@ class LocalizationController extends ChangeNotifier {
     'Mein Profil anzeigen': 'Mein Profil anzeigen',
     // New i18n namespaced keys
     'profile.action.verifyNow': 'Jetzt verifizieren',
+    'profile.action.verificationUnavailable': 'Identitätsprüfung noch nicht verfügbar',
     'profile.action.viewMyProfile': 'Mein Profil anzeigen',
     'profile.menu.myListings': 'Meine Anzeigen',
     'profile.menu.rentalRequests': 'Mietanfragen',
@@ -311,6 +317,9 @@ class LocalizationController extends ChangeNotifier {
     'Abbrechen': 'Cancel',
     'Bald verfügbar': 'Coming soon',
     'Nicht verfügbar': 'Unavailable',
+    'Ort hinzufügen': 'Add location',
+    'Noch keine Anzeigen': 'No listings yet',
+    'Noch keine Daten': 'No data yet',
     'Jetzt suchen': 'Search now',
     'Zurücksetzen': 'Reset',
     'Anwenden': 'Apply',
@@ -326,6 +335,8 @@ class LocalizationController extends ChangeNotifier {
     'Gefiltert nach:': 'Filtered by:',
     'Nicht verifiziert': 'Not verified',
     'Verifiziert': 'Verified',
+    'Identität bestätigt': 'Identity verified',
+    'Identität noch nicht geprüft': 'Identity not yet verified',
     'Eingestellt am': 'Listed on',
     '€/Tag': '€/day',
 
@@ -388,6 +399,7 @@ class LocalizationController extends ChangeNotifier {
     'Mein Profil anzeigen': 'View my profile',
     // New i18n namespaced keys
     'profile.action.verifyNow': 'Verify now',
+    'profile.action.verificationUnavailable': 'Identity verification not yet available',
     'profile.action.viewMyProfile': 'View my profile',
     'profile.menu.myListings': 'My listings',
     'profile.menu.rentalRequests': 'Rental requests',
@@ -487,4 +499,3 @@ class LocalizationController extends ChangeNotifier {
     'language.subtitle': 'Choose a language. Changes apply immediately and are saved on this device.',
   };
 }
-

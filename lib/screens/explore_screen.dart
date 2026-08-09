@@ -131,6 +131,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
     if (g.contains('mode') || g.contains('lifestyle')) return Icons.checkroom;
     if (g.contains('sport') || g.contains('hobby') || g.contains('hobb'))
       return Icons.sports_soccer;
+    if (g.contains('event') || g.contains('feier')) return Icons.celebration;
+    if (g.contains('reise') || g.contains('camping')) return Icons.hiking;
+    if (g.contains('kleidung') || g.contains('anlass')) return Icons.checkroom;
     if (g.contains('werkzeuge') ||
         g.contains('geräte') ||
         g.contains('geraete')) return Icons.construction;
@@ -144,18 +147,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
 // Build the top-level categories in fixed order for the home header
   List<CategoryIconDataModel> get _homeCategories {
-    final presentGroups = <String>{
-      for (final item in _items)
-        if ((item.status == 'active' || item.isActive) &&
-            (_coarseByCatId[item.categoryId]?.isNotEmpty ?? false))
-          _coarseByCatId[item.categoryId]!,
-    };
-    final ordered = [
-      for (final label in DataService.coarseCategoryOrder)
-        if (presentGroups.contains(label)) label,
-    ];
     return [
-      for (final label in ordered)
+      for (final label in DataService.coarseCategoryOrder)
         CategoryIconDataModel(
             id: label, icon: _coarseIconForGroup(label), label: label)
     ];
@@ -910,8 +903,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 final hasRealUserName =
                                     (_currentUserName ?? '').trim().isNotEmpty;
                                 final greeting = hasRealUserName
-                                    ? 'Hi ${_currentUserName!.trim().split(' ').first}! 👋'
+                                    ? (l10n.language == AppLanguage.de
+                                        ? 'Hallo ${_currentUserName!.trim().split(' ').first}! 👋'
+                                        : 'Hi ${_currentUserName!.trim().split(' ').first}! 👋')
                                     : l10n.t('Hallo 👋');
+                                final city = (_currentUserCity ?? '').trim();
+                                final locationLabel = city.isEmpty
+                                    ? l10n.t('Ort hinzufügen')
+                                    : city;
                                 final primaryText =
                                     AppTheme.textPrimary(context);
                                 final secondaryText =
@@ -946,33 +945,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                                         fontSize: 24),
                                               ),
                                               const SizedBox(height: 4),
-                                              Row(children: [
-                                                InkWell(
-                                                  onTap: _openLocationUpdate,
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                  child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            4.0),
-                                                    child: Icon(
-                                                        Icons.location_on,
-                                                        size: 16,
-                                                        color: secondaryText),
+                                              InkWell(
+                                                onTap: _openLocationUpdate,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                child: Padding(
+                                                  padding: const EdgeInsets.all(4.0),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Icon(Icons.location_on, size: 16, color: secondaryText),
+                                                      const SizedBox(width: 4),
+                                                      Text(locationLabel, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: secondaryText, fontSize: 14)),
+                                                    ],
                                                   ),
                                                 ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  _currentUserCity ??
-                                                      'Nicht verfügbar',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodyMedium
-                                                      ?.copyWith(
-                                                          color: secondaryText,
-                                                          fontSize: 14),
-                                                ),
-                                              ]),
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -1066,13 +1054,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       },
                       body: ScrollEdgeIndicators.page(
                         controller: _feedPager,
-                        pageCount: 4,
+                        pageCount: itemsFiltered.isEmpty ? 1 : 4,
                         showLeft: true,
                         showRight: true,
                         showArrows: false,
                         // Keep the fade aligned with the page-title area.
                         arrowsTop: 6,
-                        child: PageView(
+                        child: itemsFiltered.isEmpty
+                            ? feedPage(title: context.watch<LocalizationController>().t('Noch keine Anzeigen'), items: const <Item>[])
+                            : PageView(
                           controller: _feedPager,
                           physics: const BouncingScrollPhysics(),
                           children: [
@@ -1097,7 +1087,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                     .t('Kunden gefällt auch'),
                                 items: customersLike),
                           ],
-                        ),
+                              ),
                       ),
                     );
                   }),

@@ -5,11 +5,11 @@ import 'package:lendify/models/user.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/screens/profile_info_screen.dart';
 import 'package:lendify/screens/contact_data_screen.dart';
-import 'package:lendify/screens/change_password_screen.dart';
+import 'package:lendify/screens/security_screen.dart';
 import 'package:lendify/screens/payment_methods_screen.dart';
 import 'package:lendify/screens/stripe_payout_account_screen.dart';
 import 'package:lendify/screens/invoices_screen.dart';
-import 'package:lendify/screens/notifications_screen.dart';
+import 'package:lendify/screens/notification_settings_screen.dart';
 import 'package:lendify/screens/privacy_info_screen.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/screens/account_deleted_screen.dart';
@@ -103,7 +103,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         label: l10n.t('account.item.changePassword'),
                         onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                                builder: (_) => const ChangePasswordScreen())),
+                                builder: (_) => const SecurityScreen())),
                       ),
                       const _Divider(),
                       _RowTile(
@@ -149,7 +149,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         label: l10n.t('account.item.notifications'),
                         onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                                builder: (_) => const NotificationsScreen())),
+                                builder: (_) => const NotificationSettingsScreen())),
                       ),
                     ]),
                     const SizedBox(height: 28),

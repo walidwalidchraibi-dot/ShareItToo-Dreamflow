@@ -9,16 +9,8 @@ class MapsService {
 
   static Future<List<_AddrOption>> autocomplete(String input, {String language = 'de', String country = 'de'}) async {
     if (!isConfigured) {
-      // Fallback demo suggestions
-      final demo = <String>[
-        'Musterstraße 1, 10115 Berlin',
-        'Hauptstraße 12, 80331 München',
-        'Bahnhofstraße 3, 50667 Köln',
-        'Gartenweg 7, 70173 Stuttgart',
-        'Ringstraße 22, 28195 Bremen',
-      ];
-      final q = input.toLowerCase().trim();
-      return demo.where((e) => e.toLowerCase().contains(q)).map((e) => _AddrOption(description: e, placeId: null)).toList();
+      // A missing provider must never look like a successful address lookup.
+      return const [];
     }
     final uri = Uri.https('maps.googleapis.com', '/maps/api/place/autocomplete/json', {
       'input': input,

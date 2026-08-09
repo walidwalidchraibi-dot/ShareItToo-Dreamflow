@@ -212,7 +212,7 @@ class _RenterCard extends StatelessWidget {
       decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
       child: ListTile(
         leading: SitUserAvatar(
-          url: user.photoURL ?? 'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=150&h=150&fit=crop&crop=face',
+          url: user.photoURL,
           radius: 20,
           borderColor: Colors.white.withValues(alpha: 0.12),
         ),
@@ -393,7 +393,7 @@ class _PublicProfileQuickView extends StatelessWidget {
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Row(children: [
           SitUserAvatar(
-            url: user.photoURL ?? 'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=150&h=150&fit=crop&crop=face',
+            url: user.photoURL,
             radius: 36,
             borderColor: Colors.white.withValues(alpha: 0.12),
           ),

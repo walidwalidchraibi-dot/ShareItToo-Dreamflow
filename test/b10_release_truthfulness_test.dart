@@ -42,6 +42,34 @@ void main() {
     expect(security, contains('!BackendConfig.enabled && !kReleaseMode'));
   });
 
+  test('authenticated empty states do not present invented marketplace data',
+      () async {
+    final profile = await File('lib/screens/profile_screen.dart').readAsString();
+    final profileHeader = await File('lib/widgets/profile_header_card.dart').readAsString();
+    final publicProfile = await File('lib/screens/public_profile_screen.dart').readAsString();
+    final ownProfile = await File('lib/screens/own_profile_screen.dart').readAsString();
+    final ownerRequests = await File('lib/screens/owner_requests_screen.dart').readAsString();
+    final messageThread = await File('lib/screens/message_thread_screen.dart').readAsString();
+    final accountSettings = await File('lib/screens/account_settings_screen.dart').readAsString();
+    final maps = await File('lib/services/maps_service.dart').readAsString();
+
+    expect(profile, isNot(contains('walid.placeholder')));
+    expect(profile, isNot(contains('responseTimeMinutes: 42')));
+    expect(profileHeader, isNot(contains('_estimatedBookings')));
+    expect(profileHeader, isNot(contains('images.unsplash.com/photo')));
+    expect(publicProfile, isNot(contains('_mockResponseTimeMin')));
+    expect(publicProfile, isNot(contains('responseTimeMinutes')));
+    expect(ownProfile, isNot(contains('responseTimeMin = 42')));
+    expect(ownProfile, isNot(contains('DJI Mavic Air 2')));
+    expect(ownProfile, isNot(contains('Makita Akkuschrauber')));
+    expect(RegExp(r'if \(QaRuntimeService\.isEnabled\)').allMatches(ownerRequests).length, greaterThanOrEqualTo(2));
+    expect(messageThread, contains('QaRuntimeService.isEnabled &&'));
+    expect(messageThread, contains('_thread?.id == _translationDemoThreadId'));
+    expect(accountSettings, contains('const SecurityScreen()'));
+    expect(accountSettings, isNot(contains('const ChangePasswordScreen()')));
+    expect(maps, isNot(contains('Musterstraße 1')));
+  });
+
   testWidgets(
       'privacy export remains usable with large text and keyboard focus',
       (tester) async {

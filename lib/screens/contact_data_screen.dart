@@ -761,18 +761,21 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                                       ),
                                       const SizedBox(height: 12),
                                       FilledButton.icon(
-                                        onPressed:
-                                            (user?.phoneVerified ?? false)
-                                                ? null
-                                                : _verifyPhoneFlow,
-                                        icon: const Icon(
-                                            Icons.verified_outlined,
-                                            color: Colors.white),
-                                        label: const Text(
-                                            'Telefonnummer verifizieren',
-                                            style:
-                                                TextStyle(color: Colors.white)),
+                                        onPressed: (user?.phoneVerified ?? false) || BackendConfig.enabled
+                                            ? null
+                                            : _verifyPhoneFlow,
+                                        icon: const Icon(Icons.verified_outlined),
+                                        label: Text(BackendConfig.enabled && !(user?.phoneVerified ?? false)
+                                            ? 'Telefonprüfung noch nicht verfügbar'
+                                            : 'Telefonnummer verifizieren'),
                                       ),
+                                      if (BackendConfig.enabled && !(user?.phoneVerified ?? false)) ...[
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Die sichere SMS-Bestätigung wird vor dem Produktionsstart freigeschaltet.',
+                                          style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                                        ),
+                                      ],
                                     ]),
                               ),
                               const SizedBox(height: 18),

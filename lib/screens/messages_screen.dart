@@ -1939,7 +1939,7 @@ class _ConfirmDeleteSheet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Diese Aktion kann nicht rückgängig gemacht werden. (Lokale Demo-Daten)',
+            'Diese Aktion kann nicht rückgängig gemacht werden.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.textBody(context), height: 1.45, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 14),

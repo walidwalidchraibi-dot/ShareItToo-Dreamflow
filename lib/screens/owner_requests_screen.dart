@@ -12,6 +12,7 @@ import 'package:lendify/screens/ongoing_owner_detail_screen.dart';
 import 'package:lendify/widgets/box_chat_icon.dart';
 import 'package:lendify/widgets/review_prompt_sheet.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
+import 'package:lendify/services/qa_runtime_service.dart';
 
 /// Owner-side requests hub: Tabs for Laufend, Kommend, Anfragen, Abgeschlossen
 class OwnerRequestsScreen extends StatefulWidget {
@@ -115,30 +116,45 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
   Future<void> _load() async {
     final owner = await DataService.getCurrentUser();
     if (owner == null) {
-      final demo = await _buildDemoOwnerEntries();
+      if (QaRuntimeService.isEnabled) {
+        final demo = await _buildDemoOwnerEntries();
+        if (!mounted) return;
+        _ownerId = demo.ownerId;
+        _deliveryByItemId
+          ..clear()
+          ..addAll(demo.deliverySelections);
+        _unreadCounts
+          ..clear()
+          ..addAll({'ongoing': 1, 'upcoming': 1, 'requests': 1, 'completed': 3});
+        setState(() => _entries = demo.entries);
+        return;
+      }
       if (!mounted) return;
-      _ownerId = demo.ownerId;
-      _deliveryByItemId
-        ..clear()
-        ..addAll(demo.deliverySelections);
-      _unreadCounts
-        ..clear()
-        ..addAll({'ongoing': 1, 'upcoming': 1, 'requests': 1, 'completed': 3});
-      setState(() => _entries = demo.entries);
+      _ownerId = null;
+      _deliveryByItemId.clear();
+      _unreadCounts.clear();
+      setState(() => _entries = const []);
       return;
     }
     _ownerId = owner.id;
     final requests = await DataService.getRentalRequestsForOwner(owner.id);
     if (requests.isEmpty) {
-      final demo = await _buildDemoOwnerEntries(ownerId: owner.id);
+      if (QaRuntimeService.isEnabled) {
+        final demo = await _buildDemoOwnerEntries(ownerId: owner.id);
+        if (!mounted) return;
+        _deliveryByItemId
+          ..clear()
+          ..addAll(demo.deliverySelections);
+        _unreadCounts
+          ..clear()
+          ..addAll({'ongoing': 1, 'upcoming': 1, 'requests': 1, 'completed': 3});
+        setState(() => _entries = demo.entries);
+        return;
+      }
       if (!mounted) return;
-      _deliveryByItemId
-        ..clear()
-        ..addAll(demo.deliverySelections);
-      _unreadCounts
-        ..clear()
-        ..addAll({'ongoing': 1, 'upcoming': 1, 'requests': 1, 'completed': 3});
-      setState(() => _entries = demo.entries);
+      _deliveryByItemId.clear();
+      _unreadCounts.clear();
+      setState(() => _entries = const []);
       return;
     }
     final items = await DataService.getItems();

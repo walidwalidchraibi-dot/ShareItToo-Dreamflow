@@ -440,7 +440,6 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   User? _user;
   List<Item> _items = [];
   bool _redirectingBlockedProfile = false;
-  static const int _mockResponseTimeMin = 42;
 
   @override
   void initState() {
@@ -636,8 +635,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 children: [
                   ProfileHeaderCard(user: u, listingsCount: _items.length),
                   const SizedBox(height: 12),
-                  _TrustAndSafetySection(
-                      user: u, responseTimeMinutes: _mockResponseTimeMin),
+                  _TrustAndSafetySection(user: u),
                   const SizedBox(height: 16),
                   if (u.showWork && (u.workTitle?.isNotEmpty ?? false))
                     _InfoTile(
@@ -1099,19 +1097,7 @@ class _ProfileQuickInfoLines extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
-    final responseTimeMin = 42; // mock
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Icon(Icons.schedule, color: AppTheme.textSecondary(context), size: 18),
-        const SizedBox(width: 8),
-        Expanded(
-            child: Text('Ø $responseTimeMin min',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppTheme.textPrimary(context))))
-      ]),
-      const SizedBox(height: 8),
       Row(children: [
         Icon(Icons.apps_outage_rounded,
             color: AppTheme.textSecondary(context), size: 18),
@@ -1148,10 +1134,7 @@ class _ProfileQuickInfoLines extends StatelessWidget {
 
 class _TrustAndSafetySection extends StatelessWidget {
   final User user;
-  final int responseTimeMinutes;
-
-  const _TrustAndSafetySection(
-      {required this.user, required this.responseTimeMinutes});
+  const _TrustAndSafetySection({required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -1199,13 +1182,6 @@ class _TrustAndSafetySection extends StatelessWidget {
                 ? l10n.t('Verifiziert')
                 : l10n.t('Nicht verifiziert'),
             isPositive: user.emailVerified,
-          ),
-          const SizedBox(height: 10),
-          _TrustRow(
-            icon: Icons.schedule,
-            label: l10n.t('Antwortzeit'),
-            value: 'Ø $responseTimeMinutes min',
-            isPositive: true,
           ),
         ],
       ),

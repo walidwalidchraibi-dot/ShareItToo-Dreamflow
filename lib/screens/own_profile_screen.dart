@@ -139,13 +139,8 @@ class _OwnProfileScreenState extends State<OwnProfileScreen> with SingleTickerPr
   }
 
   _UserMetrics _computeMetrics({required double avgRating, required int reviewCount, required bool isVerified}) {
-    // Derived demo metrics for last 90 days
-    final responseTimeMin = 42.0; // simulated
-    final accepted = 40; // demo
-    final ownerCancellations = 1; // demo
-    final cancellationRate = accepted == 0 ? 0.0 : (ownerCancellations / accepted) * 100.0;
     final trust = (isVerified ? 20 : 0) + (avgRating * 12).clamp(0, 60) + (reviewCount.clamp(0, 50) * 0.4).clamp(0, 20);
-    return _UserMetrics(trustScore: trust.clamp(0, 100).toDouble(), responseTimeMinutes: responseTimeMin, cancellationRate: cancellationRate);
+    return _UserMetrics(trustScore: trust.clamp(0, 100).toDouble(), responseTimeMinutes: null, cancellationRate: null);
   }
 }
 
@@ -356,10 +351,7 @@ class _BookingsHistoryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
-    final bookings = [
-      {'title': 'DJI Mavic Air 2', 'dates': '02.-05. Dez.', 'location': 'Berlin', 'status': l10n.t('Abgeschlossen'), 'image': 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300&h=200&fit=crop'},
-      {'title': 'Makita Akkuschrauber', 'dates': '11.-13. Nov.', 'location': 'Dresden', 'status': l10n.t('Abgeschlossen'), 'image': 'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=300&h=200&fit=crop'},
-    ];
+    final bookings = <Map<String, String>>[];
     if (bookings.isEmpty) {
       return Center(child: Text(l10n.t('Keine Historie'), style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white70)));
     }
@@ -517,9 +509,7 @@ class _AboutMeTab extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           SitUserAvatar(
-            url: (u?.photoURL != null && (u!.photoURL ?? '').isNotEmpty)
-                ? u.photoURL
-                : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+            url: u?.photoURL,
             radius: 34,
             borderColor: Colors.white.withValues(alpha: 0.12),
           ),
@@ -552,9 +542,9 @@ class _AboutMeTab extends StatelessWidget {
         const SizedBox(height: 8),
 
         Row(children: [
-          Expanded(child: _MetricTile(title: context.watch<LocalizationController>().t('Ø Reaktionszeit'), value: '${metrics.responseTimeMinutes.toStringAsFixed(0)} Min')),
+          Expanded(child: _MetricTile(title: context.watch<LocalizationController>().t('Ø Reaktionszeit'), value: metrics.responseTimeMinutes == null ? context.watch<LocalizationController>().t('Noch keine Daten') : '${metrics.responseTimeMinutes!.toStringAsFixed(0)} Min')),
           const SizedBox(width: 8),
-          Expanded(child: _MetricTile(title: context.watch<LocalizationController>().t('Ø Storno-Rate'), value: '${metrics.cancellationRate.toStringAsFixed(1)}%')),
+          Expanded(child: _MetricTile(title: context.watch<LocalizationController>().t('Ø Storno-Rate'), value: metrics.cancellationRate == null ? context.watch<LocalizationController>().t('Noch keine Daten') : '${metrics.cancellationRate!.toStringAsFixed(1)}%')),
         ]),
       ]),
     );
@@ -608,6 +598,6 @@ class _MetricTile extends StatelessWidget {
 }
 
 class _UserMetrics {
-  final double trustScore; final double responseTimeMinutes; final double cancellationRate;
+  final double trustScore; final double? responseTimeMinutes; final double? cancellationRate;
   const _UserMetrics({required this.trustScore, required this.responseTimeMinutes, required this.cancellationRate});
 }

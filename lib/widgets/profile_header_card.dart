@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 class ProfileHeaderCard extends StatelessWidget {
   final User user;
   final int listingsCount;
-  /// Number of completed bookings (as renter). If null, we fall back to a demo estimate.
+  /// Number of completed bookings (as renter). Unknown values stay unknown.
   final int? completedBookingsCount;
   /// Callback when the card is tapped (e.g., navigate to public profile).
   final VoidCallback? onTap;
@@ -19,7 +19,7 @@ class ProfileHeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
     final isGuest = _isGuestUser;
-    final avatarUrl = isGuest ? null : (user.photoURL ?? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face');
+    final avatarUrl = isGuest ? null : user.photoURL;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -69,7 +69,7 @@ class ProfileHeaderCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  user.isVerified ? l10n.t('Verifiziert') : l10n.t('Nicht verifiziert'),
+                  user.isVerified ? l10n.t('Identität bestätigt') : l10n.t('Identität noch nicht geprüft'),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
                 ),
               ],
@@ -86,7 +86,7 @@ class ProfileHeaderCard extends StatelessWidget {
                 children: [
                   _MetricLine(label: l10n.t('Bewertung'), value: isGuest ? '—' : _ratingText(context, user)),
                   const SizedBox(height: 8),
-                  _MetricLine(label: l10n.t('Buchungen'), value: isGuest ? '—' : (completedBookingsCount ?? _estimatedBookings(user)).toString()),
+                  _MetricLine(label: l10n.t('Buchungen'), value: isGuest ? '—' : (completedBookingsCount?.toString() ?? '—')),
                   const SizedBox(height: 8),
                   _MetricLine(label: l10n.t('Dabei seit'), value: isGuest ? '—' : _joinedMonthYear(user.createdAt)),
                   const SizedBox(height: 8),
@@ -114,10 +114,6 @@ class ProfileHeaderCard extends StatelessWidget {
     return '$m ${createdAt.year}';
   }
 
-  static int _estimatedBookings(User u) {
-    final est = (u.reviewCount * 1.3).clamp(0, 9999).toInt();
-    return est;
-  }
 }
 
 class _MetricLine extends StatelessWidget {

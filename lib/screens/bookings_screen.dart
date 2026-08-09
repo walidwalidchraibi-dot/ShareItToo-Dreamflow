@@ -40,20 +40,6 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   final SharedPersistenceRefreshCoordinator _sharedPersistenceRefresh =
       SharedPersistenceRefreshCoordinator();
 
-  String get _sectionTitle {
-    switch (_tabController.index) {
-      case 0:
-        return 'Laufende Buchungen';
-      case 1:
-        return 'Kommende Buchungen';
-      case 2:
-        return 'Ausstehende Buchungen';
-      case 3:
-      default:
-        return 'Abgeschlossene Buchungen';
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -387,7 +373,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
-          title: Text(_sectionTitle),
+          title: const Text('Meine Buchungen'),
           centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
