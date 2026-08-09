@@ -1,7 +1,7 @@
 # B10 – Qualität, Sicherheit, Datenschutz, Barrierefreiheit und Betrieb
 
-Stand: 9. August 2026  
-Technischer Status: Staging bestanden, keine offenen P0-Fehler  
+Stand: 9. August 2026
+Technischer Status: Staging bestanden, keine offenen P0-Fehler
 Produktionsstatus: B10 nicht ausgerollt; bestehende Produktion läuft mit dem bisherigen Image
 
 ## Ergebnis
