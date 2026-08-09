@@ -29,6 +29,23 @@ Each successful deployment writes a mode-`0600` JSON record under
 `/docker/shareittoo/releases`. Rollback uses the same script with the previous
 commit recorded in that release evidence; no floating `latest` image is used.
 
+FCM is opt-in for staging and cannot be activated for production through this
+path. Before the first FCM-enabled staging rollout, place the dedicated
+service-account JSON outside the repository with owner-only permissions. Then
+run the same immutable deploy command with the explicit staging-only gate:
+
+```sh
+ENABLE_STAGING_FCM=1 \
+FIREBASE_PROJECT_ID=shareittoo-staging \
+FIREBASE_SERVICE_ACCOUNT_HOST_FILE=/absolute/secret/path/firebase-service-account.json \
+  ./ops/deploy_release.sh staging FULL_40_CHARACTER_COMMIT
+```
+
+The deploy script validates the credential file before invoking Compose,
+adds `compose.staging.fcm.yml`, mounts the file read-only without creating a
+missing host path, and records `stagingFcm=true` in the release evidence. The
+same flag is rejected for production.
+
 ## Backups and restore proof
 
 `backup.sh` writes a PostgreSQL custom-format dump, an upload archive and a

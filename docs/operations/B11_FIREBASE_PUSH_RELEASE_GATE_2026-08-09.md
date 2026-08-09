@@ -82,6 +82,33 @@ Der spätere Staging-Mount ist read-only und liegt außerhalb des Repositories.
 Produktion bleibt bis zu einer eigenen Freigabe auf deaktiviertem Push-
 Transport.
 
+Die Aktivierung erfolgt ausschließlich über die zusätzliche Compose-Datei
+`backend/compose.staging.fcm.yml`. Sie erzwingt `PUSH_TRANSPORT=fcm`, die
+Projekt-ID `shareittoo-staging`, einen absoluten Hostpfad und einen
+read-only-Bind-Mount ohne automatische Dateierstellung. Die Produktion nutzt
+diese Datei nicht.
+
+Vor jedem FCM-Staging-Start muss auf dem VPS ausgeführt werden:
+
+```text
+FIREBASE_PROJECT_ID=shareittoo-staging \
+FIREBASE_SERVICE_ACCOUNT_HOST_FILE=/absoluter/pfad/firebase-service-account.json \
+node backend/ops/validate_fcm_staging_secret.mjs
+```
+
+Der Prüfer akzeptiert nur eine normale, nicht verlinkte Datei außerhalb des
+Repositories, deren Rechte keine Gruppen- oder Weltlesbarkeit erlauben. Er
+prüft Größe, Eigentümer, Service-Account-Struktur und exakte Projektbindung,
+gibt aber weder Pfad noch E-Mail noch Schlüsselmaterial aus. Erst nach `PASS`
+darf der Staging-Override verwendet werden.
+
+`backend/ops/deploy_release.sh` bindet den Override nur bei der ausdrücklichen
+Staging-Freigabe `ENABLE_STAGING_FCM=1` ein und führt den Prüfer vor Compose
+automatisch aus. Derselbe Schalter ist für Produktionsdeployments verboten.
+Der erfolgreiche Release-Nachweis hält mit `stagingFcm=true` ausschließlich
+die bewusste FCM-Aktivierung fest, ohne Secretpfade oder Credential-Metadaten
+zu speichern.
+
 ## Noch offene Freigabeschritte
 
 1. Beide öffentlichen Plattformdateien lokal ablegen und den strengen

@@ -70,9 +70,15 @@ jobs:
           POSTGRES_PASSWORD: ci-only-postgres-password
           JWT_SECRET: ci-only-jwt-secret-that-is-longer-than-thirty-two-characters
           APP_COMMIT: ${{ github.sha }}
+          FIREBASE_PROJECT_ID: shareittoo-staging
+          FIREBASE_SERVICE_ACCOUNT_HOST_FILE: /run/shareittoo-ci/firebase-service-account.json
         run: |
           docker compose -f compose.prod.yml config --quiet
           docker compose -f compose.staging.yml config --quiet
+          docker compose \
+            -f compose.staging.yml \
+            -f compose.staging.fcm.yml \
+            config --quiet
           docker run --rm \
             --volume "$PWD/ops/Caddyfile:/etc/caddy/Caddyfile:ro" \
             caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d \
