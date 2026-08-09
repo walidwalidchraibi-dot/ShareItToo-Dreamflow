@@ -228,6 +228,48 @@ weder auf Staging noch auf Produktion ausgerollt: Staging bleibt auf dem
 vollständig abgenommenen technischen Commit `a37e681ce18c62981992e168965e68b80fc86ff2`;
 Produktion bleibt geschützt und unverändert.
 
+### Technische Grundlage der öffentlichen Pflichtseiten
+
+Die endgültig vorgesehenen Root-URLs für Support, Datenschutz und
+Kontolöschung sind nun im Store-Manifest eindeutig festgelegt. Ihr Status
+bleibt `draft`; dadurch zählt der Validator weiterhin exakt drei offene
+URL-Gates. Beliebige andere Hosts oder Pfade werden abgelehnt.
+
+Der API-Dienst stellt eine fail-closed Seitenkette bereit:
+
+- Support und Datenschutz liefern ohne ausdrückliche Freigabe HTTP 503 und
+  maschinenlesbaren Status `draft`;
+- die funktionsfähige Kontolöschung trägt separat den Status `operational`;
+- eine JSON-Übersicht meldet den Gesamtstatus;
+- das kanonische Caddy-Setup bereitet die öffentlichen Root-Pfade auf
+  Produktion und isoliertem Staging vor.
+
+Eine spätere Freigabe setzt bestätigte Support-/Datenschutzkontakte,
+Anbietername, Anschrift und Wirksamkeitsdatum voraus. Wird
+`PUBLIC_COMPLIANCE_APPROVED=true` ohne einen vollständigen und formal gültigen
+Satz dieser Werte gesetzt, verweigert der API-Dienst den Start. Im jetzigen
+Stand wurde keine Rechtsangabe als wahr angenommen.
+
+`tool/verify_public_store_pages.mjs` prüft reale HTTP-Antworten,
+maschinenlesbare Seiten- und Freigabemarker sowie Mindestinhalte. Der
+signierte Release-Preflight ruft ihn bei `SIT_REQUIRE_STORE_SUBMISSION=1` nach
+dem strengen Manifestcheck auf. Damit genügt weder ein zufälliger HTTP-200
+noch die Auslieferung der Flutter-SPA als falscher Store-Nachweis.
+
+Lokale Nachweise dieses Zwischenstands: Backend 55 von 55 ausführbaren Tests
+grün, ein PostgreSQL-Integrationstest lokal mangels Testdatenbank übersprungen;
+Flutter 167 von 167, Analyzer-Basis 696, Web-Debug und Android-Debug grün;
+Validator im Standardmodus grün und im strengen Modus mit exakt drei URL- und
+elf Release-Gates erwartungsgemäß geschlossen. Caddy und die echte
+PostgreSQL-Integration werden zusätzlich in GitHub Actions geprüft.
+
+Detail-Runbook:
+`docs/operations/B11_PUBLIC_STORE_PAGES_READINESS_2026-08-09.md`.
+
+Es erfolgte kein Staging- oder Produktionsdeploy. Staging bleibt auf
+`a37e681ce18c62981992e168965e68b80fc86ff2`; Produktion, Stripe-Live und
+Echtgeld bleiben geschützt.
+
 Auf beiden Plattformen und mit Vermieter- sowie Mieterrolle:
 
 1. Installation, Erststart, Berechtigungen, Login und Neustart.

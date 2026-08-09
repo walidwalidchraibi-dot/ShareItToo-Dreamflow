@@ -16,6 +16,9 @@ import {
   createActionToken,
   lockValidActionToken,
   passwordResetForm,
+  publicComplianceOverview,
+  publicPrivacyPage,
+  publicSupportPage,
   resultPage,
 } from './account_actions.js';
 import { config } from './config.js';
@@ -1723,6 +1726,25 @@ export function createApp() {
 
   app.get('/v1/account-deletion', deletionLimiter, (_req, res) => {
     sendHtml(res, 200, accountDeletionRequestForm({ submitted: false }));
+  });
+
+  app.get('/v1/public/compliance', (_req, res) => {
+    res.set({
+      'Cache-Control': 'no-store',
+      'X-SIT-Compliance-Status': config.publicCompliance.approved ? 'approved' : 'draft',
+    }).json(publicComplianceOverview());
+  });
+
+  app.get('/v1/public/support', (_req, res) => {
+    const approved = config.publicCompliance.approved;
+    res.set('X-SIT-Compliance-Status', approved ? 'approved' : 'draft');
+    sendHtml(res, approved ? 200 : 503, publicSupportPage());
+  });
+
+  app.get('/v1/public/privacy', (_req, res) => {
+    const approved = config.publicCompliance.approved;
+    res.set('X-SIT-Compliance-Status', approved ? 'approved' : 'draft');
+    sendHtml(res, approved ? 200 : 503, publicPrivacyPage());
   });
 
   app.post('/v1/account-deletion/request', deletionLimiter, asyncRoute(async (req, res) => {

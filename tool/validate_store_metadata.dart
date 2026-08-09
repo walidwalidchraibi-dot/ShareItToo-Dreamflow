@@ -215,17 +215,28 @@ void main(List<String> arguments) {
   _requireHttps('publicUrls.marketing.url', marketing['url']);
 
   const requiredPublicUrls = <String>['support', 'privacy', 'accountDeletion'];
+  const expectedPublicUrls = <String, String>{
+    'support': 'https://shareittoo.com/support',
+    'privacy': 'https://shareittoo.com/privacy',
+    'accountDeletion': 'https://shareittoo.com/account-deletion',
+  };
   final openUrlGates = <String>[];
   for (final key in requiredPublicUrls) {
     final value = _map(urls[key], 'publicUrls.$key');
     final status = value['status'];
     if (status == 'verified') {
       _requireHttps('publicUrls.$key.url', value['url']);
+    } else if (status == 'draft') {
+      _requireHttps('publicUrls.$key.url', value['url']);
+      openUrlGates.add(key);
     } else if (status == 'open' && value['url'] == null) {
       openUrlGates.add(key);
     } else {
       _fail(
-          'publicUrls.$key must be verified with HTTPS or open with null URL.');
+          'publicUrls.$key must be verified/draft with HTTPS or open with null URL.');
+    }
+    if (value['url'] != null && value['url'] != expectedPublicUrls[key]) {
+      _fail('publicUrls.$key.url must be ${expectedPublicUrls[key]}.');
     }
   }
   final deletion = _map(urls['accountDeletion'], 'publicUrls.accountDeletion');

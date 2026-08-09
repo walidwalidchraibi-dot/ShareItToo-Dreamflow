@@ -29,6 +29,24 @@ shareittoo.com, srv1580960.hstgr.cloud {
 		reverse_proxy shareittoo-api:8080
 	}
 
+	@public_support path /support
+	handle @public_support {
+		rewrite * /v1/public/support
+		reverse_proxy shareittoo-api:8080
+	}
+
+	@public_privacy path /privacy
+	handle @public_privacy {
+		rewrite * /v1/public/privacy
+		reverse_proxy shareittoo-api:8080
+	}
+
+	@public_account_deletion path /account-deletion
+	handle @public_account_deletion {
+		rewrite * /v1/account-deletion
+		reverse_proxy shareittoo-api:8080
+	}
+
 	handle {
 		import shareittoo_app
 	}
@@ -52,6 +70,24 @@ staging.shareittoo.com {
 	}
 
 	handle_path /api/* {
+		reverse_proxy shareittoo-staging-api:8080
+	}
+
+	@staging_public_support path /support
+	handle @staging_public_support {
+		rewrite * /v1/public/support
+		reverse_proxy shareittoo-staging-api:8080
+	}
+
+	@staging_public_privacy path /privacy
+	handle @staging_public_privacy {
+		rewrite * /v1/public/privacy
+		reverse_proxy shareittoo-staging-api:8080
+	}
+
+	@staging_public_account_deletion path /account-deletion
+	handle @staging_public_account_deletion {
+		rewrite * /v1/account-deletion
 		reverse_proxy shareittoo-staging-api:8080
 	}
 

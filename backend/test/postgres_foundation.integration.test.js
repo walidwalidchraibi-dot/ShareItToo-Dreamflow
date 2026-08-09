@@ -1913,7 +1913,26 @@ if (!databaseUrl) {
 
       const deletionPage = await fetch(`${baseUrl}/v1/account-deletion`);
       assert.equal(deletionPage.status, 200);
-      assert.match(await deletionPage.text(), /Konto löschen/);
+      const deletionPageBody = await deletionPage.text();
+      assert.match(deletionPageBody, /Konto löschen/);
+      assert.match(deletionPageBody, /data-sit-compliance-status="operational"/);
+      const compliance = await fetch(`${baseUrl}/v1/public/compliance`);
+      assert.equal(compliance.status, 200);
+      assert.deepEqual(await compliance.json(), {
+        status: 'draft',
+        submissionReady: false,
+        pages: {
+          support: 'draft',
+          privacy: 'draft',
+          accountDeletion: 'operational',
+        },
+      });
+      for (const page of ['support', 'privacy']) {
+        const response = await fetch(`${baseUrl}/v1/public/${page}`);
+        assert.equal(response.status, 503);
+        assert.equal(response.headers.get('x-sit-compliance-status'), 'draft');
+        assert.match(await response.text(), new RegExp(`data-sit-public-page="${page}"`));
+      }
       const unknownDeletionRequest = await fetch(`${baseUrl}/v1/account-deletion/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

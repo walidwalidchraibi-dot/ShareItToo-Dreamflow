@@ -103,6 +103,46 @@ if (paymentTransport === 'stripe' && stripeLivemode && paymentPilotUserIds.lengt
   throw new Error('PAYMENT_PILOT_USER_IDS is required for live Stripe transport');
 }
 
+const publicComplianceApproved = (process.env.PUBLIC_COMPLIANCE_APPROVED ?? 'false')
+  .trim()
+  .toLowerCase() === 'true';
+const publicCompliance = {
+  approved: publicComplianceApproved,
+  supportEmail: process.env.PUBLIC_SUPPORT_EMAIL?.trim() ?? '',
+  privacyEmail: process.env.PUBLIC_PRIVACY_EMAIL?.trim() ?? '',
+  providerName: process.env.PUBLIC_LEGAL_PROVIDER_NAME?.trim() ?? '',
+  providerAddress: process.env.PUBLIC_LEGAL_PROVIDER_ADDRESS?.trim() ?? '',
+  effectiveDate: process.env.PUBLIC_PRIVACY_EFFECTIVE_DATE?.trim() ?? '',
+};
+if (publicComplianceApproved) {
+  const requiredComplianceFields = [
+    ['PUBLIC_SUPPORT_EMAIL', publicCompliance.supportEmail],
+    ['PUBLIC_PRIVACY_EMAIL', publicCompliance.privacyEmail],
+    ['PUBLIC_LEGAL_PROVIDER_NAME', publicCompliance.providerName],
+    ['PUBLIC_LEGAL_PROVIDER_ADDRESS', publicCompliance.providerAddress],
+    ['PUBLIC_PRIVACY_EFFECTIVE_DATE', publicCompliance.effectiveDate],
+  ];
+  const missingComplianceFields = requiredComplianceFields
+    .filter(([, value]) => !value)
+    .map(([name]) => name);
+  if (missingComplianceFields.length > 0) {
+    throw new Error(
+      `PUBLIC_COMPLIANCE_APPROVED requires: ${missingComplianceFields.join(', ')}`,
+    );
+  }
+  for (const [name, value] of [
+    ['PUBLIC_SUPPORT_EMAIL', publicCompliance.supportEmail],
+    ['PUBLIC_PRIVACY_EMAIL', publicCompliance.privacyEmail],
+  ]) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      throw new Error(`${name} must be a valid email address`);
+    }
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(publicCompliance.effectiveDate)) {
+    throw new Error('PUBLIC_PRIVACY_EFFECTIVE_DATE must use YYYY-MM-DD');
+  }
+}
+
 export const config = Object.freeze({
   port: Number.parseInt(process.env.PORT ?? '8080', 10),
   databaseUrl: required('DATABASE_URL'),
@@ -125,6 +165,7 @@ export const config = Object.freeze({
   failedLoginLimit: 10,
   failedLoginLockMinutes: 15,
   appPublicUrl: (process.env.APP_PUBLIC_URL ?? 'https://shareittoo.com').replace(/\/$/, ''),
+  publicCompliance: Object.freeze(publicCompliance),
   mail: Object.freeze({
     transport: (process.env.MAIL_TRANSPORT ?? 'disabled').trim().toLowerCase(),
     host: process.env.SMTP_HOST?.trim() ?? '',

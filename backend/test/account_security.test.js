@@ -111,3 +111,22 @@ test('account result pages escape untrusted content', () => {
   assert.doesNotMatch(page, /<img/);
   assert.match(page, /&lt;script&gt;/);
 });
+
+test('public compliance pages stay visibly fail-closed before legal approval', () => {
+  assert.equal(accountActions.publicComplianceOverview().status, 'draft');
+  assert.equal(accountActions.publicComplianceOverview().submissionReady, false);
+
+  const support = accountActions.publicSupportPage();
+  assert.match(support, /data-sit-public-page="support"/);
+  assert.match(support, /data-sit-compliance-status="draft"/);
+  assert.doesNotMatch(support, /mailto:/);
+
+  const privacy = accountActions.publicPrivacyPage();
+  assert.match(privacy, /data-sit-public-page="privacy"/);
+  assert.match(privacy, /data-sit-compliance-status="draft"/);
+  assert.match(privacy, /rechtlicher Endprüfung/);
+
+  const deletion = accountActions.accountDeletionRequestForm({ submitted: false });
+  assert.match(deletion, /data-sit-public-page="account-deletion"/);
+  assert.match(deletion, /data-sit-compliance-status="operational"/);
+});
