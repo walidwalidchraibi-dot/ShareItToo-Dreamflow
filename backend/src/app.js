@@ -28,6 +28,18 @@ import {
   parseBookingPeriod,
 } from './booking_domain.js';
 import {
+  amendBooking,
+  BookingWorkflowError,
+  assertBookingPilot,
+  checkListingAvailability,
+  createBooking,
+  getListingAvailability,
+  listBookings,
+  quoteBooking,
+  replaceListingAvailability,
+  transitionBooking,
+} from './booking_workflow.js';
+import {
   getMailerStatus,
   sendAccountDeletionEmail,
   sendEmailChangeAlert,
@@ -665,13 +677,7 @@ async function removeErasedUploadFiles(storageNames) {
 }
 
 async function listRentalRequests(client, userId) {
-  const result = await client.query(
-    `SELECT payload FROM rental_requests
-     WHERE owner_id = $1 OR renter_id = $1
-     ORDER BY created_at DESC`,
-    [userId],
-  );
-  return result.rows.map((row) => row.payload);
+  return listBookings(client, userId);
 }
 
 async function listThreads(client, userId) {
@@ -1728,8 +1734,97 @@ export function createApp() {
     res.status(204).end();
   }));
 
+  app.get('/v1/listings/:id/availability', asyncRoute(async (req, res) => {
+    const now = new Date();
+    const defaultFrom = now.toISOString().slice(0, 10);
+    const defaultTo = new Date(Date.UTC(
+      now.getUTCFullYear() + 1,
+      now.getUTCMonth(),
+      now.getUTCDate(),
+    )).toISOString().slice(0, 10);
+    const availability = await inTransaction((client) => getListingAvailability(client, {
+      listingId: safeText(req.params.id, 120),
+      fromDate: safeText(req.query.from, 10) || defaultFrom,
+      toDate: safeText(req.query.to, 10) || defaultTo,
+    }));
+    res.json({ availability });
+  }));
+
+  app.post('/v1/listings/:id/availability/check', asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => checkListingAvailability(client, {
+      listingId: safeText(req.params.id, 120),
+      raw: req.body,
+    }));
+    res.status(result.available ? 200 : 409).json(result);
+  }));
+
+  app.put('/v1/listings/:id/availability', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    assertBookingPilot(config);
+    const result = await inTransaction((client) => replaceListingAvailability(client, {
+      actor: req.actor,
+      listingId: safeText(req.params.id, 120),
+      raw: req.body,
+    }));
+    publishToAll({ type: 'changed', resource: 'listing_availability', listingId: safeText(req.params.id, 120) });
+    res.json(result);
+  }));
+
+  app.post('/v1/bookings/quote', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const quote = await inTransaction((client) => quoteBooking(client, {
+      actorId: req.auth.userId,
+      raw: req.body,
+    }));
+    res.json(quote);
+  }));
+
+  app.post('/v1/bookings', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    assertBookingPilot(config);
+    const result = await inTransaction((client) => createBooking(client, {
+      actor: req.actor,
+      raw: req.body,
+      key: req.get('Idempotency-Key'),
+    }), { deadlockRetries: 2 });
+    publishToUsers([result.booking.ownerId, result.booking.renterId], {
+      type: 'changed',
+      resource: 'rental_requests',
+    });
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.patch('/v1/bookings/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    assertBookingPilot(config);
+    const result = await inTransaction((client) => amendBooking(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      raw: req.body,
+      key: req.get('Idempotency-Key'),
+    }), { deadlockRetries: 2 });
+    publishToUsers([result.booking.ownerId, result.booking.renterId], {
+      type: 'changed',
+      resource: 'rental_requests',
+    });
+    res.json(result);
+  }));
+
+  app.post('/v1/bookings/:id/transitions', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    assertBookingPilot(config);
+    const result = await inTransaction((client) => transitionBooking(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      raw: req.body,
+      key: req.get('Idempotency-Key'),
+      config,
+    }), { deadlockRetries: 2 });
+    publishToUsers([result.booking.ownerId, result.booking.renterId], {
+      type: 'changed',
+      resource: 'rental_requests',
+    });
+    res.json(result);
+  }));
+
   app.get('/v1/rental-requests', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
-    res.json({ requests: await listRentalRequests(pool, req.auth.userId) });
+    const requests = await inTransaction((client) => listRentalRequests(client, req.auth.userId));
+    res.json({ requests });
   }));
 
   app.put('/v1/rental-requests/sync', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
@@ -1740,7 +1835,9 @@ export function createApp() {
         const candidate = ensureObject(raw, 'invalid_request');
         const id = identifier(candidate.id, 'request');
         const existingResult = await client.query(
-          `SELECT request.*, booking.status AS booking_status
+          `SELECT request.*, booking.status AS booking_status,
+                  booking.workflow_version AS booking_workflow_version,
+                  booking.workflow_revision AS booking_workflow_revision
            FROM rental_requests AS request
            LEFT JOIN bookings AS booking ON booking.id = request.id
            WHERE request.id = $1
@@ -1748,6 +1845,9 @@ export function createApp() {
           [id],
         );
         if (!existingResult.rowCount) {
+          if (config.bookingPilotEnabled) {
+            throw new HttpError(409, 'booking_creation_requires_idempotent_endpoint');
+          }
           const itemId = safeText(candidate.itemId, 120);
           const listingResult = await client.query(
             `SELECT owner_id, currency, security_deposit_minor
@@ -1811,6 +1911,41 @@ export function createApp() {
         const payload = existingRentalPayload(candidate, existing, req.auth.userId);
         if (existing.booking_status === null) {
           throw new HttpError(500, 'booking_projection_missing');
+        }
+        if (config.bookingPilotEnabled) {
+          if (Number(existing.booking_workflow_version) !== 1) {
+            throw new HttpError(409, 'booking_requires_b6_revalidation');
+          }
+          const storedPayload = ensureObject(existing.payload, 'invalid_stored_request');
+          const storedStart = new Date(storedPayload.start).toISOString();
+          const storedEnd = new Date(storedPayload.end).toISOString();
+          if (payload.status !== existing.status) {
+            throw new HttpError(409, 'booking_transition_requires_idempotent_endpoint');
+          }
+          if (payload.start !== storedStart || payload.end !== storedEnd) {
+            throw new HttpError(409, 'booking_amendment_requires_quote');
+          }
+          payload.workflowVersion = 1;
+          payload.workflowRevision = Number(existing.booking_workflow_revision);
+          await client.query(
+            `UPDATE rental_requests SET payload = $2::jsonb WHERE id = $1`,
+            [id, JSON.stringify(payload)],
+          );
+          await client.query(
+            `INSERT INTO booking_events (
+               booking_id, actor_id, event_type, from_status, to_status, metadata
+             ) VALUES ($1, $2, 'booking.metadata_updated', $3, $3, '{}'::jsonb)`,
+            [id, req.auth.userId, existing.status],
+          );
+          await writeAudit(client, {
+            actor: req.actor,
+            action: 'booking.metadata_updated',
+            resourceType: 'booking',
+            resourceId: id,
+          });
+          participants.add(existing.owner_id);
+          participants.add(existing.renter_id);
+          continue;
         }
         if (!canTransitionBooking({ current: existing.status, next: payload.status, actorId: req.auth.userId, ownerId: existing.owner_id, renterId: existing.renter_id })) {
           throw new HttpError(409, 'invalid_status_transition', { current: existing.status, next: payload.status });
@@ -2111,18 +2246,19 @@ export function createApp() {
     const uploadTooLarge = error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE';
     const invalidProcessedImage = error instanceof ImageProcessingError;
     const bookingConflict = error?.code === '23P01';
+    const workflowError = error instanceof BookingWorkflowError;
     const status = bookingConflict
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : (error instanceof HttpError ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : (error instanceof HttpError ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error('[api]', error);
     res.status(status).json({ error: code, ...(error?.details ? { details: error.details } : {}) });
   });

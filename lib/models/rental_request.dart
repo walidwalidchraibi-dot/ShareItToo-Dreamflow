@@ -5,6 +5,8 @@ class RentalRequest {
   final String renterId; // user who requests to rent
   final DateTime start;
   final DateTime end;
+  final String startDate;
+  final String endDate;
   final String
       status; // 'pending' | 'accepted' | 'declined' | 'running' | 'completed'
   final String? message;
@@ -55,6 +57,8 @@ class RentalRequest {
     required this.renterId,
     required this.start,
     required this.end,
+    String? startDate,
+    String? endDate,
     this.status = 'pending',
     this.message,
     this.cancelledBy,
@@ -82,11 +86,15 @@ class RentalRequest {
     this.returnConfirmation,
     this.quotedTotalRenter,
     this.quotedSubtitle,
-  }) : createdAt = createdAt ?? DateTime.now();
+  })  : startDate = startDate ?? _dateOnly(start.toLocal()),
+        endDate = endDate ?? _dateOnly(end.toLocal()),
+        createdAt = createdAt ?? DateTime.now();
 
   RentalRequest copyWith({
     DateTime? start,
     DateTime? end,
+    String? startDate,
+    String? endDate,
     String? status,
     String? cancelledBy,
     bool? expressRequested,
@@ -120,6 +128,8 @@ class RentalRequest {
         renterId: renterId,
         start: start ?? this.start,
         end: end ?? this.end,
+        startDate: startDate ?? (start == null ? this.startDate : null),
+        endDate: endDate ?? (end == null ? this.endDate : null),
         status: status ?? this.status,
         message: message,
         cancelledBy: cancelledBy ?? this.cancelledBy,
@@ -158,6 +168,8 @@ class RentalRequest {
         renterId: json['renterId'] as String,
         start: DateTime.parse(json['start'] as String),
         end: DateTime.parse(json['end'] as String),
+        startDate: json['startDate'] as String?,
+        endDate: json['endDate'] as String?,
         status: (json['status'] as String?) ?? 'pending',
         message: json['message'] as String?,
         cancelledBy: json['cancelledBy'] as String?,
@@ -196,6 +208,8 @@ class RentalRequest {
         'renterId': renterId,
         'start': start.toIso8601String(),
         'end': end.toIso8601String(),
+        'startDate': startDate,
+        'endDate': endDate,
         'status': status,
         'message': message,
         'cancelledBy': cancelledBy,
@@ -225,6 +239,9 @@ class RentalRequest {
         'quotedSubtitle': quotedSubtitle,
       };
 }
+
+String _dateOnly(DateTime value) =>
+    '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 
 DateTime? _parseDt(Object? v) {
   if (v is String && v.isNotEmpty) {

@@ -21,6 +21,7 @@ class BackendHttp {
     required String path,
     String? accessToken,
     Object? body,
+    Map<String, String> additionalHeaders = const <String, String>{},
     Duration timeout = const Duration(seconds: 20),
   }) async {
     final headers = <String, String>{
@@ -28,6 +29,7 @@ class BackendHttp {
       if (body != null) 'Content-Type': 'application/json',
       if (accessToken != null && accessToken.isNotEmpty)
         'Authorization': 'Bearer $accessToken',
+      ...additionalHeaders,
     };
     final encodedBody = body == null ? null : jsonEncode(body);
     final uri = BackendConfig.uri(path);

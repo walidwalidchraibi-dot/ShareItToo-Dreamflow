@@ -18,6 +18,18 @@ if (jwtSecret.length < 32) {
   throw new Error('JWT_SECRET must contain at least 32 characters');
 }
 
+const deploymentEnvironment = (process.env.DEPLOYMENT_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development')
+  .trim()
+  .toLowerCase();
+const bookingPilotMode = (process.env.BOOKING_PILOT_MODE ?? (
+  deploymentEnvironment === 'staging' || deploymentEnvironment === 'test' || deploymentEnvironment === 'development'
+    ? 'pilot'
+    : 'off'
+)).trim().toLowerCase();
+if (!['off', 'pilot', 'on'].includes(bookingPilotMode)) {
+  throw new Error('BOOKING_PILOT_MODE must be off, pilot, or on');
+}
+
 export const config = Object.freeze({
   port: Number.parseInt(process.env.PORT ?? '8080', 10),
   databaseUrl: required('DATABASE_URL'),
@@ -32,6 +44,10 @@ export const config = Object.freeze({
   passwordResetLifetimeMinutes: 30,
   accountDeletionLifetimeMinutes: 30,
   minimumAccountAge: 18,
+  deploymentEnvironment,
+  bookingPilotMode,
+  bookingPilotEnabled: bookingPilotMode !== 'off',
+  bookingPilotWithoutPayment: bookingPilotMode === 'pilot',
   failedLoginLimit: 10,
   failedLoginLockMinutes: 15,
   appPublicUrl: (process.env.APP_PUBLIC_URL ?? 'https://shareittoo.com').replace(/\/$/, ''),

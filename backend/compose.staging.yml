@@ -46,6 +46,7 @@ services:
       MAIL_TRANSPORT: ${MAIL_TRANSPORT:-memory}
       MAIL_FROM: "${MAIL_FROM:-ShareItToo Staging <contact@shareittoo.com>}"
       MAIL_REPLY_TO: "${MAIL_REPLY_TO:-contact@shareittoo.com}"
+      BOOKING_PILOT_MODE: ${BOOKING_PILOT_MODE:-pilot}
     ports:
       - "127.0.0.1:${STAGING_API_PORT:-18080}:8080"
     volumes:

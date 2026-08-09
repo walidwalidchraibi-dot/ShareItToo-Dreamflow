@@ -20,6 +20,7 @@ class BackendRepository {
     required String method,
     required String path,
     Object? body,
+    Map<String, String> additionalHeaders = const <String, String>{},
   }) async {
     var token = await _token();
     try {
@@ -28,6 +29,7 @@ class BackendRepository {
         path: path,
         accessToken: token,
         body: body,
+        additionalHeaders: additionalHeaders,
       );
     } on BackendException catch (error) {
       if (error.statusCode != 401) rethrow;
@@ -38,6 +40,7 @@ class BackendRepository {
         path: path,
         accessToken: token,
         body: body,
+        additionalHeaders: additionalHeaders,
       );
     }
   }
@@ -234,6 +237,90 @@ class BackendRepository {
       method: 'DELETE',
       path: '/listings/${Uri.encodeComponent(id)}',
     );
+  }
+
+  static Future<Map<String, dynamic>> getListingAvailability({
+    required String listingId,
+    required String fromDate,
+    required String toDate,
+  }) async {
+    final query = Uri(
+      queryParameters: <String, String>{'from': fromDate, 'to': toDate},
+    ).query;
+    final response = await BackendHttp.requestJson(
+      method: 'GET',
+      path: '/listings/${Uri.encodeComponent(listingId)}/availability?$query',
+    );
+    return Map<String, dynamic>.from(response['availability'] as Map);
+  }
+
+  static Future<bool> checkListingAvailability({
+    required String listingId,
+    required String startDate,
+    required String endDate,
+  }) async {
+    try {
+      final response = await BackendHttp.requestJson(
+        method: 'POST',
+        path: '/listings/${Uri.encodeComponent(listingId)}/availability/check',
+        body: {'startDate': startDate, 'endDate': endDate},
+      );
+      return response['available'] == true;
+    } on BackendException catch (error) {
+      if (error.statusCode == 409) return false;
+      rethrow;
+    }
+  }
+
+  static Future<Map<String, dynamic>> quoteBooking(
+    Map<String, dynamic> booking,
+  ) async {
+    return _authorized(method: 'POST', path: '/bookings/quote', body: booking);
+  }
+
+  static Future<Map<String, dynamic>> createBooking(
+    Map<String, dynamic> booking, {
+    required String idempotencyKey,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/bookings',
+      body: booking,
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+    return Map<String, dynamic>.from(response['booking'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> amendBooking(
+    Map<String, dynamic> booking, {
+    required String bookingId,
+    required String idempotencyKey,
+  }) async {
+    final response = await _authorized(
+      method: 'PATCH',
+      path: '/bookings/${Uri.encodeComponent(bookingId)}',
+      body: booking,
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+    return Map<String, dynamic>.from(response['booking'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> transitionBooking({
+    required String bookingId,
+    required String status,
+    required String idempotencyKey,
+    int? expectedRevision,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/bookings/${Uri.encodeComponent(bookingId)}/transitions',
+      body: {
+        'status': status,
+        if (expectedRevision != null) 'expectedRevision': expectedRevision,
+      },
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+    return Map<String, dynamic>.from(response['booking'] as Map);
   }
 
   static Future<List<Map<String, dynamic>>> getRentalRequests() async {

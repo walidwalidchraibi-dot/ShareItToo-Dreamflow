@@ -41,6 +41,7 @@ if (!databaseUrl) {
         '002_b4_auth_lifecycle.up.sql',
         '003_b4_phone_constraint_fix.up.sql',
         '004_b5_listing_catalog.up.sql',
+        '005_b6_booking_workflow.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -205,6 +206,13 @@ if (!databaseUrl) {
           [id, renterId, payload.start, payload.end],
         );
       }
+      const rollbackBookings = await setupPool.query(
+        `SELECT workflow_version, workflow_status, rental_start_date, rental_end_date
+         FROM bookings WHERE id IN ('booking-a', 'booking-b') ORDER BY id`,
+      );
+      assert.deepEqual(rollbackBookings.rows.map((row) => row.workflow_version), [0, 0]);
+      assert.deepEqual(rollbackBookings.rows.map((row) => row.workflow_status), ['requested', 'requested']);
+      assert.ok(rollbackBookings.rows.every((row) => row.rental_start_date && row.rental_end_date));
 
       const first = await setupPool.connect();
       const second = await setupPool.connect();
@@ -224,6 +232,13 @@ if (!databaseUrl) {
         second.release();
       }
       await setupPool.query(`UPDATE bookings SET status = 'pending'`);
+      await setupPool.query(
+        `UPDATE bookings
+         SET workflow_version = 1,
+             workflow_status = 'requested',
+             workflow_revision = workflow_revision + 1
+         WHERE id IN ('booking-a', 'booking-b')`,
+      );
 
       await setupPool.query(
         `INSERT INTO message_threads (
@@ -279,6 +294,287 @@ if (!databaseUrl) {
       const emptyCatalogResponse = await fetch(`${baseUrl}/v1/listings?q=does-not-exist`);
       assert.equal(emptyCatalogResponse.status, 200);
       assert.deepEqual((await emptyCatalogResponse.json()).listings, []);
+
+      const renterAHeaders = {
+        Authorization: `Bearer ${tokenFor('renter-a')}`,
+        'Content-Type': 'application/json',
+      };
+      const renterBHeaders = {
+        Authorization: `Bearer ${tokenFor('renter-b')}`,
+        'Content-Type': 'application/json',
+      };
+      const availabilityRules = Array.from({ length: 7 }, (_, weekday) => ({
+        weekday,
+        localStart: '00:00',
+        localEnd: '23:59',
+        isAvailable: true,
+      }));
+      const replaceAvailability = await fetch(`${baseUrl}/v1/listings/listing-1/availability`, {
+        method: 'PUT',
+        headers: ownerHeaders,
+        body: JSON.stringify({
+          timezone: 'Europe/Berlin',
+          minimumDays: 1,
+          maximumDays: 30,
+          noticeHours: 0,
+          acceptanceWindowMinutes: 30,
+          rules: availabilityRules,
+          blocks: [{
+            startDate: '2026-12-01',
+            endDate: '2026-12-03',
+            kind: 'maintenance',
+            reason: 'Integration maintenance window',
+          }],
+        }),
+      });
+      assert.equal(replaceAvailability.status, 200);
+      assert.ok((await replaceAvailability.json()).revision > 1);
+
+      const availabilityResponse = await fetch(
+        `${baseUrl}/v1/listings/listing-1/availability?from=2026-09-01&to=2026-12-10`,
+      );
+      assert.equal(availabilityResponse.status, 200);
+      const availability = (await availabilityResponse.json()).availability;
+      assert.equal(availability.timezone, 'Europe/Berlin');
+      assert.equal(availability.rules.length, 7);
+      assert.equal(availability.unavailable.filter((entry) => entry.type === 'block').length, 1);
+
+      const rollbackPayload = {
+        id: 'b5-rollback-booking',
+        itemId: 'listing-1',
+        ownerId: 'owner',
+        renterId: 'renter-a',
+        status: 'pending',
+        start: '2026-12-10T10:00:00.000Z',
+        end: '2026-12-12T10:00:00.000Z',
+        createdAt: '2026-08-09T01:00:00.000Z',
+      };
+      await setupPool.query(
+        `INSERT INTO rental_requests (
+           id, item_id, owner_id, renter_id, status, payload, created_at
+         ) VALUES (
+           'b5-rollback-booking', 'listing-1', 'owner', 'renter-a',
+           'pending', $1::jsonb, $2
+         )`,
+        [JSON.stringify(rollbackPayload), rollbackPayload.createdAt],
+      );
+      await setupPool.query(
+        `INSERT INTO bookings (
+           id, listing_id, owner_id, renter_id, status, starts_at, ends_at,
+           currency, quoted_total_minor
+         ) VALUES (
+           'b5-rollback-booking', 'listing-1', 'owner', 'renter-a',
+           'pending', $1, $2, 'EUR', 3000
+         )`,
+        [rollbackPayload.start, rollbackPayload.end],
+      );
+      const quarantinedBooking = await setupPool.query(
+        `SELECT workflow_version FROM bookings WHERE id = 'b5-rollback-booking'`,
+      );
+      assert.equal(quarantinedBooking.rows[0].workflow_version, 0);
+      const hiddenRollbackBooking = await fetch(`${baseUrl}/v1/rental-requests`, {
+        headers: { Authorization: `Bearer ${tokenFor('renter-a')}` },
+      });
+      assert.equal(hiddenRollbackBooking.status, 200);
+      assert.equal(
+        (await hiddenRollbackBooking.json()).requests.some((entry) => entry.id === 'b5-rollback-booking'),
+        false,
+      );
+      const revalidatedRollbackBooking = await fetch(
+        `${baseUrl}/v1/bookings/b5-rollback-booking`,
+        {
+          method: 'PATCH',
+          headers: { ...renterAHeaders, 'Idempotency-Key': 'revalidate-b5-rollback-booking' },
+          body: JSON.stringify({
+            itemId: 'listing-1',
+            startDate: '2026-12-10',
+            endDate: '2026-12-12',
+          }),
+        },
+      );
+      assert.equal(revalidatedRollbackBooking.status, 200);
+      const revalidatedBooking = (await revalidatedRollbackBooking.json()).booking;
+      assert.equal(revalidatedBooking.workflowVersion, 1);
+      assert.equal(revalidatedBooking.workflowStatus, 'requested');
+      assert.equal(revalidatedBooking.quote.totalMinor, 3300);
+
+      const blockedCheck = await fetch(`${baseUrl}/v1/listings/listing-1/availability/check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startDate: '2026-12-01', endDate: '2026-12-02' }),
+      });
+      assert.equal(blockedCheck.status, 409);
+      assert.equal((await blockedCheck.json()).reason, 'listing_period_blocked');
+
+      const quotePayload = {
+        itemId: 'listing-1',
+        startDate: '2026-10-01',
+        endDate: '2026-10-03',
+        ownerDeliversAtDropoffChosen: false,
+        ownerPicksUpAtReturnChosen: false,
+      };
+      const quoteResponse = await fetch(`${baseUrl}/v1/bookings/quote`, {
+        method: 'POST',
+        headers: renterAHeaders,
+        body: JSON.stringify(quotePayload),
+      });
+      assert.equal(quoteResponse.status, 200);
+      const quoted = await quoteResponse.json();
+      assert.equal(quoted.quote.days, 2);
+      assert.equal(quoted.quote.baseRentalMinor, 3000);
+      assert.equal(quoted.quote.platformFeeMinor, 300);
+      assert.equal(quoted.quote.totalMinor, 3300);
+      assert.match(quoted.start, /T22:00:00\.000Z$/);
+
+      const createHeaders = {
+        ...renterAHeaders,
+        'Idempotency-Key': 'create-b6-flow-integration',
+      };
+      const createB6 = () => fetch(`${baseUrl}/v1/bookings`, {
+        method: 'POST',
+        headers: createHeaders,
+        body: JSON.stringify({ ...quotePayload, id: 'b6-flow' }),
+      });
+      const createdB6Response = await createB6();
+      assert.equal(createdB6Response.status, 201);
+      const createdB6 = (await createdB6Response.json()).booking;
+      assert.equal(createdB6.status, 'pending');
+      assert.equal(createdB6.workflowStatus, 'requested');
+      assert.equal(createdB6.quotedTotalRenter, 33);
+      assert.equal(createdB6.ownerId, 'owner');
+      assert.equal(createdB6.renterId, 'renter-a');
+      const replayB6 = await createB6();
+      assert.equal(replayB6.status, 200);
+      assert.equal((await replayB6.json()).replayed, true);
+
+      const duplicateB6 = await fetch(`${baseUrl}/v1/bookings`, {
+        method: 'POST',
+        headers: { ...renterAHeaders, 'Idempotency-Key': 'create-b6-duplicate-integration' },
+        body: JSON.stringify({ ...quotePayload, id: 'b6-flow-duplicate' }),
+      });
+      assert.equal(duplicateB6.status, 409);
+      assert.equal((await duplicateB6.json()).error, 'duplicate_booking_request');
+
+      const amendedB6 = await fetch(`${baseUrl}/v1/bookings/b6-flow`, {
+        method: 'PATCH',
+        headers: { ...renterAHeaders, 'Idempotency-Key': 'amend-b6-flow-integration' },
+        body: JSON.stringify({ ...quotePayload, endDate: '2026-10-04' }),
+      });
+      assert.equal(amendedB6.status, 200);
+      const amendedBooking = (await amendedB6.json()).booking;
+      assert.equal(amendedBooking.quote.days, 3);
+      assert.equal(amendedBooking.quote.totalMinor, 4950);
+      assert.equal(amendedBooking.workflowRevision, 2);
+
+      const createConflict = await fetch(`${baseUrl}/v1/bookings`, {
+        method: 'POST',
+        headers: { ...renterBHeaders, 'Idempotency-Key': 'create-b6-conflict-integration' },
+        body: JSON.stringify({
+          itemId: 'listing-1',
+          id: 'b6-conflict',
+          startDate: '2026-10-02',
+          endDate: '2026-10-05',
+        }),
+      });
+      assert.equal(createConflict.status, 201);
+
+      const outsiderTransition = await fetch(`${baseUrl}/v1/bookings/b6-flow/transitions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${tokenFor('outsider')}`,
+          'Content-Type': 'application/json',
+          'Idempotency-Key': 'outsider-b6-transition',
+        },
+        body: JSON.stringify({ status: 'accepted' }),
+      });
+      assert.equal(outsiderTransition.status, 403);
+
+      const acceptB6 = await fetch(`${baseUrl}/v1/bookings/b6-flow/transitions`, {
+        method: 'POST',
+        headers: { ...ownerHeaders, 'Idempotency-Key': 'accept-b6-flow-integration' },
+        body: JSON.stringify({ status: 'accepted' }),
+      });
+      assert.equal(acceptB6.status, 200);
+      assert.equal((await acceptB6.json()).booking.workflowStatus, 'accepted');
+
+      const conflictingAcceptance = await fetch(`${baseUrl}/v1/bookings/b6-conflict/transitions`, {
+        method: 'POST',
+        headers: { ...ownerHeaders, 'Idempotency-Key': 'accept-b6-conflict-integration' },
+        body: JSON.stringify({ status: 'accepted' }),
+      });
+      assert.equal(conflictingAcceptance.status, 409);
+      assert.equal((await conflictingAcceptance.json()).error, 'booking_period_unavailable');
+
+      const activateB6 = await fetch(`${baseUrl}/v1/bookings/b6-flow/transitions`, {
+        method: 'POST',
+        headers: { ...renterAHeaders, 'Idempotency-Key': 'activate-b6-flow-integration' },
+        body: JSON.stringify({ status: 'running' }),
+      });
+      assert.equal(activateB6.status, 200);
+      assert.equal((await activateB6.json()).booking.workflowStatus, 'active');
+
+      const completeB6 = await fetch(`${baseUrl}/v1/bookings/b6-flow/transitions`, {
+        method: 'POST',
+        headers: { ...ownerHeaders, 'Idempotency-Key': 'complete-b6-flow-integration' },
+        body: JSON.stringify({ status: 'completed' }),
+      });
+      assert.equal(completeB6.status, 200);
+      const completedB6 = (await completeB6.json()).booking;
+      assert.equal(completedB6.workflowStatus, 'completed');
+      assert.equal(completedB6.status, 'completed');
+      const b6Events = await setupPool.query(
+        `SELECT from_status, to_status
+         FROM booking_events WHERE booking_id = 'b6-flow'
+         ORDER BY from_status NULLS FIRST, to_status`,
+      );
+      assert.deepEqual(
+        b6Events.rows.map((row) => `${row.from_status ?? 'null'}->${row.to_status}`).sort(),
+        [
+          'null->requested',
+          'requested->requested',
+          'requested->accepted',
+          'accepted->confirmed',
+          'confirmed->active',
+          'active->returned',
+          'returned->completed',
+        ].sort(),
+      );
+
+      const createExpiring = await fetch(`${baseUrl}/v1/bookings`, {
+        method: 'POST',
+        headers: { ...renterBHeaders, 'Idempotency-Key': 'create-b6-expiring-integration' },
+        body: JSON.stringify({
+          itemId: 'listing-1',
+          id: 'b6-expiring',
+          startDate: '2026-11-01',
+          endDate: '2026-11-03',
+        }),
+      });
+      assert.equal(createExpiring.status, 201);
+      const renterCannotAccept = await fetch(`${baseUrl}/v1/bookings/b6-expiring/transitions`, {
+        method: 'POST',
+        headers: { ...renterBHeaders, 'Idempotency-Key': 'renter-accept-b6-expiring' },
+        body: JSON.stringify({ status: 'accepted' }),
+      });
+      assert.equal(renterCannotAccept.status, 409);
+      assert.equal((await renterCannotAccept.json()).error, 'invalid_status_transition');
+      const acceptExpiring = await fetch(`${baseUrl}/v1/bookings/b6-expiring/transitions`, {
+        method: 'POST',
+        headers: { ...ownerHeaders, 'Idempotency-Key': 'owner-accept-b6-expiring' },
+        body: JSON.stringify({ status: 'accepted' }),
+      });
+      assert.equal(acceptExpiring.status, 200);
+      await setupPool.query(
+        `UPDATE bookings SET hold_expires_at = now() - interval '1 minute'
+         WHERE id = 'b6-expiring'`,
+      );
+      const sweepResponse = await fetch(`${baseUrl}/v1/rental-requests`, {
+        headers: { Authorization: `Bearer ${tokenFor('renter-b')}` },
+      });
+      assert.equal(sweepResponse.status, 200);
+      const swept = (await sweepResponse.json()).requests.find((entry) => entry.id === 'b6-expiring');
+      assert.equal(swept.workflowStatus, 'cancelled');
+      assert.equal(swept.cancelledBy, 'system');
 
       const listingImage = await sharp({
         create: {
@@ -533,24 +829,19 @@ if (!databaseUrl) {
       assert.deepEqual((await deletedSearch.json()).listings, []);
       assert.equal((await fetch(localMediaUrl(listingUpload.url))).status, 401);
 
-      const acceptRequest = (id, renterId) => fetch(`${baseUrl}/v1/rental-requests/sync`, {
-        method: 'PUT',
-        headers: ownerHeaders,
+      const acceptRequest = (id) => fetch(`${baseUrl}/v1/bookings/${id}/transitions`, {
+        method: 'POST',
+        headers: {
+          ...ownerHeaders,
+          'Idempotency-Key': `accept-${id}-integration`,
+        },
         body: JSON.stringify({
-          requests: [{
-            id,
-            itemId: 'listing-1',
-            ownerId: 'owner',
-            renterId,
-            status: 'accepted',
-            start: '2026-09-10T10:00:00.000Z',
-            end: '2026-09-12T10:00:00.000Z',
-          }],
+          status: 'accepted',
         }),
       });
       const acceptanceResponses = await Promise.all([
-        acceptRequest('booking-a', 'renter-a'),
-        acceptRequest('booking-b', 'renter-b'),
+        acceptRequest('booking-a'),
+        acceptRequest('booking-b'),
       ]);
       assert.deepEqual(acceptanceResponses.map((response) => response.status).sort(), [200, 409]);
       const conflictResponse = acceptanceResponses.find((response) => response.status === 409);

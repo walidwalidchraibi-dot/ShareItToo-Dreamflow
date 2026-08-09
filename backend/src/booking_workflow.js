@@ -1,0 +1,1039 @@
+import crypto from 'node:crypto';
+
+import {
+  actorRoleForBooking,
+  canTransitionWorkflow,
+  datePart,
+  deliveryFeeForDistanceMinor,
+  distanceKm,
+  legacyStatusForWorkflow,
+  normalizeBookingWorkflowStatus,
+  normalizeCurrency,
+  parseBookingPeriod,
+  parseRentalDates,
+  quoteRental,
+  workflowStatusForLegacy,
+} from './booking_domain.js';
+
+const blockingWorkflowStatuses = Object.freeze(['accepted', 'payment_pending', 'confirmed', 'active', 'returned']);
+
+export class BookingWorkflowError extends Error {
+  constructor(status, code, details = undefined) {
+    super(code);
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+
+function object(value, code = 'invalid_booking_payload') {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new BookingWorkflowError(400, code);
+  }
+  return { ...value };
+}
+
+function text(value, max = 200) {
+  if (typeof value !== 'string') return '';
+  return value.trim().slice(0, max);
+}
+
+function bookingIdentifier(value) {
+  const candidate = text(value, 120);
+  return candidate && /^[A-Za-z0-9_.:-]+$/.test(candidate)
+    ? candidate
+    : `booking_${crypto.randomUUID()}`;
+}
+
+function idempotencyKey(value) {
+  const candidate = text(value, 160);
+  if (!candidate || !/^[A-Za-z0-9_.:-]{8,160}$/.test(candidate)) {
+    throw new BookingWorkflowError(400, 'invalid_idempotency_key');
+  }
+  return candidate;
+}
+
+function stable(value) {
+  if (Array.isArray(value)) return value.map(stable);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]));
+}
+
+function hashCommand(value) {
+  return crypto.createHash('sha256').update(JSON.stringify(stable(value))).digest('hex');
+}
+
+function workflowStatus(value) {
+  if (typeof value !== 'string') return null;
+  if (['pending', 'running'].includes(value)) return workflowStatusForLegacy(value);
+  if (value === 'paid' || value === 'paid_confirmed') return 'confirmed';
+  if (value === 'handed_over') return 'active';
+  const normalized = normalizeBookingWorkflowStatus(value, null);
+  return normalized;
+}
+
+function rentalDatesFromCandidate(candidate, { maxDays = 365 } = {}) {
+  const startDate = text(candidate.startDate, 10) || datePart(candidate.start);
+  const endDate = text(candidate.endDate, 10) || datePart(candidate.end);
+  const parsed = parseRentalDates(startDate, endDate, { maxDays });
+  if (!parsed) throw new BookingWorkflowError(400, 'invalid_rental_dates');
+  return parsed;
+}
+
+function money(value) {
+  return Number(value) / 100;
+}
+
+function numberOrNull(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function databaseDate(value) {
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return String(value).slice(0, 10);
+}
+
+function bookingPayload(row) {
+  const stored = row.payload && typeof row.payload === 'object' && !Array.isArray(row.payload)
+    ? row.payload
+    : {};
+  const breakdown = row.quote_breakdown && typeof row.quote_breakdown === 'object'
+    ? row.quote_breakdown
+    : {};
+  return {
+    ...stored,
+    id: row.id,
+    itemId: row.listing_id,
+    ownerId: row.owner_id,
+    renterId: row.renter_id,
+    status: row.status,
+    workflowStatus: row.workflow_status,
+    workflowVersion: Number(row.workflow_version),
+    workflowRevision: Number(row.workflow_revision),
+    startDate: databaseDate(row.rental_start_date),
+    endDate: databaseDate(row.rental_end_date),
+    timezone: row.rental_timezone,
+    start: new Date(row.starts_at).toISOString(),
+    end: new Date(row.ends_at).toISOString(),
+    holdExpiresAt: row.hold_expires_at ? new Date(row.hold_expires_at).toISOString() : null,
+    quotedTotalRenter: money(row.quoted_total_minor),
+    quote: {
+      ...breakdown,
+      quoteVersion: Number(row.quote_version),
+      currency: row.currency,
+      days: Number(row.quoted_days),
+      pricePerDayMinor: Number(row.price_per_day_minor),
+      baseRentalMinor: Number(row.base_rental_minor),
+      discountMinor: Number(row.discount_minor),
+      rentalSubtotalMinor: Number(row.rental_subtotal_minor),
+      platformFeeMinor: Number(row.platform_fee_minor),
+      deliveryFeeMinor: Number(row.delivery_fee_minor),
+      pickupFeeMinor: Number(row.pickup_fee_minor),
+      expressFeeMinor: Number(row.express_fee_minor),
+      totalMinor: Number(row.quoted_total_minor),
+      ownerPayoutMinor: Number(row.owner_payout_minor),
+      securityDepositMinor: Number(row.security_deposit_minor ?? 0),
+    },
+  };
+}
+
+const bookingProjection = `
+  request.payload,
+  booking.id, booking.listing_id, booking.owner_id, booking.renter_id,
+  booking.status, booking.workflow_status, booking.workflow_version,
+  booking.workflow_revision, booking.rental_start_date, booking.rental_end_date,
+  booking.rental_timezone, booking.starts_at, booking.ends_at, booking.currency,
+  booking.quoted_total_minor, booking.security_deposit_minor, booking.quoted_days,
+  booking.price_per_day_minor, booking.base_rental_minor, booking.discount_minor,
+  booking.rental_subtotal_minor, booking.platform_fee_minor,
+  booking.delivery_fee_minor, booking.pickup_fee_minor, booking.express_fee_minor,
+  booking.owner_payout_minor, booking.quote_version, booking.quote_breakdown,
+  booking.hold_expires_at, booking.created_at, booking.updated_at
+`;
+
+async function writeAudit(client, {
+  actor = null,
+  action,
+  resourceType = 'booking',
+  resourceId,
+  bookingId,
+  metadata = {},
+}) {
+  await client.query(
+    `INSERT INTO audit_log (actor_id, actor_role, action, resource_type, resource_id, metadata)
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+    [actor?.id ?? null, actor?.role ?? 'system', action, resourceType, resourceId ?? bookingId, JSON.stringify(metadata)],
+  );
+}
+
+async function periodInstants(client, dates, timezone) {
+  const validTimezone = await client.query(
+    'SELECT name FROM pg_timezone_names WHERE name = $1 LIMIT 1',
+    [timezone],
+  );
+  if (!validTimezone.rowCount) throw new BookingWorkflowError(400, 'invalid_availability_timezone');
+  const result = await client.query(
+    `SELECT
+       ($1::date::timestamp AT TIME ZONE $3) AS starts_at,
+       ($2::date::timestamp AT TIME ZONE $3) AS ends_at`,
+    [dates.startDate, dates.endDate, timezone],
+  );
+  return result.rows[0];
+}
+
+async function listingForBooking(client, listingId, { lock = false, includeInactive = false } = {}) {
+  const result = await client.query(
+    `SELECT id, owner_id, payload, status, is_active, catalog_version,
+            currency, price_per_day_minor, security_deposit_minor,
+            min_days, max_days, latitude, longitude,
+            availability_timezone, availability_revision,
+            booking_notice_hours, acceptance_window_minutes
+     FROM listings
+     WHERE id = $1
+       AND catalog_version = 1
+       ${includeInactive ? '' : "AND is_active = true AND status = 'active'"}
+     ${lock ? 'FOR UPDATE' : ''}`,
+    [listingId],
+  );
+  if (!result.rowCount) throw new BookingWorkflowError(404, 'listing_not_found');
+  return result.rows[0];
+}
+
+function deliveryQuote(candidate, listing) {
+  const payload = listing.payload && typeof listing.payload === 'object' ? listing.payload : {};
+  const deliverySelected = candidate.ownerDeliversAtDropoffChosen === true;
+  const pickupSelected = candidate.ownerPicksUpAtReturnChosen === true;
+  let deliveryFeeMinor = 0;
+  let pickupFeeMinor = 0;
+
+  const calculate = ({ selected, offered, latitude, longitude, maximum, code }) => {
+    if (!selected) return 0;
+    if (!offered) throw new BookingWorkflowError(409, `${code}_not_offered`);
+    const km = distanceKm(listing.latitude, listing.longitude, latitude, longitude);
+    if (km === null) throw new BookingWorkflowError(400, `${code}_location_required`);
+    const maxKm = numberOrNull(maximum);
+    if (maxKm !== null && km > maxKm) {
+      throw new BookingWorkflowError(409, `${code}_outside_service_area`, {
+        maximumKm: Number(maxKm.toFixed(2)),
+      });
+    }
+    return deliveryFeeForDistanceMinor(km);
+  };
+
+  deliveryFeeMinor = calculate({
+    selected: deliverySelected,
+    offered: payload.offersDeliveryAtDropoff === true,
+    latitude: candidate.deliveryLat,
+    longitude: candidate.deliveryLng,
+    maximum: payload.maxDeliveryKmAtDropoff,
+    code: 'delivery',
+  });
+  pickupFeeMinor = calculate({
+    selected: pickupSelected,
+    offered: payload.offersPickupAtReturn === true,
+    latitude: candidate.returnLat ?? candidate.deliveryLat,
+    longitude: candidate.returnLng ?? candidate.deliveryLng,
+    maximum: payload.maxPickupKmAtReturn,
+    code: 'pickup',
+  });
+  if (candidate.expressRequested === true) {
+    throw new BookingWorkflowError(409, 'express_booking_not_enabled');
+  }
+  return { deliveryFeeMinor, pickupFeeMinor };
+}
+
+function quoteForListing(candidate, dates, listing) {
+  const payload = listing.payload && typeof listing.payload === 'object' ? listing.payload : {};
+  const minimumDays = Math.max(1, Number(listing.min_days ?? payload.minDays ?? 1));
+  const maximumDays = Math.min(365, Math.max(minimumDays, Number(listing.max_days ?? payload.maxDays ?? 365)));
+  const extras = deliveryQuote(candidate, listing);
+  const quote = quoteRental({
+    days: dates.days,
+    pricePerDayMinor: Number(listing.price_per_day_minor),
+    securityDepositMinor: Number(listing.security_deposit_minor ?? 0),
+    minimumDays,
+    maximumDays,
+    autoApplyDiscounts: payload.autoApplyDiscounts === true,
+    discountTiers: payload.longRentalDiscounts,
+    deliveryFeeMinor: extras.deliveryFeeMinor,
+    pickupFeeMinor: extras.pickupFeeMinor,
+    currency: listing.currency,
+  });
+  if (!quote) {
+    throw new BookingWorkflowError(409, 'rental_duration_not_allowed', { minimumDays, maximumDays });
+  }
+  return quote;
+}
+
+async function checkPeriodAvailability(client, { listing, dates, startsAt, endsAt, excludeBookingId = null }) {
+  const noticeHours = Number(listing.booking_notice_hours ?? 0);
+  if (new Date(startsAt).getTime() < Date.now() + noticeHours * 3_600_000) {
+    throw new BookingWorkflowError(409, 'booking_notice_too_short', { noticeHours });
+  }
+
+  const block = await client.query(
+    `SELECT id, kind
+     FROM listing_availability_blocks
+     WHERE listing_id = $1
+       AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
+     LIMIT 1`,
+    [listing.id, startsAt, endsAt],
+  );
+  if (block.rowCount) throw new BookingWorkflowError(409, 'listing_period_blocked');
+
+  const occupied = await client.query(
+    `SELECT id
+     FROM bookings
+     WHERE listing_id = $1
+       AND workflow_version = 1
+       AND workflow_status = ANY($4::text[])
+       AND ($5::text IS NULL OR id <> $5)
+       AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
+     LIMIT 1`,
+    [listing.id, startsAt, endsAt, blockingWorkflowStatuses, excludeBookingId],
+  );
+  if (occupied.rowCount) throw new BookingWorkflowError(409, 'booking_period_unavailable');
+
+  const ruleCount = await client.query(
+    'SELECT count(*)::int AS count FROM listing_availability_rules WHERE listing_id = $1',
+    [listing.id],
+  );
+  if (ruleCount.rows[0].count > 0) {
+    const invalidDays = await client.query(
+      `WITH rental_days AS (
+         SELECT day::date AS day
+         FROM generate_series($2::date, $3::date - 1, interval '1 day') AS day
+       )
+       SELECT day
+       FROM rental_days
+       WHERE NOT EXISTS (
+         SELECT 1
+         FROM listing_availability_rules AS rule
+         WHERE rule.listing_id = $1
+           AND rule.weekday = extract(dow FROM rental_days.day)::smallint
+           AND (rule.valid_from IS NULL OR rule.valid_from <= rental_days.day)
+           AND (rule.valid_until IS NULL OR rule.valid_until >= rental_days.day)
+           AND rule.is_available = true
+       )
+       OR EXISTS (
+         SELECT 1
+         FROM listing_availability_rules AS rule
+         WHERE rule.listing_id = $1
+           AND rule.weekday = extract(dow FROM rental_days.day)::smallint
+           AND (rule.valid_from IS NULL OR rule.valid_from <= rental_days.day)
+           AND (rule.valid_until IS NULL OR rule.valid_until >= rental_days.day)
+           AND rule.is_available = false
+       )
+       LIMIT 1`,
+      [listing.id, dates.startDate, dates.endDate],
+    );
+    if (invalidDays.rowCount) {
+      throw new BookingWorkflowError(409, 'listing_day_unavailable', { date: databaseDate(invalidDays.rows[0].day) });
+    }
+  }
+}
+
+async function completeCommand(client, key, bookingId, response) {
+  await client.query(
+    `UPDATE booking_commands
+     SET booking_id = $2, response_payload = $3::jsonb, completed_at = now()
+     WHERE idempotency_key = $1`,
+    [key, bookingId, JSON.stringify(response)],
+  );
+}
+
+async function startCommand(client, { key, actorId, type, request }) {
+  const requestHash = hashCommand(request);
+  const inserted = await client.query(
+    `INSERT INTO booking_commands (idempotency_key, actor_id, command_type, request_hash)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (idempotency_key) DO NOTHING
+     RETURNING idempotency_key`,
+    [key, actorId, type, requestHash],
+  );
+  if (inserted.rowCount) return null;
+  const existing = await client.query(
+    `SELECT actor_id, command_type, request_hash, response_payload, completed_at
+     FROM booking_commands WHERE idempotency_key = $1 FOR UPDATE`,
+    [key],
+  );
+  const command = existing.rows[0];
+  if (!command || command.actor_id !== actorId || command.command_type !== type || command.request_hash !== requestHash) {
+    throw new BookingWorkflowError(409, 'idempotency_key_reused');
+  }
+  if (!command.completed_at || !command.response_payload) {
+    throw new BookingWorkflowError(409, 'booking_command_in_progress');
+  }
+  return { ...command.response_payload, replayed: true };
+}
+
+export function assertBookingPilot(config) {
+  if (!config.bookingPilotEnabled) {
+    throw new BookingWorkflowError(503, 'booking_pilot_not_enabled');
+  }
+}
+
+export async function expireBookingHolds(client) {
+  const expired = await client.query(
+    `SELECT booking.id, booking.workflow_status, booking.renter_id, request.payload
+     FROM bookings AS booking
+     JOIN rental_requests AS request ON request.id = booking.id
+     WHERE booking.workflow_version = 1
+       AND booking.workflow_status IN ('accepted', 'payment_pending')
+       AND booking.hold_expires_at IS NOT NULL
+       AND booking.hold_expires_at <= now()
+     FOR UPDATE OF booking, request SKIP LOCKED`,
+  );
+  for (const row of expired.rows) {
+    const nextPayload = {
+      ...(row.payload ?? {}),
+      status: 'cancelled',
+      workflowStatus: 'cancelled',
+      cancelledBy: 'system',
+      cancellationReason: 'payment_window_expired',
+    };
+    await client.query(
+      `UPDATE bookings
+       SET status = 'cancelled', workflow_status = 'cancelled', hold_expires_at = NULL,
+           cancelled_at = now(), workflow_revision = workflow_revision + 1,
+           version = version + 1
+       WHERE id = $1`,
+      [row.id],
+    );
+    await client.query(
+      `UPDATE rental_requests SET status = 'cancelled', payload = $2::jsonb WHERE id = $1`,
+      [row.id, JSON.stringify(nextPayload)],
+    );
+    await client.query(
+      `INSERT INTO booking_events (booking_id, event_type, from_status, to_status, metadata)
+       VALUES ($1, 'booking.hold_expired', $2, 'cancelled', '{"reason":"payment_window_expired"}'::jsonb)`,
+      [row.id, row.workflow_status],
+    );
+    await writeAudit(client, {
+      action: 'booking.hold_expired',
+      bookingId: row.id,
+      metadata: { fromStatus: row.workflow_status },
+    });
+  }
+  return expired.rowCount;
+}
+
+export async function listBookings(client, userId) {
+  await expireBookingHolds(client);
+  const result = await client.query(
+    `SELECT ${bookingProjection}
+     FROM bookings AS booking
+     JOIN rental_requests AS request ON request.id = booking.id
+     WHERE booking.workflow_version = 1
+       AND (booking.owner_id = $1 OR booking.renter_id = $1)
+     ORDER BY booking.created_at DESC`,
+    [userId],
+  );
+  return result.rows.map(bookingPayload);
+}
+
+export async function quoteBooking(client, { actorId, raw }) {
+  await expireBookingHolds(client);
+  const candidate = object(raw);
+  const listingId = text(candidate.itemId ?? candidate.listingId, 120);
+  const listing = await listingForBooking(client, listingId);
+  if (listing.owner_id === actorId) throw new BookingWorkflowError(409, 'cannot_rent_own_listing');
+  const dates = rentalDatesFromCandidate(candidate);
+  const period = await periodInstants(client, dates, listing.availability_timezone);
+  await checkPeriodAvailability(client, { listing, dates, ...period });
+  const quote = quoteForListing(candidate, dates, listing);
+  return {
+    listingId,
+    startDate: dates.startDate,
+    endDate: dates.endDate,
+    timezone: listing.availability_timezone,
+    start: new Date(period.starts_at).toISOString(),
+    end: new Date(period.ends_at).toISOString(),
+    availabilityRevision: Number(listing.availability_revision),
+    quote,
+  };
+}
+
+export async function createBooking(client, { actor, raw, key }) {
+  const candidate = object(raw);
+  const commandKey = idempotencyKey(key ?? candidate.idempotencyKey);
+  const replay = await startCommand(client, {
+    key: commandKey,
+    actorId: actor.id,
+    type: 'booking.create',
+    request: candidate,
+  });
+  if (replay) return replay;
+
+  await expireBookingHolds(client);
+
+  const listingId = text(candidate.itemId ?? candidate.listingId, 120);
+  const listing = await listingForBooking(client, listingId, { lock: true });
+  if (listing.owner_id === actor.id) throw new BookingWorkflowError(409, 'cannot_rent_own_listing');
+  const dates = rentalDatesFromCandidate(candidate);
+  const period = await periodInstants(client, dates, listing.availability_timezone);
+  await checkPeriodAvailability(client, { listing, dates, ...period });
+  const duplicate = await client.query(
+    `SELECT id FROM bookings
+     WHERE listing_id = $1 AND renter_id = $2 AND workflow_version = 1
+       AND rental_start_date = $3 AND rental_end_date = $4
+       AND workflow_status NOT IN ('declined', 'cancelled', 'refunded', 'completed')
+     LIMIT 1`,
+    [listing.id, actor.id, dates.startDate, dates.endDate],
+  );
+  if (duplicate.rowCount) {
+    throw new BookingWorkflowError(409, 'duplicate_booking_request', {
+      bookingId: duplicate.rows[0].id,
+    });
+  }
+  const quote = quoteForListing(candidate, dates, listing);
+  const id = bookingIdentifier(candidate.id);
+  const createdAt = new Date();
+  const payload = {
+    ...candidate,
+    idempotencyKey: undefined,
+    id,
+    itemId: listing.id,
+    ownerId: listing.owner_id,
+    renterId: actor.id,
+    status: 'pending',
+    workflowStatus: 'requested',
+    workflowVersion: 1,
+    workflowRevision: 1,
+    startDate: dates.startDate,
+    endDate: dates.endDate,
+    timezone: listing.availability_timezone,
+    start: new Date(period.starts_at).toISOString(),
+    end: new Date(period.ends_at).toISOString(),
+    createdAt: createdAt.toISOString(),
+    quotedTotalRenter: money(quote.totalMinor),
+    quote,
+  };
+  delete payload.idempotencyKey;
+  await client.query(
+    `INSERT INTO rental_requests (id, item_id, owner_id, renter_id, status, payload, created_at)
+     VALUES ($1, $2, $3, $4, 'pending', $5::jsonb, $6)`,
+    [id, listing.id, listing.owner_id, actor.id, JSON.stringify(payload), createdAt],
+  );
+  await client.query(
+    `INSERT INTO bookings (
+       id, listing_id, owner_id, renter_id, status, workflow_status,
+       workflow_version, workflow_revision, starts_at, ends_at,
+       rental_start_date, rental_end_date, rental_timezone, currency,
+       quoted_total_minor, security_deposit_minor, quoted_days,
+       price_per_day_minor, base_rental_minor, discount_minor,
+       rental_subtotal_minor, platform_fee_minor, delivery_fee_minor,
+       pickup_fee_minor, express_fee_minor, owner_payout_minor,
+       quote_version, quote_breakdown, requested_at, created_at
+     ) VALUES (
+       $1, $2, $3, $4, 'pending', 'requested', 1, 1, $5, $6,
+       $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+       $17, $18, $19, $20, $21, $22, $23, $24::jsonb, $25, $25
+     )`,
+    [
+      id, listing.id, listing.owner_id, actor.id, period.starts_at, period.ends_at,
+      dates.startDate, dates.endDate, listing.availability_timezone, quote.currency,
+      quote.totalMinor, quote.securityDepositMinor, quote.days, quote.pricePerDayMinor,
+      quote.baseRentalMinor, quote.discountMinor, quote.rentalSubtotalMinor,
+      quote.platformFeeMinor, quote.deliveryFeeMinor, quote.pickupFeeMinor,
+      quote.expressFeeMinor, quote.ownerPayoutMinor, quote.quoteVersion,
+      JSON.stringify(quote), createdAt,
+    ],
+  );
+  await client.query(
+    `INSERT INTO booking_events (
+       booking_id, actor_id, event_type, to_status, idempotency_key, metadata
+     ) VALUES ($1, $2, 'booking.requested', 'requested', $3, $4::jsonb)`,
+    [id, actor.id, `${commandKey}:event`, JSON.stringify({ availabilityRevision: listing.availability_revision, quote })],
+  );
+  await writeAudit(client, {
+    actor,
+    action: 'booking.requested',
+    bookingId: id,
+    metadata: { listingId: listing.id, quoteVersion: quote.quoteVersion },
+  });
+  const response = { booking: payload, replayed: false };
+  await completeCommand(client, commandKey, id, response);
+  return response;
+}
+
+async function lockedBooking(client, id, { allowQuarantined = false } = {}) {
+  const result = await client.query(
+    `SELECT ${bookingProjection}, listing.acceptance_window_minutes
+     FROM bookings AS booking
+     JOIN rental_requests AS request ON request.id = booking.id
+     JOIN listings AS listing ON listing.id = booking.listing_id
+     WHERE booking.id = $1
+     FOR UPDATE OF booking, request`,
+    [id],
+  );
+  if (!result.rowCount) throw new BookingWorkflowError(404, 'booking_not_found');
+  if (!allowQuarantined && Number(result.rows[0].workflow_version) !== 1) {
+    throw new BookingWorkflowError(409, 'booking_requires_b6_revalidation');
+  }
+  return result.rows[0];
+}
+
+export async function amendBooking(client, { actor, bookingId, raw, key }) {
+  const candidate = object(raw, 'invalid_booking_amendment');
+  const commandKey = idempotencyKey(key ?? candidate.idempotencyKey);
+  const commandRequest = { bookingId, candidate };
+  const replay = await startCommand(client, {
+    key: commandKey,
+    actorId: actor.id,
+    type: 'booking.amend',
+    request: commandRequest,
+  });
+  if (replay) return replay;
+
+  const row = await lockedBooking(client, bookingId, { allowQuarantined: true });
+  if (row.renter_id !== actor.id) throw new BookingWorkflowError(403, 'booking_forbidden');
+  const revalidatingRollback = Number(row.workflow_version) === 0;
+  if (revalidatingRollback && row.status !== 'pending') {
+    throw new BookingWorkflowError(409, 'booking_requires_manual_revalidation', { status: row.status });
+  }
+  if (revalidatingRollback) row.workflow_status = 'requested';
+  if (!['draft', 'requested'].includes(row.workflow_status)) {
+    throw new BookingWorkflowError(409, 'booking_period_locked', { status: row.workflow_status });
+  }
+  const listing = await listingForBooking(client, row.listing_id);
+  const merged = { ...(row.payload ?? {}), ...candidate };
+  const dates = rentalDatesFromCandidate(merged);
+  const period = await periodInstants(client, dates, listing.availability_timezone);
+  await checkPeriodAvailability(client, {
+    listing,
+    dates,
+    ...period,
+    excludeBookingId: bookingId,
+  });
+  const quote = quoteForListing(merged, dates, listing);
+  const nextPayload = {
+    ...(row.payload ?? {}),
+    ...candidate,
+    id: row.id,
+    itemId: row.listing_id,
+    ownerId: row.owner_id,
+    renterId: row.renter_id,
+    status: row.status,
+    workflowStatus: row.workflow_status,
+    workflowVersion: 1,
+    workflowRevision: Number(row.workflow_revision) + 1,
+    startDate: dates.startDate,
+    endDate: dates.endDate,
+    timezone: listing.availability_timezone,
+    start: new Date(period.starts_at).toISOString(),
+    end: new Date(period.ends_at).toISOString(),
+    quotedTotalRenter: money(quote.totalMinor),
+    quote,
+  };
+  delete nextPayload.idempotencyKey;
+  await client.query(
+    `UPDATE bookings
+     SET starts_at = $2, ends_at = $3,
+         status = 'pending', workflow_status = 'requested', workflow_version = 1,
+         rental_start_date = $4, rental_end_date = $5,
+         rental_timezone = $6, currency = $7,
+         quoted_total_minor = $8, security_deposit_minor = $9,
+         quoted_days = $10, price_per_day_minor = $11,
+         base_rental_minor = $12, discount_minor = $13,
+         rental_subtotal_minor = $14, platform_fee_minor = $15,
+         delivery_fee_minor = $16, pickup_fee_minor = $17,
+         express_fee_minor = $18, owner_payout_minor = $19,
+         quote_version = $20, quote_breakdown = $21::jsonb,
+         workflow_revision = workflow_revision + 1, version = version + 1
+     WHERE id = $1`,
+    [
+      bookingId, period.starts_at, period.ends_at, dates.startDate, dates.endDate,
+      listing.availability_timezone, quote.currency, quote.totalMinor,
+      quote.securityDepositMinor, quote.days, quote.pricePerDayMinor,
+      quote.baseRentalMinor, quote.discountMinor, quote.rentalSubtotalMinor,
+      quote.platformFeeMinor, quote.deliveryFeeMinor, quote.pickupFeeMinor,
+      quote.expressFeeMinor, quote.ownerPayoutMinor, quote.quoteVersion,
+      JSON.stringify(quote),
+    ],
+  );
+  await client.query(
+    'UPDATE rental_requests SET payload = $2::jsonb WHERE id = $1',
+    [bookingId, JSON.stringify(nextPayload)],
+  );
+  await client.query(
+    `INSERT INTO booking_events (
+       booking_id, actor_id, event_type, from_status, to_status,
+       idempotency_key, metadata
+     ) VALUES ($1, $2, 'booking.amended', $3, $3, $4, $5::jsonb)`,
+    [
+      bookingId,
+      actor.id,
+      row.workflow_status,
+      `${commandKey}:event`,
+      JSON.stringify({ startDate: dates.startDate, endDate: dates.endDate, quote }),
+    ],
+  );
+  await writeAudit(client, {
+    actor,
+    action: revalidatingRollback ? 'booking.revalidated' : 'booking.amended',
+    bookingId,
+    metadata: { startDate: dates.startDate, endDate: dates.endDate },
+  });
+  const updated = await lockedBooking(client, bookingId);
+  const response = { booking: bookingPayload(updated), replayed: false };
+  await completeCommand(client, commandKey, bookingId, response);
+  return response;
+}
+
+function transitionPath(current, requested, { pilotWithoutPayment = false } = {}) {
+  if (pilotWithoutPayment && current === 'accepted' && requested === 'active') {
+    return ['confirmed', 'active'];
+  }
+  if (current === 'active' && requested === 'completed') return ['returned', 'completed'];
+  return [requested];
+}
+
+export async function transitionBooking(client, { actor, bookingId, raw, key, config }) {
+  const candidate = object(raw, 'invalid_booking_transition');
+  const commandKey = idempotencyKey(key ?? candidate.idempotencyKey);
+  const requested = workflowStatus(candidate.workflowStatus ?? candidate.status);
+  if (!requested) throw new BookingWorkflowError(400, 'invalid_booking_status');
+  const commandRequest = { bookingId, requested, expectedRevision: candidate.expectedRevision ?? null };
+  const replay = await startCommand(client, {
+    key: commandKey,
+    actorId: actor.id,
+    type: 'booking.transition',
+    request: commandRequest,
+  });
+  if (replay) return replay;
+
+  await expireBookingHolds(client);
+  const row = await lockedBooking(client, bookingId);
+  if (row.owner_id !== actor.id && row.renter_id !== actor.id && actor.role !== 'admin') {
+    throw new BookingWorkflowError(403, 'booking_forbidden');
+  }
+  const expectedRevision = Number(candidate.expectedRevision);
+  if (Number.isSafeInteger(expectedRevision) && expectedRevision !== Number(row.workflow_revision)) {
+    throw new BookingWorkflowError(409, 'booking_revision_conflict', {
+      expectedRevision,
+      currentRevision: Number(row.workflow_revision),
+    });
+  }
+  const actorRole = actorRoleForBooking({
+    actorId: actor.id,
+    actorSystemRole: actor.role,
+    ownerId: row.owner_id,
+    renterId: row.renter_id,
+  });
+  let current = row.workflow_status;
+  if (current === requested) {
+    const response = { booking: bookingPayload(row), replayed: false };
+    await completeCommand(client, commandKey, bookingId, response);
+    return response;
+  }
+  const steps = transitionPath(current, requested, {
+    pilotWithoutPayment: config.bookingPilotWithoutPayment,
+  });
+  if (current === 'requested' && steps[0] === 'accepted') {
+    const listing = await listingForBooking(client, row.listing_id);
+    const dates = parseRentalDates(
+      databaseDate(row.rental_start_date),
+      databaseDate(row.rental_end_date),
+    );
+    if (!dates) throw new BookingWorkflowError(500, 'invalid_stored_rental_dates');
+    await checkPeriodAvailability(client, {
+      listing,
+      dates,
+      startsAt: row.starts_at,
+      endsAt: row.ends_at,
+      excludeBookingId: row.id,
+    });
+  }
+  for (let index = 0; index < steps.length; index += 1) {
+    const next = steps[index];
+    if (!canTransitionWorkflow({
+      current,
+      next,
+      actorRole,
+      pilotWithoutPayment: config.bookingPilotWithoutPayment,
+    })) {
+      throw new BookingWorkflowError(409, 'invalid_status_transition', { current, next, actorRole });
+    }
+    const legacyStatus = legacyStatusForWorkflow(next);
+    const holdMinutes = Number(row.acceptance_window_minutes ?? 30);
+    const holdExpiresAt = next === 'accepted'
+      ? new Date(Date.now() + holdMinutes * 60_000)
+      : (next === 'payment_pending' ? row.hold_expires_at : null);
+    const timestampColumn = {
+      accepted: 'accepted_at',
+      payment_pending: 'payment_due_at',
+      confirmed: 'confirmed_at',
+      active: 'active_at',
+      returned: 'returned_at',
+      completed: 'completed_at',
+      declined: 'declined_at',
+      cancelled: 'cancelled_at',
+      refunded: 'refunded_at',
+      disputed: 'disputed_at',
+    }[next];
+    const timestampSql = timestampColumn ? `, ${timestampColumn} = COALESCE(${timestampColumn}, now())` : '';
+    await client.query(
+      `UPDATE bookings
+       SET status = $2, workflow_status = $3, hold_expires_at = $4,
+           workflow_revision = workflow_revision + 1, version = version + 1
+           ${timestampSql}
+       WHERE id = $1`,
+      [bookingId, legacyStatus, next, holdExpiresAt],
+    );
+    const nextPayload = {
+      ...(row.payload ?? {}),
+      status: legacyStatus,
+      workflowStatus: next,
+      workflowVersion: 1,
+      workflowRevision: Number(row.workflow_revision) + index + 1,
+      holdExpiresAt: holdExpiresAt?.toISOString() ?? null,
+      ...(next === 'cancelled' ? { cancelledBy: actorRole } : {}),
+    };
+    row.payload = nextPayload;
+    await client.query(
+      `UPDATE rental_requests SET status = $2, payload = $3::jsonb WHERE id = $1`,
+      [bookingId, legacyStatus, JSON.stringify(nextPayload)],
+    );
+    await client.query(
+      `INSERT INTO booking_events (
+         booking_id, actor_id, event_type, from_status, to_status,
+         idempotency_key, metadata
+       ) VALUES ($1, $2, 'booking.status_changed', $3, $4, $5, $6::jsonb)`,
+      [
+        bookingId,
+        actor.id,
+        current,
+        next,
+        `${commandKey}:event:${index}`,
+        JSON.stringify({ actorRole, pilotWithoutPayment: config.bookingPilotWithoutPayment }),
+      ],
+    );
+    await writeAudit(client, {
+      actor,
+      action: 'booking.status_changed',
+      bookingId,
+      metadata: { fromStatus: current, toStatus: next, actorRole },
+    });
+    current = next;
+  }
+  const updated = await lockedBooking(client, bookingId);
+  const response = { booking: bookingPayload(updated), replayed: false };
+  await completeCommand(client, commandKey, bookingId, response);
+  return response;
+}
+
+export async function getListingAvailability(client, { listingId, fromDate, toDate }) {
+  const listing = await listingForBooking(client, listingId);
+  const dates = parseRentalDates(fromDate, toDate, { maxDays: 366 });
+  if (!dates) throw new BookingWorkflowError(400, 'invalid_availability_range');
+  await expireBookingHolds(client);
+  const period = await periodInstants(client, dates, listing.availability_timezone);
+  const [blocks, bookings, rules] = await Promise.all([
+    client.query(
+      `SELECT id, kind, starts_at, ends_at
+       FROM listing_availability_blocks
+       WHERE listing_id = $1
+         AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
+       ORDER BY starts_at`,
+      [listing.id, period.starts_at, period.ends_at],
+    ),
+    client.query(
+      `SELECT id, starts_at, ends_at
+       FROM bookings
+       WHERE listing_id = $1 AND workflow_version = 1
+         AND workflow_status = ANY($4::text[])
+         AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
+       ORDER BY starts_at`,
+      [listing.id, period.starts_at, period.ends_at, blockingWorkflowStatuses],
+    ),
+    client.query(
+      `SELECT id, weekday, local_start, local_end, valid_from, valid_until, is_available
+       FROM listing_availability_rules WHERE listing_id = $1
+       ORDER BY weekday, local_start`,
+      [listing.id],
+    ),
+  ]);
+  return {
+    listingId: listing.id,
+    timezone: listing.availability_timezone,
+    revision: Number(listing.availability_revision),
+    minimumDays: Number(listing.min_days ?? 1),
+    maximumDays: Number(listing.max_days ?? 365),
+    noticeHours: Number(listing.booking_notice_hours),
+    acceptanceWindowMinutes: Number(listing.acceptance_window_minutes),
+    rules: rules.rows.map((rule) => ({
+      id: rule.id,
+      weekday: Number(rule.weekday),
+      localStart: String(rule.local_start).slice(0, 5),
+      localEnd: String(rule.local_end).slice(0, 5),
+      validFrom: rule.valid_from ? databaseDate(rule.valid_from) : null,
+      validUntil: rule.valid_until ? databaseDate(rule.valid_until) : null,
+      isAvailable: rule.is_available,
+    })),
+    unavailable: [
+      ...blocks.rows.map((block) => ({
+        type: 'block',
+        kind: block.kind,
+        start: new Date(block.starts_at).toISOString(),
+        end: new Date(block.ends_at).toISOString(),
+      })),
+      ...bookings.rows.map((booking) => ({
+        type: 'booking',
+        start: new Date(booking.starts_at).toISOString(),
+        end: new Date(booking.ends_at).toISOString(),
+      })),
+    ].sort((left, right) => left.start.localeCompare(right.start)),
+  };
+}
+
+function validTime(value) {
+  const candidate = text(value, 5);
+  return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(candidate) ? candidate : null;
+}
+
+export async function replaceListingAvailability(client, { actor, listingId, raw }) {
+  const candidate = object(raw, 'invalid_availability_payload');
+  const listing = await listingForBooking(client, listingId, { lock: true, includeInactive: true });
+  if (listing.owner_id !== actor.id && actor.role !== 'admin') {
+    throw new BookingWorkflowError(403, 'listing_forbidden');
+  }
+  const timezone = text(candidate.timezone, 80) || listing.availability_timezone;
+  await periodInstants(client, { startDate: '2026-01-01', endDate: '2026-01-02' }, timezone);
+  const minimumDays = Number.parseInt(candidate.minimumDays ?? listing.min_days ?? 1, 10);
+  const maximumDays = Number.parseInt(candidate.maximumDays ?? listing.max_days ?? 365, 10);
+  const noticeHours = Number.parseInt(candidate.noticeHours ?? listing.booking_notice_hours ?? 0, 10);
+  const acceptanceWindowMinutes = Number.parseInt(
+    candidate.acceptanceWindowMinutes ?? listing.acceptance_window_minutes ?? 30,
+    10,
+  );
+  if (!Number.isSafeInteger(minimumDays) || !Number.isSafeInteger(maximumDays)
+      || minimumDays < 1 || maximumDays < minimumDays || maximumDays > 365) {
+    throw new BookingWorkflowError(400, 'invalid_rental_duration_rules');
+  }
+  if (!Number.isSafeInteger(noticeHours) || noticeHours < 0 || noticeHours > 8760) {
+    throw new BookingWorkflowError(400, 'invalid_booking_notice');
+  }
+  if (!Number.isSafeInteger(acceptanceWindowMinutes)
+      || acceptanceWindowMinutes < 5 || acceptanceWindowMinutes > 1440) {
+    throw new BookingWorkflowError(400, 'invalid_acceptance_window');
+  }
+  const rules = Array.isArray(candidate.rules) ? candidate.rules : [];
+  const blocks = Array.isArray(candidate.blocks) ? candidate.blocks : [];
+  if (rules.length > 100 || blocks.length > 500) throw new BookingWorkflowError(400, 'availability_payload_too_large');
+  const normalizedRules = rules.map((rawRule) => {
+    const rule = object(rawRule, 'invalid_availability_rule');
+    const weekday = Number.parseInt(rule.weekday, 10);
+    const localStart = validTime(rule.localStart);
+    const localEnd = validTime(rule.localEnd);
+    if (!Number.isSafeInteger(weekday) || weekday < 0 || weekday > 6
+        || !localStart || !localEnd || localStart >= localEnd) {
+      throw new BookingWorkflowError(400, 'invalid_availability_rule');
+    }
+    const validFrom = rule.validFrom ? datePart(String(rule.validFrom)) : null;
+    const validUntil = rule.validUntil ? datePart(String(rule.validUntil)) : null;
+    if ((rule.validFrom && !validFrom) || (rule.validUntil && !validUntil)
+        || (validFrom && validUntil && validFrom > validUntil)) {
+      throw new BookingWorkflowError(400, 'invalid_availability_rule_dates');
+    }
+    return { weekday, localStart, localEnd, validFrom, validUntil, isAvailable: rule.isAvailable !== false };
+  });
+  const normalizedBlocks = [];
+  for (const rawBlock of blocks) {
+    const block = object(rawBlock, 'invalid_availability_block');
+    const blockDates = rentalDatesFromCandidate(block, { maxDays: 365 });
+    const blockPeriod = await periodInstants(client, blockDates, timezone);
+    normalizedBlocks.push({
+      ...blockDates,
+      ...blockPeriod,
+      kind: ['owner_block', 'maintenance', 'safety_hold'].includes(block.kind) ? block.kind : 'owner_block',
+      reason: text(block.reason, 500) || null,
+    });
+  }
+  for (const block of normalizedBlocks) {
+    const occupied = await client.query(
+      `SELECT id FROM bookings
+       WHERE listing_id = $1 AND workflow_version = 1
+         AND workflow_status = ANY($4::text[])
+         AND tstzrange(starts_at, ends_at, '[)') && tstzrange($2, $3, '[)')
+       LIMIT 1`,
+      [listing.id, block.starts_at, block.ends_at, blockingWorkflowStatuses],
+    );
+    if (occupied.rowCount) throw new BookingWorkflowError(409, 'availability_block_overlaps_booking');
+  }
+  await client.query('DELETE FROM listing_availability_rules WHERE listing_id = $1', [listing.id]);
+  await client.query('DELETE FROM listing_availability_blocks WHERE listing_id = $1', [listing.id]);
+  for (const rule of normalizedRules) {
+    await client.query(
+      `INSERT INTO listing_availability_rules (
+         listing_id, timezone, weekday, local_start, local_end,
+         valid_from, valid_until, is_available
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [listing.id, timezone, rule.weekday, rule.localStart, rule.localEnd, rule.validFrom, rule.validUntil, rule.isAvailable],
+    );
+  }
+  for (const block of normalizedBlocks) {
+    await client.query(
+      `INSERT INTO listing_availability_blocks (
+         listing_id, created_by, kind, starts_at, ends_at, reason
+       ) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [listing.id, actor.id, block.kind, block.starts_at, block.ends_at, block.reason],
+    );
+  }
+  const updated = await client.query(
+    `UPDATE listings
+     SET availability_timezone = $2, availability_revision = availability_revision + 1,
+         min_days = $3, max_days = $4, booking_notice_hours = $5,
+         acceptance_window_minutes = $6,
+         catalog_revision = catalog_revision + 1,
+         payload = jsonb_set(
+           jsonb_set(
+             jsonb_set(payload, '{minDays}', to_jsonb($3::int), true),
+             '{maxDays}', to_jsonb($4::int), true
+           ),
+           '{availabilityTimezone}', to_jsonb($2::text), true
+         )
+     WHERE id = $1
+     RETURNING availability_revision`,
+    [listing.id, timezone, minimumDays, maximumDays, noticeHours, acceptanceWindowMinutes],
+  );
+  await writeAudit(client, {
+    actor,
+    action: 'listing.availability_replaced',
+    resourceType: 'listing',
+    resourceId: listing.id,
+    metadata: { ruleCount: normalizedRules.length, blockCount: normalizedBlocks.length },
+  });
+  return { revision: Number(updated.rows[0].availability_revision) };
+}
+
+export async function checkListingAvailability(client, { listingId, raw }) {
+  await expireBookingHolds(client);
+  const candidate = object(raw, 'invalid_availability_check');
+  const listing = await listingForBooking(client, listingId);
+  const dates = rentalDatesFromCandidate(candidate);
+  const period = await periodInstants(client, dates, listing.availability_timezone);
+  try {
+    await checkPeriodAvailability(client, { listing, dates, ...period });
+    return {
+      available: true,
+      startDate: dates.startDate,
+      endDate: dates.endDate,
+      timezone: listing.availability_timezone,
+      revision: Number(listing.availability_revision),
+    };
+  } catch (error) {
+    if (!(error instanceof BookingWorkflowError) || error.status !== 409) throw error;
+    return {
+      available: false,
+      reason: error.code,
+      details: error.details,
+      startDate: dates.startDate,
+      endDate: dates.endDate,
+      timezone: listing.availability_timezone,
+      revision: Number(listing.availability_revision),
+    };
+  }
+}

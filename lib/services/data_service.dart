@@ -3387,12 +3387,25 @@ class DataService {
     return 0.0;
   }
 
-  // Simple availability check stub – returns true. Replace with real inventory logic when backend is connected.
+  static String _rentalDate(DateTime value) {
+    final local = value.toLocal();
+    return '${local.year.toString().padLeft(4, '0')}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
+  }
+
+  // The backend is authoritative in normal operation. The local lane remains
+  // only for explicit QA fixtures where no backend is connected.
   static Future<bool> checkAvailability({
     required String itemId,
     required DateTime start,
     required DateTime end,
   }) async {
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      return BackendRepository.checkListingAvailability(
+        listingId: itemId,
+        startDate: _rentalDate(start),
+        endDate: _rentalDate(end),
+      );
+    }
     // Quick delay to emulate IO
     await Future<void>.delayed(const Duration(milliseconds: 120));
     // Load all requests and block overlaps with accepted or running bookings
@@ -3413,6 +3426,22 @@ class DataService {
   static Future<List<DateTimeRange>> getUnavailableRangesForItem(
     String itemId,
   ) async {
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final now = DateTime.now();
+      final through = DateTime(now.year + 1, now.month, now.day + 1);
+      final availability = await BackendRepository.getListingAvailability(
+        listingId: itemId,
+        fromDate: _rentalDate(now),
+        toDate: _rentalDate(through),
+      );
+      final entries = availability['unavailable'];
+      if (entries is! List) return <DateTimeRange>[];
+      return entries.whereType<Map>().map((entry) {
+        final start = DateTime.parse(entry['start'].toString()).toLocal();
+        final end = DateTime.parse(entry['end'].toString()).toLocal();
+        return DateTimeRange(start: start, end: end);
+      }).toList();
+    }
     final all = await _getAllRentalRequests();
     final ranges = <DateTimeRange>[];
     for (final r in all) {
@@ -5407,7 +5436,7 @@ class DataService {
             e.toString(),
       );
     }
-    final toStore = RentalRequest(
+    var toStore = RentalRequest(
       id: nextId,
       itemId: req.itemId,
       ownerId: req.ownerId,
@@ -5439,8 +5468,24 @@ class DataService {
       quotedTotalRenter: quotedTotal,
       quotedSubtitle: quotedSub,
     );
-    all.add(toStore);
-    await _saveAllRentalRequests(all);
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final remote = await BackendRepository.createBooking(
+        toStore.toJson(),
+        idempotencyKey: 'create_$nextId',
+      );
+      toStore = RentalRequest.fromJson(remote);
+      all.removeWhere((entry) => entry.id == toStore.id);
+      all.add(toStore);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _rentalRequestsKey,
+        jsonEncode(all.map((entry) => entry.toJson()).toList()),
+      );
+      SharedPersistenceSync.notify(SharedPersistenceSync.rentalRequestsKey);
+    } else {
+      all.add(toStore);
+      await _saveAllRentalRequests(all);
+    }
     debugPrint(
       '[DataService] addRentalRequest stored id=' +
           nextId +
@@ -5491,16 +5536,40 @@ class DataService {
     final all = await _getAllRentalRequests();
     bool mutated = false;
     RentalRequest? updatedRequest;
-    for (int i = 0; i < all.length; i++) {
-      if (all[i].id == requestId) {
-        all[i] = all[i].copyWith(status: status);
-        updatedRequest = all[i];
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final index = all.indexWhere((entry) => entry.id == requestId);
+      if (index >= 0) {
+        final current = all[index];
+        final remote = await BackendRepository.transitionBooking(
+          bookingId: requestId,
+          status: status,
+          idempotencyKey: 'transition_${requestId}_${current.status}_$status',
+        );
+        updatedRequest = RentalRequest.fromJson(remote);
+        all[index] = updatedRequest;
         mutated = true;
-        break;
+      }
+    } else {
+      for (int i = 0; i < all.length; i++) {
+        if (all[i].id == requestId) {
+          all[i] = all[i].copyWith(status: status);
+          updatedRequest = all[i];
+          mutated = true;
+          break;
+        }
       }
     }
     if (mutated) {
-      await _saveAllRentalRequests(all);
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          _rentalRequestsKey,
+          jsonEncode(all.map((entry) => entry.toJson()).toList()),
+        );
+        SharedPersistenceSync.notify(SharedPersistenceSync.rentalRequestsKey);
+      } else {
+        await _saveAllRentalRequests(all);
+      }
 
       // Wenn die Anfrage angenommen wurde, erstelle einen Message Thread
       if (status == 'accepted' && updatedRequest != null) {
@@ -5565,6 +5634,10 @@ class DataService {
     required String status,
     String? cancelledBy,
   }) async {
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      await updateRentalRequestStatus(requestId: requestId, status: status);
+      return;
+    }
     final all = await _getAllRentalRequests();
     bool mutated = false;
     for (int i = 0; i < all.length; i++) {
@@ -5771,6 +5844,38 @@ class DataService {
     bool? expressRequested,
   }) async {
     final all = await _getAllRentalRequests();
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final index = all.indexWhere((entry) => entry.id == requestId);
+      if (index < 0) return;
+      final current = all[index];
+      // Pickup/return appointment times are stored in their dedicated flow
+      // metadata. The authoritative rental occupancy may only be amended while
+      // the request is still pending.
+      if (current.status != 'pending') return;
+      final exp = expressRequested ?? current.expressRequested;
+      final amended = current.copyWith(
+        start: start,
+        end: end,
+        expressRequested: exp,
+        expressStatus: exp ? 'pending' : null,
+        expressRequestedAt: exp ? DateTime.now() : null,
+        expressConfirmedAt: null,
+      );
+      final remote = await BackendRepository.amendBooking(
+        amended.toJson(),
+        bookingId: requestId,
+        idempotencyKey:
+            'amend_${requestId}_${_rentalDate(start)}_${_rentalDate(end)}',
+      );
+      all[index] = RentalRequest.fromJson(remote);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _rentalRequestsKey,
+        jsonEncode(all.map((entry) => entry.toJson()).toList()),
+      );
+      SharedPersistenceSync.notify(SharedPersistenceSync.rentalRequestsKey);
+      return;
+    }
     bool mutated = false;
     for (int i = 0; i < all.length; i++) {
       if (all[i].id == requestId) {
