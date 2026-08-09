@@ -199,6 +199,21 @@ bleiben harte Eintrittsgates. Die externe Löschfunktion ist auf Staging unter
 `https://staging.shareittoo.com/api/v1/account-deletion` erreichbar; die
 entsprechende Produktions-API-URL lieferte am 9. August 2026 noch 404.
 
+Die kanonischen Store-Texte und Gates liegen außerdem maschinenlesbar unter
+`store/`. `tool/validate_store_metadata.dart` prüft Identität, Version,
+Zeichen-/Bytegrenzen, Wahrheitsgrenzen, Quelldokumente, HTTPS-URLs und den
+Freigabestatus. Der Standardlauf ist Bestandteil der lokalen und CI-
+Regression sowie des signierten Release-Preflights. Ein tatsächlicher Upload
+muss zusätzlich `SIT_REQUIRE_STORE_SUBMISSION=1` setzen; der strenge Modus
+schließt bei jedem offenen Gate.
+
+Der geprüfte Entwurfsstand besteht mit `submissionAllowed=false`, drei offenen
+Pflicht-URLs, elf offenen Gates, aktuellem Build `2026080902` und Mindest-
+Store-Build `2026080903`. Der strenge Modus bricht mit genau diesen offenen
+Punkten wie vorgesehen ab. Die vollständige lokale Regression blieb grün:
+Analyzer-Basis 696 ohne neue Regression, 167 von 167 Flutter-Tests sowie Web-
+Debug- und Android-Debug-Build bestanden.
+
 Auf beiden Plattformen und mit Vermieter- sowie Mieterrolle:
 
 1. Installation, Erststart, Berechtigungen, Login und Neustart.

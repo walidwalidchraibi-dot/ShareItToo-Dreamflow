@@ -85,13 +85,11 @@ Text liegt unter der Grenze von 80 Zeichen.
 > • Exportiere deine Kontodaten oder beantrage die Löschung deines Kontos.
 >
 > ShareItToo ist für volljährige Nutzerinnen und Nutzer vorgesehen. Zahlungen
-> betreffen ausschließlich die zeitweise Nutzung physischer Gegenstände. Die
-> Verfügbarkeit einzelner Funktionen kann während des geschlossenen Tests noch
-> eingeschränkt sein.
+> betreffen ausschließlich die zeitweise Nutzung physischer Gegenstände.
 
-Der Text bleibt unter der Google-Grenze von 4.000 Zeichen. Vor einer
-öffentlichen Freigabe wird der letzte Satz zum geschlossenen Test entfernt
-oder passend zum tatsächlichen Veröffentlichungszustand ersetzt.
+Der Text bleibt unter der Google-Grenze von 4.000 Zeichen. Staging- und
+Testhinweise stehen ausschließlich in den internen Release-/Review-Feldern,
+nicht in der öffentlichen Beschreibung.
 
 ### Interne Release-Notiz
 
@@ -303,7 +301,32 @@ offen ist:
   oder Zahlungsdaten;
 - reale Android-/iOS-Geräteabnahme des B11-Runbooks ist nicht ausführbar.
 
-## 10. Offizielle Referenzen
+## 10. Maschinenlesbare Metadaten und Freigabesperre
+
+Die kanonischen Textdateien und der aktuelle Gate-Status liegen unter
+`store/`. `store/submission.json` steht absichtlich auf `draft` und
+`submissionAllowed: false`. Der lokale/CI-Validator
+`tool/validate_store_metadata.dart` prüft insbesondere:
+
+- Paket-/Bundle-ID, Version, internen Kanal und Staging-API;
+- Google- und Apple-Zeichen-/Bytegrenzen;
+- identische Produktnamen und keine fremden Marken oder riskanten
+  Werbeversprechen in öffentlichen Texten;
+- 18+-Zielgruppe, physische Miete, keine Anzeigen, kein Tracking und kein
+  Firebase Analytics;
+- vorhandene Quelldokumente, HTTPS-URLs und ehrliche offene Gates;
+- höhere Mindest-Store-Buildnummer `2026080903`;
+- harte Ablehnung eines einreichbaren Zustands, solange URL- oder
+  Freigabegates offen sind.
+
+Standardprüfung: `dart run tool/validate_store_metadata.dart`. Eine spätere
+Upload-Automation muss zusätzlich `--require-submittable` verwenden und darf
+bei einem Fehler keinen Store-Upload starten. Der signierte Release-Preflight
+führt die Standardprüfung immer aus; mit
+`SIT_REQUIRE_STORE_SUBMISSION=1` erzwingt er vor einem tatsächlichen Upload
+zusätzlich den strengen Modus.
+
+## 11. Offizielle Referenzen
 
 - [Google Play: Store-Eintrag und Textgrenzen](https://support.google.com/googleplay/android-developer/answer/9859152?hl=en)
 - [Google Play: Vorschau-Assets](https://support.google.com/googleplay/android-developer/answer/9866151?hl=en)

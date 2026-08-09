@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "state": "draft",
+  "submissionAllowed": false,
+  "identity": {
+    "applicationId": "com.shareittoo.app",
+    "bundleId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "minimumStoreBuildNumber": "2026080903",
+    "releaseChannel": "internal",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
+  },
+  "product": {
+    "primaryLocale": "de-DE",
+    "physicalGoodsRental": true,
+    "minimumUserAge": 18,
+    "designedForChildren": false,
+    "containsAds": false,
+    "advertisingTracking": false,
+    "firebaseAnalytics": false,
+    "googlePlayCategorySuggestion": "SHOPPING",
+    "applePrimaryCategorySuggestion": "SHOPPING",
+    "appleSecondaryCategorySuggestion": "LIFESTYLE"
+  },
+  "publicUrls": {
+    "marketing": {
+      "status": "verified",
+      "url": "https://shareittoo.com/"
+    },
+    "support": {
+      "status": "open",
+      "url": null
+    },
+    "privacy": {
+      "status": "open",
+      "url": null
+    },
+    "accountDeletion": {
+      "status": "open",
+      "url": null,
+      "stagingEvidenceUrl": "https://staging.shareittoo.com/api/v1/account-deletion"
+    }
+  },
+  "blockingGates": {
+    "legalProviderIdentity": "open",
+    "copyrightOwner": "open",
+    "termsAndUserContentRules": "open",
+    "firebaseTermsAcceptedByOwner": "open",
+    "firebaseFcmAndApns": "open",
+    "googlePlayAccountAndFee": "open",
+    "appleAccountXcodeAndSigning": "open",
+    "reviewAccounts": "open",
+    "realAndroidAndIosDevices": "open",
+    "finalBinaryPrivacyScan": "open",
+    "closedStoreAndAccessibilityMatrix": "open"
+  },
+  "metadataFiles": {
+    "googlePlay": {
+      "title": "store/google-play/de-DE/title.txt",
+      "shortDescription": "store/google-play/de-DE/short_description.txt",
+      "fullDescription": "store/google-play/de-DE/full_description.txt",
+      "internalReleaseNotes": "store/google-play/de-DE/internal_release_notes.txt"
+    },
+    "apple": {
+      "name": "store/apple/de-DE/name.txt",
+      "subtitle": "store/apple/de-DE/subtitle.txt",
+      "promotionalText": "store/apple/de-DE/promotional_text.txt",
+      "description": "store/apple/de-DE/description.txt",
+      "keywords": "store/apple/de-DE/keywords.txt",
+      "reviewNotesTemplate": "store/apple/review_notes_template_en.txt"
+    }
+  },
+  "sourceDocuments": [
+    "docs/operations/B11_STORE_SUBMISSION_PACKET_2026-08-09.md",
+    "docs/operations/B11_STORE_PRIVACY_DISCLOSURE_MATRIX_2026-08-09.md",
+    "docs/operations/B11_STORE_SCREENSHOT_REVIEW_AND_TESTER_PLAN_2026-08-09.md",
+    "docs/operations/B11_CLOSED_STORE_AND_DEVICE_TEST_RUNBOOK_2026-08-09.md"
+  ]
+}

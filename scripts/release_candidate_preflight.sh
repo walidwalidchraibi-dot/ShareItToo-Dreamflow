@@ -11,6 +11,12 @@ fail() {
   exit 1
 }
 
+command -v dart >/dev/null 2>&1 || fail "dart is required for store metadata validation."
+dart run tool/validate_store_metadata.dart
+if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
+  dart run tool/validate_store_metadata.dart --require-submittable
+fi
+
 version="$(awk '/^version:/ {print $2; exit}' pubspec.yaml)"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+\+[0-9]{10}$ ]] || \
   fail "pubspec version must use semantic version plus YYYYMMDDNN build number."

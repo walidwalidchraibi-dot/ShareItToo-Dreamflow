@@ -1,0 +1,1 @@
+Erster geschlossener ShareItToo-Test: lokale Inserate, Buchungen, Chat, Übergabe/Rückgabe, Meldungen sowie Kontodatenexport und Kontolöschung. Dieser Build verwendet ausschließlich Staging und Testzahlungen.

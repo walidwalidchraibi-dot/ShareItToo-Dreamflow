@@ -22,6 +22,8 @@ flutter --version
 
 dart --version
 
+dart run tool/validate_store_metadata.dart
+
 analyze_log="$(mktemp)"
 trap 'rm -f "$analyze_log"' EXIT
 
