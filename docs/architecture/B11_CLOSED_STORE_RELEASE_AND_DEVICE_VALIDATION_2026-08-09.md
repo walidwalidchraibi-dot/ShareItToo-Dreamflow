@@ -244,14 +244,17 @@ Container- und Image-IDs; beide blieben gesund.
 | APNs | offen | Apple-ID und Developer-Mitgliedschaft einrichten; danach Team, Push-Key und Provisioning verbinden |
 | Google Play Internal Testing | gesperrt | Entwicklerkontoart wählen und Registrierungsgebühr durch Walid abschließen |
 | App Store Connect/TestFlight | gesperrt | Apple-Anmeldung und 2FA durch Walid; vollständiges Xcode und Team-Signierung einrichten |
-| Reale Android-Geräte | offen | APK/AAB auf mindestens einem unterstützten Gerät und zwei Netzen testen |
+| Reale Android-Geräte | Direkt-Smoke bestanden, Matrix offen | aktuellen Kandidaten auf Pixel 7 Pro funktional über WLAN und Hotspot sowie später unverändert über Play Internal prüfen |
 | Reale iOS-Geräte | offen | TestFlight-Build auf mindestens einem unterstützten Gerät testen |
 | Stripe-Testmodus | offen | echte Testschlüssel und Webhook erst nach ausdrücklicher Kontofreigabe verbinden |
 | Tester/Einladungen | offen | zwei Rollen festlegen und ausschließlich geschlossene Gruppen einladen |
 
 Es ist derzeit kein vollständiges Xcode installiert, kein iOS-Signing-Team
-verbunden und kein physisches Android- oder iOS-Gerät an den Build-Mac
-angeschlossen. Diese Punkte dürfen nicht als bestanden markiert werden.
+verbunden und kein physisches iOS-Gerät für TestFlight verfügbar. Für Android
+wurden reale Direktinstallationen auf OnePlus und Pixel nachgewiesen; diese
+ersetzen weder die offene Rollen-/Netzmatrix noch die spätere Installation
+über Google Play Internal. Diese Punkte dürfen nicht als bestanden markiert
+werden.
 
 ## Noch auszuführende Kernmatrix
 
@@ -287,6 +290,50 @@ Vordergrundaktivität wurden bestätigt; der bereinigte Nachweis liegt unter
 Weil die Installation nicht über Google Play Internal erfolgte und noch keine
 Funktions-, Push-, Netzwerk- oder Accessibility-Matrix durchgeführt wurde,
 bleiben alle vier Gerätezellen und das B11-Go unverändert offen.
+
+### Kandidat 2026080904 und korrigierte Registrierungsübergabe
+
+Der reale Test des vorherigen Kandidaten zeigte eine missverständliche
+Registrierungsübergabe: Nach einer vom Backend angenommenen Registrierung ohne
+sofortige Sitzung erschien nur kurz der Hinweis zur E-Mail-Bestätigung; danach
+kehrte die App in den Gastkontext zurück. Dadurch konnte der Eindruck
+entstehen, die Registrierung sei bereits abgeschlossen oder verloren
+gegangen. Die Korrektur leitet jetzt auf eine dauerhafte Anmeldeseite mit dem
+Hinweis `Prüfe deine E-Mail` weiter, übernimmt die eingegebene E-Mail-Adresse
+und leert beide Passwortfelder. Die Formulierung bleibt bewusst
+enumerationssicher und bestätigt nicht, ob ein konkretes Konto existiert.
+
+Die Korrektur ist als eigener Widgettest abgesichert. Der vollständige lokale
+Stand besteht mit 173 von 173 Fluttertests, unveränderter Analyzer-Basis 696,
+17 von 17 Evidenzvalidatortests und acht von acht Android-
+Gerätevorbereitungstests. Build `2026080904` ist an Commit
+`3b9bfe0f94febf141dc8ad2680fa84ffbf5cdfc9` gebunden, mit dem kanonischen
+Uploadzertifikat signiert, vollständig für Firebase konfiguriert und weiterhin
+ausschließlich auf `https://staging.shareittoo.com/api/v1` sowie
+`stripeLivemode=false` begrenzt.
+
+Der unveränderte neue APK-Kandidat wurde auf einem physischen Pixel 7 Pro mit
+Android 16 installiert. Zurückgelesene Version und Buildnummer, Erststart und
+Vordergrundaktivität sind bestanden. Der bereinigte Nachweis liegt unter
+`docs/evidence/b11/android-direct-smoke-2026080904-20260809T213814Z.json`;
+`store/device-validation.json` bindet ihn fail-closed an Kandidat, Hash und
+Signatur. Der ältere OnePlus-Nachweis bleibt historisch erhalten, ist aber
+nicht mehr der aktuelle Kandidatenbeleg.
+
+Die GitHub-Läufe `31337631522` und `31337633477` bestätigten Commit
+`9e24e7d6c4d0e9bbf263daf249b5796e95c25376` vollständig. Beide Backend- und
+Flutter-Hauptjobs einschließlich signiertem Kontrollbuild sind grün. Der
+Push-Lauf veröffentlichte das nicht ausgerollte API-Image mit Digest
+`sha256:559c3078b5c17f122c6456257a2e41716db9c61c5674b9f0ae67e85239c7a82e`.
+Weder Staging noch Produktion, Stripe-Live, DNS oder Echtgeld wurden dadurch
+verändert.
+
+Die reale Registrierung mit synthetischem Rollenalias, Bestätigungslink und
+anschließendem Login ist noch nicht abgeschlossen. Ebenso bleiben Play
+Internal, beide Android-Rollen-/Netzzellen, kontrollierte Push-Zustellung,
+TalkBack, iOS/TestFlight und alle Freigaben offen. Die UI-Checkbox bezeichnet
+korrekt ein Mindestalter von 18 Jahren; App, Backend und Storetexte bleiben für
+den MVP konsistent auf volljährige Nutzer begrenzt.
 
 Die Store-Vorbereitung ist zusätzlich in vier codebasierten Arbeitsunterlagen
 festgehalten:
