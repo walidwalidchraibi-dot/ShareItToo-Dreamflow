@@ -106,6 +106,40 @@ Firebase-Kennungen und die echte `android/app/google-services.json`.
   geschlossenen Startfehler.
 - Optionale Installationsskripte von `@firebase/util` und `protobufjs` sind in
   der pnpm-Lieferkettenrichtlinie ausdrücklich verboten.
+- Inserat- und Profilfreigaben erzeugen keine Platzhalter-/Altdomains mehr,
+  sondern commitgebundene Links der aktuellen ShareItToo-API-Umgebung.
+  Backend und App unterstützen `listing` und `profile`; nicht öffentliche
+  Inserate werden beim Öffnen erneut abgewiesen.
+
+### Android-Binärdatenschutz
+
+- App-Backup und Geräteübertragung sind für Sitzungen und lokale App-Daten
+  ausgeschlossen; Klartextverkehr und Legacy-Speichermodus sind deaktiviert.
+- Alte Speicherberechtigungen enden bei API 32 beziehungsweise API 28.
+- Jeder signierte AAB-/APK-Kandidat wird auf Identität, Commit/API-Bindung,
+  Berechtigungen, Manifestrichtlinien, erwartete Firebase-Komponenten,
+  unerlaubte Tracking-SDKs und bekannte falsche Laufzeitursprünge geprüft.
+- Der lokale, echt signierte Commit
+  `5c917d8e9c3597d52c61970d7f5a044e512d4008` bestand diesen Scan mit null
+  Befunden. AAB-Hash:
+  `edeb58d154680fa2b180e40683e9aa85b0a80b6c374b21348a7d30a178530085`;
+  APK-Hash:
+  `7aafb1a04ed4e17e98756866a7ffd43cacbed3309205988e149311f3f28c9985`.
+- Die Negativprobe mit dem vorherigen Kandidaten wurde mit elf erwarteten
+  Befunden abgelehnt. Der genaue Nachweis steht in
+  `docs/operations/B11_ANDROID_BINARY_PRIVACY_AND_PUBLIC_LINKS_2026-08-09.md`.
+- Das plattformübergreifende Store-Gate bleibt offen, bis ein finaler
+  Firebase-Kandidat, IPA-/Privacy-Manifest-Scan, reale Netzwerkbeobachtung und
+  die Store-Formularabgleiche bestanden sind.
+- Die anschließende lesende Laufzeitkontrolle bestätigte Staging weiterhin
+  gesund auf Commit `281d34e147b96667d6a8c12c45dbedd3e60cca56` mit
+  `memory`-Payment und `livemode=false`; der bestehende Produktions-Healthcheck
+  meldete Datenbank und Mail `ok`. Dieser Baustein wurde nirgends ausgerollt.
+- GitHub-Actions-Lauf `31317921211` bestätigte den Implementierungscommit
+  vollständig mit PostgreSQL-Integration, 169 von 169 Fluttertests, Analyzer-
+  Basis 696, Web/Android, signiertem AAB/APK und erneut grünem Binärscan. Das
+  veröffentlichte, nicht ausgerollte API-Image trägt den Digest
+  `sha256:e41f79c3e1faa268e3abd9e14600b1d4a1e3b0bd677aea9548fb6435c6b0fdff`.
 
 ## Bisherige automatische Abnahme
 

@@ -175,6 +175,20 @@ Matrix vor dem nächsten Build vollständig neu zu bewerten.
 
 ## 8. Verifikation und Nachweis
 
+Der Android-Zwischenscan ist für den signierten Commit
+`5c917d8e9c3597d52c61970d7f5a044e512d4008` bestanden. Das zusammengeführte
+Release-Manifest deaktiviert Backup, Geräteübertragung, Klartextverkehr und
+Legacy-Speichermodus; alte Speicherberechtigungen sind auf API 32
+beziehungsweise 28 begrenzt. Der Binärscan bestätigt die erwarteten
+Firebase-Messaging-/Crashlytics-Komponenten, kein Analytics-/Werbe-SDK und
+keine bekannten Platzhalter- oder lokalen Laufzeitursprünge. Der genaue
+Nachweis liegt in
+`docs/operations/B11_ANDROID_BINARY_PRIVACY_AND_PUBLIC_LINKS_2026-08-09.md`.
+
+Dies ist noch nicht der abschließende Store-Nachweis: Der Kandidat ist nicht
+Firebase-konfiguriert, ein IPA liegt noch nicht vor und die reale
+Netzwerkbeobachtung ist offen.
+
 Der abschließende Datenschutz-Nachweis enthält mindestens:
 
 - Paket/Bundle ID, Version, Buildnummer, Commit und Artefakthash;

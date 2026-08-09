@@ -99,8 +99,9 @@ ersetzen.
    Sitzungswiederherstellung prüfen.
 4. Abmelden, erneut anmelden und parallele Sitzung auf dem zweiten Gerät
    prüfen.
-5. App-Link für Verifizierung, Passwortweg, Buchung und Chat öffnen; fremde
-   Hosts und ungültige Kennungen müssen sicher abgewiesen werden.
+5. App-Link für Verifizierung, Passwortweg, Buchung, Chat, öffentliches
+   Inserat und öffentliches Profil öffnen; fremde Hosts, ungültige Kennungen
+   sowie pausierte oder entfernte Inserate müssen sicher abgewiesen werden.
 
 ### Inserat, Suche und Buchung
 
