@@ -1,12 +1,9 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart'
-    show debugPrint, kIsWeb, defaultTargetPlatform, TargetPlatform;
+    show debugPrint, kIsWeb, kReleaseMode, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:lendify/models/security.dart';
-import 'package:lendify/models/user.dart';
-import 'package:lendify/screens/verification_intro_screen.dart';
-import 'package:lendify/screens/verification_screen.dart';
 import 'package:lendify/screens/login_screen.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_config.dart';
@@ -22,7 +19,6 @@ class SecurityScreen extends StatefulWidget {
 }
 
 class _SecurityScreenState extends State<SecurityScreen> {
-  User? _user;
   bool _loading = true;
 
   // Password
@@ -59,7 +55,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
   Future<void> _load() async {
     try {
-      final u = await DataService.getCurrentUser();
       final s = await DataService.getSecuritySettings();
       final d = BackendConfig.enabled
           ? (await BackendRepository.getAuthSessions())
@@ -68,7 +63,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
           : await DataService.getSignedInDevices();
       if (!mounted) return;
       setState(() {
-        _user = u;
         _twoFactorEnabled = s.enabled;
         _twoFactorMethod = s.method;
         _devices = d;
@@ -284,16 +278,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
     }
   }
 
-  void _openVerification() {
-    final verified = _user?.isVerified == true;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-          builder: (_) => verified
-              ? const VerificationScreen()
-              : const VerificationIntroScreen()),
-    );
-  }
-
   String _deviceNameThisPlatform() {
     if (kIsWeb) return 'Browser';
     switch (defaultTargetPlatform) {
@@ -315,7 +299,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final verified = _user?.isVerified == true;
     final primary = theme.colorScheme.primary;
 
     return Stack(children: [
@@ -366,38 +349,21 @@ class _SecurityScreenState extends State<SecurityScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             _StatusPill(
-                              icon: verified
-                                  ? Icons.check_circle_rounded
-                                  : Icons.error_outline_rounded,
-                              label: verified
-                                  ? 'Verifiziert'
-                                  : 'Nicht verifiziert',
-                              tone: verified
-                                  ? _PillTone.success
-                                  : _PillTone.danger,
+                              icon: Icons.schedule_outlined,
+                              label: 'Noch nicht verfügbar',
+                              tone: _PillTone.neutral,
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'Eine verifizierte Identität erhöht das Vertrauen zwischen Mietern und Vermietern.',
+                              'Vor dem Produktionsstart wird ein geprüfter Identitätsanbieter angebunden. Bis dahin nimmt ShareItToo keine Ausweise oder Selfies entgegen.',
                               style: theme.textTheme.bodySmall?.copyWith(
                                   color: Colors.white70, height: 1.45),
                             ),
-                            const SizedBox(height: 12),
-                            FilledButton.icon(
-                              onPressed: _openVerification,
-                              icon: const Icon(Icons.badge_outlined,
-                                  color: Colors.white),
-                              label: Text(
-                                  verified
-                                      ? 'Verifizierung ansehen'
-                                      : 'Identität verifizieren',
-                                  style: const TextStyle(color: Colors.white)),
-                            ),
                             const SizedBox(height: 10),
                             _MiniBullets(items: const [
-                              'Ausweisdokument hochladen',
-                              'Selfie‑Verifizierung',
-                              'Automatische Identitätsprüfung',
+                              'Keine lokale Demo-Verifizierung',
+                              'Keine Speicherung von Ausweisen oder Selfies',
+                              'Freigabe erst nach sicherer Anbieteranbindung',
                             ]),
                           ]),
                     ),
@@ -501,7 +467,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                           ]),
                     ),
                     const SizedBox(height: 18),
-                    if (!BackendConfig.enabled) ...[
+                    if (!BackendConfig.enabled && !kReleaseMode) ...[
                       _SectionHeader(
                           title: 'Zwei‑Faktor‑Authentifizierung',
                           icon: Icons.phonelink_lock_outlined),

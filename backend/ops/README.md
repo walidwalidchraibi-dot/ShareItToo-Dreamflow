@@ -78,3 +78,21 @@ systemctl start shareittoo-health.service
 systemctl enable --now shareittoo-backup.timer shareittoo-restore-check.timer shareittoo-health.timer
 systemctl list-timers 'shareittoo-*'
 ```
+
+## B10 quality and load acceptance
+
+`staging_b10_acceptance.mjs` creates two isolated staging accounts and one
+isolated booking. It verifies correlation IDs, CORS denial, security headers,
+the authenticated non-cacheable data export and its audit entry. It then
+measures bounded parallel probes for liveness, search/feed, processed images,
+chat, bookings and invalid webhook rejection. Every probe has an explicit p95
+threshold and must remain below the general rate limit. Test accounts and the
+listing are closed again before the script exits; the `finally` guard also
+closes active test state after a failed assertion.
+
+Run it only against isolated staging with the staging database environment:
+
+```sh
+ACCEPTANCE_BASE_URL=http://127.0.0.1:8080/v1 \
+  node ops/staging_b10_acceptance.mjs
+```

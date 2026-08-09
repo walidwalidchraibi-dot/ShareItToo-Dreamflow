@@ -11,9 +11,6 @@ import 'package:lendify/screens/stripe_payout_account_screen.dart';
 import 'package:lendify/screens/invoices_screen.dart';
 import 'package:lendify/screens/notifications_screen.dart';
 import 'package:lendify/screens/privacy_info_screen.dart';
-import 'package:lendify/screens/two_factor_auth_screen.dart';
-import 'package:lendify/screens/verification_intro_screen.dart';
-import 'package:lendify/screens/verification_screen.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/screens/account_deleted_screen.dart';
 import 'package:lendify/services/account_deletion_service.dart';
@@ -96,16 +93,9 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                     _SectionCard(children: [
                       _RowTile(
                         icon: Icons.verified_user_outlined,
-                        label: 'Verifizierung',
-                        onTap: () {
-                          final verified = _user?.isVerified == true;
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                                builder: (_) => verified
-                                    ? const VerificationScreen()
-                                    : const VerificationIntroScreen()),
-                          );
-                        },
+                        label: 'Identitätsprüfung',
+                        subtitle:
+                            'Noch nicht verfügbar – ein geprüfter Anbieter wird vor dem Produktionsstart angebunden.',
                       ),
                       const _Divider(),
                       _RowTile(
@@ -119,9 +109,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       _RowTile(
                         icon: Icons.phonelink_lock_outlined,
                         label: 'Zwei‑Faktor‑Authentifizierung',
-                        onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                                builder: (_) => const TwoFactorAuthScreen())),
+                        subtitle:
+                            'Noch nicht verfügbar – die sichere Server-Anbindung folgt vor dem Produktionsstart.',
                       ),
                     ]),
                     const SizedBox(height: 28),
@@ -663,12 +652,14 @@ class _Divider extends StatelessWidget {
 class _RowTile extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String? subtitle;
   final bool isDestructive;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   const _RowTile(
       {required this.icon,
       required this.label,
-      required this.onTap,
+      this.subtitle,
+      this.onTap,
       this.isDestructive = false});
   @override
   Widget build(BuildContext context) {
@@ -677,8 +668,21 @@ class _RowTile extends StatelessWidget {
           Icon(icon, color: isDestructive ? Colors.redAccent : Colors.white70),
       title: Text(label,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: isDestructive ? Colors.redAccent : Colors.white)),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              color: isDestructive
+                  ? Colors.redAccent
+                  : (onTap == null ? Colors.white60 : Colors.white))),
+      subtitle: subtitle == null
+          ? null
+          : Text(
+              subtitle!,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: Colors.white54),
+            ),
+      trailing: onTap == null
+          ? const Icon(Icons.info_outline, color: Colors.white38)
+          : const Icon(Icons.chevron_right, color: Colors.white38),
       onTap: onTap,
     );
   }

@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 /// OpenAI Configuration and API wrapper
 class OpenAIConfig {
   static const bool aiHelpersEnabled = false;
-  static const _apiKey = String.fromEnvironment('OPENAI_PROXY_API_KEY');
   static const _endpoint = String.fromEnvironment('OPENAI_PROXY_ENDPOINT');
 
   static bool get _enabled =>
@@ -28,7 +27,7 @@ class OpenAIConfig {
       };
     }
 
-    // Guard: Skip API call when endpoint or key are not provided in env (Dreamflow: no backend connected yet)
+    // Client AI remains fail-closed until an authenticated server proxy exists.
     if (!isAvailable) {
       debugPrint('OpenAI: endpoint missing, returning empty parse result');
       return {
@@ -47,7 +46,6 @@ class OpenAIConfig {
         Uri.parse(_endpoint),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
           'model': 'gpt-4o-mini',
@@ -202,9 +200,8 @@ Felder die nicht erkannt werden können → null'''
       };
     }
 
-    // Guard: Skip API call when endpoint or key are not provided
-    if (_endpoint.trim().isEmpty ||
-        !_endpoint.trim().toLowerCase().startsWith('http')) {
+    // Client AI remains fail-closed until an authenticated server proxy exists.
+    if (!isAvailable) {
       debugPrint('OpenAI price: endpoint missing, using defaults');
       return {
         'dailyPrice': 10.0,
@@ -218,7 +215,6 @@ Felder die nicht erkannt werden können → null'''
         Uri.parse(_endpoint),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
           'model': 'gpt-4o-mini',
@@ -337,9 +333,8 @@ ANTWORTFORMAT (NUR JSON):
     required String location,
     required String strategy, // 'quick' | 'premium'
   }) async {
-    // Guard: Skip API call when endpoint or key are not provided
-    if (_endpoint.trim().isEmpty ||
-        !_endpoint.trim().toLowerCase().startsWith('http')) {
+    // Client AI remains fail-closed until an authenticated server proxy exists.
+    if (!isAvailable) {
       debugPrint('OpenAI discount: endpoint missing, using defaults');
       return {
         'tiers': [
@@ -355,7 +350,6 @@ ANTWORTFORMAT (NUR JSON):
         Uri.parse(_endpoint),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
           'model': 'gpt-4o-mini',
@@ -462,9 +456,8 @@ REGELN:
     required double pricePerDay,
     required List<Map<String, dynamic>> tiers,
   }) async {
-    // Guard: Skip API call when endpoint or key are not provided
-    if (_endpoint.trim().isEmpty ||
-        !_endpoint.trim().toLowerCase().startsWith('http')) {
+    // Client AI remains fail-closed until an authenticated server proxy exists.
+    if (!isAvailable) {
       debugPrint(
           'OpenAI availability tip: endpoint missing, using default tip');
       return 'Tipp 💡: Länger mieten = günstiger. Z.B. ab 3/5/8 Tagen: -10/-20/-30%';
@@ -475,7 +468,6 @@ REGELN:
         Uri.parse(_endpoint),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
           'model': 'gpt-4o-mini',
@@ -568,7 +560,6 @@ Gib NUR ein JSON-Objekt zurück:
         Uri.parse(_endpoint),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
           'model': 'gpt-4o-mini',

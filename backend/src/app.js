@@ -103,6 +103,8 @@ import {
 } from './moderation_workflow.js';
 import { publishToAll, publishToUsers } from './realtime.js';
 import { releaseMetadata } from './release.js';
+import { errorPayload, requestContext, safeErrorLog } from './observability.js';
+import { buildAccountExport } from './privacy_export.js';
 import {
   ListingValidationError,
   listingProjection,
@@ -244,17 +246,20 @@ async function writeAudit(client, {
   action,
   resourceType,
   resourceId,
+  requestId = null,
   metadata = {},
 }) {
   await client.query(
-    `INSERT INTO audit_log (actor_id, actor_role, action, resource_type, resource_id, metadata)
-     VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+    `INSERT INTO audit_log (
+       actor_id, actor_role, action, resource_type, resource_id, request_id, metadata
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)`,
     [
       actor?.id ?? null,
       actor?.role ?? 'system',
       action,
       resourceType,
       resourceId,
+      requestId,
       JSON.stringify(metadata),
     ],
   );
@@ -864,6 +869,7 @@ export function createApp() {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
+  app.use(requestContext());
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.use(cors({
     origin(origin, callback) {
@@ -871,14 +877,15 @@ export function createApp() {
       return callback(new HttpError(403, 'origin_not_allowed'));
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-Admin-Step-Up'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-Admin-Step-Up', 'X-Request-ID'],
+    exposedHeaders: ['X-Request-ID', 'Content-Disposition'],
   }));
   const webhookLimiter = rateLimit({
     windowMs: 60_000,
     limit: 600,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
-    handler: (_req, res) => res.status(429).json({ error: 'rate_limit_exceeded' }),
+    handler: (req, res) => res.status(429).json(errorPayload(req, 'rate_limit_exceeded')),
   });
   app.post('/v1/payments/webhook', webhookLimiter, express.raw({ type: 'application/json', limit: '2mb' }), asyncRoute(async (req, res) => {
     const result = await verifyAndApplyWebhook(req.body, req.get('Stripe-Signature'));
@@ -888,12 +895,13 @@ export function createApp() {
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: false, limit: '20kb' }));
 
-  const limitHandler = (_req, res) => res.status(429).json({ error: 'rate_limit_exceeded' });
+  const limitHandler = (req, res) => res.status(429).json(errorPayload(req, 'rate_limit_exceeded'));
   const generalLimiter = rateLimit({ windowMs: 60_000, limit: 240, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const registrationLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const loginLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const refreshLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const exportLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const deletionLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const staffElevationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   app.use(generalLimiter);
@@ -1670,6 +1678,32 @@ export function createApp() {
 
   app.get('/v1/account/deletion-preflight', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     res.json(await accountDeletionPreflight(pool, req.auth.userId));
+  }));
+
+  app.get('/v1/account/export', requireAuth, requireActiveAccount, exportLimiter, asyncRoute(async (req, res) => {
+    const document = await inTransaction(async (client) => {
+      await client.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'account.data_exported',
+        resourceType: 'user',
+        resourceId: req.auth.userId,
+        requestId: req.requestId,
+      });
+      const data = await buildAccountExport(client, req.auth.userId);
+      if (!data) throw new HttpError(404, 'user_not_found');
+      return {
+        schemaVersion: '1.0',
+        generatedAt: new Date().toISOString(),
+        accountId: req.auth.userId,
+        data,
+      };
+    });
+    res.set({
+      'Cache-Control': 'private, no-store',
+      'Content-Disposition': 'attachment; filename="shareittoo-data-export.json"',
+      'X-Content-Type-Options': 'nosniff',
+    }).json(document);
   }));
 
   app.post('/v1/account/deletion', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
@@ -2902,8 +2936,8 @@ export function createApp() {
     res.send(contents);
   }));
 
-  app.use((_req, res) => res.status(404).json({ error: 'not_found' }));
-  app.use((error, _req, res, _next) => {
+  app.use((req, res) => res.status(404).json(errorPayload(req, 'not_found')));
+  app.use((error, req, res, _next) => {
     const uploadTooLarge = error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE';
     const invalidProcessedImage = error instanceof ImageProcessingError;
     const bookingConflict = error?.code === '23P01';
@@ -2923,8 +2957,8 @@ export function createApp() {
           : (bookingConflict
           ? 'booking_period_unavailable'
           : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
-    if (status >= 500) console.error('[api]', error);
-    res.status(status).json({ error: code, ...(error?.details ? { details: error.details } : {}) });
+    if (status >= 500) console.error(safeErrorLog(req, status, code, error));
+    res.status(status).json(errorPayload(req, code, error?.details));
   });
 
   return app;

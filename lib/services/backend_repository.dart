@@ -94,6 +94,10 @@ class BackendRepository {
     return _authorized(method: 'GET', path: '/account/deletion-preflight');
   }
 
+  static Future<Map<String, dynamic>> exportAccountData() async {
+    return _authorized(method: 'GET', path: '/account/export');
+  }
+
   static Future<void> deleteAccount({required String currentPassword}) async {
     await _authorized(
       method: 'POST',

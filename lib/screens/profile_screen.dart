@@ -8,7 +8,6 @@ import 'package:lendify/screens/my_listings_screen.dart';
 import 'package:lendify/screens/owner_requests_screen.dart';
 import 'package:lendify/screens/placeholder_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
-import 'package:lendify/screens/verification_intro_screen.dart';
 import 'package:lendify/screens/edit_profile_screen.dart';
 import 'package:lendify/screens/account_settings_screen.dart';
 import 'package:lendify/screens/bookings_screen.dart';
@@ -27,6 +26,7 @@ import 'package:lendify/widgets/login_nudge_sheet.dart';
 import 'package:lendify/navigation/main_navigation.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/screens/notifications_screen.dart';
+import 'package:lendify/widgets/identity_verification_unavailable.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -893,7 +893,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _handleRoute(String route) {
     switch (route) {
       case '/verify':
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VerificationIntroScreen()));
+        showIdentityVerificationUnavailable(context);
         break;
       case '/myProfilePublic':
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PublicProfileScreen()));

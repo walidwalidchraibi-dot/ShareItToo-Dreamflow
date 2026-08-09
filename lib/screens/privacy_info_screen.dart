@@ -1,9 +1,54 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
+import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/theme.dart';
+import 'package:share_plus/share_plus.dart';
 
-class PrivacyInfoScreen extends StatelessWidget {
+class PrivacyInfoScreen extends StatefulWidget {
   const PrivacyInfoScreen({super.key});
+
+  @override
+  State<PrivacyInfoScreen> createState() => _PrivacyInfoScreenState();
+}
+
+class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
+  bool _exporting = false;
+
+  Future<void> _exportData() async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
+    try {
+      final export = await BackendRepository.exportAccountData();
+      final bytes = Uint8List.fromList(
+        utf8.encode(const JsonEncoder.withIndent('  ').convert(export)),
+      );
+      const filename = 'shareittoo-data-export.json';
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile.fromData(bytes, name: filename, mimeType: 'application/json'),
+          ],
+          fileNameOverrides: const [filename],
+          subject: 'Dein ShareItToo-Datenexport',
+          downloadFallbackEnabled: true,
+        ),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Dein Datenexport wurde sicher erstellt.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Der Datenexport konnte gerade nicht erstellt werden. Bitte versuche es erneut.')),
+      );
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -115,13 +160,15 @@ class PrivacyInfoScreen extends StatelessWidget {
       const _PrivacySectionData(
         icon: Icons.file_download_outlined,
         title: 'Datenexport',
-        description: 'In zukünftigen Versionen von ShareItToo kannst du:',
+        description: 'Du kannst jederzeit eine maschinenlesbare Kopie deiner gespeicherten Daten erstellen:',
         bullets: [
-          'eine Kopie deiner gespeicherten Daten anfordern',
-          'deine Daten herunterladen',
+          'Kontodaten und Zustimmungen',
+          'eigene Angebote, Buchungen und Kommunikation',
+          'Benachrichtigungen, Bewertungen und Zahlungsstatus',
         ],
-        note: 'Diese Funktion wird bereitgestellt, um Transparenz und Kontrolle über persönliche Daten zu gewährleisten.',
-        badgeText: 'Zukünftig',
+        note: 'Passwörter, Sitzungsschlüssel und interne Sicherheitsgeheimnisse sind niemals enthalten.',
+        badgeText: 'Verfügbar',
+        actionLabel: 'Meine Daten exportieren',
       ),
       const _PrivacySectionData(
         icon: Icons.person_remove_outlined,
@@ -170,7 +217,11 @@ class PrivacyInfoScreen extends StatelessWidget {
                 index: i,
                 child: Padding(
                   padding: EdgeInsets.only(bottom: i == sections.length - 1 ? 0 : 12),
-                  child: _PrivacyInfoCard(data: sections[i]),
+                  child: _PrivacyInfoCard(
+                    data: sections[i],
+                    onAction: sections[i].actionLabel == null ? null : _exportData,
+                    actionBusy: sections[i].actionLabel != null && _exporting,
+                  ),
                 ),
               ),
             ),
@@ -282,6 +333,7 @@ class _PrivacySectionData {
   final String? ruleText;
   final String? note;
   final String? badgeText;
+  final String? actionLabel;
 
   const _PrivacySectionData({
     required this.icon,
@@ -294,12 +346,19 @@ class _PrivacySectionData {
     this.ruleText,
     this.note,
     this.badgeText,
+    this.actionLabel,
   });
 }
 
 class _PrivacyInfoCard extends StatelessWidget {
   final _PrivacySectionData data;
-  const _PrivacyInfoCard({required this.data});
+  final VoidCallback? onAction;
+  final bool actionBusy;
+  const _PrivacyInfoCard({
+    required this.data,
+    this.onAction,
+    this.actionBusy = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -355,6 +414,25 @@ class _PrivacyInfoCard extends StatelessWidget {
         if (data.bullets != null && data.bullets!.isNotEmpty) ...[
           const SizedBox(height: 12),
           _BulletList(items: data.bullets!),
+        ],
+        if (data.actionLabel != null) ...[
+          const SizedBox(height: 14),
+          Semantics(
+            key: const ValueKey('privacy-data-export-button'),
+            button: true,
+            enabled: !actionBusy,
+            label: actionBusy ? 'Datenexport wird erstellt' : data.actionLabel,
+            child: FilledButton.icon(
+              onPressed: actionBusy ? null : onAction,
+              icon: actionBusy
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download_outlined),
+              label: Text(actionBusy ? 'Export wird erstellt …' : data.actionLabel!),
+            ),
+          ),
         ],
         if (data.extraTitle != null) ...[
           const SizedBox(height: 12),

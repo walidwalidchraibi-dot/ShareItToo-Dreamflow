@@ -10,7 +10,6 @@ import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/notification_detail_screen.dart';
 import 'package:lendify/screens/notification_settings_screen.dart';
 import 'package:lendify/screens/payment_methods_screen.dart';
-import 'package:lendify/screens/verification_intro_screen.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/message.dart';
 import 'package:lendify/models/rental_request.dart';
@@ -21,6 +20,7 @@ import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/notification_preferences_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:provider/provider.dart';
+import 'package:lendify/widgets/identity_verification_unavailable.dart';
 
 class NotificationsScreen extends StatefulWidget {
   /// Optional: open the notifications screen already filtered to one category.
@@ -388,7 +388,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
       if (entityType == 'verification' || category == 'security' || sitCategory == 'important') {
         if (!mounted) return;
-        await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VerificationIntroScreen()));
+        await showIdentityVerificationUnavailable(context);
         return;
       }
 
@@ -1167,4 +1167,3 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
-

@@ -50,3 +50,23 @@ test('liveness endpoint does not depend on the database', async () => {
     assert.equal(payload.release.commit, process.env.APP_COMMIT);
   });
 });
+
+test('responses carry a validated correlation id without echoing unsafe input', async () => {
+  await withServer(async (baseUrl) => {
+    const accepted = await fetch(`${baseUrl}/version`, {
+      headers: { 'X-Request-ID': 'sit-release-check-123' },
+    });
+    assert.equal(accepted.headers.get('x-request-id'), 'sit-release-check-123');
+
+    const rejected = await fetch(`${baseUrl}/missing`, {
+      headers: { 'X-Request-ID': 'unsafe/request/id' },
+    });
+    assert.equal(rejected.status, 404);
+    const generated = rejected.headers.get('x-request-id');
+    assert.match(generated, /^[0-9a-f-]{36}$/);
+    assert.deepEqual(await rejected.json(), {
+      error: 'not_found',
+      requestId: generated,
+    });
+  });
+});

@@ -1592,6 +1592,41 @@ if (!databaseUrl) {
         (error) => error?.code === '55000',
       );
 
+      const exportResponse = await fetch(`${baseUrl}/v1/account/export`, {
+        headers: {
+          ...ownerHeaders,
+          'X-Request-ID': 'b10-owner-export',
+        },
+      });
+      assert.equal(exportResponse.status, 200);
+      assert.equal(exportResponse.headers.get('x-request-id'), 'b10-owner-export');
+      assert.match(exportResponse.headers.get('cache-control'), /private/);
+      assert.match(exportResponse.headers.get('cache-control'), /no-store/);
+      assert.match(
+        exportResponse.headers.get('content-disposition'),
+        /shareittoo-data-export\.json/,
+      );
+      const accountExport = await exportResponse.json();
+      assert.equal(accountExport.schemaVersion, '1.0');
+      assert.equal(accountExport.accountId, 'owner');
+      assert.equal(accountExport.data.account.email, 'owner@example.com');
+      assert.ok(accountExport.data.marketplace.listings.some((entry) => entry.id === 'listing-1'));
+      assert.ok(accountExport.data.marketplace.bookings.some((entry) => entry.id === 'b6-flow'));
+      assert.ok(accountExport.data.communication.messageThreads.some((entry) => entry.id === b7Thread.id));
+      assert.ok(accountExport.data.trustAndSafety.reviews.some((entry) => entry.relationship === 'submitted'));
+      assert.ok(accountExport.data.auditEvents.some((entry) => (
+        entry.action === 'account.data_exported'
+          && entry.request_id === 'b10-owner-export'
+      )));
+      const serializedExport = JSON.stringify(accountExport);
+      for (const forbiddenField of [
+        'password_hash', 'token_hash', 'provider_payment_id',
+        'provider_payment_method_id', 'provider_customer_id',
+        'provider_checkout_session_id', 'staff_note', 'resolution',
+      ]) {
+        assert.equal(serializedExport.includes(forbiddenField), false, forbiddenField);
+      }
+
       const outsiderHeaders = { Authorization: `Bearer ${tokenFor('outsider')}` };
       const rentalResponse = await fetch(`${baseUrl}/v1/rental-requests`, { headers: outsiderHeaders });
       assert.equal(rentalResponse.status, 200);

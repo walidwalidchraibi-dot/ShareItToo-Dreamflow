@@ -142,14 +142,14 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           _HelpArticle(
             id: 'verifizierung',
             title: 'Verifizierung durchführen',
-            short: 'Mehr Vertrauen durch bestätigte Identität/Infos.',
+            short: 'Geplante geprüfte Identitätsbestätigung.',
             body: _HelpBody(
-              intro: 'Verifizierungen machen dein Profil glaubwürdiger und erhöhen die Abschlussquote.',
+              intro: 'Die Identitätsprüfung ist noch nicht verfügbar. ShareItToo zeigt deshalb keinen lokalen Demo-Ablauf als echte Prüfung an.',
               steps: [
-                'Öffne „Kontoeinstellungen“ → „Verifizierung“.',
-                'Folge den Schritten in der App (MVP: Demo-Flow).',
+                'Bestätige deine E-Mail-Adresse über den zugesandten Link.',
+                'Nutze bis zur Anbieteranbindung ausschließlich korrekte Profildaten.',
               ],
-              tips: ['Gib echte Daten an. Falsche Angaben können zu Sperrungen führen.'],
+              tips: ['Sobald ein geprüfter Identitätsanbieter angebunden ist, wird der Einstieg in den Kontoeinstellungen freigeschaltet.'],
             ),
           ),
           _HelpArticle(
@@ -169,14 +169,14 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           _HelpArticle(
             id: '2fa',
             title: 'Zwei-Faktor-Authentifizierung',
-            short: 'Extra Schutz bei Login und kritischen Aktionen.',
+            short: 'Geplanter zusätzlicher Schutz für dein Konto.',
             body: _HelpBody(
-              intro: 'Mit 2FA schützt du dein Konto zusätzlich gegen unbefugten Zugriff.',
+              intro: 'Die sichere Zwei-Faktor-Authentifizierung ist noch nicht verfügbar. Wir zeigen keine lokale Demo als echte Kontosicherheit an.',
               steps: [
-                'Gehe zu „Kontoeinstellungen“ → „Zwei‑Faktor‑Authentifizierung“.',
-                'Wähle eine Methode und aktiviere sie.',
+                'Nutze bis dahin ein einzigartiges, starkes Passwort.',
+                'Prüfe unter „Sicherheit“ regelmäßig deine angemeldeten Geräte.',
               ],
-              tips: ['Aktiviere 2FA besonders, wenn du oft vermietest.'],
+              tips: ['Sobald die serverseitige Funktion verfügbar ist, wird sie in den Kontoeinstellungen aktivierbar.'],
             ),
           ),
           _HelpArticle(

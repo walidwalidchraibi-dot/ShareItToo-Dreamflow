@@ -10,7 +10,8 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test",
-    "check": "for file in src/*.js; do node --check \"$file\"; done && for file in ops/*.sh; do bash -n \"$file\"; done"
+    "check": "for file in src/*.js ops/*.mjs; do node --check \"$file\"; done && for file in ops/*.sh; do bash -n \"$file\"; done",
+    "security:secrets": "node ops/scan_git_secrets.mjs"
   },
   "dependencies": {
     "cors": "2.8.6",
