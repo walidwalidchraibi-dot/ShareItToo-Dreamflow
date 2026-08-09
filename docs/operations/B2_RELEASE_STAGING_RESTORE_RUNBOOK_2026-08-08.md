@@ -152,6 +152,28 @@ Git-Commit gebauten Image-Tag mit `pull_policy: never`. Dadurch blieb der Build
 trotzdem reproduzierbar und eindeutig überprüfbar, ohne ein Registry-Secret in
 Hostinger zu hinterlegen oder das Paket öffentlich zu machen.
 
+## Verifizierter B11-Staging-Folgerollout vom 9. August 2026
+
+- Der vollständig grüne GitHub-Actions-Lauf `31313881656` veröffentlichte den
+  Commit `281d34e147b96667d6a8c12c45dbedd3e60cca56` als
+  `sha256:e19621042205e096698a9ec945d29793a5c963707f9589b3989c4e4ecc77070e`.
+- Der Registry-Digest wurde auf dem VPS gezogen, commitgebunden getaggt und
+  vor dem Rollout gegen die OCI-Revision geprüft.
+- Der aktuelle gehärtete Deploy-Harness wechselte ausschließlich das
+  Compose-Projekt `sit-staging` von `a37e681ce18c62981992e168965e68b80fc86ff2`
+  auf `281d34e147b96667d6a8c12c45dbedd3e60cca56`.
+- `/version`, alle Health-Endpunkte und die neuen öffentlichen
+  Pflichtseiten-API-Routen bestanden intern und über den bestehenden
+  Staging-API-Pfad. Der Releasebeleg liegt unter
+  `/docker/shareittoo/releases/staging-20260809T131142Z-281d34e147b9.json`.
+- Staging blieb bei Memory-Mail, -Push und -Payment sowie
+  `STRIPE_LIVEMODE=false`. API und PostgreSQL sind gesund; die neuen Logs sind
+  ohne relevante Fehler.
+- Produktion und Caddy blieben nachweislich unverändert. Insbesondere blieb
+  die Caddyfile-Prüfsumme
+  `4aea918ebb07f3bd52c17342172b24bb3a7df3c17dc4be0afe749de940f5d44d`
+  identisch. Root-Routen wurden nicht veröffentlicht.
+
 ## Rollback-Regel
 
 - Es wird ausschließlich auf ein bereits gebautes, commit-markiertes Image

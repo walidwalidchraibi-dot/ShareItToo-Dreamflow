@@ -102,15 +102,50 @@ kein Store-Build.
 
 - Implementierungscommit:
   `396d843a92c362c6ffc22ae25550a3eb6a9f0318`.
-- GitHub-Actions-Lauf `31312753286` vollständig grün: 56/56 Backendtests
+- GitHub-Actions-Lauf `31313881656` für
+  `281d34e147b96667d6a8c12c45dbedd3e60cca56` vollständig grün: 56/56 Backendtests
   einschließlich PostgreSQL-16, Caddy/Compose, 167/167 Fluttertests,
   Analyzer-Basis 696, Web/Android und signierter commitgebundener
   Android-Kandidat.
-- Veröffentlichtes, nicht ausgerolltes API-Image:
-  `sha256:7a9aa907b0b4a8f17e49f2090631c5fa2796010f0f0d05cc416f4ea24cf9be40`.
+- Veröffentlichtes und ausschließlich auf Staging ausgerolltes API-Image:
+  `sha256:e19621042205e096698a9ec945d29793a5c963707f9589b3989c4e4ecc77070e`.
 - Keine unbestätigte Rechtsidentität wurde übernommen.
 - Keine Support- oder Datenschutzseite wurde als freigegeben markiert.
-- Kein Staging- oder Produktionsdeploy wurde ausgeführt.
+- Das isolierte Staging meldet exakt `281d34e147b9`; ein Produktionsdeploy
+  wurde nicht ausgeführt.
 - Produktion, Stripe-Live und Echtgeld bleiben geschützt.
-- Die bestehende technische Staging-Kontolöschung bleibt unter
-  `https://staging.shareittoo.com/api/v1/account-deletion` erreichbar.
+- Die vier neuen API-Routen sind über das bestehende
+  `https://staging.shareittoo.com/api/...`-Routing abgenommen. Die öffentlichen
+  Root-Routen wurden nicht aktiviert und Caddy wurde nicht verändert.
+
+## Verifizierter Staging-Rollout vom 9. August 2026
+
+- Vorheriger Staging-Commit:
+  `a37e681ce18c62981992e168965e68b80fc86ff2`.
+- Neuer Staging-Commit:
+  `281d34e147b96667d6a8c12c45dbedd3e60cca56`.
+- Registry-Digest, lokale Image-ID und laufende Container-Image-ID stimmen
+  überein:
+  `sha256:e19621042205e096698a9ec945d29793a5c963707f9589b3989c4e4ecc77070e`.
+- Die OCI-Revision meldet exakt den neuen Commit. Der Rollout erfolgte mit dem
+  aktuellen gehärteten Harness aus dem zuvor freigegebenen Release; das
+  historische Zielskript wurde nicht verwendet.
+- Releasebeleg:
+  `/docker/shareittoo/releases/staging-20260809T131142Z-281d34e147b9.json`.
+- Intern und über `https://staging.shareittoo.com/api` bestanden `/version`,
+  `/health/live`, `/health/ready` und `/health` mit HTTP 200.
+- `/v1/public/compliance` meldet HTTP 200, `status=draft`,
+  `submissionReady=false`, Support/Datenschutz `draft` und Kontolöschung
+  `operational`.
+- `/v1/public/support` und `/v1/public/privacy` melden erwartungsgemäß HTTP 503
+  mit den richtigen Seiten- und `draft`-Markern.
+- `/v1/account-deletion` meldet HTTP 200 mit den Markern
+  `account-deletion` und `operational`.
+- Staging-API und -PostgreSQL sind gesund. Mail, Push und Payment bleiben im
+  Memory-Modus; `STRIPE_LIVEMODE=false`. Die neuen Logs enthalten keinen
+  Fatal-, Uncaught-, Unhandled-, Start- oder sonstigen Fehler.
+- Produktions-API-Image-ID und Caddy-Image blieben unverändert. Die
+  Caddyfile-Prüfsumme war vor und nach dem Rollout identisch:
+  `4aea918ebb07f3bd52c17342172b24bb3a7df3c17dc4be0afe749de940f5d44d`.
+- Kein Caddy-Reload, keine DNS-/Mail-/Cron-Änderung, kein Produktionsdeploy und
+  kein Echtgeld.
