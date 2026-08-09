@@ -19,7 +19,15 @@ import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   final int? returnTabIndex;
-  const LoginScreen({super.key, this.returnTabIndex});
+  final String? initialEmail;
+  final bool verificationPending;
+
+  const LoginScreen({
+    super.key,
+    this.returnTabIndex,
+    this.initialEmail,
+    this.verificationPending = false,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -70,6 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    _emailCtrl.text = widget.initialEmail?.trim() ?? '';
     _bootstrap();
   }
 
@@ -350,6 +359,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                             children: [
                                               const SitLogoHeader(),
                                               const SizedBox(height: 16),
+                                              if (widget
+                                                  .verificationPending) ...[
+                                                _EmailVerificationPendingNotice(
+                                                  email: _emailCtrl.text.trim(),
+                                                ),
+                                                const SizedBox(height: 16),
+                                              ],
                                               _SITTextField(
                                                 label: 'E-Mail',
                                                 placeholder: 'deine@email.com',
@@ -590,6 +606,63 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _EmailVerificationPendingNotice extends StatelessWidget {
+  final String email;
+
+  const _EmailVerificationPendingNotice({required this.email});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final address = email.isEmpty ? 'deine E-Mail-Adresse' : email;
+    return Container(
+      key: const ValueKey('email-verification-pending'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.42),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.mark_email_read_outlined,
+            color: theme.colorScheme.primary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Prüfe deine E-Mail',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  'Wenn die Registrierung möglich war, wurde ein '
+                  'Bestätigungslink an $address gesendet. Öffne ihn und '
+                  'melde dich anschließend hier an.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.84),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

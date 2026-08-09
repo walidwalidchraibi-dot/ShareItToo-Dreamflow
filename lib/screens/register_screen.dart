@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:lendify/navigation/main_navigation.dart';
 import 'package:lendify/screens/legal_privacy_screen.dart';
 import 'package:lendify/screens/legal_terms_screen.dart';
+import 'package:lendify/screens/login_screen.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/data_service.dart';
@@ -177,14 +178,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
 
       if (result.session == null) {
-        await AppPopup.toast(
-          context,
-          icon: Icons.mark_email_read_outlined,
-          title: 'Prüfe deine E-Mail',
-          message:
-              'Wenn die Registrierung möglich war, haben wir einen Bestätigungslink gesendet. Danach kannst du dich anmelden.',
+        final pendingEmail = _emailCtrl.text.trim();
+        _pwCtrl.clear();
+        _pw2Ctrl.clear();
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => LoginScreen(
+              returnTabIndex: widget.returnTabIndex,
+              initialEmail: pendingEmail,
+              verificationPending: true,
+            ),
+          ),
         );
-        if (mounted) Navigator.of(context).maybePop();
         return;
       }
 
