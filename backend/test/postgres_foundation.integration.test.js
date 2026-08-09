@@ -1015,11 +1015,19 @@ if (!databaseUrl) {
       assert.equal(connectStatus.status, 200);
       assert.equal((await connectStatus.json()).account.ready, true);
 
-      await setupPool.query(
-        `UPDATE listings SET security_deposit_minor = 6000,
-             payload = jsonb_set(payload, '{deposit}', '60'::jsonb)
-         WHERE id = 'listing-1'`,
-      );
+      const b8ListingPayload = (await setupPool.query(
+        `SELECT payload FROM listings WHERE id = 'listing-1'`,
+      )).rows[0].payload;
+      const b8ListingUpdate = await fetch(`${baseUrl}/v1/listings/listing-1`, {
+        method: 'PUT',
+        headers: ownerHeaders,
+        body: JSON.stringify({ ...b8ListingPayload, deposit: 60 }),
+      });
+      assert.equal(b8ListingUpdate.status, 200);
+      assert.equal((await b8ListingUpdate.json()).listing.deposit, 60);
+      assert.equal((await setupPool.query(
+        `SELECT security_deposit_minor FROM listings WHERE id = 'listing-1'`,
+      )).rows[0].security_deposit_minor, '6000');
       const b8Create = await fetch(`${baseUrl}/v1/bookings`, {
         method: 'POST',
         headers: { ...renterAHeaders, 'Idempotency-Key': 'b8-create-payment-booking' },
