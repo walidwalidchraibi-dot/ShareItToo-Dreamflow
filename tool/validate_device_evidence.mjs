@@ -211,6 +211,60 @@ function validateDeviceCellEvidence(root, ref, cell, candidate, label) {
   }
 }
 
+function validateAndroidDirectDiagnostic(root, diagnostic, candidate) {
+  const label = 'candidate.android.directDiagnostic';
+  if (diagnostic.status !== 'passed' || diagnostic.installMethod !== 'direct-apk-diagnostic') {
+    fail(`${label} must record a passed direct-apk-diagnostic.`);
+  }
+  isoTimestamp(diagnostic.capturedAt, `${label}.capturedAt`, { required: true });
+  for (const key of ['manufacturer', 'deviceModel', 'osVersion']) {
+    nonEmptyString(diagnostic[key], `${label}.${key}`);
+  }
+  const ref = evidenceRef(root, diagnostic.evidenceRef, `${label}.evidenceRef`, { required: true });
+  const evidence = readEvidenceJson(root, ref, `${label}.evidence`);
+  if (evidence.schemaVersion !== 1 ||
+      evidence.kind !== 'android-direct-device-smoke' ||
+      evidence.status !== 'installed-launched-pending-manual-matrix') {
+    fail(`${label}.evidence must be an installed Android direct-device smoke document.`);
+  }
+  if (evidence.capturedAt !== diagnostic.capturedAt) {
+    fail(`${label}.evidence.capturedAt must match the diagnostic manifest.`);
+  }
+  isoTimestamp(evidence.capturedAt, `${label}.evidence.capturedAt`, { required: true });
+  assertEvidenceCandidate(evidence, candidate, `${label}.evidence`);
+  assertEvidenceBoundaries(evidence, `${label}.evidence`);
+
+  const expectedAndroid = object(candidate.android, 'candidate.android');
+  if (evidence.candidate.apkSha256 !== expectedAndroid.apkSha256 ||
+      evidence.candidate.signingCertificateSha256 !== expectedAndroid.signingCertificateSha256 ||
+      evidence.candidate.privacyScan !== 'passed') {
+    fail(`${label}.evidence candidate hash, certificate, or privacy scan does not match.`);
+  }
+  const device = object(evidence.device, `${label}.evidence.device`);
+  if (device.platform !== 'android' || device.physical !== true ||
+      device.manufacturer !== diagnostic.manufacturer ||
+      device.model !== diagnostic.deviceModel ||
+      device.osVersion !== diagnostic.osVersion) {
+    fail(`${label}.evidence.device must match the recorded physical Android device.`);
+  }
+  const installation = object(evidence.installation, `${label}.evidence.installation`);
+  if (installation.method !== diagnostic.installMethod ||
+      installation.installed !== true ||
+      installation.installedVersionVerified !== true ||
+      installation.installedBuildVerified !== true ||
+      installation.firstLaunchEvent !== 'passed' ||
+      installation.foregroundActivityVerified !== true ||
+      installation.storeInstallationGateSatisfied !== false) {
+    fail(`${label}.evidence does not prove the bounded direct installation and first launch.`);
+  }
+  const boundaries = evidence.boundaries;
+  if (boundaries.manualFunctionalMatrixPassed !== false ||
+      boundaries.playInternalInstallPassed !== false ||
+      boundaries.realPushPassed !== false) {
+    fail(`${label}.evidence must keep manual, Play Internal, and real-push gates open.`);
+  }
+}
+
 function validateLegacyCandidateReleaseEvidence(evidence, candidate, checkId, label) {
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'android-release-candidate') return false;
   assertEvidenceCandidate(evidence, candidate, label);
@@ -409,6 +463,9 @@ export function validateDeviceEvidence({
     }
   } else if (ios.privacyManifestScanned !== false && ios.privacyManifestScanned !== true) {
     fail('candidate.ios.privacyManifestScanned must be boolean.');
+  }
+  if (android.directDiagnostic !== undefined) {
+    validateAndroidDirectDiagnostic(root, object(android.directDiagnostic, 'candidate.android.directDiagnostic'), candidate);
   }
 
   if (!Array.isArray(manifest.deviceMatrix)) fail('deviceMatrix must be an array.');

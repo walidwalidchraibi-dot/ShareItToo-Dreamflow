@@ -130,7 +130,7 @@ node tool/validate_device_evidence.mjs
 ```
 
 Sie akzeptiert den ehrlichen offenen Planstand und läuft in jeder technischen
-Regression sowie im Release-Preflight. Fünfzehn Negativ-/Positivtests prüfen
+Regression sowie im Release-Preflight. Siebzehn Negativ-/Positivtests prüfen
 unter anderem vorzeitiges `go`, fehlende Matrixzellen, credential-förmige
 Felder, fehlende oder unstrukturierte Evidenzdateien, Kandidatenabweichungen,
 Roh-Gerätekennungen, falsche Releaseprüfungs-IDs und einen vollständig
@@ -152,6 +152,16 @@ gegen dieses Manifest und akzeptiert genau ein autorisiertes physisches
 Telefon. Eine direkte Diagnoseinstallation mit `--install` bleibt ausdrücklich
 von Play Internal und der manuellen Geräte-/Push-/Accessibility-Matrix
 getrennt. ADB-Seriennummern werden nie ausgegeben oder gespeichert.
+
+Ein bestandener direkter Diagnoseinstallationslauf wird zusätzlich unter
+`candidate.android.directDiagnostic` referenziert. Der Validator prüft
+Zeitpunkt, Installationsmethode, bereinigtes Gerätemodell und Betriebssystem,
+Kandidatenidentität, APK-Hash, Signatur, Datenschutzscan, zurückgelesene
+Version und Buildnummer, Erststart und Vordergrundaktivität. Gleichzeitig muss
+der Nachweis ausdrücklich bestätigen, dass Play Internal, reale Push-Zustellung
+und die manuelle Funktionsmatrix nicht bestanden sind. Der aktuelle reale
+Direkt-Smoke-Test ist dadurch maschinenlesbar belegt, ohne ein Store-Gate zu
+schließen.
 
 Ein B11-Pass darf die drei zugehörigen Gates in `store/submission.json` nur
 gemeinsam schließen:

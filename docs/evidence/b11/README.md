@@ -39,4 +39,6 @@ Der erste reale Direkt-Smoke-Test des unveränderten Builds `2026080903` ist in
 ausschließlich Kandidatenprüfung, Installation, zurückgelesene Version und
 Buildnummer sowie den Erststart auf einem physischen Android-Gerät. Alle
 Funktions-, Push-, Netzwerk-, Accessibility- und Play-Internal-Gates bleiben
-ausdrücklich offen.
+ausdrücklich offen. `store/device-validation.json` referenziert diesen Beleg
+unter `candidate.android.directDiagnostic`; der Validator prüft ihn
+inhaltlich gegen denselben Kandidaten und dieselben offenen Grenzen.

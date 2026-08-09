@@ -89,6 +89,7 @@ function passedFixture() {
     apkSha256: 'c'.repeat(64),
     signingCertificateSha256: 'd'.repeat(64),
   });
+  delete deviceManifest.candidate.android.directDiagnostic;
   Object.assign(deviceManifest.candidate.ios, {
     delivery: 'testflight-internal',
     ipaSha256: 'e'.repeat(64),
@@ -181,6 +182,29 @@ function passedFixture() {
   }
 
   return { root, deviceManifest, submissionManifest, pubspecText };
+}
+
+function progressFixture() {
+  const root = mkdtempSync(resolve(tmpdir(), 'sit-device-progress-'));
+  const deviceManifest = clone(baseDeviceManifest);
+  const refs = new Set([
+    deviceManifest.candidate.android.directDiagnostic.evidenceRef,
+    ...Object.values(deviceManifest.releaseChecks)
+      .map((check) => check.evidenceRef)
+      .filter((ref) => ref !== null),
+  ]);
+  for (const ref of refs) {
+    const source = resolve(repositoryRoot, ref);
+    const target = resolve(root, ref);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, readFileSync(source));
+  }
+  return {
+    root,
+    deviceManifest,
+    submissionManifest: clone(baseSubmissionManifest),
+    pubspecText: basePubspec,
+  };
 }
 
 test('accepts the honest in-progress B11 evidence state', () => {
@@ -330,5 +354,29 @@ test('passed evidence cannot escape through a linked parent directory', () => {
   assert.throws(
     () => validate({ ...fixture, requirePassed: true }),
     /must not escape the B11 evidence directory through a linked path/,
+  );
+});
+
+test('direct diagnostic evidence must stay bound to the same candidate commit', () => {
+  const fixture = progressFixture();
+  const ref = fixture.deviceManifest.candidate.android.directDiagnostic.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.candidate.commit = 'f'.repeat(40);
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /candidate.commit must match store\/device-validation.json/,
+  );
+});
+
+test('direct diagnostic evidence cannot claim Play Internal or real push', () => {
+  const fixture = progressFixture();
+  const ref = fixture.deviceManifest.candidate.android.directDiagnostic.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.boundaries.playInternalInstallPassed = true;
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must keep manual, Play Internal, and real-push gates open/,
   );
 });
