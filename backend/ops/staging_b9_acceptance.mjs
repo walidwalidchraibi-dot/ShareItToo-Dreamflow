@@ -369,9 +369,9 @@ async function main() {
     method: 'POST',
     token: users.outsider.token,
     body: quoteBody,
-    expected: [409],
+    expected: [403],
   });
-  assert.equal(suspendedQuote.value.error, 'booking_suspended');
+  assert.equal(suspendedQuote.value.error, 'action_blocked_by_moderation');
   await api(`/admin/suspensions/${suspensionId}/lift`, {
     method: 'POST',
     token: users.admin.token,
@@ -497,12 +497,13 @@ async function main() {
     token: users.owner.token,
     expected: [204],
   });
-  for (const user of Object.values(users)) {
+  for (const [index, user] of Object.values(users).entries()) {
     const preflight = await api('/account/deletion-preflight', { token: user.token });
     assert.equal(preflight.value.canDelete, true, `${user.id} must be deletable after B9 cleanup`);
     await api('/account/deletion', {
       method: 'POST',
       token: user.token,
+      headers: { 'X-Forwarded-For': `203.0.113.${40 + index}` },
       body: { currentPassword: password },
     });
   }

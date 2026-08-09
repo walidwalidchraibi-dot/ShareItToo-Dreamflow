@@ -27,6 +27,7 @@ if [[ "$task_environment" == production ]]; then
   task_compose="$task_backend_root/compose.prod.yml"
   task_env_file="$task_backend_root/.env"
   task_health_url="${HEALTH_URL:-https://shareittoo.com/api}"
+  task_project_name=backend
   if [[ "${CONFIRM_PRODUCTION_DEPLOY:-}" != "$task_commit" ]]; then
     echo "Set CONFIRM_PRODUCTION_DEPLOY to the exact commit before a production rollout." >&2
     exit 1
@@ -36,6 +37,7 @@ else
   task_compose="$task_backend_root/compose.staging.yml"
   task_env_file="$task_backend_root/.env.staging"
   task_health_url="${HEALTH_URL:-http://127.0.0.1:${STAGING_API_PORT:-18080}}"
+  task_project_name=sit-staging
 fi
 
 if [[ ! -f "$task_env_file" ]]; then
@@ -48,7 +50,8 @@ task_previous_commit="$(curl --fail --silent --show-error --max-time 15 "$task_h
 APP_VERSION="$task_version" \
 APP_COMMIT="$task_commit" \
 APP_BUILD_TIME="$task_build_time" \
-docker compose --env-file "$task_env_file" -f "$task_compose" \
+docker compose --project-name "$task_project_name" \
+  --env-file "$task_env_file" -f "$task_compose" \
   up -d --no-build --wait --wait-timeout 180
 
 task_version_payload="$(curl --fail --silent --show-error --max-time 20 "$task_health_url/version")"
