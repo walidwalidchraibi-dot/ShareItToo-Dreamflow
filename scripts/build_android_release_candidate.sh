@@ -49,22 +49,7 @@ for define_name in "${firebase_define_names[@]}"; do
 done
 
 if [[ "${SIT_REQUIRE_FIREBASE:-0}" == "1" ]]; then
-  required_firebase_names=(
-    SIT_FIREBASE_PROJECT_ID
-    SIT_FIREBASE_MESSAGING_SENDER_ID
-    SIT_FIREBASE_ANDROID_APP_ID
-    SIT_FIREBASE_ANDROID_API_KEY
-  )
-  for required_name in "${required_firebase_names[@]}"; do
-    if [[ -z "${!required_name:-}" ]]; then
-      echo "ERROR: $required_name is required for a push-enabled Android candidate." >&2
-      exit 1
-    fi
-  done
-  if [[ ! -f android/app/google-services.json ]]; then
-    echo "ERROR: android/app/google-services.json is required for a push-enabled Android candidate." >&2
-    exit 1
-  fi
+  node tool/validate_firebase_release_config.mjs --require-configured --platform android
 fi
 
 flutter build appbundle "${common_args[@]}"

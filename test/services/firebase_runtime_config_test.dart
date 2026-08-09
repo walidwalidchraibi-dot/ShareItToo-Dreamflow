@@ -28,4 +28,54 @@ void main() {
       expect(FirebaseRuntimeConfig.currentOptions, isNull);
     });
   });
+
+  group('waitForApplePushToken', () {
+    test('returns an immediately available APNs token', () async {
+      var reads = 0;
+      final token = await waitForApplePushToken(
+        readToken: () async {
+          reads += 1;
+          return '  apns-token  ';
+        },
+        delay: (_) async {},
+      );
+
+      expect(token, 'apns-token');
+      expect(reads, 1);
+    });
+
+    test('waits until APNs has produced a token', () async {
+      var reads = 0;
+      var delays = 0;
+      final token = await waitForApplePushToken(
+        readToken: () async {
+          reads += 1;
+          return reads < 3 ? null : 'apns-token';
+        },
+        delay: (_) async {
+          delays += 1;
+        },
+        maxAttempts: 4,
+      );
+
+      expect(token, 'apns-token');
+      expect(reads, 3);
+      expect(delays, 2);
+    });
+
+    test('fails closed when APNs never produces a token', () async {
+      var reads = 0;
+      final token = await waitForApplePushToken(
+        readToken: () async {
+          reads += 1;
+          return null;
+        },
+        delay: (_) async {},
+        maxAttempts: 3,
+      );
+
+      expect(token, isNull);
+      expect(reads, 3);
+    });
+  });
 }

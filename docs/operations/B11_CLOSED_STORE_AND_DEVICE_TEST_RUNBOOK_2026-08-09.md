@@ -1,6 +1,7 @@
 # B11 – Runbook für geschlossenen Store-Test und reale Geräte
 
-Status: vorbereitet; Ausführung beginnt nach Firebase-, Store- und Gerätefreigabe
+Status: vorbereitet; Firebase-Projekt und App-Identitäten vorhanden, Ausführung
+beginnt nach Plattformdatei-, APNs-, Store- und Gerätefreigabe
 
 ## Zweck und Schutzgrenze
 
@@ -42,8 +43,13 @@ Vor Beginn müssen alle zutreffenden Punkte nachweisbar erfüllt sein:
 
 - Firebase-Projekt `shareittoo-staging` angelegt; Android- und iOS-App exakt
   mit `com.shareittoo.app` registriert.
-- Android `google-services.json`, iOS Firebase-Konfiguration und
-  FCM-Service-Account sicher eingebunden; keine Secret-Datei in Git.
+- Android `google-services.json` und iOS `GoogleService-Info.plist` lokal
+  eingebunden und gegen Projekt `shareittoo-staging` geprüft; beide bleiben
+  aus Git ausgeschlossen.
+- FCM-Service-Account außerhalb Git sicher eingebunden, strukturell geprüft
+  und read-only auf Staging gemountet.
+- Der strenge Firebase-Releaseprüfer für beide Plattformen ist bestanden;
+  Analytics und Werbung bleiben deaktiviert.
 - APNs-Key, Apple-Team und Provisioning für TestFlight verfügbar.
 - Play-App-Signing-Fingerabdruck zusätzlich in Digital Asset Links
   eingetragen und öffentlich geprüft.

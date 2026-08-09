@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { validateFirebaseServiceAccount } from './firebase_service_account.js';
+
 function required(name) {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`Missing required environment variable: ${name}`);
@@ -69,6 +71,14 @@ if (pushTransport === 'fcm') {
   }
   if (!serviceAccountFileIsReadable) {
     throw new Error('FIREBASE_SERVICE_ACCOUNT_FILE must point to a readable file');
+  }
+  try {
+    validateFirebaseServiceAccount(
+      fs.readFileSync(resolvedServiceAccountFile, 'utf8'),
+      firebaseProjectId,
+    );
+  } catch {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_FILE must contain credentials for FIREBASE_PROJECT_ID');
   }
 }
 

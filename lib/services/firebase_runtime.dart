@@ -91,6 +91,22 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await FirebaseRuntime.ensureFirebaseApp();
 }
 
+@visibleForTesting
+Future<String?> waitForApplePushToken({
+  required Future<String?> Function() readToken,
+  Future<void> Function(Duration) delay = Future<void>.delayed,
+  int maxAttempts = 20,
+  Duration retryDelay = const Duration(milliseconds: 250),
+}) async {
+  assert(maxAttempts > 0);
+  for (var attempt = 0; attempt < maxAttempts; attempt += 1) {
+    final token = (await readToken())?.trim();
+    if (token != null && token.isNotEmpty) return token;
+    if (attempt + 1 < maxAttempts) await delay(retryDelay);
+  }
+  return null;
+}
+
 class FirebaseRuntime {
   static final StreamController<Uri> _actionLinks =
       StreamController<Uri>.broadcast(sync: true);
@@ -176,6 +192,15 @@ class FirebaseRuntime {
         AuthorizationStatus.provisional,
       }.contains(settings.authorizationStatus)) {
         return false;
+      }
+      if (platform == 'ios') {
+        final apnsToken = await waitForApplePushToken(
+          readToken: FirebaseMessaging.instance.getAPNSToken,
+        );
+        if (apnsToken == null) {
+          debugPrint('[FirebaseRuntime] APNs token is not available.');
+          return false;
+        }
       }
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.trim().isEmpty) return false;

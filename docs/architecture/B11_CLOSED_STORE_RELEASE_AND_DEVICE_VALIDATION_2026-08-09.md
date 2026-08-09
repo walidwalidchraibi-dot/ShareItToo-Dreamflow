@@ -91,6 +91,9 @@ Firebase-Kennungen und die echte `android/app/google-services.json`.
 
 ### Push, Crash-Berichte und Deep Links
 
+- Das Firebase-Projekt `shareittoo-staging` wurde im kostenlosen Spark-Tarif
+  ohne Google Analytics angelegt. Android und iOS sind exakt als
+  `com.shareittoo.app` registriert; die Projektnummer ist `214007794438`.
 - Die App initialisiert Firebase nur bei vollständiger plattformspezifischer
   Build-Konfiguration; unvollständige Entwickler- und CI-Builds bleiben sicher
   deaktiviert.
@@ -102,8 +105,17 @@ Firebase-Kennungen und die echte `android/app/google-services.json`.
   Geräte pro Batch, entfernt ungültige Tokens und schreibt weder Tokens noch
   Zugangsdaten in Logs.
 - Der Service-Account wird nur als read-only Datei in den Container gemountet.
-  Fehlende oder nicht lesbare Dateien führen bei aktiviertem FCM zu einem
-  geschlossenen Startfehler.
+  Fehlende, nicht lesbare, strukturell falsche oder an ein anderes Firebase-
+  Projekt gebundene Dateien führen bei aktiviertem FCM zu einem geschlossenen
+  Startfehler.
+- iOS besitzt Push Capability, ein umgebungsgebundenes `aps-environment`-
+  Entitlement, die Hintergrundmodi `fetch` und `remote-notification` sowie den
+  Crashlytics-dSYM-Upload. Die Laufzeit wartet vor dem FCM-Token begrenzt auf
+  den APNs-Token und bricht andernfalls sicher ab.
+- `tool/validate_firebase_release_config.mjs` bindet Plattformdateien,
+  Buildwerte, Paket-/Bundle-ID, verbotene Tracking-SDKs, APNs und den
+  Symbolupload fail-closed an Regression und Release-Preflight. Detailvertrag:
+  `docs/operations/B11_FIREBASE_PUSH_RELEASE_GATE_2026-08-09.md`.
 - Optionale Installationsskripte von `@firebase/util` und `protobufjs` sind in
   der pnpm-Lieferkettenrichtlinie ausdrücklich verboten.
 - Inserat- und Profilfreigaben erzeugen keine Platzhalter-/Altdomains mehr,
@@ -204,9 +216,9 @@ beide blieben gesund. Das Produktions-API-Image blieb unverändert bei
 
 | Gate | Status | Nächster eindeutiger Schritt |
 |---|---|---|
-| Firebase-Projekt | vorbereitet | Walid akzeptiert einmalig die Firebase-Nutzungsbedingungen; danach Projekt `shareittoo-staging` anlegen und Android/iOS registrieren |
+| Firebase-Projekt | angelegt | öffentliche Android-/iOS-Konfigurationsdateien lokal einbinden und den strengen Releaseprüfer bestehen lassen |
 | FCM-Service-Account | offen | nach Projekterstellung erzeugen, außerhalb Git sichern und read-only auf Staging mounten |
-| APNs | offen | Apple Developer Team, Push-Key und Provisioning verbinden |
+| APNs | offen | Apple-ID und Developer-Mitgliedschaft einrichten; danach Team, Push-Key und Provisioning verbinden |
 | Google Play Internal Testing | gesperrt | Entwicklerkontoart wählen und Registrierungsgebühr durch Walid abschließen |
 | App Store Connect/TestFlight | gesperrt | Apple-Anmeldung und 2FA durch Walid; vollständiges Xcode und Team-Signierung einrichten |
 | Reale Android-Geräte | offen | APK/AAB auf mindestens einem unterstützten Gerät und zwei Netzen testen |

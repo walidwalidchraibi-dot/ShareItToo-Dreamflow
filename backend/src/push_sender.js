@@ -5,6 +5,7 @@ import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 
 import { config } from './config.js';
+import { validateFirebaseServiceAccount } from './firebase_service_account.js';
 
 function pushError(code, cause = undefined) {
   const error = new Error(code, cause ? { cause } : undefined);
@@ -25,8 +26,9 @@ async function fcmMessagingClient() {
     const initialization = (async () => {
       let serviceAccount;
       try {
-        serviceAccount = JSON.parse(
+        serviceAccount = validateFirebaseServiceAccount(
           await fs.readFile(config.push.firebaseServiceAccountFile, 'utf8'),
+          config.push.firebaseProjectId,
         );
       } catch (error) {
         throw pushError('push_fcm_credentials_invalid', error);

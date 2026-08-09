@@ -33,6 +33,10 @@ backend/.env.*
 !backend/.env.example
 !backend/.env.*.example
 backend/node_modules/
+/android/app/google-services.json
+/ios/Runner/GoogleService-Info.plist
+**/firebase-service-account*.json
+**/service-account-key*.json
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
