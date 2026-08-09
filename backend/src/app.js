@@ -690,17 +690,17 @@ async function accountDeletionPreflight(client, userId) {
 async function reconcileExpiredAccountSuspension(email) {
   await inTransaction(async (client) => {
     const result = await client.query(
-      `UPDATE users AS user
+      `UPDATE users AS account
        SET account_status = 'active'
-       WHERE user.email = $1 AND user.account_status = 'suspended'
-         AND user.deactivated_at IS NULL
+       WHERE account.email = $1 AND account.account_status = 'suspended'
+         AND account.deactivated_at IS NULL
          AND NOT EXISTS (
            SELECT 1 FROM user_suspensions AS suspension
-           WHERE suspension.user_id = user.id AND suspension.scope = 'account'
+           WHERE suspension.user_id = account.id AND suspension.scope = 'account'
              AND suspension.lifted_at IS NULL AND suspension.starts_at <= now()
              AND (suspension.ends_at IS NULL OR suspension.ends_at > now())
          )
-       RETURNING user.id`,
+       RETURNING account.id`,
       [email],
     );
     if (result.rowCount) {

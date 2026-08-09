@@ -577,6 +577,7 @@ export async function setListingModeration(client, { actor, listingId, raw, idem
            jsonb_set(payload, '{status}', to_jsonb($6::text), true),
            '{isActive}', to_jsonb($7::boolean), true
          ),
+         catalog_revision = catalog_revision + 1,
          moderated_at = now(), moderated_by = $4
      WHERE id = $1`,
     [listingId, status, reasonCode, actor.id, firstRestriction, operationalStatus, operationalActive],
@@ -661,15 +662,15 @@ export async function createBookingReview(client, { actor, bookingId, raw }) {
     [bookingId, row.resolved_listing_id, actor.id, revieweeId, direction, candidate.rating, candidate.body, JSON.stringify(candidate.criteria)],
   );
   await client.query(
-    `UPDATE users AS user SET profile = jsonb_set(
-       jsonb_set(user.profile, '{avgRating}', to_jsonb(summary.average_rating), true),
+    `UPDATE users AS account SET profile = jsonb_set(
+       jsonb_set(account.profile, '{avgRating}', to_jsonb(summary.average_rating), true),
        '{reviewCount}', to_jsonb(summary.review_count), true
      )
      FROM (
        SELECT reviewee_id, round(avg(rating), 1) AS average_rating, count(*)::int AS review_count
        FROM reviews WHERE reviewee_id = $1 AND moderation_status = 'published' GROUP BY reviewee_id
      ) AS summary
-     WHERE user.id = summary.reviewee_id`,
+     WHERE account.id = summary.reviewee_id`,
     [revieweeId],
   );
   await audit(client, {
