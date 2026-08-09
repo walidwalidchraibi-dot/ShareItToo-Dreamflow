@@ -1,9 +1,18 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    id "com.google.firebase.crashlytics"
+    id "com.google.gms.google-services" apply false
+    id "com.google.firebase.crashlytics" apply false
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id "dev.flutter.flutter-gradle-plugin"
+}
+
+// Firebase release plugins require the console-generated Android project file.
+// Keep non-Firebase developer and CI builds functional, while applying the full
+// official pipeline as soon as the real project configuration is present.
+if (file("google-services.json").exists()) {
+    pluginManager.apply("com.google.gms.google-services")
+    pluginManager.apply("com.google.firebase.crashlytics")
 }
 
 

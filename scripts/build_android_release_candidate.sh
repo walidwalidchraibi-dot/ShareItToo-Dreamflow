@@ -61,6 +61,10 @@ if [[ "${SIT_REQUIRE_FIREBASE:-0}" == "1" ]]; then
       exit 1
     fi
   done
+  if [[ ! -f android/app/google-services.json ]]; then
+    echo "ERROR: android/app/google-services.json is required for a push-enabled Android candidate." >&2
+    exit 1
+  fi
 fi
 
 flutter build appbundle "${common_args[@]}"
