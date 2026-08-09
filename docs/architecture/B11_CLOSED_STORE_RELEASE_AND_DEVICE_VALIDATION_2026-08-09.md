@@ -182,6 +182,23 @@ definiert Release-Eintrag, Eintrittsbedingungen, reale Geräte-/Rollenmatrix,
 Store-Installation, Push-/Offline-Fälle, Barrierefreiheit, Datenschutz,
 Fehlerklassen, Stop-Regeln, Rückfall und B11-Go/No-Go.
 
+Die Store-Vorbereitung ist zusätzlich in drei codebasierten Arbeitsunterlagen
+festgehalten:
+
+- `docs/operations/B11_STORE_SUBMISSION_PACKET_2026-08-09.md` mit deutschen
+  Listing-Texten, Review-Hinweisen, Zahlungsabgrenzung und Einreichungsgates;
+- `docs/operations/B11_STORE_PRIVACY_DISCLOSURE_MATRIX_2026-08-09.md` mit
+  Google-Data-Safety- und Apple-App-Privacy-Zuordnung je Datentyp;
+- `docs/operations/B11_STORE_SCREENSHOT_REVIEW_AND_TESTER_PLAN_2026-08-09.md`
+  mit realen Bildszenen, Datenschutzprüfung, Review-Konten und geschlossenen
+  Testgruppen.
+
+Die Unterlagen sind noch keine Store-Abgabe. Öffentliche Support-,
+Datenschutz- und Produktions-Kontolöschseiten sowie bestätigte Rechtsangaben
+bleiben harte Eintrittsgates. Die externe Löschfunktion ist auf Staging unter
+`https://staging.shareittoo.com/api/v1/account-deletion` erreichbar; die
+entsprechende Produktions-API-URL lieferte am 9. August 2026 noch 404.
+
 Auf beiden Plattformen und mit Vermieter- sowie Mieterrolle:
 
 1. Installation, Erststart, Berechtigungen, Login und Neustart.

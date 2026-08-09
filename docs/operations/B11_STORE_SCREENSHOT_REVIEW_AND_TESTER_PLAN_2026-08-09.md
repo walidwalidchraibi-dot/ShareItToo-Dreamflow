@@ -1,0 +1,212 @@
+# B11 – Screenshot-, Review- und Testerplan
+
+Stand: 9. August 2026  
+Status: vorbereitet; Aufnahme erst mit finalem Firebase-fähigem Store-Build
+
+## 1. Ziel
+
+Dieses Dokument definiert die Store-Bilder, Review-Daten und geschlossenen
+Testgruppen für ShareItToo. Es verhindert, dass veraltete Screens, Demo-
+Funktionen, echte Privatdaten oder ein falscher Backendzustand in Google Play,
+App Store Connect, Git, Telegram oder den Masterplan gelangen.
+
+## 2. Verbindliche Aufnahmebedingungen
+
+Screenshots und Review-Video werden erst erstellt, wenn:
+
+- der Store-Kandidat mindestens Build `2026080903` besitzt;
+- Android/iOS exakt `com.shareittoo.app` verwenden;
+- Firebase, Push und Crashlytics im Artefakt vollständig und sicher
+  konfiguriert sind;
+- der Build ausschließlich `https://staging.shareittoo.com/api/v1` verwendet;
+- `/version` auf den dokumentierten Commit zeigt;
+- `livemode=false` und der freigegebene Testtransport sichtbar bestätigt sind;
+- die weißen App-Icons und Launch-Assets im installierten Store-Build erscheinen;
+- ausschließlich synthetische Konten, Inserate, Chats, Orte, Bilder und
+  Zahlungstests verwendet werden;
+- die deutsche UI auf dem Aufnahmegerät vollständig und ohne Debug-/Preview-
+  Kennzeichnung funktioniert.
+
+Ändern sich UI, Commit, Buildnummer oder relevante Store-Texte nach der
+Aufnahme, werden betroffene Bilder neu erstellt.
+
+## 3. Bildsatz und Erzählfolge
+
+Die Bilder sollen echte App-Oberflächen zeigen. Marketingtexte dürfen nur
+außerhalb der eigentlichen UI ergänzt werden, dürfen keine Garantie oder
+nicht vorhandene Funktion behaupten und müssen mit ausreichend Kontrast
+lesbar sein.
+
+| Nr. | Szene | Kurze Bildaussage | Abnahmepunkte |
+|---|---|---|---|
+| 1 | Feed/Entdecken | „Dinge in deiner Nähe entdecken“ | vielfältige synthetische Inserate, keine 0-km-Falschaussage, Standort nur grob |
+| 2 | Suche und Filter | „Finden, was du gerade brauchst“ | echte Filter-/Suchfunktion, keine fremden Marken oder geschützten Produktbilder |
+| 3 | Inseratdetail | „Preis, Kaution und Verfügbarkeit auf einen Blick“ | Beträge konsistent, Adresse geschützt, Bilder lizenziert/synthetisch |
+| 4 | Inserat erstellen | „Eigene Dinge einfach anbieten“ | Medien-, Preis-, Verfügbarkeits- und Übergabefelder sichtbar |
+| 5 | Buchungsanfrage | „Zeitraum wählen und Anfrage senden“ | Testmodus, keine echte Karte oder persönliche Adresse |
+| 6 | Buchungsstatus/Chat | „Buchung gemeinsam abstimmen“ | nur synthetischer neutraler Chat, keine Pushvorschau mit privatem Inhalt |
+| 7 | Übergabe/Rückgabe | „Geführte Übergabe und Rückgabe“ | QR-/Schrittlogik wahrheitsgetreu, keine Garantiebehauptung |
+| 8 | Vertrauen/Kontrolle | „Bewerten, melden und blockieren“ | reale Bedienelemente, keine frei erfundenen Bewertungssummen |
+| 9 | Datenschutz/Konto | „Daten exportieren und Konto verwalten“ | Export/Löschung sichtbar, finaler Rechtstext noch nicht fotografieren, solange offen |
+
+Für die erste Einreichung werden sechs bis acht der stärksten Szenen gewählt.
+Mindestens Feed, Inseratdetail, Buchung, Chat und Übergabe sind enthalten.
+Datenschutz/Konto wird erst verwendet, wenn öffentliche Rechtstexte und die
+Produktions-Löschseite final sind.
+
+## 4. Formate
+
+### Google Play
+
+- Store-Icon: 512 × 512 Pixel, 32-Bit-PNG, maximal 1.024 KB; die bereits weiße
+  Masterdarstellung wird in eine Play-konforme Variante übertragen und visuell
+  gegen die Maskierung geprüft.
+- Feature-Grafik: 1024 × 500 Pixel, JPEG oder 24-Bit-PNG ohne Alpha.
+- Telefon: zwei bis acht Screenshots, JPEG oder 24-Bit-PNG ohne Alpha;
+  Mindestkante 320 Pixel, Maximalkante 3.840 Pixel und längste Kante höchstens
+  doppelt so lang wie die kürzeste.
+- Für jedes Bild wird ein präziser deutscher Alternativtext mit höchstens 140
+  Zeichen vorbereitet.
+- Tablet-Screenshots nur hochladen, wenn das Layout auf realen großen Displays
+  bestanden ist; Telefonbilder nicht als Tabletansicht ausgeben.
+
+### Apple
+
+- Ein bis zehn Screenshots je benötigter Gerätegröße und Lokalisierung;
+  JPEG/JPG/PNG ohne Alphakanal.
+- Zunächst höchste benötigte iPhone-Auflösung aus App Store Connect aufnehmen;
+  Apple skaliert bei identischer UI auf kleinere Größen.
+- Die aktuell dokumentierte 6,9-Zoll-Familie akzeptiert unter anderem
+  1320 × 2868, 1290 × 2796 oder 1260 × 2736 Pixel im Hochformat. Der konkrete
+  Aufnahme-Simulator/-gerätetyp und die Console-Vorgabe werden unmittelbar vor
+  Export erneut geprüft.
+- App-Vorschauvideo ist optional und wird für B11 nur erstellt, wenn die
+  vollständige Geräte-Matrix stabil ist.
+
+## 5. Datenschutz- und Qualitätsprüfung jedes Assets
+
+Vor Upload wird jedes einzelne Bild bei 100 Prozent und in Store-Vorschau
+geprüft. Entfernt oder ersetzt werden:
+
+- echte E-Mail-Adressen, Namen, Telefonnummern und Profilbilder;
+- Hausnummern, exakte Koordinaten und reale Übergabeorte;
+- Nachrichten, Supporttexte und Bewertungsinhalte echter Personen;
+- Gerätekennungen, Push-Tokens, Request-IDs mit Personenbezug und QR-Codes aus
+  echten Buchungen;
+- Karten-, Bank-, Stripe- oder Auszahlungsangaben;
+- Betriebssystem-Benachrichtigungen, Uhrzeit-/Kalenderdetails oder Statusleisten
+  mit privaten Informationen;
+- Debugbanner, Staging-Host, interne Build-IDs, technische Fehlermeldungen und
+  Testdatenbezeichnungen, sofern sie nicht bewusst Teil eines Review-Nachweises
+  und nicht der öffentlichen Grafik sind;
+- fremde Logos, Marken, urheberrechtlich ungeklärte Produktfotos und
+  irreführende Sterne-/Rankingangaben.
+
+Retusche darf nur Privatdaten bereinigen oder den äußeren Marketingrahmen
+gestalten. Die gezeigte App-Funktion selbst wird nicht grafisch erfunden.
+
+## 6. Synthetische Review-Konten
+
+| Konto | Rolle | Inhalt | Schutz |
+|---|---|---|---|
+| Review Owner | Vermieter | zwei neutrale Testinserate, Verfügbarkeit, keine echte Adresse | dauerhaft, kein OTP, nur Staging |
+| Review Renter | Mieter | eine vorbereitete Anfrage/Buchung und neutraler Chat | dauerhaft, kein OTP, nur Staging |
+| Support/Admin | nicht an Store-Reviewer geben | interne Moderationsprüfung | getrennt, nur internes Team |
+
+Zugangsdaten werden ausschließlich in den geschützten Review-Feldern der
+Stores gespeichert. Das Passwort ist eindeutig, wiederverwendbar für den
+Reviewzeitraum und läuft nicht automatisch ab. Falls eine E-Mail-Verifizierung
+nötig ist, wird das Konto vorher verifiziert. Reviewkonten dürfen keine
+Produktionsrechte und keine Verbindung zu realen Zahlungsdaten besitzen.
+
+Für die Review-Konten werden folgende Zustände vorbereitet:
+
+1. ein sichtbares, buchbares Inserat des Vermieters;
+2. ein zweites Inserat für Erstellen/Bearbeiten/Medien;
+3. eine offene Anfrage und eine akzeptierte Testbuchung;
+4. ein neutraler Chat ohne personenbezogene Information;
+5. ein abgeschlossener Testfall für Bewertung;
+6. ein separater meldbarer synthetischer Inhalt;
+7. keine blockierende reale Buchung beim Test der Kontolöschung.
+
+## 7. Interne Testgruppen
+
+### Phase A – technische Internal-Gruppe
+
+- Walid als Kontoinhaber/Produktverantwortlicher;
+- Codex als technischer Ausführungs- und Evidenzprozess, nicht als eigener
+  Store-Account;
+- mindestens ein reales Android- und ein reales iOS-Gerät;
+- nur der B11-Store-Build und Staging;
+- Testmatrix aus
+  `B11_CLOSED_STORE_AND_DEVICE_TEST_RUNBOOK_2026-08-09.md` vollständig.
+
+### Phase B – geschlossene Rollen-/Gerätegruppe
+
+- mindestens zwei reale Personen beziehungsweise klar getrennte Testrollen;
+- Vermieter und Mieter gleichzeitig auf unterschiedlichen Geräten/Netzen;
+- keine Familien-/Kindergruppe und keine öffentliche Einladung;
+- Testervereinbarung: ausschließlich synthetische Inhalte, keine echten
+  Adressen, Zahlungsmittel oder Identitätsdokumente;
+- Feedback über festes Formular mit Build, Plattform, Schritt, Erwartung,
+  Ergebnis, Schweregrad und bereinigtem Beleg.
+
+### Google-Sonderfall neues persönliches Konto
+
+Wenn Play Console das Konto als neu angelegtes persönliches Entwicklerkonto
+nach dem 13. November 2023 einstuft, wird nach Internal Testing ein geschlossener
+Test mit mindestens 12 durchgehend angemeldeten Testern über mindestens 14 Tage
+geplant. Diese Gruppe wird erst eingeladen, wenn Datenschutzseiten,
+Nutzerinhaltsregeln und der B11-Build stabil sind. Ein Organisationskonto oder
+abweichende Console-Anforderungen werden nicht vorweggenommen.
+
+## 8. Review-Ablauf
+
+1. Reviewer-Anmeldedaten aus dem geschützten Store-Feld testen.
+2. Login aus frischer Installation und einem zweiten Netz prüfen.
+3. Beide Rollen und alle geschützten Kernbereiche ohne OTP erreichbar machen.
+4. Zahlungsweg klar als Miete eines physischen Gegenstands und Testmodus
+   kennzeichnen.
+5. Kamera-, Foto-, Datei-, Standort- und Push-Zwecke direkt am jeweiligen
+   Funktionsweg verständlich erklären.
+6. Nutzerinhalt melden und Nutzer blockieren; Staff-Adminbereich bleibt intern.
+7. Kontodatenexport und Kontolöschung inklusive externer URL prüfen.
+8. Store-Review-Hinweise gegen den installierten Build Wort für Wort abgleichen.
+
+## 9. Evidenzstruktur
+
+Jede Aufnahme-/Review-Runde erhält die Kennung
+`b11-store-<plattform>-<build>-<kurzzeit>` und enthält:
+
+- Commit, Version, Buildnummer, Paketkennung und Artefakthash;
+- Gerät/Simulator und Betriebssystem ohne persönliche Geräte-ID;
+- Bildnummer, Szene, Sprache und Exportabmessungen;
+- Privatdatenprüfung bestanden/nicht bestanden;
+- UI-/Textabgleich bestanden/nicht bestanden;
+- Name der finalen Store-Datei;
+- Reviewer-Konten getestet, aber keine Zugangsdaten;
+- Store-Vorschau und Warnungen als bereinigter Nachweis.
+
+## 10. Stop-Regeln
+
+Kein Asset-Upload und keine Review-Anforderung bei:
+
+- P0/P1 aus der realen Geräteprüfung;
+- sichtbaren Privatdaten oder ungeklärten Bildrechten;
+- falscher App-ID, API-Umgebung, Buildnummer oder Zahlungskonfiguration;
+- Abweichung zwischen Screenshot und finaler App;
+- fehlendem Melden/Blockieren bei Nutzerinhalten;
+- fehlender Datenschutz-, Support- oder Löschseite;
+- ablaufenden/gesperrten Review-Konten;
+- nicht bestätigter rechtlicher Anbieteridentität.
+
+## 11. Offizielle Referenzen
+
+- [Google Play: Vorschau-Assets](https://support.google.com/googleplay/android-developer/answer/9866151?hl=en)
+- [Google Play: Review-Anmeldedaten](https://support.google.com/googleplay/android-developer/answer/15748846?hl=en-EN)
+- [Google Play: interne und geschlossene Tests](https://support.google.com/googleplay/android-developer/answer/9845334/set-up-an-open-closed-or-internal-test?hl=en-GB)
+- [Google Play: Anforderungen an neue persönliche Konten](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en)
+- [Apple: Screenshots hochladen](https://developer.apple.com/help/app-store-connect/manage-app-information/upload-app-previews-and-screenshots/)
+- [Apple: Screenshot-Spezifikationen](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/)
+- [Apple: App-Review-Vorbereitung](https://developer.apple.com/app-store/review/)
+
