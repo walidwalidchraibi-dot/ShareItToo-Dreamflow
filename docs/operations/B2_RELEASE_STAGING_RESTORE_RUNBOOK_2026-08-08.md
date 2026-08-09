@@ -22,7 +22,7 @@ Staging, Restore oder Rollback auf dem VPS.
 | Datenbank | Testfixture/temporär | `shareittoo_staging` | `shareittoo` |
 | Secrets | lokale Testwerte | `.env.staging`, nie in Git | `.env`, nie in Git |
 | Uploads | lokal/temporär | `shareittoo_staging_uploads` | `shareittoo_uploads` |
-| Mail | memory/disabled | memory, keine echte Zustellung | Google Workspace SMTP |
+| Mail | memory/disabled | standardmäßig memory; SMTP nur ausdrücklich für geschlossene Endgeräte-Abnahme | Google Workspace SMTP |
 | API | Testprozess | zunächst nur `127.0.0.1:18080` | `https://shareittoo.com/api` |
 
 Staging darf niemals Produktionsdaten, Produktions-JWT-Secrets,
@@ -71,7 +71,10 @@ auf GitHub aktiviert wurden.
    Geheimnissen anlegen.
 4. `backend/ops/deploy_release.sh staging <FULL_COMMIT>` ausführen.
 5. `/version`, `/health/live`, `/health/ready` und `/health` prüfen.
-6. Registrierung, Anmeldung, Verifizierung im Memory-Mailmodus, Upload,
+6. Registrierung, Anmeldung und Verifizierung ausführen. Im normalen
+   Staging-Betrieb bleibt Mail auf `memory`; für eine geschlossene
+   Endgeräte-Abnahme darf der bereits IP-freigegebene Google-Workspace-Relay
+   ohne Produktionspasswort ausdrücklich zugeschaltet werden. Danach Upload,
    Inserat, Buchungsanfrage und Nachrichten-Smoke-Test ausführen.
 7. Containerzustand, Logs, CPU/RAM, Datenbank und Speicher prüfen.
 8. Den vorherigen Commit über den **aktuellen, als sicher freigegebenen

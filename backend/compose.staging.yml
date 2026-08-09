@@ -50,6 +50,12 @@ services:
       PUBLIC_PRIVACY_EFFECTIVE_DATE: ${PUBLIC_PRIVACY_EFFECTIVE_DATE:-}
       UPLOAD_DIR: /data/uploads
       MAIL_TRANSPORT: ${MAIL_TRANSPORT:-memory}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_REQUIRE_TLS: ${SMTP_REQUIRE_TLS:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       MAIL_FROM: "${MAIL_FROM:-ShareItToo Staging <contact@shareittoo.com>}"
       MAIL_REPLY_TO: "${MAIL_REPLY_TO:-contact@shareittoo.com}"
       BOOKING_PILOT_MODE: ${BOOKING_PILOT_MODE:-pilot}
