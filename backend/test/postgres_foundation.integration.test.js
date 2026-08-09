@@ -222,10 +222,13 @@ if (!databaseUrl) {
         await first.query(`UPDATE bookings SET status = 'accepted' WHERE id = 'booking-a'`);
         const competingAcceptance = second.query(
           `UPDATE bookings SET status = 'accepted' WHERE id = 'booking-b'`,
+        ).then(
+          () => null,
+          (error) => error,
         );
         await new Promise((resolve) => setTimeout(resolve, 100));
         await first.query('COMMIT');
-        await assert.rejects(competingAcceptance, (error) => error?.code === '23P01');
+        assert.equal((await competingAcceptance)?.code, '23P01');
         await second.query('ROLLBACK');
       } finally {
         first.release();
