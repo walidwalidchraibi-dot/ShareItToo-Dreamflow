@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:ui';
 import 'dart:async';
 import 'package:lendify/theme.dart';
 import 'package:lendify/navigation/main_navigation.dart';
@@ -17,24 +16,28 @@ import 'package:lendify/services/background_theme_service.dart';
 import 'package:lendify/services/qa_bootstrap_service.dart';
 import 'package:lendify/services/app_link_service.dart';
 import 'package:lendify/services/release_identity.dart';
+import 'package:lendify/services/firebase_runtime.dart';
 import 'package:lendify/screens/app_link_destination_screen.dart';
 
 Future<void> main() async {
   // Initialize bindings once in the same zone as runApp to avoid zone mismatch warnings.
   WidgetsFlutterBinding.ensureInitialized();
   ReleaseIdentity.validateCurrentBuild();
+  await FirebaseRuntime.initialize();
 
   // Surface synchronous Flutter framework errors to the console
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     debugPrint('FlutterError: ' + details.exceptionAsString());
     if (details.stack != null) debugPrint(details.stack.toString());
+    FirebaseRuntime.recordFlutterFatalError(details);
   };
 
   // Catch uncaught async errors
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
     debugPrint('Uncaught async error: ' + error.toString());
     debugPrint(stack.toString());
+    FirebaseRuntime.recordFatalError(error, stack);
     return true; // handled
   };
 
@@ -136,6 +139,7 @@ class AppRoot extends StatelessWidget {
       if (existing != null) {
         if (BackendConfig.enabled && (existing.accessToken ?? '').isNotEmpty) {
           await BackendRealtimeService.connect(existing.accessToken!);
+          unawaited(FirebaseRuntime.syncPushRegistration());
         }
         return existing;
       }

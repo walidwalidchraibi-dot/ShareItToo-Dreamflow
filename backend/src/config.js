@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 function required(name) {
@@ -34,8 +35,8 @@ const pushTransport = (process.env.PUSH_TRANSPORT ?? (
     ? 'memory'
     : 'disabled'
 )).trim().toLowerCase();
-if (!['disabled', 'memory', 'webhook'].includes(pushTransport)) {
-  throw new Error('PUSH_TRANSPORT must be disabled, memory, or webhook');
+if (!['disabled', 'memory', 'webhook', 'fcm'].includes(pushTransport)) {
+  throw new Error('PUSH_TRANSPORT must be disabled, memory, webhook, or fcm');
 }
 const pushWebhookUrl = process.env.PUSH_WEBHOOK_URL?.trim() ?? '';
 if (pushTransport === 'webhook') {
@@ -47,6 +48,27 @@ if (pushTransport === 'webhook') {
   }
   if (parsed.protocol !== 'https:') {
     throw new Error('PUSH_WEBHOOK_URL must be a valid HTTPS URL');
+  }
+}
+const firebaseProjectId = process.env.FIREBASE_PROJECT_ID?.trim() ?? '';
+const firebaseServiceAccountFile = process.env.FIREBASE_SERVICE_ACCOUNT_FILE?.trim() ?? '';
+if (pushTransport === 'fcm') {
+  if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(firebaseProjectId)) {
+    throw new Error('FIREBASE_PROJECT_ID must be configured for FCM transport');
+  }
+  if (!firebaseServiceAccountFile) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_FILE must be configured for FCM transport');
+  }
+  const resolvedServiceAccountFile = path.resolve(firebaseServiceAccountFile);
+  let serviceAccountFileIsReadable = false;
+  try {
+    fs.accessSync(resolvedServiceAccountFile, fs.constants.R_OK);
+    serviceAccountFileIsReadable = fs.statSync(resolvedServiceAccountFile).isFile();
+  } catch {
+    serviceAccountFileIsReadable = false;
+  }
+  if (!serviceAccountFileIsReadable) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_FILE must point to a readable file');
   }
 }
 
@@ -123,6 +145,10 @@ export const config = Object.freeze({
     transport: pushTransport,
     webhookUrl: pushWebhookUrl,
     webhookToken: process.env.PUSH_WEBHOOK_TOKEN ?? '',
+    firebaseProjectId,
+    firebaseServiceAccountFile: firebaseServiceAccountFile
+      ? path.resolve(firebaseServiceAccountFile)
+      : '',
   }),
   payments: Object.freeze({
     transport: paymentTransport,

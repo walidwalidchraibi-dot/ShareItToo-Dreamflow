@@ -1,0 +1,233 @@
+import 'dart:async';
+import 'dart:ui';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+
+import 'backend_config.dart';
+import 'backend_repository.dart';
+
+class FirebaseRuntimeConfig {
+  static const String projectId = String.fromEnvironment(
+    'SIT_FIREBASE_PROJECT_ID',
+  );
+  static const String messagingSenderId = String.fromEnvironment(
+    'SIT_FIREBASE_MESSAGING_SENDER_ID',
+  );
+  static const String storageBucket = String.fromEnvironment(
+    'SIT_FIREBASE_STORAGE_BUCKET',
+  );
+  static const String androidAppId = String.fromEnvironment(
+    'SIT_FIREBASE_ANDROID_APP_ID',
+  );
+  static const String androidApiKey = String.fromEnvironment(
+    'SIT_FIREBASE_ANDROID_API_KEY',
+  );
+  static const String iosAppId = String.fromEnvironment(
+    'SIT_FIREBASE_IOS_APP_ID',
+  );
+  static const String iosApiKey = String.fromEnvironment(
+    'SIT_FIREBASE_IOS_API_KEY',
+  );
+
+  static bool hasCompleteValues({
+    required String project,
+    required String sender,
+    required String appId,
+    required String apiKey,
+  }) {
+    return project.trim().isNotEmpty &&
+        sender.trim().isNotEmpty &&
+        appId.trim().isNotEmpty &&
+        apiKey.trim().isNotEmpty;
+  }
+
+  static FirebaseOptions? get currentOptions {
+    if (kIsWeb) return null;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        if (!hasCompleteValues(
+          project: projectId,
+          sender: messagingSenderId,
+          appId: androidAppId,
+          apiKey: androidApiKey,
+        )) {
+          return null;
+        }
+        return FirebaseOptions(
+          apiKey: androidApiKey,
+          appId: androidAppId,
+          messagingSenderId: messagingSenderId,
+          projectId: projectId,
+          storageBucket: storageBucket.isEmpty ? null : storageBucket,
+        );
+      case TargetPlatform.iOS:
+        if (!hasCompleteValues(
+          project: projectId,
+          sender: messagingSenderId,
+          appId: iosAppId,
+          apiKey: iosApiKey,
+        )) {
+          return null;
+        }
+        return FirebaseOptions(
+          apiKey: iosApiKey,
+          appId: iosAppId,
+          messagingSenderId: messagingSenderId,
+          projectId: projectId,
+          storageBucket: storageBucket.isEmpty ? null : storageBucket,
+          iosBundleId: 'com.shareittoo.app',
+        );
+      default:
+        return null;
+    }
+  }
+}
+
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await FirebaseRuntime.ensureFirebaseApp();
+}
+
+class FirebaseRuntime {
+  static final StreamController<Uri> _actionLinks =
+      StreamController<Uri>.broadcast(sync: true);
+  static Future<bool>? _initialization;
+  static StreamSubscription<String>? _tokenRefreshSubscription;
+  static StreamSubscription<RemoteMessage>? _openedMessageSubscription;
+  static bool _initialized = false;
+  static Uri? _pendingActionLink;
+  static String _locale = 'de-DE';
+
+  static Stream<Uri> get actionLinks => _actionLinks.stream;
+  static bool get isInitialized => _initialized;
+
+  static Future<bool> initialize() {
+    return _initialization ??= _initialize();
+  }
+
+  static Future<void> ensureFirebaseApp() async {
+    final options = FirebaseRuntimeConfig.currentOptions;
+    if (options == null || Firebase.apps.isNotEmpty) return;
+    await Firebase.initializeApp(options: options);
+  }
+
+  static Future<bool> _initialize() async {
+    final options = FirebaseRuntimeConfig.currentOptions;
+    if (options == null) return false;
+    try {
+      await ensureFirebaseApp();
+      await FirebaseCrashlytics.instance
+          .setCrashlyticsCollectionEnabled(kReleaseMode);
+      FirebaseMessaging.onBackgroundMessage(
+        firebaseMessagingBackgroundHandler,
+      );
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      _openedMessageSubscription ??=
+          FirebaseMessaging.onMessageOpenedApp.listen(_captureActionLink);
+      _captureActionLink(await FirebaseMessaging.instance.getInitialMessage());
+      _initialized = true;
+      return true;
+    } catch (error, stack) {
+      debugPrint('[FirebaseRuntime] initialization unavailable: $error');
+      debugPrint(stack.toString());
+      return false;
+    }
+  }
+
+  static void recordFlutterFatalError(FlutterErrorDetails details) {
+    if (!_initialized || !kReleaseMode) return;
+    unawaited(
+      FirebaseCrashlytics.instance.recordFlutterFatalError(details),
+    );
+  }
+
+  static void recordFatalError(Object error, StackTrace stack) {
+    if (!_initialized || !kReleaseMode) return;
+    unawaited(
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
+    );
+  }
+
+  static Future<bool> syncPushRegistration() async {
+    if (!_initialized || !BackendConfig.enabled) return false;
+    final platform = _platformName();
+    if (platform == null) return false;
+    try {
+      _locale = PlatformDispatcher.instance.locale.toLanguageTag();
+      final settings = await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+      if (!const {
+        AuthorizationStatus.authorized,
+        AuthorizationStatus.provisional,
+      }.contains(settings.authorizationStatus)) {
+        return false;
+      }
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token == null || token.trim().isEmpty) return false;
+      await _registerToken(token, platform);
+      _tokenRefreshSubscription ??=
+          FirebaseMessaging.instance.onTokenRefresh.listen(
+        (refreshedToken) {
+          unawaited(_registerToken(refreshedToken, platform));
+        },
+        onError: (Object error, StackTrace stack) {
+          debugPrint('[FirebaseRuntime] token refresh unavailable: $error');
+        },
+      );
+      return true;
+    } catch (error) {
+      debugPrint('[FirebaseRuntime] push registration unavailable: $error');
+      return false;
+    }
+  }
+
+  static Future<void> _registerToken(String token, String platform) async {
+    try {
+      await BackendRepository.registerPushDevice(
+        token: token,
+        platform: platform,
+        locale: _locale,
+      );
+    } catch (error) {
+      debugPrint('[FirebaseRuntime] push token sync unavailable: $error');
+    }
+  }
+
+  static String? _platformName() {
+    if (kIsWeb) return null;
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.android => 'android',
+      TargetPlatform.iOS => 'ios',
+      _ => null,
+    };
+  }
+
+  static void _captureActionLink(RemoteMessage? message) {
+    final raw = message?.data['actionUrl']?.toString().trim() ?? '';
+    final uri = Uri.tryParse(raw);
+    if (uri == null || uri.scheme.isEmpty) return;
+    _pendingActionLink = uri;
+    _actionLinks.add(uri);
+  }
+
+  static Uri? takePendingActionLink() {
+    final pending = _pendingActionLink;
+    _pendingActionLink = null;
+    return pending;
+  }
+}

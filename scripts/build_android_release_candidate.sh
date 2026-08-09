@@ -32,6 +32,37 @@ common_args=(
   "--dart-define=SIT_BUNDLE_ID=com.shareittoo.app"
 )
 
+firebase_define_names=(
+  SIT_FIREBASE_PROJECT_ID
+  SIT_FIREBASE_MESSAGING_SENDER_ID
+  SIT_FIREBASE_STORAGE_BUCKET
+  SIT_FIREBASE_ANDROID_APP_ID
+  SIT_FIREBASE_ANDROID_API_KEY
+  SIT_FIREBASE_IOS_APP_ID
+  SIT_FIREBASE_IOS_API_KEY
+)
+for define_name in "${firebase_define_names[@]}"; do
+  define_value="${!define_name:-}"
+  if [[ -n "$define_value" ]]; then
+    common_args+=("--dart-define=$define_name=$define_value")
+  fi
+done
+
+if [[ "${SIT_REQUIRE_FIREBASE:-0}" == "1" ]]; then
+  required_firebase_names=(
+    SIT_FIREBASE_PROJECT_ID
+    SIT_FIREBASE_MESSAGING_SENDER_ID
+    SIT_FIREBASE_ANDROID_APP_ID
+    SIT_FIREBASE_ANDROID_API_KEY
+  )
+  for required_name in "${required_firebase_names[@]}"; do
+    if [[ -z "${!required_name:-}" ]]; then
+      echo "ERROR: $required_name is required for a push-enabled Android candidate." >&2
+      exit 1
+    fi
+  done
+fi
+
 flutter build appbundle "${common_args[@]}"
 flutter build apk "${common_args[@]}"
 
@@ -59,6 +90,13 @@ mkdir -p "$evidence_dir"
 aab_sha="$(shasum -a 256 "$aab" | awk '{print $1}')"
 apk_sha="$(shasum -a 256 "$apk" | awk '{print $1}')"
 created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+firebase_configured=false
+if [[ -n "${SIT_FIREBASE_PROJECT_ID:-}" && \
+      -n "${SIT_FIREBASE_MESSAGING_SENDER_ID:-}" && \
+      -n "${SIT_FIREBASE_ANDROID_APP_ID:-}" && \
+      -n "${SIT_FIREBASE_ANDROID_API_KEY:-}" ]]; then
+  firebase_configured=true
+fi
 
 printf '%s\n' \
   "{" \
@@ -69,6 +107,7 @@ printf '%s\n' \
   "  \"commit\": \"$commit\"," \
   "  \"channel\": \"$CHANNEL\"," \
   "  \"apiBaseUrl\": \"$API_BASE_URL\"," \
+  "  \"firebaseConfigured\": $firebase_configured," \
   "  \"createdAt\": \"$created_at\"," \
   "  \"aabSha256\": \"$aab_sha\"," \
   "  \"apkSha256\": \"$apk_sha\"" \

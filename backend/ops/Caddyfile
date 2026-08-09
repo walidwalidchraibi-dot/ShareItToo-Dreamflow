@@ -1,0 +1,39 @@
+(shareittoo_app) {
+	root * /app/current
+	encode zstd gzip
+	try_files {path} /index.html
+	file_server
+
+	header {
+		Cache-Control "no-cache"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(self), microphone=(self), geolocation=(self)"
+	}
+}
+
+shareittoo.com, srv1580960.hstgr.cloud {
+	handle_path /api/* {
+		reverse_proxy shareittoo-api:8080
+	}
+
+	handle {
+		import shareittoo_app
+	}
+}
+
+www.shareittoo.com {
+	redir https://shareittoo.com{uri} permanent
+}
+
+staging.shareittoo.com {
+	handle_path /api/* {
+		reverse_proxy shareittoo-staging-api:8080
+	}
+
+	handle {
+		header Cache-Control "no-store"
+		respond "ShareItToo staging gateway" 200
+	}
+}

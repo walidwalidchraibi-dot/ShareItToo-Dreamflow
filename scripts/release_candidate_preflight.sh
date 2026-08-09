@@ -25,8 +25,14 @@ grep -Fq "namespace = \"$EXPECTED_ID\"" android/app/build.gradle || \
 grep -Fq "PRODUCT_BUNDLE_IDENTIFIER = $EXPECTED_ID;" ios/Runner.xcodeproj/project.pbxproj || \
   fail "iOS bundle identifier does not match $EXPECTED_ID."
 
-if rg -n "com\.mycompany|CounterApp|Dreamflow|dreamflow" \
-  android ios lib pubspec.yaml >/dev/null; then
+if command -v rg >/dev/null 2>&1; then
+  legacy_identity_found="$(rg -n "com\.mycompany|CounterApp|Dreamflow|dreamflow" \
+    android ios lib pubspec.yaml || true)"
+else
+  legacy_identity_found="$(grep -RInE "com\.mycompany|CounterApp|Dreamflow|dreamflow" \
+    android ios lib pubspec.yaml || true)"
+fi
+if [[ -n "$legacy_identity_found" ]]; then
   fail "Legacy application identity remains in release source files."
 fi
 

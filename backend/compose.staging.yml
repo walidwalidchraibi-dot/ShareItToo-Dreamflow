@@ -50,6 +50,8 @@ services:
       PUSH_TRANSPORT: ${PUSH_TRANSPORT:-memory}
       PUSH_WEBHOOK_URL: ${PUSH_WEBHOOK_URL:-}
       PUSH_WEBHOOK_TOKEN: ${PUSH_WEBHOOK_TOKEN:-}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_SERVICE_ACCOUNT_FILE: /run/secrets/firebase-service-account.json
       NOTIFICATION_WORKER_INTERVAL_MS: ${NOTIFICATION_WORKER_INTERVAL_MS:-1000}
       NOTIFICATION_BATCH_SIZE: ${NOTIFICATION_BATCH_SIZE:-50}
       NOTIFICATION_MAX_ATTEMPTS: ${NOTIFICATION_MAX_ATTEMPTS:-5}
@@ -67,6 +69,7 @@ services:
       - "127.0.0.1:${STAGING_API_PORT:-18080}:8080"
     volumes:
       - shareittoo_staging_uploads:/data/uploads
+      - ${FIREBASE_SERVICE_ACCOUNT_HOST_FILE:-/dev/null}:/run/secrets/firebase-service-account.json:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/health/ready"]
       interval: 10s

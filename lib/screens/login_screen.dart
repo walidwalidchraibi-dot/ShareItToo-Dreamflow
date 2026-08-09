@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
+import 'package:lendify/services/firebase_runtime.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/sit_logo_header.dart';
 import 'package:lendify/widgets/app_popup.dart';
@@ -181,6 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       await DataService.syncCurrentUserForSessionEmail(_emailCtrl.text.trim());
+      unawaited(FirebaseRuntime.syncPushRegistration());
       if (!mounted) return;
       await context
           .read<DeveloperPreviewController>()

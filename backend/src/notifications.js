@@ -452,6 +452,7 @@ async function deliverClaim(row) {
     metadata: {
       deviceCount: result.deviceCount ?? 0,
       invalidDeviceCount: result.invalidDeviceCount ?? 0,
+      failedDeviceCount: result.failedDeviceCount ?? 0,
     },
   };
 }

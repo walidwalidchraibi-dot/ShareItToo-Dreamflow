@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+
+import 'firebase_runtime.dart';
 
 enum AppLinkKind {
   booking,
@@ -98,6 +102,7 @@ class AppLinkParser {
 class AppLinkController extends ChangeNotifier with WidgetsBindingObserver {
   AppLinkTarget? _pending;
   bool _initialized = false;
+  StreamSubscription<Uri>? _firebaseActionSubscription;
 
   AppLinkTarget? takePending() {
     final target = _pending;
@@ -113,6 +118,11 @@ class AppLinkController extends ChangeNotifier with WidgetsBindingObserver {
         ? Uri.base.toString()
         : WidgetsBinding.instance.platformDispatcher.defaultRouteName;
     _accept(raw);
+    final firebasePending = FirebaseRuntime.takePendingActionLink();
+    if (firebasePending != null) _accept(firebasePending.toString());
+    _firebaseActionSubscription ??= FirebaseRuntime.actionLinks.listen(
+      (uri) => _accept(uri.toString()),
+    );
   }
 
   @override
@@ -133,6 +143,7 @@ class AppLinkController extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _firebaseActionSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
