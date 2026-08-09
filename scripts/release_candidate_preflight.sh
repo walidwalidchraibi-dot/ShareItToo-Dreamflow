@@ -25,13 +25,12 @@ grep -Fq "namespace = \"$EXPECTED_ID\"" android/app/build.gradle || \
 grep -Fq "PRODUCT_BUNDLE_IDENTIFIER = $EXPECTED_ID;" ios/Runner.xcodeproj/project.pbxproj || \
   fail "iOS bundle identifier does not match $EXPECTED_ID."
 
-if command -v rg >/dev/null 2>&1; then
-  legacy_identity_found="$(rg -n "com\.mycompany|CounterApp|Dreamflow|dreamflow" \
-    android ios lib pubspec.yaml || true)"
-else
-  legacy_identity_found="$(grep -RInE "com\.mycompany|CounterApp|Dreamflow|dreamflow" \
-    android ios lib pubspec.yaml || true)"
-fi
+# Search only version-controlled release sources. Recursive grep also sees
+# Gradle/Flutter caches created by an earlier debug build and can therefore
+# report stale identity strings that are not part of the candidate.
+legacy_identity_found="$(git grep -nE \
+  "com\.mycompany|CounterApp|Dreamflow|dreamflow" \
+  -- android ios lib pubspec.yaml || true)"
 if [[ -n "$legacy_identity_found" ]]; then
   fail "Legacy application identity remains in release source files."
 fi
