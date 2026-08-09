@@ -46,6 +46,7 @@ if (!databaseUrl) {
         '005_b6_booking_workflow.up.sql',
         '006_b7_communications.up.sql',
         '007_b8_payments_and_ledger.up.sql',
+        '008_b9_moderation_and_reviews.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -59,6 +60,7 @@ if (!databaseUrl) {
            ('renter-b', 'renter-b@example.com', '{}'::jsonb, 'user', 'active'),
            ('outsider', 'outsider@example.com', '{}'::jsonb, 'user', 'active'),
            ('admin', 'admin@example.com', '{}'::jsonb, 'admin', 'active'),
+           ('support', 'support@example.com', '{}'::jsonb, 'support', 'active'),
            ('suspended', 'suspended@example.com', '{}'::jsonb, 'user', 'suspended')`,
       );
       await setupPool.query(
@@ -109,6 +111,7 @@ if (!databaseUrl) {
         outsider: '44444444-4444-4444-8444-444444444444',
         suspended: '55555555-5555-4555-8555-555555555555',
         admin: '66666666-6666-4666-8666-666666666666',
+        support: '77777777-7777-4777-8777-777777777777',
       };
       await setupPool.query(
         `INSERT INTO auth_sessions (id, user_id, device_label)
@@ -118,7 +121,8 @@ if (!databaseUrl) {
            ($3, 'renter-b', 'Renter B test'),
            ($4, 'outsider', 'Outsider test'),
            ($5, 'suspended', 'Suspended test'),
-           ($6, 'admin', 'Admin test')`,
+           ($6, 'admin', 'Admin test'),
+           ($7, 'support', 'Support test')`,
         Object.values(sessionIds),
       );
       await setupPool.query(
@@ -272,8 +276,16 @@ if (!databaseUrl) {
       const { pool, } = await import('../src/db.js');
       const { drainNotificationOutbox } = await import('../src/notifications.js');
       const { applyProviderEvent } = await import('../src/payment_workflow.js');
-      const { signAccessToken } = await import('../src/security.js');
+      const { hashActionToken, hashPassword, signAccessToken } = await import('../src/security.js');
       applicationPool = pool;
+      const adminPassword = 'AdminStepUpPassword9';
+      const supportPassword = 'SupportStepUpPassword8';
+      await setupPool.query(
+        `UPDATE users SET password_hash = CASE id WHEN 'admin' THEN $1 ELSE $2 END,
+                          email_verified_at = now()
+         WHERE id IN ('admin', 'support')`,
+        [await hashPassword(adminPassword), await hashPassword(supportPassword)],
+      );
       server = http.createServer(createApp());
       await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
       const baseUrl = `http://127.0.0.1:${server.address().port}`;
@@ -1001,6 +1013,16 @@ if (!databaseUrl) {
         Authorization: `Bearer ${tokenFor('admin')}`,
         'Content-Type': 'application/json',
       };
+      const missingStepUp = await fetch(`${baseUrl}/v1/admin/overview`, { headers: adminHeaders });
+      assert.equal(missingStepUp.status, 401);
+      assert.equal((await missingStepUp.json()).error, 'staff_step_up_required');
+      const adminElevation = await fetch(`${baseUrl}/v1/admin/step-up`, {
+        method: 'POST',
+        headers: adminHeaders,
+        body: JSON.stringify({ currentPassword: adminPassword }),
+      });
+      assert.equal(adminElevation.status, 200);
+      adminHeaders['X-Admin-Step-Up'] = (await adminElevation.json()).elevation.token;
       const connectOnboarding = await fetch(`${baseUrl}/v1/payments/connect/onboarding`, {
         method: 'POST',
         headers: { ...ownerHeaders, 'Idempotency-Key': 'b8-connect-owner-integration' },
@@ -1320,6 +1342,256 @@ if (!databaseUrl) {
       assert.equal(paymentDeepLink.status, 200);
       assert.match(await paymentDeepLink.text(), /Zahlung öffnen/);
 
+      const supportHeaders = {
+        Authorization: `Bearer ${tokenFor('support')}`,
+        'Content-Type': 'application/json',
+      };
+      const supportElevation = await fetch(`${baseUrl}/v1/admin/step-up`, {
+        method: 'POST',
+        headers: supportHeaders,
+        body: JSON.stringify({ currentPassword: supportPassword }),
+      });
+      assert.equal(supportElevation.status, 200);
+      supportHeaders['X-Admin-Step-Up'] = (await supportElevation.json()).elevation.token;
+      const supportUsers = await fetch(`${baseUrl}/v1/admin/users`, { headers: supportHeaders });
+      assert.equal(supportUsers.status, 200);
+      assert.ok((await supportUsers.json()).users.every((user) => !Object.hasOwn(user, 'email')));
+
+      const reportEvidenceForm = new FormData();
+      reportEvidenceForm.append('purpose', 'report_evidence');
+      reportEvidenceForm.append('file', new Blob([listingImage], { type: 'image/jpeg' }), 'evidence.jpg');
+      const reportEvidenceResponse = await fetch(`${baseUrl}/v1/uploads`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenFor('renter-a')}` },
+        body: reportEvidenceForm,
+      });
+      assert.equal(reportEvidenceResponse.status, 201);
+      const reportEvidence = await reportEvidenceResponse.json();
+      const createB9Report = await fetch(`${baseUrl}/v1/reports`, {
+        method: 'POST',
+        headers: { ...renterAHeaders, 'Idempotency-Key': 'b9-create-listing-report' },
+        body: JSON.stringify({
+          targetType: 'listing',
+          targetId: 'listing-1',
+          reasonCode: 'suspected_misrepresentation',
+          priority: 'high',
+          details: 'Controlled B9 moderation evidence',
+          evidenceUploadIds: [reportEvidence.id],
+        }),
+      });
+      assert.equal(createB9Report.status, 201);
+      const b9Report = (await createB9Report.json()).report;
+      assert.equal(b9Report.status, 'open');
+      const activeReportReplay = await fetch(`${baseUrl}/v1/reports`, {
+        method: 'POST',
+        headers: { ...renterAHeaders, 'Idempotency-Key': 'b9-create-listing-report-replay' },
+        body: JSON.stringify({
+          targetType: 'listing', targetId: 'listing-1',
+          reasonCode: 'suspected_misrepresentation', priority: 'high',
+        }),
+      });
+      assert.equal(activeReportReplay.status, 200);
+      assert.equal((await activeReportReplay.json()).replayed, true);
+
+      const supportTriage = await fetch(`${baseUrl}/v1/admin/reports/${b9Report.id}`, {
+        method: 'PATCH',
+        headers: { ...supportHeaders, 'Idempotency-Key': 'b9-support-triage' },
+        body: JSON.stringify({ status: 'triaged', assignedTo: 'support', note: 'Evidence received' }),
+      });
+      assert.equal(supportTriage.status, 200);
+      const forbiddenSupportAction = await fetch(`${baseUrl}/v1/admin/reports/${b9Report.id}`, {
+        method: 'PATCH',
+        headers: { ...supportHeaders, 'Idempotency-Key': 'b9-support-action-forbidden' },
+        body: JSON.stringify({ status: 'actioned', resolution: { outcome: 'hidden' } }),
+      });
+      assert.equal(forbiddenSupportAction.status, 409);
+      assert.equal((await forbiddenSupportAction.json()).error, 'invalid_report_transition');
+      const adminInvestigate = await fetch(`${baseUrl}/v1/admin/reports/${b9Report.id}`, {
+        method: 'PATCH',
+        headers: { ...adminHeaders, 'Idempotency-Key': 'b9-admin-investigate' },
+        body: JSON.stringify({ status: 'investigating', assignedTo: 'admin', note: 'Admin verification' }),
+      });
+      assert.equal(adminInvestigate.status, 200);
+      const adminAction = await fetch(`${baseUrl}/v1/admin/reports/${b9Report.id}`, {
+        method: 'PATCH',
+        headers: { ...adminHeaders, 'Idempotency-Key': 'b9-admin-action' },
+        body: JSON.stringify({
+          status: 'actioned',
+          reasonCode: 'documented_policy_violation',
+          resolution: { outcome: 'listing_temporarily_hidden' },
+        }),
+      });
+      assert.equal(adminAction.status, 200);
+      assert.equal((await adminAction.json()).report.status, 'actioned');
+
+      const reportDetails = await fetch(`${baseUrl}/v1/admin/reports/${b9Report.id}`, { headers: adminHeaders });
+      assert.equal(reportDetails.status, 200);
+      const reportDetailsPayload = (await reportDetails.json()).report;
+      assert.equal(reportDetailsPayload.evidence.length, 1);
+      assert.ok(reportDetailsPayload.events.length >= 4);
+      const staffEvidence = await fetch(`${baseUrl}/v1/admin/evidence/${reportEvidence.id}`, { headers: adminHeaders });
+      assert.equal(staffEvidence.status, 200);
+      assert.equal(staffEvidence.headers.get('cache-control'), 'private, no-store');
+      assert.ok((await staffEvidence.arrayBuffer()).byteLength > 0);
+
+      const hideListing = await fetch(`${baseUrl}/v1/admin/listings/listing-1/moderation`, {
+        method: 'PATCH',
+        headers: { ...adminHeaders, 'Idempotency-Key': 'b9-hide-listing' },
+        body: JSON.stringify({
+          status: 'hidden', reportId: b9Report.id,
+          reasonCode: 'documented_policy_violation', note: 'Temporary reversible measure',
+        }),
+      });
+      assert.equal(hideListing.status, 200);
+      assert.equal((await hideListing.json()).status, 'hidden');
+      assert.deepEqual((await fetch(`${baseUrl}/v1/listings?q=Camera`).then((response) => response.json())).listings, []);
+      const ownerCannotRepublish = await fetch(`${baseUrl}/v1/listings/listing-1/status`, {
+        method: 'PATCH', headers: ownerHeaders, body: JSON.stringify({ status: 'active' }),
+      });
+      assert.equal(ownerCannotRepublish.status, 404);
+      const restoreListing = await fetch(`${baseUrl}/v1/admin/listings/listing-1/moderation`, {
+        method: 'PATCH',
+        headers: { ...adminHeaders, 'Idempotency-Key': 'b9-restore-listing' },
+        body: JSON.stringify({
+          status: 'active', reportId: b9Report.id,
+          reasonCode: 'verification_completed', note: 'Restriction reversed',
+        }),
+      });
+      assert.equal(restoreListing.status, 200);
+      assert.equal((await restoreListing.json()).status, 'active');
+      assert.equal((await fetch(`${baseUrl}/v1/listings?q=Camera`).then((response) => response.json())).listings.length, 1);
+
+      const ownerReportOutsider = await fetch(`${baseUrl}/v1/reports`, {
+        method: 'POST',
+        headers: { ...ownerHeaders, 'Idempotency-Key': 'b9-owner-report-outsider' },
+        body: JSON.stringify({ targetType: 'user', targetId: 'outsider', reasonCode: 'controlled_scope_probe' }),
+      });
+      assert.equal(ownerReportOutsider.status, 201);
+      const outsiderReportId = (await ownerReportOutsider.json()).report.id;
+      const suspendBooking = await fetch(`${baseUrl}/v1/admin/users/outsider/suspensions`, {
+        method: 'POST',
+        headers: { ...adminHeaders, 'Idempotency-Key': 'b9-suspend-outsider-booking' },
+        body: JSON.stringify({
+          scope: 'booking', reportId: outsiderReportId,
+          reasonCode: 'controlled_scope_probe', note: 'Temporary integration restriction',
+        }),
+      });
+      assert.equal(suspendBooking.status, 201);
+      const suspension = (await suspendBooking.json()).suspension;
+      const suspendedQuote = await fetch(`${baseUrl}/v1/bookings/quote`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${tokenFor('outsider')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ itemId: 'listing-1', startDate: '2027-02-01', endDate: '2027-02-03' }),
+      });
+      assert.equal(suspendedQuote.status, 403);
+      assert.equal((await suspendedQuote.json()).error, 'action_blocked_by_moderation');
+      const liftBooking = await fetch(`${baseUrl}/v1/admin/suspensions/${suspension.id}/lift`, {
+        method: 'POST',
+        headers: { ...adminHeaders, 'Idempotency-Key': 'b9-lift-outsider-booking' },
+        body: JSON.stringify({ reasonCode: 'controlled_probe_complete' }),
+      });
+      assert.equal(liftBooking.status, 200);
+      assert.equal((await fetch(`${baseUrl}/v1/bookings/quote`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${tokenFor('outsider')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ itemId: 'listing-1', startDate: '2027-02-01', endDate: '2027-02-03' }),
+      })).status, 200);
+
+      assert.equal((await fetch(`${baseUrl}/v1/user-blocks/owner`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${tokenFor('outsider')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reasonCode: 'controlled_block_probe' }),
+      })).status, 204);
+      const blockQuote = await fetch(`${baseUrl}/v1/bookings/quote`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${tokenFor('outsider')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ itemId: 'listing-1', startDate: '2027-03-01', endDate: '2027-03-03' }),
+      });
+      assert.equal(blockQuote.status, 409);
+      assert.equal((await blockQuote.json()).error, 'booking_blocked_by_user_block');
+      assert.equal((await fetch(`${baseUrl}/v1/user-blocks/owner`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${tokenFor('outsider')}` },
+      })).status, 204);
+
+      const renterReview = await fetch(`${baseUrl}/v1/bookings/b6-flow/reviews`, {
+        method: 'POST',
+        headers: renterAHeaders,
+        body: JSON.stringify({
+          direction: 'renter_to_owner',
+          criteria: [
+            { key: 'communication', stars: 5, note: 'Clear' },
+            { key: 'reliability', stars: 4 },
+            { key: 'article_as_described', stars: 5 },
+            { key: 'handover_return', stars: 4 },
+          ],
+        }),
+      });
+      assert.equal(renterReview.status, 201);
+      assert.equal((await renterReview.json()).review.rating, 4.5);
+      const ownerReview = await fetch(`${baseUrl}/v1/bookings/b6-flow/reviews`, {
+        method: 'POST',
+        headers: ownerHeaders,
+        body: JSON.stringify({
+          direction: 'owner_to_renter',
+          criteria: [
+            { key: 'communication', stars: 4 },
+            { key: 'reliability', stars: 5 },
+            { key: 'article_as_described', stars: 4 },
+            { key: 'handover_return', stars: 5 },
+          ],
+        }),
+      });
+      assert.equal(ownerReview.status, 201);
+      const duplicateReview = await fetch(`${baseUrl}/v1/bookings/b6-flow/reviews`, {
+        method: 'POST',
+        headers: renterAHeaders,
+        body: JSON.stringify({
+          direction: 'renter_to_owner',
+          criteria: [
+            { key: 'communication', stars: 5 }, { key: 'reliability', stars: 4 },
+            { key: 'article_as_described', stars: 5 }, { key: 'handover_return', stars: 4 },
+          ],
+        }),
+      });
+      assert.equal(duplicateReview.status, 200);
+      assert.equal((await duplicateReview.json()).replayed, true);
+      const ownerPublicReviews = await fetch(`${baseUrl}/v1/users/owner/reviews`);
+      assert.equal(ownerPublicReviews.status, 200);
+      assert.equal((await ownerPublicReviews.json()).reviews[0].rating, 4.5);
+      const outsiderReview = await fetch(`${baseUrl}/v1/bookings/b6-flow/reviews`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${tokenFor('outsider')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ direction: 'owner_to_renter', criteria: [] }),
+      });
+      assert.equal(outsiderReview.status, 400);
+
+      const b9Overview = await fetch(`${baseUrl}/v1/admin/overview`, { headers: adminHeaders });
+      assert.equal(b9Overview.status, 200);
+      assert.ok((await b9Overview.json()).overview.activeReports >= 2);
+      const moderationAudit = await fetch(`${baseUrl}/v1/admin/audit?limit=500`, { headers: adminHeaders });
+      assert.equal(moderationAudit.status, 200);
+      assert.ok((await moderationAudit.json()).audit.some((entry) => entry.action === 'moderation.listing_status_changed'));
+      await assert.rejects(
+        setupPool.query('UPDATE moderation_case_events SET note = \'tampered\' WHERE report_id = $1', [b9Report.id]),
+        (error) => error?.code === '55000',
+      );
+
       const outsiderHeaders = { Authorization: `Bearer ${tokenFor('outsider')}` };
       const rentalResponse = await fetch(`${baseUrl}/v1/rental-requests`, { headers: outsiderHeaders });
       assert.equal(rentalResponse.status, 200);
@@ -1345,7 +1617,6 @@ if (!databaseUrl) {
       assert.equal(suspendedResponse.status, 401);
       assert.equal((await suspendedResponse.json()).error, 'account_not_active');
 
-      const { hashActionToken, hashPassword } = await import('../src/security.js');
       const initialPassword = 'InitialPassword1';
       const nextPassword = 'NextSecurePassword2';
       const emailChangePassword = 'EmailChangePassword4';

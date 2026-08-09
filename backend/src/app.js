@@ -55,7 +55,6 @@ import {
   listThreadMessages,
   markThreadRead,
   MessageWorkflowError,
-  reportMessage,
   sendThreadMessage,
   setThreadArchived,
   unblockUser,
@@ -79,6 +78,29 @@ import {
   verifyAndApplyWebhook,
 } from './payment_workflow.js';
 import { PaymentDomainError } from './payment_domain.js';
+import { ModerationDomainError } from './moderation_domain.js';
+import {
+  createBookingReview,
+  createReport,
+  createStaffElevation,
+  getStaffEvidence,
+  getStaffReport,
+  liftUserSuspension,
+  listMyReports,
+  listPublishedReviews,
+  listStaffAudit,
+  listStaffBookings,
+  listStaffListings,
+  listStaffPayments,
+  listStaffReports,
+  listStaffUsers,
+  ModerationWorkflowError,
+  setListingModeration,
+  setUserSuspension,
+  staffOverview,
+  updateStaffReport,
+  verifyStaffElevation,
+} from './moderation_workflow.js';
 import { publishToAll, publishToUsers } from './realtime.js';
 import { releaseMetadata } from './release.js';
 import {
@@ -190,6 +212,30 @@ const requireActiveAccount = asyncRoute(async (req, _res, next) => {
     accountStatus: user.account_status,
     deactivatedAt: user.deactivated_at,
   };
+  next();
+});
+
+function requireUnsuspendedScope(...scopes) {
+  return asyncRoute(async (req, _res, next) => {
+    const result = await pool.query(
+      `SELECT scope FROM user_suspensions
+       WHERE user_id = $1 AND lifted_at IS NULL AND starts_at <= now()
+         AND (ends_at IS NULL OR ends_at > now())
+         AND (scope = 'account' OR scope = ANY($2::text[]))
+       LIMIT 1`,
+      [req.auth.userId, scopes],
+    );
+    if (result.rowCount) throw new HttpError(403, 'action_blocked_by_moderation', { scope: result.rows[0].scope });
+    next();
+  });
+}
+
+const requireStaffElevation = asyncRoute(async (req, _res, next) => {
+  req.staffElevation = await verifyStaffElevation(pool, {
+    actor: req.actor,
+    sessionId: req.auth.sessionId,
+    token: req.get('X-Admin-Step-Up'),
+  });
   next();
 });
 
@@ -328,6 +374,7 @@ function buildCatalogSearch(search) {
     'listing.catalog_version = 1',
     'listing.is_active = true',
     "listing.status = 'active'",
+    "listing.moderation_status = 'active'",
   ];
   let distanceExpression = 'NULL::double precision';
   if (search.latitude !== null && search.longitude !== null) {
@@ -611,7 +658,19 @@ async function accountDeletionPreflight(client, userId) {
        (SELECT count(*)::int FROM disputes AS dispute
         JOIN bookings AS booking ON booking.id = dispute.booking_id
         WHERE (booking.owner_id = $1 OR booking.renter_id = $1)
-          AND dispute.status IN ('open', 'investigating', 'waiting_for_user')) AS open_disputes`,
+          AND dispute.status IN ('open', 'investigating', 'waiting_for_user')) AS open_disputes,
+       (SELECT count(*)::int FROM reports AS report
+        WHERE report.status IN ('open', 'triaged', 'investigating', 'actioned')
+          AND (
+            report.reporter_id = $1 OR report.assigned_to = $1
+            OR (report.target_type = 'user' AND report.target_id = $1)
+            OR (report.target_type = 'listing' AND EXISTS (
+              SELECT 1 FROM listings WHERE id = report.target_id AND owner_id = $1
+            ))
+            OR (report.target_type = 'booking' AND EXISTS (
+              SELECT 1 FROM bookings WHERE id = report.target_id AND (owner_id = $1 OR renter_id = $1)
+            ))
+          )) AS open_reports`,
     [userId],
   );
   const counts = result.rows[0] ?? {};
@@ -620,11 +679,38 @@ async function accountDeletionPreflight(client, userId) {
     ['open_payouts', 'Offene Auszahlungen'],
     ['active_payments', 'Laufende Zahlungsabwicklung'],
     ['open_disputes', 'Offene Streitfälle'],
+    ['open_reports', 'Offene Moderationsfälle'],
   ];
   const blockers = definitions
     .map(([id, label]) => ({ id, label, count: Number(counts[id] ?? 0) }))
     .filter((blocker) => blocker.count > 0);
   return { canDelete: blockers.length === 0, blockers };
+}
+
+async function reconcileExpiredAccountSuspension(email) {
+  await inTransaction(async (client) => {
+    const result = await client.query(
+      `UPDATE users AS user
+       SET account_status = 'active'
+       WHERE user.email = $1 AND user.account_status = 'suspended'
+         AND user.deactivated_at IS NULL
+         AND NOT EXISTS (
+           SELECT 1 FROM user_suspensions AS suspension
+           WHERE suspension.user_id = user.id AND suspension.scope = 'account'
+             AND suspension.lifted_at IS NULL AND suspension.starts_at <= now()
+             AND (suspension.ends_at IS NULL OR suspension.ends_at > now())
+         )
+       RETURNING user.id`,
+      [email],
+    );
+    if (result.rowCount) {
+      await writeAudit(client, {
+        action: 'moderation.account_suspension_expired',
+        resourceType: 'user',
+        resourceId: result.rows[0].id,
+      });
+    }
+  });
 }
 
 async function eraseAccount(client, user, { actorRole = 'user', source = 'app' } = {}) {
@@ -670,7 +756,10 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
   );
   await client.query('UPDATE reviews SET body = NULL WHERE reviewer_id = $1', [user.id]);
   const erasedUploads = await client.query(
-    'DELETE FROM uploads WHERE owner_id = $1 RETURNING storage_name',
+    `DELETE FROM uploads AS upload
+     WHERE upload.owner_id = $1
+       AND NOT EXISTS (SELECT 1 FROM report_evidence WHERE upload_id = upload.id)
+     RETURNING storage_name`,
     [user.id],
   );
   await client.query('DELETE FROM push_devices WHERE user_id = $1', [user.id]);
@@ -782,7 +871,7 @@ export function createApp() {
       return callback(new HttpError(403, 'origin_not_allowed'));
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-Admin-Step-Up'],
   }));
   const webhookLimiter = rateLimit({
     windowMs: 60_000,
@@ -806,6 +895,7 @@ export function createApp() {
   const refreshLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const deletionLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const staffElevationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   app.use(generalLimiter);
 
   app.get('/health', asyncRoute(async (_req, res) => {
@@ -919,6 +1009,15 @@ export function createApp() {
     res.json({ account: await getConnectStatus(req.actor.id) });
   }));
 
+  app.post('/v1/admin/step-up', requireAuth, requireActiveAccount, staffElevationLimiter, asyncRoute(async (req, res) => {
+    const elevation = await inTransaction((client) => createStaffElevation(client, {
+      actor: req.actor,
+      sessionId: req.auth.sessionId,
+      currentPassword: req.body?.currentPassword,
+    }));
+    res.json({ elevation });
+  }));
+
   app.post('/v1/payments/connect/onboarding', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const result = await createConnectOnboarding({
       actor: req.actor,
@@ -968,7 +1067,7 @@ export function createApp() {
     res.json(await simulateDepositSetup({ actor: req.actor, mandateId: safeText(req.params.id, 80) }));
   }));
 
-  app.post('/v1/deposit-mandates/:id/charges', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.post('/v1/deposit-mandates/:id/charges', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
     const result = await chargeDeposit({
       actor: req.actor,
       mandateId: safeText(req.params.id, 80),
@@ -981,7 +1080,7 @@ export function createApp() {
     res.status(result.replayed ? 200 : 201).json(result);
   }));
 
-  app.post('/v1/payments/:id/refunds', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.post('/v1/payments/:id/refunds', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
     const result = await refundPayment({
       actor: req.actor,
       paymentId: safeText(req.params.id, 80),
@@ -993,7 +1092,7 @@ export function createApp() {
     res.status(result.replayed ? 200 : 201).json(result);
   }));
 
-  app.post('/v1/payments/:id/payout-release', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.post('/v1/payments/:id/payout-release', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
     const result = await releasePayout({
       actor: req.actor,
       paymentId: safeText(req.params.id, 80),
@@ -1007,6 +1106,7 @@ export function createApp() {
     const email = normalizeEmail(req.body?.email);
     const password = req.body?.password;
     if (!isValidEmail(email) || typeof password !== 'string') throw new HttpError(401, 'invalid_credentials');
+    await reconcileExpiredAccountSuspension(email);
     const result = await pool.query(
       `SELECT * FROM users
        WHERE email = $1 AND deactivated_at IS NULL AND account_status = 'active'`,
@@ -1717,7 +1817,7 @@ export function createApp() {
     res.json({ listings: result.rows.map((row) => row.payload) });
   }));
 
-  app.post('/v1/listings', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.post('/v1/listings', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
     const id = identifier(req.body?.id === 'new' ? '' : req.body?.id, 'listing');
     const payload = listingPayload(req.body, { id, ownerId: req.auth.userId });
     const financials = listingFinancials(payload);
@@ -1768,11 +1868,14 @@ export function createApp() {
     res.status(201).json({ listing: result.rows[0].payload });
   }));
 
-  app.put('/v1/listings/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.put('/v1/listings/:id', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
     const id = safeText(req.params.id, 120);
     const existing = await pool.query('SELECT * FROM listings WHERE id = $1', [id]);
     if (!existing.rowCount) throw new HttpError(404, 'listing_not_found');
     if (existing.rows[0].owner_id !== req.auth.userId) throw new HttpError(403, 'listing_forbidden');
+    if (existing.rows[0].moderation_status !== 'active') {
+      throw new HttpError(409, 'listing_locked_by_moderation');
+    }
     const payload = listingPayload(req.body, {
       id,
       ownerId: req.auth.userId,
@@ -1824,7 +1927,7 @@ export function createApp() {
     res.json({ listing: result.rows[0].payload });
   }));
 
-  app.patch('/v1/listings/:id/status', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.patch('/v1/listings/:id/status', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
     const id = safeText(req.params.id, 120);
     const status = safeText(req.body?.status, 30);
     if (!['active', 'paused', 'ended'].includes(status)) throw new HttpError(400, 'invalid_listing_status');
@@ -1857,6 +1960,7 @@ export function createApp() {
                CASE WHEN $4 = 'ended' THEN to_jsonb(now()::text) ELSE 'null'::jsonb END
              )
          WHERE id = $1 AND owner_id = $2 AND catalog_version = 1
+           AND moderation_status = 'active'
          RETURNING payload`,
         [id, req.auth.userId, isActive, status],
       );
@@ -1875,7 +1979,7 @@ export function createApp() {
     res.json({ listing: result.rows[0].payload });
   }));
 
-  app.delete('/v1/listings/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.delete('/v1/listings/:id', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
     const id = safeText(req.params.id, 120);
     const result = await inTransaction(async (client) => {
       const updated = await client.query(
@@ -1892,6 +1996,7 @@ export function createApp() {
                '{endedAt}', to_jsonb(now()::text)
              )
          WHERE id = $1 AND owner_id = $2 AND status <> 'ended'
+           AND moderation_status = 'active'
          RETURNING id`,
         [id, req.auth.userId],
       );
@@ -1934,7 +2039,7 @@ export function createApp() {
     res.status(result.available ? 200 : 409).json(result);
   }));
 
-  app.put('/v1/listings/:id/availability', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.put('/v1/listings/:id/availability', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
     assertBookingPilot(config);
     const result = await inTransaction((client) => replaceListingAvailability(client, {
       actor: req.actor,
@@ -1945,7 +2050,7 @@ export function createApp() {
     res.json(result);
   }));
 
-  app.post('/v1/bookings/quote', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.post('/v1/bookings/quote', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
     const quote = await inTransaction((client) => quoteBooking(client, {
       actorId: req.auth.userId,
       raw: req.body,
@@ -1953,7 +2058,7 @@ export function createApp() {
     res.json(quote);
   }));
 
-  app.post('/v1/bookings', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.post('/v1/bookings', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
     assertBookingPilot(config);
     const result = await inTransaction((client) => createBooking(client, {
       actor: req.actor,
@@ -1968,7 +2073,7 @@ export function createApp() {
     res.status(result.replayed ? 200 : 201).json(result);
   }));
 
-  app.patch('/v1/bookings/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.patch('/v1/bookings/:id', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
     assertBookingPilot(config);
     const result = await inTransaction((client) => amendBooking(client, {
       actor: req.actor,
@@ -1984,7 +2089,7 @@ export function createApp() {
     res.json(result);
   }));
 
-  app.post('/v1/bookings/:id/transitions', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.post('/v1/bookings/:id/transitions', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
     assertBookingPilot(config);
     const result = await inTransaction((client) => transitionBooking(client, {
       actor: req.actor,
@@ -2177,7 +2282,7 @@ export function createApp() {
     }));
   }));
 
-  app.post('/v1/message-threads/booking/:bookingId', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.post('/v1/message-threads/booking/:bookingId', requireAuth, requireActiveAccount, requireUnsuspendedScope('messaging'), asyncRoute(async (req, res) => {
     const thread = await inTransaction((client) => ensureBookingThread(client, {
       bookingId: safeText(req.params.bookingId, 120),
       actorId: req.auth.userId,
@@ -2195,7 +2300,7 @@ export function createApp() {
     }));
   }));
 
-  app.post('/v1/message-threads/:id/messages', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+  app.post('/v1/message-threads/:id/messages', requireAuth, requireActiveAccount, requireUnsuspendedScope('messaging'), asyncRoute(async (req, res) => {
     const result = await inTransaction((client) => sendThreadMessage(client, {
       threadId: safeText(req.params.id, 120),
       actor: req.actor,
@@ -2225,14 +2330,62 @@ export function createApp() {
     res.json({ archivedForUserIds });
   }));
 
-  app.post('/v1/messages/:id/reports', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
-    const report = await inTransaction((client) => reportMessage(client, {
+  app.post('/v1/reports', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => createReport(client, {
       actor: req.actor,
-      messageId: safeText(req.params.id, 120),
-      reasonCode: req.body?.reasonCode,
-      details: req.body?.details,
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
     }));
-    res.status(201).json({ report });
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.get('/v1/reports/mine', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    res.json({ reports: await listMyReports(pool, req.auth.userId) });
+  }));
+
+  app.post('/v1/messages/:id/reports', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => createReport(client, {
+      actor: req.actor,
+      raw: {
+        targetType: 'message',
+        targetId: safeText(req.params.id, 120),
+        reasonCode: req.body?.reasonCode,
+        details: req.body?.details,
+        evidenceUploadIds: req.body?.evidenceUploadIds,
+      },
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/bookings/:id/reviews', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => createBookingReview(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      raw: req.body,
+    }));
+    publishToUsers([result.review.reviewedUserId], { type: 'changed', resource: 'reviews' });
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.get('/v1/users/:id/reviews', asyncRoute(async (req, res) => {
+    res.json({ reviews: await listPublishedReviews(pool, { revieweeId: safeText(req.params.id, 120) }) });
+  }));
+
+  app.get('/v1/listings/:id/reviews', asyncRoute(async (req, res) => {
+    res.json({ reviews: await listPublishedReviews(pool, { listingId: safeText(req.params.id, 120) }) });
+  }));
+
+  app.get('/v1/bookings/:id/reviews', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const booking = await pool.query(
+      'SELECT owner_id, renter_id FROM bookings WHERE id = $1',
+      [safeText(req.params.id, 120)],
+    );
+    if (!booking.rowCount) throw new HttpError(404, 'booking_not_found');
+    if (![booking.rows[0].owner_id, booking.rows[0].renter_id].includes(req.auth.userId)) {
+      throw new HttpError(403, 'booking_forbidden');
+    }
+    res.json({ reviews: await listPublishedReviews(pool, { bookingId: safeText(req.params.id, 120) }) });
   }));
 
   app.get('/v1/user-blocks', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
@@ -2479,6 +2632,104 @@ export function createApp() {
     });
   }));
 
+  app.get('/v1/admin/overview', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (_req, res) => {
+    res.json({ overview: await staffOverview(pool) });
+  }));
+
+  app.get('/v1/admin/reports', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    res.json({ reports: await listStaffReports(pool, req.query) });
+  }));
+
+  app.get('/v1/admin/reports/:id', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    res.json({ report: await getStaffReport(pool, safeText(req.params.id, 80)) });
+  }));
+
+  app.patch('/v1/admin/reports/:id', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => updateStaffReport(client, {
+      actor: req.actor,
+      reportId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.json(result);
+  }));
+
+  app.get('/v1/admin/users', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    res.json({ users: await listStaffUsers(pool, { ...req.query, role: req.actor.role }) });
+  }));
+
+  app.get('/v1/admin/listings', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    res.json({ listings: await listStaffListings(pool, req.query) });
+  }));
+
+  app.get('/v1/admin/bookings', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    res.json({ bookings: await listStaffBookings(pool, req.query) });
+  }));
+
+  app.get('/v1/admin/payments', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    res.json({ payments: await listStaffPayments(pool, req.query) });
+  }));
+
+  app.get('/v1/admin/audit', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    res.json({ audit: await listStaffAudit(pool, req.query) });
+  }));
+
+  app.post('/v1/admin/users/:id/suspensions', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => setUserSuspension(client, {
+      actor: req.actor,
+      userId: safeText(req.params.id, 120),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    publishToUsers([safeText(req.params.id, 120)], { type: 'changed', resource: 'profiles' });
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/admin/suspensions/:id/lift', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => liftUserSuspension(client, {
+      actor: req.actor,
+      suspensionId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    publishToUsers([result.suspension.user_id], { type: 'changed', resource: 'profiles' });
+    res.json(result);
+  }));
+
+  app.patch('/v1/admin/listings/:id/moderation', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => setListingModeration(client, {
+      actor: req.actor,
+      listingId: safeText(req.params.id, 120),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    publishToAll({ type: 'changed', resource: 'listings' });
+    res.json(result);
+  }));
+
+  app.get('/v1/admin/evidence/:id', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const evidenceId = safeText(req.params.id, 80);
+    const evidence = await inTransaction(async (client) => {
+      const record = await getStaffEvidence(client, evidenceId);
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'moderation.evidence_viewed',
+        resourceType: 'upload',
+        resourceId: evidenceId,
+      });
+      return record;
+    });
+    const contents = await fs.readFile(path.join(config.uploadDir, evidence.storage_name));
+    res.set({
+      'Content-Type': evidence.mime_type,
+      'Content-Length': String(evidence.byte_size),
+      'Cache-Control': 'private, no-store',
+      'Content-Disposition': 'inline',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    res.send(contents);
+  }));
+
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024, files: 1 } });
   app.post('/v1/uploads', requireAuth, requireActiveAccount, upload.single('file'), asyncRoute(async (req, res) => {
     if (!req.file?.buffer) throw new HttpError(400, 'file_required');
@@ -2491,6 +2742,7 @@ export function createApp() {
       'message_attachment',
       'handover_evidence',
       'return_evidence',
+      'report_evidence',
     ]);
     const purpose = safeText(req.body?.purpose, 40) || 'listing_image';
     if (!allowedPurposes.has(purpose)) throw new HttpError(400, 'invalid_upload_purpose');
@@ -2508,7 +2760,7 @@ export function createApp() {
       if (!listing.rowCount) throw new HttpError(404, 'listing_not_found');
       if (listing.rows[0].owner_id !== req.auth.userId) throw new HttpError(403, 'upload_forbidden');
     }
-    if (visibility === 'private' && purpose !== 'listing_image') {
+    if (visibility === 'private' && !['listing_image', 'report_evidence'].includes(purpose)) {
       if (!threadId) throw new HttpError(400, 'private_upload_thread_required');
       const thread = await pool.query(
         `SELECT user1_id, user2_id FROM message_threads WHERE id = $1`,
@@ -2658,18 +2910,19 @@ export function createApp() {
     const workflowError = error instanceof BookingWorkflowError;
     const messageWorkflowError = error instanceof MessageWorkflowError;
     const paymentWorkflowError = error instanceof PaymentDomainError;
+    const moderationWorkflowError = error instanceof ModerationDomainError;
     const status = bookingConflict
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error('[api]', error);
     res.status(status).json({ error: code, ...(error?.details ? { details: error.details } : {}) });
   });

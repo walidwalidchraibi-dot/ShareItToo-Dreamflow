@@ -113,6 +113,15 @@ async function main() {
     );
   }
 
+  const adminElevation = await api('/admin/step-up', {
+    method: 'POST',
+    token: users.admin.token,
+    body: { currentPassword: password },
+  });
+  const adminStepUpHeaders = {
+    'X-Admin-Step-Up': adminElevation.value.elevation.token,
+  };
+
   const connect = await api('/payments/connect/onboarding', {
     method: 'POST',
     token: users.owner.token,
@@ -356,7 +365,7 @@ async function main() {
   const depositCharge = await api(`/deposit-mandates/${mandateId}/charges`, {
     method: 'POST',
     token: users.admin.token,
-    headers: { 'Idempotency-Key': `${runId}-deposit-charge` },
+    headers: { ...adminStepUpHeaders, 'Idempotency-Key': `${runId}-deposit-charge` },
     body: {
       disputeId: localDispute.rows[0].id,
       amountMinor: 1000,
@@ -403,7 +412,7 @@ async function main() {
   const blockedPayout = await api(`/payments/${paymentId}/payout-release`, {
     method: 'POST',
     token: users.admin.token,
-    headers: { 'Idempotency-Key': `${runId}-blocked-payout` },
+    headers: { ...adminStepUpHeaders, 'Idempotency-Key': `${runId}-blocked-payout` },
     body: {},
     expected: [409],
   });
@@ -416,7 +425,7 @@ async function main() {
   const payout = await api(`/payments/${paymentId}/payout-release`, {
     method: 'POST',
     token: users.admin.token,
-    headers: { 'Idempotency-Key': `${runId}-release-payout` },
+    headers: { ...adminStepUpHeaders, 'Idempotency-Key': `${runId}-release-payout` },
     body: {},
     expected: [201],
   });
@@ -428,7 +437,7 @@ async function main() {
   const partialRefund = await api(`/payments/${paymentId}/refunds`, {
     method: 'POST',
     token: users.admin.token,
-    headers: { 'Idempotency-Key': `${runId}-partial-refund` },
+    headers: { ...adminStepUpHeaders, 'Idempotency-Key': `${runId}-partial-refund` },
     body: { amountMinor: firstRefundMinor, reason: 'staging_partial_refund' },
     expected: [201],
   });
@@ -437,7 +446,7 @@ async function main() {
   const noDuplicatePayout = await api(`/payments/${paymentId}/payout-release`, {
     method: 'POST',
     token: users.admin.token,
-    headers: { 'Idempotency-Key': `${runId}-duplicate-payout-probe` },
+    headers: { ...adminStepUpHeaders, 'Idempotency-Key': `${runId}-duplicate-payout-probe` },
     body: {},
   });
   assert.equal(noDuplicatePayout.value.replayed, true);
@@ -445,7 +454,7 @@ async function main() {
   const finalRefund = await api(`/payments/${paymentId}/refunds`, {
     method: 'POST',
     token: users.admin.token,
-    headers: { 'Idempotency-Key': `${runId}-final-refund` },
+    headers: { ...adminStepUpHeaders, 'Idempotency-Key': `${runId}-final-refund` },
     body: { amountMinor: finalRefundMinor, reason: 'staging_final_refund' },
     expected: [201],
   });

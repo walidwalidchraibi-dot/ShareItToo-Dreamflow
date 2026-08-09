@@ -94,6 +94,7 @@ export const config = Object.freeze({
   emailVerificationLifetimeHours: 24,
   passwordResetLifetimeMinutes: 30,
   accountDeletionLifetimeMinutes: 30,
+  staffElevationMinutes: Math.min(30, Math.max(5, Number.parseInt(process.env.STAFF_ELEVATION_MINUTES ?? '10', 10))),
   minimumAccountAge: 18,
   deploymentEnvironment,
   bookingPilotMode,

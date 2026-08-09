@@ -1,0 +1,777 @@
+import crypto from 'node:crypto';
+
+import { config } from './config.js';
+import {
+  assertReportTransition,
+  ModerationDomainError,
+  moderationIdempotencyKey,
+  normalizeReportInput,
+  normalizeReviewInput,
+  shapeReview,
+  shapeStaffUser,
+} from './moderation_domain.js';
+import { verifyPassword } from './security.js';
+
+export class ModerationWorkflowError extends ModerationDomainError {}
+
+function text(value, maximum = 4000) {
+  return typeof value === 'string' ? value.trim().slice(0, maximum) : '';
+}
+
+function integer(value, fallback, { minimum = 0, maximum = 200 } = {}) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) ? Math.min(maximum, Math.max(minimum, parsed)) : fallback;
+}
+
+function object(value, code) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ModerationWorkflowError(400, code);
+  }
+  return { ...value };
+}
+
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+async function audit(client, { actor, action, resourceType, resourceId, metadata = {} }) {
+  await client.query(
+    `INSERT INTO audit_log (actor_id, actor_role, action, resource_type, resource_id, metadata)
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+    [actor?.id ?? null, actor?.role ?? 'system', action, resourceType, resourceId, JSON.stringify(metadata)],
+  );
+}
+
+function reportShape(row) {
+  return {
+    id: row.id,
+    targetType: row.target_type,
+    targetId: row.target_id,
+    reasonCode: row.reason_code,
+    details: row.details,
+    priority: row.priority,
+    reference: row.reporter_reference,
+    status: row.status,
+    resolution: row.resolution ?? {},
+    reporterId: row.reporter_id,
+    assignedTo: row.assigned_to,
+    createdAt: new Date(row.created_at).toISOString(),
+    updatedAt: new Date(row.updated_at).toISOString(),
+    closedAt: row.closed_at ? new Date(row.closed_at).toISOString() : null,
+  };
+}
+
+async function assertReportTarget(client, actorId, report) {
+  if (report.targetType === 'user') {
+    const result = await client.query('SELECT id FROM users WHERE id = $1 AND deactivated_at IS NULL', [report.targetId]);
+    if (!result.rowCount) throw new ModerationWorkflowError(404, 'report_target_not_found');
+    if (report.targetId === actorId) throw new ModerationWorkflowError(400, 'cannot_report_self');
+    return;
+  }
+  if (report.targetType === 'listing') {
+    const result = await client.query('SELECT owner_id FROM listings WHERE id = $1', [report.targetId]);
+    if (!result.rowCount) throw new ModerationWorkflowError(404, 'report_target_not_found');
+    if (result.rows[0].owner_id === actorId) throw new ModerationWorkflowError(400, 'cannot_report_own_listing');
+    return;
+  }
+  if (report.targetType === 'booking') {
+    const result = await client.query('SELECT owner_id, renter_id FROM bookings WHERE id = $1', [report.targetId]);
+    if (!result.rowCount) throw new ModerationWorkflowError(404, 'report_target_not_found');
+    if (![result.rows[0].owner_id, result.rows[0].renter_id].includes(actorId)) {
+      throw new ModerationWorkflowError(403, 'report_target_forbidden');
+    }
+    return;
+  }
+  if (report.targetType === 'message') {
+    const result = await client.query(
+      `SELECT message.sender_id, thread.user1_id, thread.user2_id
+       FROM messages AS message
+       JOIN message_threads AS thread ON thread.id = message.thread_id
+       WHERE message.id = $1`,
+      [report.targetId],
+    );
+    if (!result.rowCount) throw new ModerationWorkflowError(404, 'report_target_not_found');
+    if (![result.rows[0].user1_id, result.rows[0].user2_id].includes(actorId)) {
+      throw new ModerationWorkflowError(403, 'report_target_forbidden');
+    }
+    if (result.rows[0].sender_id === actorId) throw new ModerationWorkflowError(400, 'cannot_report_own_message');
+    return;
+  }
+  const result = await client.query(
+    `SELECT id FROM reviews WHERE id::text = $1 AND moderation_status = 'published'`,
+    [report.targetId],
+  );
+  if (!result.rowCount) throw new ModerationWorkflowError(404, 'report_target_not_found');
+}
+
+async function bindEvidence(client, { actorId, reportId, uploadIds }) {
+  if (!uploadIds.length) return [];
+  const result = await client.query(
+    `SELECT id, storage_name, thumbnail_storage_name, mime_type, byte_size
+     FROM uploads
+     WHERE owner_id = $1 AND purpose = 'report_evidence' AND visibility = 'private'
+       AND id::text = ANY($2::text[])
+     FOR UPDATE`,
+    [actorId, uploadIds],
+  );
+  if (result.rowCount !== uploadIds.length) {
+    throw new ModerationWorkflowError(400, 'report_evidence_not_owned');
+  }
+  await client.query(
+    `INSERT INTO report_evidence (report_id, upload_id)
+     SELECT $1, unnest($2::uuid[])`,
+    [reportId, uploadIds],
+  );
+  return result.rows;
+}
+
+export async function createReport(client, { actor, raw, idempotencyKey }) {
+  const report = normalizeReportInput(raw);
+  await assertReportTarget(client, actor.id, report);
+  const existing = await client.query(
+    `SELECT * FROM reports
+     WHERE reporter_id = $1 AND target_type = $2 AND target_id = $3
+       AND status IN ('open', 'triaged', 'investigating', 'actioned')
+     ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
+    [actor.id, report.targetType, report.targetId],
+  );
+  if (existing.rowCount) {
+    const row = existing.rows[0];
+    if (row.reason_code !== report.reasonCode) {
+      throw new ModerationWorkflowError(409, 'active_report_already_exists', { reportId: row.id });
+    }
+    return { report: reportShape(row), replayed: true };
+  }
+  const inserted = await client.query(
+    `INSERT INTO reports (
+       reporter_id, target_type, target_id, reason_code, details,
+       priority, reporter_reference, last_event_at
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+     RETURNING *`,
+    [
+      actor.id, report.targetType, report.targetId, report.reasonCode,
+      report.details, report.priority, report.reporterReference,
+    ],
+  );
+  const row = inserted.rows[0];
+  const evidence = await bindEvidence(client, {
+    actorId: actor.id,
+    reportId: row.id,
+    uploadIds: report.evidenceUploadIds,
+  });
+  const eventKey = idempotencyKey
+    ? moderationIdempotencyKey(idempotencyKey, 'report.create')
+    : `report.create:${row.id}`;
+  await client.query(
+    `INSERT INTO moderation_case_events (
+       report_id, actor_id, actor_role, event_type, to_status, metadata, idempotency_key
+     ) VALUES ($1, $2, $3, 'report_created', 'open', $4::jsonb, $5)`,
+    [row.id, actor.id, actor.role, JSON.stringify({ evidenceCount: evidence.length }), eventKey],
+  );
+  await audit(client, {
+    actor,
+    action: 'report.created',
+    resourceType: 'report',
+    resourceId: row.id,
+    metadata: { targetType: row.target_type, targetId: row.target_id, evidenceCount: evidence.length },
+  });
+  return { report: reportShape(row), replayed: false };
+}
+
+export async function listMyReports(client, actorId) {
+  const result = await client.query(
+    `SELECT * FROM reports WHERE reporter_id = $1 ORDER BY created_at DESC LIMIT 200`,
+    [actorId],
+  );
+  return result.rows.map(reportShape);
+}
+
+export async function createStaffElevation(client, { actor, sessionId, currentPassword }) {
+  if (!['support', 'admin'].includes(actor.role)) {
+    throw new ModerationWorkflowError(403, 'staff_role_required');
+  }
+  const result = await client.query(
+    `SELECT password_hash, email_verified_at FROM users WHERE id = $1 FOR UPDATE`,
+    [actor.id],
+  );
+  const row = result.rows[0];
+  if (!row?.email_verified_at) throw new ModerationWorkflowError(403, 'verified_email_required');
+  if (!row.password_hash || !(await verifyPassword(currentPassword, row.password_hash))) {
+    throw new ModerationWorkflowError(401, 'invalid_credentials');
+  }
+  const token = crypto.randomBytes(48).toString('base64url');
+  const expiresAt = new Date(Date.now() + config.staffElevationMinutes * 60_000);
+  await client.query(
+    `UPDATE staff_elevations SET revoked_at = COALESCE(revoked_at, now())
+     WHERE user_id = $1 AND session_id = $2 AND revoked_at IS NULL`,
+    [actor.id, sessionId],
+  );
+  await client.query(
+    `INSERT INTO staff_elevations (user_id, session_id, token_hash, role, expires_at)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [actor.id, sessionId, hashToken(token), actor.role, expiresAt],
+  );
+  await audit(client, {
+    actor,
+    action: 'staff.elevation_created',
+    resourceType: 'auth_session',
+    resourceId: sessionId,
+    metadata: { expiresAt: expiresAt.toISOString() },
+  });
+  return { token, expiresAt: expiresAt.toISOString(), role: actor.role };
+}
+
+export async function verifyStaffElevation(client, { actor, sessionId, token }) {
+  if (!['support', 'admin'].includes(actor?.role)) {
+    throw new ModerationWorkflowError(403, 'staff_role_required');
+  }
+  if (!token || typeof token !== 'string' || token.length > 500) {
+    throw new ModerationWorkflowError(401, 'staff_step_up_required');
+  }
+  const result = await client.query(
+    `UPDATE staff_elevations
+     SET last_used_at = now()
+     WHERE token_hash = $1 AND user_id = $2 AND session_id = $3
+       AND role = $4 AND revoked_at IS NULL AND expires_at > now()
+     RETURNING id, expires_at`,
+    [hashToken(token), actor.id, sessionId, actor.role],
+  );
+  if (!result.rowCount) throw new ModerationWorkflowError(401, 'invalid_or_expired_staff_step_up');
+  return { id: result.rows[0].id, expiresAt: new Date(result.rows[0].expires_at).toISOString() };
+}
+
+export async function staffOverview(client) {
+  const result = await client.query(
+    `SELECT
+       (SELECT count(*)::int FROM reports WHERE status IN ('open', 'triaged', 'investigating', 'actioned')) AS active_reports,
+       (SELECT count(*)::int FROM reports WHERE priority IN ('high', 'urgent') AND status IN ('open', 'triaged', 'investigating')) AS priority_reports,
+       (SELECT count(*)::int FROM user_suspensions WHERE lifted_at IS NULL AND starts_at <= now() AND (ends_at IS NULL OR ends_at > now())) AS active_suspensions,
+       (SELECT count(*)::int FROM listings WHERE moderation_status <> 'active') AS moderated_listings,
+       (SELECT count(*)::int FROM disputes WHERE status IN ('open', 'investigating', 'waiting_for_user')) AS open_disputes`,
+  );
+  const row = result.rows[0];
+  return {
+    activeReports: row.active_reports,
+    priorityReports: row.priority_reports,
+    activeSuspensions: row.active_suspensions,
+    moderatedListings: row.moderated_listings,
+    openDisputes: row.open_disputes,
+  };
+}
+
+export async function listStaffReports(client, { status, priority, limit, offset }) {
+  const safeLimit = integer(limit, 50, { minimum: 1, maximum: 200 });
+  const safeOffset = integer(offset, 0, { minimum: 0, maximum: 100_000 });
+  const result = await client.query(
+    `SELECT report.*, reporter.profile->>'displayName' AS reporter_name,
+            assignee.profile->>'displayName' AS assignee_name,
+            (SELECT count(*)::int FROM report_evidence WHERE report_id = report.id) AS evidence_count
+     FROM reports AS report
+     JOIN users AS reporter ON reporter.id = report.reporter_id
+     LEFT JOIN users AS assignee ON assignee.id = report.assigned_to
+     WHERE ($1::text IS NULL OR report.status = $1)
+       AND ($2::text IS NULL OR report.priority = $2)
+     ORDER BY CASE report.priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 WHEN 'normal' THEN 3 ELSE 4 END,
+              report.created_at ASC
+     LIMIT $3 OFFSET $4`,
+    [text(status, 30) || null, text(priority, 20) || null, safeLimit, safeOffset],
+  );
+  return result.rows.map((row) => ({
+    ...reportShape(row),
+    reporterName: row.reporter_name || 'Mitglied',
+    assigneeName: row.assignee_name || null,
+    evidenceCount: row.evidence_count,
+  }));
+}
+
+export async function getStaffReport(client, reportId) {
+  const result = await client.query(
+    `SELECT report.*, reporter.profile->>'displayName' AS reporter_name,
+            assignee.profile->>'displayName' AS assignee_name
+     FROM reports AS report
+     JOIN users AS reporter ON reporter.id = report.reporter_id
+     LEFT JOIN users AS assignee ON assignee.id = report.assigned_to
+     WHERE report.id::text = $1`,
+    [reportId],
+  );
+  if (!result.rowCount) throw new ModerationWorkflowError(404, 'report_not_found');
+  const [events, evidence] = await Promise.all([
+    client.query(
+      `SELECT id, actor_id, actor_role, event_type, from_status, to_status, note, metadata, created_at
+       FROM moderation_case_events WHERE report_id = $1 ORDER BY created_at, id`,
+      [result.rows[0].id],
+    ),
+    client.query(
+      `SELECT upload.id, upload.mime_type, upload.byte_size, upload.created_at
+       FROM report_evidence AS evidence
+       JOIN uploads AS upload ON upload.id = evidence.upload_id
+       WHERE evidence.report_id = $1 ORDER BY evidence.created_at`,
+      [result.rows[0].id],
+    ),
+  ]);
+  return {
+    ...reportShape(result.rows[0]),
+    reporterName: result.rows[0].reporter_name || 'Mitglied',
+    assigneeName: result.rows[0].assignee_name || null,
+    evidence: evidence.rows.map((row) => ({
+      id: row.id,
+      mimeType: row.mime_type,
+      byteSize: Number(row.byte_size),
+      createdAt: new Date(row.created_at).toISOString(),
+    })),
+    events: events.rows.map((row) => ({
+      id: Number(row.id),
+      actorId: row.actor_id,
+      actorRole: row.actor_role,
+      type: row.event_type,
+      fromStatus: row.from_status,
+      toStatus: row.to_status,
+      note: row.note,
+      metadata: row.metadata ?? {},
+      createdAt: new Date(row.created_at).toISOString(),
+    })),
+  };
+}
+
+export async function updateStaffReport(client, { actor, reportId, raw, idempotencyKey }) {
+  const candidate = object(raw, 'invalid_report_update');
+  const key = moderationIdempotencyKey(idempotencyKey, 'report.update');
+  const replay = await client.query(
+    `SELECT report_id FROM moderation_case_events WHERE idempotency_key = $1`,
+    [key],
+  );
+  if (replay.rowCount) return { report: await getStaffReport(client, replay.rows[0].report_id), replayed: true };
+  const locked = await client.query('SELECT * FROM reports WHERE id::text = $1 FOR UPDATE', [reportId]);
+  if (!locked.rowCount) throw new ModerationWorkflowError(404, 'report_not_found');
+  const row = locked.rows[0];
+  const nextStatus = text(candidate.status, 30) || row.status;
+  const nextAssignee = candidate.assignedTo === undefined
+    ? row.assigned_to
+    : (text(candidate.assignedTo, 120) || null);
+  const note = text(candidate.note, 8000) || null;
+  const resolution = candidate.resolution === undefined ? row.resolution : object(candidate.resolution, 'invalid_report_resolution');
+  if (nextStatus !== row.status) {
+    assertReportTransition({ role: actor.role, fromStatus: row.status, toStatus: nextStatus, resolution });
+  }
+  if (nextAssignee !== row.assigned_to) {
+    const assignee = await client.query(
+      `SELECT id FROM users WHERE id = $1 AND role IN ('support', 'admin') AND account_status = 'active'`,
+      [nextAssignee],
+    );
+    if (nextAssignee && !assignee.rowCount) throw new ModerationWorkflowError(400, 'invalid_report_assignee');
+  }
+  let eventType = 'staff_note';
+  if (nextStatus !== row.status) eventType = 'status_changed';
+  else if (nextAssignee !== row.assigned_to) eventType = 'assigned';
+  else if (!note) throw new ModerationWorkflowError(400, 'empty_report_update');
+  await client.query(
+    `UPDATE reports
+     SET status = $2, assigned_to = $3, resolution = $4::jsonb,
+         last_event_at = now(),
+         closed_at = CASE WHEN $2 = 'closed' THEN COALESCE(closed_at, now()) ELSE NULL END
+     WHERE id = $1`,
+    [row.id, nextStatus, nextAssignee, JSON.stringify(resolution)],
+  );
+  await client.query(
+    `INSERT INTO moderation_case_events (
+       report_id, actor_id, actor_role, event_type, from_status, to_status, note, metadata, idempotency_key
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)`,
+    [
+      row.id, actor.id, actor.role, eventType, row.status, nextStatus, note,
+      JSON.stringify({ assignedFrom: row.assigned_to, assignedTo: nextAssignee }), key,
+    ],
+  );
+  await client.query(
+    `INSERT INTO moderation_actions (
+       report_id, actor_id, actor_role, action_type, target_type, target_id,
+       reason_code, before_state, after_state, idempotency_key
+     ) VALUES ($1, $2, $3, 'report_transitioned', 'report', $1::text, $4, $5::jsonb, $6::jsonb, $7)`,
+    [
+      row.id, actor.id, actor.role, text(candidate.reasonCode, 120) || 'case_management',
+      JSON.stringify({ status: row.status, assignedTo: row.assigned_to }),
+      JSON.stringify({ status: nextStatus, assignedTo: nextAssignee }), `${key}:action`,
+    ],
+  );
+  await audit(client, {
+    actor,
+    action: 'moderation.report_updated',
+    resourceType: 'report',
+    resourceId: row.id,
+    metadata: { fromStatus: row.status, toStatus: nextStatus, eventType },
+  });
+  return { report: await getStaffReport(client, row.id), replayed: false };
+}
+
+export async function setUserSuspension(client, { actor, userId, raw, idempotencyKey }) {
+  if (actor.role !== 'admin') throw new ModerationWorkflowError(403, 'admin_role_required');
+  if (actor.id === userId) throw new ModerationWorkflowError(400, 'cannot_suspend_self');
+  const candidate = object(raw, 'invalid_suspension');
+  const scope = text(candidate.scope, 30) || 'account';
+  if (!['account', 'listing', 'booking', 'messaging', 'payout'].includes(scope)) {
+    throw new ModerationWorkflowError(400, 'invalid_suspension_scope');
+  }
+  const reasonCode = text(candidate.reasonCode, 120);
+  if (!reasonCode) throw new ModerationWorkflowError(400, 'suspension_reason_required');
+  const key = moderationIdempotencyKey(idempotencyKey, 'user.suspend');
+  const existing = await client.query('SELECT * FROM user_suspensions WHERE idempotency_key = $1', [key]);
+  if (existing.rowCount) return { suspension: existing.rows[0], replayed: true };
+  const target = await client.query('SELECT id, role, account_status FROM users WHERE id = $1 FOR UPDATE', [userId]);
+  if (!target.rowCount) throw new ModerationWorkflowError(404, 'user_not_found');
+  if (target.rows[0].role !== 'user') throw new ModerationWorkflowError(409, 'staff_suspension_requires_emergency_process');
+  const reportId = text(candidate.reportId, 80) || null;
+  if (reportId) {
+    const report = await client.query('SELECT id FROM reports WHERE id::text = $1', [reportId]);
+    if (!report.rowCount) throw new ModerationWorkflowError(404, 'report_not_found');
+  }
+  const endsAt = candidate.endsAt ? new Date(candidate.endsAt) : null;
+  if (endsAt && (!Number.isFinite(endsAt.getTime()) || endsAt <= new Date())) {
+    throw new ModerationWorkflowError(400, 'invalid_suspension_end');
+  }
+  const inserted = await client.query(
+    `INSERT INTO user_suspensions (
+       user_id, imposed_by, scope, reason_code, note, ends_at, report_id, idempotency_key
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7::uuid, $8)
+     RETURNING *`,
+    [userId, actor.id, scope, reasonCode, text(candidate.note, 8000) || null, endsAt, reportId, key],
+  );
+  if (scope === 'account') {
+    await client.query('UPDATE users SET account_status = \'suspended\' WHERE id = $1', [userId]);
+    await client.query(
+      `UPDATE auth_sessions SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = 'account_suspended'
+       WHERE user_id = $1`,
+      [userId],
+    );
+    await client.query(
+      `UPDATE refresh_tokens SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = 'account_suspended'
+       WHERE user_id = $1`,
+      [userId],
+    );
+  }
+  await client.query(
+    `INSERT INTO moderation_actions (
+       report_id, actor_id, actor_role, action_type, target_type, target_id,
+       reason_code, before_state, after_state, idempotency_key
+     ) VALUES ($1::uuid, $2, $3, 'user_suspended', 'user', $4, $5, $6::jsonb, $7::jsonb, $8)`,
+    [
+      reportId, actor.id, actor.role, userId, reasonCode,
+      JSON.stringify({ accountStatus: target.rows[0].account_status }),
+      JSON.stringify({ scope, endsAt: endsAt?.toISOString() ?? null }), `${key}:action`,
+    ],
+  );
+  if (reportId) {
+    await client.query(
+      `INSERT INTO moderation_case_events (
+         report_id, actor_id, actor_role, event_type, note, metadata, idempotency_key
+       ) VALUES ($1::uuid, $2, $3, 'moderation_action', $4, $5::jsonb, $6)`,
+      [reportId, actor.id, actor.role, text(candidate.note, 8000) || null, JSON.stringify({ scope, userId }), `${key}:event`],
+    );
+  }
+  await audit(client, {
+    actor,
+    action: 'moderation.user_suspended',
+    resourceType: 'user',
+    resourceId: userId,
+    metadata: { scope, reportId, endsAt: endsAt?.toISOString() ?? null },
+  });
+  return { suspension: inserted.rows[0], replayed: false };
+}
+
+export async function liftUserSuspension(client, { actor, suspensionId, raw, idempotencyKey }) {
+  if (actor.role !== 'admin') throw new ModerationWorkflowError(403, 'admin_role_required');
+  const candidate = object(raw ?? {}, 'invalid_suspension_lift');
+  const key = moderationIdempotencyKey(idempotencyKey, 'user.suspension.lift');
+  const replay = await client.query('SELECT id FROM moderation_actions WHERE idempotency_key = $1', [`${key}:action`]);
+  const locked = await client.query('SELECT * FROM user_suspensions WHERE id::text = $1 FOR UPDATE', [suspensionId]);
+  if (!locked.rowCount) throw new ModerationWorkflowError(404, 'suspension_not_found');
+  const row = locked.rows[0];
+  if (replay.rowCount || row.lifted_at) return { suspension: row, replayed: true };
+  await client.query(
+    `UPDATE user_suspensions SET lifted_at = now(), lifted_by = $2 WHERE id = $1`,
+    [row.id, actor.id],
+  );
+  if (row.scope === 'account') {
+    const active = await client.query(
+      `SELECT 1 FROM user_suspensions
+       WHERE user_id = $1 AND scope = 'account' AND id <> $2
+         AND lifted_at IS NULL AND starts_at <= now() AND (ends_at IS NULL OR ends_at > now()) LIMIT 1`,
+      [row.user_id, row.id],
+    );
+    if (!active.rowCount) {
+      await client.query(
+        `UPDATE users SET account_status = 'active'
+         WHERE id = $1 AND account_status = 'suspended' AND deactivated_at IS NULL`,
+        [row.user_id],
+      );
+    }
+  }
+  await client.query(
+    `INSERT INTO moderation_actions (
+       report_id, actor_id, actor_role, action_type, target_type, target_id,
+       reason_code, before_state, after_state, idempotency_key
+     ) VALUES ($1, $2, $3, 'user_suspension_lifted', 'user', $4, $5, $6::jsonb, $7::jsonb, $8)`,
+    [
+      row.report_id, actor.id, actor.role, row.user_id,
+      text(candidate.reasonCode, 120) || 'restriction_lifted',
+      JSON.stringify({ suspensionId: row.id, lifted: false }),
+      JSON.stringify({ suspensionId: row.id, lifted: true }), `${key}:action`,
+    ],
+  );
+  if (row.report_id) {
+    await client.query(
+      `INSERT INTO moderation_case_events (
+         report_id, actor_id, actor_role, event_type, note, metadata, idempotency_key
+       ) VALUES ($1, $2, $3, 'moderation_reversed', $4, $5::jsonb, $6)`,
+      [row.report_id, actor.id, actor.role, text(candidate.note, 8000) || null, JSON.stringify({ suspensionId: row.id }), `${key}:event`],
+    );
+  }
+  await audit(client, {
+    actor,
+    action: 'moderation.user_suspension_lifted',
+    resourceType: 'user',
+    resourceId: row.user_id,
+    metadata: { suspensionId: row.id, scope: row.scope },
+  });
+  return { suspension: { ...row, lifted_at: new Date(), lifted_by: actor.id }, replayed: false };
+}
+
+export async function setListingModeration(client, { actor, listingId, raw, idempotencyKey }) {
+  if (actor.role !== 'admin') throw new ModerationWorkflowError(403, 'admin_role_required');
+  const candidate = object(raw, 'invalid_listing_moderation');
+  const status = text(candidate.status, 30);
+  if (!['active', 'hidden', 'removed'].includes(status)) {
+    throw new ModerationWorkflowError(400, 'invalid_listing_moderation_status');
+  }
+  const reasonCode = text(candidate.reasonCode, 120);
+  if (!reasonCode) throw new ModerationWorkflowError(400, 'moderation_reason_required');
+  const key = moderationIdempotencyKey(idempotencyKey, 'listing.moderation');
+  const replay = await client.query('SELECT id FROM moderation_actions WHERE idempotency_key = $1', [`${key}:action`]);
+  const locked = await client.query('SELECT * FROM listings WHERE id = $1 FOR UPDATE', [listingId]);
+  if (!locked.rowCount) throw new ModerationWorkflowError(404, 'listing_not_found');
+  if (replay.rowCount) return { listingId, status: locked.rows[0].moderation_status, replayed: true };
+  const before = locked.rows[0].moderation_status;
+  const reportId = text(candidate.reportId, 80) || null;
+  if (reportId) {
+    const report = await client.query('SELECT id FROM reports WHERE id::text = $1', [reportId]);
+    if (!report.rowCount) throw new ModerationWorkflowError(404, 'report_not_found');
+  }
+  const firstRestriction = before === 'active' && status !== 'active';
+  const restoredStatus = before === 'active'
+    ? locked.rows[0].status
+    : (locked.rows[0].moderation_previous_status || 'paused');
+  const restoredActive = before === 'active'
+    ? locked.rows[0].is_active === true
+    : (locked.rows[0].moderation_previous_is_active === true && restoredStatus === 'active');
+  const operationalStatus = status === 'active'
+    ? restoredStatus
+    : (status === 'removed' ? 'ended' : 'paused');
+  const operationalActive = status === 'active' ? restoredActive : false;
+  await client.query(
+    `UPDATE listings
+     SET moderation_status = $2, moderation_reason_code = $3,
+         moderation_previous_status = CASE
+           WHEN $5 THEN status WHEN $2 = 'active' THEN NULL ELSE moderation_previous_status END,
+         moderation_previous_is_active = CASE
+           WHEN $5 THEN is_active WHEN $2 = 'active' THEN NULL ELSE moderation_previous_is_active END,
+         status = $6, is_active = $7,
+         payload = jsonb_set(
+           jsonb_set(payload, '{status}', to_jsonb($6::text), true),
+           '{isActive}', to_jsonb($7::boolean), true
+         ),
+         moderated_at = now(), moderated_by = $4
+     WHERE id = $1`,
+    [listingId, status, reasonCode, actor.id, firstRestriction, operationalStatus, operationalActive],
+  );
+  await client.query(
+    `INSERT INTO moderation_actions (
+       report_id, actor_id, actor_role, action_type, target_type, target_id,
+       reason_code, before_state, after_state, idempotency_key
+     ) VALUES ($1::uuid, $2, $3, 'listing_status_changed', 'listing', $4,
+               $5, $6::jsonb, $7::jsonb, $8)`,
+    [
+      reportId, actor.id, actor.role, listingId, reasonCode,
+      JSON.stringify({
+        moderationStatus: before,
+        listingStatus: locked.rows[0].status,
+        isActive: locked.rows[0].is_active,
+      }),
+      JSON.stringify({
+        moderationStatus: status,
+        listingStatus: operationalStatus,
+        isActive: operationalActive,
+      }),
+      `${key}:action`,
+    ],
+  );
+  if (reportId) {
+    await client.query(
+      `INSERT INTO moderation_case_events (
+         report_id, actor_id, actor_role, event_type, note, metadata, idempotency_key
+       ) VALUES ($1::uuid, $2, $3, $4, $5, $6::jsonb, $7)`,
+      [reportId, actor.id, actor.role, status === 'active' ? 'moderation_reversed' : 'moderation_action', text(candidate.note, 8000) || null, JSON.stringify({ listingId, from: before, to: status }), `${key}:event`],
+    );
+  }
+  await audit(client, {
+    actor,
+    action: 'moderation.listing_status_changed',
+    resourceType: 'listing', resourceId: listingId,
+    metadata: { from: before, to: status, reportId },
+  });
+  return { listingId, status, replayed: false };
+}
+
+export async function createBookingReview(client, { actor, bookingId, raw }) {
+  const candidate = normalizeReviewInput(raw);
+  const booking = await client.query(
+    `SELECT booking.*, listing.id AS resolved_listing_id
+     FROM bookings AS booking JOIN listings AS listing ON listing.id = booking.listing_id
+     WHERE booking.id = $1 FOR UPDATE OF booking`,
+    [bookingId],
+  );
+  if (!booking.rowCount) throw new ModerationWorkflowError(404, 'booking_not_found');
+  const row = booking.rows[0];
+  if (![row.owner_id, row.renter_id].includes(actor.id)) throw new ModerationWorkflowError(403, 'booking_forbidden');
+  if (row.workflow_status !== 'completed' || row.status !== 'completed') {
+    throw new ModerationWorkflowError(409, 'review_requires_completed_booking');
+  }
+  const direction = actor.id === row.renter_id ? 'renter_to_owner' : 'owner_to_renter';
+  const revieweeId = actor.id === row.renter_id ? row.owner_id : row.renter_id;
+  if (candidate.direction !== direction) throw new ModerationWorkflowError(400, 'invalid_review_direction');
+  const blocked = await client.query(
+    `SELECT 1 FROM reports
+     WHERE target_type = 'booking' AND target_id = $1
+       AND status IN ('open', 'triaged', 'investigating', 'actioned')
+     UNION ALL
+     SELECT 1 FROM disputes WHERE booking_id = $1
+       AND status IN ('open', 'investigating', 'waiting_for_user')
+     LIMIT 1`,
+    [bookingId],
+  );
+  if (blocked.rowCount) throw new ModerationWorkflowError(409, 'review_blocked_by_open_case');
+  const existing = await client.query(
+    'SELECT * FROM reviews WHERE booking_id = $1 AND reviewer_id = $2',
+    [bookingId, actor.id],
+  );
+  if (existing.rowCount) return { review: shapeReview(existing.rows[0]), replayed: true };
+  const inserted = await client.query(
+    `INSERT INTO reviews (
+       booking_id, listing_id, reviewer_id, reviewee_id, direction,
+       rating, body, criteria, review_version, moderation_status
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, 1, 'published')
+     RETURNING *`,
+    [bookingId, row.resolved_listing_id, actor.id, revieweeId, direction, candidate.rating, candidate.body, JSON.stringify(candidate.criteria)],
+  );
+  await client.query(
+    `UPDATE users AS user SET profile = jsonb_set(
+       jsonb_set(user.profile, '{avgRating}', to_jsonb(summary.average_rating), true),
+       '{reviewCount}', to_jsonb(summary.review_count), true
+     )
+     FROM (
+       SELECT reviewee_id, round(avg(rating), 1) AS average_rating, count(*)::int AS review_count
+       FROM reviews WHERE reviewee_id = $1 AND moderation_status = 'published' GROUP BY reviewee_id
+     ) AS summary
+     WHERE user.id = summary.reviewee_id`,
+    [revieweeId],
+  );
+  await audit(client, {
+    actor,
+    action: 'review.created',
+    resourceType: 'review',
+    resourceId: inserted.rows[0].id,
+    metadata: { bookingId, listingId: row.resolved_listing_id, revieweeId, direction },
+  });
+  return { review: shapeReview(inserted.rows[0]), replayed: false };
+}
+
+export async function listPublishedReviews(client, { revieweeId = null, listingId = null, bookingId = null }) {
+  const result = await client.query(
+    `SELECT review.*, reviewer.profile->>'displayName' AS reviewer_name
+     FROM reviews AS review
+     JOIN users AS reviewer ON reviewer.id = review.reviewer_id
+     WHERE review.moderation_status = 'published'
+       AND ($1::text IS NULL OR review.reviewee_id = $1)
+       AND ($2::text IS NULL OR review.listing_id = $2)
+       AND ($3::text IS NULL OR review.booking_id = $3)
+     ORDER BY review.created_at DESC LIMIT 200`,
+    [revieweeId, listingId, bookingId],
+  );
+  return result.rows.map((row) => ({ ...shapeReview(row), reviewerName: row.reviewer_name || 'Mitglied' }));
+}
+
+export async function listStaffUsers(client, { role, limit, offset }) {
+  const safeLimit = integer(limit, 50, { minimum: 1, maximum: 200 });
+  const safeOffset = integer(offset, 0, { minimum: 0, maximum: 100_000 });
+  const result = await client.query(
+    `SELECT id, email, role, account_status, email_verified_at, created_at, profile
+     FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+    [safeLimit, safeOffset],
+  );
+  return result.rows.map((row) => shapeStaffUser(row, role));
+}
+
+export async function listStaffListings(client, { limit, offset }) {
+  const result = await client.query(
+    `SELECT id, owner_id, title, status, is_active, moderation_status,
+            moderation_reason_code, created_at
+     FROM listings ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+    [integer(limit, 50, { minimum: 1, maximum: 200 }), integer(offset, 0, { minimum: 0, maximum: 100_000 })],
+  );
+  return result.rows.map((row) => ({
+    id: row.id, ownerId: row.owner_id, title: row.title, status: row.status,
+    isActive: row.is_active, moderationStatus: row.moderation_status,
+    moderationReasonCode: row.moderation_reason_code,
+    createdAt: new Date(row.created_at).toISOString(),
+  }));
+}
+
+export async function listStaffBookings(client, { limit, offset }) {
+  const result = await client.query(
+    `SELECT id, listing_id, owner_id, renter_id, status, workflow_status,
+            currency, quoted_total_minor, created_at
+     FROM bookings ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+    [integer(limit, 50, { minimum: 1, maximum: 200 }), integer(offset, 0, { minimum: 0, maximum: 100_000 })],
+  );
+  return result.rows.map((row) => ({
+    id: row.id, listingId: row.listing_id, ownerId: row.owner_id, renterId: row.renter_id,
+    status: row.status, workflowStatus: row.workflow_status, currency: row.currency,
+    quotedTotalMinor: Number(row.quoted_total_minor), createdAt: new Date(row.created_at).toISOString(),
+  }));
+}
+
+export async function listStaffPayments(client, { limit, offset }) {
+  const result = await client.query(
+    `SELECT id, booking_id, status, currency, amount_minor, captured_minor,
+            refunded_minor, transferred_minor, livemode, created_at
+     FROM payments ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+    [integer(limit, 50, { minimum: 1, maximum: 200 }), integer(offset, 0, { minimum: 0, maximum: 100_000 })],
+  );
+  return result.rows.map((row) => ({
+    id: row.id, bookingId: row.booking_id, status: row.status, currency: row.currency,
+    amountMinor: Number(row.amount_minor), capturedMinor: Number(row.captured_minor),
+    refundedMinor: Number(row.refunded_minor), transferredMinor: Number(row.transferred_minor),
+    livemode: row.livemode, createdAt: new Date(row.created_at).toISOString(),
+  }));
+}
+
+export async function listStaffAudit(client, { limit, offset }) {
+  const result = await client.query(
+    `SELECT id, actor_id, actor_role, action, resource_type, resource_id, metadata, created_at
+     FROM audit_log ORDER BY created_at DESC, id DESC LIMIT $1 OFFSET $2`,
+    [integer(limit, 100, { minimum: 1, maximum: 500 }), integer(offset, 0, { minimum: 0, maximum: 100_000 })],
+  );
+  return result.rows.map((row) => ({
+    id: Number(row.id), actorId: row.actor_id, actorRole: row.actor_role,
+    action: row.action, resourceType: row.resource_type, resourceId: row.resource_id,
+    metadata: row.metadata ?? {}, createdAt: new Date(row.created_at).toISOString(),
+  }));
+}
+
+export async function getStaffEvidence(client, uploadId) {
+  const result = await client.query(
+    `SELECT upload.storage_name, upload.mime_type, upload.byte_size
+     FROM uploads AS upload JOIN report_evidence AS evidence ON evidence.upload_id = upload.id
+     WHERE upload.id::text = $1`,
+    [uploadId],
+  );
+  if (!result.rowCount) throw new ModerationWorkflowError(404, 'report_evidence_not_found');
+  return result.rows[0];
+}

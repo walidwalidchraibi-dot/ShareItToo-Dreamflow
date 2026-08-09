@@ -194,12 +194,37 @@ async function listingForBooking(client, listingId, { lock = false, includeInact
      FROM listings
      WHERE id = $1
        AND catalog_version = 1
+       AND moderation_status = 'active'
        ${includeInactive ? '' : "AND is_active = true AND status = 'active'"}
      ${lock ? 'FOR UPDATE' : ''}`,
     [listingId],
   );
   if (!result.rowCount) throw new BookingWorkflowError(404, 'listing_not_found');
   return result.rows[0];
+}
+
+async function assertNewBookingAllowed(client, renterId, ownerId) {
+  const block = await client.query(
+    `SELECT 1 FROM user_blocks
+     WHERE unblocked_at IS NULL
+       AND ((blocker_id = $1 AND blocked_id = $2) OR (blocker_id = $2 AND blocked_id = $1))
+     LIMIT 1`,
+    [renterId, ownerId],
+  );
+  if (block.rowCount) throw new BookingWorkflowError(409, 'booking_blocked_by_user_block');
+  const suspension = await client.query(
+    `SELECT scope FROM user_suspensions
+     WHERE lifted_at IS NULL AND starts_at <= now() AND (ends_at IS NULL OR ends_at > now())
+       AND (
+         (user_id = $1 AND scope IN ('account', 'booking'))
+         OR (user_id = $2 AND scope IN ('account', 'booking', 'listing'))
+       )
+     LIMIT 1`,
+    [renterId, ownerId],
+  );
+  if (suspension.rowCount) {
+    throw new BookingWorkflowError(409, 'booking_blocked_by_moderation', { scope: suspension.rows[0].scope });
+  }
 }
 
 function deliveryQuote(candidate, listing) {
@@ -451,6 +476,7 @@ export async function quoteBooking(client, { actorId, raw }) {
   const listingId = text(candidate.itemId ?? candidate.listingId, 120);
   const listing = await listingForBooking(client, listingId);
   if (listing.owner_id === actorId) throw new BookingWorkflowError(409, 'cannot_rent_own_listing');
+  await assertNewBookingAllowed(client, actorId, listing.owner_id);
   const dates = rentalDatesFromCandidate(candidate);
   const period = await periodInstants(client, dates, listing.availability_timezone);
   await checkPeriodAvailability(client, {
@@ -488,6 +514,7 @@ export async function createBooking(client, { actor, raw, key }) {
   const listingId = text(candidate.itemId ?? candidate.listingId, 120);
   const listing = await listingForBooking(client, listingId, { lock: true });
   if (listing.owner_id === actor.id) throw new BookingWorkflowError(409, 'cannot_rent_own_listing');
+  await assertNewBookingAllowed(client, actor.id, listing.owner_id);
   const dates = rentalDatesFromCandidate(candidate);
   const period = await periodInstants(client, dates, listing.availability_timezone);
   await checkPeriodAvailability(client, {

@@ -1345,6 +1345,15 @@ export async function releasePayout({ actor = null, paymentId, key: rawKey }) {
       [payment.booking_id],
     );
     if (dispute.rowCount) throw new PaymentDomainError(409, 'payout_blocked_by_dispute');
+    const suspension = await client.query(
+      `SELECT 1 FROM user_suspensions
+       WHERE user_id = $1 AND scope IN ('account', 'payout')
+         AND lifted_at IS NULL AND starts_at <= now()
+         AND (ends_at IS NULL OR ends_at > now())
+       LIMIT 1`,
+      [payment.owner_id],
+    );
+    if (suspension.rowCount) throw new PaymentDomainError(409, 'payout_blocked_by_moderation');
     if (!payment.provider_account_id || !payment.payouts_enabled || payment.transfers_capability !== 'active') {
       throw new PaymentDomainError(409, 'owner_payout_account_not_ready');
     }

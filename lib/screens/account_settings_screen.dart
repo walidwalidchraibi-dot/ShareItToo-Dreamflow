@@ -20,6 +20,7 @@ import 'package:lendify/services/account_deletion_service.dart';
 import 'package:lendify/widgets/account_deletion_dialog.dart';
 import 'package:lendify/screens/background_settings_screen.dart';
 import 'package:lendify/screens/blocked_users_screen.dart';
+import 'package:lendify/screens/moderation_admin_screen.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -139,7 +140,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         label: l10n.t('account.item.payoutMethods'),
                         onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                                builder: (_) => const StripePayoutAccountScreen())),
+                                builder: (_) =>
+                                    const StripePayoutAccountScreen())),
                       ),
                       const _Divider(),
                       _RowTile(
@@ -174,6 +176,25 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       ),
                     ]),
                     const SizedBox(height: 28),
+                    if (const {'support', 'admin'}.contains(_user?.role)) ...[
+                      const _GroupTitle('BETRIEB'),
+                      _SectionCard(children: [
+                        _RowTile(
+                          icon: Icons.admin_panel_settings_outlined,
+                          label: _user?.role == 'admin'
+                              ? 'Administration & Moderation'
+                              : 'Support & Moderation',
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ModerationAdminScreen(
+                                role: _user?.role ?? 'support',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: 28),
+                    ],
                     const _GroupTitle('DATENSCHUTZ'),
                     _SectionCard(children: [
                       _RowTile(

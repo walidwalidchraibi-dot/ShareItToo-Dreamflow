@@ -4695,6 +4695,15 @@ class DataService {
   static Future<List<MultiCriteriaReview>> getMultiReviewsForUser(
     String userId,
   ) async {
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final remote = await BackendRepository.getUserReviews(userId);
+      return remote
+          .map((entry) => MultiCriteriaReview.fromJson({
+                ...entry,
+                'requestId': entry['bookingId'],
+              }))
+          .toList();
+    }
     final all = await _getAllMultiReviews();
     final filtered = all.where((e) => e.reviewedUserId == userId).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -4705,6 +4714,10 @@ class DataService {
     String userId,
     String itemId,
   ) async {
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final all = await getMultiReviewsForUser(userId);
+      return all.where((entry) => entry.itemId == itemId).toList();
+    }
     final all = await _getAllMultiReviews();
     final filtered = all
         .where((e) => e.reviewedUserId == userId && e.itemId == itemId)
@@ -4714,6 +4727,25 @@ class DataService {
   }
 
   static Future<List<Review>> getReviewsForUser(String userId) async {
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final remote = await BackendRepository.getUserReviews(userId);
+      return remote.map((entry) {
+        final notes = (entry['criteria'] as List? ?? const [])
+            .whereType<Map>()
+            .map((criterion) => criterion['note']?.toString() ?? '')
+            .where((note) => note.isNotEmpty)
+            .join('\n');
+        return Review(
+          id: entry['id']?.toString() ?? '',
+          reviewerId: entry['reviewerId']?.toString() ?? '',
+          reviewedUserId: entry['reviewedUserId']?.toString() ?? userId,
+          rating: (entry['rating'] as num?)?.toDouble() ?? 0,
+          comment: notes,
+          createdAt: DateTime.tryParse(entry['createdAt']?.toString() ?? '') ??
+              DateTime.now(),
+        );
+      }).toList();
+    }
     final all = await _getAllReviews();
     final filtered = all
         .where((review) => review.reviewedUserId == userId)

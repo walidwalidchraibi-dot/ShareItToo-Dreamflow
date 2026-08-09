@@ -8,6 +8,8 @@ import 'backend_config.dart';
 import 'backend_http.dart';
 
 class BackendRepository {
+  static String? _staffStepUpToken;
+
   static Future<String> _token() async {
     final token = await AuthService.accessToken();
     if (token == null || token.isEmpty) {
@@ -477,6 +479,203 @@ class BackendRepository {
     );
   }
 
+  static Future<Map<String, dynamic>> createReport({
+    required String targetType,
+    required String targetId,
+    required String reasonCode,
+    String details = '',
+    String? reference,
+    List<String> evidenceUploadIds = const <String>[],
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/reports',
+      body: {
+        'targetType': targetType,
+        'targetId': targetId,
+        'reasonCode': reasonCode,
+        if (details.trim().isNotEmpty) 'details': details.trim(),
+        if ((reference ?? '').trim().isNotEmpty) 'reference': reference!.trim(),
+        if (evidenceUploadIds.isNotEmpty)
+          'evidenceUploadIds': evidenceUploadIds,
+      },
+      additionalHeaders: {
+        'Idempotency-Key': 'report_${DateTime.now().microsecondsSinceEpoch}',
+      },
+    );
+    return Map<String, dynamic>.from(response['report'] as Map);
+  }
+
+  static Future<List<Map<String, dynamic>>> getMyReports() async {
+    final response = await _authorized(method: 'GET', path: '/reports/mine');
+    return _maps(response['reports']);
+  }
+
+  static Future<Map<String, dynamic>> createBookingReview({
+    required String bookingId,
+    required String direction,
+    required List<Map<String, dynamic>> criteria,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/bookings/${Uri.encodeComponent(bookingId)}/reviews',
+      body: {'direction': direction, 'criteria': criteria},
+    );
+    return Map<String, dynamic>.from(response['review'] as Map);
+  }
+
+  static Future<List<Map<String, dynamic>>> getUserReviews(
+    String userId,
+  ) async {
+    final response = await BackendHttp.requestJson(
+      method: 'GET',
+      path: '/users/${Uri.encodeComponent(userId)}/reviews',
+    );
+    return _maps(response['reviews']);
+  }
+
+  static Future<void> elevateStaff(String currentPassword) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/admin/step-up',
+      body: {'currentPassword': currentPassword},
+    );
+    final elevation = Map<String, dynamic>.from(response['elevation'] as Map);
+    final token = elevation['token']?.toString() ?? '';
+    if (token.isEmpty) {
+      throw const BackendException(500, 'invalid_staff_elevation');
+    }
+    _staffStepUpToken = token;
+  }
+
+  static void clearStaffElevation() => _staffStepUpToken = null;
+
+  static Future<Map<String, dynamic>> _staff({
+    required String method,
+    required String path,
+    Object? body,
+    String? idempotencyKey,
+  }) async {
+    final token = _staffStepUpToken;
+    if (token == null || token.isEmpty) {
+      throw const BackendException(401, 'staff_step_up_required');
+    }
+    try {
+      return await _authorized(
+        method: method,
+        path: path,
+        body: body,
+        additionalHeaders: {
+          'X-Admin-Step-Up': token,
+          if (idempotencyKey != null) 'Idempotency-Key': idempotencyKey,
+        },
+      );
+    } on BackendException catch (error) {
+      if (error.statusCode == 401) _staffStepUpToken = null;
+      rethrow;
+    }
+  }
+
+  static Future<Map<String, dynamic>> getStaffOverview() async {
+    final response = await _staff(method: 'GET', path: '/admin/overview');
+    return Map<String, dynamic>.from(response['overview'] as Map);
+  }
+
+  static Future<List<Map<String, dynamic>>> getStaffReports() async {
+    final response = await _staff(method: 'GET', path: '/admin/reports');
+    return _maps(response['reports']);
+  }
+
+  static Future<Map<String, dynamic>> getStaffReport(String reportId) async {
+    final response = await _staff(
+      method: 'GET',
+      path: '/admin/reports/${Uri.encodeComponent(reportId)}',
+    );
+    return Map<String, dynamic>.from(response['report'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> updateStaffReport({
+    required String reportId,
+    required Map<String, dynamic> update,
+  }) async {
+    final response = await _staff(
+      method: 'PATCH',
+      path: '/admin/reports/${Uri.encodeComponent(reportId)}',
+      body: update,
+      idempotencyKey: 'report_update_${DateTime.now().microsecondsSinceEpoch}',
+    );
+    return Map<String, dynamic>.from(response['report'] as Map);
+  }
+
+  static Future<List<Map<String, dynamic>>> getStaffUsers() async {
+    final response = await _staff(method: 'GET', path: '/admin/users');
+    return _maps(response['users']);
+  }
+
+  static Future<List<Map<String, dynamic>>> getStaffListings() async {
+    final response = await _staff(method: 'GET', path: '/admin/listings');
+    return _maps(response['listings']);
+  }
+
+  static Future<List<Map<String, dynamic>>> getStaffBookings() async {
+    final response = await _staff(method: 'GET', path: '/admin/bookings');
+    return _maps(response['bookings']);
+  }
+
+  static Future<List<Map<String, dynamic>>> getStaffPayments() async {
+    final response = await _staff(method: 'GET', path: '/admin/payments');
+    return _maps(response['payments']);
+  }
+
+  static Future<List<Map<String, dynamic>>> getStaffAudit() async {
+    final response = await _staff(
+      method: 'GET',
+      path: '/admin/audit?limit=200',
+    );
+    return _maps(response['audit']);
+  }
+
+  static Future<void> suspendUser({
+    required String userId,
+    required String scope,
+    required String reasonCode,
+    String? reportId,
+    String? note,
+  }) async {
+    await _staff(
+      method: 'POST',
+      path: '/admin/users/${Uri.encodeComponent(userId)}/suspensions',
+      body: {
+        'scope': scope,
+        'reasonCode': reasonCode,
+        if (reportId != null) 'reportId': reportId,
+        if ((note ?? '').isNotEmpty) 'note': note,
+      },
+      idempotencyKey: 'user_suspend_${DateTime.now().microsecondsSinceEpoch}',
+    );
+  }
+
+  static Future<void> moderateListing({
+    required String listingId,
+    required String status,
+    required String reasonCode,
+    String? reportId,
+    String? note,
+  }) async {
+    await _staff(
+      method: 'PATCH',
+      path: '/admin/listings/${Uri.encodeComponent(listingId)}/moderation',
+      body: {
+        'status': status,
+        'reasonCode': reasonCode,
+        if (reportId != null) 'reportId': reportId,
+        if ((note ?? '').isNotEmpty) 'note': note,
+      },
+      idempotencyKey:
+          'listing_moderation_${DateTime.now().microsecondsSinceEpoch}',
+    );
+  }
+
   static Future<List<Map<String, dynamic>>> getNotifications() async {
     final response = await _authorized(
       method: 'GET',
@@ -595,5 +794,36 @@ class BackendRepository {
       throw const BackendException(500, 'invalid_upload_response');
     }
     return decoded;
+  }
+
+  static Future<Map<String, dynamic>> uploadReportEvidence({
+    required Uint8List bytes,
+    required String filename,
+  }) async {
+    var token = await _token();
+    Future<http.StreamedResponse> send(String accessToken) {
+      final request = http.MultipartRequest(
+          'POST', BackendConfig.uri('/uploads'))
+        ..headers['Authorization'] = 'Bearer $accessToken'
+        ..fields['purpose'] = 'report_evidence'
+        ..files.add(
+            http.MultipartFile.fromBytes('file', bytes, filename: filename));
+      return request.send().timeout(const Duration(seconds: 45));
+    }
+
+    var response = await send(token);
+    if (response.statusCode == 401) {
+      token = await AuthService.refreshAccessToken() ?? '';
+      if (token.isNotEmpty) response = await send(token);
+    }
+    final body = await response.stream.bytesToString();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw BackendException(response.statusCode, 'evidence_upload_failed');
+    }
+    final value = jsonDecode(body);
+    if (value is! Map || (value['id']?.toString() ?? '').isEmpty) {
+      throw const BackendException(500, 'invalid_upload_response');
+    }
+    return Map<String, dynamic>.from(value);
   }
 }
