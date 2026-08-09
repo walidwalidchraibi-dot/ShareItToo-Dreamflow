@@ -58,6 +58,10 @@ Das kanonische, CI-validierte Proxy-Setup liegt in `backend/ops/Caddyfile`.
   deckend weiße RGB-Format. Der Prüfer ist Teil von Regression und
   Release-Preflight; Web-Startfarbe und native Launch-Hintergründe werden
   ebenfalls fail-closed geprüft.
+- Der vollständige GitHub-Actions-Lauf `31316133047` für Commit
+  `53dc61831a2d3bcc3c7ee9b487827e2ed0b1cfa9` bestätigt den Markenprüfer,
+  56/56 Backendtests, 167/167 Fluttertests, Web/Android sowie den signierten
+  commitgebundenen Android-Kandidaten.
 
 ### Signierung und commitgebundener Android-Kandidat
 
