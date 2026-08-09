@@ -385,7 +385,7 @@ export async function updateStaffReport(client, { actor, reportId, raw, idempote
     `INSERT INTO moderation_actions (
        report_id, actor_id, actor_role, action_type, target_type, target_id,
        reason_code, before_state, after_state, idempotency_key
-     ) VALUES ($1, $2, $3, 'report_transitioned', 'report', $1::text, $4, $5::jsonb, $6::jsonb, $7)`,
+     ) VALUES ($1::uuid, $2, $3, 'report_transitioned', 'report', $1::uuid::text, $4, $5::jsonb, $6::jsonb, $7)`,
     [
       row.id, actor.id, actor.role, text(candidate.reasonCode, 120) || 'case_management',
       JSON.stringify({ status: row.status, assignedTo: row.assigned_to }),
