@@ -40,7 +40,9 @@ apk="build/app/outputs/flutter-apk/app-release.apk"
 [[ -f "$aab" ]] || { echo "ERROR: AAB was not created." >&2; exit 1; }
 [[ -f "$apk" ]] || { echo "ERROR: APK was not created." >&2; exit 1; }
 
-jarsigner -verify -strict "$aab" >/dev/null
+# Upload keys are intentionally self-signed. Verify the JAR signature itself;
+# `-strict` would reject the expected self-signed certificate chain.
+jarsigner -verify "$aab" >/dev/null
 
 build_tools_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}/build-tools"
 build_tools="$(find "$build_tools_root" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n1)"
