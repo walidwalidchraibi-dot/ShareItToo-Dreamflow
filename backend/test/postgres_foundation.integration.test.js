@@ -1313,7 +1313,7 @@ if (!databaseUrl) {
       );
       const providerEvents = await setupPool.query(
         `SELECT count(*)::int AS count FROM payment_provider_events
-         WHERE event_type = 'payment_intent.succeeded'`,
+         WHERE event_type = 'payment_intent.succeeded' AND status = 'processed'`,
       );
       assert.equal(providerEvents.rows[0].count, 1);
       const paymentDeepLink = await fetch(`${baseUrl}/v1/open/payment/b8-payment-flow`);
