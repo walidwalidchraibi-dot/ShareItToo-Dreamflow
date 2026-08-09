@@ -22,10 +22,14 @@ Zahlungsereignisse und die spätere Store-Einreichung.
   `contact@shareittoo.com` zugeordnet.
 - DMARC ist im Beobachtungsmodus veröffentlicht:
   `v=DMARC1; p=none; rua=mailto:dmarc@shareittoo.com; pct=100`
-- Beide autoritativen Namecheap-Nameserver liefern den DMARC-Eintrag. Google
-  DNS und Cloudflare DNS liefern ihn ebenfalls; die Verteilung zu weiteren
-  Resolvern läuft noch.
+- Cloudflare DNS, Google Public DNS und Quad9 liefern SPF, den vollständigen
+  2048-Bit-DKIM-Schlüssel und DMARC am 9. August 2026 identisch aus. Die zuvor
+  noch laufende öffentliche Verteilung ist damit für diese unabhängigen
+  Resolver bestätigt.
 - Das vorhandene SMTP-Relay wurde nicht verändert.
+- `node tool/verify_email_dns.mjs` prüft wiederholbar und ohne Zugangsdaten,
+  dass genau ein erwarteter SPF-Eintrag, ein gültiger 2048-Bit-DKIM-Schlüssel
+  und die überwachte DMARC-Richtlinie bei allen drei Resolvern vorliegen.
 
 ### Anwendung und Mailvorlagen
 
