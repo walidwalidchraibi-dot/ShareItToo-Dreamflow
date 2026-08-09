@@ -2,7 +2,7 @@ ARG NODE_IMAGE=node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f716
 
 FROM ${NODE_IMAGE} AS deps
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN npm install --global pnpm@11.16.0 \
     && pnpm install --prod --frozen-lockfile \
     && pnpm store prune \
