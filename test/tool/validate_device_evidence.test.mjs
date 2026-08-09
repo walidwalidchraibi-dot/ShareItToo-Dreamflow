@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
@@ -36,10 +36,34 @@ function validate({
   });
 }
 
-function writeEvidence(root, ref, contents = 'sanitized B11 evidence\n') {
+function writeEvidence(root, ref, contents) {
   const target = resolve(root, ref);
   mkdirSync(dirname(target), { recursive: true });
-  writeFileSync(target, contents);
+  writeFileSync(target, `${JSON.stringify(contents, null, 2)}\n`);
+}
+
+function evidenceCandidate(candidate) {
+  return {
+    applicationId: candidate.applicationId,
+    bundleId: candidate.bundleId,
+    versionName: candidate.versionName,
+    buildNumber: candidate.buildNumber,
+    commit: candidate.commit,
+    releaseChannel: candidate.releaseChannel,
+    apiBaseUrl: candidate.apiBaseUrl,
+    firebaseConfigured: candidate.firebaseConfigured,
+    paymentMode: candidate.paymentMode,
+    stripeLivemode: candidate.stripeLivemode,
+  };
+}
+
+function safeBoundaries() {
+  return {
+    containsSecrets: false,
+    containsRawDeviceIdentifiers: false,
+    containsReviewCredentials: false,
+    syntheticAccountsOnly: true,
+  };
 }
 
 function passedFixture() {
@@ -78,21 +102,74 @@ function passedFixture() {
     cell.storeInstall = cell.platform === 'android' ? 'play-internal' : 'testflight-internal';
     cell.status = 'passed';
     for (const key of Object.keys(cell.tests)) cell.tests[key] = 'passed';
-    cell.evidenceRef = `docs/evidence/b11/${cell.id}.md`;
-    writeEvidence(root, cell.evidenceRef);
+    cell.evidenceRef = `docs/evidence/b11/${cell.id}.json`;
+    const checkedAt = '2026-08-09T18:00:00+02:00';
+    writeEvidence(root, cell.evidenceRef, {
+      schemaVersion: 1,
+      kind: 'device-matrix-cell',
+      status: 'passed',
+      capturedAt: checkedAt,
+      candidate: evidenceCandidate(deviceManifest.candidate),
+      cell: {
+        id: cell.id,
+        platform: cell.platform,
+        network: cell.network,
+        role: cell.role,
+        deviceType: cell.deviceType,
+        deviceModel: cell.deviceModel,
+        osVersion: cell.osVersion,
+        storeInstall: cell.storeInstall,
+        screenReader: cell.screenReader,
+        tests: Object.fromEntries(Object.keys(cell.tests).map((id) => [id, {
+          status: 'passed',
+          checkedAt,
+          summary: `Sanitized ${id} verification`,
+        }])),
+      },
+      boundaries: safeBoundaries(),
+    });
   }
 
   for (const [key, check] of Object.entries(deviceManifest.releaseChecks)) {
     check.status = 'passed';
-    check.evidenceRef = `docs/evidence/b11/release-${key}.md`;
-    writeEvidence(root, check.evidenceRef);
+    check.evidenceRef = `docs/evidence/b11/release-${key}.json`;
+    writeEvidence(root, check.evidenceRef, {
+      schemaVersion: 1,
+      kind: 'release-check',
+      status: 'passed',
+      capturedAt: '2026-08-09T18:00:00+02:00',
+      candidate: evidenceCandidate(deviceManifest.candidate),
+      releaseCheck: {
+        id: key,
+        status: 'passed',
+        verifications: [{
+          id: `${key}-verification`,
+          status: 'passed',
+          checkedAt: '2026-08-09T18:00:00+02:00',
+          summary: `Sanitized ${key} verification`,
+        }],
+      },
+      boundaries: safeBoundaries(),
+    });
   }
 
   for (const [key, approval] of Object.entries(deviceManifest.approvals)) {
     approval.status = 'passed';
     approval.approvedAt = '2026-08-09T18:00:00+02:00';
-    approval.evidenceRef = `docs/evidence/b11/approval-${key}.md`;
-    writeEvidence(root, approval.evidenceRef);
+    approval.evidenceRef = `docs/evidence/b11/approval-${key}.json`;
+    writeEvidence(root, approval.evidenceRef, {
+      schemaVersion: 1,
+      kind: 'approval',
+      status: 'passed',
+      candidate: evidenceCandidate(deviceManifest.candidate),
+      approval: {
+        type: key,
+        decision: 'approved',
+        approvedAt: approval.approvedAt,
+        statement: `Sanitized ${key} approval`,
+      },
+      boundaries: safeBoundaries(),
+    });
   }
 
   for (const key of [
@@ -178,5 +255,80 @@ test('a passed state fails closed when an evidence file is missing', () => {
   assert.throws(
     () => validate({ ...fixture, requirePassed: true }),
     /does not exist: docs\/evidence\/b11\/missing-device-evidence.md/,
+  );
+});
+
+test('a non-empty but unstructured device evidence file cannot satisfy a passed cell', () => {
+  const fixture = passedFixture();
+  const ref = fixture.deviceManifest.deviceMatrix[0].evidenceRef;
+  writeFileSync(resolve(fixture.root, ref), 'sanitized but unstructured evidence\n');
+  assert.throws(
+    () => validate({ ...fixture, requirePassed: true }),
+    /must contain valid JSON evidence/,
+  );
+});
+
+test('device evidence must be bound to the same candidate commit', () => {
+  const fixture = passedFixture();
+  const ref = fixture.deviceManifest.deviceMatrix[0].evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.candidate.commit = 'f'.repeat(40);
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate({ ...fixture, requirePassed: true }),
+    /candidate.commit must match store\/device-validation.json/,
+  );
+});
+
+test('device evidence rejects raw device identifier fields', () => {
+  const fixture = passedFixture();
+  const ref = fixture.deviceManifest.deviceMatrix[0].evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.cell.serialNumber = 'PRIVATE-SERIAL';
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate({ ...fixture, requirePassed: true }),
+    /must never contain a raw device identifier/,
+  );
+});
+
+test('release-check evidence cannot prove a different release check', () => {
+  const fixture = passedFixture();
+  const ref = fixture.deviceManifest.releaseChecks.firebaseFcmAndApns.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.releaseCheck.id = 'binaryPrivacyAndNetwork';
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate({ ...fixture, requirePassed: true }),
+    /must identify firebaseFcmAndApns as passed/,
+  );
+});
+
+test('passed evidence cannot be supplied through a symbolic link', () => {
+  const fixture = passedFixture();
+  const cell = fixture.deviceManifest.deviceMatrix[0];
+  const originalRef = cell.evidenceRef;
+  const linkedRef = 'docs/evidence/b11/linked-device-evidence.json';
+  symlinkSync(resolve(fixture.root, originalRef), resolve(fixture.root, linkedRef));
+  cell.evidenceRef = linkedRef;
+  assert.throws(
+    () => validate({ ...fixture, requirePassed: true }),
+    /must not reference a symbolic link/,
+  );
+});
+
+test('passed evidence cannot escape through a linked parent directory', () => {
+  const fixture = passedFixture();
+  const cell = fixture.deviceManifest.deviceMatrix[0];
+  const outside = resolve(fixture.root, 'outside-evidence');
+  mkdirSync(outside, { recursive: true });
+  const outsideFile = resolve(outside, 'device.json');
+  writeFileSync(outsideFile, readFileSync(resolve(fixture.root, cell.evidenceRef)));
+  const linkedDirectory = resolve(fixture.root, 'docs/evidence/b11/linked-parent');
+  symlinkSync(outside, linkedDirectory, 'dir');
+  cell.evidenceRef = 'docs/evidence/b11/linked-parent/device.json';
+  assert.throws(
+    () => validate({ ...fixture, requirePassed: true }),
+    /must not escape the B11 evidence directory through a linked path/,
   );
 });

@@ -5,12 +5,15 @@
   "generatedAt": "2026-08-09T19:13:42Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
+    "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
     "buildNumber": "2026080903",
     "commit": "5594cd32dea38b67c330f75cd71b50325f72c407",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
-    "firebaseConfigured": true
+    "firebaseConfigured": true,
+    "paymentMode": "memory",
+    "stripeLivemode": false
   },
   "android": {
     "delivery": "pending",
@@ -48,6 +51,7 @@
     "iosValidated": false,
     "containsSecrets": false,
     "containsRawDeviceIdentifiers": false,
-    "containsReviewCredentials": false
+    "containsReviewCredentials": false,
+    "syntheticAccountsOnly": true
   }
 }

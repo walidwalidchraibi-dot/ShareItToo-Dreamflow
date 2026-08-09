@@ -83,6 +83,44 @@ Technische und produktseitige Freigabe erhalten jeweils einen bereinigten
 lokalen Beleg und einen ISO-Zeitpunkt. Review-Passwörter oder andere
 Zugangsdaten dürfen weder im Manifest noch in Evidenzdateien stehen.
 
+## Inhaltlich gebundene JSON-Nachweise
+
+Eine referenzierte Datei genügt nicht allein dadurch, dass sie vorhanden und
+nicht leer ist. Bestandene Gerätezellen, neue Releaseprüfungen und Freigaben
+müssen strukturierte JSON-Nachweise mit `schemaVersion=1` enthalten. Der
+Validator bindet jeden solchen Nachweis an denselben Kandidaten:
+
+- Application ID, Bundle ID, Version, Buildnummer, Commit, Kanal, Staging-API,
+  Firebase- und Zahlungsmodus müssen exakt mit
+  `store/device-validation.json` übereinstimmen;
+- eine Gerätezelle muss `kind=device-matrix-cell`, ihre exakte Zellen-ID,
+  Plattform, Rolle, Netzart, Store-Installationsweg, Modell, Betriebssystem und
+  Screenreader enthalten;
+- jede der elf Prüfgruppen muss im Zellennachweis einen eigenen bestandenen
+  Status, ISO-Zeitpunkt und eine bereinigte Kurzbeschreibung besitzen;
+- ein Release-Nachweis muss `kind=release-check`, die richtige Prüfungs-ID und
+  mindestens eine zeitlich belegte bestandene Einzelverifikation enthalten;
+- eine Freigabe muss `kind=approval`, den richtigen Freigabetyp, dieselbe
+  Freigabezeit, die Entscheidung `approved` und eine eindeutige Erklärung
+  enthalten;
+- alle drei Nachweisarten müssen ausdrücklich bestätigen, dass sie keine
+  Secrets, Review-Zugangsdaten oder Roh-Gerätekennungen enthalten und nur
+  synthetische Konten verwenden.
+
+Schlüssel wie `serialNumber`, `androidId`, `advertisingId`, `imei`, `idfa`,
+`udid`, `token`, `password` oder `privateKey` werden an jeder Tiefe abgelehnt.
+Symbolische Links, über verlinkte Unterordner ausbrechende Pfade und übergroße
+Nachweisdateien werden ebenfalls abgelehnt.
+Eine beliebige Markdown- oder Textdatei kann deshalb kein bestandenes Gate
+mehr belegen.
+
+Die drei bereits bestandenen technischen Prüfungen dürfen weiterhin den
+kanonischen Kandidatennachweis
+`docs/evidence/b11/android-candidate-2026080903.json` verwenden. Dieser wird
+jedoch inhaltlich gegen Signaturen, Hashwerte, Staging-Health und
+Produktionsinvariante geprüft; er kann keine reale Push-, Geräte-, Store- oder
+iOS-Prüfung ersetzen.
+
 ## Fail-closed-Verknüpfung
 
 Standardprüfung:
@@ -92,10 +130,11 @@ node tool/validate_device_evidence.mjs
 ```
 
 Sie akzeptiert den ehrlichen offenen Planstand und läuft in jeder technischen
-Regression sowie im Release-Preflight. Neun Negativ-/Positivtests prüfen
+Regression sowie im Release-Preflight. Fünfzehn Negativ-/Positivtests prüfen
 unter anderem vorzeitiges `go`, fehlende Matrixzellen, credential-förmige
-Felder, fehlende Evidenzdateien und einen vollständig synthetisch erzeugten
-Passzustand.
+Felder, fehlende oder unstrukturierte Evidenzdateien, Kandidatenabweichungen,
+Roh-Gerätekennungen, falsche Releaseprüfungs-IDs und einen vollständig
+synthetisch erzeugten strukturierten Passzustand.
 
 Strenge Prüfung:
 

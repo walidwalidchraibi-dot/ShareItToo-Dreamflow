@@ -262,7 +262,11 @@ Store-Installation, Push-/Offline-Fälle, Barrierefreiheit, Datenschutz,
 Fehlerklassen, Stop-Regeln, Rückfall und B11-Go/No-Go.
 
 Die Matrix ist zusätzlich unter `store/device-validation.json`
-maschinenlesbar und fail-closed gebunden. Der aktuelle ehrliche Zustand ist
+maschinenlesbar und fail-closed gebunden. Referenzierte Pass-Belege werden
+inhaltlich als kandidatengebundene JSON-Dokumente geprüft; eine beliebige
+nicht leere Datei kann kein Geräte-, Release- oder Freigabegate schließen.
+Abweichende Commits, Zell-/Prüfungs-IDs, credential-förmige Felder und
+Roh-Gerätekennungen werden abgelehnt. Der aktuelle ehrliche Zustand ist
 `testing`, `hold`, vier offene Gerätezellen und drei von sieben bestandene
 Releaseprüfungen. `tool/validate_device_evidence.mjs` prüft App-Identität,
 Mindestbuild `2026080903`, vollständigen Commit, Android-/iOS-Artefakthashes,
@@ -274,6 +278,15 @@ unter `docs/evidence/b11/` und schließt mit den drei zugehörigen Store-Gates
 gemeinsam. Er ist im späteren Uploadmodus Pflicht und bleibt bis zur realen
 Ausführung erwartungsgemäß gesperrt. Detailnachweis:
 `docs/operations/B11_MACHINE_READABLE_DEVICE_EVIDENCE_2026-08-09.md`.
+
+Der unveränderte Kandidat `2026080903` wurde am 9. August 2026 nach der
+fail-closed Vorprüfung erstmals direkt auf einem physischen OnePlus-Gerät mit
+Android 16 installiert. Installierte Version, Buildnummer, Erststart und
+Vordergrundaktivität wurden bestätigt; der bereinigte Nachweis liegt unter
+`docs/evidence/b11/android-direct-smoke-2026080903-20260809T202357Z.json`.
+Weil die Installation nicht über Google Play Internal erfolgte und noch keine
+Funktions-, Push-, Netzwerk- oder Accessibility-Matrix durchgeführt wurde,
+bleiben alle vier Gerätezellen und das B11-Go unverändert offen.
 
 Die Store-Vorbereitung ist zusätzlich in vier codebasierten Arbeitsunterlagen
 festgehalten:

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFileSync, statSync } from 'node:fs';
+import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -43,6 +43,7 @@ const deviceGateKeys = [
 
 const allowedProgressStates = new Set(['open', 'testing', 'passed', 'failed', 'blocked']);
 const forbiddenSecretKeys = /^(password|secret|token|apiKey|privateKey|serviceAccount|reviewCredentials|reviewPassword|reviewUsername)$/i;
+const forbiddenDeviceIdentifierKeys = /^(serial|serialNumber|androidId|advertisingId|imei|meid|idfa|udid)$/i;
 
 function fail(message) {
   throw new Error(message);
@@ -67,9 +68,9 @@ function nullableString(value, label) {
   return nonEmptyString(value, label);
 }
 
-function assertNoSecretFields(value, label = 'device validation') {
+function assertNoSensitiveFields(value, label = 'device validation') {
   if (Array.isArray(value)) {
-    value.forEach((entry, index) => assertNoSecretFields(entry, `${label}[${index}]`));
+    value.forEach((entry, index) => assertNoSensitiveFields(entry, `${label}[${index}]`));
     return;
   }
   if (value === null || typeof value !== 'object') return;
@@ -77,7 +78,10 @@ function assertNoSecretFields(value, label = 'device validation') {
     if (forbiddenSecretKeys.test(key)) {
       fail(`${label}.${key} must never contain credentials or secrets.`);
     }
-    assertNoSecretFields(entry, `${label}.${key}`);
+    if (forbiddenDeviceIdentifierKeys.test(key)) {
+      fail(`${label}.${key} must never contain a raw device identifier.`);
+    }
+    assertNoSensitiveFields(entry, `${label}.${key}`);
   }
 }
 
@@ -103,15 +107,184 @@ function evidenceRef(root, value, label, { required }) {
     }
     let stat;
     try {
-      stat = statSync(fullPath);
+      stat = lstatSync(fullPath);
     } catch {
       fail(`${label} does not exist: ${ref}`);
     }
-    if (!stat.isFile() || stat.size === 0) {
+    if (stat.isSymbolicLink()) {
+      fail(`${label} must not reference a symbolic link.`);
+    }
+    if (!stat.isFile() || stat.size === 0 || stat.size > 1024 * 1024) {
       fail(`${label} must reference a non-empty evidence file.`);
+    }
+    const canonicalRoot = realpathSync(allowedRoot);
+    const canonicalFile = realpathSync(fullPath);
+    const canonicalRelative = relative(canonicalRoot, canonicalFile);
+    if (canonicalRelative.startsWith('..') || isAbsolute(canonicalRelative)) {
+      fail(`${label} must not escape the B11 evidence directory through a linked path.`);
     }
   }
   return ref;
+}
+
+function readEvidenceJson(root, ref, label) {
+  if (!ref.endsWith('.json')) {
+    fail(`${label} must reference a structured JSON evidence file.`);
+  }
+  let evidence;
+  try {
+    evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
+  } catch {
+    fail(`${label} must contain valid JSON evidence.`);
+  }
+  object(evidence, label);
+  assertNoSensitiveFields(evidence, label);
+  return evidence;
+}
+
+function assertEvidenceCandidate(evidence, candidate, label) {
+  const identity = object(evidence.candidate, `${label}.candidate`);
+  for (const key of [
+    'applicationId',
+    'bundleId',
+    'versionName',
+    'buildNumber',
+    'commit',
+    'releaseChannel',
+    'apiBaseUrl',
+    'firebaseConfigured',
+    'paymentMode',
+    'stripeLivemode',
+  ]) {
+    if (identity[key] !== candidate[key]) {
+      fail(`${label}.candidate.${key} must match store/device-validation.json.`);
+    }
+  }
+}
+
+function assertEvidenceBoundaries(evidence, label) {
+  const boundaries = object(evidence.boundaries, `${label}.boundaries`);
+  if (boundaries.containsSecrets !== false ||
+      boundaries.containsRawDeviceIdentifiers !== false ||
+      boundaries.containsReviewCredentials !== false ||
+      boundaries.syntheticAccountsOnly !== true) {
+    fail(`${label}.boundaries must prove sanitized, secret-free, synthetic-only evidence.`);
+  }
+}
+
+function validateDeviceCellEvidence(root, ref, cell, candidate, label) {
+  const evidence = readEvidenceJson(root, ref, label);
+  if (evidence.schemaVersion !== 1 || evidence.kind !== 'device-matrix-cell' || evidence.status !== 'passed') {
+    fail(`${label} must be a passed device-matrix-cell evidence document.`);
+  }
+  isoTimestamp(evidence.capturedAt, `${label}.capturedAt`, { required: true });
+  assertEvidenceCandidate(evidence, candidate, label);
+  assertEvidenceBoundaries(evidence, label);
+
+  const recordedCell = object(evidence.cell, `${label}.cell`);
+  for (const key of [
+    'id',
+    'platform',
+    'network',
+    'role',
+    'deviceType',
+    'deviceModel',
+    'osVersion',
+    'storeInstall',
+    'screenReader',
+  ]) {
+    if (recordedCell[key] !== cell[key]) {
+      fail(`${label}.cell.${key} must match its device matrix entry.`);
+    }
+  }
+  const tests = object(recordedCell.tests, `${label}.cell.tests`);
+  if (Object.keys(tests).length !== requiredDeviceTests.length) {
+    fail(`${label}.cell.tests must contain exactly the required B11 device checks.`);
+  }
+  for (const key of requiredDeviceTests) {
+    const result = object(tests[key], `${label}.cell.tests.${key}`);
+    if (result.status !== 'passed') {
+      fail(`${label}.cell.tests.${key}.status must be passed.`);
+    }
+    isoTimestamp(result.checkedAt, `${label}.cell.tests.${key}.checkedAt`, { required: true });
+    nonEmptyString(result.summary, `${label}.cell.tests.${key}.summary`);
+  }
+}
+
+function validateLegacyCandidateReleaseEvidence(evidence, candidate, checkId, label) {
+  if (evidence.schemaVersion !== 1 || evidence.kind !== 'android-release-candidate') return false;
+  assertEvidenceCandidate(evidence, candidate, label);
+  const android = object(evidence.android, `${label}.android`);
+  const expectedAndroid = object(candidate.android, 'candidate.android');
+  for (const key of ['aabSha256', 'apkSha256', 'signingCertificateSha256']) {
+    if (android[key] !== expectedAndroid[key]) {
+      fail(`${label}.android.${key} must match the candidate manifest.`);
+    }
+  }
+  assertEvidenceBoundaries(evidence, label);
+
+  if (checkId === 'candidateIdentityAndSignatures') {
+    if (android.signatureVerified !== true || android.packageIdentityVerified !== true) {
+      fail(`${label} does not prove candidate identity and signatures.`);
+    }
+    return true;
+  }
+  if (checkId === 'stagingCleanupAndHealth') {
+    const staging = object(evidence.staging, `${label}.staging`);
+    if (staging.liveHttpStatus !== 200 || staging.readyHttpStatus !== 200) {
+      fail(`${label} does not prove healthy staging.`);
+    }
+    return true;
+  }
+  if (checkId === 'productionInvariant') {
+    if (evidence.staging?.productionInvariant !== 'passed') {
+      fail(`${label} does not prove the production invariant.`);
+    }
+    return true;
+  }
+  return false;
+}
+
+function validateReleaseCheckEvidence(root, ref, checkId, candidate, label) {
+  const evidence = readEvidenceJson(root, ref, label);
+  if (validateLegacyCandidateReleaseEvidence(evidence, candidate, checkId, label)) return;
+  if (evidence.schemaVersion !== 1 || evidence.kind !== 'release-check' || evidence.status !== 'passed') {
+    fail(`${label} must be a passed release-check evidence document for ${checkId}.`);
+  }
+  isoTimestamp(evidence.capturedAt, `${label}.capturedAt`, { required: true });
+  assertEvidenceCandidate(evidence, candidate, label);
+  assertEvidenceBoundaries(evidence, label);
+  const releaseCheck = object(evidence.releaseCheck, `${label}.releaseCheck`);
+  if (releaseCheck.id !== checkId || releaseCheck.status !== 'passed') {
+    fail(`${label}.releaseCheck must identify ${checkId} as passed.`);
+  }
+  if (!Array.isArray(releaseCheck.verifications) || releaseCheck.verifications.length === 0) {
+    fail(`${label}.releaseCheck.verifications must contain at least one passed verification.`);
+  }
+  for (const [index, verification] of releaseCheck.verifications.entries()) {
+    const item = object(verification, `${label}.releaseCheck.verifications[${index}]`);
+    nonEmptyString(item.id, `${label}.releaseCheck.verifications[${index}].id`);
+    if (item.status !== 'passed') {
+      fail(`${label}.releaseCheck.verifications[${index}].status must be passed.`);
+    }
+    isoTimestamp(item.checkedAt, `${label}.releaseCheck.verifications[${index}].checkedAt`, { required: true });
+    nonEmptyString(item.summary, `${label}.releaseCheck.verifications[${index}].summary`);
+  }
+}
+
+function validateApprovalEvidence(root, ref, approvalType, approval, candidate, label) {
+  const evidence = readEvidenceJson(root, ref, label);
+  if (evidence.schemaVersion !== 1 || evidence.kind !== 'approval' || evidence.status !== 'passed') {
+    fail(`${label} must be a passed approval evidence document.`);
+  }
+  assertEvidenceCandidate(evidence, candidate, label);
+  assertEvidenceBoundaries(evidence, label);
+  const recorded = object(evidence.approval, `${label}.approval`);
+  if (recorded.type !== approvalType || recorded.decision !== 'approved' || recorded.approvedAt !== approval.approvedAt) {
+    fail(`${label}.approval must match the recorded ${approvalType} approval.`);
+  }
+  isoTimestamp(recorded.approvedAt, `${label}.approval.approvedAt`, { required: true });
+  nonEmptyString(recorded.statement, `${label}.approval.statement`);
 }
 
 function parsePubspecVersion(pubspecText) {
@@ -137,7 +310,7 @@ export function validateDeviceEvidence({
 }) {
   const manifest = object(deviceManifest, 'store/device-validation.json');
   const submission = object(submissionManifest, 'store/submission.json');
-  assertNoSecretFields(manifest);
+  assertNoSensitiveFields(manifest);
 
   if (manifest.schemaVersion !== 1) fail('Unsupported device evidence schemaVersion.');
   const state = manifest.state;
@@ -272,7 +445,8 @@ export function validateDeviceEvidence({
       if (cell.status !== 'passed' || requiredDeviceTests.some((test) => tests[test] !== 'passed')) {
         fail(`${id} and every required device check must be passed.`);
       }
-      evidenceRef(root, cell.evidenceRef, `${id}.evidenceRef`, { required: true });
+      const ref = evidenceRef(root, cell.evidenceRef, `${id}.evidenceRef`, { required: true });
+      validateDeviceCellEvidence(root, ref, cell, candidate, `${id}.evidence`);
     } else {
       if (!['pending', 'play-internal', 'testflight-internal'].includes(cell.storeInstall)) {
         fail(`${id}.storeInstall is invalid.`);
@@ -293,9 +467,12 @@ export function validateDeviceEvidence({
     const check = object(releaseChecks[key], `releaseChecks.${key}`);
     if (!allowedProgressStates.has(check.status)) fail(`releaseChecks.${key}.status is invalid.`);
     if (check.status === 'passed') releaseChecksPassed += 1;
-    evidenceRef(root, check.evidenceRef, `releaseChecks.${key}.evidenceRef`, {
+    const ref = evidenceRef(root, check.evidenceRef, `releaseChecks.${key}.evidenceRef`, {
       required: strict || check.status === 'passed',
     });
+    if (check.status === 'passed') {
+      validateReleaseCheckEvidence(root, ref, key, candidate, `releaseChecks.${key}.evidence`);
+    }
     if (strict && check.status !== 'passed') fail(`releaseChecks.${key} must be passed.`);
   }
 
@@ -306,7 +483,10 @@ export function validateDeviceEvidence({
     const approved = strict || approval.status === 'passed';
     if (approved && approval.status !== 'passed') fail(`approvals.${key} must be passed.`);
     isoTimestamp(approval.approvedAt, `approvals.${key}.approvedAt`, { required: approved });
-    evidenceRef(root, approval.evidenceRef, `approvals.${key}.evidenceRef`, { required: approved });
+    const ref = evidenceRef(root, approval.evidenceRef, `approvals.${key}.evidenceRef`, { required: approved });
+    if (approved) {
+      validateApprovalEvidence(root, ref, key, approval, candidate, `approvals.${key}.evidence`);
+    }
   }
 
   const policy = object(manifest.evidencePolicy, 'evidencePolicy');

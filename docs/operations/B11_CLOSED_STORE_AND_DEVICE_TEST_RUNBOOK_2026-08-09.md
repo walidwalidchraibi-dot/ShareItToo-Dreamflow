@@ -34,9 +34,15 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Staging-API-Image-Digest | `sha256:d7f9c0216bfc4801abdd8126d943af0101d894ccb9f24370d4aa5af9327b8d12` |
 
 Dieser Push-fähige Kandidat ist gebaut, privat archiviert und technisch
-nachgewiesen, aber noch weder direkt auf einem physischen Telefon installiert
-noch in Google Play hochgeladen. Eine neue Buildnummer oder Funktionsänderung
-würde einen vollständig neuen Kandidatennachweis verlangen.
+nachgewiesen. Am 9. August 2026 wurde er nach bestandener fail-closed
+Vorprüfung direkt auf einem physischen OnePlus-Gerät mit Android 16
+installiert; Version und Buildnummer wurden zurückgelesen, der Erststart und
+die ShareItToo-Vordergrundaktivität bestätigt. Dieser Diagnoseweg ist keine
+Google-Play-Installation und schließt keine Funktions-, Push-, Netzwerk- oder
+Accessibility-Zelle. Der bereinigte Nachweis liegt unter
+`docs/evidence/b11/android-direct-smoke-2026080903-20260809T202357Z.json`.
+Eine neue Buildnummer oder Funktionsänderung würde einen vollständig neuen
+Kandidatennachweis verlangen.
 
 ## Eintrittsbedingungen
 
@@ -234,7 +240,12 @@ werden nicht in Git, Telegram oder den Masterplan kopiert.
 Runbook. Vor Beginn wird dort derselbe Commit, Build, API-Ziel, Firebase- und
 Zahlungsmodus eingetragen. Jede der vier Rollen-/Netz-Zellen erhält nach der
 Ausführung Gerätemodell, Betriebssystem, Store-Installationsweg, alle
-Einzelresultate und einen bereinigten Nachweis unter `docs/evidence/b11/`.
+Einzelresultate und einen bereinigten JSON-Nachweis unter
+`docs/evidence/b11/`. Eine bloß vorhandene oder nicht leere Datei zählt nicht:
+Der Validator prüft Zell-ID, Kandidatenidentität, alle elf Einzelprüfungen,
+Zeitpunkte und Datenschutzgrenzen inhaltlich. Releaseprüfungen und Freigaben
+benötigen entsprechend gebundene JSON-Nachweise; fremde Prüfungs-IDs,
+abweichende Commits und Roh-Gerätekennungen führen zum Stopp.
 
 Der offene Stand muss jederzeit bestehen:
 
