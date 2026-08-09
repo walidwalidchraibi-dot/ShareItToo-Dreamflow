@@ -23,8 +23,10 @@ Der Standardlauf prüft den ehrlichen Entwurfszustand. Eine spätere
 Store-Automation muss zusätzlich mit `--require-submittable` prüfen und darf
 bei einem offenen Gate keinen Upload starten.
 
-Der Gerätevalidator bleibt derzeit bewusst bei `state=planned`,
-`goNoGo=no-go`, `matrix=0/4` und `releaseChecks=0/7`. Nach den realen
+Der Gerätevalidator bleibt derzeit bewusst bei `state=testing`,
+`goNoGo=hold`, `matrix=0/4` und `releaseChecks=3/7`. Kandidatenidentität und
+Signaturen, Staging-Bereinigung/-Gesundheit sowie die Produktionsinvariante
+sind bereits nachgewiesen. Nach den realen
 Internal-/TestFlight-Läufen darf der Zustand nur mit echten, bereinigten
 Dateiverweisen unter `docs/evidence/b11/` auf `passed` wechseln. Der strenge
 Nachweis lautet:
@@ -32,6 +34,16 @@ Nachweis lautet:
 ```text
 node tool/validate_device_evidence.mjs --require-passed
 ```
+
+Vor dem ersten direkten Android-Gerätelauf prüft folgender Befehl das private
+Kandidatenarchiv und verlangt genau ein autorisiertes physisches Telefon:
+
+```text
+node tool/prepare_android_device_test.mjs
+```
+
+Erst die separate Option `--install` installiert und startet das geprüfte APK.
+Dieser Diagnoseweg zählt ausdrücklich nicht als Play-Internal-Installation.
 
 Er verlangt Build `2026080903` oder höher, denselben vollständigen Commit,
 Android- und iOS-Artefakthashes, Play-Internal-/TestFlight-Installation,

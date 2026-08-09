@@ -33,6 +33,9 @@ node --check tool/validate_device_evidence.mjs
 node --test test/tool/validate_device_evidence.test.mjs
 node tool/validate_device_evidence.mjs
 
+node --check tool/prepare_android_device_test.mjs
+node --test test/tool/prepare_android_device_test.test.mjs
+
 node --check tool/validate_firebase_release_config.mjs
 node --test test/tool/validate_firebase_release_config.test.mjs
 node tool/validate_firebase_release_config.mjs

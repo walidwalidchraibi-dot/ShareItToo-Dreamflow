@@ -19,3 +19,9 @@ Nicht zulässig sind Passwörter, Review-Zugangsdaten, Tokens, API-Schlüssel,
 Service-Accounts, private Schlüssel, vollständige Logdateien mit Nutzerdaten
 oder unbereinigte Bildschirmaufnahmen. Zugangsdaten bleiben ausschließlich in
 den geschützten Feldern der Stores.
+
+Der vorbereitete Android-Geräteprüfer
+`tool/prepare_android_device_test.mjs` gibt nur ein bereinigtes Diagnoseobjekt
+ohne ADB-Seriennummer aus. Eine direkte APK-Installation darf als technischer
+Smoke-Test dokumentiert werden, jedoch niemals als Play-Internal-Installation
+oder bestandene Gerätematrix.

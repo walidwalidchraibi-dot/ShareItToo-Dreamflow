@@ -13,12 +13,15 @@ Push-/Accessibility-Test versehentlich als B11-Freigabe gilt.
 
 Der aktuelle Zustand bleibt bewusst:
 
-- `state=planned`;
-- `goNoGo=no-go`;
+- `state=testing`;
+- `goNoGo=hold`;
 - vier von vier Gerätezellen offen;
-- sieben von sieben plattformweiten Releaseprüfungen offen;
-- Buildnummer und finale Artefakthashes noch nicht gesetzt;
-- Firebase deaktiviert, Store-Installation ausstehend und Echtgeld gesperrt.
+- drei von sieben plattformweiten Releaseprüfungen bestanden;
+- Build `2026080903`, vollständiger Commit, AAB-/APK-Hashes und kanonische
+  Android-Signatur gesetzt und nachgewiesen;
+- Firebase im Android-Artefakt sowie Staging-FCM aktiviert und geprüft, reale
+  Zustellung und alle Store-Installationen weiterhin ausstehend;
+- Echtgeld gesperrt.
 
 ## Fest an denselben Kandidaten gebundene Angaben
 
@@ -103,6 +106,13 @@ node tool/validate_device_evidence.mjs --require-passed
 Sie bleibt derzeit erwartungsgemäß rot. `SIT_REQUIRE_STORE_SUBMISSION=1`
 erzwingt sie vor jedem späteren Store-Upload zusätzlich zum strengen
 Metadaten- und Pflichtseitencheck.
+
+Der vorgelagerte Android-Geräteprüfer
+`tool/prepare_android_device_test.mjs` verifiziert das private Kandidatenarchiv
+gegen dieses Manifest und akzeptiert genau ein autorisiertes physisches
+Telefon. Eine direkte Diagnoseinstallation mit `--install` bleibt ausdrücklich
+von Play Internal und der manuellen Geräte-/Push-/Accessibility-Matrix
+getrennt. ADB-Seriennummern werden nie ausgegeben oder gespeichert.
 
 Ein B11-Pass darf die drei zugehörigen Gates in `store/submission.json` nur
 gemeinsam schließen:

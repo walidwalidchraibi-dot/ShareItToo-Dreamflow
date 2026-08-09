@@ -39,7 +39,7 @@ Das kanonische, CI-validierte Proxy-Setup liegt in `backend/ops/Caddyfile`.
 - Android Application ID und Namespace: `com.shareittoo.app`.
 - iOS Bundle ID: `com.shareittoo.app`.
 - Versionsname: `1.0.0`.
-- Interne Android-Buildnummer: `2026080902`.
+- Interne Android-Buildnummer: `2026080903`.
 - Android Verified Links und iOS Associated Domains sind für
   `shareittoo.com`, `www.shareittoo.com` und `staging.shareittoo.com`
   vorbereitet.
@@ -72,17 +72,17 @@ Dateirechte `0600`. Öffentlicher SHA-256-Zertifikatsfingerabdruck:
 `09:8F:48:5E:57:16:15:58:E9:11:FC:3C:74:28:45:92:55:84:DB:31:C4:74:CD:BA:08:DD:A0:2F:EB:01:29:A4`.
 
 Der signierte aktuelle Android-Kandidat wurde aus dem sauberen Commit
-`a37e681ce18c62981992e168965e68b80fc86ff2` gebaut:
+`5594cd32dea38b67c330f75cd71b50325f72c407` gebaut:
 
 | Merkmal | Wert |
 |---|---|
 | Paket | `com.shareittoo.app` |
-| Version | `1.0.0 (2026080902)` |
+| Version | `1.0.0 (2026080903)` |
 | Kanal | `internal` |
 | API | `https://staging.shareittoo.com/api/v1` |
-| Firebase im Artefakt | noch deaktiviert |
-| AAB SHA-256 | `9c0c95cb6d2839f0bced1de6d459dd17a52fbf56c325de312d93a102ff747a30` |
-| APK SHA-256 | `23148626b3631a0979bd1d05381488e6a1845ee72ad737a8c847f427f42bc3e0` |
+| Firebase im Artefakt | vollständig an `shareittoo-staging` gebunden |
+| AAB SHA-256 | `b62de0ebc0b5b3ba828881f3ed8753a2fe58ac3d82347a14baecc69df593538f` |
+| APK SHA-256 | `13a84826527931652bb16e2bf1eb809757d6a16529b819f7fff53157937d4914` |
 
 Der Buildprozess lehnt eine schmutzige Arbeitskopie, falsche App-ID,
 ungültige Buildnummer, fehlende Signierung, falsches Paket sowie ungültige
@@ -132,6 +132,12 @@ commitgebundenen Release-Nachweis geschrieben.
   sondern commitgebundene Links der aktuellen ShareItToo-API-Umgebung.
   Backend und App unterstützen `listing` und `profile`; nicht öffentliche
   Inserate werden beim Öffnen erneut abgewiesen.
+- Der kanonische FCM-Service-Account
+  `sit-fcm-staging@shareittoo-staging.iam.gserviceaccount.com` ist ausschließlich
+  auf Staging aktiv. Die root-eigene Datei ist nur für die dedizierte
+  Laufzeitgruppe lesbar und read-only in den nicht privilegierten Container
+  eingebunden. Die echte Google-Authentisierung wurde ohne Pushversand
+  bestätigt.
 
 ### Android-Binärdatenschutz
 
@@ -198,11 +204,19 @@ Unveränderlicher Registry-Digest:
 ### Ausgerolltes isoliertes Staging
 
 Staging läuft exakt mit Commit
-`a37e681ce18c62981992e168965e68b80fc86ff2` und meldet öffentlich sowie lokal
+`2dac78321b278a06c1ba8a27e9789f5860ad001c` und meldet öffentlich sowie lokal
 Version, Datenbank, Mail, Benachrichtigungsqueue und Zahlungs-Memory-Transport
-gesund. FCM bleibt bis zur geschützten Firebase-Konfiguration im
-Memory-Modus; der vorbereitete read-only Service-Account-Mount zeigt derzeit
-bewusst auf `/dev/null`.
+gesund. FCM ist ausschließlich auf Staging mit dem kanonischen
+`shareittoo-staging`-Absender aktiv; der Service-Account wird eng begrenzt und
+read-only eingebunden. Die echte Google-Authentisierung ist bestanden, eine
+reale Push-Nachricht wurde vor dem Gerätetest bewusst noch nicht versendet.
+
+Der kontrollierte Rollout-Nachweis liegt unter
+`/docker/shareittoo/releases/staging-20260809T184811Z-2dac78321b27.json` und
+enthält `stagingFcm=true`. Ein erster Aktivierungsversuch stoppte wegen zu eng
+gesetzter Leserechte fail-closed und wurde ohne Secret-Offenlegung vollständig
+zurückgerollt, bevor die dedizierte Laufzeitgruppe implementiert und geprüft
+wurde.
 
 Vor dem Wechsel wurden Datenbank und Uploads unter
 `/docker/sit-staging/backups/pre-b11-20260809T110327Z` gesichert und geprüft.
@@ -218,16 +232,15 @@ blieben zurück. Nachweis:
 `/docker/sit-staging/backups/b11-live-acceptance-20260809T110631Z.json`.
 
 Produktion wurde weder migriert noch neu gestartet. API- und
-Datenbankcontainer behielten exakt ihre vorherigen Container- und Image-IDs;
-beide blieben gesund. Das Produktions-API-Image blieb unverändert bei
-`sha256:db30af4c03512ca774d6ca275620bdef2becb0b6269d67d1514d27170c1af0d7`.
+Datenbankcontainer behielten bei allen B11-Staging-Vorgängen ihre vorherigen
+Container- und Image-IDs; beide blieben gesund.
 
 ## Externe Gates und ehrlicher Status
 
 | Gate | Status | Nächster eindeutiger Schritt |
 |---|---|---|
-| Firebase-Projekt | angelegt | öffentliche Android-/iOS-Konfigurationsdateien lokal einbinden und den strengen Releaseprüfer bestehen lassen |
-| FCM-Service-Account | offen | nach Projekterstellung erzeugen, außerhalb Git sichern und read-only auf Staging mounten |
+| Firebase-Projekt | Android technisch fertig | realen Android-Push auf eigenem Pilotgerät prüfen; iOS/APNs folgt separat |
+| FCM-Service-Account | Staging bestanden | echte Zustellung, Tokenwechsel und Abmeldung auf dem Pilotgerät prüfen |
 | APNs | offen | Apple-ID und Developer-Mitgliedschaft einrichten; danach Team, Push-Key und Provisioning verbinden |
 | Google Play Internal Testing | gesperrt | Entwicklerkontoart wählen und Registrierungsgebühr durch Walid abschließen |
 | App Store Connect/TestFlight | gesperrt | Apple-Anmeldung und 2FA durch Walid; vollständiges Xcode und Team-Signierung einrichten |
@@ -250,7 +263,7 @@ Fehlerklassen, Stop-Regeln, Rückfall und B11-Go/No-Go.
 
 Die Matrix ist zusätzlich unter `store/device-validation.json`
 maschinenlesbar und fail-closed gebunden. Der aktuelle ehrliche Zustand ist
-`planned`, `no-go`, vier offene Gerätezellen und sieben offene
+`testing`, `hold`, vier offene Gerätezellen und drei von sieben bestandene
 Releaseprüfungen. `tool/validate_device_evidence.mjs` prüft App-Identität,
 Mindestbuild `2026080903`, vollständigen Commit, Android-/iOS-Artefakthashes,
 Play-Internal-/TestFlight-Installation, physische Rollen-/Netzmatrix,

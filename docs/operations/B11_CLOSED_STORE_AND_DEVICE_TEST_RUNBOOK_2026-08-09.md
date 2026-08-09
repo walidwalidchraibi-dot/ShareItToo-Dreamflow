@@ -1,7 +1,8 @@
 # B11 – Runbook für geschlossenen Store-Test und reale Geräte
 
-Status: vorbereitet; Firebase-Projekt und App-Identitäten vorhanden, Ausführung
-beginnt nach Plattformdatei-, APNs-, Store- und Gerätefreigabe
+Status: Android-Kandidat und Staging-FCM vorbereitet; direkter Android-
+Gerätelauf wartet auf ein physisches Telefon, Store- und Apple-Gates bleiben
+offen
 
 ## Zweck und Schutzgrenze
 
@@ -23,19 +24,19 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 |---|---|
 | Android/iOS Kennung | `com.shareittoo.app` |
 | Version | `1.0.0` |
-| Buildnummer | `2026080902` |
-| Commit | `a37e681ce18c62981992e168965e68b80fc86ff2` |
+| Buildnummer | `2026080903` |
+| Commit | `5594cd32dea38b67c330f75cd71b50325f72c407` |
 | Kanal | `internal` |
 | API | `https://staging.shareittoo.com/api/v1` |
-| Firebase | deaktiviert; kein Store-Upload dieses Zwischenkandidaten |
-| AAB SHA-256 | `9c0c95cb6d2839f0bced1de6d459dd17a52fbf56c325de312d93a102ff747a30` |
-| APK SHA-256 | `23148626b3631a0979bd1d05381488e6a1845ee72ad737a8c847f427f42bc3e0` |
-| API-Image-Digest | `sha256:2a42190b3cd1db6245cba4f5cce1850928e82675cb6fed73d959d257fc5d7855` |
+| Firebase | vollständig an `shareittoo-staging` gebunden |
+| AAB SHA-256 | `b62de0ebc0b5b3ba828881f3ed8753a2fe58ac3d82347a14baecc69df593538f` |
+| APK SHA-256 | `13a84826527931652bb16e2bf1eb809757d6a16529b819f7fff53157937d4914` |
+| Staging-API-Image-Digest | `sha256:d7f9c0216bfc4801abdd8126d943af0101d894ccb9f24370d4aa5af9327b8d12` |
 
-Der erste Push-fähige Store-Kandidat erhält zwingend die höhere Buildnummer
-`2026080903`. Seine Hashes, sein Commit und sein Firebase-Status ersetzen die
-Zwischenwerte in einem neuen Nachweis; ältere Artefakte werden nicht
-überschrieben.
+Dieser Push-fähige Kandidat ist gebaut, privat archiviert und technisch
+nachgewiesen, aber noch weder direkt auf einem physischen Telefon installiert
+noch in Google Play hochgeladen. Eine neue Buildnummer oder Funktionsänderung
+würde einen vollständig neuen Kandidatennachweis verlangen.
 
 ## Eintrittsbedingungen
 
@@ -78,6 +79,35 @@ ersetzen.
 | iOS real | offen | offen | `2026080903` oder höher | Mobilfunk/Hotspot | Mieter | offen |
 
 ## Artefakt- und Installationsprüfung
+
+Vor jedem direkten Android-Gerätelauf wird der unveränderte Kandidat samt
+privatem Archiv und das angeschlossene Gerät fail-closed geprüft:
+
+```text
+node tool/prepare_android_device_test.mjs
+```
+
+Der Prüfer vergleicht Buildnummer, Commit, Paketkennung, Staging-API,
+Firebase-Zustand, AAB-/APK-Hashes, Uploadzertifikat, Datenschutzbericht und
+private Dateirechte mit `store/device-validation.json`. Er akzeptiert genau ein
+autorisiertes physisches Android-Gerät. Emulatoren, nicht bestätigte/offline
+Geräte, mehrere gleichzeitig angeschlossene Telefone oder abweichende
+Artefakte führen zum Stopp. Die Geräte-Seriennummer wird intern nur als
+separates Prozessargument an ADB übergeben und weder ausgegeben noch in einen
+Nachweis übernommen.
+
+Nach grünem Prüflauf erfolgt die ausdrücklich getrennte Diagnoseinstallation:
+
+```text
+node tool/prepare_android_device_test.mjs --install
+```
+
+Sie installiert exakt das geprüfte APK, liest die installierte Version zurück
+und startet die App einmal. Das ausgegebene bereinigte JSON kennzeichnet diesen
+Schritt bewusst als `direct-apk-diagnostic`: Er erfüllt weder das
+Play-Internal-Installationsgate noch die manuelle Rollen-, Netzwerk-, Push-
+oder Accessibility-Matrix. Erst der spätere unveränderte Store-Download zählt
+als Store-Installation.
 
 1. Commit, Buildnummer, Paketkennung, API-Ziel und Hash gegen den
    Release-Eintrag prüfen.
