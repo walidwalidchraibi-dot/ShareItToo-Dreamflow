@@ -175,8 +175,13 @@ ALTER TABLE listings VALIDATE CONSTRAINT listings_active_catalog_ready_check;
 CREATE INDEX IF NOT EXISTS listings_public_search_idx
   ON listings USING gin (
     to_tsvector(
-      'simple',
-      concat_ws(' ', title, description, category_id, subcategory, city, country)
+      'simple'::regconfig,
+      coalesce(title, '') || ' ' ||
+      coalesce(description, '') || ' ' ||
+      coalesce(category_id, '') || ' ' ||
+      coalesce(subcategory, '') || ' ' ||
+      coalesce(city, '') || ' ' ||
+      coalesce(country, '')
     )
   )
   WHERE catalog_version = 1 AND is_active = true;

@@ -279,7 +279,15 @@ function buildCatalogSearch(search) {
   if (search.q) {
     const query = bind(search.q);
     clauses.push(`(
-      to_tsvector('simple', concat_ws(' ', listing.title, listing.description, listing.category_id, listing.subcategory, listing.city, listing.country))
+      to_tsvector(
+        'simple'::regconfig,
+        coalesce(listing.title, '') || ' ' ||
+        coalesce(listing.description, '') || ' ' ||
+        coalesce(listing.category_id, '') || ' ' ||
+        coalesce(listing.subcategory, '') || ' ' ||
+        coalesce(listing.city, '') || ' ' ||
+        coalesce(listing.country, '')
+      )
         @@ websearch_to_tsquery('simple', ${query})
       OR listing.title ILIKE '%' || ${query} || '%'
       OR listing.description ILIKE '%' || ${query} || '%'
