@@ -34,11 +34,16 @@ ohne ADB-Seriennummer aus. Eine direkte APK-Installation darf als technischer
 Smoke-Test dokumentiert werden, jedoch niemals als Play-Internal-Installation
 oder bestandene Gerätematrix.
 
-Der erste reale Direkt-Smoke-Test des unveränderten Builds `2026080903` ist in
-`android-direct-smoke-2026080903-20260809T202357Z.json` dokumentiert. Er belegt
-ausschließlich Kandidatenprüfung, Installation, zurückgelesene Version und
-Buildnummer sowie den Erststart auf einem physischen Android-Gerät. Alle
-Funktions-, Push-, Netzwerk-, Accessibility- und Play-Internal-Gates bleiben
-ausdrücklich offen. `store/device-validation.json` referenziert diesen Beleg
+Der erste reale Direkt-Smoke-Test des unveränderten Builds `2026080903` bleibt
+in `android-direct-smoke-2026080903-20260809T202357Z.json` als historische
+Evidenz erhalten. Nach der Korrektur der Registrierungsweiterleitung wurde der
+neue Kandidat `2026080904` auf einem physischen Pixel 7 Pro installiert und
+erstmals gestartet; der aktuelle Beleg liegt in
+`android-direct-smoke-2026080904-20260809T213814Z.json`.
+
+Beide Nachweise belegen ausschließlich Kandidatenprüfung, Installation,
+zurückgelesene Version und Buildnummer sowie den Erststart. Alle Funktions-,
+Push-, Netzwerk-, Accessibility- und Play-Internal-Gates bleiben ausdrücklich
+offen. `store/device-validation.json` referenziert nur den aktuellen Beleg
 unter `candidate.android.directDiagnostic`; der Validator prüft ihn
 inhaltlich gegen denselben Kandidaten und dieselben offenen Grenzen.
