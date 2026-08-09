@@ -74,8 +74,11 @@ auf GitHub aktiviert wurden.
 6. Registrierung, Anmeldung, Verifizierung im Memory-Mailmodus, Upload,
    Inserat, Buchungsanfrage und Nachrichten-Smoke-Test ausführen.
 7. Containerzustand, Logs, CPU/RAM, Datenbank und Speicher prüfen.
-8. Den vorherigen Commit erneut mit demselben Skript ausrollen und Version,
-   Health und Kern-Smoke-Test wiederholen.
+8. Den vorherigen Commit über den **aktuellen, als sicher freigegebenen
+   Deploy-Harness** ausrollen und Version, Health und Kern-Smoke-Test
+   wiederholen. Das Zielimage darf historisch sein; das Deployskript aus einem
+   historischen Release darf niemals ausgeführt werden, weil es vor späteren
+   Umgebungsschutzmaßnahmen entstanden sein kann.
 9. Den freigegebenen Commit erneut ausrollen. Beide Wechsel werden mit den
    JSON-Releasebelegen dokumentiert.
 
@@ -153,6 +156,9 @@ Hostinger zu hinterlegen oder das Paket öffentlich zu machen.
 
 - Es wird ausschließlich auf ein bereits gebautes, commit-markiertes Image
   zurückgerollt.
+- Rollback verwendet immer den aktuellen freigegebenen Deploy-Harness und nie
+  das Skript aus dem Zielrelease. Historische unsichere Skripte bleiben als
+  Nachweis lesbar, sind auf dem VPS aber nicht ausführbar.
 - Datenbankmigrationen benötigen vorab eine eigene Vorwärts- und
   Rückwärtsstrategie. Ohne sichere Rückwärtsmigration wird die Anwendung
   kompatibel vorwärts repariert und das Backup nur nach Incident-Entscheidung
