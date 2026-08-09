@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Dreamflow</string>
+	<string>ShareItToo</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>dreamflow</string>
+	<string>ShareItToo</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -51,7 +51,7 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.mycompany.CounterApp.shareittoo</string>
+			<string>com.shareittoo.app.links</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>shareittoo</string>

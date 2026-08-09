@@ -2586,7 +2586,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         uri,
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'ShareItToo-Dreamflow/1.0 (address-share-preview)',
+          'User-Agent': 'ShareItToo/1.0 (address-share-preview)',
           'Referer': 'http://127.0.0.1:8123/',
         },
       );

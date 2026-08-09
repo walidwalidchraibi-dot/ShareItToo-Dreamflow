@@ -16,11 +16,13 @@ import 'package:lendify/screens/onboarding_flow_screen.dart';
 import 'package:lendify/services/background_theme_service.dart';
 import 'package:lendify/services/qa_bootstrap_service.dart';
 import 'package:lendify/services/app_link_service.dart';
+import 'package:lendify/services/release_identity.dart';
 import 'package:lendify/screens/app_link_destination_screen.dart';
 
 Future<void> main() async {
   // Initialize bindings once in the same zone as runApp to avoid zone mismatch warnings.
   WidgetsFlutterBinding.ensureInitialized();
+  ReleaseIdentity.validateCurrentBuild();
 
   // Surface synchronous Flutter framework errors to the console
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -125,8 +127,8 @@ class MyApp extends StatelessWidget {
 class AppRoot extends StatelessWidget {
   const AppRoot({super.key});
 
-  // Preview-only: auto sign-in with local demo user to unlock gated areas in Dreamflow Preview.
-  static const bool _enableDreamflowPreviewDemoAuth = true;
+  // Preview-only: auto sign-in with a local demo user in developer builds.
+  static const bool _enableDeveloperPreviewDemoAuth = true;
 
   Future<AuthSession?> _loadSessionWithPreviewFallback() async {
     try {
@@ -137,7 +139,7 @@ class AppRoot extends StatelessWidget {
         }
         return existing;
       }
-      if (_enableDreamflowPreviewDemoAuth && !kReleaseMode) {
+      if (_enableDeveloperPreviewDemoAuth && !kReleaseMode) {
         await AuthService.ensureSeeded();
         final result = await AuthService.signInWithEmailPassword(
           email: AuthService.demoEmail,

@@ -26,7 +26,7 @@ import 'package:lendify/utils/cancellation_policy_text.dart';
 import 'package:lendify/widgets/selection_controls.dart';
 import 'package:lendify/theme.dart';
 
-// Google Maps Places API key (configure in Dreamflow as environment variable)
+// Google Maps Places API key (configure as a build-time environment variable).
 const String kGoogleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
 
 class CreateListingScreen extends StatefulWidget {

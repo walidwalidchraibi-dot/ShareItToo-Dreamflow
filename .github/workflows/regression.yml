@@ -107,6 +107,29 @@ jobs:
       - name: Run regression script
         run: bash scripts/technical_regression_check.sh
 
+      - name: Build a signed, commit-bound Android release candidate
+        env:
+          SIT_API_BASE_URL: https://staging.shareittoo.com/api/v1
+          SIT_RELEASE_CHANNEL: internal
+        run: |
+          keytool -genkeypair -v \
+            -keystore "$RUNNER_TEMP/shareittoo-ci-upload.jks" \
+            -storepass ci-only-store-password \
+            -keypass ci-only-key-password \
+            -alias shareittoo-ci \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 2 \
+            -dname "CN=ShareItToo CI, OU=CI, O=ShareItToo, L=Berlin, C=DE"
+          printf '%s\n' \
+            "storeFile=$RUNNER_TEMP/shareittoo-ci-upload.jks" \
+            "storePassword=ci-only-store-password" \
+            "keyAlias=shareittoo-ci" \
+            "keyPassword=ci-only-key-password" \
+            > android/key.properties
+          bash scripts/build_android_release_candidate.sh
+          rm android/key.properties
+
   publish-api-image:
     if: github.event_name == 'push'
     needs:

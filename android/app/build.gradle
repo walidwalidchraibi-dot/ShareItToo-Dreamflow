@@ -12,8 +12,27 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+def releaseRequested = gradle.startParameter.taskNames.any {
+    it.toLowerCase().contains('release')
+}
+def requiredSigningProperties = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword']
+if (releaseRequested) {
+    if (!keystorePropertiesFile.exists()) {
+        throw new GradleException('Release signing is not configured: android/key.properties is missing.')
+    }
+    def missingSigningProperties = requiredSigningProperties.findAll {
+        !keystoreProperties[it]?.trim()
+    }
+    if (!missingSigningProperties.isEmpty()) {
+        throw new GradleException("Release signing is incomplete: missing ${missingSigningProperties.join(', ')} in android/key.properties.")
+    }
+    if (!file(keystoreProperties['storeFile']).exists()) {
+        throw new GradleException('Release signing is invalid: the configured upload keystore does not exist.')
+    }
+}
+
 android {
-    namespace = "com.mycompany.CounterApp"
+    namespace = "com.shareittoo.app"
     compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
@@ -27,17 +46,16 @@ android {
     }
 
     signingConfigs {
-       release {
-           keyAlias keystoreProperties['keyAlias']
-           keyPassword keystoreProperties['keyPassword']
-           storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-           storePassword keystoreProperties['storePassword']
-       }
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+        }
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.mycompany.CounterApp"
+        applicationId = "com.shareittoo.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -48,9 +66,7 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.release
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

@@ -7623,7 +7623,7 @@ class DataService {
 
   /// Ensures at least one openable thread exists for the given user.
   ///
-  /// Rationale: In Dreamflow preview/dev builds, demo seeding can be disabled.
+  /// Rationale: In preview/developer builds, demo seeding can be disabled.
   /// That can leave the Messages tab empty, making it impossible to QA the chat
   /// detail UI. This method seeds a minimal *support* thread **only when the
   /// store is empty**. It does not touch booking/payment/QR/review logic.
