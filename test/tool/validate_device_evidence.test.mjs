@@ -106,23 +106,23 @@ function passedFixture() {
   return { root, deviceManifest, submissionManifest, pubspecText };
 }
 
-test('accepts the honest planned B11 evidence state', () => {
+test('accepts the honest in-progress B11 evidence state', () => {
   const summary = validate();
   assert.deepEqual(summary, {
-    state: 'planned',
-    goNoGo: 'no-go',
+    state: 'testing',
+    goNoGo: 'hold',
     matrixPassed: 0,
     matrixTotal: 4,
-    releaseChecksPassed: 0,
+    releaseChecksPassed: 3,
     releaseChecksTotal: 7,
     minimumBuild: '2026080903',
   });
 });
 
-test('strict mode rejects the planned evidence state', () => {
+test('strict mode rejects the in-progress evidence state', () => {
   assert.throws(
     () => validate({ requirePassed: true }),
-    /remains planned: matrix=0\/4, releaseChecks=0\/7/,
+    /remains testing: matrix=0\/4, releaseChecks=3\/7/,
   );
 });
 
