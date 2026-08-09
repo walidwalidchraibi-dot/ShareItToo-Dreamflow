@@ -112,3 +112,21 @@ test('rejects credentials from another Firebase project without leaking details'
     return true;
   });
 });
+
+test('rejects the broad auto-created Firebase Admin SDK account', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  await writeFile(data.secret, account({
+    client_email: `firebase-adminsdk-fbsvc@${projectId}.iam.gserviceaccount.com`,
+  }), { mode: 0o600 });
+
+  assert.throws(() => validateFcmStagingSecret({
+    filePath: data.secret,
+    expectedProjectId: projectId,
+    repositoryRoot: data.repository,
+  }), (error) => {
+    assert.equal(error.code, 'fcm_staging_secret_credentials_invalid');
+    assert.equal(error.message, 'FCM staging secret gate failed.');
+    return true;
+  });
+});

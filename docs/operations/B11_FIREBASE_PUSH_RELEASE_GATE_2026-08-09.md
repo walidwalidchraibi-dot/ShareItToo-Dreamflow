@@ -102,6 +102,14 @@ prüft Größe, Eigentümer, Service-Account-Struktur und exakte Projektbindung,
 gibt aber weder Pfad noch E-Mail noch Schlüsselmaterial aus. Erst nach `PASS`
 darf der Staging-Override verwendet werden.
 
+Der Account ist bewusst auf
+`sit-fcm-staging@shareittoo-staging.iam.gserviceaccount.com` festgelegt. Ihm
+wird ausschließlich die von Google für HTTP-v1-Senden dokumentierte Rolle
+`roles/firebasecloudmessaging.admin` zugewiesen. Der automatisch erzeugte,
+breiter verwendbare `firebase-adminsdk`-Account wird vom Gate abgelehnt. Die
+Rollenquelle ist die offizielle
+[Google-IAM-Referenz](https://cloud.google.com/iam/docs/roles-permissions/firebasecloudmessaging).
+
 `backend/ops/deploy_release.sh` bindet den Override nur bei der ausdrücklichen
 Staging-Freigabe `ENABLE_STAGING_FCM=1` ein und führt den Prüfer vor Compose
 automatisch aus. Derselbe Schalter ist für Produktionsdeployments verboten.

@@ -30,9 +30,11 @@ Each successful deployment writes a mode-`0600` JSON record under
 commit recorded in that release evidence; no floating `latest` image is used.
 
 FCM is opt-in for staging and cannot be activated for production through this
-path. Before the first FCM-enabled staging rollout, place the dedicated
-service-account JSON outside the repository with owner-only permissions. Then
-run the same immutable deploy command with the explicit staging-only gate:
+path. Before the first FCM-enabled staging rollout, create only the dedicated
+service account `sit-fcm-staging` with the Google role
+`roles/firebasecloudmessaging.admin`. Place its JSON outside the repository
+with owner-only permissions. Then run the same immutable deploy command with
+the explicit staging-only gate:
 
 ```sh
 ENABLE_STAGING_FCM=1 \

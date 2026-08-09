@@ -11,6 +11,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { validateFirebaseServiceAccount } from '../src/firebase_service_account.js';
 
 const canonicalProjectId = 'shareittoo-staging';
+const canonicalClientEmail = `sit-fcm-staging@${canonicalProjectId}.iam.gserviceaccount.com`;
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 const defaultRepositoryRoot = resolve(moduleDirectory, '..', '..');
 
@@ -56,7 +57,10 @@ export function validateFcmStagingSecret({
   let raw;
   try {
     raw = readFileSync(resolvedFile, 'utf8');
-    validateFirebaseServiceAccount(raw, expectedProjectId);
+    const account = validateFirebaseServiceAccount(raw, expectedProjectId);
+    if (account.client_email !== canonicalClientEmail) {
+      fail('fcm_staging_service_account_identity_invalid');
+    }
   } catch {
     fail('fcm_staging_secret_credentials_invalid');
   }
