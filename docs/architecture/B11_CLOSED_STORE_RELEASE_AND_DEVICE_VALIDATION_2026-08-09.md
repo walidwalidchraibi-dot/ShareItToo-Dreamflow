@@ -1,7 +1,7 @@
 # B11 – Geschlossener Store-Release und reale Geräteabnahme
 
 Stand: 9. August 2026
-Technischer Status: in Arbeit; Android-Kandidat gebaut, Store- und Geräte-Gates noch offen
+Technischer Status: in Arbeit; CI, Android-Kandidat und isoliertes Staging bestanden, Store- und Geräte-Gates noch offen
 Produktionsstatus: unverändert; kein B11-Code und kein Echtgeld ausgerollt
 
 ## Ziel und Freigabegrenze
@@ -61,8 +61,8 @@ Dateirechte `0600`. Öffentlicher SHA-256-Zertifikatsfingerabdruck:
 
 `09:8F:48:5E:57:16:15:58:E9:11:FC:3C:74:28:45:92:55:84:DB:31:C4:74:CD:BA:08:DD:A0:2F:EB:01:29:A4`.
 
-Der signierte Zwischenkandidat wurde aus dem sauberen Commit
-`c454b598635f146321bc9f47f1c3ae173ac71261` gebaut:
+Der signierte aktuelle Android-Kandidat wurde aus dem sauberen Commit
+`a37e681ce18c62981992e168965e68b80fc86ff2` gebaut:
 
 | Merkmal | Wert |
 |---|---|
@@ -71,8 +71,8 @@ Der signierte Zwischenkandidat wurde aus dem sauberen Commit
 | Kanal | `internal` |
 | API | `https://staging.shareittoo.com/api/v1` |
 | Firebase im Artefakt | noch deaktiviert |
-| AAB SHA-256 | `1e5de015e70530b37e101e86a11a93c1b3269b4f27c9b0928fe28185f3b7b3aa` |
-| APK SHA-256 | `b1bbc09940ff6d078caee1434d8f2a92f328821283c012f29bb65c148b085572` |
+| AAB SHA-256 | `9c0c95cb6d2839f0bced1de6d459dd17a52fbf56c325de312d93a102ff747a30` |
+| APK SHA-256 | `23148626b3631a0979bd1d05381488e6a1845ee72ad737a8c847f427f42bc3e0` |
 
 Der Buildprozess lehnt eine schmutzige Arbeitskopie, falsche App-ID,
 ungültige Buildnummer, fehlende Signierung, falsches Paket sowie ungültige
@@ -112,9 +112,49 @@ Firebase-Kennungen und die echte `android/app/google-services.json`.
   Schwachstelle; eine moderate indirekte `uuid`-Warnung aus dem optionalen
   Google-Cloud-Storage-Abhängigkeitszweig bleibt dokumentiert.
 
-Der vollständige PostgreSQL-16-, Compose-, Caddy-, Image- und
-Release-CI-Nachweis für den aktuellen Backendstand wird nach Abschluss des
-GitHub-Laufs ergänzt.
+### Vollständiger CI- und Image-Nachweis
+
+GitHub-Actions-Lauf `31309281497` ist für Commit
+`a37e681ce18c62981992e168965e68b80fc86ff2` vollständig grün:
+
+- Backend: 55 von 55 Tests einschließlich echter PostgreSQL-16-Integration.
+- Flutter: 167 von 167 Tests; Analyzer-Basis 696 ohne neue Regression.
+- Web-Debug und Android-Debug bestanden.
+- Separater signierter, commitgebundener Android-Release-AAB/-APK bestanden.
+- Produktionsabhängigkeiten: keine hohe oder kritische bekannte
+  Schwachstelle; Secret-Scan ohne hochwahrscheinlichen Treffer.
+- Produktions- und Staging-Compose sowie kanonisches Caddy-Setup validiert.
+- Verifiziertes API-Image erst nach beiden grünen Jobs veröffentlicht.
+
+Unveränderlicher Registry-Digest:
+`sha256:2a42190b3cd1db6245cba4f5cce1850928e82675cb6fed73d959d257fc5d7855`.
+
+### Ausgerolltes isoliertes Staging
+
+Staging läuft exakt mit Commit
+`a37e681ce18c62981992e168965e68b80fc86ff2` und meldet öffentlich sowie lokal
+Version, Datenbank, Mail, Benachrichtigungsqueue und Zahlungs-Memory-Transport
+gesund. FCM bleibt bis zur geschützten Firebase-Konfiguration im
+Memory-Modus; der vorbereitete read-only Service-Account-Mount zeigt derzeit
+bewusst auf `/dev/null`.
+
+Vor dem Wechsel wurden Datenbank und Uploads unter
+`/docker/sit-staging/backups/pre-b11-20260809T110327Z` gesichert und geprüft.
+Der abgesicherte Rollout-Nachweis liegt unter
+`/docker/sit-staging/backups/staging-20260809T110413Z-a37e681ce18c.json`.
+
+Die vollständige produktionsnahe B10-Kernmatrix wurde auf dem neuen B11-Image
+erneut bestanden: Sicherheitsheader, CORS-Grenze, Anfragekorrelation,
+datensparsamer Kontodatenexport, Feed/Suche, Bild, Chat, Buchungen und sichere
+Ablehnung eines ungültigen Zahlungs-Webhooks. Alle 25-fachen Parallelproben
+blieben deutlich unter ihren Grenzwerten; null aktive synthetische Testkonten
+blieben zurück. Nachweis:
+`/docker/sit-staging/backups/b11-live-acceptance-20260809T110631Z.json`.
+
+Produktion wurde weder migriert noch neu gestartet. API- und
+Datenbankcontainer behielten exakt ihre vorherigen Container- und Image-IDs;
+beide blieben gesund. Das Produktions-API-Image blieb unverändert bei
+`sha256:db30af4c03512ca774d6ca275620bdef2becb0b6269d67d1514d27170c1af0d7`.
 
 ## Externe Gates und ehrlicher Status
 
