@@ -4,8 +4,9 @@ Stand: 9. August 2026
 
 Branch: `codex/master-workflow-20260808`
 
-Status: Implementierung lokal vollständig geprüft; PostgreSQL-CI und isolierte
-Staging-Abnahme stehen vor der technischen Freigabe noch aus.
+Status: technisch freigegeben. CI, PostgreSQL-Migration, unveränderliches
+Image, isoliertes Staging, B4-Rückfallprobe, Vorwärtswiederherstellung und
+isolierter Restore sind bestanden. Produktion wurde nicht verändert.
 
 ## Ergebnisziel
 
@@ -154,18 +155,71 @@ Der PostgreSQL-16-Integrationstest in CI prüft zusätzlich:
 - Ablehnung fremder Änderungen und fremder Bildbindung;
 - Nichtbuchbarkeit pausierter Angebote und Standort-Redaktion.
 
-## Noch ausstehende Freigaben
+Der endgültige Workflow-Lauf `31286574938` für Commit
+`291092fd6c575dbffbd2febd5e5400d93c40fed4` war vollständig erfolgreich:
+
+- Backend einschließlich echtem PostgreSQL-16-Lebenszyklus;
+- 154 Flutter-Tests und Analyse ohne Fehler bei Baseline 710;
+- Web-Debug- und Android-Debug-Build;
+- Build und Veröffentlichung des commit-markierten API-Images.
+
+## Isolierte Staging-Abnahme
+
+Vor dem Rollout wurde Staging unter Zeitstempel `20260809T004259Z` vollständig
+gesichert. Datenbank-Dump, Uploadarchiv und Prüfsummen liegen getrennt unter
+`/docker/sit-staging/backups/pre-b5-20260809T004259Z`. Die Prüfsummen, die
+Dump-Struktur und das Uploadarchiv wurden vor der Migration geprüft.
+
+Das exakt aus Commit `291092fd6c575dbffbd2febd5e5400d93c40fed4` gebaute
+Staging-Image hat die Image-ID
+`sha256:06878b685273f9335ad88aebe41a4c4b879cc9f5f458e4cb792ef32d0adc102c`.
+OCI-Revision, Compose-Image und `/version` stimmen überein. Readiness,
+Datenbank und Memory-Mailmodus melden `ok`; Migration
+`004_b5_listing_catalog.up.sql` ist mit ihrer 64-stelligen Prüfsumme erfasst.
+
+Die reale Staging-Probe hat nachgewiesen:
+
+- JPEG-Upload, WebP-Neucodierung, Vorschaubild, Abmessungen und SHA-256;
+- privaten Medienzugriff vor Bindung und nach Pausierung sowie öffentlichen
+  Zugriff ausschließlich während des aktiven Zustands;
+- Erstellen, serverseitiges Suchen und Filtern, Bearbeiten, Pausieren,
+  Reaktivieren und Beenden eines Inserats;
+- gerundeten öffentlichen Standort ohne genaue Adresse oder Geohash;
+- unveränderliches Eigentum und Ablehnung fremder Änderungen;
+- Ablehnung einer neuen Buchung für ein pausiertes Inserat.
+
+Für die Rückfallprobe wurde die geprüfte B4-App
+`2114b45d2509be2da1c391419d04c270e271d78c` auf dem bereits migrierten
+B5-Schema gestartet. B4 konnte lesen, bestehende Datensätze ändern und einen
+neuen Datensatz anlegen. Der Datenbank-Guard markierte beide Schreibspuren als
+`catalog_version = 0`. Nach dem erneuten Vorwärtsrollout auf B5 waren diese
+Datensätze unsichtbar, unbuchbar und ihre Medien privat. Eine vollständige
+B5-Bearbeitung validierte das echte Inserat wieder als Version 1.
+
+Die Vor-B5-Sicherung wurde anschließend in einer temporären, getrennten
+PostgreSQL-Instanz und einem temporären Uploadverzeichnis wiederhergestellt.
+Nachweis:
+`/docker/sit-staging/backups/restore-checks/restore-check-20260809T005255Z-190741.json`.
+Der zusammengefasste B5-Nachweis liegt unter
+`/docker/sit-staging/backups/b5-evidence-20260809T005405Z.json`.
+
+Nach der Abnahme wurden Testinserate, Sitzungen, Uploaddatensätze und
+Testdateien entfernt. Die drei Testkonten wurden geschlossen und anonymisiert;
+die append-only Auditnachweise blieben regelkonform bestehen. Der öffentliche
+Staging-Katalog war danach leer, Staging gesund und Produktion unverändert.
+
+## Freigaben
 
 | Gate | Erforderlicher Nachweis | Status |
 |---|---|---|
 | Lokale Backend-Prüfung | Tests und Syntax | bestanden |
 | App-Regression | 154 Tests, Analyse, Web und Android | bestanden |
-| PostgreSQL-Migration | PostgreSQL 16 und kompletter Katalog-Lebenszyklus | ausstehend: CI |
-| Unveränderliches Image | Commit-markiertes Container-Image | ausstehend: CI |
-| Isoliertes Staging | Backup, Migration, reale Upload-/CRUD-/Suchproben | ausstehend |
-| Rückrollung | B4-App auf additivem B5-Schema plus Vorwärtswiederherstellung | ausstehend |
-| Restore | Pre-B5-Datenbank und Uploads getrennt wiederherstellen | ausstehend |
-| Pilotdaten | realer Artikel, Kategorie, Ort, Preis und Übergaberegel | Entscheidung mit Walid nach technischer Freigabe |
+| PostgreSQL-Migration | PostgreSQL 16 und kompletter Katalog-Lebenszyklus | bestanden: CI `31286574938` |
+| Unveränderliches Image | Commit-markiertes Container-Image | bestanden: Commit und OCI-Revision stimmen überein |
+| Isoliertes Staging | Backup, Migration, reale Upload-/CRUD-/Suchproben | bestanden |
+| Rückrollung | B4-App auf additivem B5-Schema plus Vorwärtswiederherstellung | bestanden |
+| Restore | Pre-B5-Datenbank und Uploads getrennt wiederherstellen | bestanden |
+| Pilotdaten | realer Artikel, Kategorie, Ort, Preis und Übergaberegel | folgt im nächsten geeigneten Pilot-/Launch-Baustein |
 
-B5 gilt erst nach grüner CI sowie erfolgreicher Staging-, Rückroll- und
-Restore-Probe als technisch bestanden. Produktion wird dabei nicht verändert.
+B5 ist damit technisch bestanden. Produktion wurde für diese Abnahme nicht
+ausgerollt oder verändert.
