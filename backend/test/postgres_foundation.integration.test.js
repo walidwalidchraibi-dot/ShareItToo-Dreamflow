@@ -455,6 +455,25 @@ if (!databaseUrl) {
       assert.equal(replayB6.status, 200);
       assert.equal((await replayB6.json()).replayed, true);
 
+      const rejectedLegacyCreation = await fetch(`${baseUrl}/v1/rental-requests/sync`, {
+        method: 'PUT',
+        headers: renterAHeaders,
+        body: JSON.stringify({
+          requests: [{
+            id: 'legacy-b6-create',
+            itemId: 'listing-1',
+            status: 'pending',
+            start: '2026-12-20T10:00:00.000Z',
+            end: '2026-12-22T10:00:00.000Z',
+          }],
+        }),
+      });
+      assert.equal(rejectedLegacyCreation.status, 409);
+      assert.equal(
+        (await rejectedLegacyCreation.json()).error,
+        'booking_creation_requires_idempotent_endpoint',
+      );
+
       const duplicateB6 = await fetch(`${baseUrl}/v1/bookings`, {
         method: 'POST',
         headers: { ...renterAHeaders, 'Idempotency-Key': 'create-b6-duplicate-integration' },
@@ -796,20 +815,18 @@ if (!databaseUrl) {
       });
       assert.equal(pausedMediaOwner.status, 200);
       assert.equal(pausedMediaOwner.headers.get('cache-control'), 'private, no-store');
-      const pausedBooking = await fetch(`${baseUrl}/v1/rental-requests/sync`, {
-        method: 'PUT',
+      const pausedBooking = await fetch(`${baseUrl}/v1/bookings`, {
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${tokenFor('renter-a')}`,
           'Content-Type': 'application/json',
+          'Idempotency-Key': 'create-paused-booking-integration',
         },
         body: JSON.stringify({
-          requests: [{
-            id: 'paused-booking',
-            itemId: 'listing-lifecycle',
-            status: 'pending',
-            start: '2026-10-10T10:00:00.000Z',
-            end: '2026-10-12T10:00:00.000Z',
-          }],
+          id: 'paused-booking',
+          itemId: 'listing-lifecycle',
+          startDate: '2026-12-20',
+          endDate: '2026-12-22',
         }),
       });
       assert.equal(pausedBooking.status, 404);
