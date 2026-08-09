@@ -140,6 +140,7 @@ jobs:
             "keyAlias=shareittoo-ci" \
             "keyPassword=ci-only-key-password" \
             > android/key.properties
+          chmod 600 "$RUNNER_TEMP/shareittoo-ci-upload.jks" android/key.properties
           bash scripts/build_android_release_candidate.sh
           rm android/key.properties
 
