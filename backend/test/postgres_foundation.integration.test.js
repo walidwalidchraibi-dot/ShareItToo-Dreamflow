@@ -18,6 +18,8 @@ if (!databaseUrl) {
     process.env.DATABASE_URL = databaseUrl;
     process.env.JWT_SECRET ??= 'test-secret-that-is-longer-than-thirty-two-characters';
     process.env.MAIL_TRANSPORT = 'memory';
+    process.env.PAYMENT_TRANSPORT = 'memory';
+    process.env.PAYOUT_HOLD_HOURS = '0';
     const uploadDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sit-b3-uploads-'));
     process.env.UPLOAD_DIR = uploadDir;
 
@@ -43,6 +45,7 @@ if (!databaseUrl) {
         '004_b5_listing_catalog.up.sql',
         '005_b6_booking_workflow.up.sql',
         '006_b7_communications.up.sql',
+        '007_b8_payments_and_ledger.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -55,6 +58,7 @@ if (!databaseUrl) {
            ('renter-a', 'renter-a@example.com', '{}'::jsonb, 'user', 'active'),
            ('renter-b', 'renter-b@example.com', '{}'::jsonb, 'user', 'active'),
            ('outsider', 'outsider@example.com', '{}'::jsonb, 'user', 'active'),
+           ('admin', 'admin@example.com', '{}'::jsonb, 'admin', 'active'),
            ('suspended', 'suspended@example.com', '{}'::jsonb, 'user', 'suspended')`,
       );
       await setupPool.query(
@@ -104,6 +108,7 @@ if (!databaseUrl) {
         'renter-b': '33333333-3333-4333-8333-333333333333',
         outsider: '44444444-4444-4444-8444-444444444444',
         suspended: '55555555-5555-4555-8555-555555555555',
+        admin: '66666666-6666-4666-8666-666666666666',
       };
       await setupPool.query(
         `INSERT INTO auth_sessions (id, user_id, device_label)
@@ -112,7 +117,8 @@ if (!databaseUrl) {
            ($2, 'renter-a', 'Renter A test'),
            ($3, 'renter-b', 'Renter B test'),
            ($4, 'outsider', 'Outsider test'),
-           ($5, 'suspended', 'Suspended test')`,
+           ($5, 'suspended', 'Suspended test'),
+           ($6, 'admin', 'Admin test')`,
         Object.values(sessionIds),
       );
       await setupPool.query(
@@ -265,6 +271,7 @@ if (!databaseUrl) {
       const { createApp } = await import('../src/app.js');
       const { pool, } = await import('../src/db.js');
       const { drainNotificationOutbox } = await import('../src/notifications.js');
+      const { applyProviderEvent } = await import('../src/payment_workflow.js');
       const { signAccessToken } = await import('../src/security.js');
       applicationPool = pool;
       server = http.createServer(createApp());
@@ -989,6 +996,321 @@ if (!databaseUrl) {
       );
       assert.equal(deepLinkFallback.status, 200);
       assert.match(await deepLinkFallback.text(), /In der App öffnen/);
+
+      const adminHeaders = {
+        Authorization: `Bearer ${tokenFor('admin')}`,
+        'Content-Type': 'application/json',
+      };
+      const connectOnboarding = await fetch(`${baseUrl}/v1/payments/connect/onboarding`, {
+        method: 'POST',
+        headers: { ...ownerHeaders, 'Idempotency-Key': 'b8-connect-owner-integration' },
+        body: JSON.stringify({ country: 'DE', currency: 'EUR' }),
+      });
+      assert.equal(connectOnboarding.status, 201);
+      const connectPayload = await connectOnboarding.json();
+      assert.equal(connectPayload.account.ready, true);
+      assert.equal(connectPayload.providerMode, 'memory');
+      assert.match(connectPayload.onboardingUrl, /^http/);
+      const connectStatus = await fetch(`${baseUrl}/v1/payments/connect/status`, { headers: ownerHeaders });
+      assert.equal(connectStatus.status, 200);
+      assert.equal((await connectStatus.json()).account.ready, true);
+
+      await setupPool.query(
+        `UPDATE listings SET security_deposit_minor = 6000,
+             payload = jsonb_set(payload, '{deposit}', '60'::jsonb)
+         WHERE id = 'listing-1'`,
+      );
+      const b8Create = await fetch(`${baseUrl}/v1/bookings`, {
+        method: 'POST',
+        headers: { ...renterAHeaders, 'Idempotency-Key': 'b8-create-payment-booking' },
+        body: JSON.stringify({
+          id: 'b8-payment-flow', itemId: 'listing-1',
+          startDate: '2027-01-10', endDate: '2027-01-12',
+        }),
+      });
+      assert.equal(b8Create.status, 201);
+      assert.equal((await b8Create.json()).booking.quote.securityDepositMinor, 6000);
+      const b8Accept = await fetch(`${baseUrl}/v1/bookings/b8-payment-flow/transitions`, {
+        method: 'POST',
+        headers: { ...ownerHeaders, 'Idempotency-Key': 'b8-accept-payment-booking' },
+        body: JSON.stringify({ status: 'accepted' }),
+      });
+      assert.equal(b8Accept.status, 200);
+
+      const b8CheckoutRequest = () => fetch(`${baseUrl}/v1/bookings/b8-payment-flow/payment/checkout`, {
+        method: 'POST',
+        headers: { ...renterAHeaders, 'Idempotency-Key': 'b8-checkout-payment-booking' },
+        body: JSON.stringify({ depositConsent: false }),
+      });
+      const b8Checkout = await b8CheckoutRequest();
+      assert.equal(b8Checkout.status, 201);
+      const b8CheckoutPayload = await b8Checkout.json();
+      assert.equal(b8CheckoutPayload.payment.status, 'created');
+      assert.equal(b8CheckoutPayload.payment.amountMinor, 3300);
+      assert.equal(b8CheckoutPayload.payment.ownerPayoutMinor, 3000);
+      assert.equal(b8CheckoutPayload.payment.platformFeeMinor, 300);
+      assert.match(b8CheckoutPayload.checkoutUrl, /^http/);
+      const b8CheckoutReplay = await b8CheckoutRequest();
+      assert.equal(b8CheckoutReplay.status, 200);
+      assert.equal((await b8CheckoutReplay.json()).replayed, true);
+
+      const paymentId = b8CheckoutPayload.payment.id;
+      const amountMismatchEvent = {
+        id: 'evt_memory_b8_amount_mismatch',
+        object: 'event',
+        type: 'payment_intent.succeeded',
+        created: 1799539200,
+        livemode: false,
+        data: { object: {
+          id: b8CheckoutPayload.payment.id,
+          object: 'payment_intent',
+          status: 'succeeded',
+          amount: 3299,
+          amount_received: 3299,
+          currency: 'eur',
+          metadata: { sit_payment_id: paymentId, sit_booking_id: 'b8-payment-flow' },
+        } },
+      };
+      const amountMismatchRaw = Buffer.from(JSON.stringify(amountMismatchEvent));
+      await assert.rejects(
+        applyProviderEvent(amountMismatchEvent, amountMismatchRaw),
+        (error) => error?.code === 'provider_amount_mismatch',
+      );
+      await assert.rejects(
+        applyProviderEvent(amountMismatchEvent, amountMismatchRaw),
+        (error) => error?.code === 'provider_amount_mismatch',
+      );
+      const failedProviderEvent = await setupPool.query(
+        `SELECT status, processing_attempts FROM payment_provider_events
+         WHERE provider_event_id = $1`,
+        [amountMismatchEvent.id],
+      );
+      assert.deepEqual(failedProviderEvent.rows[0], { status: 'failed', processing_attempts: 2 });
+
+      const simulateRequiresAction = await fetch(`${baseUrl}/v1/payments/${paymentId}/simulate`, {
+        method: 'POST', headers: renterAHeaders,
+        body: JSON.stringify({ scenario: 'requires_action' }),
+      });
+      assert.equal(simulateRequiresAction.status, 200);
+      const deterministicEvent = () => fetch(`${baseUrl}/v1/payments/${paymentId}/simulate`, {
+        method: 'POST', headers: renterAHeaders,
+        body: JSON.stringify({ scenario: 'succeeded', duplicate: true }),
+      });
+      const firstProviderSuccess = await deterministicEvent();
+      assert.equal(firstProviderSuccess.status, 200);
+      assert.equal((await firstProviderSuccess.json()).duplicate, false);
+      const duplicateProviderSuccess = await deterministicEvent();
+      assert.equal(duplicateProviderSuccess.status, 200);
+      assert.equal((await duplicateProviderSuccess.json()).duplicate, true);
+
+      const b8PaymentState = await fetch(`${baseUrl}/v1/bookings/b8-payment-flow/payment`, { headers: renterAHeaders });
+      assert.equal(b8PaymentState.status, 200);
+      const b8Paid = await b8PaymentState.json();
+      assert.equal(b8Paid.bookingStatus, 'confirmed');
+      assert.deepEqual(b8Paid.quote, {
+        amountMinor: 3300,
+        rentalSubtotalMinor: 3000,
+        platformFeeMinor: 300,
+        ownerPayoutMinor: 3000,
+        securityDepositMinor: 6000,
+        currency: 'EUR',
+      });
+      assert.equal(b8Paid.depositConsentVersion, 'deposit-v2026-08');
+      assert.equal(b8Paid.payment.status, 'captured');
+      assert.equal(b8Paid.payment.capturedMinor, 3300);
+
+      const capturedProviderPayment = await setupPool.query(
+        'SELECT provider_charge_id FROM payments WHERE id = $1',
+        [paymentId],
+      );
+      const providerDisputeObject = {
+        id: 'dp_memory_b8_chargeback',
+        object: 'dispute',
+        charge: capturedProviderPayment.rows[0].provider_charge_id,
+        amount: 3300,
+        currency: 'eur',
+        reason: 'fraudulent',
+        status: 'under_review',
+        evidence_details: { due_by: 1800000000 },
+      };
+      for (const [suffix, type, status] of [
+        ['created', 'charge.dispute.created', 'under_review'],
+        ['withdrawn', 'charge.dispute.funds_withdrawn', 'under_review'],
+        ['reinstated', 'charge.dispute.funds_reinstated', 'won'],
+      ]) {
+        const disputeEvent = {
+          id: `evt_memory_b8_dispute_${suffix}`,
+          object: 'event', type, created: 1799539300, livemode: false,
+          data: { object: { ...providerDisputeObject, status } },
+        };
+        assert.equal((await applyProviderEvent(
+          disputeEvent,
+          Buffer.from(JSON.stringify(disputeEvent)),
+        )).status, 'processed');
+      }
+      const providerDisputeLedger = await setupPool.query(
+        `SELECT transaction_type FROM ledger_transactions
+         WHERE provider_reference = $1 ORDER BY created_at, transaction_type`,
+        [providerDisputeObject.id],
+      );
+      assert.deepEqual(
+        providerDisputeLedger.rows.map((row) => row.transaction_type).sort(),
+        ['chargeback', 'chargeback_reversed'],
+      );
+      await setupPool.query(
+        `UPDATE disputes SET status = 'closed', resolved_at = now()
+         WHERE provider_dispute_id = $1`,
+        [providerDisputeObject.id],
+      );
+      await setupPool.query(
+        `UPDATE bookings SET workflow_status = 'confirmed', workflow_revision = workflow_revision + 1
+         WHERE id = 'b8-payment-flow'`,
+      );
+
+      const setupDeposit = await fetch(`${baseUrl}/v1/bookings/b8-payment-flow/deposit/setup`, {
+        method: 'POST',
+        headers: { ...renterAHeaders, 'Idempotency-Key': 'b8-deposit-setup-booking' },
+        body: JSON.stringify({ consentAccepted: true, consentVersion: 'deposit-v2026-08' }),
+      });
+      assert.equal(setupDeposit.status, 201);
+      const depositPayload = await setupDeposit.json();
+      assert.equal(depositPayload.mandate.maximumAmountMinor, 6000);
+      const simulateDeposit = await fetch(`${baseUrl}/v1/deposit-mandates/${depositPayload.mandate.id}/simulate`, {
+        method: 'POST', headers: renterAHeaders,
+      });
+      assert.equal(simulateDeposit.status, 200);
+      assert.equal((await fetch(`${baseUrl}/v1/bookings/b8-payment-flow/payment`, { headers: renterAHeaders }).then((response) => response.json())).deposit.status, 'active');
+
+      const depositDispute = await setupPool.query(
+        `INSERT INTO disputes (
+           booking_id, opened_by, status, reason_code, summary
+         ) VALUES (
+           'b8-payment-flow', 'renter-a', 'investigating',
+           'documented_damage_probe', 'B8 integration deposit charge evidence'
+         ) RETURNING id`,
+      );
+      await setupPool.query(
+        `UPDATE bookings SET workflow_status = 'disputed', disputed_at = now(),
+             workflow_revision = workflow_revision + 1
+         WHERE id = 'b8-payment-flow'`,
+      );
+      const depositCharge = await fetch(`${baseUrl}/v1/deposit-mandates/${depositPayload.mandate.id}/charges`, {
+        method: 'POST',
+        headers: { ...adminHeaders, 'Idempotency-Key': 'b8-charge-deposit-dispute' },
+        body: JSON.stringify({
+          disputeId: depositDispute.rows[0].id,
+          amountMinor: 1000,
+          reason: 'Dokumentierter Schaden im kontrollierten Integrationstest',
+        }),
+      });
+      assert.equal(depositCharge.status, 201);
+      assert.equal((await depositCharge.json()).charge.status, 'succeeded');
+      await setupPool.query(
+        `UPDATE disputes SET status = 'closed', resolved_at = now() WHERE id = $1`,
+        [depositDispute.rows[0].id],
+      );
+      await setupPool.query(
+        `UPDATE bookings SET workflow_status = 'confirmed', workflow_revision = workflow_revision + 1
+         WHERE id = 'b8-payment-flow'`,
+      );
+
+      const b8Activate = await fetch(`${baseUrl}/v1/bookings/b8-payment-flow/transitions`, {
+        method: 'POST',
+        headers: { ...renterAHeaders, 'Idempotency-Key': 'b8-activate-payment-booking' },
+        body: JSON.stringify({ status: 'active' }),
+      });
+      assert.equal(b8Activate.status, 200);
+      const b8Complete = await fetch(`${baseUrl}/v1/bookings/b8-payment-flow/transitions`, {
+        method: 'POST',
+        headers: { ...ownerHeaders, 'Idempotency-Key': 'b8-complete-payment-booking' },
+        body: JSON.stringify({ status: 'completed' }),
+      });
+      assert.equal(b8Complete.status, 200);
+
+      await setupPool.query(
+        `UPDATE disputes SET provider_status = 'lost'
+         WHERE provider_dispute_id = $1`,
+        [providerDisputeObject.id],
+      );
+      const blockedChargebackPayout = await fetch(`${baseUrl}/v1/payments/${paymentId}/payout-release`, {
+        method: 'POST',
+        headers: { ...adminHeaders, 'Idempotency-Key': 'b8-blocked-chargeback-payout' },
+        body: '{}',
+      });
+      assert.equal(blockedChargebackPayout.status, 409);
+      assert.equal((await blockedChargebackPayout.json()).error, 'payout_blocked_by_dispute');
+      await setupPool.query(
+        `UPDATE disputes SET provider_status = 'won'
+         WHERE provider_dispute_id = $1`,
+        [providerDisputeObject.id],
+      );
+
+      const payoutRelease = await fetch(`${baseUrl}/v1/payments/${paymentId}/payout-release`, {
+        method: 'POST',
+        headers: { ...adminHeaders, 'Idempotency-Key': 'b8-release-owner-payout' },
+        body: '{}',
+      });
+      assert.equal(payoutRelease.status, 201);
+      const payoutPayload = await payoutRelease.json();
+      assert.equal(payoutPayload.payout.status, 'paid');
+      assert.equal(payoutPayload.payout.amountMinor, 3000);
+
+      const partialRefundAfterPayout = await fetch(`${baseUrl}/v1/payments/${paymentId}/refunds`, {
+        method: 'POST',
+        headers: { ...adminHeaders, 'Idempotency-Key': 'b8-partial-refund-after-owner-payout' },
+        body: JSON.stringify({ amountMinor: 1650, reason: 'integration_partial_refund' }),
+      });
+      assert.equal(partialRefundAfterPayout.status, 201);
+      const partialRefundPayload = await partialRefundAfterPayout.json();
+      assert.equal(partialRefundPayload.payment.status, 'partially_refunded');
+      const partiallyReversedPayout = await setupPool.query(
+        `SELECT status, reversed_minor FROM payouts WHERE payment_id = $1`,
+        [paymentId],
+      );
+      assert.equal(partiallyReversedPayout.rows[0].status, 'paid');
+      assert.equal(partiallyReversedPayout.rows[0].reversed_minor, '1500');
+
+      const noDuplicatePayout = await fetch(`${baseUrl}/v1/payments/${paymentId}/payout-release`, {
+        method: 'POST',
+        headers: { ...adminHeaders, 'Idempotency-Key': 'b8-no-duplicate-payout-after-partial-refund' },
+        body: '{}',
+      });
+      assert.equal(noDuplicatePayout.status, 200);
+      assert.equal((await noDuplicatePayout.json()).replayed, true);
+
+      const refundAfterPayout = await fetch(`${baseUrl}/v1/payments/${paymentId}/refunds`, {
+        method: 'POST',
+        headers: { ...adminHeaders, 'Idempotency-Key': 'b8-final-refund-after-owner-payout' },
+        body: JSON.stringify({ amountMinor: 1650, reason: 'integration_final_refund' }),
+      });
+      assert.equal(refundAfterPayout.status, 201);
+      const refundPayload = await refundAfterPayout.json();
+      assert.equal(refundPayload.refund.status, 'succeeded');
+      assert.equal(refundPayload.payment.status, 'refunded');
+      const reversedPayout = await setupPool.query(
+        `SELECT status FROM payouts WHERE payment_id = $1`,
+        [paymentId],
+      );
+      assert.equal(reversedPayout.rows[0].status, 'reversed');
+
+      const ledgerBalance = await setupPool.query(
+        `SELECT transaction_id, sum(debit_minor)::bigint AS debit, sum(credit_minor)::bigint AS credit
+         FROM ledger_entries GROUP BY transaction_id ORDER BY transaction_id`,
+      );
+      assert.ok(ledgerBalance.rowCount >= 4);
+      assert.ok(ledgerBalance.rows.every((row) => row.debit === row.credit));
+      await assert.rejects(
+        setupPool.query('UPDATE ledger_entries SET debit_minor = debit_minor + 1 WHERE id = (SELECT min(id) FROM ledger_entries)'),
+        (error) => error?.code === '55000',
+      );
+      const providerEvents = await setupPool.query(
+        `SELECT count(*)::int AS count FROM payment_provider_events
+         WHERE event_type = 'payment_intent.succeeded'`,
+      );
+      assert.equal(providerEvents.rows[0].count, 1);
+      const paymentDeepLink = await fetch(`${baseUrl}/v1/open/payment/b8-payment-flow`);
+      assert.equal(paymentDeepLink.status, 200);
+      assert.match(await paymentDeepLink.text(), /Zahlung öffnen/);
 
       const outsiderHeaders = { Authorization: `Bearer ${tokenFor('outsider')}` };
       const rentalResponse = await fetch(`${baseUrl}/v1/rental-requests`, { headers: outsiderHeaders });

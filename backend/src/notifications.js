@@ -109,6 +109,10 @@ function chatActionUrl(threadId) {
   return `${config.publicBaseUrl}/open/chat/${encodeURIComponent(threadId)}`;
 }
 
+function paymentActionUrl(bookingId) {
+  return `${config.publicBaseUrl}/open/payment/${encodeURIComponent(bookingId)}`;
+}
+
 async function enqueueForUser(client, {
   eventKey,
   userId,
@@ -245,6 +249,106 @@ export async function enqueueMessageNotification(client, {
       },
     },
   });
+}
+
+export async function enqueueFinancialNotification(client, {
+  bookingId,
+  eventKey,
+  kind,
+  recipientRole,
+  amountMinor,
+  currency,
+}) {
+  const definitions = {
+    payment_confirmed: {
+      title: 'Zahlung bestätigt',
+      body: (title) => `Die Zahlung für „${title}“ wurde sicher bestätigt.`,
+      ctaLabel: 'Zahlung ansehen',
+    },
+    booking_refunded: {
+      title: 'Erstattung bestätigt',
+      body: (title) => `Die Erstattung für „${title}“ wurde veranlasst.`,
+      ctaLabel: 'Erstattung ansehen',
+    },
+    payout_sent: {
+      title: 'Auszahlung freigegeben',
+      body: (title) => `Der Erlös für „${title}“ wurde an dein Stripe-Konto übertragen.`,
+      ctaLabel: 'Auszahlung ansehen',
+    },
+    payment_failed: {
+      title: 'Zahlung nicht abgeschlossen',
+      body: (title) => `Die Zahlung für „${title}“ benötigt deine Aufmerksamkeit.`,
+      ctaLabel: 'Zahlung fortsetzen',
+    },
+    deposit_charged: {
+      title: 'Kautionsbelastung erfasst',
+      body: (title) => `Für „${title}“ wurde eine begrenzte Kautionsbelastung im Klärungsfall erfasst.`,
+      ctaLabel: 'Klärungsfall ansehen',
+    },
+  };
+  const definition = definitions[kind];
+  if (!definition) return 0;
+  const result = await client.query(
+    `SELECT booking.id, booking.owner_id, booking.renter_id,
+            booking.rental_start_date, booking.rental_end_date,
+            listing.payload AS listing_payload,
+            owner.profile AS owner_profile,
+            renter.profile AS renter_profile
+     FROM bookings AS booking
+     JOIN listings AS listing ON listing.id = booking.listing_id
+     JOIN users AS owner ON owner.id = booking.owner_id
+     JOIN users AS renter ON renter.id = booking.renter_id
+     WHERE booking.id = $1`,
+    [bookingId],
+  );
+  if (!result.rowCount) return 0;
+  const row = result.rows[0];
+  const userId = recipientRole === 'owner' ? row.owner_id : row.renter_id;
+  const displayName = profileName(recipientRole === 'owner' ? row.owner_profile : row.renter_profile);
+  const title = itemTitle(row.listing_payload);
+  const actionUrl = paymentActionUrl(bookingId);
+  const body = definition.body(title);
+  await enqueueForUser(client, {
+    eventKey,
+    userId,
+    kind,
+    bookingId,
+    channels: ['payment_failed', 'deposit_charged'].includes(kind)
+      ? ['in_app', 'push']
+      : ['in_app', 'email', 'push'],
+    payload: {
+      notification: {
+        category: 'payments',
+        kind,
+        priority: 3,
+        title: definition.title,
+        body,
+        entityType: 'payment',
+        entityId: bookingId,
+        bookingId,
+        requestId: bookingId,
+        actionUrl,
+        ctaLabel: definition.ctaLabel,
+        payload: { recipientRole },
+      },
+      email: {
+        displayName,
+        bookingReference: bookingId,
+        itemTitle: title,
+        amount: Number(amountMinor ?? 0) / 100,
+        currency,
+        eventLabel: eventLabel(row),
+        actionUrl,
+      },
+      push: {
+        title: definition.title,
+        body,
+        actionUrl,
+        data: { entityType: 'payment', entityId: bookingId, bookingId, kind },
+      },
+    },
+  });
+  return 1;
 }
 
 async function userDeliveryContext(userId) {

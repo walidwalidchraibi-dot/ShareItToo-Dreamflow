@@ -323,6 +323,62 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['booking'] as Map);
   }
 
+  static Future<Map<String, dynamic>> getConnectStatus() async {
+    final response = await _authorized(
+      method: 'GET',
+      path: '/payments/connect/status',
+    );
+    return Map<String, dynamic>.from(response['account'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> startConnectOnboarding({
+    required String idempotencyKey,
+  }) async {
+    return _authorized(
+      method: 'POST',
+      path: '/payments/connect/onboarding',
+      body: const {'country': 'DE', 'currency': 'EUR'},
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+  }
+
+  static Future<Map<String, dynamic>> getBookingPayment(
+      String bookingId) async {
+    return _authorized(
+      method: 'GET',
+      path: '/bookings/${Uri.encodeComponent(bookingId)}/payment',
+    );
+  }
+
+  static Future<Map<String, dynamic>> createBookingCheckout({
+    required String bookingId,
+    required String idempotencyKey,
+    bool depositConsent = false,
+  }) async {
+    return _authorized(
+      method: 'POST',
+      path: '/bookings/${Uri.encodeComponent(bookingId)}/payment/checkout',
+      body: {'depositConsent': depositConsent},
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+  }
+
+  static Future<Map<String, dynamic>> createDepositSetup({
+    required String bookingId,
+    required String consentVersion,
+    required String idempotencyKey,
+  }) async {
+    return _authorized(
+      method: 'POST',
+      path: '/bookings/${Uri.encodeComponent(bookingId)}/deposit/setup',
+      body: {
+        'consentAccepted': true,
+        'consentVersion': consentVersion,
+      },
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+  }
+
   static Future<List<Map<String, dynamic>>> getRentalRequests() async {
     final response = await _authorized(
       method: 'GET',

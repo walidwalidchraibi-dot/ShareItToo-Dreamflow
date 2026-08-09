@@ -64,6 +64,21 @@ import {
   drainNotificationOutbox,
   notificationHealth,
 } from './notifications.js';
+import {
+  createConnectOnboarding,
+  chargeDeposit,
+  createDepositSetup,
+  createPaymentCheckout,
+  getBookingPayment,
+  getConnectStatus,
+  paymentHealth,
+  refundPayment,
+  releasePayout,
+  simulateDepositSetup,
+  simulatePaymentEvent,
+  verifyAndApplyWebhook,
+} from './payment_workflow.js';
+import { PaymentDomainError } from './payment_domain.js';
 import { publishToAll, publishToUsers } from './realtime.js';
 import { releaseMetadata } from './release.js';
 import {
@@ -136,7 +151,7 @@ function escapeHtml(value) {
 }
 
 function deepLinkFallbackPage({ kind, id }) {
-  const label = kind === 'chat' ? 'Chat' : 'Buchung';
+  const label = kind === 'chat' ? 'Chat' : (kind === 'payment' ? 'Zahlung' : 'Buchung');
   const schemeUrl = `shareittoo://${kind}/${encodeURIComponent(id)}`;
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${label} in ShareItToo öffnen</title></head>
 <body style="margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033"><main style="max-width:560px;margin:12vh auto;padding:24px"><section style="background:#fff;border-radius:20px;padding:32px;box-shadow:0 10px 30px rgba(20,35,70,.08)"><div style="font-size:26px;font-weight:800;color:#2156d9">ShareItToo</div><h1>${label} öffnen</h1><p>Öffne den sicheren Kontext in der ShareItToo-App. Nach der Anmeldung wird deine Berechtigung erneut geprüft.</p><p><a href="${escapeHtml(schemeUrl)}" style="display:inline-block;background:#2156d9;color:#fff;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:12px">In der App öffnen</a></p><p style="font-size:13px;color:#5d6980">Wenn die App noch nicht installiert ist, kehre bitte zur ShareItToo-Website zurück. Dieser Link enthält keine Zahlungs- oder Zugangsdaten.</p><p><a href="${escapeHtml(config.appPublicUrl)}">Zur ShareItToo-Website</a></p></section></main></body></html>`;
@@ -769,6 +784,18 @@ export function createApp() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
   }));
+  const webhookLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 600,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (_req, res) => res.status(429).json({ error: 'rate_limit_exceeded' }),
+  });
+  app.post('/v1/payments/webhook', webhookLimiter, express.raw({ type: 'application/json', limit: '2mb' }), asyncRoute(async (req, res) => {
+    const result = await verifyAndApplyWebhook(req.body, req.get('Stripe-Signature'));
+    kickNotificationWorker();
+    res.json({ received: true, ...result });
+  }));
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: false, limit: '20kb' }));
 
@@ -784,11 +811,11 @@ export function createApp() {
   app.get('/health', asyncRoute(async (_req, res) => {
     await pool.query('SELECT 1');
     const mail = getMailerStatus();
-    const notifications = await notificationHealth();
+    const [notifications, payments] = await Promise.all([notificationHealth(), paymentHealth()]);
     res.json({
-      status: mail === 'ok' && notifications.dead === 0 ? 'ok' : 'degraded',
+      status: mail === 'ok' && notifications.dead === 0 && payments.failedEvents === 0 && payments.unbalanced === 0 ? 'ok' : 'degraded',
       service: 'shareittoo-api',
-      checks: { database: 'ok', mail, notifications },
+      checks: { database: 'ok', mail, notifications, payments },
       release: releaseMetadata,
       time: new Date().toISOString(),
     });
@@ -801,12 +828,13 @@ export function createApp() {
   app.get('/health/ready', asyncRoute(async (_req, res) => {
     await pool.query('SELECT 1');
     const mail = getMailerStatus();
-    const notifications = await notificationHealth();
-    const ready = mail !== 'error' && mail !== 'unverified' && notifications.dead === 0;
+    const [notifications, payments] = await Promise.all([notificationHealth(), paymentHealth()]);
+    const ready = mail !== 'error' && mail !== 'unverified' && notifications.dead === 0
+      && payments.failedEvents === 0 && payments.unbalanced === 0;
     res.status(ready ? 200 : 503).json({
       status: ready ? 'ok' : 'degraded',
       service: 'shareittoo-api',
-      checks: { database: 'ok', mail, notifications },
+      checks: { database: 'ok', mail, notifications, payments },
       release: releaseMetadata,
     });
   }));
@@ -818,7 +846,7 @@ export function createApp() {
   app.get('/v1/open/:kind/:id', (req, res) => {
     const kind = safeText(req.params.kind, 20);
     const id = safeText(req.params.id, 120);
-    if (!['booking', 'chat'].includes(kind) || !id || !/^[A-Za-z0-9_.:-]+$/.test(id)) {
+    if (!['booking', 'chat', 'payment'].includes(kind) || !id || !/^[A-Za-z0-9_.:-]+$/.test(id)) {
       return sendHtml(res, 404, resultPage({
         title: 'Link nicht verfügbar',
         message: 'Dieser ShareItToo-Link ist ungültig oder nicht mehr verfügbar.',
@@ -879,6 +907,100 @@ export function createApp() {
       }
     }
     res.status(202).json({ accepted: true });
+  }));
+
+  app.get('/v1/payments/connect/return', (req, res) => sendHtml(res, 200, resultPage({
+    title: req.query.state === 'complete' ? 'Auszahlungskonto aktualisiert' : 'Auszahlungskonto fortsetzen',
+    message: 'Kehre zur ShareItToo-App zurück. Der Kontostatus wird dort sicher neu geladen.',
+    success: req.query.state === 'complete',
+  })));
+
+  app.get('/v1/payments/connect/status', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    res.json({ account: await getConnectStatus(req.actor.id) });
+  }));
+
+  app.post('/v1/payments/connect/onboarding', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await createConnectOnboarding({
+      actor: req.actor,
+      raw: req.body,
+      key: req.get('Idempotency-Key'),
+    });
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.get('/v1/bookings/:id/payment', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    res.json(await getBookingPayment({ actor: req.actor, bookingId: safeText(req.params.id, 120) }));
+  }));
+
+  app.post('/v1/bookings/:id/payment/checkout', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await createPaymentCheckout({
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      raw: req.body,
+      key: req.get('Idempotency-Key'),
+    });
+    kickNotificationWorker();
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/bookings/:id/deposit/setup', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await createDepositSetup({
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      raw: req.body,
+      key: req.get('Idempotency-Key'),
+    });
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/payments/:id/simulate', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await simulatePaymentEvent({
+      actor: req.actor,
+      paymentId: safeText(req.params.id, 80),
+      scenario: safeText(req.body?.scenario, 40),
+      duplicate: req.body?.duplicate === true,
+    });
+    kickNotificationWorker();
+    res.json(result);
+  }));
+
+  app.post('/v1/deposit-mandates/:id/simulate', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    res.json(await simulateDepositSetup({ actor: req.actor, mandateId: safeText(req.params.id, 80) }));
+  }));
+
+  app.post('/v1/deposit-mandates/:id/charges', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await chargeDeposit({
+      actor: req.actor,
+      mandateId: safeText(req.params.id, 80),
+      amountMinor: req.body?.amountMinor,
+      disputeId: safeText(req.body?.disputeId, 80),
+      reason: req.body?.reason,
+      key: req.get('Idempotency-Key'),
+    });
+    kickNotificationWorker();
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/payments/:id/refunds', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await refundPayment({
+      actor: req.actor,
+      paymentId: safeText(req.params.id, 80),
+      amountMinor: req.body?.amountMinor,
+      reason: req.body?.reason,
+      key: req.get('Idempotency-Key'),
+    });
+    kickNotificationWorker();
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/payments/:id/payout-release', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await releasePayout({
+      actor: req.actor,
+      paymentId: safeText(req.params.id, 80),
+      key: req.get('Idempotency-Key'),
+    });
+    kickNotificationWorker();
+    res.status(result.replayed ? 200 : 201).json(result);
   }));
 
   app.post('/v1/auth/login', loginLimiter, asyncRoute(async (req, res) => {
@@ -2535,18 +2657,19 @@ export function createApp() {
     const bookingConflict = error?.code === '23P01';
     const workflowError = error instanceof BookingWorkflowError;
     const messageWorkflowError = error instanceof MessageWorkflowError;
+    const paymentWorkflowError = error instanceof PaymentDomainError;
     const status = bookingConflict
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || messageWorkflowError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || messageWorkflowError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error('[api]', error);
     res.status(status).json({ error: code, ...(error?.details ? { details: error.details } : {}) });
   });

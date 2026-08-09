@@ -6,6 +6,7 @@ import { initializeDatabase, pool } from './db.js';
 import { attachRealtime } from './realtime.js';
 import { verifyMailer } from './mailer.js';
 import { drainNotificationOutbox } from './notifications.js';
+import { reconcilePaymentLifecycle } from './payment_workflow.js';
 
 async function main() {
   await initializeDatabase();
@@ -27,10 +28,20 @@ async function main() {
   void drainNotificationOutbox().catch((error) => {
     console.error('[notifications] startup drain failed', error?.message ?? error);
   });
+  const paymentTimer = setInterval(() => {
+    void reconcilePaymentLifecycle().catch((error) => {
+      console.error('[payments] reconciliation failed', error?.code ?? error?.message ?? error);
+    });
+  }, 30_000);
+  paymentTimer.unref();
+  void reconcilePaymentLifecycle().catch((error) => {
+    console.error('[payments] startup reconciliation failed', error?.code ?? error?.message ?? error);
+  });
 
   const shutdown = async (signal) => {
     console.log(`[shareittoo-api] ${signal}, shutting down`);
     clearInterval(notificationTimer);
+    clearInterval(paymentTimer);
     server.close(async () => {
       await pool.end();
       process.exit(0);

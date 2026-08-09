@@ -79,15 +79,16 @@ class AppLinkParser {
         }
         return null;
       case 'payment':
-        if (segments.length >= 2 && segments[1] == 'return') {
-          final id = safeId(2);
-          return AppLinkTarget(
-            kind: AppLinkKind.paymentReturn,
-            id: id,
-            uri: uri,
-          );
-        }
-        return null;
+        final id = segments.length >= 2 && segments[1] == 'return'
+            ? safeId(2)
+            : safeId(1);
+        return id == null
+            ? null
+            : AppLinkTarget(
+                kind: AppLinkKind.paymentReturn,
+                id: id,
+                uri: uri,
+              );
       default:
         return null;
     }

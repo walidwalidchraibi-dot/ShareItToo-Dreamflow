@@ -14,6 +14,12 @@ void main() {
     );
     expect(chat?.kind, AppLinkKind.chat);
     expect(chat?.id, 'thread_456');
+
+    final payment = AppLinkParser.parse(
+      Uri.parse('https://shareittoo.com/api/v1/open/payment/booking-123?result=success'),
+    );
+    expect(payment?.kind, AppLinkKind.paymentReturn);
+    expect(payment?.id, 'booking-123');
   });
 
   test('accepts auth actions only with a token', () {

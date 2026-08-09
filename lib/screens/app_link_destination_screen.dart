@@ -7,6 +7,7 @@ import 'package:lendify/screens/login_screen.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/ongoing_owner_detail_screen.dart';
 import 'package:lendify/screens/request_detail_screen.dart';
+import 'package:lendify/screens/payment_checkout_screen.dart';
 import 'package:lendify/services/app_link_service.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/data_service.dart';
@@ -160,7 +161,6 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
         );
       case AppLinkKind.emailVerification:
       case AppLinkKind.passwordReset:
-      case AppLinkKind.paymentReturn:
         if (!_externalOpened) {
           _externalOpened = true;
           WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -178,6 +178,25 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
               widget.target.uri,
               mode: LaunchMode.externalApplication,
             );
+          },
+        );
+      case AppLinkKind.paymentReturn:
+        return FutureBuilder<AuthSession?>(
+          future: AuthService.readSession(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const _LinkLoadingScreen();
+            }
+            if (snapshot.data == null) {
+              return _LinkErrorScreen(
+                title: 'Bitte zuerst anmelden',
+                message:
+                    'Nach der Anmeldung wird der sichere Zahlungsstatus neu geladen.',
+                actionLabel: 'Anmelden',
+                onAction: _loginAndRetry,
+              );
+            }
+            return PaymentCheckoutScreen(bookingId: widget.target.id!);
           },
         );
     }

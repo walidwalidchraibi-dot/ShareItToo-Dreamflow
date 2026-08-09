@@ -7,7 +7,7 @@ import 'package:lendify/screens/profile_info_screen.dart';
 import 'package:lendify/screens/contact_data_screen.dart';
 import 'package:lendify/screens/change_password_screen.dart';
 import 'package:lendify/screens/payment_methods_screen.dart';
-import 'package:lendify/screens/payout_methods_screen.dart';
+import 'package:lendify/screens/stripe_payout_account_screen.dart';
 import 'package:lendify/screens/invoices_screen.dart';
 import 'package:lendify/screens/notifications_screen.dart';
 import 'package:lendify/screens/privacy_info_screen.dart';
@@ -139,7 +139,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         label: l10n.t('account.item.payoutMethods'),
                         onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                                builder: (_) => const PayoutMethodsScreen())),
+                                builder: (_) => const StripePayoutAccountScreen())),
                       ),
                       const _Divider(),
                       _RowTile(

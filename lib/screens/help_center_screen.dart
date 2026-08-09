@@ -356,22 +356,22 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
         articles: [
           _HelpArticle(
             id: 'zahlungsmethoden',
-            title: 'Zahlungsmethoden hinzufügen',
-            short: 'Karte oder SEPA hinzufügen (MVP: Demo-Flow).',
+            title: 'Buchung sicher bezahlen',
+            short: 'Zahlungsdaten ausschließlich im sicheren Stripe-Checkout eingeben.',
             body: _HelpBody(
-              intro: 'Du kannst Zahlungsarten hinterlegen, damit Buchungen reibungslos funktionieren.',
-              steps: ['Gehe zu „Kontoeinstellungen“ → „Zahlungsmethoden“.', 'Füge eine Karte oder SEPA hinzu.', 'Setze optional eine Standardmethode.'],
-              tips: ['Nutze eine Methode, die du dauerhaft verwendest, um Fehler zu vermeiden.'],
+              intro: 'ShareItToo speichert keine vollständigen Karten- oder Kontodaten auf deinem Gerät. Der verbindliche Betrag wird vom Server berechnet und bei Stripe bezahlt.',
+              steps: ['Öffne eine vom Vermieter angenommene Buchung.', 'Wähle „Zahlung & Kaution“.', 'Prüfe Betrag und Gebühr und öffne den sicheren Stripe-Checkout.'],
+              tips: ['Eine Buchung gilt erst als bezahlt, wenn Stripe die Zahlung serverseitig bestätigt hat.'],
             ),
           ),
           _HelpArticle(
             id: 'auszahlungsmethoden',
-            title: 'Auszahlungsmethoden hinzufügen',
-            short: 'SEPA oder SIT Wallet als Standard festlegen.',
+            title: 'Auszahlungskonto einrichten',
+            short: 'Identität und Bankverbindung sicher bei Stripe hinterlegen.',
             body: _HelpBody(
-              intro: 'Du kannst wählen, ob du Einnahmen aufs Bankkonto oder ins SIT Wallet erhältst.',
-              steps: ['Gehe zu „Kontoeinstellungen“ → „Auszahlungsmethoden“.', 'Aktiviere Wallet oder hinterlege Bankdaten.', 'Wähle eine Standardmethode.'],
-              tips: ['Für schnelle Verfügbarkeit kann das Wallet sinnvoll sein.'],
+              intro: 'Vermieter richten ihr Auszahlungskonto direkt im Stripe-Onboarding ein. ShareItToo speichert keine vollständige IBAN in der App.',
+              steps: ['Gehe zu „Kontoeinstellungen“ → „Auszahlungsmethoden“.', 'Öffne das sichere Stripe-Onboarding.', 'Vervollständige Identitäts- und Bankangaben bei Stripe.'],
+              tips: ['Auszahlungen bleiben gesperrt, bis Stripe das Konto freigegeben hat.'],
             ),
           ),
           _HelpArticle(
@@ -379,18 +379,18 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             title: 'Wann erhalte ich meine Auszahlung?',
             short: 'Auszahlungen nach erfolgreicher Rückgabe/Bestätigung.',
             body: _HelpBody(
-              intro: 'Im MVP ist das Zahlungsmodell vereinfacht. Langfristig: Auszahlung nach Rückgabe & ggf. Prüfzeit.',
-              steps: ['Nach Abschluss der Buchung wird die Auszahlung vorbereitet.', 'Je nach Methode kann es 1–3 Werktage dauern (Bank).'],
+              intro: 'Der Vermietererlös wird erst nach abgeschlossener Rückgabe und der festgelegten Sicherheitsfrist freigegeben.',
+              steps: ['Nach Abschluss der Buchung prüft der Server die Sicherheitsfrist.', 'Offene Streitfälle oder Erstattungen blockieren die Freigabe.', 'Nach der Freigabe verarbeitet Stripe die Auszahlung auf das hinterlegte Konto.'],
               tips: ['Bei Problemen: Support kontaktieren und Buchungsnummer nennen.'],
             ),
           ),
           _HelpArticle(
             id: 'gebuehren',
             title: 'Gebühren bei ShareItToo',
-            short: 'Transparente Gebührenstruktur (MVP: kann variieren).',
+            short: 'Betrag und Plattformgebühr vor der Zahlung prüfen.',
             body: _HelpBody(
               intro: 'Gebühren decken Plattformbetrieb, Support und Sicherheit ab.',
-              steps: ['Du siehst Gebühren im Checkout vor Abschluss.', 'Bei Auszahlungen können je nach Methode Kosten entstehen.'],
+              steps: ['Du siehst Gesamtbetrag und Plattformgebühr vor dem Öffnen von Stripe.', 'Stripe zeigt den endgültigen Zahlbetrag nochmals im sicheren Checkout.'],
               tips: ['Wir zeigen dir Kosten immer vor der endgültigen Bestätigung.'],
             ),
           ),

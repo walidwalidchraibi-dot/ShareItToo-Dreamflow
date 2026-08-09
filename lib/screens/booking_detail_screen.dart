@@ -32,6 +32,7 @@ import 'package:lendify/widgets/review_prompt_sheet.dart';
 import 'package:lendify/services/address_privacy.dart';
 import 'package:lendify/widgets/approx_location_map.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
+import 'package:lendify/screens/payment_checkout_screen.dart';
 import 'package:lendify/widgets/sit_glass_time_picker.dart';
 import 'package:lendify/widgets/sit_overflow_menu.dart';
 import 'package:lendify/services/handover_code.dart';
@@ -835,6 +836,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     label: 'Anfrage zurückziehen',
                     value: 'withdraw',
                   ),
+                if (!_isViewerOwnerSync() &&
+                    ((widget.booking['requestId'] as String?) ?? '').isNotEmpty)
+                  const SitMenuOption(
+                    icon: Icons.lock_outline,
+                    label: 'Zahlung & Kaution',
+                    value: 'payment',
+                  ),
                 const SitMenuOption(
                   icon: Icons.error_outline,
                   label: 'Problem melden',
@@ -867,6 +875,18 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                         itemTitle: title,
                       );
                     }
+                  }
+                  break;
+                case 'payment':
+                  final requestId =
+                      (widget.booking['requestId'] as String?) ?? '';
+                  if (requestId.isNotEmpty && mounted) {
+                    await Navigator.of(context).push<void>(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            PaymentCheckoutScreen(bookingId: requestId),
+                      ),
+                    );
                   }
                   break;
                 default:
