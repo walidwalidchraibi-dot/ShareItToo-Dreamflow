@@ -775,7 +775,8 @@ async function processProviderEvent(client, event) {
          booking_id, opened_by, status, reason_code, summary, resolution,
          provider_dispute_id, provider_status, provider_evidence_due_at, livemode
        ) VALUES ($1, $2, 'investigating', $3, $4, $5::jsonb, $6, $7, $8, $9)
-       ON CONFLICT (provider_dispute_id) DO UPDATE SET provider_status = EXCLUDED.provider_status,
+       ON CONFLICT (provider_dispute_id) WHERE provider_dispute_id IS NOT NULL
+       DO UPDATE SET provider_status = EXCLUDED.provider_status,
          provider_evidence_due_at = EXCLUDED.provider_evidence_due_at, updated_at = now()`,
       [
         payment.booking_id, payment.renter_id, text(object.reason, 120) || 'provider_chargeback',
