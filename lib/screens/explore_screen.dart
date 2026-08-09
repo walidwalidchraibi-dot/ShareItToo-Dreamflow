@@ -186,10 +186,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final items = await DataService.getPublicItems();
       final categories = await DataService.getCategories();
       final users = await DataService.getUsers();
-      final session = await AuthService.readSession();
       final user = await DataService.getCurrentUser();
       final saved = await DataService.getSavedItemIds();
       final hiddenIds = await ListingFeedbackService.getHiddenItemIds();
+      // Re-read after account data access: an expired remote session may have
+      // been invalidated while that data was resolved.
+      final session = await AuthService.readSession();
       final hasRealSession = session != null;
 
 // No extra fillers for the five-item showcase
@@ -207,7 +209,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _usersById = {for (final u in users) u.id: u};
         _currentUserName = hasRealSession ? user?.displayName : null;
         _currentUserCity = hasRealSession ? user?.city : null;
-        _savedIds = saved;
+        _savedIds = hasRealSession ? saved : <String>{};
         _extraGuests = extrasGuests;
         _extraTopBooked = extrasTop;
         _isLoading = false;
@@ -752,6 +754,38 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               const <String>[];
                       final showingCategoryResults =
                           activeCategories.isNotEmpty;
+                      if (items.isEmpty) {
+                        return CustomScrollView(
+                          slivers: [
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(24, 42, 24, 24),
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.inventory_2_outlined, size: 46, color: Colors.white.withValues(alpha: 0.62)),
+                                    const SizedBox(height: 14),
+                                    Text(
+                                      showingCategoryResults
+                                          ? l10n.t('Keine Anzeigen gefunden')
+                                          : l10n.t('Noch keine Anzeigen'),
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      showingCategoryResults
+                                          ? l10n.t('Wähle eine andere Kategorie oder setze die Filter zurück.')
+                                          : l10n.t('Sobald die ersten Anzeigen veröffentlicht sind, erscheinen sie hier.'),
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
                       return CustomScrollView(
                         // Each page scrolls vertically on its own.
                         slivers: [
@@ -831,21 +865,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 }),
                               ),
                             ),
-                          if (items.isEmpty)
-                            SliverFillRemaining(
-                              hasScrollBody: false,
-                              child: Center(
-                                child: Text(
-                                  l10n.t('Keine Anzeigen gefunden'),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.copyWith(color: Colors.white70),
-                                ),
-                              ),
-                            )
-                          else
-                            SliverPadding(
+                          SliverPadding(
                               padding: const EdgeInsets.fromLTRB(16, 0, 24, 32),
                               sliver: SliverGrid(
                                 gridDelegate:
@@ -882,7 +902,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   childCount: items.length,
                                 ),
                               ),
-                            ),
+                          ),
                         ],
                       );
                     }
@@ -1061,7 +1081,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         // Keep the fade aligned with the page-title area.
                         arrowsTop: 6,
                         child: itemsFiltered.isEmpty
-                            ? feedPage(title: context.watch<LocalizationController>().t('Noch keine Anzeigen'), items: const <Item>[])
+                            ? feedPage(title: '', items: const <Item>[])
                             : PageView(
                           controller: _feedPager,
                           physics: const BouncingScrollPhysics(),

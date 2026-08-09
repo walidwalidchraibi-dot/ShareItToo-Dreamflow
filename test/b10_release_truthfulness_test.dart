@@ -52,6 +52,9 @@ void main() {
     final messageThread = await File('lib/screens/message_thread_screen.dart').readAsString();
     final accountSettings = await File('lib/screens/account_settings_screen.dart').readAsString();
     final maps = await File('lib/services/maps_service.dart').readAsString();
+    final appRoot = await File('lib/main.dart').readAsString();
+    final navigation = await File('lib/navigation/main_navigation.dart').readAsString();
+    final explore = await File('lib/screens/explore_screen.dart').readAsString();
 
     expect(profile, isNot(contains('walid.placeholder')));
     expect(profile, isNot(contains('responseTimeMinutes: 42')));
@@ -68,6 +71,10 @@ void main() {
     expect(accountSettings, contains('const SecurityScreen()'));
     expect(accountSettings, isNot(contains('const ChangePasswordScreen()')));
     expect(maps, isNot(contains('Musterstraße 1')));
+    expect(appRoot, contains('final accessToken = await AuthService.accessToken()'));
+    expect(appRoot, contains('if (BackendConfig.enabled || kReleaseMode)'));
+    expect(navigation, contains('(BackendConfig.enabled || kReleaseMode || preview.isGuest)'));
+    expect(explore, contains('_savedIds = hasRealSession ? saved : <String>{}'));
   });
 
   testWidgets(

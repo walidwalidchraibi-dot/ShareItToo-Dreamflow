@@ -137,9 +137,14 @@ class AppRoot extends StatelessWidget {
     try {
       final existing = await AuthService.readSession();
       if (existing != null) {
-        if (BackendConfig.enabled && (existing.accessToken ?? '').isNotEmpty) {
-          await BackendRealtimeService.connect(existing.accessToken!);
+        if (BackendConfig.enabled) {
+          final accessToken = await AuthService.accessToken();
+          if (accessToken == null || accessToken.isEmpty) return null;
+          final activeSession = await AuthService.readSession();
+          if (activeSession == null) return null;
+          await BackendRealtimeService.connect(accessToken);
           unawaited(FirebaseRuntime.syncPushRegistration());
+          return activeSession;
         }
         return existing;
       }
@@ -188,6 +193,9 @@ class AppRoot extends StatelessWidget {
           return const _StartupBrandLoader();
         }
         if (snapshot.data != null) {
+          return const MainNavigation();
+        }
+        if (BackendConfig.enabled || kReleaseMode) {
           return const MainNavigation();
         }
         return _buildPreviewRoute(preview);

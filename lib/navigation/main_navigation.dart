@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'dart:math' as math;
 import 'package:lendify/screens/explore_screen.dart';
 import 'package:lendify/screens/wishlists_screen.dart';
@@ -14,6 +15,7 @@ import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/auth_service.dart';
+import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/widgets/login_nudge_sheet.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -138,7 +140,8 @@ class _MainNavigationState extends State<MainNavigation> {
             onTap: (index) async {
               final preview = context.read<DeveloperPreviewController>();
               final session = await AuthService.readSession();
-              final isGuest = session == null && preview.isGuest;
+              final isGuest = session == null &&
+                  (BackendConfig.enabled || kReleaseMode || preview.isGuest);
               // Soft logged-out experience:
               // - Guests can open the Profile tab to explore.
               // - Other tabs remain locked in guest mode.

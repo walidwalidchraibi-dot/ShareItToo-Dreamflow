@@ -257,8 +257,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     User? maybeUser;
     bool hasSession = false;
     try {
-      hasSession = await AuthService.readSession() != null;
       maybeUser = await DataService.getCurrentUser();
+      hasSession = await AuthService.readSession() != null;
     } catch (e, st) {
       debugPrint('[Profile] Failed to load user: $e');
       debugPrint(st.toString());
