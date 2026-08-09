@@ -58,8 +58,16 @@ Zahlungsereignisse und die spätere Store-Einreichung.
   jedoch vor der neuen DKIM-/DMARC-Konfiguration versendet und mit dem alten
   delegierten Google-Schlüssel signiert; sie ist deshalb nur ein
   Funktionsnachweis und kein aktueller Authentifizierungsnachweis.
-- Eine echte Testmail an Gmail senden und im empfangenen Original
-  `SPF=PASS`, `DKIM=PASS` und `DMARC=PASS` nachweisen.
+- Eine neue Testmail wurde am 9. August 2026 um 14:40:34 Uhr CEST über das
+  bestehende Google-Workspace-SMTP-Relay auf dem VPS von
+  `contact@shareittoo.com` an `contact@shareittoo.com` zugestellt. Betreff:
+  `SIT B1 AUTH TEST 2026-08-09`; Message-ID:
+  `178627923498.707000.11688038276532933807@shareittoo.com`. Das Gmail-Original
+  weist `SPF=PASS`, `DKIM=PASS` mit Selector `google` und
+  `DMARC=PASS (p=NONE)` aus; Envelope-From, DKIM-Domain und sichtbare
+  From-Domain sind auf `shareittoo.com` ausgerichtet. Gmail zeigt außerdem
+  TLS-Transport. Das bestehende Relay und alle übrigen Dienste blieben
+  unverändert.
 - Eine zweite Testmail an einen unabhängigen Anbieter senden und dort dieselben
   Ergebnisse sowie das Fehlen sichtbarer Warnungen bestätigen.
 - `From`, `Reply-To`, Support-Adresse, Passwort-Reset-Link und Buchungslink auf
