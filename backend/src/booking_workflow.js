@@ -268,8 +268,13 @@ function quoteForListing(candidate, dates, listing) {
 }
 
 async function checkPeriodAvailability(client, { listing, dates, startsAt, endsAt, excludeBookingId = null }) {
+  const startsAtTime = new Date(startsAt).getTime();
+  const endsAtTime = new Date(endsAt).getTime();
+  if (!Number.isFinite(startsAtTime) || !Number.isFinite(endsAtTime) || startsAtTime >= endsAtTime) {
+    throw new BookingWorkflowError(500, 'invalid_availability_period');
+  }
   const noticeHours = Number(listing.booking_notice_hours ?? 0);
-  if (new Date(startsAt).getTime() < Date.now() + noticeHours * 3_600_000) {
+  if (startsAtTime < Date.now() + noticeHours * 3_600_000) {
     throw new BookingWorkflowError(409, 'booking_notice_too_short', { noticeHours });
   }
 
@@ -442,7 +447,12 @@ export async function quoteBooking(client, { actorId, raw }) {
   if (listing.owner_id === actorId) throw new BookingWorkflowError(409, 'cannot_rent_own_listing');
   const dates = rentalDatesFromCandidate(candidate);
   const period = await periodInstants(client, dates, listing.availability_timezone);
-  await checkPeriodAvailability(client, { listing, dates, ...period });
+  await checkPeriodAvailability(client, {
+    listing,
+    dates,
+    startsAt: period.starts_at,
+    endsAt: period.ends_at,
+  });
   const quote = quoteForListing(candidate, dates, listing);
   return {
     listingId,
@@ -474,7 +484,12 @@ export async function createBooking(client, { actor, raw, key }) {
   if (listing.owner_id === actor.id) throw new BookingWorkflowError(409, 'cannot_rent_own_listing');
   const dates = rentalDatesFromCandidate(candidate);
   const period = await periodInstants(client, dates, listing.availability_timezone);
-  await checkPeriodAvailability(client, { listing, dates, ...period });
+  await checkPeriodAvailability(client, {
+    listing,
+    dates,
+    startsAt: period.starts_at,
+    endsAt: period.ends_at,
+  });
   const duplicate = await client.query(
     `SELECT id FROM bookings
      WHERE listing_id = $1 AND renter_id = $2 AND workflow_version = 1
@@ -605,7 +620,8 @@ export async function amendBooking(client, { actor, bookingId, raw, key }) {
   await checkPeriodAvailability(client, {
     listing,
     dates,
-    ...period,
+    startsAt: period.starts_at,
+    endsAt: period.ends_at,
     excludeBookingId: bookingId,
   });
   const quote = quoteForListing(merged, dates, listing);
@@ -1016,7 +1032,12 @@ export async function checkListingAvailability(client, { listingId, raw }) {
   const dates = rentalDatesFromCandidate(candidate);
   const period = await periodInstants(client, dates, listing.availability_timezone);
   try {
-    await checkPeriodAvailability(client, { listing, dates, ...period });
+    await checkPeriodAvailability(client, {
+      listing,
+      dates,
+      startsAt: period.starts_at,
+      endsAt: period.ends_at,
+    });
     return {
       available: true,
       startDate: dates.startDate,
