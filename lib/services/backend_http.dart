@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb;
 import 'package:http/http.dart' as http;
 
 import 'backend_config.dart';
@@ -29,6 +31,8 @@ class BackendHttp {
       if (body != null) 'Content-Type': 'application/json',
       if (accessToken != null && accessToken.isNotEmpty)
         'Authorization': 'Bearer $accessToken',
+      if (!kIsWeb)
+        'User-Agent': 'ShareItToo (${defaultTargetPlatform.name})',
       ...additionalHeaders,
     };
     final encodedBody = body == null ? null : jsonEncode(body);

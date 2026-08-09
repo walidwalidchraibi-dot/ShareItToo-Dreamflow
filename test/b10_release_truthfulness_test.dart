@@ -55,6 +55,8 @@ void main() {
     final appRoot = await File('lib/main.dart').readAsString();
     final navigation = await File('lib/navigation/main_navigation.dart').readAsString();
     final explore = await File('lib/screens/explore_screen.dart').readAsString();
+    final backendHttp = await File('lib/services/backend_http.dart').readAsString();
+    final securityScreen = await File('lib/screens/security_screen.dart').readAsString();
 
     expect(profile, isNot(contains('walid.placeholder')));
     expect(profile, isNot(contains('responseTimeMinutes: 42')));
@@ -75,6 +77,9 @@ void main() {
     expect(appRoot, contains('if (BackendConfig.enabled || kReleaseMode)'));
     expect(navigation, contains('(BackendConfig.enabled || kReleaseMode || preview.isGuest)'));
     expect(explore, contains('_savedIds = hasRealSession ? saved : <String>{}'));
+    expect(profileHeader, contains('if (user.isVerified)'));
+    expect(backendHttp, contains("'User-Agent': 'ShareItToo (\${defaultTargetPlatform.name})'"));
+    expect(securityScreen, contains("rawName == 'Unbekanntes Gerät'"));
   });
 
   testWidgets(

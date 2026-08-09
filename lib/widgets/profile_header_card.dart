@@ -45,19 +45,20 @@ class ProfileHeaderCard extends StatelessWidget {
                     radius: 36,
                     borderColor: Colors.white.withValues(alpha: 0.12),
                   ),
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                      padding: const EdgeInsets.all(4),
-                      child: Icon(
-                        user.isVerified ? Icons.verified : Icons.verified_outlined,
-                        size: 16,
-                        color: user.isVerified ? const Color(0xFF22C55E) : Colors.black45,
+                  if (user.isVerified)
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                        padding: const EdgeInsets.all(4),
+                        child: const Icon(
+                          Icons.verified,
+                          size: 16,
+                          color: Color(0xFF22C55E),
+                        ),
                       ),
                     ),
-                  ),
                 ]),
                 const SizedBox(height: 8),
                 Text(

@@ -606,6 +606,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                                 _DeviceTile(
                                   device: d,
                                   isThisDevice: d.isThisDevice,
+                                  thisPlatformName: _deviceNameThisPlatform(),
                                   onSignOut: (d.isThisDevice || _devicesBusy)
                                       ? null
                                       : () => _signOutDevice(d),
@@ -791,15 +792,22 @@ class _MiniBullets extends StatelessWidget {
 class _DeviceTile extends StatelessWidget {
   final SecurityDevice device;
   final bool isThisDevice;
+  final String thisPlatformName;
   final VoidCallback? onSignOut;
   const _DeviceTile(
       {required this.device,
       required this.isThisDevice,
+      required this.thisPlatformName,
       required this.onSignOut});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final rawName = device.name.trim();
+    final deviceName = isThisDevice &&
+            (rawName.isEmpty || rawName == 'Unbekanntes Gerät')
+        ? thisPlatformName
+        : (rawName.isEmpty ? 'Unbekanntes Gerät' : rawName);
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(
         width: 38,
@@ -820,7 +828,7 @@ class _DeviceTile extends StatelessWidget {
           Row(children: [
             Expanded(
               child: Text(
-                device.name + (isThisDevice ? ' (Dieses Gerät)' : ''),
+                deviceName + (isThisDevice ? ' (Dieses Gerät)' : ''),
                 style: theme.textTheme.bodyMedium?.copyWith(
                     color: Colors.white, fontWeight: FontWeight.w800),
               ),
