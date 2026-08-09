@@ -33,8 +33,9 @@ FCM is opt-in for staging and cannot be activated for production through this
 path. Before the first FCM-enabled staging rollout, create only the dedicated
 service account `sit-fcm-staging` with the Google role
 `roles/firebasecloudmessaging.admin`. Place its JSON outside the repository
-with owner-only permissions. Then run the same immutable deploy command with
-the explicit staging-only gate:
+as `root:65532` with mode `0640`. Group `65532` is reserved for the non-login
+staging runtime and is added only to the API container. Then run the same
+immutable deploy command with the explicit staging-only gate:
 
 ```sh
 ENABLE_STAGING_FCM=1 \

@@ -82,6 +82,12 @@ Der spätere Staging-Mount ist read-only und liegt außerhalb des Repositories.
 Produktion bleibt bis zu einer eigenen Freigabe auf deaktiviertem Push-
 Transport.
 
+Auf dem VPS bleibt die Datei im Besitz von `root`. Sie erhält ausschließlich
+für die dedizierte, keinem Login zugeordnete Laufzeitgruppe `65532` Leserecht
+(`0640`, `root:65532`). Dieselbe Gruppe wird nur dem isolierten Staging-API-
+Prozess ergänzend zugewiesen. So kann der nicht privilegierte Prozess den
+Schlüssel lesen, ohne Weltlesbarkeit oder einen Login-Zugriff zu eröffnen.
+
 Die Aktivierung erfolgt ausschließlich über die zusätzliche Compose-Datei
 `backend/compose.staging.fcm.yml`. Sie erzwingt `PUSH_TRANSPORT=fcm`, die
 Projekt-ID `shareittoo-staging`, einen absoluten Hostpfad und einen
@@ -97,10 +103,12 @@ node backend/ops/validate_fcm_staging_secret.mjs
 ```
 
 Der Prüfer akzeptiert nur eine normale, nicht verlinkte Datei außerhalb des
-Repositories, deren Rechte keine Gruppen- oder Weltlesbarkeit erlauben. Er
-prüft Größe, Eigentümer, Service-Account-Struktur und exakte Projektbindung,
-gibt aber weder Pfad noch E-Mail noch Schlüsselmaterial aus. Erst nach `PASS`
-darf der Staging-Override verwendet werden.
+Repositories. Zulässig sind entweder reine Eigentümerrechte (`0600`) oder auf
+dem VPS exakt `0640` mit `root` als Eigentümer und Gruppe `65532`; jede andere
+Gruppen- oder Weltlesbarkeit wird abgelehnt. Er prüft Größe, Eigentümer,
+Service-Account-Struktur und exakte Projektbindung, gibt aber weder Pfad noch
+E-Mail noch Schlüsselmaterial aus. Erst nach `PASS` darf der Staging-Override
+verwendet werden.
 
 Der Account ist bewusst auf
 `sit-fcm-staging@shareittoo-staging.iam.gserviceaccount.com` festgelegt. Ihm

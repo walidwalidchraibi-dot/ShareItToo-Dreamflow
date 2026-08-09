@@ -12,6 +12,7 @@ import { validateFirebaseServiceAccount } from '../src/firebase_service_account.
 
 const canonicalProjectId = 'shareittoo-staging';
 const canonicalClientEmail = `sit-fcm-staging@${canonicalProjectId}.iam.gserviceaccount.com`;
+export const fcmRuntimeGroupId = 65532;
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 const defaultRepositoryRoot = resolve(moduleDirectory, '..', '..');
 
@@ -24,6 +25,17 @@ function fail(code) {
 function isInside(parent, candidate) {
   const path = relative(parent, candidate);
   return path === '' || (!path.startsWith('..') && !isAbsolute(path));
+}
+
+export function hasSafeFcmSecretPermissions(metadata, currentUid = process.getuid?.()) {
+  const mode = metadata.mode & 0o777;
+  const ownerIsTrusted = metadata.uid === 0 || metadata.uid === currentUid;
+  const ownerOnly = mode === 0o600;
+  const dedicatedRuntimeGroup = metadata.uid === 0
+    && metadata.gid === fcmRuntimeGroupId
+    && mode === 0o640;
+
+  return ownerIsTrusted && (ownerOnly || dedicatedRuntimeGroup);
 }
 
 export function validateFcmStagingSecret({
@@ -47,12 +59,8 @@ export function validateFcmStagingSecret({
 
   if (!metadata.isFile() || metadata.isSymbolicLink()) fail('fcm_staging_secret_type_invalid');
   if (isInside(resolvedRepository, resolvedFile)) fail('fcm_staging_secret_inside_repository');
-  if ((metadata.mode & 0o077) !== 0) fail('fcm_staging_secret_permissions_invalid');
+  if (!hasSafeFcmSecretPermissions(metadata)) fail('fcm_staging_secret_permissions_invalid');
   if (metadata.size < 256 || metadata.size > 32 * 1024) fail('fcm_staging_secret_size_invalid');
-
-  if (typeof process.getuid === 'function' && metadata.uid !== 0 && metadata.uid !== process.getuid()) {
-    fail('fcm_staging_secret_owner_invalid');
-  }
 
   let raw;
   try {

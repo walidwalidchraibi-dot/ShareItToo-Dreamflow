@@ -4,7 +4,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { validateFcmStagingSecret } from '../ops/validate_fcm_staging_secret.mjs';
+import {
+  fcmRuntimeGroupId,
+  hasSafeFcmSecretPermissions,
+  validateFcmStagingSecret,
+} from '../ops/validate_fcm_staging_secret.mjs';
 
 const projectId = 'shareittoo-staging';
 const keyBegin = ['-----BEGIN', 'PRIVATE', 'KEY-----'].join(' ');
@@ -71,6 +75,26 @@ test('rejects group- or world-readable credential files', async (t) => {
     expectedProjectId: projectId,
     repositoryRoot: data.repository,
   }), { code: 'fcm_staging_secret_permissions_invalid' });
+});
+
+test('allows group-read only for the root-owned dedicated runtime group', () => {
+  assert.equal(hasSafeFcmSecretPermissions({
+    mode: 0o100640,
+    uid: 0,
+    gid: fcmRuntimeGroupId,
+  }, 501), true);
+
+  assert.equal(hasSafeFcmSecretPermissions({
+    mode: 0o100640,
+    uid: 0,
+    gid: fcmRuntimeGroupId - 1,
+  }, 501), false);
+
+  assert.equal(hasSafeFcmSecretPermissions({
+    mode: 0o100644,
+    uid: 0,
+    gid: fcmRuntimeGroupId,
+  }, 501), false);
 });
 
 test('rejects symbolic links even when their target is owner-only', async (t) => {
