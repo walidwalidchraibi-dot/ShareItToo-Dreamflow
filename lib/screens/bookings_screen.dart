@@ -178,26 +178,20 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   Future<void> _load() async {
     final user = await DataService.getCurrentUser();
     if (user == null) {
-      final demo = await _buildDemoBookings(renterId: 'demo_renter');
       if (!mounted) return;
-      _unreadCounts
-        ..clear()
-        ..addAll({'ongoing': 1, 'upcoming': 1, 'pending': 1, 'completed': 3});
+      _unreadCounts.clear();
       setState(() {
-        _allBookings = demo;
-        _currentUserId = 'demo_renter';
+        _allBookings = const [];
+        _currentUserId = null;
       });
       return;
     }
     _currentUserId = user.id;
     final requests = await DataService.getRentalRequestsForRenter(user.id);
     if (requests.isEmpty) {
-      final demo = await _buildDemoBookings(renterId: user.id);
       if (!mounted) return;
-      _unreadCounts
-        ..clear()
-        ..addAll({'ongoing': 1, 'upcoming': 1, 'pending': 1, 'completed': 3});
-      setState(() => _allBookings = demo);
+      _unreadCounts.clear();
+      setState(() => _allBookings = const []);
       return;
     }
     // Load items and listers referenced by requests
@@ -251,142 +245,6 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     
     if (!mounted) return;
     setState(() => _allBookings = maps);
-  }
-
-  Future<List<Map<String, dynamic>>> _buildDemoBookings({required String renterId}) async {
-    final now = DateTime.now();
-    final items = await DataService.getItems();
-    final users = await DataService.getUsers();
-    final itemPool = items.isNotEmpty
-        ? items
-        :
-        [
-            Item(
-              id: 'demo_fallback_item',
-              ownerId: 'demo_owner',
-              title: 'Demo Objekt',
-              description: 'Fallback Demo Item',
-              categoryId: 'electronics',
-              subcategory: 'demo',
-              tags: const [],
-              pricePerDay: 20,
-              currency: 'EUR',
-              photos: const ['https://picsum.photos/seed/demo_item/800/800'],
-              locationText: 'Berlin',
-              lat: 52.52,
-              lng: 13.405,
-              geohash: 'u33dc0',
-              condition: 'good',
-              createdAt: now.subtract(const Duration(days: 10)),
-              isActive: true,
-              verificationStatus: 'verified',
-              city: 'Berlin',
-              country: 'Deutschland',
-            ),
-          ];
-    Item pick(int index) => itemPool[index % itemPool.length];
-    final renter = users.firstWhere(
-      (u) => u.id == renterId,
-      orElse: () => model.User(
-        id: renterId,
-        displayName: 'Du',
-        email: 'demo@shareittoo.local',
-        preferredLanguage: 'de',
-        isVerified: true,
-        isBanned: false,
-        role: 'user',
-        avgRating: 4.8,
-        reviewCount: 42,
-        createdAt: now.subtract(const Duration(days: 120)),
-      ),
-    );
-
-    final List<RentalRequest> demoRequests = [
-      RentalRequest(
-        id: 'demo_req_pending',
-        itemId: pick(0).id,
-        ownerId: pick(0).ownerId,
-        renterId: renter.id,
-        start: now.add(const Duration(days: 3, hours: 2)),
-        end: now.add(const Duration(days: 5, hours: 2)),
-        status: 'pending',
-        expressRequested: true,
-        expressStatus: 'pending',
-        expressRequestedAt: now.subtract(const Duration(minutes: 8)),
-      ),
-      RentalRequest(
-        id: 'demo_req_upcoming',
-        itemId: pick(1).id,
-        ownerId: pick(1).ownerId,
-        renterId: renter.id,
-        start: now.add(const Duration(days: 2, hours: 1)),
-        end: now.add(const Duration(days: 4, hours: 1)),
-        status: 'accepted',
-        deliveryAddressLine: 'Sternschanze 12',
-        deliveryCity: 'Hamburg',
-        ownerDeliversAtDropoffChosen: true,
-      ),
-      RentalRequest(
-        id: 'demo_req_running',
-        itemId: pick(2).id,
-        ownerId: pick(2).ownerId,
-        renterId: renter.id,
-        start: now.subtract(const Duration(hours: 6)),
-        end: now.add(const Duration(days: 1, hours: 5)),
-        status: 'running',
-        handoverConfirmation: {'by': 'owner'},
-      ),
-      RentalRequest(
-        id: 'demo_req_completed_review_needed',
-        itemId: pick(3).id,
-        ownerId: pick(3).ownerId,
-        renterId: renter.id,
-        start: now.subtract(const Duration(days: 8)),
-        end: now.subtract(const Duration(days: 6)),
-        status: 'completed',
-        needsReview: true,
-        reviewReason: 'manual_hold',
-      ),
-      RentalRequest(
-        id: 'demo_req_completed_reviewable',
-        itemId: pick(4).id,
-        ownerId: pick(4).ownerId,
-        renterId: renter.id,
-        start: now.subtract(const Duration(days: 12)),
-        end: now.subtract(const Duration(days: 10)),
-        status: 'completed',
-        needsReview: false,
-      ),
-      RentalRequest(
-        id: 'demo_req_completed_reviewed',
-        itemId: pick(5).id,
-        ownerId: pick(5).ownerId,
-        renterId: renter.id,
-        start: now.subtract(const Duration(days: 20)),
-        end: now.subtract(const Duration(days: 18)),
-        status: 'completed',
-        needsReview: false,
-      ),
-    ];
-
-    final byUser = {for (final u in users) u.id: u};
-    final maps = <Map<String, dynamic>>[];
-    for (int i = 0; i < demoRequests.length; i++) {
-      final r = demoRequests[i];
-      final it = itemPool.firstWhere((item) => item.id == r.itemId, orElse: () => pick(i));
-      final owner = byUser[it.ownerId];
-      final map = await _toBookingMap(r, it, owner, null, reviewerId: renter.id);
-      // Override review state for the two completed cases
-      if (r.id == 'demo_req_completed_reviewed') {
-        map['hasSubmittedReview'] = true;
-      }
-      if (r.id == 'demo_req_running') {
-        map['handoverLocationLabel'] = 'Boxi, Berlin';
-        map['returnLocationLabel'] = 'Gleisdreieck';
-      }
-      maps.add(map);
-    }
-    return maps;
   }
 
   Future<Map<String, dynamic>> _toBookingMap(RentalRequest r, Item it, model.User? owner, Map<String, dynamic>? deliverySel, {required String reviewerId}) async {

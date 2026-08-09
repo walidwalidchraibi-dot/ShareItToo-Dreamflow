@@ -21,6 +21,7 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/messages_settings_service.dart';
+import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/services/local_artifact_storage_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_image.dart';
@@ -220,7 +221,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       final requestedThreadId = (widget.threadId ?? '').trim();
       final me = await DataService.getCurrentUser();
 
-      if (requestedThreadId == _translationDemoThreadId) {
+      if (requestedThreadId == _translationDemoThreadId &&
+          QaRuntimeService.isEnabled) {
         final demo = _buildTranslationDemoState(me);
         final rawSettings = await MessagesSettingsService.get();
         final normalizedSettings = _normalizeTranslationDefaults(rawSettings);

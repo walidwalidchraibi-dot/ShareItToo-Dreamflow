@@ -60,6 +60,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Map<String, String> _coarseByCatId = {};
   Map<String, model.User> _usersById = {};
   bool _isLoading = true;
+  String? _catalogError;
   String? _currentUserName;
   String? _currentUserCity;
   Set<String> _savedIds = {};
@@ -182,6 +183,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Future<void> _loadData() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _catalogError = null;
+      });
+    }
     try {
       final items = await DataService.getPublicItems();
       final categories = await DataService.getCategories();
@@ -191,43 +198,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final saved = await DataService.getSavedItemIds();
       final hiddenIds = await ListingFeedbackService.getHiddenItemIds();
       final hasRealSession = session != null;
-
-// Build extra curated items with unique images for Guests row
-      List<Item> buildExtras(int count, String seedPrefix) {
-        final berlin = DataService.getCities()['Berlin'] ?? (52.52, 13.405);
-        final owner = users.isNotEmpty ? users.first : null;
-        final rnd = Random(seedPrefix.hashCode);
-        return [
-          for (int i = 0; i < count; i++)
-            Item(
-              id: '${seedPrefix}_$i',
-              ownerId: owner?.id ?? 'u1',
-              title: 'Neu ${i + 1}',
-              description: 'Frisch eingestellt in Berlin',
-              categoryId: categories.isNotEmpty
-                  ? categories[rnd.nextInt(categories.length)].id
-                  : 'cat1',
-              subcategory: 'Highlights',
-              tags: const ['highlight', 'neu'],
-              pricePerDay: 10 + rnd.nextInt(60) + rnd.nextDouble(),
-              currency: 'EUR',
-              deposit: null,
-              photos: ['https://picsum.photos/seed/${seedPrefix}_$i/800/800'],
-              locationText: 'Berlin-Mitte',
-              lat: berlin.$1,
-              lng: berlin.$2,
-              geohash: 'u130f$i',
-              condition: 'new',
-              minDays: null,
-              maxDays: 7,
-              createdAt: DateTime.now().subtract(Duration(hours: i)),
-              isActive: true,
-              verificationStatus: 'approved',
-              city: 'Berlin',
-              country: 'Deutschland',
-            )
-        ];
-      }
 
 // No extra fillers for the five-item showcase
       final extrasGuests = <Item>[];
@@ -257,7 +227,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
         });
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _catalogError = 'Anzeigen konnten nicht geladen werden.';
+      });
     }
   }
 
@@ -745,362 +719,388 @@ class _ExploreScreenState extends State<ExploreScreen> {
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
-            : LayoutBuilder(builder: (context, constraints) {
-                final width = constraints.maxWidth;
-                final isTablet = width >= 600 && width < 900;
-                final isDesktop = width >= 900;
-
-                // Guests row: keep previous style
-                const guestsViewportFraction = 0.24; // ~24–25%
-                final guestsRowHeight =
-                    width * guestsViewportFraction; // 1:1 tile
-
-                Widget feedPage(
-                    {required String title, required List<Item> items}) {
-                  final l10n = context.watch<LocalizationController>();
-                  final activeCategories = (_filters?['categories'] as List?)
-                          ?.whereType<String>()
-                          .toList() ??
-                      const <String>[];
-                  final showingCategoryResults = activeCategories.isNotEmpty;
-                  return CustomScrollView(
-                    // Each page scrolls vertically on its own.
-                    slivers: [
-                      SliverToBoxAdapter(
-                        child: _SectionHeader(
-                          title: title,
-                          // Keep the title very close to the pinned categories row.
-                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-                        ),
+            : _catalogError != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.cloud_off_outlined, size: 44),
+                          const SizedBox(height: 12),
+                          Text(_catalogError!, textAlign: TextAlign.center),
+                          const SizedBox(height: 12),
+                          FilledButton.icon(
+                            onPressed: _loadData,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Erneut versuchen'),
+                          ),
+                        ],
                       ),
-                      if (items.isNotEmpty && !showingCategoryResults)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: 14),
-                            child: LayoutBuilder(builder: (context, c) {
-                              // 2 full cards + 25% of the next card.
-                              const sidePad = 16.0;
-                              const gap = 10.0;
-                              final viewport = c.maxWidth;
-                              final cardW =
-                                  (viewport - sidePad * 2 - gap * 2) / 3;
-                              // Keep the featured (upper) cards compact.
-                              // Image is 4:3 => height = width * 3/4.
-                              // Tighten the horizontal featured cards so they end right under the price.
-                              // Image is 4:3 => height = width * 3/4.
-                              // Content below image is intentionally compact.
-                              final cardH = cardW * (3 / 4) + 84;
-                              final featured = items.take(10).toList();
-                              return SizedBox(
-                                height: cardH,
-                                child: ListView.separated(
-                                  padding: const EdgeInsets.fromLTRB(
-                                      sidePad, 0, sidePad, 0),
-                                  scrollDirection: Axis.horizontal,
-                                  physics: const BouncingScrollPhysics(),
-                                  itemBuilder: (context, i) {
-                                    final it = featured[i];
-                                    final isFav = _savedIds.contains(it.id);
-                                    final dist = _distanceFromUserKm(it);
-                                    return SizedBox(
-                                      width: cardW,
-                                      child: LongPressFeedbackWrapper(
-                                        child: InkWell(
-                                          onTap: () =>
-                                              ItemDetailsOverlay.showFullPage(
-                                                  context,
-                                                  item: it,
-                                                  fresh: true),
-                                          onLongPress: () =>
-                                              showListingOptionsDialog(
-                                                  context,
-                                                  item: it,
-                                                  contextType:
-                                                      ListingOptionsContext
-                                                          .explore,
-                                                  onWishlistChanged: _loadData,
-                                                  onVisibilityChanged:
-                                                      _loadData),
-                                          splashColor: Colors.transparent,
-                                          highlightColor: Colors.transparent,
-                                          child: ListingCarouselCard(
-                                            item: it,
-                                            isFavorite: isFav,
-                                            onFavoriteToggle: () =>
-                                                _toggleFavorite(it.id),
-                                            distanceKm: dist,
+                    ),
+                  )
+                : LayoutBuilder(builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    final isTablet = width >= 600 && width < 900;
+                    final isDesktop = width >= 900;
+
+                    // Guests row: keep previous style
+                    const guestsViewportFraction = 0.24; // ~24–25%
+                    final guestsRowHeight =
+                        width * guestsViewportFraction; // 1:1 tile
+
+                    Widget feedPage(
+                        {required String title, required List<Item> items}) {
+                      final l10n = context.watch<LocalizationController>();
+                      final activeCategories =
+                          (_filters?['categories'] as List?)
+                                  ?.whereType<String>()
+                                  .toList() ??
+                              const <String>[];
+                      final showingCategoryResults =
+                          activeCategories.isNotEmpty;
+                      return CustomScrollView(
+                        // Each page scrolls vertically on its own.
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: _SectionHeader(
+                              title: title,
+                              // Keep the title very close to the pinned categories row.
+                              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                            ),
+                          ),
+                          if (items.isNotEmpty && !showingCategoryResults)
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 14),
+                                child: LayoutBuilder(builder: (context, c) {
+                                  // 2 full cards + 25% of the next card.
+                                  const sidePad = 16.0;
+                                  const gap = 10.0;
+                                  final viewport = c.maxWidth;
+                                  final cardW =
+                                      (viewport - sidePad * 2 - gap * 2) / 3;
+                                  // Keep the featured (upper) cards compact.
+                                  // Image is 4:3 => height = width * 3/4.
+                                  // Tighten the horizontal featured cards so they end right under the price.
+                                  // Image is 4:3 => height = width * 3/4.
+                                  // Content below image is intentionally compact.
+                                  final cardH = cardW * (3 / 4) + 84;
+                                  final featured = items.take(10).toList();
+                                  return SizedBox(
+                                    height: cardH,
+                                    child: ListView.separated(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          sidePad, 0, sidePad, 0),
+                                      scrollDirection: Axis.horizontal,
+                                      physics: const BouncingScrollPhysics(),
+                                      itemBuilder: (context, i) {
+                                        final it = featured[i];
+                                        final isFav = _savedIds.contains(it.id);
+                                        final dist = _distanceFromUserKm(it);
+                                        return SizedBox(
+                                          width: cardW,
+                                          child: LongPressFeedbackWrapper(
+                                            child: InkWell(
+                                              onTap: () => ItemDetailsOverlay
+                                                  .showFullPage(context,
+                                                      item: it, fresh: true),
+                                              onLongPress: () =>
+                                                  showListingOptionsDialog(
+                                                      context,
+                                                      item: it,
+                                                      contextType:
+                                                          ListingOptionsContext
+                                                              .explore,
+                                                      onWishlistChanged:
+                                                          _loadData,
+                                                      onVisibilityChanged:
+                                                          _loadData),
+                                              splashColor: Colors.transparent,
+                                              highlightColor:
+                                                  Colors.transparent,
+                                              child: ListingCarouselCard(
+                                                item: it,
+                                                isFavorite: isFav,
+                                                onFavoriteToggle: () =>
+                                                    _toggleFavorite(it.id),
+                                                distanceKm: dist,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      separatorBuilder: (_, __) =>
+                                          const SizedBox(width: gap),
+                                      itemCount: featured.length,
+                                    ),
+                                  );
+                                }),
+                              ),
+                            ),
+                          if (items.isEmpty)
+                            SliverFillRemaining(
+                              hasScrollBody: false,
+                              child: Center(
+                                child: Text(
+                                  l10n.t('Keine Anzeigen gefunden'),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(color: Colors.white70),
+                                ),
+                              ),
+                            )
+                          else
+                            SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 24, 32),
+                              sliver: SliverGrid(
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount:
+                                      isDesktop ? 4 : (isTablet ? 3 : 2),
+                                  mainAxisSpacing: 12,
+                                  crossAxisSpacing: 12,
+                                  // Make cards more compact vertically so the tile ends right below
+                                  // the price row (matching "Meine Anzeigen" density).
+                                  // Higher ratio => less height for the same width.
+                                  // Tuned to remove the remaining bottom "air" under "Preis pro Tag".
+                                  // Slightly higher ratio => slightly less tile height (tighter bottom edge).
+                                  // 4:3 image + trust row + price rows.
+                                  // Slightly taller on phones to avoid bottom overflows in tight grid tiles
+                                  // (e.g., with larger textScaleFactor).
+                                  childAspectRatio:
+                                      _exploreListingChildAspectRatio(context,
+                                          isDesktop: isDesktop,
+                                          isTablet: isTablet),
+                                ),
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    final item = items[index];
+                                    final isFav = _savedIds.contains(item.id);
+                                    return _ExploreListingCard(
+                                      item: item,
+                                      isFavorite: isFav,
+                                      onFavoriteToggle: () =>
+                                          _toggleFavorite(item.id),
+                                      distanceKm: _distanceFromUserKm(item),
+                                    );
+                                  },
+                                  childCount: items.length,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    }
+
+                    return NestedScrollView(
+                      controller: _scrollController,
+                      headerSliverBuilder: (context, innerBoxIsScrolled) {
+                        return [
+                          const SliverToBoxAdapter(child: SizedBox(height: 0)),
+
+// New Header with greeting and rotating logo
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                              child: Builder(builder: (context) {
+                                final l10n =
+                                    context.watch<LocalizationController>();
+                                final hasRealUserName =
+                                    (_currentUserName ?? '').trim().isNotEmpty;
+                                final greeting = hasRealUserName
+                                    ? 'Hi ${_currentUserName!.trim().split(' ').first}! 👋'
+                                    : l10n.t('Hallo 👋');
+                                final primaryText =
+                                    AppTheme.textPrimary(context);
+                                final secondaryText =
+                                    AppTheme.textSecondary(context);
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: InkWell(
+                                        onTap: () {
+                                          context
+                                              .read<MainNavController>()
+                                              .setIndex(4);
+                                        },
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 4),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                greeting,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .headlineSmall
+                                                    ?.copyWith(
+                                                        color: primaryText,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 24),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(children: [
+                                                InkWell(
+                                                  onTap: _openLocationUpdate,
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            4.0),
+                                                    child: Icon(
+                                                        Icons.location_on,
+                                                        size: 16,
+                                                        color: secondaryText),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  _currentUserCity ??
+                                                      'Nicht verfügbar',
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodyMedium
+                                                      ?.copyWith(
+                                                          color: secondaryText,
+                                                          fontSize: 14),
+                                                ),
+                                              ]),
+                                            ],
                                           ),
                                         ),
                                       ),
-                                    );
-                                  },
-                                  separatorBuilder: (_, __) =>
-                                      const SizedBox(width: gap),
-                                  itemCount: featured.length,
-                                ),
-                              );
-                            }),
-                          ),
-                        ),
-                      if (items.isEmpty)
-                        SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: Center(
-                            child: Text(
-                              l10n.t('Keine Anzeigen gefunden'),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(color: Colors.white70),
+                                    ),
+                                    GestureDetector(
+                                      onTap: null,
+                                      behavior: HitTestBehavior.opaque,
+                                      child: Transform.translate(
+                                          offset: const Offset(0, 4),
+                                          child: _HoverSpinAppLogo(size: 48)),
+                                    ),
+                                  ],
+                                );
+                              }),
                             ),
                           ),
-                        )
-                      else
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 24, 32),
-                          sliver: SliverGrid(
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount:
-                                  isDesktop ? 4 : (isTablet ? 3 : 2),
-                              mainAxisSpacing: 12,
-                              crossAxisSpacing: 12,
-                              // Make cards more compact vertically so the tile ends right below
-                              // the price row (matching "Meine Anzeigen" density).
-                              // Higher ratio => less height for the same width.
-                              // Tuned to remove the remaining bottom "air" under "Preis pro Tag".
-                              // Slightly higher ratio => slightly less tile height (tighter bottom edge).
-                              // 4:3 image + trust row + price rows.
-                              // Slightly taller on phones to avoid bottom overflows in tight grid tiles
-                              // (e.g., with larger textScaleFactor).
-                              childAspectRatio: _exploreListingChildAspectRatio(
-                                  context,
-                                  isDesktop: isDesktop,
-                                  isTablet: isTablet),
-                            ),
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                final item = items[index];
-                                final isFav = _savedIds.contains(item.id);
-                                return _ExploreListingCard(
-                                  item: item,
-                                  isFavorite: isFav,
-                                  onFavoriteToggle: () =>
-                                      _toggleFavorite(item.id),
-                                  distanceKm: _distanceFromUserKm(item),
+
+                          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                          SliverToBoxAdapter(
+                            child: SearchHeader(
+                              onFiltersPressed: () async {
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const OwnerRequestsScreen(
+                                        initialTabIndex: 2),
+                                  ),
                                 );
                               },
-                              childCount: items.length,
+                              onSearchTap: _openSearch,
+                              onListingCreated: _handleListingCreated,
                             ),
                           ),
-                        ),
-                    ],
-                  );
-                }
 
-                return NestedScrollView(
-                  controller: _scrollController,
-                  headerSliverBuilder: (context, innerBoxIsScrolled) {
-                    return [
-                      const SliverToBoxAdapter(child: SizedBox(height: 0)),
-
-// New Header with greeting and rotating logo
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                          child: Builder(builder: (context) {
-                            final l10n =
-                                context.watch<LocalizationController>();
-                            final hasRealUserName =
-                                (_currentUserName ?? '').trim().isNotEmpty;
-                            final greeting = hasRealUserName
-                                ? 'Hi ${_currentUserName!.trim().split(' ').first}! 👋'
-                                : l10n.t('Hallo 👋');
-                            final primaryText = AppTheme.textPrimary(context);
-                            final secondaryText =
-                                AppTheme.textSecondary(context);
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: InkWell(
-                                    onTap: () {
-                                      context
-                                          .read<MainNavController>()
-                                          .setIndex(4);
-                                    },
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 4),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            greeting,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .headlineSmall
-                                                ?.copyWith(
-                                                    color: primaryText,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 24),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Row(children: [
-                                            InkWell(
-                                              onTap: _openLocationUpdate,
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.all(4.0),
-                                                child: Icon(Icons.location_on,
-                                                    size: 16,
-                                                    color: secondaryText),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              _currentUserCity ??
-                                                  'Nicht verfügbar',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyMedium
-                                                  ?.copyWith(
-                                                      color: secondaryText,
-                                                      fontSize: 14),
-                                            ),
-                                          ]),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: null,
-                                  behavior: HitTestBehavior.opaque,
-                                  child: Transform.translate(
-                                      offset: const Offset(0, 4),
-                                      child: _HoverSpinAppLogo(size: 48)),
-                                ),
-                              ],
-                            );
-                          }),
-                        ),
-                      ),
-
-                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                      SliverToBoxAdapter(
-                        child: SearchHeader(
-                          onFiltersPressed: () async {
-                            await Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const OwnerRequestsScreen(
-                                    initialTabIndex: 2),
-                              ),
-                            );
-                          },
-                          onSearchTap: _openSearch,
-                          onListingCreated: _handleListingCreated,
-                        ),
-                      ),
-
-                      SliverPersistentHeader(
-                        pinned: true,
-                        delegate: PinnedCategoriesHeader(
-                          builder: (context) {
-                            final l10n =
-                                context.watch<LocalizationController>();
-                            final localized = _homeCategories
-                                .map((e) => CategoryIconDataModel(
-                                    id: e.id,
-                                    icon: e.icon,
-                                    label: l10n.t(e.label)))
-                                .toList();
-                            return Container(
-                              color: Colors.transparent,
-                              child: CategoryIconRow(
-                                categories: localized,
-                                onSelected: (c) async {
+                          SliverPersistentHeader(
+                            pinned: true,
+                            delegate: PinnedCategoriesHeader(
+                              builder: (context) {
+                                final l10n =
+                                    context.watch<LocalizationController>();
+                                final localized = _homeCategories
+                                    .map((e) => CategoryIconDataModel(
+                                        id: e.id,
+                                        icon: e.icon,
+                                        label: l10n.t(e.label)))
+                                    .toList();
+                                return Container(
+                                  color: Colors.transparent,
+                                  child: CategoryIconRow(
+                                    categories: localized,
+                                    onSelected: (c) async {
 // Apply immediately without confirmation popup
-                                  if (!mounted) return;
-                                  setState(() => _filters = {
-                                        ...?_filters,
-                                        'categories': [c.id]
+                                      if (!mounted) return;
+                                      setState(() => _filters = {
+                                            ...?_filters,
+                                            'categories': [c.id]
+                                          });
+                                      AppPopup.toast(context,
+                                          icon: Icons.filter_alt_outlined,
+                                          title:
+                                              '${l10n.t('Gefiltert nach:')} ${c.label}',
+                                          duration: const Duration(seconds: 1));
+                                    },
+                                    onAllCategoriesTap: () {
+                                      setState(() {
+                                        if (_filters == null) {
+                                          _filters = {};
+                                        }
+                                        final f = Map<String, dynamic>.from(
+                                            _filters!);
+                                        f.remove('categories');
+                                        _filters = f;
                                       });
-                                  AppPopup.toast(context,
-                                      icon: Icons.filter_alt_outlined,
-                                      title:
-                                          '${l10n.t('Gefiltert nach:')} ${c.label}',
-                                      duration: const Duration(seconds: 1));
-                                },
-                                onAllCategoriesTap: () {
-                                  setState(() {
-                                    if (_filters == null) {
-                                      _filters = {};
-                                    }
-                                    final f =
-                                        Map<String, dynamic>.from(_filters!);
-                                    f.remove('categories');
-                                    _filters = f;
-                                  });
-                                  final l10n =
-                                      context.read<LocalizationController>();
-                                  AppPopup.toast(context,
-                                      icon: Icons.category_outlined,
-                                      title: l10n.t('Alle Kategorien'),
-                                      duration: const Duration(seconds: 1));
-                                },
-                              ),
-                            );
-                          },
+                                      final l10n = context
+                                          .read<LocalizationController>();
+                                      AppPopup.toast(context,
+                                          icon: Icons.category_outlined,
+                                          title: l10n.t('Alle Kategorien'),
+                                          duration: const Duration(seconds: 1));
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SliverToBoxAdapter(child: SizedBox(height: 0)),
+
+                          // Keep the feed visually tight to the pinned categories row.
+                          const SliverToBoxAdapter(child: SizedBox(height: 0)),
+                        ];
+                      },
+                      body: ScrollEdgeIndicators.page(
+                        controller: _feedPager,
+                        pageCount: 4,
+                        showLeft: true,
+                        showRight: true,
+                        showArrows: false,
+                        // Keep the fade aligned with the page-title area.
+                        arrowsTop: 6,
+                        child: PageView(
+                          controller: _feedPager,
+                          physics: const BouncingScrollPhysics(),
+                          children: [
+                            feedPage(
+                                title: context
+                                    .watch<LocalizationController>()
+                                    .t('Am meisten gebucht'),
+                                items: topBooked),
+                            feedPage(
+                                title: context
+                                    .watch<LocalizationController>()
+                                    .t('Neue Angebote'),
+                                items: neueQuelle),
+                            feedPage(
+                                title: context
+                                    .watch<LocalizationController>()
+                                    .t('In der Nähe von dir'),
+                                items: nearYou),
+                            feedPage(
+                                title: context
+                                    .watch<LocalizationController>()
+                                    .t('Kunden gefällt auch'),
+                                items: customersLike),
+                          ],
                         ),
                       ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 0)),
-
-                      // Keep the feed visually tight to the pinned categories row.
-                      const SliverToBoxAdapter(child: SizedBox(height: 0)),
-                    ];
-                  },
-                  body: ScrollEdgeIndicators.page(
-                    controller: _feedPager,
-                    pageCount: 4,
-                    showLeft: true,
-                    showRight: true,
-                    showArrows: false,
-                    // Keep the fade aligned with the page-title area.
-                    arrowsTop: 6,
-                    child: PageView(
-                      controller: _feedPager,
-                      physics: const BouncingScrollPhysics(),
-                      children: [
-                        feedPage(
-                            title: context
-                                .watch<LocalizationController>()
-                                .t('Am meisten gebucht'),
-                            items: topBooked),
-                        feedPage(
-                            title: context
-                                .watch<LocalizationController>()
-                                .t('Neue Angebote'),
-                            items: neueQuelle),
-                        feedPage(
-                            title: context
-                                .watch<LocalizationController>()
-                                .t('In der Nähe von dir'),
-                            items: nearYou),
-                        feedPage(
-                            title: context
-                                .watch<LocalizationController>()
-                                .t('Kunden gefällt auch'),
-                            items: customersLike),
-                      ],
-                    ),
-                  ),
-                );
-              }),
+                    );
+                  }),
       ),
     );
   }
@@ -1115,11 +1115,11 @@ class _SectionHeader extends StatelessWidget {
     final effectivePadding =
         padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8);
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-      fontWeight: FontWeight.w600,
-      fontSize: 18,
-      color: AppTheme.textPrimary(context),
-      letterSpacing: -0.2,
-    );
+          fontWeight: FontWeight.w600,
+          fontSize: 18,
+          color: AppTheme.textPrimary(context),
+          letterSpacing: -0.2,
+        );
 
     return Padding(
       padding: effectivePadding,
@@ -1546,7 +1546,7 @@ class _SquareItemCardState extends State<_SquareItemCard> {
                   return AppImage(
                     url: widget.item.photos.isNotEmpty
                         ? widget.item.photos.first
-                        : 'https://picsum.photos/seed/fallback_1/800/800',
+                        : '',
                     fit: BoxFit.cover,
                     // cacheWidth ignored by AppImage; kept simple
                   );
@@ -1731,7 +1731,7 @@ class _SmallScrollCardState extends State<_SmallScrollCard> {
                     return AppImage(
                       url: widget.item.photos.isNotEmpty
                           ? widget.item.photos.first
-                          : 'https://picsum.photos/seed/fallback_2/600/600',
+                          : '',
                       fit: BoxFit.cover,
                     );
                   }),
@@ -1919,7 +1919,7 @@ class _SmallGridCardState extends State<_SmallGridCard> {
                     return AppImage(
                       url: widget.item.photos.isNotEmpty
                           ? widget.item.photos.first
-                          : 'https://picsum.photos/seed/fallback_3/600/600',
+                          : '',
                       fit: BoxFit.cover,
                     );
                   }),
@@ -2095,10 +2095,15 @@ class _ExploreListingCardContent extends StatelessWidget {
     final derivedRating = _deriveStableListingRating(item);
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
     final titleColor = isDark ? Colors.white : AppTheme.textPrimary(context);
-    final metaColor = isDark ? Colors.white.withValues(alpha: 0.86) : AppTheme.textSecondary(context);
-    final metaIconColor = isDark ? Colors.white70 : AppTheme.textSecondary(context);
+    final metaColor = isDark
+        ? Colors.white.withValues(alpha: 0.86)
+        : AppTheme.textSecondary(context);
+    final metaIconColor =
+        isDark ? Colors.white70 : AppTheme.textSecondary(context);
     final priceColor = isDark ? Colors.white : AppTheme.textPrimary(context);
-    final priceSuffixColor = isDark ? Colors.white.withValues(alpha: 0.80) : AppTheme.textSecondary(context);
+    final priceSuffixColor = isDark
+        ? Colors.white.withValues(alpha: 0.80)
+        : AppTheme.textSecondary(context);
 
     const String? highlight = null;
 
@@ -2137,9 +2142,7 @@ class _ExploreListingCardContent extends StatelessWidget {
               aspectRatio: 1.55,
               child: Stack(fit: StackFit.expand, children: [
                 AppImage(
-                    url: item.photos.isNotEmpty
-                        ? item.photos.first
-                        : 'https://picsum.photos/seed/explore_listing/1200/900',
+                    url: item.photos.isNotEmpty ? item.photos.first : '',
                     fit: BoxFit.cover),
                 Positioned(
                   left: 0,
@@ -2260,8 +2263,7 @@ class _ExploreListingCardContent extends StatelessWidget {
                                     const iconSize = 12.0;
                                     return Row(children: [
                                       Icon(Icons.place_outlined,
-                                          size: iconSize,
-                                          color: metaIconColor),
+                                          size: iconSize, color: metaIconColor),
                                       const SizedBox(width: 3),
                                       Text(
                                           distanceKm == null
@@ -2270,8 +2272,7 @@ class _ExploreListingCardContent extends StatelessWidget {
                                           style: style),
                                       const SizedBox(width: 6),
                                       Icon(Icons.loop,
-                                          size: iconSize,
-                                          color: metaIconColor),
+                                          size: iconSize, color: metaIconColor),
                                       const SizedBox(width: 3),
                                       Text(
                                           '${item.timesLent.clamp(0, 999)} ${l10n.t('Vermietungen')}',
@@ -2292,7 +2293,8 @@ class _ExploreListingCardContent extends StatelessWidget {
                                     alignment: Alignment.centerLeft,
                                     child: Text(
                                         '${item.pricePerDay.toStringAsFixed(0)} €',
-                                        style: theme.textTheme.titleMedium?.copyWith(
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
                                           color: priceColor,
                                           fontWeight: FontWeight.w700,
                                         )),
@@ -2302,7 +2304,8 @@ class _ExploreListingCardContent extends StatelessWidget {
                                 Padding(
                                   padding: const EdgeInsets.only(bottom: 1),
                                   child: Text('/ ${l10n.t('Tag')}',
-                                      style: theme.textTheme.bodySmall?.copyWith(
+                                      style:
+                                          theme.textTheme.bodySmall?.copyWith(
                                         color: priceSuffixColor,
                                         fontWeight: FontWeight.w500,
                                       )),
@@ -2409,7 +2412,7 @@ class _SquareTitleOnlyCardState extends State<_SquareTitleOnlyCard> {
                   return AppImage(
                     url: widget.item.photos.isNotEmpty
                         ? widget.item.photos.first
-                        : 'https://picsum.photos/seed/titleonly/800/800',
+                        : '',
                     fit: BoxFit.cover,
                   );
                 }),

@@ -19,7 +19,12 @@ class ItemCard extends StatelessWidget {
   final ListingOptionsContext? longPressContext;
   final VoidCallback? onContextActionCompleted;
 
-  const ItemCard({super.key, required this.item, this.compact = false, this.longPressContext, this.onContextActionCompleted});
+  const ItemCard(
+      {super.key,
+      required this.item,
+      this.compact = false,
+      this.longPressContext,
+      this.onContextActionCompleted});
 
   static double recommendedGridChildAspectRatio(
     BuildContext context, {
@@ -65,134 +70,163 @@ class ItemCard extends StatelessWidget {
     return LongPressFeedbackWrapper(
       child: InkWell(
         onTap: () => ItemDetailsOverlay.showFullPage(context, item: item),
-        onLongPress: longPressContext == null ? null : () => showListingOptionsDialog(context, item: item, contextType: longPressContext!, onWishlistChanged: onContextActionCompleted),
+        onLongPress: longPressContext == null
+            ? null
+            : () => showListingOptionsDialog(context,
+                item: item,
+                contextType: longPressContext!,
+                onWishlistChanged: onContextActionCompleted),
         borderRadius: BorderRadius.circular(16),
         mouseCursor: SystemMouseCursors.basic,
         child: Card(
-        elevation: 2,
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: LayoutBuilder(builder: (context, constraints) {
-          final width =
-              constraints.maxWidth.isFinite ? constraints.maxWidth : 180.0;
-          final maxHeight = constraints.maxHeight.isFinite
-              ? constraints.maxHeight
-              : (width * 1.24);
-          final reservedTextHeight = compact ? 58.0 : 68.0;
-          final preferredImageH = width * 0.72;
-          final imageH = preferredImageH.clamp(0.0,
-              (maxHeight - reservedTextHeight).clamp(84.0, preferredImageH));
-          final iconSize = (imageH * 0.10).clamp(16.0, 22.0);
-          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            SizedBox(
-              height: imageH,
-              width: double.infinity,
-              child: Stack(children: [
-                Positioned.fill(
-                  child: AppImage(
-                    url: item.photos.isNotEmpty ? item.photos.first : 'https://picsum.photos/seed/item_card_fallback/800/800',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                // Verified badge on the LEFT
-                FutureBuilder<model.User?>(
-                  future: DataService.getUserById(item.ownerId),
-                  builder: (context, snap) {
-                    final verified = snap.data?.isVerified == true;
-                    return Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: EdgeInsets.all(iconSize * 0.35),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          verified ? Icons.verified : Icons.verified_outlined,
-                          size: iconSize,
-                          color: verified ? BrandColors.success : Colors.black45,
+          elevation: 2,
+          clipBehavior: Clip.antiAlias,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: LayoutBuilder(builder: (context, constraints) {
+            final width =
+                constraints.maxWidth.isFinite ? constraints.maxWidth : 180.0;
+            final maxHeight = constraints.maxHeight.isFinite
+                ? constraints.maxHeight
+                : (width * 1.24);
+            final reservedTextHeight = compact ? 58.0 : 68.0;
+            final preferredImageH = width * 0.72;
+            final imageH = preferredImageH.clamp(0.0,
+                (maxHeight - reservedTextHeight).clamp(84.0, preferredImageH));
+            final iconSize = (imageH * 0.10).clamp(16.0, 22.0);
+            return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: imageH,
+                    width: double.infinity,
+                    child: Stack(children: [
+                      Positioned.fill(
+                        child: AppImage(
+                          url: item.photos.isNotEmpty ? item.photos.first : '',
+                          fit: BoxFit.cover,
                         ),
                       ),
-                    );
-                  },
-                ),
-                // Wishlist heart on the RIGHT (manual selection flow)
-                Positioned(top: 8, right: 5, child: _WishlistHeartButton(itemId: item.id, size: iconSize)),
-
-                // Rating badge bottom-right on image
-                Positioned(
-                  right: 8,
-                  bottom: 8,
-                  child: RatingBadge(rating: _deriveRating(item)),
-                ),
-              ]),
-            ),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(compact ? 9 : 10,
-                    compact ? 8 : 9, compact ? 9 : 10, compact ? 6 : 7),
-                child: LayoutBuilder(
-                  builder: (context, textConstraints) {
-                    final body = Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          item.title,
-                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
-                          maxLines: compact ? 1 : 2,
-                          overflow: TextOverflow.ellipsis,
-                          softWrap: true,
-                        ),
-                        const SizedBox(height: 1),
-                        Text(
-                          item.city,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.72), fontSize: 12),
-                        ),
-                        SizedBox(height: compact ? 2 : 3),
-                        Builder(
-                          builder: (context) {
-                            final unit = item.priceUnit;
-                            final raw = item.priceRaw;
-                            final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
-                            return Text(
-                              'Preis: ${raw.toStringAsFixed(0)} $suffix',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Theme.of(context).colorScheme.onSurface,
+                      // Verified badge on the LEFT
+                      FutureBuilder<model.User?>(
+                        future: DataService.getUserById(item.ownerId),
+                        builder: (context, snap) {
+                          final verified = snap.data?.isVerified == true;
+                          return Positioned(
+                            top: 8,
+                            left: 8,
+                            child: Container(
+                              padding: EdgeInsets.all(iconSize * 0.35),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
                               ),
-                            );
-                          },
-                        ),
-                      ],
-                    );
-
-                    return Align(
-                      alignment: Alignment.topLeft,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.topLeft,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minWidth: textConstraints.maxWidth,
-                            maxWidth: textConstraints.maxWidth,
-                          ),
-                          child: body,
-                        ),
+                              child: Icon(
+                                verified
+                                    ? Icons.verified
+                                    : Icons.verified_outlined,
+                                size: iconSize,
+                                color: verified
+                                    ? BrandColors.success
+                                    : Colors.black45,
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ]);
-        }),
+                      // Wishlist heart on the RIGHT (manual selection flow)
+                      Positioned(
+                          top: 8,
+                          right: 5,
+                          child: _WishlistHeartButton(
+                              itemId: item.id, size: iconSize)),
+
+                      // Rating badge bottom-right on image
+                      Positioned(
+                        right: 8,
+                        bottom: 8,
+                        child: RatingBadge(rating: _deriveRating(item)),
+                      ),
+                    ]),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(compact ? 9 : 10,
+                          compact ? 8 : 9, compact ? 9 : 10, compact ? 6 : 7),
+                      child: LayoutBuilder(
+                        builder: (context, textConstraints) {
+                          final body = Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                item.title,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface),
+                                maxLines: compact ? 1 : 2,
+                                overflow: TextOverflow.ellipsis,
+                                softWrap: true,
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                item.city,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.72),
+                                    fontSize: 12),
+                              ),
+                              SizedBox(height: compact ? 2 : 3),
+                              Builder(
+                                builder: (context) {
+                                  final unit = item.priceUnit;
+                                  final raw = item.priceRaw;
+                                  final suffix =
+                                      unit == 'week' ? '€/Woche' : '€/Tag';
+                                  return Text(
+                                    'Preis: ${raw.toStringAsFixed(0)} $suffix',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          );
+
+                          return Align(
+                            alignment: Alignment.topLeft,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.topLeft,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minWidth: textConstraints.maxWidth,
+                                  maxWidth: textConstraints.maxWidth,
+                                ),
+                                child: body,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ]);
+          }),
         ),
       ),
     );
@@ -221,11 +255,16 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
   Future<void> _load() async {
     try {
       final id = await DataService.getWishlistForItem(widget.itemId);
-      setState(() { listId = id; });
+      setState(() {
+        listId = id;
+      });
     } catch (e) {
       debugPrint('[ItemCard] load wishlist state failed: ' + e.toString());
     } finally {
-      if (mounted) setState(() { _loading = false; });
+      if (mounted)
+        setState(() {
+          _loading = false;
+        });
     }
   }
 
@@ -236,9 +275,12 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
       final sel = await WishlistSelectionSheet.showAdd(context);
       if (sel != null && sel.isNotEmpty) {
         await DataService.setItemWishlist(widget.itemId, sel);
-        setState(() { listId = sel; });
+        setState(() {
+          listId = sel;
+        });
         final l10n = context.read<LocalizationController>();
-        AppPopup.toast(context, icon: Icons.favorite, title: l10n.t('Zur Wunschliste hinzugefügt'));
+        AppPopup.toast(context,
+            icon: Icons.favorite, title: l10n.t('Zur Wunschliste hinzugefügt'));
       }
       return;
     }
@@ -246,14 +288,21 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
     // the wishlist selection (blurred background, glass card)
     final choice = await WishlistSelectionSheet.showManageOptions(context);
     if (choice == 'move') {
-      final sel = await WishlistSelectionSheet.showMove(context, currentListId: listId!);
+      final sel = await WishlistSelectionSheet.showMove(context,
+          currentListId: listId!);
       if (sel != null && sel.isNotEmpty) {
         await DataService.setItemWishlist(widget.itemId, sel);
-        if (mounted) setState(() { listId = sel; });
+        if (mounted)
+          setState(() {
+            listId = sel;
+          });
       }
     } else if (choice == 'remove') {
       await DataService.removeItemFromWishlist(widget.itemId);
-      if (mounted) setState(() { listId = null; });
+      if (mounted)
+        setState(() {
+          listId = null;
+        });
     }
   }
 
@@ -273,4 +322,3 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
     );
   }
 }
-

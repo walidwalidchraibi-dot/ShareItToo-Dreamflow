@@ -18,7 +18,12 @@ class SearchResultsScreen extends StatefulWidget {
   /// If null, the screen cannot sort by distance.
   final ({double lat, double lng})? originCoords;
 
-  const SearchResultsScreen({super.key, required this.queryText, required this.results, this.dateText, this.originCoords});
+  const SearchResultsScreen(
+      {super.key,
+      required this.queryText,
+      required this.results,
+      this.dateText,
+      this.originCoords});
 
   @override
   State<SearchResultsScreen> createState() => _SearchResultsScreenState();
@@ -47,7 +52,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   Future<void> _init() async {
     final saved = await DataService.getSavedItemIds();
     final cats = await DataService.getCategories();
-    final coarseMap = <String, String>{for (final c in cats) c.id: DataService.coarseCategoryFor(c.name)};
+    final coarseMap = <String, String>{
+      for (final c in cats) c.id: DataService.coarseCategoryFor(c.name)
+    };
     if (!mounted) return;
     setState(() {
       _savedIds = saved;
@@ -72,7 +79,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     } else {
       final choice = await WishlistSelectionSheet.showManageOptions(context);
       if (choice == 'move') {
-        final sel = await WishlistSelectionSheet.showMove(context, currentListId: current);
+        final sel = await WishlistSelectionSheet.showMove(context,
+            currentListId: current);
         if (sel != null && sel.isNotEmpty) {
           await DataService.setItemWishlist(id, sel);
         }
@@ -92,15 +100,18 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     final String priceUnit = f['priceUnit'] ?? 'day';
     final bool verifiedOnly = f['verified'] == true;
     final String condition = (f['condition'] as String?) ?? 'egal';
-    final List<String> catGroups = (f['categories'] as List<String>?) ?? const [];
+    final List<String> catGroups =
+        (f['categories'] as List<String>?) ?? const [];
     final double minRating = (f['minRating'] as double?) ?? 0;
     final List<String> delivery = (f['delivery'] as List<String>?) ?? const [];
 
-    final double minPerDay = priceUnit == 'week' ? price.start / 7 : price.start;
+    final double minPerDay =
+        priceUnit == 'week' ? price.start / 7 : price.start;
     final double maxPerDay = priceUnit == 'week' ? price.end / 7 : price.end;
     if (it.pricePerDay < minPerDay || it.pricePerDay > maxPerDay) return false;
     if (verifiedOnly) {
-      final ok = it.verificationStatus == 'approved' || it.verificationStatus == 'verified';
+      final ok = it.verificationStatus == 'approved' ||
+          it.verificationStatus == 'verified';
       if (!ok) return false;
     }
     if (condition != 'egal') {
@@ -178,8 +189,10 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         final origin = widget.originCoords;
         if (origin != null) {
           list.sort((a, b) {
-            final da = DataService.estimateDistanceKm(a.lat, a.lng, origin.lat, origin.lng);
-            final db = DataService.estimateDistanceKm(b.lat, b.lng, origin.lat, origin.lng);
+            final da = DataService.estimateDistanceKm(
+                a.lat, a.lng, origin.lat, origin.lng);
+            final db = DataService.estimateDistanceKm(
+                b.lat, b.lng, origin.lat, origin.lng);
             return da.compareTo(db);
           });
         }
@@ -203,7 +216,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           const horizontalPadding = 16.0;
           const gridGap = 8.0;
           final cols = isDesktop ? 4 : (isTablet ? 3 : 3);
-          final cardSize = (width - (horizontalPadding * 2) - (gridGap * (cols - 1))) / cols;
+          final cardSize =
+              (width - (horizontalPadding * 2) - (gridGap * (cols - 1))) / cols;
 
           return CustomScrollView(
             controller: _scrollController,
@@ -226,7 +240,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                       child: Text(
                         'Es gibt noch keinen Artikel zu deiner Suche. Komm bald wieder!',
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, fontWeight: FontWeight.w600),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.white70, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -235,10 +250,13 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                 // Nur Suchergebnisse
                 SliverToBoxAdapter(child: Builder(builder: (context) {
                   final l10n = context.watch<LocalizationController>();
-                  return _SectionHeader(title: l10n.t('Suchergebnisse'), padding: const EdgeInsets.fromLTRB(16, 0, 16, 8));
+                  return _SectionHeader(
+                      title: l10n.t('Suchergebnisse'),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8));
                 })),
                 SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: horizontalPadding),
                   sliver: SliverGrid(
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: cols,
@@ -275,7 +293,11 @@ class _ResultsHeader extends StatelessWidget {
   final String? dateText;
   final VoidCallback onBack;
   final VoidCallback onFilters;
-  const _ResultsHeader({required this.queryText, this.dateText, required this.onBack, required this.onFilters});
+  const _ResultsHeader(
+      {required this.queryText,
+      this.dateText,
+      required this.onBack,
+      required this.onFilters});
 
   @override
   Widget build(BuildContext context) {
@@ -325,13 +347,24 @@ class _ResultsHeader extends StatelessWidget {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 36),
-                      child: Text(queryText, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                      child: Text(queryText,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700)),
                     ),
                     if (dateText != null && dateText!.trim().isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 36),
-                        child: Text(dateText!, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                        child: Text(dateText!,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 11)),
                       ),
                     ],
                   ],
@@ -361,13 +394,25 @@ class _SectionHeader extends StatelessWidget {
   final bool showSeeAll;
   final EdgeInsets? padding;
   final VoidCallback? onSeeAll;
-  const _SectionHeader({required this.title, this.showSeeAll = false, this.padding, this.onSeeAll});
+  const _SectionHeader(
+      {required this.title,
+      this.showSeeAll = false,
+      this.padding,
+      this.onSeeAll});
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding:
+          padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(children: [
-        Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white))),
+        Expanded(
+            child: Text(title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: Colors.white))),
         if (showSeeAll)
           TextButton(onPressed: onSeeAll, child: const Text('Alle ansehen')),
       ]),
@@ -386,9 +431,11 @@ class _SeeAllLike extends StatelessWidget {
       appBar: AppBar(title: Text(title), backgroundColor: Colors.black),
       body: GridView.builder(
         padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 8, crossAxisSpacing: 8),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3, mainAxisSpacing: 8, crossAxisSpacing: 8),
         itemCount: items.length,
-        itemBuilder: (context, i) => _SquareTitleOnlyCard(item: items[i], isFavorite: false),
+        itemBuilder: (context, i) =>
+            _SquareTitleOnlyCard(item: items[i], isFavorite: false),
       ),
     );
   }
@@ -398,7 +445,8 @@ class _SquareTitleOnlyCard extends StatefulWidget {
   final Item item;
   final bool isFavorite;
   final VoidCallback? onFavoriteToggle;
-  const _SquareTitleOnlyCard({required this.item, this.isFavorite = false, this.onFavoriteToggle});
+  const _SquareTitleOnlyCard(
+      {required this.item, this.isFavorite = false, this.onFavoriteToggle});
   @override
   State<_SquareTitleOnlyCard> createState() => _SquareTitleOnlyCardState();
 }
@@ -407,14 +455,23 @@ class _SquareTitleOnlyCardState extends State<_SquareTitleOnlyCard> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => ItemDetailsOverlay.showFullPage(context, item: widget.item, fresh: true),
+      onTap: () => ItemDetailsOverlay.showFullPage(context,
+          item: widget.item, fresh: true),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: Stack(children: [
-          Positioned.fill(child: AppImage(url: widget.item.photos.isNotEmpty ? widget.item.photos.first : 'https://picsum.photos/seed/titleonly/800/800', fit: BoxFit.cover)),
+          Positioned.fill(
+              child: AppImage(
+                  url: widget.item.photos.isNotEmpty
+                      ? widget.item.photos.first
+                      : '',
+                  fit: BoxFit.cover)),
           Positioned.fill(
             child: DecoratedBox(
-              decoration: BoxDecoration(border: Border.all(color: Colors.white.withValues(alpha: 0.10)), borderRadius: BorderRadius.circular(18)),
+              decoration: BoxDecoration(
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                  borderRadius: BorderRadius.circular(18)),
             ),
           ),
           Positioned(
@@ -424,12 +481,19 @@ class _SquareTitleOnlyCardState extends State<_SquareTitleOnlyCard> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [
-                  Colors.black.withValues(alpha: 0.0),
-                  Colors.black.withValues(alpha: 0.55),
-                ]),
+                gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.0),
+                      Colors.black.withValues(alpha: 0.55),
+                    ]),
               ),
-              child: Text(widget.item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700, color: Colors.white)),
+              child: Text(widget.item.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700, color: Colors.white)),
             ),
           ),
           if (widget.onFavoriteToggle != null)
@@ -441,17 +505,30 @@ class _SquareTitleOnlyCardState extends State<_SquareTitleOnlyCard> {
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), shape: BoxShape.circle),
-                  child: Icon(widget.isFavorite ? Icons.favorite : Icons.favorite_border, size: 16, color: widget.isFavorite ? Colors.pinkAccent : Colors.black54),
+                  decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      shape: BoxShape.circle),
+                  child: Icon(
+                      widget.isFavorite
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      size: 16,
+                      color: widget.isFavorite
+                          ? Colors.pinkAccent
+                          : Colors.black54),
                 ),
               ),
             ),
           Positioned(
             top: 8,
             left: 8,
-            child: (widget.item.verificationStatus == 'approved' || widget.item.verificationStatus == 'verified')
+            child: (widget.item.verificationStatus == 'approved' ||
+                    widget.item.verificationStatus == 'verified')
                 ? const Icon(Icons.verified, size: 16, color: Color(0xFF22C55E))
-                : const Tooltip(message: 'Nicht verifiziert', child: Icon(Icons.verified_outlined, size: 16, color: Colors.grey)),
+                : const Tooltip(
+                    message: 'Nicht verifiziert',
+                    child: Icon(Icons.verified_outlined,
+                        size: 16, color: Colors.grey)),
           ),
         ]),
       ),

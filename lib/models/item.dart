@@ -24,7 +24,8 @@ class Item {
   final double lng;
   final String geohash;
   // Item meta
-  final String condition; // 'new' | 'like-new' | 'good' | 'acceptable' | 'worn' | legacy: 'used'
+  final String
+      condition; // 'new' | 'like-new' | 'good' | 'acceptable' | 'worn' | legacy: 'used'
   final int? minDays;
   final int? maxDays;
   final DateTime createdAt;
@@ -40,7 +41,7 @@ class Item {
   final int timesLent;
   // Delivery options offered by the lister
   final bool offersDeliveryAtDropoff; // Lieferung bei Abgabe (Hinweg)
-  final bool offersPickupAtReturn;    // Abholung bei Rückgabe (Rückweg)
+  final bool offersPickupAtReturn; // Abholung bei Rückgabe (Rückweg)
   // Optional: express delivery offering at dropoff (within ~2.5h, +5€ on confirm)
   final bool offersExpressAtDropoff;
   // Optional: max distance (km) the lister is willing to deliver/pick up (demo field)
@@ -48,6 +49,10 @@ class Item {
   final double? maxPickupKmAtReturn;
   // Cancellation policy selected by the lister: 'flexible' | 'moderate' | 'strict'
   final String cancellationPolicy;
+  // Launch protection is a product-level policy; owners cannot bypass it.
+  final String protectionModel;
+  final String availabilityMode;
+  final bool approximateLocation;
 
   const Item({
     required this.id,
@@ -86,6 +91,9 @@ class Item {
     this.maxDeliveryKmAtDropoff,
     this.maxPickupKmAtReturn,
     this.cancellationPolicy = 'flexible',
+    this.protectionModel = 'standard',
+    this.availabilityMode = 'calendar',
+    this.approximateLocation = false,
   }) : priceRaw = priceRaw ?? pricePerDay;
 
   factory Item.fromJson(Map<String, dynamic> json) {
@@ -141,55 +149,65 @@ class Item {
       city: json['city'],
       country: json['country'],
       status: status,
-      endedAt: (endedAtStr is String && endedAtStr.isNotEmpty) ? DateTime.tryParse(endedAtStr) : null,
+      endedAt: (endedAtStr is String && endedAtStr.isNotEmpty)
+          ? DateTime.tryParse(endedAtStr)
+          : null,
       timesLent: (json['timesLent'] as num?)?.toInt() ?? 0,
       offersDeliveryAtDropoff: json['offersDeliveryAtDropoff'] == true,
       offersPickupAtReturn: json['offersPickupAtReturn'] == true,
       offersExpressAtDropoff: json['offersExpressAtDropoff'] == true,
-      maxDeliveryKmAtDropoff: (json['maxDeliveryKmAtDropoff'] as num?)?.toDouble(),
+      maxDeliveryKmAtDropoff:
+          (json['maxDeliveryKmAtDropoff'] as num?)?.toDouble(),
       maxPickupKmAtReturn: (json['maxPickupKmAtReturn'] as num?)?.toDouble(),
       cancellationPolicy: (json['cancellationPolicy'] as String?) ?? 'flexible',
+      protectionModel: (json['protectionModel'] as String?) ?? 'standard',
+      availabilityMode: (json['availabilityMode'] as String?) ?? 'calendar',
+      approximateLocation: json['approximateLocation'] == true,
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'ownerId': ownerId,
-    'title': title,
-    'description': description,
-    'categoryId': categoryId,
-    'subcategory': subcategory,
-    'tags': tags,
-    'pricePerDay': pricePerDay,
-    'currency': currency,
-    'priceUnit': priceUnit,
-    'priceRaw': priceRaw,
-    'deposit': deposit,
-    'autoApplyDiscounts': autoApplyDiscounts,
-    'longRentalDiscounts': longRentalDiscounts.map((e) => e.toJson()).toList(),
-    'photos': photos,
-    'locationText': locationText,
-    'lat': lat,
-    'lng': lng,
-    'geohash': geohash,
-    'condition': condition,
-    'minDays': minDays,
-    'maxDays': maxDays,
-    'createdAt': createdAt.toIso8601String(),
-    'isActive': isActive,
-    'verificationStatus': verificationStatus,
-    'city': city,
-    'country': country,
-    'status': status,
-    'endedAt': endedAt?.toIso8601String(),
-    'timesLent': timesLent,
-    'offersDeliveryAtDropoff': offersDeliveryAtDropoff,
-    'offersPickupAtReturn': offersPickupAtReturn,
-    'offersExpressAtDropoff': offersExpressAtDropoff,
-    'maxDeliveryKmAtDropoff': maxDeliveryKmAtDropoff,
-    'maxPickupKmAtReturn': maxPickupKmAtReturn,
-    'cancellationPolicy': cancellationPolicy,
-  };
+        'id': id,
+        'ownerId': ownerId,
+        'title': title,
+        'description': description,
+        'categoryId': categoryId,
+        'subcategory': subcategory,
+        'tags': tags,
+        'pricePerDay': pricePerDay,
+        'currency': currency,
+        'priceUnit': priceUnit,
+        'priceRaw': priceRaw,
+        'deposit': deposit,
+        'autoApplyDiscounts': autoApplyDiscounts,
+        'longRentalDiscounts':
+            longRentalDiscounts.map((e) => e.toJson()).toList(),
+        'photos': photos,
+        'locationText': locationText,
+        'lat': lat,
+        'lng': lng,
+        'geohash': geohash,
+        'condition': condition,
+        'minDays': minDays,
+        'maxDays': maxDays,
+        'createdAt': createdAt.toIso8601String(),
+        'isActive': isActive,
+        'verificationStatus': verificationStatus,
+        'city': city,
+        'country': country,
+        'status': status,
+        'endedAt': endedAt?.toIso8601String(),
+        'timesLent': timesLent,
+        'offersDeliveryAtDropoff': offersDeliveryAtDropoff,
+        'offersPickupAtReturn': offersPickupAtReturn,
+        'offersExpressAtDropoff': offersExpressAtDropoff,
+        'maxDeliveryKmAtDropoff': maxDeliveryKmAtDropoff,
+        'maxPickupKmAtReturn': maxPickupKmAtReturn,
+        'cancellationPolicy': cancellationPolicy,
+        'protectionModel': protectionModel,
+        'availabilityMode': availabilityMode,
+        'approximateLocation': approximateLocation,
+      };
 }
 
 /// Defines a threshold discount for long rentals.
@@ -199,13 +217,14 @@ class LongRentalDiscount {
   final double discountPercent; // e.g., 15 => 15%
   const LongRentalDiscount({required this.days, required this.discountPercent});
 
-  factory LongRentalDiscount.fromJson(Map<String, dynamic> json) => LongRentalDiscount(
-    days: (json['days'] as num).toInt(),
-    discountPercent: (json['discountPercent'] as num).toDouble(),
-  );
+  factory LongRentalDiscount.fromJson(Map<String, dynamic> json) =>
+      LongRentalDiscount(
+        days: (json['days'] as num).toInt(),
+        discountPercent: (json['discountPercent'] as num).toDouble(),
+      );
 
   Map<String, dynamic> toJson() => {
-    'days': days,
-    'discountPercent': discountPercent,
-  };
+        'days': days,
+        'discountPercent': discountPercent,
+      };
 }

@@ -14,6 +14,7 @@ import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/services/messages_settings_service.dart';
+import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/user_avatar.dart';
@@ -189,14 +190,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
       final messageSettings = await MessagesSettingsService.get();
 
       if (user == null) {
-        final demo = _buildDemoMessageState();
         if (!mounted) return;
         setState(() {
-          _currentUser = demo.user;
-          _activeThreads = demo.activeThreads;
-          _archivedThreads = demo.archivedThreads;
-          _usersCache = demo.users;
-          _itemsCache = demo.items;
+          _currentUser = null;
+          _activeThreads = const [];
+          _archivedThreads = const [];
+          _usersCache = const {};
+          _itemsCache = const {};
           _blockedUserIds = const {};
           _mutedThreadKeys = const {};
           _messageSettings = messageSettings;
@@ -219,7 +219,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
       // it impossible to QA the chat detail UI. Seed a minimal local support thread
       // (only when empty) and reload once.
       if (threads.isEmpty && archived.isEmpty) {
-        await DataService.ensureSeededMessageThreadsForUser(user.id);
+        if (QaRuntimeService.isEnabled) {
+          await DataService.ensureSeededMessageThreadsForUser(user.id);
+        }
         final seededThreads = await DataService.getMessageThreadsForUser(user.id);
         final seededArchived = await DataService.getArchivedMessageThreadsForUser(user.id);
         if (!mounted) return;
@@ -240,14 +242,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
           return;
         }
 
-        // As a last fallback, show a non-persistent demo UI state.
-        final demo = _buildDemoMessageState(baseUser: user, users: usersById, items: itemsById);
         setState(() {
-          _currentUser = demo.user;
-          _activeThreads = demo.activeThreads;
-          _archivedThreads = demo.archivedThreads;
-          _usersCache = demo.users;
-          _itemsCache = demo.items;
+          _currentUser = user;
+          _activeThreads = const [];
+          _archivedThreads = const [];
+          _usersCache = usersById;
+          _itemsCache = itemsById;
           _blockedUserIds = blockedUserIds;
           _mutedThreadKeys = mutedThreadKeys;
           _messageSettings = messageSettings;
@@ -723,6 +723,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
     required Map<String, User> users,
     required Map<String, Item> items,
   }) {
+    if (!QaRuntimeService.isEnabled) {
+      return (activeThreads: activeThreads, users: users, items: items);
+    }
     final exists = activeThreads.any((t) => t.id == _translationDemoThreadId);
     if (exists || activeThreads.isNotEmpty) {
       return (activeThreads: activeThreads, users: users, items: items);

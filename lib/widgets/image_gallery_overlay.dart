@@ -48,7 +48,8 @@ class ImageGalleryOverlay extends StatefulWidget {
         );
       },
       transitionBuilder: (ctx, anim, secAnim, child) {
-        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        final curved =
+            CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
         return FadeTransition(opacity: curved, child: child);
       },
       transitionDuration: const Duration(milliseconds: 200),
@@ -60,7 +61,9 @@ class ImageGalleryOverlay extends StatefulWidget {
 }
 
 class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
-  late final PageController _pc = PageController(initialPage: widget.initialIndex.clamp(0, (widget.images.length - 1).clamp(0, 9999)));
+  late final PageController _pc = PageController(
+      initialPage: widget.initialIndex
+          .clamp(0, (widget.images.length - 1).clamp(0, 9999)));
   int _page = 0;
   // Tracks the bounds of the currently visible image card for outside-to-dismiss.
   final GlobalKey _imageKey = GlobalKey();
@@ -68,7 +71,8 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
   @override
   void initState() {
     super.initState();
-    _page = widget.initialIndex.clamp(0, (widget.images.length - 1).clamp(0, 9999));
+    _page =
+        widget.initialIndex.clamp(0, (widget.images.length - 1).clamp(0, 9999));
   }
 
   @override
@@ -88,8 +92,11 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
             behavior: HitTestBehavior.opaque,
             onTap: () => Navigator.of(context).maybePop(),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30), // stärkerer Blur
-              child: Container(color: Colors.black.withValues(alpha: 0.60)), // stärker abdunkeln
+              filter:
+                  ImageFilter.blur(sigmaX: 30, sigmaY: 30), // stärkerer Blur
+              child: Container(
+                  color: Colors.black
+                      .withValues(alpha: 0.60)), // stärker abdunkeln
             ),
           ),
         ),
@@ -104,11 +111,13 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
               Listener(
                 behavior: HitTestBehavior.translucent,
                 onPointerDown: (evt) {
-                  final box = _imageKey.currentContext?.findRenderObject() as RenderBox?;
+                  final box = _imageKey.currentContext?.findRenderObject()
+                      as RenderBox?;
                   if (box != null) {
                     final topLeft = box.localToGlobal(Offset.zero);
                     final size = box.size;
-                    final rect = Rect.fromLTWH(topLeft.dx, topLeft.dy, size.width, size.height);
+                    final rect = Rect.fromLTWH(
+                        topLeft.dx, topLeft.dy, size.width, size.height);
                     if (!rect.contains(evt.position)) {
                       Navigator.of(context).maybePop();
                     }
@@ -120,9 +129,12 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                     child: PageView.builder(
                       controller: _pc,
                       onPageChanged: (i) => setState(() => _page = i),
-                      itemCount: widget.images.isNotEmpty ? widget.images.length : 1,
+                      itemCount:
+                          widget.images.isNotEmpty ? widget.images.length : 1,
                       itemBuilder: (context, index) {
-                        final url = widget.images.isNotEmpty ? widget.images[index] : 'https://picsum.photos/seed/image_gallery_fallback/1400/1400';
+                        final url = widget.images.isNotEmpty
+                            ? widget.images[index]
+                            : '';
                         // Each page uses a PhysicalModel with rounded corners to force
                         // GPU-level clipping so the corners are visibly rounded on all platforms.
                         return PhysicalModel(
@@ -135,7 +147,8 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(imageRadius),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                              border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.08)),
                             ),
                             child: ClipRRect(
                               clipBehavior: Clip.antiAlias,
@@ -145,7 +158,8 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                                   url: url,
                                   fit: BoxFit.contain,
                                   // Also pass the same radius to the image as an extra safety.
-                                  borderRadius: BorderRadius.circular(imageRadius),
+                                  borderRadius:
+                                      BorderRadius.circular(imageRadius),
                                 ),
                               ),
                             ),
@@ -168,7 +182,9 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                   ),
                   const Spacer(),
                   _TopIcon(
-                    icon: widget.isWishlisted() ? Icons.favorite : Icons.favorite_border,
+                    icon: widget.isWishlisted()
+                        ? Icons.favorite
+                        : Icons.favorite_border,
                     iconSize: 20, // Herz bewusst etwas kleiner als Teilen-Icon
                     onTap: () async {
                       try {
@@ -176,13 +192,16 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                         setState(() {}); // reflect updated status
                       } catch (e) {
                         f.debugPrint('[gallery] wishlist failed: $e');
-                        await AppPopup.toast(context, icon: Icons.error_outline, title: 'Fehler beim Aktualisieren');
+                        await AppPopup.toast(context,
+                            icon: Icons.error_outline,
+                            title: 'Fehler beim Aktualisieren');
                       }
                     },
                   ),
                   const SizedBox(width: 8),
                   _TopIcon(
-                    icon: (Theme.of(context).platform == TargetPlatform.iOS || Theme.of(context).platform == TargetPlatform.macOS)
+                    icon: (Theme.of(context).platform == TargetPlatform.iOS ||
+                            Theme.of(context).platform == TargetPlatform.macOS)
                         ? Icons.ios_share_rounded
                         : Icons.share_rounded, // Android-typisches Teilen-Icon
                     onTap: () async {
@@ -191,7 +210,8 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                           await widget.onShare!();
                         } else {
                           // Native Share Sheet öffnen (WhatsApp, Messenger, etc.)
-                          final currentUrl = (widget.images.isNotEmpty && _page < widget.images.length)
+                          final currentUrl = (widget.images.isNotEmpty &&
+                                  _page < widget.images.length)
                               ? widget.images[_page]
                               : null;
                           final text = currentUrl == null
@@ -201,7 +221,9 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                         }
                       } catch (e) {
                         f.debugPrint('[share] failed in gallery: $e');
-                        await AppPopup.toast(context, icon: Icons.error_outline, title: 'Teilen fehlgeschlagen');
+                        await AppPopup.toast(context,
+                            icon: Icons.error_outline,
+                            title: 'Teilen fehlgeschlagen');
                       }
                     },
                   ),
@@ -229,8 +251,12 @@ class _TopIcon extends StatelessWidget {
         width: 40,
         height: 40,
         alignment: Alignment.center,
-        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.28), shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.18))),
-        child: Icon(icon, size: iconSize, color: Colors.white.withValues(alpha: 0.95)),
+        decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.28),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.18))),
+        child: Icon(icon,
+            size: iconSize, color: Colors.white.withValues(alpha: 0.95)),
       ),
     );
   }

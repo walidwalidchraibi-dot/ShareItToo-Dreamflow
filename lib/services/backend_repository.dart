@@ -143,7 +143,7 @@ class BackendRepository {
   static Future<List<Map<String, dynamic>>> getListings() async {
     final response = await BackendHttp.requestJson(
       method: 'GET',
-      path: '/listings',
+      path: '/listings?sort=newest&limit=100',
     );
     final byId = <String, Map<String, dynamic>>{
       for (final listing in _maps(response['listings']))
@@ -158,6 +158,40 @@ class BackendRepository {
       }
     }
     return byId.values.toList();
+  }
+
+  static Future<List<Map<String, dynamic>>> searchListings({
+    String? query,
+    List<String> categoryIds = const <String>[],
+    List<String> conditions = const <String>[],
+    double? minPrice,
+    double? maxPrice,
+    double? latitude,
+    double? longitude,
+    double? radiusKm,
+    String sort = 'newest',
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    final parameters = <String, String>{
+      if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
+      if (categoryIds.isNotEmpty) 'categories': categoryIds.join(','),
+      if (conditions.isNotEmpty) 'conditions': conditions.join(','),
+      if (minPrice != null) 'minPrice': minPrice.toString(),
+      if (maxPrice != null) 'maxPrice': maxPrice.toString(),
+      if (latitude != null) 'lat': latitude.toString(),
+      if (longitude != null) 'lng': longitude.toString(),
+      if (radiusKm != null) 'radiusKm': radiusKm.toString(),
+      'sort': sort,
+      'limit': limit.clamp(1, 100).toString(),
+      'offset': offset.clamp(0, 5000).toString(),
+    };
+    final encoded = Uri(queryParameters: parameters).query;
+    final response = await BackendHttp.requestJson(
+      method: 'GET',
+      path: '/listings?$encoded',
+    );
+    return _maps(response['listings']);
   }
 
   static Future<Map<String, dynamic>> createListing(

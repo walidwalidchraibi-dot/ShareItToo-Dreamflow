@@ -7,6 +7,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import pg from 'pg';
+import sharp from 'sharp';
 
 const databaseUrl = process.env.TEST_DATABASE_URL?.trim();
 
@@ -39,6 +40,7 @@ if (!databaseUrl) {
         '001_b3_foundation.up.sql',
         '002_b4_auth_lifecycle.up.sql',
         '003_b4_phone_constraint_fix.up.sql',
+        '004_b5_listing_catalog.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -56,6 +58,23 @@ if (!databaseUrl) {
       await setupPool.query(
         `UPDATE users SET phone_e164 = '+4915212345678' WHERE id = 'owner'`,
       );
+      await setupPool.query(
+        `INSERT INTO listings (id, owner_id, payload, is_active)
+         VALUES (
+           'legacy-b4-rollback-listing', 'owner',
+           '{"id":"legacy-b4-rollback-listing","ownerId":"owner","title":"Legacy B4 listing"}'::jsonb,
+           true
+         )`,
+      );
+      const legacyB4Listing = await setupPool.query(
+        `SELECT catalog_version, is_active, status
+         FROM listings WHERE id = 'legacy-b4-rollback-listing'`,
+      );
+      assert.deepEqual(legacyB4Listing.rows[0], {
+        catalog_version: 0,
+        is_active: true,
+        status: 'active',
+      });
       await assert.rejects(
         setupPool.query(`UPDATE users SET phone_e164 = '015212345678' WHERE id = 'owner'`),
         (error) => error?.code === '23514' && error?.constraint === 'users_phone_e164_check',
@@ -95,14 +114,69 @@ if (!databaseUrl) {
         Object.values(sessionIds),
       );
       await setupPool.query(
-        `INSERT INTO listings (
-           id, owner_id, payload, is_active, currency, price_per_day_minor
+         `INSERT INTO listings (
+           id, owner_id, payload, is_active, catalog_version, catalog_revision,
+           status, currency, price_per_day_minor,
+           title, description, category_id, condition, location_text, city, country,
+           latitude, longitude, min_days, max_days, protection_model
          ) VALUES (
            'listing-1', 'owner',
-           '{"id":"listing-1","ownerId":"owner","title":"Camera","description":"Test","currency":"EUR"}'::jsonb,
-           true, 'EUR', 1500
+           '{"id":"listing-1","ownerId":"owner","title":"Camera","description":"Camera for integration tests","categoryId":"cat3","subcategory":"Kameras","tags":["camera"],"pricePerDay":15,"priceRaw":15,"priceUnit":"day","currency":"EUR","deposit":null,"photos":["https://shareittoo.com/api/v1/uploads/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb-full.webp"],"locationText":"Owner exact address","lat":52.5201,"lng":13.4051,"geohash":"private","condition":"good","minDays":1,"maxDays":30,"createdAt":"2026-08-08T20:00:00.000Z","isActive":true,"verificationStatus":"pending","city":"Berlin","country":"Deutschland","status":"active","timesLent":0,"protectionModel":"standard"}'::jsonb,
+           true, 1, 1, 'active', 'EUR', 1500,
+           'Camera', 'Camera for integration tests', 'cat3', 'good',
+           'Owner exact address', 'Berlin', 'Deutschland', 52.5201, 13.4051,
+           1, 30, 'standard'
          )`,
       );
+      await setupPool.query(
+        `INSERT INTO uploads (
+           owner_id, storage_name, mime_type, byte_size, purpose, visibility,
+           listing_id, content_sha256, content_scan_status
+         ) VALUES (
+           'owner', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb-full.webp',
+           'image/webp', 10, 'listing_image', 'public', 'listing-1', $1, 'passed'
+         )`,
+        ['b'.repeat(64)],
+      );
+      await setupPool.query(
+        `UPDATE listings
+         SET payload = jsonb_set(
+               jsonb_set(payload, '{status}', '"paused"'::jsonb),
+               '{isActive}', 'false'::jsonb
+             ),
+             is_active = false
+         WHERE id = 'listing-1'`,
+      );
+      const quarantinedRollbackWrite = await setupPool.query(
+        `SELECT catalog_version, catalog_revision, is_active
+         FROM listings WHERE id = 'listing-1'`,
+      );
+      assert.deepEqual(quarantinedRollbackWrite.rows[0], {
+        catalog_version: 0,
+        catalog_revision: 1,
+        is_active: false,
+      });
+      await setupPool.query(
+        `UPDATE listings
+         SET payload = jsonb_set(
+               jsonb_set(payload, '{status}', '"active"'::jsonb),
+               '{isActive}', 'true'::jsonb
+             ),
+             is_active = true,
+             status = 'active',
+             catalog_version = 1,
+             catalog_revision = catalog_revision + 1
+         WHERE id = 'listing-1'`,
+      );
+      const restoredForwardWrite = await setupPool.query(
+        `SELECT catalog_version, catalog_revision, is_active
+         FROM listings WHERE id = 'listing-1'`,
+      );
+      assert.deepEqual(restoredForwardWrite.rows[0], {
+        catalog_version: 1,
+        catalog_revision: 2,
+        is_active: true,
+      });
 
       for (const [id, renterId] of [['booking-a', 'renter-a'], ['booking-b', 'renter-b']]) {
         const payload = {
@@ -185,6 +259,280 @@ if (!databaseUrl) {
         Authorization: `Bearer ${tokenFor('owner')}`,
         'Content-Type': 'application/json',
       };
+      const catalogResponse = await fetch(
+        `${baseUrl}/v1/listings?q=Camera&categories=cat3&conditions=good&lat=52.52&lng=13.405&radiusKm=10&sort=distance`,
+      );
+      assert.equal(catalogResponse.status, 200);
+      const catalog = await catalogResponse.json();
+      assert.equal(catalog.listings.length, 1);
+      assert.equal(catalog.listings[0].id, 'listing-1');
+      assert.equal(catalog.listings[0].locationText, 'Berlin, Deutschland');
+      assert.equal(catalog.listings[0].lat, 52.52);
+      assert.equal(catalog.listings[0].lng, 13.41);
+      assert.equal(catalog.listings[0].geohash, '');
+      assert.equal(catalog.listings[0].approximateLocation, true);
+      assert.deepEqual(catalog.listings[0].photos, [
+        'https://shareittoo.com/api/v1/uploads/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb-full.webp',
+      ]);
+      assert.equal(catalog.page.hasMore, false);
+
+      const emptyCatalogResponse = await fetch(`${baseUrl}/v1/listings?q=does-not-exist`);
+      assert.equal(emptyCatalogResponse.status, 200);
+      assert.deepEqual((await emptyCatalogResponse.json()).listings, []);
+
+      const listingImage = await sharp({
+        create: {
+          width: 960,
+          height: 640,
+          channels: 3,
+          background: { r: 30, g: 90, b: 160 },
+        },
+      }).jpeg({ quality: 92 }).toBuffer();
+      const uploadForm = new FormData();
+      uploadForm.append('purpose', 'listing_image');
+      uploadForm.append('file', new Blob([listingImage], { type: 'image/jpeg' }), 'camera.jpg');
+      const listingUploadResponse = await fetch(`${baseUrl}/v1/uploads`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenFor('owner')}` },
+        body: uploadForm,
+      });
+      assert.equal(listingUploadResponse.status, 201);
+      const listingUpload = await listingUploadResponse.json();
+      assert.match(listingUpload.url, /\/uploads\/[0-9a-f-]{36}-full\.webp$/);
+      assert.match(listingUpload.thumbnailUrl, /\/uploads\/[0-9a-f-]{36}-thumb\.webp$/);
+      assert.equal(listingUpload.width, 960);
+      assert.equal(listingUpload.height, 640);
+      const localMediaUrl = (remoteUrl) => (
+        `${baseUrl}/v1/uploads/${encodeURIComponent(new URL(remoteUrl).pathname.split('/').at(-1))}`
+      );
+      const privateBeforeBinding = await fetch(localMediaUrl(listingUpload.url));
+      assert.equal(privateBeforeBinding.status, 401);
+      assert.equal((await privateBeforeBinding.json()).error, 'authentication_required');
+
+      const lifecycleListing = {
+        id: 'listing-lifecycle',
+        ownerId: 'outsider',
+        title: 'Bosch professional drill',
+        description: 'A reliable professional drill for the complete listing lifecycle test.',
+        categoryId: 'cat1',
+        subcategory: 'Werkzeuge',
+        tags: ['bohrer', 'bosch'],
+        pricePerDay: 18,
+        priceRaw: 18,
+        priceUnit: 'day',
+        currency: 'EUR',
+        deposit: 60,
+        photos: [listingUpload.url],
+        locationText: 'Exact owner address 12',
+        city: 'Berlin',
+        country: 'Deutschland',
+        lat: 52.5205,
+        lng: 13.4095,
+        geohash: 'private-geohash',
+        condition: 'good',
+        minDays: 1,
+        maxDays: 14,
+        handoverRadiusKm: 15,
+        protectionModel: 'standard',
+        status: 'active',
+        isActive: true,
+      };
+      const createLifecycleListing = await fetch(`${baseUrl}/v1/listings`, {
+        method: 'POST',
+        headers: ownerHeaders,
+        body: JSON.stringify(lifecycleListing),
+      });
+      assert.equal(createLifecycleListing.status, 201);
+      const createdLifecycleListing = (await createLifecycleListing.json()).listing;
+      assert.equal(createdLifecycleListing.id, 'listing-lifecycle');
+      assert.equal(createdLifecycleListing.ownerId, 'owner');
+      assert.equal(createdLifecycleListing.status, 'active');
+      assert.equal(createdLifecycleListing.availabilityMode, 'calendar');
+
+      const processedUpload = await setupPool.query(
+        `SELECT mime_type, byte_size, thumbnail_mime_type, thumbnail_byte_size,
+                image_width, image_height, content_sha256, content_scan_status,
+                visibility, listing_id
+         FROM uploads WHERE storage_name = $1`,
+        [new URL(listingUpload.url).pathname.split('/').at(-1)],
+      );
+      assert.equal(processedUpload.rowCount, 1);
+      assert.equal(processedUpload.rows[0].mime_type, 'image/webp');
+      assert.equal(processedUpload.rows[0].thumbnail_mime_type, 'image/webp');
+      assert.ok(processedUpload.rows[0].byte_size > 0);
+      assert.ok(processedUpload.rows[0].thumbnail_byte_size > 0);
+      assert.equal(processedUpload.rows[0].image_width, 960);
+      assert.equal(processedUpload.rows[0].image_height, 640);
+      assert.match(processedUpload.rows[0].content_sha256, /^[0-9a-f]{64}$/);
+      assert.equal(processedUpload.rows[0].content_scan_status, 'passed');
+      assert.equal(processedUpload.rows[0].visibility, 'public');
+      assert.equal(processedUpload.rows[0].listing_id, 'listing-lifecycle');
+
+      for (const mediaUrl of [listingUpload.url, listingUpload.thumbnailUrl]) {
+        const publicMedia = await fetch(localMediaUrl(mediaUrl));
+        assert.equal(publicMedia.status, 200);
+        assert.equal(publicMedia.headers.get('content-type'), 'image/webp');
+        assert.match(publicMedia.headers.get('cache-control'), /^public,/);
+        assert.ok((await publicMedia.arrayBuffer()).byteLength > 0);
+      }
+
+      const lifecycleSearch = await fetch(
+        `${baseUrl}/v1/listings?q=Bosch&categories=cat1&minPrice=17&maxPrice=19&lat=52.52&lng=13.41&radiusKm=5&sort=price_asc`,
+      );
+      assert.equal(lifecycleSearch.status, 200);
+      const lifecycleCatalog = await lifecycleSearch.json();
+      assert.equal(lifecycleCatalog.listings.length, 1);
+      assert.equal(lifecycleCatalog.listings[0].id, 'listing-lifecycle');
+      assert.equal(lifecycleCatalog.listings[0].locationText, 'Berlin, Deutschland');
+      assert.equal(lifecycleCatalog.listings[0].lat, 52.52);
+      assert.equal(lifecycleCatalog.listings[0].lng, 13.41);
+      assert.equal(lifecycleCatalog.listings[0].geohash, '');
+
+      const foreignEdit = await fetch(`${baseUrl}/v1/listings/listing-lifecycle`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${tokenFor('outsider')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...lifecycleListing, title: 'Foreign edit' }),
+      });
+      assert.equal(foreignEdit.status, 403);
+      assert.equal((await foreignEdit.json()).error, 'listing_forbidden');
+
+      const foreignCreate = await fetch(`${baseUrl}/v1/listings`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${tokenFor('outsider')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...lifecycleListing, id: 'listing-foreign' }),
+      });
+      assert.equal(foreignCreate.status, 403);
+      assert.equal((await foreignCreate.json()).error, 'listing_photo_forbidden');
+      assert.equal((await setupPool.query(
+        `SELECT count(*)::int AS count FROM listings WHERE id = 'listing-foreign'`,
+      )).rows[0].count, 0);
+
+      const updateLifecycleListing = await fetch(`${baseUrl}/v1/listings/listing-lifecycle`, {
+        method: 'PUT',
+        headers: ownerHeaders,
+        body: JSON.stringify({
+          ...lifecycleListing,
+          ownerId: 'outsider',
+          title: 'Bosch professional drill set',
+          pricePerDay: 22,
+          priceRaw: 22,
+        }),
+      });
+      assert.equal(updateLifecycleListing.status, 200);
+      const updatedLifecycleListing = (await updateLifecycleListing.json()).listing;
+      assert.equal(updatedLifecycleListing.ownerId, 'owner');
+      assert.equal(updatedLifecycleListing.title, 'Bosch professional drill set');
+      assert.equal(updatedLifecycleListing.pricePerDay, 22);
+
+      await setupPool.query(
+        `UPDATE listings
+         SET payload = jsonb_set(payload, '{title}', '"B4 rollback title"'::jsonb)
+         WHERE id = 'listing-lifecycle'`,
+      );
+      const quarantinedLifecycle = await setupPool.query(
+        `SELECT catalog_version, catalog_revision, status, is_active
+         FROM listings WHERE id = 'listing-lifecycle'`,
+      );
+      assert.equal(quarantinedLifecycle.rows[0].catalog_version, 0);
+      assert.equal(quarantinedLifecycle.rows[0].status, 'active');
+      assert.equal(quarantinedLifecycle.rows[0].is_active, true);
+      assert.equal((await fetch(localMediaUrl(listingUpload.url))).status, 401);
+      const quarantinedSearch = await fetch(`${baseUrl}/v1/listings?q=Bosch`);
+      assert.equal(quarantinedSearch.status, 200);
+      assert.deepEqual((await quarantinedSearch.json()).listings, []);
+
+      const restoreQuarantinedLifecycle = await fetch(
+        `${baseUrl}/v1/listings/listing-lifecycle`,
+        {
+          method: 'PUT',
+          headers: ownerHeaders,
+          body: JSON.stringify({
+            ...lifecycleListing,
+            title: 'Bosch restored after rollback',
+            pricePerDay: 22,
+            priceRaw: 22,
+          }),
+        },
+      );
+      assert.equal(restoreQuarantinedLifecycle.status, 200);
+      const restoredLifecycleRow = await setupPool.query(
+        `SELECT catalog_version, catalog_revision
+         FROM listings WHERE id = 'listing-lifecycle'`,
+      );
+      assert.equal(restoredLifecycleRow.rows[0].catalog_version, 1);
+      assert.ok(
+        restoredLifecycleRow.rows[0].catalog_revision
+          > quarantinedLifecycle.rows[0].catalog_revision,
+      );
+      assert.equal((await fetch(localMediaUrl(listingUpload.url))).status, 200);
+
+      const pauseLifecycleListing = await fetch(
+        `${baseUrl}/v1/listings/listing-lifecycle/status`,
+        {
+          method: 'PATCH',
+          headers: ownerHeaders,
+          body: JSON.stringify({ status: 'paused' }),
+        },
+      );
+      assert.equal(pauseLifecycleListing.status, 200);
+      assert.equal((await pauseLifecycleListing.json()).listing.status, 'paused');
+      const pausedSearch = await fetch(`${baseUrl}/v1/listings?q=Bosch`);
+      assert.equal(pausedSearch.status, 200);
+      assert.deepEqual((await pausedSearch.json()).listings, []);
+      const pausedMedia = await fetch(localMediaUrl(listingUpload.url));
+      assert.equal(pausedMedia.status, 401);
+      const pausedMediaOwner = await fetch(localMediaUrl(listingUpload.url), {
+        headers: { Authorization: `Bearer ${tokenFor('owner')}` },
+      });
+      assert.equal(pausedMediaOwner.status, 200);
+      assert.equal(pausedMediaOwner.headers.get('cache-control'), 'private, no-store');
+      const pausedBooking = await fetch(`${baseUrl}/v1/rental-requests/sync`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${tokenFor('renter-a')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requests: [{
+            id: 'paused-booking',
+            itemId: 'listing-lifecycle',
+            status: 'pending',
+            start: '2026-10-10T10:00:00.000Z',
+            end: '2026-10-12T10:00:00.000Z',
+          }],
+        }),
+      });
+      assert.equal(pausedBooking.status, 404);
+      assert.equal((await pausedBooking.json()).error, 'listing_not_found');
+
+      const reactivateLifecycleListing = await fetch(
+        `${baseUrl}/v1/listings/listing-lifecycle/status`,
+        {
+          method: 'PATCH',
+          headers: ownerHeaders,
+          body: JSON.stringify({ status: 'active' }),
+        },
+      );
+      assert.equal(reactivateLifecycleListing.status, 200);
+      assert.equal((await reactivateLifecycleListing.json()).listing.status, 'active');
+      assert.equal((await fetch(localMediaUrl(listingUpload.url))).status, 200);
+
+      const deleteLifecycleListing = await fetch(`${baseUrl}/v1/listings/listing-lifecycle`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${tokenFor('owner')}` },
+      });
+      assert.equal(deleteLifecycleListing.status, 204);
+      const deletedSearch = await fetch(`${baseUrl}/v1/listings?q=Bosch`);
+      assert.equal(deletedSearch.status, 200);
+      assert.deepEqual((await deletedSearch.json()).listings, []);
+      assert.equal((await fetch(localMediaUrl(listingUpload.url))).status, 401);
+
       const acceptRequest = (id, renterId) => fetch(`${baseUrl}/v1/rental-requests/sync`, {
         method: 'PUT',
         headers: ownerHeaders,
@@ -429,11 +777,11 @@ if (!databaseUrl) {
       const erasedStorageName = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png';
       await fs.writeFile(path.join(uploadDir, erasedStorageName), Buffer.from('private-profile-image'));
       await setupPool.query(
-        `INSERT INTO listings (id, owner_id, payload, is_active)
+        `INSERT INTO listings (id, owner_id, payload, is_active, status)
          VALUES (
            'auth-user-listing', 'auth-user',
-           '{"id":"auth-user-listing","ownerId":"auth-user","title":"Private title","description":"Call me at +49123456789","photos":["private-photo-url"],"status":"active","isActive":true}'::jsonb,
-           true
+           '{"id":"auth-user-listing","ownerId":"auth-user","title":"Private title","description":"Call me at +49123456789","photos":["private-photo-url"],"status":"paused","isActive":false}'::jsonb,
+           false, 'paused'
          )`,
       );
       await setupPool.query(

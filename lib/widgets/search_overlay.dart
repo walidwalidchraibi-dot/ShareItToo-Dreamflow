@@ -152,7 +152,7 @@ class _SearchSheetState extends State<_SearchSheet> {
   }
 
   Future<void> _loadData() async {
-    final items = await DataService.getItems();
+    final items = await DataService.getPublicItems();
     final users = await DataService.getUsers();
     final me = await DataService.getCurrentUser();
     final categories = await DataService.getCategories();
@@ -588,7 +588,6 @@ class _SearchSheetState extends State<_SearchSheet> {
     if (!mounted) return;
     try {
       setState(() => _recomputing = true);
-      final pool = List<Item>.from(_nearby);
       final whatRaw = _whatCtrl.text.trim();
       final inferredCatFromWhat = _normalizeCoarseCategory(whatRaw);
       final what = (inferredCatFromWhat != null &&
@@ -627,42 +626,25 @@ class _SearchSheetState extends State<_SearchSheet> {
         }
       }
 
-      // Filter by what/price/category
-      List<Item> candidates = pool.where((it) {
-        final matchWhat = what.isEmpty ||
-            it.title.toLowerCase().contains(what) ||
-            it.tags.any((t) => t.toLowerCase().contains(what));
-        final matchesPriceMin =
-            _priceMin == null || it.pricePerDay >= _priceMin!;
-        final matchesPriceMax =
-            _priceMax == null || it.pricePerDay <= _priceMax!;
-        final matchesCategory =
-            _coarseCategory == null || _coarseForItem(it) == _coarseCategory;
-        return matchWhat &&
-            matchesPriceMin &&
-            matchesPriceMax &&
-            matchesCategory;
-      }).toList();
-
-      // Sort by distance to target or by recency
-      if (targetCoords != null) {
-        candidates.sort((a, b) {
-          final da = DataService.estimateDistanceKm(
-              a.lat, a.lng, targetCoords!.$1, targetCoords!.$2);
-          final db = DataService.estimateDistanceKm(
-              b.lat, b.lng, targetCoords!.$1, targetCoords!.$2);
-          return da.compareTo(db);
-        });
-        // Keep items within ~60km for "in der Nähe"
-        candidates = candidates
-            .where((it) =>
-                DataService.estimateDistanceKm(
-                    it.lat, it.lng, targetCoords!.$1, targetCoords!.$2) <=
-                60)
-            .toList();
-      } else {
-        candidates.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      }
+      final categoryIds = _coarseCategory == null
+          ? const <String>[]
+          : _categories
+              .where((category) =>
+                  DataService.coarseCategoryFor(category.name) ==
+                  _coarseCategory)
+              .map((category) => category.id)
+              .toList();
+      final candidates = await DataService.searchPublicItems(
+        query: what,
+        categoryIds: categoryIds,
+        minPrice: _priceMin,
+        maxPrice: _priceMax,
+        latitude: targetCoords?.$1,
+        longitude: targetCoords?.$2,
+        radiusKm: targetCoords == null ? null : 60,
+        sort: targetCoords == null ? 'newest' : 'distance',
+        limit: 80,
+      );
 
       // Optional availability filter when a date range is set
       List<Item> available = candidates;
@@ -690,21 +672,46 @@ class _SearchSheetState extends State<_SearchSheet> {
     }
   }
 
-  void _openResults() {
+  Future<void> _openResults() async {
     final whereRaw = _whereCtrl.text.trim();
     final origin = _resolveOriginCoords(whereRaw);
-
-    List<Item> items = _filteredResults();
-    // If user provided "Wo", show items starting from that location and further away.
-    // (i.e., sort ascending by distance instead of relying on the existing mixed order)
-    if (origin != null) {
-      items.sort((a, b) {
-        final da = DataService.estimateDistanceKm(
-            a.lat, a.lng, origin.lat, origin.lng);
-        final db = DataService.estimateDistanceKm(
-            b.lat, b.lng, origin.lat, origin.lng);
-        return da.compareTo(db);
-      });
+    final whatRaw = _whatCtrl.text.trim();
+    final inferredCatFromWhat = _normalizeCoarseCategory(whatRaw);
+    final what =
+        inferredCatFromWhat != null && inferredCatFromWhat == _coarseCategory
+            ? ''
+            : whatRaw;
+    final categoryIds = _coarseCategory == null
+        ? const <String>[]
+        : _categories
+            .where((category) =>
+                DataService.coarseCategoryFor(category.name) == _coarseCategory)
+            .map((category) => category.id)
+            .toList();
+    if (mounted) setState(() => _recomputing = true);
+    late final List<Item> items;
+    try {
+      items = await DataService.searchPublicItems(
+        query: what,
+        categoryIds: categoryIds,
+        minPrice: _priceMin,
+        maxPrice: _priceMax,
+        latitude: origin?.lat,
+        longitude: origin?.lng,
+        radiusKm: origin == null ? null : 60,
+        sort: origin == null ? 'newest' : 'distance',
+        limit: 100,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Die Suche ist gerade nicht erreichbar. Bitte versuche es erneut.')),
+      );
+      return;
+    } finally {
+      if (mounted) setState(() => _recomputing = false);
     }
 
     String buildQueryText() {
@@ -742,6 +749,7 @@ class _SearchSheetState extends State<_SearchSheet> {
     final query = buildQueryText();
     final date = buildDateText();
     // Push results as a full screen above the overlay so Back returns to KI-Suche
+    if (!mounted) return;
     Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
         builder: (_) => SearchResultsScreen(
@@ -1033,7 +1041,8 @@ class _SearchSheetState extends State<_SearchSheet> {
                   hintText:
                       'Beschreibe einfach, was du brauchst.\n„Akkuschrauber in Leipzig für 2 Tage“',
                   hintStyle: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.35), fontSize: 12),
+                      color: Colors.white.withValues(alpha: 0.35),
+                      fontSize: 12),
                 ),
                 onChanged: (v) {
                   // Debounce to avoid firing an OpenAI request on every keystroke.
@@ -1076,7 +1085,7 @@ class _SearchSheetState extends State<_SearchSheet> {
             link: _whatLink,
             child: _FieldShell(
               key: _whatFieldKey,
-               label: 'Was',
+              label: 'Was',
               trailingIcon: Icons.widgets_outlined,
               child: TextField(
                 controller: _whatCtrl,
@@ -1087,13 +1096,13 @@ class _SearchSheetState extends State<_SearchSheet> {
                 textAlignVertical: TextAlignVertical.center,
                 maxLines: 1,
                 minLines: 1,
-                 decoration: const InputDecoration(
-                   isDense: true,
-                   contentPadding: EdgeInsets.zero,
-                   border: InputBorder.none,
-                   hintText: 'Was suchst du?',
-                   hintStyle: TextStyle(color: Colors.white70, fontSize: 13),
-                 ),
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                  border: InputBorder.none,
+                  hintText: 'Was suchst du?',
+                  hintStyle: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
               ),
             ),
           ),
@@ -1180,8 +1189,8 @@ class _SearchSheetState extends State<_SearchSheet> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                       (_pickup == null || _return == null)
-                           ? 'Zeitraum wählen'
+                      (_pickup == null || _return == null)
+                          ? 'Zeitraum wählen'
                           : '${_fmt(_pickup)} → ${_fmt(_return)}',
                       style:
                           const TextStyle(fontSize: 13, color: Colors.white70),
@@ -1258,7 +1267,8 @@ class _SearchSheetState extends State<_SearchSheet> {
                   onPressed: _clearAll,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white70,
-                    side: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
+                    side:
+                        BorderSide(color: Colors.white.withValues(alpha: 0.25)),
                   ),
                   child: const Text('Zurücksetzen'))),
           const SizedBox(width: 12),

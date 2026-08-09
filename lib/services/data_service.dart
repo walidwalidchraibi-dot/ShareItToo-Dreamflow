@@ -688,7 +688,7 @@ class DataService {
         '[DataService] addItem persist failed, attempting to shrink payload: ' +
             e.toString(),
       );
-      // 1) Replace base64 data URLs with lightweight placeholders and limit to max 3 photos per item
+      // 1) Remove oversized inline images and keep at most three uploaded URLs.
       List<dynamic> shrunk = list.map((raw) {
         try {
           final m = Map<String, dynamic>.from(raw as Map);
@@ -701,18 +701,10 @@ class DataService {
           int idx = 0;
           for (final p in photos) {
             if (idx >= 3) break;
-            if (p.startsWith('data:')) {
-              // Deterministic placeholder per item id and index to keep UI varied
-              limited.add(
-                'https://picsum.photos/seed/${m['id'] ?? 'x'}_${idx}/800/800',
-              );
-            } else {
+            if (!p.startsWith('data:')) {
               limited.add(p);
             }
             idx++;
-          }
-          if (limited.isEmpty) {
-            limited.add('https://picsum.photos/seed/${m['id'] ?? 'x'}/800/800');
           }
           m['photos'] = limited;
           return m;
@@ -805,6 +797,7 @@ class DataService {
         return items;
       } catch (error) {
         debugPrint('[DataService] remote listings load failed: $error');
+        rethrow;
       }
     }
     final itemsJson = prefs.getString(_itemsKey);
@@ -2557,7 +2550,7 @@ class DataService {
         '[DataService] updateItem persist failed, attempting to shrink payload: ' +
             e.toString(),
       );
-      // Shrink photos across all items (limit to 3, replace base64 with placeholders)
+      // Shrink photos across all items without inventing replacement listings or media.
       List<dynamic> shrunk = list.map((raw) {
         try {
           final m = Map<String, dynamic>.from(raw as Map);
@@ -2570,17 +2563,10 @@ class DataService {
           int idx = 0;
           for (final p in photos) {
             if (idx >= 3) break;
-            if (p.startsWith('data:')) {
-              limited.add(
-                'https://picsum.photos/seed/${m['id'] ?? 'x'}_${idx}/800/800',
-              );
-            } else {
+            if (!p.startsWith('data:')) {
               limited.add(p);
             }
             idx++;
-          }
-          if (limited.isEmpty) {
-            limited.add('https://picsum.photos/seed/${m['id'] ?? 'x'}/800/800');
           }
           m['photos'] = limited;
           return m;
@@ -2637,6 +2623,87 @@ class DataService {
         .toList();
     filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return filtered;
+  }
+
+  static Future<List<Item>> searchPublicItems({
+    String? query,
+    List<String> categoryIds = const <String>[],
+    List<String> conditions = const <String>[],
+    double? minPrice,
+    double? maxPrice,
+    double? latitude,
+    double? longitude,
+    double? radiusKm,
+    String sort = 'newest',
+    int limit = 100,
+  }) async {
+    List<Item> items;
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final remote = await BackendRepository.searchListings(
+        query: query,
+        categoryIds: categoryIds,
+        conditions: conditions,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        latitude: latitude,
+        longitude: longitude,
+        radiusKm: radiusKm,
+        sort: sort,
+        limit: limit,
+      );
+      items = <Item>[];
+      for (final entry in remote) {
+        try {
+          items.add(Item.fromJson(entry));
+        } catch (error) {
+          debugPrint('[DataService] skipped invalid search result: $error');
+        }
+      }
+    } else {
+      final normalizedQuery = query?.trim().toLowerCase() ?? '';
+      final boundedLimit = limit.clamp(1, 100).toInt();
+      items = (await getPublicItems()).where((item) {
+        if (normalizedQuery.isNotEmpty &&
+            !item.title.toLowerCase().contains(normalizedQuery) &&
+            !item.description.toLowerCase().contains(normalizedQuery) &&
+            !item.tags
+                .any((tag) => tag.toLowerCase().contains(normalizedQuery))) {
+          return false;
+        }
+        if (categoryIds.isNotEmpty && !categoryIds.contains(item.categoryId))
+          return false;
+        if (conditions.isNotEmpty && !conditions.contains(item.condition))
+          return false;
+        if (minPrice != null && item.pricePerDay < minPrice) return false;
+        if (maxPrice != null && item.pricePerDay > maxPrice) return false;
+        if (latitude != null && longitude != null && radiusKm != null) {
+          final distance =
+              estimateDistanceKm(item.lat, item.lng, latitude, longitude);
+          if (distance > radiusKm) return false;
+        }
+        return true;
+      }).toList();
+      if (sort == 'price_asc') {
+        items.sort(
+            (left, right) => left.pricePerDay.compareTo(right.pricePerDay));
+      } else if (sort == 'price_desc') {
+        items.sort(
+            (left, right) => right.pricePerDay.compareTo(left.pricePerDay));
+      } else if (sort == 'distance' && latitude != null && longitude != null) {
+        items.sort((left, right) => estimateDistanceKm(
+                left.lat, left.lng, latitude, longitude)
+            .compareTo(
+                estimateDistanceKm(right.lat, right.lng, latitude, longitude)));
+      } else {
+        items.sort((left, right) => right.createdAt.compareTo(left.createdAt));
+      }
+      items = items.take(boundedLimit).toList();
+    }
+    final blockedUserIds =
+        (await BlockedUsersService.getBlockedUserIds()).toSet();
+    return items
+        .where((item) => !blockedUserIds.contains(item.ownerId))
+        .toList();
   }
 
   static Future<Set<String>> getSavedItemIds() async {
@@ -7386,6 +7453,7 @@ class DataService {
   /// detail UI. This method seeds a minimal *support* thread **only when the
   /// store is empty**. It does not touch booking/payment/QR/review logic.
   static Future<bool> ensureSeededMessageThreadsForUser(String userId) async {
+    if (!QaRuntimeService.isEnabled) return false;
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = await _readMessageThreads(prefs);

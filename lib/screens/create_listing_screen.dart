@@ -379,6 +379,25 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           icon: Icons.login, title: 'Bitte zuerst anmelden');
       return;
     }
+    final productionBackend =
+        BackendConfig.enabled && !QaRuntimeService.isEnabled;
+    final acceptedExistingPhotos = productionBackend
+        ? _existingPhotos.where(BackendConfig.isManagedListingImageUrl).toList()
+        : List<String>.from(_existingPhotos);
+    if (!forceInactive &&
+        acceptedExistingPhotos.isEmpty &&
+        _pickedImages.isEmpty) {
+      if (!mounted) return;
+      await AppPopup.show(
+        context,
+        icon: Icons.add_photo_alternate_outlined,
+        title: 'Mindestens ein Foto erforderlich',
+        message:
+            'Füge ein echtes Foto des Artikels hinzu, bevor du die Anzeige veröffentlichst.',
+        plainCloseIcon: true,
+      );
+      return;
+    }
 
     final allCities = DataService.getCities();
     String city = _registeredCity ?? allCities.keys.first;
@@ -409,12 +428,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
 
     // Production uploads images to the central backend. Debug/QA keeps the
     // existing local data-URL behavior for deterministic offline fixtures.
-    final List<String> photos = List<String>.from(_existingPhotos);
+    final List<String> photos = List<String>.from(acceptedExistingPhotos);
     if (_pickedImages.isNotEmpty) {
       for (final f in _pickedImages) {
         try {
           final bytes = await f.readAsBytes();
-          if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+          if (productionBackend) {
             photos.add(
               await BackendRepository.uploadImage(
                 bytes: bytes,
@@ -427,17 +446,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
             photos.add('data:$mime;base64,$b64');
           }
         } catch (error) {
-          if (BackendConfig.enabled && !QaRuntimeService.isEnabled) rethrow;
+          if (productionBackend) rethrow;
           debugPrint('Local image processing failed: $error');
         }
       }
     }
-    if (photos.isEmpty) {
-      photos.add('https://picsum.photos/seed/new_listing_' +
-          DateTime.now().millisecondsSinceEpoch.toString() +
-          '/800/800');
-    }
-
     if (!_isEdit) {
       final item = Item(
         id: 'new',
@@ -459,8 +472,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         lng: pos.$2,
         geohash: 'u${DateTime.now().millisecondsSinceEpoch}',
         condition: _condition,
-        minDays: null,
-        maxDays: null,
+        minDays: 1,
+        maxDays: 30,
         createdAt: DateTime.now(),
         isActive: forceInactive ? false : true,
         verificationStatus: 'pending',
@@ -473,6 +486,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         maxDeliveryKmAtDropoff: _maxDistanceKm,
         maxPickupKmAtReturn: _maxDistanceKm,
         cancellationPolicy: 'unified',
+        protectionModel: 'standard',
+        availabilityMode: 'calendar',
         autoApplyDiscounts: _autoApplyDiscounts,
         longRentalDiscounts: ([
           LongRentalDiscount(days: _tier1Days, discountPercent: _tier1Pct),
@@ -528,6 +543,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       maxDeliveryKmAtDropoff: _maxDistanceKm,
       maxPickupKmAtReturn: _maxDistanceKm,
       cancellationPolicy: 'unified',
+      protectionModel: ex.protectionModel,
+      availabilityMode: ex.availabilityMode,
       autoApplyDiscounts: _autoApplyDiscounts,
       longRentalDiscounts: ([
         LongRentalDiscount(days: _tier1Days, discountPercent: _tier1Pct),

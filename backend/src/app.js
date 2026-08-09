@@ -38,6 +38,15 @@ import {
 import { publishToAll, publishToUsers } from './realtime.js';
 import { releaseMetadata } from './release.js';
 import {
+  ListingValidationError,
+  listingProjection,
+  normalizeListingPayload,
+  parseCatalogQuery,
+  shapePublicListing,
+  storageNameFromListingPhoto,
+} from './listing_catalog.js';
+import { ImageProcessingError, sanitizeImage } from './media_pipeline.js';
+import {
   bearerToken,
   defaultProfile,
   hashPassword,
@@ -147,24 +156,177 @@ function listingFinancials(payload) {
   };
 }
 
-function listingPayload(raw, { id, ownerId, existingCreatedAt = null }) {
-  const payload = ensureObject(raw);
-  const title = safeText(payload.title, 160);
-  const description = safeText(payload.description, 10_000);
-  if (!title || !description) throw new HttpError(400, 'listing_title_and_description_required');
-  const createdAt = existingCreatedAt ?? (Date.parse(payload.createdAt) ? new Date(payload.createdAt).toISOString() : new Date().toISOString());
-  const photos = Array.isArray(payload.photos) ? payload.photos.slice(0, 12).map((photo) => safeText(photo, 4000)).filter(Boolean) : [];
-  return {
-    ...payload,
-    id,
-    ownerId,
-    title,
-    description,
-    photos,
-    createdAt,
-    status: safeText(payload.status, 30) || 'active',
-    isActive: payload.isActive !== false && payload.status !== 'ended',
+function listingPayload(raw, {
+  id,
+  ownerId,
+  existingCreatedAt = null,
+  existingPayload = null,
+}) {
+  const source = ensureObject(raw);
+  try {
+    return normalizeListingPayload(source, {
+      id,
+      ownerId,
+      existing: existingCreatedAt
+        ? {
+            createdAt: existingCreatedAt,
+            verificationStatus: safeText(existingPayload?.verificationStatus, 30) || 'pending',
+            timesLent: Number.isInteger(existingPayload?.timesLent) ? existingPayload.timesLent : 0,
+          }
+        : null,
+    });
+  } catch (error) {
+    if (error instanceof ListingValidationError) {
+      throw new HttpError(400, error.code, error.details);
+    }
+    throw error;
+  }
+}
+
+function listingProjectionValues(payload) {
+  const projection = listingProjection(payload);
+  return [
+    projection.status,
+    projection.isActive,
+    projection.title,
+    projection.description,
+    projection.categoryId,
+    projection.subcategory,
+    projection.condition,
+    projection.locationText,
+    projection.city,
+    projection.country,
+    projection.latitude,
+    projection.longitude,
+    projection.minDays,
+    projection.maxDays,
+    projection.handoverRadiusKm,
+    projection.protectionModel,
+    projection.publishedAt,
+    projection.endedAt,
+  ];
+}
+
+async function bindListingUploads(client, { listingId, ownerId, photos, requirePhoto }) {
+  const storageNames = photos.map((photo) => storageNameFromListingPhoto(photo, config.publicBaseUrl));
+  if (storageNames.some((storageName) => !storageName)) {
+    throw new HttpError(400, 'listing_photo_must_be_uploaded');
+  }
+  const uniqueNames = [...new Set(storageNames)];
+  if (requirePhoto && uniqueNames.length === 0) throw new HttpError(400, 'listing_photo_required');
+
+  if (uniqueNames.length > 0) {
+    const records = await client.query(
+      `SELECT id, owner_id, storage_name, purpose, content_scan_status, listing_id
+       FROM uploads
+       WHERE storage_name = ANY($1::text[])
+       FOR UPDATE`,
+      [uniqueNames],
+    );
+    if (records.rowCount !== uniqueNames.length) throw new HttpError(400, 'listing_photo_not_found');
+    for (const record of records.rows) {
+      if (record.owner_id !== ownerId) throw new HttpError(403, 'listing_photo_forbidden');
+      if (record.purpose !== 'listing_image' || record.content_scan_status !== 'passed') {
+        throw new HttpError(400, 'listing_photo_not_approved');
+      }
+      if (record.listing_id && record.listing_id !== listingId) {
+        throw new HttpError(409, 'listing_photo_already_used');
+      }
+    }
+  }
+
+  await client.query(
+    `UPDATE uploads
+     SET listing_id = NULL, visibility = 'private'
+     WHERE listing_id = $1
+       AND NOT (storage_name = ANY($2::text[]))`,
+    [listingId, uniqueNames],
+  );
+  if (uniqueNames.length > 0) {
+    await client.query(
+      `UPDATE uploads
+       SET listing_id = $1, visibility = 'public'
+       WHERE storage_name = ANY($2::text[])`,
+      [listingId, uniqueNames],
+    );
+  }
+}
+
+function buildCatalogSearch(search) {
+  const values = [];
+  const bind = (value) => {
+    values.push(value);
+    return `$${values.length}`;
   };
+  const clauses = [
+    'listing.catalog_version = 1',
+    'listing.is_active = true',
+    "listing.status = 'active'",
+  ];
+  let distanceExpression = 'NULL::double precision';
+  if (search.latitude !== null && search.longitude !== null) {
+    const latitude = bind(search.latitude);
+    const longitude = bind(search.longitude);
+    const publicLatitude = 'round(listing.latitude::numeric, 2)::double precision';
+    const publicLongitude = 'round(listing.longitude::numeric, 2)::double precision';
+    distanceExpression = `6371.0 * acos(least(1.0, greatest(-1.0,
+      cos(radians(${latitude})) * cos(radians(${publicLatitude}))
+      * cos(radians(${publicLongitude}) - radians(${longitude}))
+      + sin(radians(${latitude})) * sin(radians(${publicLatitude}))
+    )))`;
+    if (search.radiusKm !== null) clauses.push(`${distanceExpression} <= ${bind(search.radiusKm)}`);
+  }
+  if (search.q) {
+    const query = bind(search.q);
+    clauses.push(`(
+      to_tsvector('simple', concat_ws(' ', listing.title, listing.description, listing.category_id, listing.subcategory, listing.city, listing.country))
+        @@ websearch_to_tsquery('simple', ${query})
+      OR listing.title ILIKE '%' || ${query} || '%'
+      OR listing.description ILIKE '%' || ${query} || '%'
+    )`);
+  }
+  if (search.categories.length > 0) clauses.push(`listing.category_id = ANY(${bind(search.categories)}::text[])`);
+  if (search.conditions.length > 0) clauses.push(`listing.condition = ANY(${bind(search.conditions)}::text[])`);
+  if (search.minPrice !== null) clauses.push(`listing.price_per_day_minor >= ${bind(Math.round(search.minPrice * 100))}`);
+  if (search.maxPrice !== null) clauses.push(`listing.price_per_day_minor <= ${bind(Math.round(search.maxPrice * 100))}`);
+
+  const orderBy = {
+    newest: 'listing.created_at DESC, listing.id ASC',
+    price_asc: 'listing.price_per_day_minor ASC, listing.created_at DESC, listing.id ASC',
+    price_desc: 'listing.price_per_day_minor DESC, listing.created_at DESC, listing.id ASC',
+    distance: 'distance_km ASC NULLS LAST, listing.created_at DESC, listing.id ASC',
+  }[search.sort];
+  const limit = bind(search.limit + 1);
+  const offset = bind(search.offset);
+  return {
+    text: `SELECT listing.payload, media.storage_names, ${distanceExpression} AS distance_km
+      FROM listings AS listing
+      JOIN LATERAL (
+        SELECT array_agg(upload.storage_name ORDER BY upload.created_at) AS storage_names
+        FROM uploads AS upload
+        WHERE upload.listing_id = listing.id
+          AND upload.purpose = 'listing_image'
+          AND upload.visibility = 'public'
+          AND upload.content_scan_status = 'passed'
+      ) AS media ON cardinality(media.storage_names) > 0
+      WHERE ${clauses.join('\n AND ')}
+      ORDER BY ${orderBy}
+      LIMIT ${limit}
+      OFFSET ${offset}`,
+    values,
+  };
+}
+
+function publicListingFromRow(row) {
+  const allowed = new Set(row.storage_names ?? []);
+  const payload = ensureObject(row.payload, 'invalid_stored_listing');
+  const photos = Array.isArray(payload.photos)
+    ? payload.photos.filter((photo) => {
+        const storageName = storageNameFromListingPhoto(photo, config.publicBaseUrl);
+        return storageName && allowed.has(storageName);
+      })
+    : [];
+  return shapePublicListing({ ...payload, photos }, { distanceKm: row.distance_km });
 }
 
 function rentalPayload(raw, { id, itemId, ownerId, renterId, existingStatus = null }) {
@@ -1340,11 +1502,21 @@ export function createApp() {
     res.json({ user: shapeUser(result.rows[0], { publicOnly: true }) });
   }));
 
-  app.get('/v1/listings', asyncRoute(async (_req, res) => {
-    const result = await pool.query(
-      `SELECT payload FROM listings WHERE is_active = true ORDER BY created_at DESC LIMIT 500`,
-    );
-    res.json({ listings: result.rows.map((row) => row.payload) });
+  app.get('/v1/listings', asyncRoute(async (req, res) => {
+    const search = parseCatalogQuery(req.query);
+    const query = buildCatalogSearch(search);
+    const result = await pool.query(query.text, query.values);
+    const hasMore = result.rows.length > search.limit;
+    const rows = hasMore ? result.rows.slice(0, search.limit) : result.rows;
+    res.json({
+      listings: rows.map(publicListingFromRow),
+      page: {
+        limit: search.limit,
+        offset: search.offset,
+        count: rows.length,
+        hasMore,
+      },
+    });
   }));
 
   app.get('/v1/listings/mine', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
@@ -1359,25 +1531,41 @@ export function createApp() {
     const id = identifier(req.body?.id === 'new' ? '' : req.body?.id, 'listing');
     const payload = listingPayload(req.body, { id, ownerId: req.auth.userId });
     const financials = listingFinancials(payload);
+    const projection = listingProjectionValues(payload);
     const result = await inTransaction(async (client) => {
       const inserted = await client.query(
         `INSERT INTO listings (
-           id, owner_id, payload, is_active, currency, price_per_day_minor,
-           security_deposit_minor, created_at
+           id, owner_id, payload, currency, price_per_day_minor,
+           security_deposit_minor, catalog_version, catalog_revision,
+           status, is_active, title, description,
+           category_id, subcategory, condition, location_text, city, country,
+           latitude, longitude, min_days, max_days, handover_radius_km,
+           protection_model, published_at, ended_at, created_at
          )
-         VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8::timestamptz)
+         VALUES (
+           $1, $2, $3::jsonb, $4, $5, $6, 1, 1,
+           $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+           $17, $18, $19, $20, $21, $22, $23::timestamptz,
+           $24::timestamptz, $25::timestamptz
+         )
          RETURNING payload`,
         [
           id,
           req.auth.userId,
           JSON.stringify(payload),
-          payload.isActive,
           financials.currency,
           financials.pricePerDayMinor,
           financials.securityDepositMinor,
+          ...projection,
           payload.createdAt,
         ],
       );
+      await bindListingUploads(client, {
+        listingId: id,
+        ownerId: req.auth.userId,
+        photos: payload.photos,
+        requirePhoto: payload.status === 'active',
+      });
       await writeAudit(client, {
         actor: req.actor,
         action: 'listing.created',
@@ -1399,24 +1587,41 @@ export function createApp() {
       id,
       ownerId: req.auth.userId,
       existingCreatedAt: new Date(existing.rows[0].created_at).toISOString(),
+      existingPayload: ensureObject(existing.rows[0].payload, 'invalid_stored_listing'),
     });
     const financials = listingFinancials(payload);
+    const projection = listingProjectionValues(payload);
     const result = await inTransaction(async (client) => {
       const updated = await client.query(
         `UPDATE listings
-         SET payload = $2::jsonb, is_active = $3, currency = $4,
-             price_per_day_minor = $5, security_deposit_minor = $6
+         SET payload = $2::jsonb, currency = $3,
+             price_per_day_minor = $4, security_deposit_minor = $5,
+             catalog_version = 1, catalog_revision = catalog_revision + 1,
+             status = $6, is_active = $7, title = $8, description = $9,
+             category_id = $10, subcategory = $11, condition = $12,
+             location_text = $13, city = $14, country = $15,
+             latitude = $16, longitude = $17, min_days = $18,
+             max_days = $19, handover_radius_km = $20,
+             protection_model = $21,
+             published_at = CASE WHEN $6 = 'active' THEN COALESCE(published_at, $22::timestamptz) ELSE published_at END,
+             ended_at = $23::timestamptz
          WHERE id = $1
          RETURNING payload`,
         [
           id,
           JSON.stringify(payload),
-          payload.isActive,
           financials.currency,
           financials.pricePerDayMinor,
           financials.securityDepositMinor,
+          ...projection,
         ],
       );
+      await bindListingUploads(client, {
+        listingId: id,
+        ownerId: req.auth.userId,
+        photos: payload.photos,
+        requirePhoto: payload.status === 'active',
+      });
       await writeAudit(client, {
         actor: req.actor,
         action: 'listing.updated',
@@ -1434,28 +1639,82 @@ export function createApp() {
     const status = safeText(req.body?.status, 30);
     if (!['active', 'paused', 'ended'].includes(status)) throw new HttpError(400, 'invalid_listing_status');
     const isActive = status === 'active';
-    const result = await pool.query(
-      `UPDATE listings
-       SET is_active = $3,
-           payload = jsonb_set(jsonb_set(payload, '{isActive}', to_jsonb($3::boolean)), '{status}', to_jsonb($4::text))
-       WHERE id = $1 AND owner_id = $2
-       RETURNING payload`,
-      [id, req.auth.userId, isActive, status],
-    );
+    const result = await inTransaction(async (client) => {
+      if (isActive) {
+        const media = await client.query(
+          `SELECT 1 FROM uploads
+           WHERE listing_id = $1 AND owner_id = $2
+             AND purpose = 'listing_image'
+             AND content_scan_status = 'passed'
+           LIMIT 1`,
+          [id, req.auth.userId],
+        );
+        if (!media.rowCount) throw new HttpError(400, 'listing_photo_required');
+      }
+      const updated = await client.query(
+        `UPDATE listings
+         SET is_active = $3,
+             catalog_revision = catalog_revision + 1,
+             status = $4,
+             published_at = CASE WHEN $4 = 'active' THEN COALESCE(published_at, now()) ELSE published_at END,
+             ended_at = CASE WHEN $4 = 'ended' THEN now() ELSE NULL END,
+             payload = jsonb_set(
+               jsonb_set(
+                 jsonb_set(payload, '{isActive}', to_jsonb($3::boolean)),
+                 '{status}', to_jsonb($4::text)
+               ),
+               '{endedAt}',
+               CASE WHEN $4 = 'ended' THEN to_jsonb(now()::text) ELSE 'null'::jsonb END
+             )
+         WHERE id = $1 AND owner_id = $2 AND catalog_version = 1
+         RETURNING payload`,
+        [id, req.auth.userId, isActive, status],
+      );
+      if (updated.rowCount) {
+        await writeAudit(client, {
+          actor: req.actor,
+          action: `listing.${status}`,
+          resourceType: 'listing',
+          resourceId: id,
+        });
+      }
+      return updated;
+    });
     if (!result.rowCount) throw new HttpError(404, 'listing_not_found');
     publishToAll({ type: 'changed', resource: 'listings' });
     res.json({ listing: result.rows[0].payload });
   }));
 
   app.delete('/v1/listings/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
-    const result = await pool.query(
-      `UPDATE listings
-       SET is_active = false,
-           payload = jsonb_set(jsonb_set(payload, '{isActive}', 'false'::jsonb), '{status}', '"ended"'::jsonb)
-       WHERE id = $1 AND owner_id = $2 AND is_active = true
-       RETURNING id`,
-      [safeText(req.params.id, 120), req.auth.userId],
-    );
+    const id = safeText(req.params.id, 120);
+    const result = await inTransaction(async (client) => {
+      const updated = await client.query(
+        `UPDATE listings
+         SET is_active = false,
+             catalog_revision = catalog_revision + 1,
+             status = 'ended',
+             ended_at = now(),
+             payload = jsonb_set(
+               jsonb_set(
+                 jsonb_set(payload, '{isActive}', 'false'::jsonb),
+                 '{status}', '"ended"'::jsonb
+               ),
+               '{endedAt}', to_jsonb(now()::text)
+             )
+         WHERE id = $1 AND owner_id = $2 AND status <> 'ended'
+         RETURNING id`,
+        [id, req.auth.userId],
+      );
+      if (updated.rowCount) {
+        await writeAudit(client, {
+          actor: req.actor,
+          action: 'listing.ended',
+          resourceType: 'listing',
+          resourceId: id,
+        });
+      }
+      return updated;
+    });
     if (!result.rowCount) throw new HttpError(404, 'listing_not_found');
     publishToAll({ type: 'changed', resource: 'listings' });
     res.status(204).end();
@@ -1484,7 +1743,8 @@ export function createApp() {
           const itemId = safeText(candidate.itemId, 120);
           const listingResult = await client.query(
             `SELECT owner_id, currency, security_deposit_minor
-             FROM listings WHERE id = $1 AND is_active = true`,
+             FROM listings
+             WHERE id = $1 AND catalog_version = 1 AND is_active = true`,
             [itemId],
           );
           if (!listingResult.rowCount) throw new HttpError(404, 'listing_not_found', { itemId });
@@ -1688,7 +1948,9 @@ export function createApp() {
     if (!allowedPurposes.has(purpose)) throw new HttpError(400, 'invalid_upload_purpose');
     const listingId = safeText(req.body?.listingId, 120) || null;
     const threadId = safeText(req.body?.threadId, 120) || null;
-    const visibility = ['listing_image', 'profile_image'].includes(purpose) ? 'public' : 'private';
+    const visibility = purpose === 'profile_image' || (purpose === 'listing_image' && listingId)
+      ? 'public'
+      : 'private';
 
     if (listingId) {
       const listing = await pool.query(
@@ -1698,7 +1960,7 @@ export function createApp() {
       if (!listing.rowCount) throw new HttpError(404, 'listing_not_found');
       if (listing.rows[0].owner_id !== req.auth.userId) throw new HttpError(403, 'upload_forbidden');
     }
-    if (visibility === 'private') {
+    if (visibility === 'private' && purpose !== 'listing_image') {
       if (!threadId) throw new HttpError(400, 'private_upload_thread_required');
       const thread = await pool.query(
         `SELECT user1_id, user2_id FROM message_threads WHERE id = $1`,
@@ -1710,27 +1972,40 @@ export function createApp() {
       }
     }
 
-    const storageName = `${crypto.randomUUID()}.${detected.ext}`;
+    const processed = await sanitizeImage(req.file.buffer, { purpose });
+    const storageStem = crypto.randomUUID();
+    const storageName = `${storageStem}-full.${processed.extension}`;
+    const thumbnailStorageName = `${storageStem}-thumb.${processed.extension}`;
     await fs.mkdir(config.uploadDir, { recursive: true });
-    await fs.writeFile(path.join(config.uploadDir, storageName), req.file.buffer, { flag: 'wx', mode: 0o640 });
     try {
+      await Promise.all([
+        fs.writeFile(path.join(config.uploadDir, storageName), processed.full, { flag: 'wx', mode: 0o640 }),
+        fs.writeFile(path.join(config.uploadDir, thumbnailStorageName), processed.thumbnail, { flag: 'wx', mode: 0o640 }),
+      ]);
       await inTransaction(async (client) => {
         const result = await client.query(
           `INSERT INTO uploads (
              owner_id, storage_name, mime_type, byte_size, purpose, visibility,
-             listing_id, thread_id
+             listing_id, thread_id, thumbnail_storage_name,
+             thumbnail_mime_type, thumbnail_byte_size, image_width, image_height,
+             content_sha256, content_scan_status
            )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $3, $10, $11, $12, $13, 'passed')
            RETURNING id`,
           [
             req.auth.userId,
             storageName,
-            detected.mime,
-            req.file.buffer.length,
+            processed.mimeType,
+            processed.full.length,
             purpose,
             visibility,
             listingId,
             threadId,
+            thumbnailStorageName,
+            processed.thumbnail.length,
+            processed.width,
+            processed.height,
+            processed.sha256,
           ],
         );
         await writeAudit(client, {
@@ -1742,25 +2017,46 @@ export function createApp() {
         });
       });
     } catch (error) {
-      await fs.unlink(path.join(config.uploadDir, storageName)).catch(() => {});
+      await Promise.all([
+        fs.unlink(path.join(config.uploadDir, storageName)).catch(() => {}),
+        fs.unlink(path.join(config.uploadDir, thumbnailStorageName)).catch(() => {}),
+      ]);
       throw error;
     }
-    res.status(201).json({ url: `${config.publicBaseUrl}/uploads/${storageName}` });
+    res.status(201).json({
+      url: `${config.publicBaseUrl}/uploads/${storageName}`,
+      thumbnailUrl: `${config.publicBaseUrl}/uploads/${thumbnailStorageName}`,
+      width: processed.width,
+      height: processed.height,
+    });
   }));
 
   app.get('/v1/uploads/:storageName', asyncRoute(async (req, res) => {
     const storageName = safeText(req.params.storageName, 160);
     const result = await pool.query(
-      `SELECT upload.*, thread.user1_id, thread.user2_id
+      `SELECT upload.*, thread.user1_id, thread.user2_id,
+              listing.status AS listing_status,
+              listing.is_active AS listing_is_active,
+              listing.catalog_version AS listing_catalog_version
        FROM uploads AS upload
        LEFT JOIN message_threads AS thread ON thread.id = upload.thread_id
-       WHERE upload.storage_name = $1`,
+       LEFT JOIN listings AS listing ON listing.id = upload.listing_id
+       WHERE upload.storage_name = $1 OR upload.thumbnail_storage_name = $1`,
       [storageName],
     );
     const uploadRecord = result.rows[0];
     if (!uploadRecord) throw new HttpError(404, 'upload_not_found');
 
-    if (uploadRecord.visibility !== 'public') {
+    const publiclyReadable = uploadRecord.visibility === 'public'
+      && (
+        uploadRecord.purpose !== 'listing_image'
+        || (
+          uploadRecord.listing_catalog_version === 1
+          && uploadRecord.listing_status === 'active'
+          && uploadRecord.listing_is_active === true
+        )
+      );
+    if (!publiclyReadable) {
       const token = bearerToken(req);
       let userId = null;
       let sessionId = null;
@@ -1786,11 +2082,15 @@ export function createApp() {
       }
     }
 
-    const contents = await fs.readFile(path.join(config.uploadDir, uploadRecord.storage_name));
+    const isThumbnail = storageName === uploadRecord.thumbnail_storage_name;
+    const requestedStorageName = isThumbnail ? uploadRecord.thumbnail_storage_name : uploadRecord.storage_name;
+    const requestedMimeType = isThumbnail ? uploadRecord.thumbnail_mime_type : uploadRecord.mime_type;
+    const requestedByteSize = isThumbnail ? uploadRecord.thumbnail_byte_size : uploadRecord.byte_size;
+    const contents = await fs.readFile(path.join(config.uploadDir, requestedStorageName));
     res.set({
-      'Content-Type': uploadRecord.mime_type,
-      'Content-Length': String(uploadRecord.byte_size),
-      'Cache-Control': uploadRecord.visibility === 'public'
+      'Content-Type': requestedMimeType,
+      'Content-Length': String(requestedByteSize),
+      'Cache-Control': publiclyReadable
         ? 'public, max-age=31536000, immutable'
         : 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
@@ -1801,15 +2101,20 @@ export function createApp() {
   app.use((_req, res) => res.status(404).json({ error: 'not_found' }));
   app.use((error, _req, res, _next) => {
     const uploadTooLarge = error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE';
+    const invalidProcessedImage = error instanceof ImageProcessingError;
     const bookingConflict = error?.code === '23P01';
     const status = bookingConflict
       ? 409
-      : (uploadTooLarge ? 413 : (error instanceof HttpError ? error.status : (error?.status ?? 500)));
+      : (uploadTooLarge
+          ? 413
+          : (invalidProcessedImage ? 422 : (error instanceof HttpError ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
-      : (bookingConflict
+      : (invalidProcessedImage
+          ? error.code
+          : (bookingConflict
           ? 'booking_period_unavailable'
-          : (error instanceof HttpError ? error.code : (status === 500 ? 'internal_error' : 'request_failed')));
+          : (error instanceof HttpError ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error('[api]', error);
     res.status(status).json({ error: code, ...(error?.details ? { details: error.details } : {}) });
   });

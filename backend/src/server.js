@@ -5,11 +5,9 @@ import { config } from './config.js';
 import { initializeDatabase, pool } from './db.js';
 import { attachRealtime } from './realtime.js';
 import { verifyMailer } from './mailer.js';
-import { seedPublicCatalog } from './seed.js';
 
 async function main() {
   await initializeDatabase();
-  await seedPublicCatalog();
   await verifyMailer();
 
   const app = createApp();
