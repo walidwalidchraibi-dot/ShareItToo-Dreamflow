@@ -192,6 +192,33 @@ Screenshots werden vor Ablage auf E-Mail, Namen, Adressen, Nachrichten,
 Geräte-IDs und Zahlungsdetails geprüft. Versehentlich erfasste private Daten
 werden nicht in Git, Telegram oder den Masterplan kopiert.
 
+### Maschinenlesbarer Go/No-Go-Nachweis
+
+`store/device-validation.json` ist die verbindliche Ergänzung zu diesem
+Runbook. Vor Beginn wird dort derselbe Commit, Build, API-Ziel, Firebase- und
+Zahlungsmodus eingetragen. Jede der vier Rollen-/Netz-Zellen erhält nach der
+Ausführung Gerätemodell, Betriebssystem, Store-Installationsweg, alle
+Einzelresultate und einen bereinigten Nachweis unter `docs/evidence/b11/`.
+
+Der offene Stand muss jederzeit bestehen:
+
+```text
+node tool/validate_device_evidence.mjs
+```
+
+B11 darf nur freigegeben werden, wenn zusätzlich der strenge Lauf besteht:
+
+```text
+node tool/validate_device_evidence.mjs --require-passed
+```
+
+Der strenge Lauf verlangt vier bestandene reale Gerätezellen, sieben
+plattformweite Releaseprüfungen, technische und produktseitige Freigabe sowie
+die gemeinsame Schließung der drei zugehörigen Store-Gates. Zugangsdaten,
+Tokens, Roh-Gerätekennungen und unbereinigte Nutzerdaten sind in Manifest und
+Evidenzablage verboten. Detailvertrag:
+`docs/operations/B11_MACHINE_READABLE_DEVICE_EVIDENCE_2026-08-09.md`.
+
 ## Fehlerklassen und Stop-Regeln
 
 | Klasse | Bedeutung | Reaktion |
@@ -234,5 +261,7 @@ B11 ist nur bestanden, wenn alle Punkte erfüllt sind:
 - synthetische Testdaten sind bereinigt und Staging bleibt gesund;
 - Produktion und Echtgeldpfade blieben unverändert;
 - Bericht, Masterplan und Maximus enthalten denselben finalen Buildstand.
+- `node tool/validate_device_evidence.mjs --require-passed` besteht für genau
+  diesen unveränderten Build.
 
 Erst danach darf B12 mit exakt diesem unveränderten Geräte-Build beginnen.

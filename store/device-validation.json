@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "state": "planned",
+  "goNoGo": "no-go",
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "bundleId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "minimumBuildNumber": "2026080903",
+    "buildNumber": null,
+    "commit": null,
+    "releaseChannel": "internal",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
+    "firebaseConfigured": false,
+    "paymentMode": "memory",
+    "stripeLivemode": false,
+    "android": {
+      "delivery": "pending",
+      "aabSha256": null,
+      "apkSha256": null,
+      "signingCertificateSha256": null
+    },
+    "ios": {
+      "delivery": "pending",
+      "ipaSha256": null,
+      "teamIdentifier": null,
+      "privacyManifestScanned": false
+    }
+  },
+  "deviceMatrix": [
+    {
+      "id": "android-wifi-owner",
+      "platform": "android",
+      "network": "wifi",
+      "role": "owner",
+      "deviceType": "physical",
+      "deviceModel": null,
+      "osVersion": null,
+      "storeInstall": "pending",
+      "screenReader": "talkback",
+      "status": "open",
+      "tests": {
+        "installAndFirstStart": "open",
+        "authenticationAndSession": "open",
+        "listingAndBooking": "open",
+        "chatAndDeepLink": "open",
+        "pushForeground": "open",
+        "pushBackground": "open",
+        "pushTerminated": "open",
+        "handoverAndReturn": "open",
+        "moderationAndAccount": "open",
+        "offlineRecovery": "open",
+        "largeTextAndScreenReader": "open"
+      },
+      "evidenceRef": null
+    },
+    {
+      "id": "android-hotspot-renter",
+      "platform": "android",
+      "network": "hotspot",
+      "role": "renter",
+      "deviceType": "physical",
+      "deviceModel": null,
+      "osVersion": null,
+      "storeInstall": "pending",
+      "screenReader": "talkback",
+      "status": "open",
+      "tests": {
+        "installAndFirstStart": "open",
+        "authenticationAndSession": "open",
+        "listingAndBooking": "open",
+        "chatAndDeepLink": "open",
+        "pushForeground": "open",
+        "pushBackground": "open",
+        "pushTerminated": "open",
+        "handoverAndReturn": "open",
+        "moderationAndAccount": "open",
+        "offlineRecovery": "open",
+        "largeTextAndScreenReader": "open"
+      },
+      "evidenceRef": null
+    },
+    {
+      "id": "ios-wifi-owner",
+      "platform": "ios",
+      "network": "wifi",
+      "role": "owner",
+      "deviceType": "physical",
+      "deviceModel": null,
+      "osVersion": null,
+      "storeInstall": "pending",
+      "screenReader": "voiceover",
+      "status": "open",
+      "tests": {
+        "installAndFirstStart": "open",
+        "authenticationAndSession": "open",
+        "listingAndBooking": "open",
+        "chatAndDeepLink": "open",
+        "pushForeground": "open",
+        "pushBackground": "open",
+        "pushTerminated": "open",
+        "handoverAndReturn": "open",
+        "moderationAndAccount": "open",
+        "offlineRecovery": "open",
+        "largeTextAndScreenReader": "open"
+      },
+      "evidenceRef": null
+    },
+    {
+      "id": "ios-hotspot-renter",
+      "platform": "ios",
+      "network": "hotspot",
+      "role": "renter",
+      "deviceType": "physical",
+      "deviceModel": null,
+      "osVersion": null,
+      "storeInstall": "pending",
+      "screenReader": "voiceover",
+      "status": "open",
+      "tests": {
+        "installAndFirstStart": "open",
+        "authenticationAndSession": "open",
+        "listingAndBooking": "open",
+        "chatAndDeepLink": "open",
+        "pushForeground": "open",
+        "pushBackground": "open",
+        "pushTerminated": "open",
+        "handoverAndReturn": "open",
+        "moderationAndAccount": "open",
+        "offlineRecovery": "open",
+        "largeTextAndScreenReader": "open"
+      },
+      "evidenceRef": null
+    }
+  ],
+  "releaseChecks": {
+    "candidateIdentityAndSignatures": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "firebaseFcmAndApns": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "binaryPrivacyAndNetwork": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "crashReleaseMapping": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "storeWarningsLinksAndSigning": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "stagingCleanupAndHealth": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "productionInvariant": {
+      "status": "open",
+      "evidenceRef": null
+    }
+  },
+  "approvals": {
+    "technical": {
+      "status": "open",
+      "approvedAt": null,
+      "evidenceRef": null
+    },
+    "productOwner": {
+      "status": "open",
+      "approvedAt": null,
+      "evidenceRef": null
+    }
+  },
+  "evidencePolicy": {
+    "root": "docs/evidence/b11",
+    "containsSecrets": false,
+    "containsRawDeviceIdentifiers": false,
+    "containsReviewCredentials": false,
+    "syntheticAccountsOnly": true
+  }
+}

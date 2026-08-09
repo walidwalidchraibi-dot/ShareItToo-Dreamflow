@@ -16,9 +16,12 @@ command -v node >/dev/null 2>&1 || fail "node is required for public store page 
 node --check tool/verify_public_store_pages.mjs
 node --check tool/verify_brand_assets.mjs
 node --check tool/verify_android_binary_privacy.mjs
+node --check tool/validate_device_evidence.mjs
 node tool/verify_brand_assets.mjs
 dart run tool/validate_store_metadata.dart
+node tool/validate_device_evidence.mjs
 if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
+  node tool/validate_device_evidence.mjs --require-passed
   dart run tool/validate_store_metadata.dart --require-submittable
   node tool/verify_public_store_pages.mjs
 fi

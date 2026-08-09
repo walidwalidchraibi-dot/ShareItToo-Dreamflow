@@ -3,6 +3,9 @@
 Dieser Ordner ist die maschinenlesbare Quelle für die vorbereiteten Google-
 Play- und Apple-Metadaten. `store/submission.json` hält App-Identität,
 Wahrheitsgrenzen, öffentliche URLs und die offenen Einreichungsgates fest.
+`store/device-validation.json` bindet den späteren B11-Go/No-Go zusätzlich an
+denselben Build, vier reale Rollen-/Netz-Gerätezellen, die plattformweiten
+Releaseprüfungen und bereinigte lokale Evidenzdateien.
 
 Der aktuelle Zustand ist absichtlich `draft` und
 `submissionAllowed: false`. Der Validator darf nur dann einen einreichbaren
@@ -13,11 +16,28 @@ Lokale Prüfung:
 
 ```text
 dart run tool/validate_store_metadata.dart
+node tool/validate_device_evidence.mjs
 ```
 
 Der Standardlauf prüft den ehrlichen Entwurfszustand. Eine spätere
 Store-Automation muss zusätzlich mit `--require-submittable` prüfen und darf
 bei einem offenen Gate keinen Upload starten.
+
+Der Gerätevalidator bleibt derzeit bewusst bei `state=planned`,
+`goNoGo=no-go`, `matrix=0/4` und `releaseChecks=0/7`. Nach den realen
+Internal-/TestFlight-Läufen darf der Zustand nur mit echten, bereinigten
+Dateiverweisen unter `docs/evidence/b11/` auf `passed` wechseln. Der strenge
+Nachweis lautet:
+
+```text
+node tool/validate_device_evidence.mjs --require-passed
+```
+
+Er verlangt Build `2026080903` oder höher, denselben vollständigen Commit,
+Android- und iOS-Artefakthashes, Play-Internal-/TestFlight-Installation,
+TalkBack/VoiceOver, alle Push-Zustände, Binär-/Netzwerkdatenschutz,
+Crash-Releasezuordnung, Store-/Signing-Prüfung, Staging-Bereinigung,
+Produktionsinvariante und technische sowie produktseitige Freigabe.
 
 Die vorgesehenen öffentlichen URLs stehen bereits im Manifest, bleiben aber
 bis zur fachlichen Freigabe auf `draft`. Nach einem Staging-Rollout lassen sich
@@ -36,8 +56,8 @@ bleibt separat als `operational` erkennbar.
 Der signierte Release-Preflight führt die Standardprüfung immer aus. Ein
 tatsächlicher Store-Upload muss außerdem
 `SIT_REQUIRE_STORE_SUBMISSION=1` setzen; dadurch wird der strenge Modus vor
-dem Build erzwungen und anschließend auch der reale Inhalt aller drei
-öffentlichen Pflichtseiten geprüft.
+dem Build für Store-Metadaten und Geräteabnahme erzwungen und anschließend auch
+der reale Inhalt aller drei öffentlichen Pflichtseiten geprüft.
 
 Zugangsdaten, API-Schlüssel, Review-Passwörter, Service Accounts und
 Zahlungsschlüssel gehören niemals in diesen Ordner.

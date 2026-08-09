@@ -226,7 +226,21 @@ definiert Release-Eintrag, Eintrittsbedingungen, reale Geräte-/Rollenmatrix,
 Store-Installation, Push-/Offline-Fälle, Barrierefreiheit, Datenschutz,
 Fehlerklassen, Stop-Regeln, Rückfall und B11-Go/No-Go.
 
-Die Store-Vorbereitung ist zusätzlich in drei codebasierten Arbeitsunterlagen
+Die Matrix ist zusätzlich unter `store/device-validation.json`
+maschinenlesbar und fail-closed gebunden. Der aktuelle ehrliche Zustand ist
+`planned`, `no-go`, vier offene Gerätezellen und sieben offene
+Releaseprüfungen. `tool/validate_device_evidence.mjs` prüft App-Identität,
+Mindestbuild `2026080903`, vollständigen Commit, Android-/iOS-Artefakthashes,
+Play-Internal-/TestFlight-Installation, physische Rollen-/Netzmatrix,
+TalkBack/VoiceOver, alle Push-Zustände, Binär-/Netzwerkdatenschutz,
+Crash-Releasezuordnung, Store-Warnungen, Staging-Bereinigung und
+Produktionsinvariante. Der strenge Lauf verlangt vorhandene bereinigte Belege
+unter `docs/evidence/b11/` und schließt mit den drei zugehörigen Store-Gates
+gemeinsam. Er ist im späteren Uploadmodus Pflicht und bleibt bis zur realen
+Ausführung erwartungsgemäß gesperrt. Detailnachweis:
+`docs/operations/B11_MACHINE_READABLE_DEVICE_EVIDENCE_2026-08-09.md`.
+
+Die Store-Vorbereitung ist zusätzlich in vier codebasierten Arbeitsunterlagen
 festgehalten:
 
 - `docs/operations/B11_STORE_SUBMISSION_PACKET_2026-08-09.md` mit deutschen
@@ -235,7 +249,9 @@ festgehalten:
   Google-Data-Safety- und Apple-App-Privacy-Zuordnung je Datentyp;
 - `docs/operations/B11_STORE_SCREENSHOT_REVIEW_AND_TESTER_PLAN_2026-08-09.md`
   mit realen Bildszenen, Datenschutzprüfung, Review-Konten und geschlossenen
-  Testgruppen.
+  Testgruppen;
+- `docs/operations/B11_MACHINE_READABLE_DEVICE_EVIDENCE_2026-08-09.md` mit
+  Geräte-/Rollenmatrix, Go/No-Go-Vertrag und bereinigter Evidenzablage.
 
 Die Unterlagen sind noch keine Store-Abgabe. Öffentliche Support-,
 Datenschutz- und Produktions-Kontolöschseiten sowie bestätigte Rechtsangaben

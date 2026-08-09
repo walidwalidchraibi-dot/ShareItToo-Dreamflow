@@ -29,6 +29,10 @@ dart --version
 
 dart run tool/validate_store_metadata.dart
 
+node --check tool/validate_device_evidence.mjs
+node --test test/tool/validate_device_evidence.test.mjs
+node tool/validate_device_evidence.mjs
+
 node --check tool/verify_brand_assets.mjs
 node tool/verify_brand_assets.mjs
 
