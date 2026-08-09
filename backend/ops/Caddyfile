@@ -13,7 +13,18 @@
 	}
 }
 
+(shareittoo_android_assetlinks) {
+	header Content-Type "application/json"
+	header Cache-Control "public, max-age=3600"
+	respond "[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"android_app\",\"package_name\":\"com.shareittoo.app\",\"sha256_cert_fingerprints\":[\"09:8F:48:5E:57:16:15:58:E9:11:FC:3C:74:28:45:92:55:84:DB:31:C4:74:CD:BA:08:DD:A0:2F:EB:01:29:A4\"]}}]" 200
+}
+
 shareittoo.com, srv1580960.hstgr.cloud {
+	@android_assetlinks path /.well-known/assetlinks.json
+	handle @android_assetlinks {
+		import shareittoo_android_assetlinks
+	}
+
 	handle_path /api/* {
 		reverse_proxy shareittoo-api:8080
 	}
@@ -24,10 +35,22 @@ shareittoo.com, srv1580960.hstgr.cloud {
 }
 
 www.shareittoo.com {
-	redir https://shareittoo.com{uri} permanent
+	@android_assetlinks path /.well-known/assetlinks.json
+	handle @android_assetlinks {
+		import shareittoo_android_assetlinks
+	}
+
+	handle {
+		redir https://shareittoo.com{uri} permanent
+	}
 }
 
 staging.shareittoo.com {
+	@android_assetlinks path /.well-known/assetlinks.json
+	handle @android_assetlinks {
+		import shareittoo_android_assetlinks
+	}
+
 	handle_path /api/* {
 		reverse_proxy shareittoo-staging-api:8080
 	}
