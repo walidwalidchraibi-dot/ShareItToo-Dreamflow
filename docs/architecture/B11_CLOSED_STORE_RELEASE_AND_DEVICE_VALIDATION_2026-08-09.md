@@ -214,6 +214,20 @@ Punkten wie vorgesehen ab. Die vollständige lokale Regression blieb grün:
 Analyzer-Basis 696 ohne neue Regression, 167 von 167 Flutter-Tests sowie Web-
 Debug- und Android-Debug-Build bestanden.
 
+GitHub-Actions-Lauf `31311617837` bestätigte Commit
+`419b425b9182df3c35a81464cd006158acfd32e3` anschließend vollständig: 55 von
+55 Backendtests, 167 von 167 Flutter-Tests, Analyzer-Basis 696, Web-/Android-
+Debug, signierter commitgebundener Android-Release und Image-Publishing sind
+grün. Der veröffentlichte API-Digest lautet
+`sha256:30651b635bd783be77e97da73dfd27bb104e7a52672f086d46cc7c3f8e02b174`.
+
+Dieser Lauf belegt nur Store-Metadaten- und Pipeline-Automation. Das mit dem
+kurzlebigen CI-Schlüssel signierte Artefakt bleibt Version `2026080902`, ohne
+Firebase und ist kein hochzuladender Store-Kandidat. Das neue API-Image wurde
+weder auf Staging noch auf Produktion ausgerollt: Staging bleibt auf dem
+vollständig abgenommenen technischen Commit `a37e681ce18c62981992e168965e68b80fc86ff2`;
+Produktion bleibt geschützt und unverändert.
+
 Auf beiden Plattformen und mit Vermieter- sowie Mieterrolle:
 
 1. Installation, Erststart, Berechtigungen, Login und Neustart.
