@@ -7,6 +7,14 @@ const TEMPLATE_DEFINITIONS = Object.freeze({
     actionLabel: 'Anfrage ansehen',
     notice: 'Prüfe Zeitraum, Übergabe und Preis, bevor du die Anfrage annimmst.',
   },
+  booking_accepted: {
+    subject: ({ itemTitle }) => `Anfrage angenommen · ${itemTitle}`,
+    title: 'Anfrage angenommen',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} deine Buchungsanfrage für „${itemTitle}“ wurde angenommen.`,
+    actionLabel: 'Buchung öffnen',
+    notice: 'Der endgültige Buchungsstatus wird ausschließlich in ShareItToo angezeigt.',
+  },
   booking_confirmed: {
     subject: ({ itemTitle }) => `Buchung bestätigt · ${itemTitle}`,
     title: 'Buchung bestätigt',
@@ -14,6 +22,14 @@ const TEMPLATE_DEFINITIONS = Object.freeze({
       `${greeting} deine Buchung für „${itemTitle}“ wurde bestätigt.`,
     actionLabel: 'Buchung öffnen',
     notice: 'Nutze für Absprachen ausschließlich den Buchungs-Chat in ShareItToo.',
+  },
+  booking_declined: {
+    subject: ({ itemTitle }) => `Anfrage abgelehnt · ${itemTitle}`,
+    title: 'Anfrage abgelehnt',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} die Buchungsanfrage für „${itemTitle}“ wurde abgelehnt.`,
+    actionLabel: 'Buchung ansehen',
+    notice: 'Es wurde keine Zahlung ausgelöst.',
   },
   payment_confirmed: {
     subject: ({ itemTitle }) => `Zahlung bestätigt · ${itemTitle}`,
@@ -31,6 +47,55 @@ const TEMPLATE_DEFINITIONS = Object.freeze({
       `${greeting} die Buchung für „${itemTitle}“ wurde storniert.`,
     actionLabel: 'Stornierung ansehen',
     notice: 'Eine mögliche Rückerstattung wird ausschließlich in der Buchungsübersicht ausgewiesen.',
+  },
+  booking_active: {
+    subject: ({ itemTitle }) => `Miete gestartet · ${itemTitle}`,
+    title: 'Miete gestartet',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} die Miete für „${itemTitle}“ ist jetzt aktiv.`,
+    actionLabel: 'Buchung öffnen',
+    notice: 'Support- und Meldewege bleiben während der Mietzeit in der Buchung erreichbar.',
+  },
+  booking_returned: {
+    subject: ({ itemTitle }) => `Rückgabe erfasst · ${itemTitle}`,
+    title: 'Rückgabe erfasst',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} die Rückgabe für „${itemTitle}“ wurde erfasst.`,
+    actionLabel: 'Rückgabe ansehen',
+    notice: 'Prüfe den Status in ShareItToo, bevor du den Vorgang abschließt.',
+  },
+  booking_completed: {
+    subject: ({ itemTitle }) => `Buchung abgeschlossen · ${itemTitle}`,
+    title: 'Buchung abgeschlossen',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} die Buchung für „${itemTitle}“ ist abgeschlossen.`,
+    actionLabel: 'Abschluss ansehen',
+    notice: 'Bewertungen und Belege findest du in deiner Buchungsübersicht.',
+  },
+  booking_refunded: {
+    subject: ({ itemTitle }) => `Erstattung bestätigt · ${itemTitle}`,
+    title: 'Erstattung bestätigt',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} die Erstattung für „${itemTitle}“ wurde bestätigt.`,
+    actionLabel: 'Erstattung ansehen',
+    notice: 'Je nach Zahlungsanbieter kann die Gutschrift einige Werktage benötigen.',
+    requiresAmount: true,
+  },
+  booking_disputed: {
+    subject: ({ itemTitle }) => `Klärung erforderlich · ${itemTitle}`,
+    title: 'Klärung erforderlich',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} für die Buchung „${itemTitle}“ wurde ein Klärungsfall eröffnet.`,
+    actionLabel: 'Fall öffnen',
+    notice: 'Kommuniziere nur in ShareItToo und teile keine Zahlungsdaten im Chat.',
+  },
+  message_received: {
+    subject: ({ itemTitle }) => `Neue Nachricht · ${itemTitle}`,
+    title: 'Neue Nachricht',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} du hast eine neue Nachricht zu „${itemTitle}“ erhalten.`,
+    actionLabel: 'Chat öffnen',
+    notice: 'Teile keine Zahlungsdaten, Passwörter oder Sicherheitscodes im Chat.',
   },
   handover_reminder: {
     subject: ({ itemTitle }) => `Erinnerung an die Übergabe · ${itemTitle}`,

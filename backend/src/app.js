@@ -47,6 +47,23 @@ import {
   sendPasswordResetEmail,
   sendVerificationEmail,
 } from './mailer.js';
+import {
+  blockUser,
+  ensureBookingThread,
+  listBlocks,
+  listCommunicationThreads,
+  listThreadMessages,
+  markThreadRead,
+  MessageWorkflowError,
+  reportMessage,
+  sendThreadMessage,
+  setThreadArchived,
+  unblockUser,
+} from './message_workflow.js';
+import {
+  drainNotificationOutbox,
+  notificationHealth,
+} from './notifications.js';
 import { publishToAll, publishToUsers } from './realtime.js';
 import { releaseMetadata } from './release.js';
 import {
@@ -91,6 +108,12 @@ function asyncRoute(handler) {
   return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 }
 
+function kickNotificationWorker() {
+  void drainNotificationOutbox().catch((error) => {
+    console.error('[notifications] background drain failed', error?.message ?? error);
+  });
+}
+
 function sendHtml(res, status, html) {
   res.set({
     'Content-Type': 'text/html; charset=utf-8',
@@ -101,6 +124,22 @@ function sendHtml(res, status, html) {
     'X-Frame-Options': 'DENY',
   });
   res.status(status).send(html);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function deepLinkFallbackPage({ kind, id }) {
+  const label = kind === 'chat' ? 'Chat' : 'Buchung';
+  const schemeUrl = `shareittoo://${kind}/${encodeURIComponent(id)}`;
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${label} in ShareItToo öffnen</title></head>
+<body style="margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033"><main style="max-width:560px;margin:12vh auto;padding:24px"><section style="background:#fff;border-radius:20px;padding:32px;box-shadow:0 10px 30px rgba(20,35,70,.08)"><div style="font-size:26px;font-weight:800;color:#2156d9">ShareItToo</div><h1>${label} öffnen</h1><p>Öffne den sicheren Kontext in der ShareItToo-App. Nach der Anmeldung wird deine Berechtigung erneut geprüft.</p><p><a href="${escapeHtml(schemeUrl)}" style="display:inline-block;background:#2156d9;color:#fff;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:12px">In der App öffnen</a></p><p style="font-size:13px;color:#5d6980">Wenn die App noch nicht installiert ist, kehre bitte zur ShareItToo-Website zurück. Dieser Link enthält keine Zahlungs- oder Zugangsdaten.</p><p><a href="${escapeHtml(config.appPublicUrl)}">Zur ShareItToo-Website</a></p></section></main></body></html>`;
 }
 
 function identifier(value, prefix) {
@@ -728,7 +767,7 @@ export function createApp() {
       return callback(new HttpError(403, 'origin_not_allowed'));
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
   }));
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: false, limit: '20kb' }));
@@ -745,10 +784,11 @@ export function createApp() {
   app.get('/health', asyncRoute(async (_req, res) => {
     await pool.query('SELECT 1');
     const mail = getMailerStatus();
+    const notifications = await notificationHealth();
     res.json({
-      status: mail === 'ok' ? 'ok' : 'degraded',
+      status: mail === 'ok' && notifications.dead === 0 ? 'ok' : 'degraded',
       service: 'shareittoo-api',
-      checks: { database: 'ok', mail },
+      checks: { database: 'ok', mail, notifications },
       release: releaseMetadata,
       time: new Date().toISOString(),
     });
@@ -761,17 +801,31 @@ export function createApp() {
   app.get('/health/ready', asyncRoute(async (_req, res) => {
     await pool.query('SELECT 1');
     const mail = getMailerStatus();
-    const ready = mail !== 'error' && mail !== 'unverified';
+    const notifications = await notificationHealth();
+    const ready = mail !== 'error' && mail !== 'unverified' && notifications.dead === 0;
     res.status(ready ? 200 : 503).json({
       status: ready ? 'ok' : 'degraded',
       service: 'shareittoo-api',
-      checks: { database: 'ok', mail },
+      checks: { database: 'ok', mail, notifications },
       release: releaseMetadata,
     });
   }));
 
   app.get('/version', (_req, res) => {
     res.set('Cache-Control', 'no-store').json(releaseMetadata);
+  });
+
+  app.get('/v1/open/:kind/:id', (req, res) => {
+    const kind = safeText(req.params.kind, 20);
+    const id = safeText(req.params.id, 120);
+    if (!['booking', 'chat'].includes(kind) || !id || !/^[A-Za-z0-9_.:-]+$/.test(id)) {
+      return sendHtml(res, 404, resultPage({
+        title: 'Link nicht verfügbar',
+        message: 'Dieser ShareItToo-Link ist ungültig oder nicht mehr verfügbar.',
+        success: false,
+      }));
+    }
+    return sendHtml(res, 200, deepLinkFallbackPage({ kind, id }));
   });
 
   app.post('/v1/auth/register', registrationLimiter, asyncRoute(async (req, res) => {
@@ -1788,6 +1842,7 @@ export function createApp() {
       type: 'changed',
       resource: 'rental_requests',
     });
+    kickNotificationWorker();
     res.status(result.replayed ? 200 : 201).json(result);
   }));
 
@@ -1803,6 +1858,7 @@ export function createApp() {
       type: 'changed',
       resource: 'rental_requests',
     });
+    kickNotificationWorker();
     res.json(result);
   }));
 
@@ -1819,6 +1875,7 @@ export function createApp() {
       type: 'changed',
       resource: 'rental_requests',
     });
+    kickNotificationWorker();
     res.json(result);
   }));
 
@@ -1990,7 +2047,91 @@ export function createApp() {
   }));
 
   app.get('/v1/message-threads', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
-    res.json({ threads: await listThreads(pool, req.auth.userId) });
+    res.json(await listCommunicationThreads(pool, {
+      actorId: req.auth.userId,
+      limit: req.query.limit,
+      offset: req.query.offset,
+      includeArchived: req.query.includeArchived === 'true',
+    }));
+  }));
+
+  app.post('/v1/message-threads/booking/:bookingId', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const thread = await inTransaction((client) => ensureBookingThread(client, {
+      bookingId: safeText(req.params.bookingId, 120),
+      actorId: req.auth.userId,
+    }));
+    publishToUsers([thread.user1Id, thread.user2Id], { type: 'changed', resource: 'message_threads' });
+    res.status(201).json({ thread });
+  }));
+
+  app.get('/v1/message-threads/:id/messages', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    res.json(await listThreadMessages(pool, {
+      threadId: safeText(req.params.id, 120),
+      actorId: req.auth.userId,
+      limit: req.query.limit,
+      before: req.query.before,
+    }));
+  }));
+
+  app.post('/v1/message-threads/:id/messages', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => sendThreadMessage(client, {
+      threadId: safeText(req.params.id, 120),
+      actor: req.actor,
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    publishToUsers([req.auth.userId, result.recipientId], { type: 'changed', resource: 'message_threads' });
+    kickNotificationWorker();
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/message-threads/:id/read', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const count = await inTransaction((client) => markThreadRead(client, {
+      threadId: safeText(req.params.id, 120),
+      actorId: req.auth.userId,
+    }));
+    res.json({ readCount: count });
+  }));
+
+  app.patch('/v1/message-threads/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    if (typeof req.body?.archived !== 'boolean') throw new HttpError(400, 'invalid_thread_update');
+    const archivedForUserIds = await inTransaction((client) => setThreadArchived(client, {
+      threadId: safeText(req.params.id, 120),
+      actorId: req.auth.userId,
+      archived: req.body.archived,
+    }));
+    res.json({ archivedForUserIds });
+  }));
+
+  app.post('/v1/messages/:id/reports', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const report = await inTransaction((client) => reportMessage(client, {
+      actor: req.actor,
+      messageId: safeText(req.params.id, 120),
+      reasonCode: req.body?.reasonCode,
+      details: req.body?.details,
+    }));
+    res.status(201).json({ report });
+  }));
+
+  app.get('/v1/user-blocks', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    res.json({ blocks: await listBlocks(pool, req.auth.userId) });
+  }));
+
+  app.put('/v1/user-blocks/:userId', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    await inTransaction((client) => blockUser(client, {
+      actor: req.actor,
+      blockedId: safeText(req.params.userId, 120),
+      reasonCode: req.body?.reasonCode,
+    }));
+    res.status(204).end();
+  }));
+
+  app.delete('/v1/user-blocks/:userId', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    await inTransaction((client) => unblockUser(client, {
+      actorId: req.auth.userId,
+      blockedId: safeText(req.params.userId, 120),
+    }));
+    res.status(204).end();
   }));
 
   app.put('/v1/message-threads/sync', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
@@ -2009,6 +2150,12 @@ export function createApp() {
         const proposedId = identifier(candidate.id, 'thread');
         const existingResult = await client.query('SELECT * FROM message_threads WHERE request_id = $1 FOR UPDATE', [requestId]);
         const isNew = !existingResult.rowCount;
+        if (isNew && config.bookingPilotEnabled) {
+          throw new HttpError(409, 'message_thread_requires_b7_endpoint');
+        }
+        if (!isNew && Number(existingResult.rows[0].communication_version ?? 0) === 1) {
+          throw new HttpError(409, 'message_sync_requires_b7_endpoint');
+        }
         const threadId = isNew ? proposedId : existingResult.rows[0].id;
         const createdAt = isNew ? new Date() : new Date(existingResult.rows[0].created_at);
         const payload = threadPayload(candidate, {
@@ -2074,6 +2221,142 @@ export function createApp() {
     res.json({ threads });
   }));
 
+  app.get('/v1/notifications', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit ?? '50', 10) || 50));
+    const before = req.query.before && !Number.isNaN(Date.parse(req.query.before))
+      ? new Date(req.query.before)
+      : null;
+    const includeArchived = req.query.includeArchived === 'true';
+    const result = await pool.query(
+      `SELECT * FROM notifications
+       WHERE user_id = $1
+         AND ($2::boolean OR archived_at IS NULL)
+         AND ($3::timestamptz IS NULL OR created_at < $3)
+       ORDER BY created_at DESC, id DESC
+       LIMIT $4`,
+      [req.auth.userId, includeArchived, before, limit],
+    );
+    const notifications = result.rows.map((row) => ({
+      id: row.id,
+      category: row.category,
+      kind: row.kind,
+      priority: row.priority,
+      title: row.title,
+      body: row.body,
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      bookingId: row.booking_id,
+      threadId: row.thread_id,
+      requestId: row.payload?.requestId ?? row.booking_id,
+      ctaLabel: row.payload?.ctaLabel ?? null,
+      actionUrl: row.action_url,
+      payload: row.payload ?? {},
+      read: Boolean(row.read_at),
+      archived: Boolean(row.archived_at),
+      critical: row.priority === 3 && ['important', 'payments'].includes(row.category),
+      ts: new Date(row.created_at).toISOString(),
+    }));
+    res.json({
+      notifications,
+      nextBefore: result.rowCount === limit ? notifications.at(-1)?.ts ?? null : null,
+    });
+  }));
+
+  app.patch('/v1/notifications/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    if (typeof req.body?.read !== 'boolean' && typeof req.body?.archived !== 'boolean') {
+      throw new HttpError(400, 'invalid_notification_update');
+    }
+    const result = await pool.query(
+      `UPDATE notifications
+       SET read_at = CASE
+             WHEN $3::boolean IS NULL THEN read_at
+             WHEN $3::boolean THEN COALESCE(read_at, now())
+             ELSE NULL
+           END,
+           archived_at = CASE
+             WHEN $4::boolean IS NULL THEN archived_at
+             WHEN $4::boolean AND NOT (priority = 3 AND category IN ('important', 'payments'))
+               THEN COALESCE(archived_at, now())
+             WHEN NOT $4::boolean THEN NULL
+             ELSE archived_at
+           END
+       WHERE id::text = $1 AND user_id = $2
+       RETURNING read_at, archived_at`,
+      [safeText(req.params.id, 80), req.auth.userId, req.body.read ?? null, req.body.archived ?? null],
+    );
+    if (!result.rowCount) throw new HttpError(404, 'notification_not_found');
+    res.json({ read: Boolean(result.rows[0].read_at), archived: Boolean(result.rows[0].archived_at) });
+  }));
+
+  app.post('/v1/notifications/read-all', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await pool.query(
+      `UPDATE notifications SET read_at = COALESCE(read_at, now())
+       WHERE user_id = $1 AND read_at IS NULL`,
+      [req.auth.userId],
+    );
+    res.json({ readCount: result.rowCount });
+  }));
+
+  app.get('/v1/notification-preferences', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await pool.query(
+      `SELECT in_app_enabled, email_enabled, push_enabled,
+              message_push_enabled, booking_push_enabled, locale
+       FROM notification_preferences WHERE user_id = $1`,
+      [req.auth.userId],
+    );
+    const row = result.rows[0] ?? {};
+    res.json({
+      preferences: {
+        inAppEnabled: row.in_app_enabled ?? true,
+        emailEnabled: row.email_enabled ?? true,
+        pushEnabled: row.push_enabled ?? true,
+        messagePushEnabled: row.message_push_enabled ?? true,
+        bookingPushEnabled: row.booking_push_enabled ?? true,
+        locale: row.locale ?? 'de-DE',
+      },
+    });
+  }));
+
+  app.put('/v1/notification-preferences', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const locale = safeText(req.body?.locale, 20) || 'de-DE';
+    const bool = (value, fallback = true) => typeof value === 'boolean' ? value : fallback;
+    const values = {
+      inApp: bool(req.body?.inAppEnabled),
+      email: bool(req.body?.emailEnabled),
+      push: bool(req.body?.pushEnabled),
+      messagePush: bool(req.body?.messagePushEnabled),
+      bookingPush: bool(req.body?.bookingPushEnabled),
+    };
+    const result = await pool.query(
+      `INSERT INTO notification_preferences (
+         user_id, in_app_enabled, email_enabled, push_enabled,
+         message_push_enabled, booking_push_enabled, locale
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (user_id) DO UPDATE SET
+         in_app_enabled = EXCLUDED.in_app_enabled,
+         email_enabled = EXCLUDED.email_enabled,
+         push_enabled = EXCLUDED.push_enabled,
+         message_push_enabled = EXCLUDED.message_push_enabled,
+         booking_push_enabled = EXCLUDED.booking_push_enabled,
+         locale = EXCLUDED.locale,
+         updated_at = now()
+       RETURNING in_app_enabled, email_enabled, push_enabled,
+                 message_push_enabled, booking_push_enabled, locale`,
+      [req.auth.userId, values.inApp, values.email, values.push, values.messagePush, values.bookingPush, locale],
+    );
+    const row = result.rows[0];
+    res.json({
+      preferences: {
+        inAppEnabled: row.in_app_enabled,
+        emailEnabled: row.email_enabled,
+        pushEnabled: row.push_enabled,
+        messagePushEnabled: row.message_push_enabled,
+        bookingPushEnabled: row.booking_push_enabled,
+        locale: row.locale,
+      },
+    });
+  }));
+
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024, files: 1 } });
   app.post('/v1/uploads', requireAuth, requireActiveAccount, upload.single('file'), asyncRoute(async (req, res) => {
     if (!req.file?.buffer) throw new HttpError(400, 'file_required');
@@ -2119,6 +2402,7 @@ export function createApp() {
     const storageStem = crypto.randomUUID();
     const storageName = `${storageStem}-full.${processed.extension}`;
     const thumbnailStorageName = `${storageStem}-thumb.${processed.extension}`;
+    let uploadId = null;
     await fs.mkdir(config.uploadDir, { recursive: true });
     try {
       await Promise.all([
@@ -2151,6 +2435,7 @@ export function createApp() {
             processed.sha256,
           ],
         );
+        uploadId = result.rows[0].id;
         await writeAudit(client, {
           actor: req.actor,
           action: 'upload.created',
@@ -2167,6 +2452,8 @@ export function createApp() {
       throw error;
     }
     res.status(201).json({
+      id: uploadId,
+      storageName,
       url: `${config.publicBaseUrl}/uploads/${storageName}`,
       thumbnailUrl: `${config.publicBaseUrl}/uploads/${thumbnailStorageName}`,
       width: processed.width,
@@ -2247,18 +2534,19 @@ export function createApp() {
     const invalidProcessedImage = error instanceof ImageProcessingError;
     const bookingConflict = error?.code === '23P01';
     const workflowError = error instanceof BookingWorkflowError;
+    const messageWorkflowError = error instanceof MessageWorkflowError;
     const status = bookingConflict
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || messageWorkflowError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || messageWorkflowError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error('[api]', error);
     res.status(status).json({ error: code, ...(error?.details ? { details: error.details } : {}) });
   });

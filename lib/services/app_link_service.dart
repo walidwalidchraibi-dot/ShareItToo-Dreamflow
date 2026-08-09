@@ -1,0 +1,138 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+
+enum AppLinkKind {
+  booking,
+  chat,
+  emailVerification,
+  passwordReset,
+  paymentReturn,
+}
+
+class AppLinkTarget {
+  final AppLinkKind kind;
+  final String? id;
+  final Uri uri;
+
+  const AppLinkTarget({required this.kind, required this.uri, this.id});
+}
+
+class AppLinkParser {
+  static const _allowedWebHosts = <String>{
+    'shareittoo.com',
+    'www.shareittoo.com',
+    'staging.shareittoo.com',
+  };
+
+  static AppLinkTarget? parse(Uri uri) {
+    if (uri.userInfo.isNotEmpty) return null;
+    final isCustom = uri.scheme.toLowerCase() == 'shareittoo';
+    final isWeb = (uri.scheme == 'https' || uri.scheme == 'http') &&
+        _allowedWebHosts.contains(uri.host.toLowerCase());
+    if (!isCustom && !isWeb) return null;
+
+    final segments = <String>[
+      if (isCustom && uri.host.isNotEmpty) uri.host,
+      ...uri.pathSegments,
+    ].where((segment) => segment.isNotEmpty).toList();
+    while (segments.isNotEmpty &&
+        const {'api', 'v1', 'open'}.contains(segments.first.toLowerCase())) {
+      segments.removeAt(0);
+    }
+    if (segments.isEmpty) return null;
+
+    String? safeId(int index) {
+      if (segments.length <= index) return null;
+      final value = segments[index].trim();
+      return value.isNotEmpty &&
+              value.length <= 120 &&
+              RegExp(r'^[A-Za-z0-9_.:-]+$').hasMatch(value)
+          ? value
+          : null;
+    }
+
+    switch (segments.first.toLowerCase()) {
+      case 'booking':
+        final id = safeId(1);
+        return id == null
+            ? null
+            : AppLinkTarget(kind: AppLinkKind.booking, id: id, uri: uri);
+      case 'chat':
+        final id = safeId(1);
+        return id == null
+            ? null
+            : AppLinkTarget(kind: AppLinkKind.chat, id: id, uri: uri);
+      case 'auth':
+        if (segments.length >= 3 &&
+            segments[1] == 'email-verification' &&
+            segments[2] == 'confirm' &&
+            (uri.queryParameters['token'] ?? '').isNotEmpty) {
+          return AppLinkTarget(
+            kind: AppLinkKind.emailVerification,
+            uri: uri,
+          );
+        }
+        if (segments.length >= 2 &&
+            segments[1] == 'password-reset' &&
+            (uri.queryParameters['token'] ?? '').isNotEmpty) {
+          return AppLinkTarget(kind: AppLinkKind.passwordReset, uri: uri);
+        }
+        return null;
+      case 'payment':
+        if (segments.length >= 2 && segments[1] == 'return') {
+          final id = safeId(2);
+          return AppLinkTarget(
+            kind: AppLinkKind.paymentReturn,
+            id: id,
+            uri: uri,
+          );
+        }
+        return null;
+      default:
+        return null;
+    }
+  }
+}
+
+class AppLinkController extends ChangeNotifier with WidgetsBindingObserver {
+  AppLinkTarget? _pending;
+  bool _initialized = false;
+
+  AppLinkTarget? takePending() {
+    final target = _pending;
+    _pending = null;
+    return target;
+  }
+
+  void initialize() {
+    if (_initialized) return;
+    _initialized = true;
+    WidgetsBinding.instance.addObserver(this);
+    final raw = kIsWeb
+        ? Uri.base.toString()
+        : WidgetsBinding.instance.platformDispatcher.defaultRouteName;
+    _accept(raw);
+  }
+
+  @override
+  Future<bool> didPushRouteInformation(
+      RouteInformation routeInformation) async {
+    _accept(routeInformation.uri.toString());
+    return true;
+  }
+
+  void _accept(String raw) {
+    if (raw.isEmpty || raw == '/') return;
+    final uri = Uri.tryParse(raw);
+    final target = uri == null ? null : AppLinkParser.parse(uri);
+    if (target == null) return;
+    _pending = target;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+}

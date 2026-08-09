@@ -2,6 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lendify/services/backend_config.dart';
+import 'package:lendify/services/backend_repository.dart';
+import 'package:lendify/services/qa_runtime_service.dart';
 
 /// Local-only blocked-users store.
 ///
@@ -12,6 +15,11 @@ class BlockedUsersService {
 
   static Future<List<String>> getBlockedUserIds() async {
     try {
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        final remote = await BackendRepository.getBlockedUserIds();
+        await setBlockedUserIds(remote);
+        return remote;
+      }
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_key);
       if (raw == null || raw.isEmpty) return const [];
@@ -54,6 +62,9 @@ class BlockedUsersService {
     if (id.isEmpty) return;
     final current = await getBlockedUserIds();
     if (current.contains(id)) return;
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      await BackendRepository.blockUser(id);
+    }
     await setBlockedUserIds([...current, id]);
   }
 
@@ -61,7 +72,11 @@ class BlockedUsersService {
     final id = userId.trim();
     if (id.isEmpty) return;
     final current = await getBlockedUserIds();
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      await BackendRepository.unblockUser(id);
+    }
     await setBlockedUserIds(
-        current.where((e) => e != id).toList(growable: false));
+      current.where((e) => e != id).toList(growable: false),
+    );
   }
 }

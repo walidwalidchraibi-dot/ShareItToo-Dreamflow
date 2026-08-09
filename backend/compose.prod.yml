@@ -52,6 +52,13 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       MAIL_FROM: "${MAIL_FROM:-ShareItToo <contact@shareittoo.com>}"
       MAIL_REPLY_TO: "${MAIL_REPLY_TO:-contact@shareittoo.com}"
+      BOOKING_PILOT_MODE: ${BOOKING_PILOT_MODE:-off}
+      PUSH_TRANSPORT: ${PUSH_TRANSPORT:-disabled}
+      PUSH_WEBHOOK_URL: ${PUSH_WEBHOOK_URL:-}
+      PUSH_WEBHOOK_TOKEN: ${PUSH_WEBHOOK_TOKEN:-}
+      NOTIFICATION_WORKER_INTERVAL_MS: ${NOTIFICATION_WORKER_INTERVAL_MS:-5000}
+      NOTIFICATION_BATCH_SIZE: ${NOTIFICATION_BATCH_SIZE:-25}
+      NOTIFICATION_MAX_ATTEMPTS: ${NOTIFICATION_MAX_ATTEMPTS:-5}
     volumes:
       - shareittoo_uploads:/data/uploads
     healthcheck:

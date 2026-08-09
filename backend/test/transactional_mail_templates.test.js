@@ -16,9 +16,17 @@ const base = {
 test('all required transactional templates render text and HTML', () => {
   assert.deepEqual(transactionalEmailKinds, [
     'booking_requested',
+    'booking_accepted',
     'booking_confirmed',
+    'booking_declined',
     'payment_confirmed',
     'booking_cancelled',
+    'booking_active',
+    'booking_returned',
+    'booking_completed',
+    'booking_refunded',
+    'booking_disputed',
+    'message_received',
     'handover_reminder',
     'return_reminder',
     'payout_sent',
@@ -42,7 +50,7 @@ test('all required transactional templates render text and HTML', () => {
 });
 
 test('money-bearing templates require and format an amount', () => {
-  for (const kind of ['payment_confirmed', 'payout_sent']) {
+  for (const kind of ['payment_confirmed', 'booking_refunded', 'payout_sent']) {
     assert.throws(
       () => buildTransactionalEmail({ ...base, kind }),
       /amount_invalid/,

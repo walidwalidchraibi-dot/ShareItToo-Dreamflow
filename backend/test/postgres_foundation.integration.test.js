@@ -42,6 +42,7 @@ if (!databaseUrl) {
         '003_b4_phone_constraint_fix.up.sql',
         '004_b5_listing_catalog.up.sql',
         '005_b6_booking_workflow.up.sql',
+        '006_b7_communications.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -263,6 +264,7 @@ if (!databaseUrl) {
 
       const { createApp } = await import('../src/app.js');
       const { pool, } = await import('../src/db.js');
+      const { drainNotificationOutbox } = await import('../src/notifications.js');
       const { signAccessToken } = await import('../src/security.js');
       applicationPool = pool;
       server = http.createServer(createApp());
@@ -871,6 +873,122 @@ if (!databaseUrl) {
       assert.deepEqual(acceptanceResponses.map((response) => response.status).sort(), [200, 409]);
       const conflictResponse = acceptanceResponses.find((response) => response.status === 409);
       assert.equal((await conflictResponse.json()).error, 'booking_period_unavailable');
+
+      const acceptedIndex = acceptanceResponses.findIndex((response) => response.status === 200);
+      const acceptedBookingId = acceptedIndex === 0 ? 'booking-a' : 'booking-b';
+      const acceptedRenterId = acceptedIndex === 0 ? 'renter-a' : 'renter-b';
+      const acceptedRenterHeaders = acceptedIndex === 0 ? renterAHeaders : renterBHeaders;
+
+      const registerOwnerPush = await fetch(`${baseUrl}/v1/auth/devices/push`, {
+        method: 'PUT',
+        headers: ownerHeaders,
+        body: JSON.stringify({
+          token: 'integration-owner-push-token',
+          platform: 'android',
+          locale: 'de-DE',
+        }),
+      });
+      assert.equal(registerOwnerPush.status, 200);
+
+      const createThread = await fetch(
+        `${baseUrl}/v1/message-threads/booking/${acceptedBookingId}`,
+        { method: 'POST', headers: acceptedRenterHeaders },
+      );
+      assert.equal(createThread.status, 201);
+      const b7Thread = (await createThread.json()).thread;
+      assert.equal(b7Thread.bookingId, acceptedBookingId);
+      assert.equal(b7Thread.communicationVersion, 1);
+
+      const sendMessage = () => fetch(
+        `${baseUrl}/v1/message-threads/${b7Thread.id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            ...acceptedRenterHeaders,
+            'Idempotency-Key': 'b7-message-integration-0001',
+          },
+          body: JSON.stringify({ text: 'Treffen wir uns um 18 Uhr?' }),
+        },
+      );
+      const firstMessage = await sendMessage();
+      assert.equal(firstMessage.status, 201);
+      const sentMessage = (await firstMessage.json()).message;
+      assert.equal(sentMessage.senderId, acceptedRenterId);
+      const replayedMessage = await sendMessage();
+      assert.equal(replayedMessage.status, 200);
+      assert.equal((await replayedMessage.json()).message.id, sentMessage.id);
+
+      const outsiderMessages = await fetch(
+        `${baseUrl}/v1/message-threads/${b7Thread.id}/messages`,
+        { headers: { Authorization: `Bearer ${tokenFor('outsider')}` } },
+      );
+      assert.equal(outsiderMessages.status, 403);
+
+      const markRead = await fetch(
+        `${baseUrl}/v1/message-threads/${b7Thread.id}/read`,
+        { method: 'POST', headers: ownerHeaders },
+      );
+      assert.equal(markRead.status, 200);
+      assert.ok((await markRead.json()).readCount >= 1);
+
+      const report = await fetch(`${baseUrl}/v1/messages/${sentMessage.id}/reports`, {
+        method: 'POST',
+        headers: ownerHeaders,
+        body: JSON.stringify({ reasonCode: 'integration_probe', details: 'B7 report path' }),
+      });
+      assert.equal(report.status, 201);
+
+      const block = await fetch(`${baseUrl}/v1/user-blocks/${acceptedRenterId}`, {
+        method: 'PUT',
+        headers: ownerHeaders,
+        body: JSON.stringify({ reasonCode: 'integration_probe' }),
+      });
+      assert.equal(block.status, 204);
+      const blockedMessage = await fetch(
+        `${baseUrl}/v1/message-threads/${b7Thread.id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            ...acceptedRenterHeaders,
+            'Idempotency-Key': 'b7-message-integration-blocked',
+          },
+          body: JSON.stringify({ text: 'Diese Nachricht muss blockiert werden.' }),
+        },
+      );
+      assert.equal(blockedMessage.status, 403);
+      assert.equal((await blockedMessage.json()).error, 'contact_blocked');
+      assert.equal((await fetch(`${baseUrl}/v1/user-blocks/${acceptedRenterId}`, {
+        method: 'DELETE',
+        headers: ownerHeaders,
+      })).status, 204);
+
+      for (let drain = 0; drain < 10; drain += 1) {
+        if (await drainNotificationOutbox({ limit: 100 }) === 0) break;
+      }
+      const ownerNotifications = await fetch(`${baseUrl}/v1/notifications?limit=100`, {
+        headers: ownerHeaders,
+      });
+      assert.equal(ownerNotifications.status, 200);
+      const messageNotifications = (await ownerNotifications.json()).notifications
+        .filter((notification) => notification.kind === 'message_received'
+          && notification.threadId === b7Thread.id);
+      assert.equal(messageNotifications.length, 1);
+      const messageOutbox = await setupPool.query(
+        `SELECT channel, status, attempt_count
+         FROM notification_outbox
+         WHERE event_key = $1
+         ORDER BY channel`,
+        [`message:${sentMessage.id}`],
+      );
+      assert.deepEqual(messageOutbox.rows.map((row) => row.channel), ['in_app', 'push']);
+      assert.ok(messageOutbox.rows.every((row) => ['sent', 'suppressed'].includes(row.status)));
+      assert.ok(messageOutbox.rows.every((row) => row.attempt_count === 1));
+
+      const deepLinkFallback = await fetch(
+        `${baseUrl}/v1/open/booking/${acceptedBookingId}`,
+      );
+      assert.equal(deepLinkFallback.status, 200);
+      assert.match(await deepLinkFallback.text(), /In der App öffnen/);
 
       const outsiderHeaders = { Authorization: `Bearer ${tokenFor('outsider')}` };
       const rentalResponse = await fetch(`${baseUrl}/v1/rental-requests`, { headers: outsiderHeaders });

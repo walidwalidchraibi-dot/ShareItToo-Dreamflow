@@ -14,6 +14,7 @@ import {
   quoteRental,
   workflowStatusForLegacy,
 } from './booking_domain.js';
+import { enqueueBookingNotifications } from './notifications.js';
 
 const blockingWorkflowStatuses = Object.freeze(['accepted', 'payment_pending', 'confirmed', 'active', 'returned']);
 
@@ -421,6 +422,11 @@ export async function expireBookingHolds(client) {
       bookingId: row.id,
       metadata: { fromStatus: row.workflow_status },
     });
+    await enqueueBookingNotifications(client, {
+      bookingId: row.id,
+      eventKey: `booking:${row.id}:hold_expired:${row.workflow_status}`,
+      workflowStatus: 'cancelled',
+    });
   }
   return expired.rowCount;
 }
@@ -568,6 +574,11 @@ export async function createBooking(client, { actor, raw, key }) {
     action: 'booking.requested',
     bookingId: id,
     metadata: { listingId: listing.id, quoteVersion: quote.quoteVersion },
+  });
+  await enqueueBookingNotifications(client, {
+    bookingId: id,
+    eventKey: `booking:${id}:requested:${commandKey}`,
+    workflowStatus: 'requested',
   });
   const response = { booking: payload, replayed: false };
   await completeCommand(client, commandKey, id, response);
@@ -832,6 +843,11 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
       action: 'booking.status_changed',
       bookingId,
       metadata: { fromStatus: current, toStatus: next, actorRole },
+    });
+    await enqueueBookingNotifications(client, {
+      bookingId,
+      eventKey: `booking:${bookingId}:${next}:${commandKey}:${index}`,
+      workflowStatus: next,
     });
     current = next;
   }

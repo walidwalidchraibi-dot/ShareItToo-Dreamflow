@@ -29,6 +29,26 @@ const bookingPilotMode = (process.env.BOOKING_PILOT_MODE ?? (
 if (!['off', 'pilot', 'on'].includes(bookingPilotMode)) {
   throw new Error('BOOKING_PILOT_MODE must be off, pilot, or on');
 }
+const pushTransport = (process.env.PUSH_TRANSPORT ?? (
+  deploymentEnvironment === 'staging' || deploymentEnvironment === 'test'
+    ? 'memory'
+    : 'disabled'
+)).trim().toLowerCase();
+if (!['disabled', 'memory', 'webhook'].includes(pushTransport)) {
+  throw new Error('PUSH_TRANSPORT must be disabled, memory, or webhook');
+}
+const pushWebhookUrl = process.env.PUSH_WEBHOOK_URL?.trim() ?? '';
+if (pushTransport === 'webhook') {
+  let parsed;
+  try {
+    parsed = new URL(pushWebhookUrl);
+  } catch {
+    throw new Error('PUSH_WEBHOOK_URL must be a valid HTTPS URL');
+  }
+  if (parsed.protocol !== 'https:') {
+    throw new Error('PUSH_WEBHOOK_URL must be a valid HTTPS URL');
+  }
+}
 
 export const config = Object.freeze({
   port: Number.parseInt(process.env.PORT ?? '8080', 10),
@@ -61,5 +81,15 @@ export const config = Object.freeze({
     password: process.env.SMTP_PASSWORD ?? '',
     from: process.env.MAIL_FROM?.trim() ?? 'ShareItToo <contact@shareittoo.com>',
     replyTo: process.env.MAIL_REPLY_TO?.trim() ?? 'contact@shareittoo.com',
+  }),
+  notifications: Object.freeze({
+    workerIntervalMs: Math.max(500, Number.parseInt(process.env.NOTIFICATION_WORKER_INTERVAL_MS ?? '5000', 10)),
+    batchSize: Math.min(100, Math.max(1, Number.parseInt(process.env.NOTIFICATION_BATCH_SIZE ?? '25', 10))),
+    maxAttempts: Math.min(20, Math.max(1, Number.parseInt(process.env.NOTIFICATION_MAX_ATTEMPTS ?? '5', 10))),
+  }),
+  push: Object.freeze({
+    transport: pushTransport,
+    webhookUrl: pushWebhookUrl,
+    webhookToken: process.env.PUSH_WEBHOOK_TOKEN ?? '',
   }),
 });

@@ -1438,8 +1438,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       final picker = ImagePicker();
       final file = await picker.pickImage(source: source, imageQuality: 82);
       if (file == null) return;
-      await DataService.addSystemMessageToThread(
+      await DataService.addMessageAttachmentToThread(
         threadId: t.id,
+        bytes: await file.readAsBytes(),
+        filename: file.name.isNotEmpty ? file.name : 'chat-photo.jpg',
         text: 'Foto hinzugefügt',
       );
       final reqId = _request?.id;
@@ -1498,12 +1500,22 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       return;
     }
     try {
-      final result = await FilePicker.platform.pickFiles(withData: false);
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp'],
+        withData: true,
+      );
       if (result == null || result.files.isEmpty) return;
-      final name = result.files.first.name;
-      await DataService.addSystemMessageToThread(
+      final selected = result.files.first;
+      final bytes = selected.bytes;
+      if (bytes == null) {
+        throw StateError('attachment_bytes_unavailable');
+      }
+      await DataService.addMessageAttachmentToThread(
         threadId: t.id,
-        text: 'Anhang hinzugefügt: $name',
+        bytes: bytes,
+        filename: selected.name,
+        text: 'Foto hinzugefügt',
       );
       await _load();
       _scrollToBottom(animate: true);
@@ -2211,6 +2223,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                                                 )
                                               : _ChatBubble(
                                                   text: translation.original,
+                                                  attachments: m.attachments,
                                                   translatedText:
                                                       translation.translated,
                                                   translationLabel:
@@ -4766,6 +4779,7 @@ class _AnimatedMessageEntry extends StatelessWidget {
 
 class _ChatBubble extends StatelessWidget {
   final String text;
+  final List<Map<String, dynamic>> attachments;
   final String? translatedText;
   final String? translationLabel;
   final bool translationPlaceholder;
@@ -4774,6 +4788,7 @@ class _ChatBubble extends StatelessWidget {
   final String time;
   const _ChatBubble({
     required this.text,
+    this.attachments = const <Map<String, dynamic>>[],
     this.translatedText,
     this.translationLabel,
     this.translationPlaceholder = false,
@@ -4815,6 +4830,42 @@ class _ChatBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (attachments.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+              margin: const EdgeInsets.only(bottom: 7),
+              decoration: BoxDecoration(
+                color: me
+                    ? Colors.white.withValues(alpha: 0.13)
+                    : cs.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.image_outlined,
+                    size: 18,
+                    color: me ? Colors.white : cs.primary,
+                  ),
+                  const SizedBox(width: 7),
+                  Flexible(
+                    child: Text(
+                      attachments.length == 1
+                          ? 'Geschützter Foto-Anhang'
+                          : '${attachments.length} geschützte Foto-Anhänge',
+                      style: TextStyle(
+                        color: me ? Colors.white : const Color(0xFF0F172A),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (hasTranslation) ...[
             if (translationLabel != null)
               Padding(

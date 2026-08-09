@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -80,13 +81,10 @@ class DataService {
     SharedPreferences prefs,
     List<dynamic> threads,
   ) async {
-    var payload = threads
+    final payload = threads
         .whereType<Map>()
         .map((entry) => Map<String, dynamic>.from(entry))
         .toList();
-    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-      payload = await BackendRepository.syncMessageThreads(payload);
-    }
     await prefs.setString(_messageThreadsKey, jsonEncode(payload));
     SharedPersistenceSync.notify(SharedPersistenceSync.messageThreadsKey);
   }
@@ -2444,7 +2442,9 @@ class DataService {
   static Future<void> archiveAllMessageThreadsForUser(String userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = await _readMessageThreads(prefs);
+      final raw = BackendConfig.enabled && !QaRuntimeService.isEnabled
+          ? prefs.getString(_messageThreadsKey)
+          : await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return;
       final decoded = jsonDecode(raw);
       if (decoded is! List) return;
@@ -6332,6 +6332,10 @@ class DataService {
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        final remote = await BackendRepository.getNotifications();
+        await prefs.setString(_notificationsKey, jsonEncode(remote));
+      }
       final raw = prefs.getString(_notificationsKey);
       if (raw == null || raw.isEmpty) return [];
       final List list = jsonDecode(raw);
@@ -6391,6 +6395,12 @@ class DataService {
     required String notificationId,
   }) async {
     try {
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        await BackendRepository.updateNotification(
+          id: notificationId,
+          read: true,
+        );
+      }
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_notificationsKey);
       if (raw == null || raw.isEmpty) return;
@@ -6418,6 +6428,9 @@ class DataService {
 
   static Future<void> markAllNotificationsRead(String userId) async {
     try {
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        await BackendRepository.markAllNotificationsRead();
+      }
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_notificationsKey);
       if (raw == null || raw.isEmpty) return;
@@ -6447,6 +6460,12 @@ class DataService {
     required String notificationId,
   }) async {
     try {
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        await BackendRepository.updateNotification(
+          id: notificationId,
+          archived: true,
+        );
+      }
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_notificationsKey);
       if (raw == null || raw.isEmpty) return;
@@ -7408,6 +7427,25 @@ class DataService {
     RentalRequest request,
   ) async {
     try {
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        final remote = await BackendRepository.createOrGetBookingThread(
+          request.id,
+        );
+        final prefs = await SharedPreferences.getInstance();
+        final currentRaw = prefs.getString(_messageThreadsKey);
+        final current = currentRaw != null && currentRaw.isNotEmpty
+            ? List<dynamic>.from(jsonDecode(currentRaw) as List)
+            : <dynamic>[];
+        current.removeWhere(
+          (entry) =>
+              entry is Map &&
+              ((entry['id']?.toString() == remote['id']?.toString()) ||
+                  (entry['requestId']?.toString() == request.id)),
+        );
+        current.add(remote);
+        await _persistMessageThreads(prefs, current);
+        return;
+      }
       final item = await getItemById(request.itemId);
       if (item == null) return;
 
@@ -7635,7 +7673,15 @@ class DataService {
   ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = await _readMessageThreads(prefs);
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        final remote = await BackendRepository.getMessageThreads(
+          includeArchived: true,
+        );
+        await _persistMessageThreads(prefs, remote);
+      }
+      final raw = BackendConfig.enabled && !QaRuntimeService.isEnabled
+          ? prefs.getString(_messageThreadsKey)
+          : await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return [];
       final List<dynamic> list = jsonDecode(raw);
       final threads = <MessageThread>[];
@@ -7670,6 +7716,16 @@ class DataService {
   }) async {
     if (threadId.isEmpty || userId.isEmpty) return;
     try {
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        await BackendRepository.setThreadArchived(
+          threadId: threadId,
+          archived: true,
+        );
+        final prefs = await SharedPreferences.getInstance();
+        final remote = await BackendRepository.getMessageThreads();
+        await _persistMessageThreads(prefs, remote);
+        return;
+      }
       final prefs = await SharedPreferences.getInstance();
       final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return;
@@ -7700,6 +7756,16 @@ class DataService {
   }) async {
     if (threadId.isEmpty || userId.isEmpty) return;
     try {
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        await BackendRepository.setThreadArchived(
+          threadId: threadId,
+          archived: false,
+        );
+        final prefs = await SharedPreferences.getInstance();
+        final remote = await BackendRepository.getMessageThreads();
+        await _persistMessageThreads(prefs, remote);
+        return;
+      }
       final prefs = await SharedPreferences.getInstance();
       final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return;
@@ -8057,6 +8123,23 @@ class DataService {
       final currentUser = await getCurrentUser();
       if (currentUser == null) return;
 
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        if (normalizedSenderId == 'system' ||
+            normalizedSenderId != currentUser.id) {
+          return;
+        }
+        await BackendRepository.sendThreadMessage(
+          threadId: normalizedThreadId,
+          text: normalizedText,
+          idempotencyKey:
+              'message_${normalizedThreadId}_${DateTime.now().microsecondsSinceEpoch}',
+        );
+        final prefs = await SharedPreferences.getInstance();
+        final remote = await BackendRepository.getMessageThreads();
+        await _persistMessageThreads(prefs, remote);
+        return;
+      }
+
       final prefs = await SharedPreferences.getInstance();
       final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return;
@@ -8104,12 +8187,50 @@ class DataService {
     }
   }
 
+  static Future<void> addMessageAttachmentToThread({
+    required String threadId,
+    required Uint8List bytes,
+    required String filename,
+    String text = 'Foto hinzugefügt',
+  }) async {
+    if (!BackendConfig.enabled || QaRuntimeService.isEnabled) {
+      await addMessageToThread(
+        threadId: threadId,
+        senderId: 'system',
+        text: text,
+      );
+      return;
+    }
+    final upload = await BackendRepository.uploadMessageAttachment(
+      bytes: bytes,
+      filename: filename,
+      threadId: threadId,
+    );
+    await BackendRepository.sendThreadMessage(
+      threadId: threadId,
+      text: text,
+      idempotencyKey:
+          'attachment_${threadId}_${DateTime.now().microsecondsSinceEpoch}',
+      attachmentIds: [upload['id'].toString()],
+    );
+    final prefs = await SharedPreferences.getInstance();
+    final remote = await BackendRepository.getMessageThreads();
+    await _persistMessageThreads(prefs, remote);
+  }
+
   /// Markiert alle Nachrichten in einem Thread als gelesen für einen User
   static Future<void> markThreadMessagesAsRead({
     required String threadId,
     required String userId,
   }) async {
     try {
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        await BackendRepository.markThreadRead(threadId);
+        final prefs = await SharedPreferences.getInstance();
+        final remote = await BackendRepository.getMessageThreads();
+        await _persistMessageThreads(prefs, remote);
+        return;
+      }
       final prefs = await SharedPreferences.getInstance();
       final raw = await _readMessageThreads(prefs);
       if (raw == null || raw.isEmpty) return;

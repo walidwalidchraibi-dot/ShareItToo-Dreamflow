@@ -342,12 +342,110 @@ class BackendRepository {
     return _maps(response['requests']);
   }
 
-  static Future<List<Map<String, dynamic>>> getMessageThreads() async {
+  static Future<List<Map<String, dynamic>>> getMessageThreads({
+    bool includeArchived = false,
+  }) async {
     final response = await _authorized(
       method: 'GET',
-      path: '/message-threads',
+      path: '/message-threads${includeArchived ? '?includeArchived=true' : ''}',
     );
     return _maps(response['threads']);
+  }
+
+  static Future<Map<String, dynamic>> createOrGetBookingThread(
+    String bookingId,
+  ) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/message-threads/booking/${Uri.encodeComponent(bookingId)}',
+    );
+    return Map<String, dynamic>.from(response['thread'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> sendThreadMessage({
+    required String threadId,
+    required String text,
+    required String idempotencyKey,
+    List<String> attachmentIds = const <String>[],
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/message-threads/${Uri.encodeComponent(threadId)}/messages',
+      body: {
+        'text': text,
+        if (attachmentIds.isNotEmpty) 'attachmentIds': attachmentIds,
+      },
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+    return Map<String, dynamic>.from(response['message'] as Map);
+  }
+
+  static Future<void> markThreadRead(String threadId) async {
+    await _authorized(
+      method: 'POST',
+      path: '/message-threads/${Uri.encodeComponent(threadId)}/read',
+    );
+  }
+
+  static Future<void> setThreadArchived({
+    required String threadId,
+    required bool archived,
+  }) async {
+    await _authorized(
+      method: 'PATCH',
+      path: '/message-threads/${Uri.encodeComponent(threadId)}',
+      body: {'archived': archived},
+    );
+  }
+
+  static Future<List<String>> getBlockedUserIds() async {
+    final response = await _authorized(method: 'GET', path: '/user-blocks');
+    return _maps(response['blocks'])
+        .map((entry) => entry['userId']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static Future<void> blockUser(String userId) async {
+    await _authorized(
+      method: 'PUT',
+      path: '/user-blocks/${Uri.encodeComponent(userId)}',
+      body: {'reasonCode': 'user_request'},
+    );
+  }
+
+  static Future<void> unblockUser(String userId) async {
+    await _authorized(
+      method: 'DELETE',
+      path: '/user-blocks/${Uri.encodeComponent(userId)}',
+    );
+  }
+
+  static Future<List<Map<String, dynamic>>> getNotifications() async {
+    final response = await _authorized(
+      method: 'GET',
+      path: '/notifications?limit=100',
+    );
+    return _maps(response['notifications']);
+  }
+
+  static Future<void> updateNotification({
+    required String id,
+    bool? read,
+    bool? archived,
+  }) async {
+    await _authorized(
+      method: 'PATCH',
+      path: '/notifications/${Uri.encodeComponent(id)}',
+      body: {
+        if (read != null) 'read': read,
+        if (archived != null) 'archived': archived,
+      },
+    );
+  }
+
+  static Future<void> markAllNotificationsRead() async {
+    await _authorized(method: 'POST', path: '/notifications/read-all');
   }
 
   static Future<List<Map<String, dynamic>>> syncMessageThreads(
@@ -401,5 +499,45 @@ class BackendRepository {
       throw const BackendException(500, 'invalid_upload_response');
     }
     return url;
+  }
+
+  static Future<Map<String, dynamic>> uploadMessageAttachment({
+    required Uint8List bytes,
+    required String filename,
+    required String threadId,
+  }) async {
+    var token = await _token();
+    Future<http.StreamedResponse> send(String accessToken) {
+      final request = http.MultipartRequest(
+        'POST',
+        BackendConfig.uri('/uploads'),
+      )
+        ..headers['Authorization'] = 'Bearer $accessToken'
+        ..fields['purpose'] = 'message_attachment'
+        ..fields['threadId'] = threadId
+        ..files.add(
+          http.MultipartFile.fromBytes('file', bytes, filename: filename),
+        );
+      return request.send().timeout(const Duration(seconds: 45));
+    }
+
+    var response = await send(token);
+    if (response.statusCode == 401) {
+      token = await AuthService.refreshAccessToken() ?? '';
+      if (token.isNotEmpty) response = await send(token);
+    }
+    final body = await response.stream.bytesToString();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw BackendException(response.statusCode, 'attachment_upload_failed');
+    }
+    final value = jsonDecode(body);
+    if (value is! Map) {
+      throw const BackendException(500, 'invalid_server_response');
+    }
+    final decoded = Map<String, dynamic>.from(value);
+    if ((decoded['id']?.toString() ?? '').isEmpty) {
+      throw const BackendException(500, 'invalid_upload_response');
+    }
+    return decoded;
   }
 }

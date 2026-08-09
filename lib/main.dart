@@ -15,6 +15,8 @@ import 'package:lendify/services/backend_realtime_service.dart';
 import 'package:lendify/screens/onboarding_flow_screen.dart';
 import 'package:lendify/services/background_theme_service.dart';
 import 'package:lendify/services/qa_bootstrap_service.dart';
+import 'package:lendify/services/app_link_service.dart';
+import 'package:lendify/screens/app_link_destination_screen.dart';
 
 Future<void> main() async {
   // Initialize bindings once in the same zone as runApp to avoid zone mismatch warnings.
@@ -98,6 +100,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<BackgroundThemeController>(
           create: (_) => BackgroundThemeController()..loadFromPrefs(),
         ),
+        ChangeNotifierProvider<AppLinkController>(
+          create: (_) => AppLinkController()..initialize(),
+        ),
       ],
       child: Consumer2<LocalizationController, BackgroundThemeController>(
         builder: (context, l10n, backgroundTheme, _) {
@@ -109,7 +114,7 @@ class MyApp extends StatelessWidget {
             themeMode: ThemeMode.system,
             builder: (context, child) =>
                 AppGradientBackground(child: child ?? const SizedBox.shrink()),
-            home: const AppRoot(),
+            home: const AppLinkHost(child: AppRoot()),
           );
         },
       ),
