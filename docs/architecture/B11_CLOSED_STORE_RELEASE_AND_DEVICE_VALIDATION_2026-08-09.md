@@ -50,8 +50,14 @@ Das kanonische, CI-validierte Proxy-Setup liegt in `backend/ops/Caddyfile`.
 - Googles öffentlicher Digital-Asset-Links-Prüfdienst bestätigt die Zuordnung
   auf `shareittoo.com`, `www.shareittoo.com` und `staging.shareittoo.com`.
 - App-Icon und Startbildschirm verwenden das ShareItToo-Symbol auf weißem
-  Hintergrund; alle Android- und iOS-Größen sind ohne Alphakanal erzeugt und
-  geprüft.
+  Hintergrund; alle Android-, iOS- und Web-Größen sind ohne Alphakanal erzeugt
+  und geprüft. Frühere Flutter-Standardicons in Favicon, PWA- und
+  Maskable-Assets wurden vollständig ersetzt.
+- `tool/verify_brand_assets.mjs` bindet alle 34 ausgelieferten Icon- und
+  Launch-PNGs an den freigegebenen 1024-Pixel-Master, ihre Sollgröße und das
+  deckend weiße RGB-Format. Der Prüfer ist Teil von Regression und
+  Release-Preflight; Web-Startfarbe und native Launch-Hintergründe werden
+  ebenfalls fail-closed geprüft.
 
 ### Signierung und commitgebundener Android-Kandidat
 

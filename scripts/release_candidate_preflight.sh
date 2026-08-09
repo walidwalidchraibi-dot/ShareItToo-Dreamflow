@@ -14,6 +14,8 @@ fail() {
 command -v dart >/dev/null 2>&1 || fail "dart is required for store metadata validation."
 command -v node >/dev/null 2>&1 || fail "node is required for public store page validation."
 node --check tool/verify_public_store_pages.mjs
+node --check tool/verify_brand_assets.mjs
+node tool/verify_brand_assets.mjs
 dart run tool/validate_store_metadata.dart
 if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
   dart run tool/validate_store_metadata.dart --require-submittable

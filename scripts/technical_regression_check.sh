@@ -18,11 +18,19 @@ if ! command -v dart >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v node >/dev/null 2>&1; then
+  echo "ERROR: node is not available in PATH." >&2
+  exit 1
+fi
+
 flutter --version
 
 dart --version
 
 dart run tool/validate_store_metadata.dart
+
+node --check tool/verify_brand_assets.mjs
+node tool/verify_brand_assets.mjs
 
 analyze_log="$(mktemp)"
 trap 'rm -f "$analyze_log"' EXIT
