@@ -392,8 +392,13 @@ if (!databaseUrl) {
           }),
         },
       );
-      assert.equal(revalidatedRollbackBooking.status, 200);
-      const revalidatedBooking = (await revalidatedRollbackBooking.json()).booking;
+      const revalidatedRollbackPayload = await revalidatedRollbackBooking.json();
+      assert.equal(
+        revalidatedRollbackBooking.status,
+        200,
+        JSON.stringify(revalidatedRollbackPayload),
+      );
+      const revalidatedBooking = revalidatedRollbackPayload.booking;
       assert.equal(revalidatedBooking.workflowVersion, 1);
       assert.equal(revalidatedBooking.workflowStatus, 'requested');
       assert.equal(revalidatedBooking.quote.totalMinor, 3300);
