@@ -18,6 +18,7 @@ node --check tool/verify_brand_assets.mjs
 node --check tool/verify_android_binary_privacy.mjs
 node --check tool/validate_device_evidence.mjs
 node --check tool/validate_firebase_release_config.mjs
+node --check tool/validate_android_signing_config.mjs
 node tool/verify_brand_assets.mjs
 dart run tool/validate_store_metadata.dart
 node tool/validate_device_evidence.mjs
@@ -85,5 +86,10 @@ master_description="$(file assets/images/shareittoo_app_icon_master.png)"
 
 [[ -f android/key.properties ]] || \
   fail "android/key.properties is required for a signed release build."
+if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
+  node tool/validate_android_signing_config.mjs --require-canonical
+else
+  node tool/validate_android_signing_config.mjs
+fi
 
 echo "Release candidate preflight passed for $EXPECTED_ID, version $version."

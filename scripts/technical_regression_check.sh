@@ -37,6 +37,9 @@ node --check tool/validate_firebase_release_config.mjs
 node --test test/tool/validate_firebase_release_config.test.mjs
 node tool/validate_firebase_release_config.mjs
 
+node --check tool/validate_android_signing_config.mjs
+node --test test/tool/validate_android_signing_config.test.mjs
+
 node --check tool/verify_brand_assets.mjs
 node tool/verify_brand_assets.mjs
 

@@ -69,6 +69,19 @@ build_tools="$(find "$build_tools_root" -mindepth 1 -maxdepth 1 -type d | sort -
 [[ -x "$build_tools/apksigner" ]] || { echo "ERROR: apksigner is unavailable." >&2; exit 1; }
 [[ -x "$build_tools/aapt" ]] || { echo "ERROR: aapt is unavailable." >&2; exit 1; }
 "$build_tools/apksigner" verify --verbose "$apk" >/dev/null
+signing_certificate_sha256="$("$build_tools/apksigner" verify --print-certs "$apk" | \
+  sed -E -n 's/^(V[0-9]+ Signer:|Signer #[0-9]+) certificate SHA-256 digest: ([0-9A-Fa-f]{64})$/\2/p' | \
+  head -n1 | tr '[:upper:]' '[:lower:]')"
+[[ "$signing_certificate_sha256" =~ ^[0-9a-f]{64}$ ]] || {
+  echo "ERROR: APK signing certificate SHA-256 could not be verified." >&2
+  exit 1
+}
+canonical_signing_certificate_sha256="098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
+if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" && \
+      "$signing_certificate_sha256" != "$canonical_signing_certificate_sha256" ]]; then
+  echo "ERROR: Store candidate is not signed by the canonical ShareItToo upload certificate." >&2
+  exit 1
+fi
 "$build_tools/aapt" dump badging "$apk" | grep -Fq "package: name='com.shareittoo.app' versionCode='$build_number' versionName='$build_name'" || {
   echo "ERROR: APK package or version identity does not match the release request." >&2
   exit 1
@@ -109,6 +122,7 @@ printf '%s\n' \
   "  \"channel\": \"$CHANNEL\"," \
   "  \"apiBaseUrl\": \"$API_BASE_URL\"," \
   "  \"firebaseConfigured\": $firebase_configured," \
+  "  \"signingCertificateSha256\": \"$signing_certificate_sha256\"," \
   "  \"createdAt\": \"$created_at\"," \
   "  \"androidBinaryPrivacyScan\": \"passed\"," \
   "  \"androidBinaryPrivacyReport\": \"privacy-scan.json\"," \

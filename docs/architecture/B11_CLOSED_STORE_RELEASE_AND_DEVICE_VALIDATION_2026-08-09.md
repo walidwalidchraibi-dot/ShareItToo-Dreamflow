@@ -89,6 +89,16 @@ ungültige Buildnummer, fehlende Signierung, falsches Paket sowie ungültige
 AAB-/APK-Signaturen ab. Ein Push-fähiger Kandidat verlangt zusätzlich alle
 Firebase-Kennungen und die echte `android/app/google-services.json`.
 
+`tool/validate_android_signing_config.mjs` prüft zusätzlich vor jedem
+Release-Build die Eigentümerrechte von `android/key.properties` und Keystore,
+verbietet Symlinks sowie eine Keystore-Ablage im Repository und liest das
+Passwort nur über eine kurzlebige Umgebungsvariable für `keytool`. Der normale
+CI-Kanal darf seinen kurzlebigen Testschlüssel verwenden. Sobald
+`SIT_REQUIRE_STORE_SUBMISSION=1` gesetzt ist, wird ausschließlich der oben
+dokumentierte kanonische SHA-256-Fingerabdruck akzeptiert. Der tatsächlich im
+APK gefundene Zertifikatsfingerabdruck wird erneut geprüft und in den
+commitgebundenen Release-Nachweis geschrieben.
+
 ### Push, Crash-Berichte und Deep Links
 
 - Das Firebase-Projekt `shareittoo-staging` wurde im kostenlosen Spark-Tarif
