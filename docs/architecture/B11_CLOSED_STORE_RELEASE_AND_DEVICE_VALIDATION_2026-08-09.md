@@ -335,6 +335,48 @@ TalkBack, iOS/TestFlight und alle Freigaben offen. Die UI-Checkbox bezeichnet
 korrekt ein Mindestalter von 18 Jahren; App, Backend und Storetexte bleiben für
 den MVP konsistent auf volljährige Nutzer begrenzt.
 
+### Echter Staging-Mailversand und bestätigtes Vermieter-Testkonto
+
+Die offene Registrierung war serverseitig korrekt angenommen worden; das
+synthetische Vermieter-Testkonto blieb zunächst unbestätigt, weil Staging noch
+im sicheren `memory`-Mailmodus lief. Dieser Modus meldet die Mailkomponente als
+funktionsfähig, liefert absichtlich aber keine externe Nachricht aus. Es lag
+kein Gmail-, DNS- oder Kontofehler vor.
+
+Commit `9a1371e02d8e7d63d3dee30ca169c6c7f37fa966` ergänzt die SMTP-Werte in
+`backend/compose.staging.yml`, führt dieselben Schlüssel in
+`backend/.env.staging.example` auf und dokumentiert im B2-Runbook den
+ausdrücklichen Opt-in: Standard bleibt `memory`; nur für die geschlossene
+Endgeräte-Abnahme wird der bereits IP-freigegebene Google-Workspace-Relay ohne
+Produktionspasswort aktiviert.
+
+Die lokale Backend-Suite und die Staging-Compose-Prüfung sind grün. Die
+GitHub-Läufe `31338903466` und `31338906287` bestätigten Backend, Flutter-
+Regression, signierten commitgebundenen Android-Kontrollbuild und API-Image-
+Publikation vollständig. Der veröffentlichte und auf Staging ausgerollte
+Digest lautet
+`sha256:802e9215741dad72410837187705675882d0be6af028cd1b67ab95ef27630aaa`.
+
+Staging läuft exakt auf diesem Commit. Datenbank, SMTP-Mail und
+Benachrichtigungswarteschlange sind gesund; FCM bleibt ausschließlich in
+Staging aktiv, während Zahlungstransport `memory` und `livemode=false`
+bleiben. Der geschützte Release-Beleg liegt unter
+`/docker/shareittoo/releases/staging-20260809T222808Z-9a1371e02d8e.json`.
+Produktion wurde weder ausgerollt noch neu gestartet; DNS, Caddy, Cron,
+Stripe-Live und Echtgeld blieben unverändert.
+
+Der erneut angeforderte Bestätigungsbrief traf im Firmenpostfach ein. Der
+einmalige Link wurde verarbeitet, und eine direkte Datenbankprüfung bestätigt
+das synthetische Konto als vorhanden, aktiv und E-Mail-verifiziert. Tokenwert,
+Passwort und andere Zugangsdaten wurden nicht ausgegeben oder gespeichert.
+
+Der Pixel steht nun auf der Anmeldeseite mit vorausgefüllter Test-E-Mail und
+absichtlich leerem Passwortfeld. Der Gaststart und die Staging-Verbindung sind
+stabil; der leere Katalog meldet korrekt `Keine Anzeigen gefunden`. Als neuer
+Cold-Start-UX-Punkt bleibt zu prüfen, ob die kanonischen Kategorien auch ohne
+aktive Anzeigen sichtbar sein sollen. Login, Sitzung, erstes Pilotinserat,
+zweites Mieter-Testkonto und vollständige Staging-Testbuchung bleiben offen.
+
 Die Store-Vorbereitung ist zusätzlich in vier codebasierten Arbeitsunterlagen
 festgehalten:
 
