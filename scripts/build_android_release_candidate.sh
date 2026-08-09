@@ -91,8 +91,20 @@ build_tools="$(find "$build_tools_root" -mindepth 1 -maxdepth 1 -type d | sort -
 
 evidence_dir="build/release-evidence/android-$build_number"
 mkdir -p "$evidence_dir"
+privacy_report="$evidence_dir/privacy-scan.json"
+node tool/verify_android_binary_privacy.mjs \
+  --apk "$apk" \
+  --aab "$aab" \
+  --aapt "$build_tools/aapt" \
+  --commit "$commit" \
+  --api-base-url "$API_BASE_URL" \
+  --version-name "$build_name" \
+  --version-code "$build_number" \
+  --output "$privacy_report"
+
 aab_sha="$(shasum -a 256 "$aab" | awk '{print $1}')"
 apk_sha="$(shasum -a 256 "$apk" | awk '{print $1}')"
+privacy_report_sha="$(shasum -a 256 "$privacy_report" | awk '{print $1}')"
 created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 firebase_configured=false
 if [[ -n "${SIT_FIREBASE_PROJECT_ID:-}" && \
@@ -113,6 +125,9 @@ printf '%s\n' \
   "  \"apiBaseUrl\": \"$API_BASE_URL\"," \
   "  \"firebaseConfigured\": $firebase_configured," \
   "  \"createdAt\": \"$created_at\"," \
+  "  \"androidBinaryPrivacyScan\": \"passed\"," \
+  "  \"androidBinaryPrivacyReport\": \"privacy-scan.json\"," \
+  "  \"androidBinaryPrivacyReportSha256\": \"$privacy_report_sha\"," \
   "  \"aabSha256\": \"$aab_sha\"," \
   "  \"apkSha256\": \"$apk_sha\"" \
   "}" > "$evidence_dir/manifest.json"

@@ -15,6 +15,7 @@ command -v dart >/dev/null 2>&1 || fail "dart is required for store metadata val
 command -v node >/dev/null 2>&1 || fail "node is required for public store page validation."
 node --check tool/verify_public_store_pages.mjs
 node --check tool/verify_brand_assets.mjs
+node --check tool/verify_android_binary_privacy.mjs
 node tool/verify_brand_assets.mjs
 dart run tool/validate_store_metadata.dart
 if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
@@ -50,6 +51,21 @@ grep -Fq "applinks:shareittoo.com" ios/Runner/Runner.entitlements || \
   fail "iOS associated-domain entitlement is missing."
 grep -Fq 'android:autoVerify="true"' android/app/src/main/AndroidManifest.xml || \
   fail "Android verified links are not enabled."
+grep -Fq 'android:allowBackup="false"' android/app/src/main/AndroidManifest.xml || \
+  fail "Android application backup must be disabled."
+grep -Fq 'android:usesCleartextTraffic="false"' android/app/src/main/AndroidManifest.xml || \
+  fail "Android cleartext traffic must be disabled."
+grep -Fq 'android:maxSdkVersion="32"' android/app/src/main/AndroidManifest.xml || \
+  fail "Legacy Android read-storage permission must be capped at API 32."
+grep -Fq 'android:maxSdkVersion="28"' android/app/src/main/AndroidManifest.xml || \
+  fail "Legacy Android write-storage permission must be capped at API 28."
+if grep -Fq 'android:requestLegacyExternalStorage' android/app/src/main/AndroidManifest.xml; then
+  fail "Legacy Android external storage mode must not be enabled."
+fi
+[[ -f android/app/src/main/res/xml/backup_rules.xml ]] || \
+  fail "Android backup exclusion rules are missing."
+[[ -f android/app/src/main/res/xml/data_extraction_rules.xml ]] || \
+  fail "Android data extraction rules are missing."
 
 if command -v plutil >/dev/null 2>&1; then
   plutil -lint ios/Runner/Info.plist ios/Runner/Runner.entitlements >/dev/null

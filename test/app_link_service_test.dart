@@ -16,10 +16,36 @@ void main() {
     expect(chat?.id, 'thread_456');
 
     final payment = AppLinkParser.parse(
-      Uri.parse('https://shareittoo.com/api/v1/open/payment/booking-123?result=success'),
+      Uri.parse(
+          'https://shareittoo.com/api/v1/open/payment/booking-123?result=success'),
     );
     expect(payment?.kind, AppLinkKind.paymentReturn);
     expect(payment?.id, 'booking-123');
+  });
+
+  test('builds and parses canonical listing and profile links', () {
+    final listingUri = AppLinkBuilder.listing('item-123');
+    expect(
+      listingUri.toString(),
+      'https://shareittoo.com/api/v1/open/listing/item-123',
+    );
+    final listing = AppLinkParser.parse(listingUri);
+    expect(listing?.kind, AppLinkKind.listing);
+    expect(listing?.id, 'item-123');
+
+    final profileUri = AppLinkBuilder.profile('user_456');
+    expect(
+      profileUri.toString(),
+      'https://shareittoo.com/api/v1/open/profile/user_456',
+    );
+    final profile = AppLinkParser.parse(profileUri);
+    expect(profile?.kind, AppLinkKind.profile);
+    expect(profile?.id, 'user_456');
+  });
+
+  test('refuses unsafe public link identifiers', () {
+    expect(() => AppLinkBuilder.listing('not/safe'), throwsArgumentError);
+    expect(() => AppLinkBuilder.profile(''), throwsArgumentError);
   });
 
   test('accepts auth actions only with a token', () {

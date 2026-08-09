@@ -3,9 +3,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'backend_config.dart';
 import 'firebase_runtime.dart';
 
 enum AppLinkKind {
+  listing,
+  profile,
   booking,
   chat,
   emailVerification,
@@ -19,6 +22,22 @@ class AppLinkTarget {
   final Uri uri;
 
   const AppLinkTarget({required this.kind, required this.uri, this.id});
+}
+
+class AppLinkBuilder {
+  static Uri listing(String itemId) => _publicTarget('listing', itemId);
+
+  static Uri profile(String userId) => _publicTarget('profile', userId);
+
+  static Uri _publicTarget(String kind, String id) {
+    final value = id.trim();
+    if (value.isEmpty ||
+        value.length > 120 ||
+        !RegExp(r'^[A-Za-z0-9_.:-]+$').hasMatch(value)) {
+      throw ArgumentError.value(id, 'id', 'Ungültige ShareItToo-ID');
+    }
+    return BackendConfig.uri('/open/$kind/${Uri.encodeComponent(value)}');
+  }
 }
 
 class AppLinkParser {
@@ -56,6 +75,16 @@ class AppLinkParser {
     }
 
     switch (segments.first.toLowerCase()) {
+      case 'listing':
+        final id = safeId(1);
+        return id == null
+            ? null
+            : AppLinkTarget(kind: AppLinkKind.listing, id: id, uri: uri);
+      case 'profile':
+        final id = safeId(1);
+        return id == null
+            ? null
+            : AppLinkTarget(kind: AppLinkKind.profile, id: id, uri: uri);
       case 'booking':
         final id = safeId(1);
         return id == null

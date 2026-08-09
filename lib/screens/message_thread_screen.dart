@@ -18,6 +18,7 @@ import 'package:lendify/models/message.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/messages_settings_service.dart';
@@ -2587,7 +2588,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         headers: {
           'Accept': 'application/json',
           'User-Agent': 'ShareItToo/1.0 (address-share-preview)',
-          'Referer': 'http://127.0.0.1:8123/',
+          'Referer': Uri.parse(BackendConfig.apiBaseUrl)
+              .replace(path: '/', query: null, fragment: null)
+              .toString(),
         },
       );
       if (response.statusCode >= 200 && response.statusCode < 300) {

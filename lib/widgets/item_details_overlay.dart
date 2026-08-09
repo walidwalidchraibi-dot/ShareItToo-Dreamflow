@@ -8,6 +8,7 @@ import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/app_link_service.dart';
 import 'package:lendify/models/category.dart';
 import 'package:lendify/screens/placeholder_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
@@ -96,6 +97,18 @@ class ItemDetailsOverlay {
       return null;
     }
   }
+}
+
+class LinkedListingDetailsScreen extends StatelessWidget {
+  final Item item;
+
+  const LinkedListingDetailsScreen({super.key, required this.item});
+
+  @override
+  Widget build(BuildContext context) => _ItemDetailsPage(
+        item: item,
+        ownerFuture: DataService.getUserById(item.ownerId),
+      );
 }
 
 class _ItemDetailsSheet extends StatefulWidget {
@@ -984,7 +997,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
               switch (choice) {
                 case 'share':
                   try {
-                    final url = 'https://app.example/listing/${item.id}';
+                    final url = AppLinkBuilder.listing(item.id).toString();
                     await Clipboard.setData(ClipboardData(text: url));
                     await AppPopup.toast(context,
                         icon: Icons.ios_share, title: 'Link kopiert');

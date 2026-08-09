@@ -6,6 +6,7 @@ import 'package:lendify/models/user.dart';
 import 'package:lendify/models/review.dart';
 import 'package:lendify/models/multi_criteria_review.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/app_link_service.dart';
 import 'package:lendify/services/review_metrics_service.dart';
 import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/profile_ecosystem_service.dart';
@@ -579,7 +580,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 if (value == 'report_problem')
                   await _openProfileSupportFlow('Profil melden');
                 if (value == 'share_profile') {
-                  final link = 'https://shareittoo.app/u/${u.id}';
+                  final link = AppLinkBuilder.profile(u.id).toString();
                   await Clipboard.setData(ClipboardData(text: link));
                   if (!mounted) return;
                   AppPopup.toast(context,

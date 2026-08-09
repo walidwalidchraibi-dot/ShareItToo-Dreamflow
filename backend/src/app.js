@@ -178,7 +178,14 @@ function escapeHtml(value) {
 }
 
 function deepLinkFallbackPage({ kind, id }) {
-  const label = kind === 'chat' ? 'Chat' : (kind === 'payment' ? 'Zahlung' : 'Buchung');
+  const labels = {
+    booking: 'Buchung',
+    chat: 'Chat',
+    listing: 'Anzeige',
+    payment: 'Zahlung',
+    profile: 'Profil',
+  };
+  const label = labels[kind] ?? 'Inhalt';
   const schemeUrl = `shareittoo://${kind}/${encodeURIComponent(id)}`;
   return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${label} in ShareItToo öffnen</title></head>
 <body style="margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033"><main style="max-width:560px;margin:12vh auto;padding:24px"><section style="background:#fff;border-radius:20px;padding:32px;box-shadow:0 10px 30px rgba(20,35,70,.08)"><div style="font-size:26px;font-weight:800;color:#2156d9">ShareItToo</div><h1>${label} öffnen</h1><p>Öffne den sicheren Kontext in der ShareItToo-App. Nach der Anmeldung wird deine Berechtigung erneut geprüft.</p><p><a href="${escapeHtml(schemeUrl)}" style="display:inline-block;background:#2156d9;color:#fff;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:12px">In der App öffnen</a></p><p style="font-size:13px;color:#5d6980">Wenn die App noch nicht installiert ist, kehre bitte zur ShareItToo-Website zurück. Dieser Link enthält keine Zahlungs- oder Zugangsdaten.</p><p><a href="${escapeHtml(config.appPublicUrl)}">Zur ShareItToo-Website</a></p></section></main></body></html>`;
@@ -947,7 +954,8 @@ export function createApp() {
   app.get('/v1/open/:kind/:id', (req, res) => {
     const kind = safeText(req.params.kind, 20);
     const id = safeText(req.params.id, 120);
-    if (!['booking', 'chat', 'payment'].includes(kind) || !id || !/^[A-Za-z0-9_.:-]+$/.test(id)) {
+    if (!['booking', 'chat', 'listing', 'payment', 'profile'].includes(kind)
+        || !id || !/^[A-Za-z0-9_.:-]+$/.test(id)) {
       return sendHtml(res, 404, resultPage({
         title: 'Link nicht verfügbar',
         message: 'Dieser ShareItToo-Link ist ungültig oder nicht mehr verfügbar.',

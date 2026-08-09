@@ -8,11 +8,13 @@ import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/ongoing_owner_detail_screen.dart';
 import 'package:lendify/screens/request_detail_screen.dart';
 import 'package:lendify/screens/payment_checkout_screen.dart';
+import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:lendify/services/app_link_service.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:lendify/widgets/item_details_overlay.dart';
 
 class AppLinkHost extends StatefulWidget {
   final Widget child;
@@ -76,7 +78,17 @@ class AppLinkDestinationScreen extends StatefulWidget {
 
 class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
   late Future<_ResolvedBooking?> _booking = _resolveBooking();
+  late Future<Item?> _listing = _resolveListing();
   bool _externalOpened = false;
+
+  Future<Item?> _resolveListing() async {
+    if (widget.target.kind != AppLinkKind.listing) return null;
+    final publicItems = await DataService.getPublicItems();
+    for (final item in publicItems) {
+      if (item.id == widget.target.id) return item;
+    }
+    return null;
+  }
 
   Future<_ResolvedBooking?> _resolveBooking() async {
     if (widget.target.kind != AppLinkKind.booking) return null;
@@ -108,6 +120,30 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
   @override
   Widget build(BuildContext context) {
     switch (widget.target.kind) {
+      case AppLinkKind.listing:
+        return FutureBuilder<Item?>(
+          future: _listing,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const _LinkLoadingScreen();
+            }
+            final item = snapshot.data;
+            if (item == null) {
+              return _LinkErrorScreen(
+                title: 'Anzeige nicht verfügbar',
+                message:
+                    'Die Anzeige wurde entfernt, pausiert oder ist nicht mehr öffentlich.',
+                actionLabel: 'Erneut prüfen',
+                onAction: () async {
+                  setState(() => _listing = _resolveListing());
+                },
+              );
+            }
+            return LinkedListingDetailsScreen(item: item);
+          },
+        );
+      case AppLinkKind.profile:
+        return PublicProfileScreen(userId: widget.target.id!);
       case AppLinkKind.chat:
         return FutureBuilder<AuthSession?>(
           future: AuthService.readSession(),

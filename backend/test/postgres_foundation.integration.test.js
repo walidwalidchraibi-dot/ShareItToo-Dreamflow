@@ -1009,6 +1009,18 @@ if (!databaseUrl) {
       assert.equal(deepLinkFallback.status, 200);
       assert.match(await deepLinkFallback.text(), /In der App öffnen/);
 
+      const listingFallback = await fetch(
+        `${baseUrl}/v1/open/listing/listing-1`,
+      );
+      assert.equal(listingFallback.status, 200);
+      assert.match(await listingFallback.text(), /Anzeige öffnen/);
+
+      const profileFallback = await fetch(
+        `${baseUrl}/v1/open/profile/owner`,
+      );
+      assert.equal(profileFallback.status, 200);
+      assert.match(await profileFallback.text(), /Profil öffnen/);
+
       const adminHeaders = {
         Authorization: `Bearer ${tokenFor('admin')}`,
         'Content-Type': 'application/json',
