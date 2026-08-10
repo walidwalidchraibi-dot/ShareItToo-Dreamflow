@@ -106,8 +106,12 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
     // Diese Kombination garantiert die exakte Ausrichtung über alle Displaybreiten.
     final circleCenterInItem = centerLargeTextContent ? itemWidth / 2 : 22.0;
     final trailingCircleDistance = itemWidth - circleCenterInItem;
-    final double cutoffPx = math.max(0.0, trailingCircleDistance - 38.0);
-    final double rightPadPx = math.max(0.0, 38.0 - trailingCircleDistance);
+    final double cutoffPx = centerLargeTextContent
+        ? 0
+        : math.max(0.0, trailingCircleDistance - 38.0);
+    final double rightPadPx = centerLargeTextContent
+        ? horizontalPadding
+        : math.max(0.0, 38.0 - trailingCircleDistance);
 
     return SizedBox(
       height: rowHeight,

@@ -221,6 +221,12 @@ void main() {
 
   testWidgets('category header expands without clipping at 200 percent text',
       (tester) async {
+    tester.view.physicalSize = const Size(412, 915);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
     final localization = LocalizationController();
     final delegate = PinnedCategoriesHeader(
       textScale: 2,
@@ -273,6 +279,13 @@ void main() {
         greaterThanOrEqualTo(0));
     expect(tester.getRect(find.text('Technik\n& Elektronik')).right,
         lessThanOrEqualTo(412));
+
+    await tester.drag(find.byType(ListView), const Offset(-2000, 0));
+    await tester.pumpAndSettle();
+    final lastCategoryRect =
+        tester.getRect(find.text('Werkzeuge\n& Kleingeräte'));
+    expect(lastCategoryRect.left, greaterThanOrEqualTo(0));
+    expect(lastCategoryRect.right, lessThanOrEqualTo(412));
     expect(tester.takeException(), isNull);
   });
 }
