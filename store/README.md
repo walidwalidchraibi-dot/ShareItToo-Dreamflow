@@ -47,9 +47,14 @@ Dieser Diagnoseweg zählt ausdrücklich nicht als Play-Internal-Installation.
 
 Das geprüfte Google-Play-Store-Icon liegt unter
 `store/assets/google-play/icon-512.png`. Der Metadatenvalidator verlangt exakt
-512 × 512 Pixel, PNG ohne Alphakanal und höchstens 1.024 KB. Feature-Grafik und
-Telefon-Screenshots bleiben im Manifest bewusst leer, bis sie aus dem finalen
-Store-Build wahrheitsgetreu aufgenommen und einzeln geprüft wurden.
+512 × 512 Pixel, PNG ohne Alphakanal und höchstens 1.024 KB. Die geprüfte
+Feature-Grafik liegt unter
+`store/assets/google-play/feature-graphic-1024x500.png`; der Validator verlangt
+exakt 1024 × 500 Pixel und ein 24-Bit-RGB-PNG ohne Alphakanal. Sie lässt sich
+deterministisch mit `tool/generate_store_feature_graphic.py` aus dem
+vorhandenen SIT-Markenasset neu erzeugen. Telefon-Screenshots bleiben im
+Manifest bewusst leer, bis sie aus dem finalen Store-Build wahrheitsgetreu
+aufgenommen und einzeln geprüft wurden.
 Die acht deutschen Alternativtexte sind bereits als validierter Entwurf unter
 `store/google-play/de-DE/screenshot_alt_texts.json` vorbereitet. Sie werden
 erst einem Bild zugeordnet, wenn die jeweilige reale App-Szene bestanden und

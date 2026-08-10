@@ -62,7 +62,11 @@ Produktions-Löschseite final sind.
   unter `store/assets/google-play/icon-512.png`: 512 × 512 Pixel, PNG ohne
   Alphakanal und 80.578 Byte. Der Metadatenvalidator prüft Abmessungen, Format,
   Alphakanal und die 1.024-KB-Grenze bei jedem Lauf.
-- Feature-Grafik: 1024 × 500 Pixel, JPEG oder 24-Bit-PNG ohne Alpha.
+- Feature-Grafik: Die geprüfte, deterministisch erzeugbare Datei liegt unter
+  `store/assets/google-play/feature-graphic-1024x500.png`: exakt 1024 × 500
+  Pixel, 24-Bit-PNG ohne Alpha. Sie verwendet ausschließlich vorhandene
+  SIT-Markenassets und die im Store-Text bereits belegte Aussage
+  „Teile mehr. Kaufe weniger.“.
 - Telefon: zwei bis acht Screenshots, JPEG oder 24-Bit-PNG ohne Alpha;
   Mindestkante 320 Pixel, Maximalkante 3.840 Pixel und längste Kante höchstens
   doppelt so lang wie die kürzeste.

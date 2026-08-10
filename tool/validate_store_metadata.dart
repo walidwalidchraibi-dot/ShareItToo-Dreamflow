@@ -72,6 +72,41 @@ void _validateGooglePlayIcon(Directory root, String relativePath) {
   }
 }
 
+void _validateGooglePlayFeatureGraphic(Directory root, String relativePath) {
+  final file = File('${root.path}/$relativePath');
+  if (!file.existsSync()) {
+    _fail('Missing Google Play feature graphic: $relativePath');
+  }
+  final bytes = file.readAsBytesSync();
+  const signature = <int>[137, 80, 78, 71, 13, 10, 26, 10];
+  if (bytes.length < 33 ||
+      !List<int>.generate(8, (index) => bytes[index])
+          .asMap()
+          .entries
+          .every((entry) => entry.value == signature[entry.key])) {
+    _fail('Google Play feature graphic must be a valid PNG.');
+  }
+  if (ascii.decode(bytes.sublist(12, 16)) != 'IHDR') {
+    _fail('Google Play feature graphic has no PNG IHDR.');
+  }
+  int uint32(int offset) =>
+      (bytes[offset] << 24) |
+      (bytes[offset + 1] << 16) |
+      (bytes[offset + 2] << 8) |
+      bytes[offset + 3];
+  final width = uint32(16);
+  final height = uint32(20);
+  final bitDepth = bytes[24];
+  final colorType = bytes[25];
+  if (width != 1024 || height != 500) {
+    _fail('Google Play feature graphic must be exactly 1024 x 500 pixels.');
+  }
+  if (bitDepth != 8 || colorType != 2) {
+    _fail(
+        'Google Play feature graphic must be a 24-bit RGB PNG without alpha.');
+  }
+}
+
 Map<String, dynamic> _map(Object? value, String field) {
   if (value is! Map) _fail('$field must be an object.');
   return value.cast<String, dynamic>();
@@ -219,10 +254,8 @@ void main(List<String> arguments) {
   final appleReviewNotes =
       _readText(root, _string(appleFiles, 'reviewNotesTemplate'));
   _validateGooglePlayIcon(root, _string(googleAssets, 'storeIcon'));
-  if (googleAssets['featureGraphic'] != null) {
-    _fail(
-        'Google Play feature graphic must remain null until it is validated.');
-  }
+  _validateGooglePlayFeatureGraphic(
+      root, _string(googleAssets, 'featureGraphic'));
   final phoneScreenshots = googleAssets['phoneScreenshots'];
   if (phoneScreenshots is! List || phoneScreenshots.isNotEmpty) {
     _fail('Google Play phone screenshots must remain empty until validated.');

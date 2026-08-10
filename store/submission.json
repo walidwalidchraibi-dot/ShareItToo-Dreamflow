@@ -74,7 +74,7 @@
   "assets": {
     "googlePlay": {
       "storeIcon": "store/assets/google-play/icon-512.png",
-      "featureGraphic": null,
+      "featureGraphic": "store/assets/google-play/feature-graphic-1024x500.png",
       "phoneScreenshots": []
     }
   },
