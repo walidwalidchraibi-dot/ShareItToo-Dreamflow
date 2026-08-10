@@ -313,7 +313,7 @@ void main() {
       profile,
       matches(
         RegExp(
-          r'if \(!mounted\) return;\s+await context\s+\.read<DeveloperPreviewController>\(\)',
+          r'if \(!mounted\) return;\s+await context\s*\.read<DeveloperPreviewController>\(\)',
         ),
       ),
     );

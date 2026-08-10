@@ -58,18 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       icon: Icons.settings_outlined,
       route: '/accountSettings',
       description: 'Login, Passwort, Adresse, Sicherheit',
-      keywords: [
-        'konto',
-        'passwort',
-        'login',
-        'sicherheit',
-        'email',
-        'telefon',
-        'adresse',
-        '2fa',
-        'zweifaktor',
-        'zahlungsmethoden'
-      ],
+      keywords: ['konto', 'passwort', 'login', 'sicherheit', 'email', 'telefon', 'adresse', '2fa', 'zweifaktor', 'zahlungsmethoden'],
     ),
     _ProfileSearchEntry(
       id: 'notifications',
@@ -95,14 +84,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       icon: Icons.article_outlined,
       route: '/legal',
       description: 'AGB, Datenschutz, Richtlinien',
-      keywords: [
-        'agb',
-        'datenschutz',
-        'recht',
-        'bedingungen',
-        'richtlinien',
-        'impressum'
-      ],
+      keywords: ['agb', 'datenschutz', 'recht', 'bedingungen', 'richtlinien', 'impressum'],
     ),
     _ProfileSearchEntry(
       id: 'language',
@@ -132,9 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // 1) Mindestlänge
     if (text.runes.length < 20) {
-      return const FeedbackValidation(
-          valid: false,
-          reason: 'Bitte beschreibe dein Feedback etwas genauer.');
+      return const FeedbackValidation(valid: false, reason: 'Bitte beschreibe dein Feedback etwas genauer.');
     }
 
     // Normalize to simplify word analysis.
@@ -153,9 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     if (realWords.length < 3) {
-      return const FeedbackValidation(
-          valid: false,
-          reason: 'Bitte formuliere dein Feedback mit mindestens 3 Wörtern.');
+      return const FeedbackValidation(valid: false, reason: 'Bitte formuliere dein Feedback mit mindestens 3 Wörtern.');
     }
 
     // 3) Zeichenvielfalt / Wiederholungsmuster.
@@ -169,30 +147,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final maxCount = freq.values.fold<int>(0, (m, v) => v > m ? v : m);
       final ratio = maxCount / nonSpace.runes.length;
       if (ratio > 0.60) {
-        return const FeedbackValidation(
-            valid: false,
-            reason: 'Bitte formuliere dein Feedback etwas konkreter.');
+        return const FeedbackValidation(valid: false, reason: 'Bitte formuliere dein Feedback etwas konkreter.');
       }
     }
 
     // 3b) Nur ein Wort wiederholt (z.B. "test test test").
     final uniqueRealWords = realWords.toSet();
     if (uniqueRealWords.length == 1 && realWords.length >= 3) {
-      return const FeedbackValidation(
-          valid: false,
-          reason: 'Bitte formuliere dein Feedback abwechslungsreicher.');
+      return const FeedbackValidation(valid: false, reason: 'Bitte formuliere dein Feedback abwechslungsreicher.');
     }
 
     // 4) Spam-/Unsinnsfilter (Heuristiken)
     if (_looksLikeRandomLetters(normalized)) {
-      return const FeedbackValidation(
-          valid: false,
-          reason: 'Bitte formuliere dein Feedback etwas konkreter.');
+      return const FeedbackValidation(valid: false, reason: 'Bitte formuliere dein Feedback etwas konkreter.');
     }
 
     if (_looksLikeGenericSpam(realWords)) {
-      return const FeedbackValidation(
-          valid: false, reason: 'Bitte beschreibe kurz, was genau du meinst.');
+      return const FeedbackValidation(valid: false, reason: 'Bitte beschreibe kurz, was genau du meinst.');
     }
 
     return const FeedbackValidation(valid: true, reason: null);
@@ -234,11 +205,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _looksLikeRandomLetters(String normalized) {
     // If it's mostly letters, but has very low vowel ratio and many distinct letters,
     // it's likely random text (e.g., "xqtrplm..." or "asdfghj...").
-    final lettersOnly =
-        normalized.replaceAll(RegExp(r"[^\p{L}]", unicode: true), '');
+    final lettersOnly = normalized.replaceAll(RegExp(r"[^\p{L}]", unicode: true), '');
     if (lettersOnly.length < 20) return false;
-    final vowels =
-        RegExp(r"[aeiouäöüy]", unicode: true).allMatches(lettersOnly).length;
+    final vowels = RegExp(r"[aeiouäöüy]", unicode: true).allMatches(lettersOnly).length;
     final vowelRatio = vowels / lettersOnly.length;
     if (vowelRatio >= 0.18) return false;
 
@@ -314,9 +283,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     int completedBookings = 0;
     if (!loggedOut) {
       try {
-        final renterCompleted = await DataService.getRentalRequestsForRenter(
-            user.id,
-            status: 'completed');
+        final renterCompleted = await DataService.getRentalRequestsForRenter(user.id, status: 'completed');
         completedBookings = renterCompleted.length;
       } catch (e) {
         debugPrint('[Profile] Failed to compute completed bookings: $e');
@@ -361,8 +328,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }).toList();
   }
 
-  void _openProfileSearchEntry(_ProfileSearchEntry entry,
-      {required bool isGuest}) {
+  void _openProfileSearchEntry(_ProfileSearchEntry entry, {required bool isGuest}) {
     _profileSearchFocus.unfocus();
     setState(() {
       _isProfileSearchOpen = false;
@@ -371,8 +337,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (entry.route != null) {
       if (isGuest && _isLoginRequiredRoute(entry.route!)) {
-        showGuestRestrictionSheet(context,
-            gateContext: _guestGateContextForRoute(entry.route!));
+        showGuestRestrictionSheet(context, gateContext: _guestGateContextForRoute(entry.route!));
         return;
       }
       _handleRoute(entry.route!);
@@ -395,13 +360,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         overrideContent: const GuestGateContent(
           icon: Icons.notifications_outlined,
           title: 'Benachrichtigungen ansehen',
-          description:
-              'Melde dich an oder registriere dich kostenlos, um deine persönlichen Benachrichtigungen zu sehen.',
-          benefits: [
-            'Buchungsstatus im Blick behalten',
-            'Neue Nachrichten nicht verpassen',
-            'Wichtige Konto-Hinweise erhalten'
-          ],
+          description: 'Melde dich an oder registriere dich kostenlos, um deine persönlichen Benachrichtigungen zu sehen.',
+          benefits: ['Buchungsstatus im Blick behalten', 'Neue Nachrichten nicht verpassen', 'Wichtige Konto-Hinweise erhalten'],
         ),
       );
       return;
@@ -439,15 +399,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Never invent account details while the real profile is loading.
     final userForDisplay = _user ?? _guestUser();
     final verified = userForDisplay.isVerified;
-    final bool _hasAnyNotifications =
-        _hasNewRequests; // extend when adding more sources
-    final hasProfileQuery =
-        _isProfileSearchOpen && _profileSearchCtrl.text.trim().isNotEmpty;
-    final searchResults = _isProfileSearchOpen
-        ? _profileSearchResults(l10n)
-        : const <_ProfileSearchEntry>[];
-    final visibleProfileResults =
-        hasProfileQuery ? searchResults : const <_ProfileSearchEntry>[];
+    final bool _hasAnyNotifications = _hasNewRequests; // extend when adding more sources
+    final hasProfileQuery = _isProfileSearchOpen && _profileSearchCtrl.text.trim().isNotEmpty;
+    final searchResults = _isProfileSearchOpen ? _profileSearchResults(l10n) : const <_ProfileSearchEntry>[];
+    final visibleProfileResults = hasProfileQuery ? searchResults : const <_ProfileSearchEntry>[];
     final showProfileSearchEmpty = hasProfileQuery && searchResults.isEmpty;
     // JSON-like spec that defines the Profile menu structure
     final Map<String, dynamic> menuSpec = {
@@ -528,8 +483,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         },
       ],
     };
-    final profileKey = ValueKey(
-        'profile-${userForDisplay.id}-${_myListingsCount}-${userForDisplay.avgRating.toStringAsFixed(2)}-${userForDisplay.reviewCount}');
+    final profileKey = ValueKey('profile-${userForDisplay.id}-${_myListingsCount}-${userForDisplay.avgRating.toStringAsFixed(2)}-${userForDisplay.reviewCount}');
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
@@ -550,8 +504,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.only(right: 4),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               IconButton(
-                tooltip:
-                    l10n.t(_isProfileSearchOpen ? 'Suche schließen' : 'Suchen'),
+                tooltip: l10n.t(_isProfileSearchOpen ? 'Suche schließen' : 'Suchen'),
                 onPressed: _toggleProfileSearch,
                 icon: Icon(_isProfileSearchOpen ? Icons.close : Icons.search),
               ),
@@ -562,15 +515,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: const Icon(Icons.notifications_outlined),
                 ),
                 if (_hasAnyNotifications)
-                  Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                              color: Color(0xFFFFB277),
-                              shape: BoxShape.circle))),
+                  Positioned(right: 8, top: 8, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle))),
               ]),
             ]),
           ),
@@ -599,18 +544,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onChanged: (_) => setState(() {}),
                     onSubmitted: (_) {
                       if (visibleProfileResults.isNotEmpty) {
-                        _openProfileSearchEntry(visibleProfileResults.first,
-                            isGuest: isGuest);
+                        _openProfileSearchEntry(visibleProfileResults.first, isGuest: isGuest);
                       }
                     },
                     decoration: InputDecoration(
-                      hintText: l10n.t(
-                          'Nach Kontoeinstellungen, Hilfe oder Rechtlichem suchen'),
+                      hintText: l10n.t('Nach Kontoeinstellungen, Hilfe oder Rechtlichem suchen'),
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: IconButton(
-                        tooltip: l10n.t(_profileSearchCtrl.text.isEmpty
-                            ? 'Suche schließen'
-                            : 'Sucheingabe löschen'),
+                        tooltip: l10n.t(_profileSearchCtrl.text.isEmpty ? 'Suche schließen' : 'Sucheingabe löschen'),
                         icon: const Icon(Icons.close),
                         onPressed: () {
                           if (_profileSearchCtrl.text.isNotEmpty) {
@@ -624,52 +565,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       filled: true,
                       fillColor: Colors.black.withValues(alpha: 0.25),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.10))),
-                      enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.10))),
-                      focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.6))),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6))),
                     ),
                   ),
                 ),
-                if (!showProfileSearchEmpty &&
-                    visibleProfileResults.isNotEmpty) ...[
+                if (!showProfileSearchEmpty && visibleProfileResults.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Column(children: [
                     for (final entry in visibleProfileResults)
                       ListTile(
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 4),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                         dense: true,
                         leading: Icon(entry.icon, color: Colors.white70),
-                        title: Text(entry.title(l10n),
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(color: Colors.white)),
+                        title: Text(entry.title(l10n), style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)),
                         subtitle: entry.description == null
                             ? null
-                            : Text(entry.description!,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(color: Colors.white54)),
-                        trailing: const Icon(Icons.chevron_right,
-                            color: Colors.white38),
-                        onTap: () =>
-                            _openProfileSearchEntry(entry, isGuest: isGuest),
+                            : Text(entry.description!, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white54)),
+                        trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+                        onTap: () => _openProfileSearchEntry(entry, isGuest: isGuest),
                       ),
                   ]),
                 ] else if (showProfileSearchEmpty) ...[
@@ -678,10 +594,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       l10n.t('Keine Treffer – versuche einen anderen Begriff.'),
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.white60),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60),
                     ),
                   ),
                 ],
@@ -692,8 +605,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             duration: const Duration(milliseconds: 220),
             switchInCurve: Curves.easeOut,
             switchOutCurve: Curves.easeIn,
-            transitionBuilder: (child, animation) =>
-                FadeTransition(opacity: animation, child: child),
+            transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
             layoutBuilder: (currentChild, previousChildren) => Stack(
               alignment: Alignment.topCenter,
               children: [
@@ -710,8 +622,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 listingsCount: _myListingsCount,
                 completedBookingsCount: _completedBookingsCount,
                 onTap: isGuest
-                    ? () => showGuestRestrictionSheet(context,
-                        gateContext: GuestGateContext.profile)
+                    ? () => showGuestRestrictionSheet(context, gateContext: GuestGateContext.profile)
                     : () => _handleRoute('/myProfilePublic'),
               ),
             ),
@@ -728,18 +639,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: action['enabled'] == false
-                        ? null
-                        : () {
-                            final route = action['route'] as String;
-                            if (isGuest && _isLoginRequiredRoute(route)) {
-                              showGuestRestrictionSheet(context,
-                                  gateContext:
-                                      _guestGateContextForRoute(route));
-                              return;
-                            }
-                            _handleRoute(route);
-                          },
+                    onPressed: action['enabled'] == false ? null : () {
+                      final route = action['route'] as String;
+                      if (isGuest && _isLoginRequiredRoute(route)) {
+                        showGuestRestrictionSheet(context, gateContext: _guestGateContextForRoute(route));
+                        return;
+                      }
+                      _handleRoute(route);
+                    },
                     icon: _iconFromSpec(action['icon'] as String),
                     label: Text(l10n.t(action['labelKey'] as String)),
                   ),
@@ -749,38 +656,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ]),
           const SizedBox(height: 24),
           Container(
-            decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.30),
-                borderRadius: BorderRadius.circular(16),
-                border:
-                    Border.all(color: Colors.white.withValues(alpha: 0.08))),
+            decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.30), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
             child: Column(children: [
-              for (int i = 0;
-                  i < (menuSpec['mainMenu'] as List).length;
-                  i++) ...[
-                _buildMenuFromSpec(
-                    menuSpec['mainMenu'][i] as Map<String, dynamic>, l10n,
-                    isGuest: isGuest),
+              for (int i = 0; i < (menuSpec['mainMenu'] as List).length; i++) ...[
+                _buildMenuFromSpec(menuSpec['mainMenu'][i] as Map<String, dynamic>, l10n, isGuest: isGuest),
                 if (i < (menuSpec['mainMenu'] as List).length - 1) _divider(),
               ],
             ]),
           ),
           const SizedBox(height: 16),
           Container(
-            decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.30),
-                borderRadius: BorderRadius.circular(16),
-                border:
-                    Border.all(color: Colors.white.withValues(alpha: 0.08))),
+            decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.30), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
             child: Column(children: [
-              for (int i = 0;
-                  i < (menuSpec['secondaryMenu'] as List).length;
-                  i++) ...[
-                _buildMenuFromSpec(
-                    menuSpec['secondaryMenu'][i] as Map<String, dynamic>, l10n,
-                    isGuest: isGuest),
-                if (i < (menuSpec['secondaryMenu'] as List).length - 1)
-                  _divider(),
+              for (int i = 0; i < (menuSpec['secondaryMenu'] as List).length; i++) ...[
+                _buildMenuFromSpec(menuSpec['secondaryMenu'][i] as Map<String, dynamic>, l10n, isGuest: isGuest),
+                if (i < (menuSpec['secondaryMenu'] as List).length - 1) _divider(),
               ],
             ]),
           ),
@@ -792,21 +682,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _divider() =>
-      const Divider(height: 1, thickness: 1, color: Colors.white24);
+  Widget _divider() => const Divider(height: 1, thickness: 1, color: Colors.white24);
 
   Widget _buildStatItem(String value, String label) {
     return Column(children: [
-      Text(value,
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(color: Colors.white)),
-      Text(label,
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: Colors.white70)),
+      Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
+      Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
     ]);
   }
 
@@ -824,36 +705,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final l10n = context.read<LocalizationController>();
     // Place the dot left (on the leading icon) for all items that request a dot
     final placeDotLeft = showDot;
-    final baseLeading = leadingOverride ??
-        Icon(icon, color: isDestructive ? Colors.red : Colors.white70);
+    final baseLeading = leadingOverride ?? Icon(icon, color: isDestructive ? Colors.red : Colors.white70);
     final leadingWithDotLeft = SizedBox(
       width: 28,
       height: 28,
-      child: Stack(clipBehavior: Clip.none, children: [
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
         // Center the original leading widget
-        Center(
-            child: SizedBox(
-                width: 22, height: 22, child: FittedBox(child: baseLeading))),
+        Center(child: SizedBox(width: 22, height: 22, child: FittedBox(child: baseLeading))),
         // Orange badge; after feedback: move ~1mm back towards center on both axes
         // ~1mm ≈ 4.2 logical px on typical densities
-        Positioned(
-            left: -4.2,
-            top: -2.2,
-            child: Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                    color: Color(0xFFFFB277), shape: BoxShape.circle))),
+        Positioned(left: -4.2, top: -2.2, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle))),
       ]),
     );
 
     final tile = ListTile(
       leading: placeDotLeft ? leadingWithDotLeft : baseLeading,
-      title: Text(title,
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: isDestructive ? Colors.red : Colors.white)),
+      title: Text(title, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: isDestructive ? Colors.red : Colors.white)),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -862,11 +731,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(width: 8),
           ],
           if (showDot && !placeDotLeft) ...[
-            Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                    color: Color(0xFFFFB277), shape: BoxShape.circle)),
+            Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle)),
             const SizedBox(width: 8),
           ],
           const Icon(Icons.chevron_right, color: Colors.white38),
@@ -880,64 +745,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
         switch (title) {
           case 'Meine Anzeigen':
           case 'My listings':
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const MyListingsScreen()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyListingsScreen()));
             break;
           case 'Meine Buchungen':
           case 'My bookings':
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const BookingsScreen()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BookingsScreen()));
             break;
           case 'Anfragen':
           case 'Requests':
           case 'Mietanfragen':
             Navigator.of(context)
-                .push(MaterialPageRoute(
-                    builder: (_) =>
-                        const OwnerRequestsScreen(initialTabIndex: 2)))
-                .then((_) {
-              if (mounted) {
-                _load();
-              }
-            });
+                .push(MaterialPageRoute(builder: (_) => const OwnerRequestsScreen(initialTabIndex: 2)))
+                .then((_) { if (mounted) { _load(); } });
             break;
           case 'Kontakte':
           case 'Contacts':
-            Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => PlaceholderScreen(
-                    title: l10n.t('Kontakte'),
-                    description:
-                        l10n.t('Verwalte deine Kontakte und Vermieter.'))));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => PlaceholderScreen(title: l10n.t('Kontakte'), description: l10n.t('Verwalte deine Kontakte und Vermieter.'))));
             break;
           case 'Kontoeinstellungen':
           case 'Account settings':
-            Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const AccountSettingsScreen()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountSettingsScreen()));
             break;
           case 'Hilfe-Center':
           case 'Help Center':
-            Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => PlaceholderScreen(
-                    title: l10n.t('Hilfe-Center'),
-                    description: 'FAQ und Support.')));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => PlaceholderScreen(title: l10n.t('Hilfe-Center'), description: 'FAQ und Support.')));
             break;
           case 'Rechtliches':
           case 'Legal':
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const LegalScreen()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalScreen()));
             break;
           case 'Sprache':
           case 'Language':
-            Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const LanguageScreen()));
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LanguageScreen()));
             break;
           case 'Abmelden':
           case 'Log out':
             _confirmLogout();
             break;
-          default:
-            AppPopup.toast(context,
-                icon: Icons.hourglass_bottom, title: l10n.t('Bald verfügbar'));
+            default:
+              AppPopup.toast(context, icon: Icons.hourglass_bottom, title: l10n.t('Bald verfügbar'));
         }
       },
     );
@@ -947,9 +793,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // Build a menu entry from the JSON-like spec
-  Widget _buildMenuFromSpec(
-      Map<String, dynamic> spec, LocalizationController l10n,
-      {required bool isGuest}) {
+  Widget _buildMenuFromSpec(Map<String, dynamic> spec, LocalizationController l10n, {required bool isGuest}) {
     final title = l10n.t(spec['labelKey'] as String);
     final String? id = spec['id'] as String?;
     if (isGuest && id == 'logout') {
@@ -959,13 +803,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final showDot = (spec['showDot'] as bool?) ?? false;
     final isDestructive = (spec['destructive'] as bool?) ?? false;
     final iconData = _iconDataFromSpec(iconName);
-    final leadingOverride = iconName == 'requests'
-        ? const BoxChatIcon(size: 22, color: Colors.white70)
-        : null;
+    final leadingOverride = iconName == 'requests' ? const BoxChatIcon(size: 22, color: Colors.white70) : null;
     final String? route = spec['route'] as String?;
 
-    final bool locked =
-        isGuest && route != null && _isLoginRequiredRoute(route);
+    final bool locked = isGuest && route != null && _isLoginRequiredRoute(route);
     return _buildMenuItem(
       iconData,
       title,
@@ -1016,12 +857,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Be defensive: some call sites may pass query-like strings.
     if (route.startsWith('/verify')) return GuestGateContext.verification;
     if (route.startsWith('/bookings')) return GuestGateContext.booking;
-    if (route.startsWith('/accountSettings'))
-      return GuestGateContext.accountSettings;
+    if (route.startsWith('/accountSettings')) return GuestGateContext.accountSettings;
     if (route.startsWith('/myProfilePublic')) return GuestGateContext.profile;
     if (route.startsWith('/myListings')) return GuestGateContext.listing;
-    if (route.startsWith('/ownerRequests'))
-      return GuestGateContext.rentalRequest;
+    if (route.startsWith('/ownerRequests')) return GuestGateContext.rentalRequest;
     return GuestGateContext.generic;
   }
 
@@ -1061,42 +900,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
         showIdentityVerificationUnavailable(context);
         break;
       case '/myProfilePublic':
-        Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const PublicProfileScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PublicProfileScreen()));
         break;
       case '/myListings':
-        Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => const MyListingsScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyListingsScreen()));
         break;
       case '/ownerRequests':
-        Navigator.of(context)
-            .push(MaterialPageRoute(
-                builder: (_) => const OwnerRequestsScreen(initialTabIndex: 2)))
-            .then((_) {
-          if (mounted) {
-            _load();
-          }
-        });
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OwnerRequestsScreen(initialTabIndex: 2))).then((_) { if (mounted) { _load(); } });
         break;
       case '/bookings':
-        Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => const BookingsScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BookingsScreen()));
         break;
       case '/accountSettings':
-        Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const AccountSettingsScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountSettingsScreen()));
         break;
       case '/help':
-        Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => const HelpCenterScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpCenterScreen()));
         break;
       case '/legal':
-        Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => const LegalScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LegalScreen()));
         break;
       case '/language':
-        Navigator.of(context)
-            .push(MaterialPageRoute(builder: (_) => const LanguageScreen()));
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LanguageScreen()));
         break;
       case '/logout':
         _confirmLogout();
@@ -1117,38 +942,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: Text(l10n.t('Abmelden?')),
           content: Text(l10n.t('Du kannst dich jederzeit wieder anmelden.')),
           actions: [
-            TextButton(
-                onPressed: () => Navigator.of(dialogContext).maybePop(),
-                child: Text(l10n.t('Abbrechen'))),
-            FilledButton(
-                onPressed: () async {
-                  Navigator.of(dialogContext).pop();
-                  await AuthService.clearSession();
-                  await DataService.clearCurrentUser();
-                  if (!mounted) return;
-                  await context
-                      .read<DeveloperPreviewController>()
-                      .setState(DeveloperUserState.loggedOut);
-                  if (!mounted) return;
-                  setState(() {
-                    _user = _guestUser();
-                    _myListingsCount = 0;
-                    _completedBookingsCount = 0;
-                    _hasNewRequests = false;
-                    _isLoggedOutUser = true;
-                    _hasActiveSession = false;
-                  });
-                  if (!mounted) return;
-                  context.read<MainNavController>().setIndex(4);
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const MainNavigation()),
-                    (route) => false,
-                  );
-                  final l10n = context.read<LocalizationController>();
-                  AppPopup.toast(context,
-                      icon: Icons.logout, title: l10n.t('Abgemeldet'));
-                },
-                child: Text(l10n.t('Abmelden'))),
+            TextButton(onPressed: () => Navigator.of(dialogContext).maybePop(), child: Text(l10n.t('Abbrechen'))),
+            FilledButton(onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              await AuthService.clearSession();
+              await DataService.clearCurrentUser();
+              if (!mounted) return;
+              await context.read<DeveloperPreviewController>().setState(DeveloperUserState.loggedOut);
+              if (!mounted) return;
+              setState(() {
+                _user = _guestUser();
+                _myListingsCount = 0;
+                _completedBookingsCount = 0;
+                _hasNewRequests = false;
+                _isLoggedOutUser = true;
+                _hasActiveSession = false;
+              });
+              if (!mounted) return;
+              context.read<MainNavController>().setIndex(4);
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const MainNavigation()),
+                (route) => false,
+              );
+              final l10n = context.read<LocalizationController>();
+              AppPopup.toast(context, icon: Icons.logout, title: l10n.t('Abgemeldet'));
+            }, child: Text(l10n.t('Abmelden'))),
           ],
         );
       },
@@ -1174,16 +992,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const Icon(Icons.forum_outlined, color: Colors.white70),
               const SizedBox(width: 8),
-              Text('Feedback zur App',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                      color: Colors.white, fontWeight: FontWeight.w700)),
+              Text('Feedback zur App', style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             'Sag uns, was dir gefällt – oder was wir besser machen können. Dein Feedback hilft uns, ShareItToo zu verbessern. Wir lesen jede Nachricht persönlich.',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: Colors.white70, height: 1.5),
+            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.5),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -1194,38 +1009,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onChanged: (_) => setState(() {}),
             style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
             decoration: InputDecoration(
-              hintText:
-                  'Was gefällt dir an ShareItToo – oder was können wir verbessern?',
-              hintStyle:
-                  theme.textTheme.bodyMedium?.copyWith(color: Colors.white38),
+              hintText: 'Was gefällt dir an ShareItToo – oder was können wir verbessern?',
+              hintStyle: theme.textTheme.bodyMedium?.copyWith(color: Colors.white38),
               filled: true,
               fillColor: Colors.black.withValues(alpha: 0.25),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      BorderSide(color: Colors.white.withValues(alpha: 0.10))),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      BorderSide(color: Colors.white.withValues(alpha: 0.10))),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.6))),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.6))),
             ),
           ),
-          if (!validation.valid &&
-              (_feedbackCtrl.text.trim().isNotEmpty) &&
-              (validation.reason != null)) ...[
+          if (!validation.valid && (_feedbackCtrl.text.trim().isNotEmpty) && (validation.reason != null)) ...[
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.only(left: 4),
               child: Text(
                 validation.reason!,
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: Colors.white60, height: 1.35),
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.white60, height: 1.35),
               ),
             ),
           ],
@@ -1236,10 +1036,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: FilledButton(
                   onPressed: canSend ? _submitFeedback : null,
                   child: _sendingFeedback
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Text('Absenden'),
                 ),
               ),
@@ -1281,9 +1078,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final text = _feedbackCtrl.text.trim();
     final validation = _validateFeedback(text);
     if (!validation.valid) return;
-    setState(() {
-      _sendingFeedback = true;
-    });
+    setState(() { _sendingFeedback = true; });
     try {
       await DataService.addFeedback(userId: _user!.id, text: text);
       if (!mounted) return;
@@ -1297,8 +1092,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context,
         icon: Icons.check_circle_outline,
         title: 'Danke für dein Feedback',
-        message:
-            'Wir lesen jedes Feedback persönlich und nutzen es, um ShareItToo zu verbessern.',
+        message: 'Wir lesen jedes Feedback persönlich und nutzen es, um ShareItToo zu verbessern.',
         showCloseIcon: false,
         leadingWidget: _sitCelebrationBadge(),
         accentGradient: LinearGradient(
@@ -1309,15 +1103,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Theme.of(context).colorScheme.primary,
           ],
         ),
-        borderColor:
-            Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+        borderColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
         useExploreBackground: true,
         actions: [
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () =>
-                  Navigator.of(context, rootNavigator: true).maybePop(),
+              onPressed: () => Navigator.of(context, rootNavigator: true).maybePop(),
               child: const Text('Schließen'),
             ),
           ),
@@ -1325,9 +1117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _sendingFeedback = false;
-      });
+      setState(() { _sendingFeedback = false; });
       AppPopup.toast(
         context,
         icon: Icons.error_outline,
@@ -1368,6 +1158,5 @@ class _ProfileSearchEntry {
     this.keywords = const [],
   });
 
-  String title(LocalizationController l10n) =>
-      labelKey == null ? titleFallback : l10n.t(labelKey!);
+  String title(LocalizationController l10n) => labelKey == null ? titleFallback : l10n.t(labelKey!);
 }
