@@ -67,7 +67,9 @@ Produktions-Löschseite final sind.
   Mindestkante 320 Pixel, Maximalkante 3.840 Pixel und längste Kante höchstens
   doppelt so lang wie die kürzeste.
 - Für jedes Bild wird ein präziser deutscher Alternativtext mit höchstens 140
-  Zeichen vorbereitet.
+  Zeichen vorbereitet. Der geprüfte Entwurf mit acht eindeutigen Szenen liegt
+  unter `store/google-play/de-DE/screenshot_alt_texts.json`; die Zuordnung zu
+  einer Bilddatei erfolgt erst nach der echten Aufnahme.
 - Tablet-Screenshots nur hochladen, wenn das Layout auf realen großen Displays
   bestanden ist; Telefonbilder nicht als Tabletansicht ausgeben.
 

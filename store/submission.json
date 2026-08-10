@@ -59,7 +59,8 @@
       "title": "store/google-play/de-DE/title.txt",
       "shortDescription": "store/google-play/de-DE/short_description.txt",
       "fullDescription": "store/google-play/de-DE/full_description.txt",
-      "internalReleaseNotes": "store/google-play/de-DE/internal_release_notes.txt"
+      "internalReleaseNotes": "store/google-play/de-DE/internal_release_notes.txt",
+      "screenshotAltTexts": "store/google-play/de-DE/screenshot_alt_texts.json"
     },
     "apple": {
       "name": "store/apple/de-DE/name.txt",

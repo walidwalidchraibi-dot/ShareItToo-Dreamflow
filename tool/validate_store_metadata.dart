@@ -18,6 +18,23 @@ String _readText(Directory root, String relativePath) {
   return value;
 }
 
+List<dynamic> _readJsonList(Directory root, String relativePath) {
+  final file = File('${root.path}/$relativePath');
+  if (!file.existsSync()) {
+    _fail('Missing store metadata file: $relativePath');
+  }
+  Object? decoded;
+  try {
+    decoded = jsonDecode(file.readAsStringSync());
+  } on FormatException {
+    _fail('Store metadata file is not valid JSON: $relativePath');
+  }
+  if (decoded is! List) {
+    _fail('Store metadata file must contain a JSON list: $relativePath');
+  }
+  return decoded;
+}
+
 void _validateGooglePlayIcon(Directory root, String relativePath) {
   final file = File('${root.path}/$relativePath');
   if (!file.existsSync()) {
@@ -192,6 +209,8 @@ void main(List<String> arguments) {
   final googleFull = _readText(root, _string(googleFiles, 'fullDescription'));
   final googleNotes =
       _readText(root, _string(googleFiles, 'internalReleaseNotes'));
+  final googleScreenshotAltTexts =
+      _readJsonList(root, _string(googleFiles, 'screenshotAltTexts'));
   final appleName = _readText(root, _string(appleFiles, 'name'));
   final appleSubtitle = _readText(root, _string(appleFiles, 'subtitle'));
   final applePromo = _readText(root, _string(appleFiles, 'promotionalText'));
@@ -218,6 +237,31 @@ void main(List<String> arguments) {
   _maxRunes('Apple description', appleDescription, 4000);
   _maxUtf8Bytes('Apple keywords', appleKeywords, 100);
   _maxUtf8Bytes('Apple review notes', appleReviewNotes, 4000);
+
+  const expectedScreenshotIds = <String>{
+    'feed',
+    'search',
+    'listing-detail',
+    'create-listing',
+    'booking-request',
+    'booking-chat',
+    'handover-return',
+    'trust-controls',
+  };
+  if (googleScreenshotAltTexts.length != expectedScreenshotIds.length) {
+    _fail('Google screenshot alt texts must contain exactly eight scenes.');
+  }
+  final observedScreenshotIds = <String>{};
+  for (final raw in googleScreenshotAltTexts) {
+    final entry = _map(raw, 'Google screenshot alt text entry');
+    final id = _string(entry, 'id');
+    final altText = _string(entry, 'altText');
+    if (!expectedScreenshotIds.contains(id) || !observedScreenshotIds.add(id)) {
+      _fail('Google screenshot alt text ids must be unique approved scenes.');
+    }
+    _maxRunes('Google screenshot alt text $id', altText, 140);
+    _rejectPublicCopy('Google screenshot alt text $id', altText);
+  }
 
   if (googleTitle != appleName || googleTitle != 'ShareItToo') {
     _fail('Google and Apple names must use the ShareItToo product name.');

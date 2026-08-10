@@ -50,6 +50,10 @@ Das geprüfte Google-Play-Store-Icon liegt unter
 512 × 512 Pixel, PNG ohne Alphakanal und höchstens 1.024 KB. Feature-Grafik und
 Telefon-Screenshots bleiben im Manifest bewusst leer, bis sie aus dem finalen
 Store-Build wahrheitsgetreu aufgenommen und einzeln geprüft wurden.
+Die acht deutschen Alternativtexte sind bereits als validierter Entwurf unter
+`store/google-play/de-DE/screenshot_alt_texts.json` vorbereitet. Sie werden
+erst einem Bild zugeordnet, wenn die jeweilige reale App-Szene bestanden und
+aufgenommen ist.
 
 Er verlangt Build `2026080903` oder höher, denselben vollständigen Commit,
 Android- und iOS-Artefakthashes, Play-Internal-/TestFlight-Installation,
