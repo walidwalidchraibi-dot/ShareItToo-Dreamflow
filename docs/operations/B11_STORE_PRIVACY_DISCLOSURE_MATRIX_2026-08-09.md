@@ -175,19 +175,26 @@ Matrix vor dem nächsten Build vollständig neu zu bewerten.
 
 ## 8. Verifikation und Nachweis
 
-Der Android-Zwischenscan ist für den signierten Commit
-`5c917d8e9c3597d52c61970d7f5a044e512d4008` bestanden. Das zusammengeführte
-Release-Manifest deaktiviert Backup, Geräteübertragung, Klartextverkehr und
-Legacy-Speichermodus; alte Speicherberechtigungen sind auf API 32
-beziehungsweise 28 begrenzt. Der Binärscan bestätigt die erwarteten
+Der exakte Android-Kandidat 1.0.0 (2026081029) ist an App-Commit
+`fc57adbfdf676e6abf9b7df63ec7e657e6a92a89` und die kanonisch geprüften AAB-,
+APK-, Signatur- und Datenschutzberichte gebunden. Das Release-Manifest
+deaktiviert Backup, Geräteübertragung, Klartextverkehr und Legacy-Speichermodus;
+alte Speicherberechtigungen sind auf die dokumentierten älteren API-Stufen
+begrenzt. Der finale Android-Binärscan bestätigt die erwarteten
 Firebase-Messaging-/Crashlytics-Komponenten, kein Analytics-/Werbe-SDK und
-keine bekannten Platzhalter- oder lokalen Laufzeitursprünge. Der genaue
-Nachweis liegt in
-`docs/operations/B11_ANDROID_BINARY_PRIVACY_AND_PUBLIC_LINKS_2026-08-09.md`.
+keine bekannten Platzhalter- oder lokalen Laufzeitursprünge.
 
-Dies ist noch nicht der abschließende Store-Nachweis: Der Kandidat ist nicht
-Firebase-konfiguriert, ein IPA liegt noch nicht vor und die reale
-Netzwerkbeobachtung ist offen.
+Firebase ist auf genau diesem Kandidaten konfiguriert. Kontrollierte
+Staging-Pushs bestanden im Vordergrund, Hintergrund und bei beendetem Prozess;
+Crashlytics wurde samt Mapping-/Symbolzuordnung und bereinigtem Diagnoseereignis
+der exakten Version und Buildnummer zugeordnet. Die maschinenlesbaren
+Kandidatennachweise liegen secret-frei unter `docs/evidence/b11/`.
+
+Dies ist noch nicht der abschließende plattformübergreifende Store-Nachweis:
+Ein IPA liegt nicht vor, Xcode und Apple-Developer-Zugang fehlen, die gezählte
+WLAN-/Hotspot-/TalkBack-/VoiceOver-Matrix ist offen und die Google-/Apple-
+Datenschutzformulare wurden nicht abgesendet. Öffentliche Support-, Datenschutz-
+und Löschseiten bleiben bis zur fachlichen Freigabe ebenfalls offene Gates.
 
 Der abschließende Datenschutz-Nachweis enthält mindestens:
 
