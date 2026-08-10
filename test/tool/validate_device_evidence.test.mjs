@@ -93,6 +93,7 @@ function passedFixture() {
   delete deviceManifest.candidate.android.directAppLinks;
   delete deviceManifest.candidate.android.authenticatedSession;
   delete deviceManifest.candidate.android.syntheticRoleBooking;
+  delete deviceManifest.candidate.android.authenticatedDeepLinks;
   Object.assign(deviceManifest.candidate.ios, {
     delivery: 'testflight-internal',
     ipaSha256: 'e'.repeat(64),
@@ -193,6 +194,7 @@ function progressFixture() {
   delete deviceManifest.candidate.android.directAppLinks;
   delete deviceManifest.candidate.android.authenticatedSession;
   delete deviceManifest.candidate.android.syntheticRoleBooking;
+  delete deviceManifest.candidate.android.authenticatedDeepLinks;
   const diagnosticRef = 'docs/evidence/b11/android-direct-smoke-progress-fixture.json';
   const capturedAt = '2026-08-09T18:00:00+02:00';
   deviceManifest.candidate.android.directDiagnostic = {
@@ -443,6 +445,72 @@ function syntheticRoleBookingFixture() {
       lockCodeUsed: false,
       accountIdentityRecorded: false,
       containsPersonalAccountData: false,
+    },
+  });
+  return fixture;
+}
+
+function authenticatedDeepLinksFixture() {
+  const fixture = progressFixture();
+  const { root, deviceManifest } = fixture;
+  const ref = 'docs/evidence/b11/android-authenticated-deep-links-progress-fixture.json';
+  const capturedAt = '2026-08-10T08:12:06.707Z';
+  deviceManifest.candidate.android.authenticatedDeepLinks = {
+    status: 'passed',
+    capturedAt,
+    installMethod: 'direct-apk-diagnostic',
+    manufacturer: 'Sanitized Android',
+    deviceModel: 'Physical test device',
+    osVersion: 'Android test version',
+    evidenceRef: ref,
+  };
+  writeEvidence(root, ref, {
+    schemaVersion: 1,
+    kind: 'android-authenticated-deep-link-diagnostic',
+    status: 'passed-bounded-authenticated-deep-link-diagnostic',
+    capturedAt,
+    candidate: evidenceCandidate(deviceManifest.candidate),
+    installed: {
+      packageIdentityVerified: true,
+      versionName: deviceManifest.candidate.versionName,
+      buildNumber: deviceManifest.candidate.buildNumber,
+      apkSha256: deviceManifest.candidate.android.apkSha256,
+    },
+    device: {
+      platform: 'android',
+      physical: true,
+      manufacturer: 'Sanitized Android',
+      model: 'Physical test device',
+      osVersion: 'Android test version',
+      apiLevel: 36,
+      securityPatch: '2026-04-05',
+      containsRawDeviceIdentifier: false,
+    },
+    tests: {
+      authenticatedHttpsListing: { status: 'passed', result: 'synthetic-listing-visible' },
+      authenticatedHttpsBooking: { status: 'passed', result: 'completed-booking-visible' },
+      authenticatedCustomSchemeChat: { status: 'passed', result: 'booking-chat-visible' },
+    },
+    boundaries: {
+      syntheticAccountsOnly: true,
+      directDiagnosticOnly: true,
+      storeInstallationGateSatisfied: false,
+      fullDeviceMatrixPassed: false,
+      wifiOnlyDiagnostic: true,
+      hotspotPassed: false,
+      authenticatedDeepLinksPassed: true,
+      realPushPassed: false,
+      manualTalkBackTraversalPassed: false,
+      iosTestFlightPassed: false,
+      paymentEndpointCalled: false,
+      stripeLivemode: false,
+      messageSent: false,
+      lockCodeUsed: false,
+      accountIdentityRecorded: false,
+      containsPersonalAccountData: false,
+      containsSecrets: false,
+      containsRawDeviceIdentifiers: false,
+      containsReviewCredentials: false,
     },
   });
   return fixture;
@@ -715,5 +783,39 @@ test('synthetic-role booking evidence cannot claim payment, hotspot, or the full
   assert.throws(
     () => validate(fixture),
     /must keep store, matrix, hotspot, link, push, TalkBack, iOS, payment, identity, and lock-code gates open/,
+  );
+});
+
+test('accepts exact authenticated deep-link evidence without closing the device matrix', () => {
+  const fixture = authenticatedDeepLinksFixture();
+  const summary = validate(fixture);
+  assert.equal(summary.state, 'testing');
+  assert.equal(summary.matrixPassed, 0);
+});
+
+test('authenticated deep-link evidence rejects a different candidate APK', () => {
+  const fixture = authenticatedDeepLinksFixture();
+  const ref = fixture.deviceManifest.candidate.android.authenticatedDeepLinks.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.installed.apkSha256 = 'f'.repeat(64);
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must prove the exact installed candidate APK and package identity/,
+  );
+});
+
+test('authenticated deep-link evidence cannot claim push, hotspot, payment, or a sent message', () => {
+  const fixture = authenticatedDeepLinksFixture();
+  const ref = fixture.deviceManifest.candidate.android.authenticatedDeepLinks.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.boundaries.realPushPassed = true;
+  evidence.boundaries.hotspotPassed = true;
+  evidence.boundaries.paymentEndpointCalled = true;
+  evidence.boundaries.messageSent = true;
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must prove only the three identity-free Staging links while keeping store, matrix, hotspot, push, TalkBack, iOS, payment, and message gates open/,
   );
 });

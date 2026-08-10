@@ -60,6 +60,15 @@ Zahlungsmodus `memory` und `stripeLivemode=false` bleiben erzwungen. Dieser
 WLAN-Direktlauf ist keine Store-Installation und kein Hotspot-, TalkBack-,
 Push-, iOS- oder vollständiger Matrixnachweis.
 
+`tool/diagnose_android_authenticated_links.mjs` bindet den privaten
+synthetischen Rollentresor ausschließlich zur Laufzeit ein und prüft auf dem
+exakten installierten Kandidaten drei angemeldete Ziele: das Staging-Inserat,
+die abgeschlossene Buchung und den zugehörigen Buchungs-Chat. Der ausgegebene
+Nachweis enthält weder Kontodaten noch Inserat-, Buchungs-, Thread- oder
+Gerätekennungen. Er sendet keine Nachricht und ruft keinen Zahlungsendpunkt
+auf. Store-Installation, Hotspot, vollständige Gerätematrix, echte
+Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
+
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_BEGIN -->
 ### Aktueller maschinengebundener B11-Kandidat
 
@@ -77,11 +86,12 @@ Push-, iOS- oder vollständiger Matrixnachweis.
 | Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081018-20260810T055418Z.json` |
 | Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081018-20260810T071148Z.json` |
 | Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081018-20260810T075042Z.json` |
+| Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081018-20260810T081206Z.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081018.json` |
 | Staging-Servercommit | `9a1371e02d8e7d63d3dee30ca169c6c7f37fa966` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
 
-Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs- und Rollenbuchungsdiagnosen sind keine Store-Installation. Die synthetische WLAN-Buchung schließt weder Hotspot und die vollständige Rollen-/Netzmatrix noch angemeldete Deep Links, TalkBack, Push, iOS/TestFlight, Produktion oder Echtgeld.
+Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs- und authentifizierten Deep-Link-Diagnosen sind keine Store-Installation. Der synthetische WLAN-Nachweis schließt weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, echte Push-Zustellung, iOS/TestFlight, Produktion, Echtgeld oder eine gesendete Chatnachricht.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
 
 Die folgenden Direkt-Smoke-Nachweise bleiben als chronologische Historie

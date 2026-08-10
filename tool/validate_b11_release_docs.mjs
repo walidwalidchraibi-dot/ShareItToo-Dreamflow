@@ -73,6 +73,7 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
   const appLinks = object(android.directAppLinks, 'candidate.android.directAppLinks');
   const session = object(android.authenticatedSession, 'candidate.android.authenticatedSession');
   const roleBooking = object(android.syntheticRoleBooking, 'candidate.android.syntheticRoleBooking');
+  const authenticatedLinks = object(android.authenticatedDeepLinks, 'candidate.android.authenticatedDeepLinks');
   const evidence = object(candidateEvidence, 'candidate evidence');
   const staging = object(evidence.staging, 'candidate evidence.staging');
 
@@ -100,11 +101,12 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
 | Direkte Android-App-Link-Diagnose | \`${nonEmptyString(appLinks.status, 'candidate.android.directAppLinks.status')}\` auf ${nonEmptyString(appLinks.deviceModel, 'candidate.android.directAppLinks.deviceModel')}, Android ${nonEmptyString(appLinks.osVersion, 'candidate.android.directAppLinks.osVersion')}; \`${nonEmptyString(appLinks.evidenceRef, 'candidate.android.directAppLinks.evidenceRef')}\` |
 | Angemeldete Android-Sitzungsdiagnose | \`${nonEmptyString(session.status, 'candidate.android.authenticatedSession.status')}\` auf ${nonEmptyString(session.deviceModel, 'candidate.android.authenticatedSession.deviceModel')}, Android ${nonEmptyString(session.osVersion, 'candidate.android.authenticatedSession.osVersion')}; \`${nonEmptyString(session.evidenceRef, 'candidate.android.authenticatedSession.evidenceRef')}\` |
 | Synthetische Android-Rollenbuchung | \`${nonEmptyString(roleBooking.status, 'candidate.android.syntheticRoleBooking.status')}\` auf ${nonEmptyString(roleBooking.deviceModel, 'candidate.android.syntheticRoleBooking.deviceModel')}, Android ${nonEmptyString(roleBooking.osVersion, 'candidate.android.syntheticRoleBooking.osVersion')}; \`${nonEmptyString(roleBooking.evidenceRef, 'candidate.android.syntheticRoleBooking.evidenceRef')}\` |
+| Authentifizierte Android-Deep-Links | \`${nonEmptyString(authenticatedLinks.status, 'candidate.android.authenticatedDeepLinks.status')}\` auf ${nonEmptyString(authenticatedLinks.deviceModel, 'candidate.android.authenticatedDeepLinks.deviceModel')}, Android ${nonEmptyString(authenticatedLinks.osVersion, 'candidate.android.authenticatedDeepLinks.osVersion')}; \`${nonEmptyString(authenticatedLinks.evidenceRef, 'candidate.android.authenticatedDeepLinks.evidenceRef')}\` |
 | Kandidatenbeleg | \`${nonEmptyString(manifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef, 'releaseChecks.candidateIdentityAndSignatures.evidenceRef')}\` |
 | Staging-Servercommit | \`${fullCommit(staging.serverCommit, 'candidate evidence.staging.serverCommit')}\` |
 | Ehrlicher Freigabestand | \`${nonEmptyString(manifest.state, 'state')}/${nonEmptyString(manifest.goNoGo, 'goNoGo')}\`; Gerätezellen ${passedCells}/${totalCells}; Releaseprüfungen ${passedReleaseChecks}/${releaseChecks.length} |
 
-Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs- und Rollenbuchungsdiagnosen sind keine Store-Installation. Die synthetische WLAN-Buchung schließt weder Hotspot und die vollständige Rollen-/Netzmatrix noch angemeldete Deep Links, TalkBack, Push, iOS/TestFlight, Produktion oder Echtgeld.
+Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs- und authentifizierten Deep-Link-Diagnosen sind keine Store-Installation. Der synthetische WLAN-Nachweis schließt weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, echte Push-Zustellung, iOS/TestFlight, Produktion, Echtgeld oder eine gesendete Chatnachricht.
 ${snapshotEnd}`;
 }
 

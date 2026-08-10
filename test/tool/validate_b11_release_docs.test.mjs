@@ -78,6 +78,16 @@ test('rejects a stale or missing synthetic-role booking diagnostic in a snapshot
   assert.throws(() => validate({ documents: changed }), /snapshot is stale or incomplete/);
 });
 
+test('rejects a stale or missing authenticated deep-link diagnostic in a snapshot', () => {
+  const changed = structuredClone(documents);
+  const path = documentPaths[1];
+  changed[path] = changed[path].replace(
+    '| Authentifizierte Android-Deep-Links | `passed`',
+    '| Authentifizierte Android-Deep-Links | `open`',
+  );
+  assert.throws(() => validate({ documents: changed }), /snapshot is stale or incomplete/);
+});
+
 test('rejects duplicate snapshot markers', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[2];
