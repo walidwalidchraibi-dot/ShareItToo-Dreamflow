@@ -65,6 +65,18 @@ function same(actual, expected, label) {
   if (actual !== expected) fail(`${label} does not match the current candidate.`);
 }
 
+function renderAndroidDiagnostic(value, label) {
+  if (value === undefined || value === null) {
+    return '`pending`; noch kein kandidatenspezifischer Nachweis';
+  }
+  const diagnostic = object(value, label);
+  const status = nonEmptyString(diagnostic.status, `${label}.status`);
+  if (status !== 'passed') {
+    return `\`${status}\`; noch kein bestandener kandidatenspezifischer Nachweis`;
+  }
+  return `\`passed\` auf ${nonEmptyString(diagnostic.deviceModel, `${label}.deviceModel`)}, Android ${nonEmptyString(diagnostic.osVersion, `${label}.osVersion`)}; \`${nonEmptyString(diagnostic.evidenceRef, `${label}.evidenceRef`)}\``;
+}
+
 function validateRolloverBaseline({ manifest, pubspec, documents, root }) {
   const documentedBuilds = new Set();
   for (const relativePath of snapshotDocuments) {
@@ -106,11 +118,6 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
   const manifest = object(deviceManifest, 'store/device-validation.json');
   const candidate = object(manifest.candidate, 'candidate');
   const android = object(candidate.android, 'candidate.android');
-  const diagnostic = object(android.directDiagnostic, 'candidate.android.directDiagnostic');
-  const appLinks = object(android.directAppLinks, 'candidate.android.directAppLinks');
-  const session = object(android.authenticatedSession, 'candidate.android.authenticatedSession');
-  const roleBooking = object(android.syntheticRoleBooking, 'candidate.android.syntheticRoleBooking');
-  const authenticatedLinks = object(android.authenticatedDeepLinks, 'candidate.android.authenticatedDeepLinks');
   const evidence = object(candidateEvidence, 'candidate evidence');
   const staging = object(evidence.staging, 'candidate evidence.staging');
   const exactDiagnostics = object(evidence.exactCandidateDiagnostics, 'candidate evidence.exactCandidateDiagnostics');
@@ -120,15 +127,19 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
     manifest.releaseChecks?.crashReleaseMapping,
     'releaseChecks.crashReleaseMapping',
   );
-  if (exactDiagnostics.foregroundFcm !== 'passed'
-      || exactDiagnostics.backgroundFcm !== 'passed'
-      || exactDiagnostics.terminatedProcessFcm !== 'passed'
-      || controlledFcm?.status !== 'passed') {
-    fail('candidate evidence must prove foreground, background, and terminated-process FCM.');
-  }
-  if (logoutLifecycle?.status !== 'passed') {
-    fail('candidate evidence must prove the bounded logout and post-logout push lifecycle.');
-  }
+  const fcmPassed = exactDiagnostics.foregroundFcm === 'passed'
+    && exactDiagnostics.backgroundFcm === 'passed'
+    && exactDiagnostics.terminatedProcessFcm === 'passed'
+    && controlledFcm?.status === 'passed';
+  const fcmSummary = fcmPassed
+    ? `\`passed\` in Vordergrund, Hintergrund und bei beendetem Prozess; \`${nonEmptyString(controlledFcm.evidenceRef, 'candidate evidence controlled FCM evidenceRef')}\``
+    : `\`${nonEmptyString(exactDiagnostics.foregroundFcm, 'exactCandidateDiagnostics.foregroundFcm')}/${nonEmptyString(exactDiagnostics.backgroundFcm, 'exactCandidateDiagnostics.backgroundFcm')}/${nonEmptyString(exactDiagnostics.terminatedProcessFcm, 'exactCandidateDiagnostics.terminatedProcessFcm')}\`; noch kein vollständiger kandidatenspezifischer Nachweis`;
+  const logoutSummary = logoutLifecycle?.status === 'passed'
+    ? `\`passed\`; \`${nonEmptyString(logoutLifecycle.evidenceRef, 'candidate evidence logout lifecycle evidenceRef')}\``
+    : `\`${nonEmptyString(exactDiagnostics.logoutColdStartGuestPersistence, 'exactCandidateDiagnostics.logoutColdStartGuestPersistence')}/${nonEmptyString(exactDiagnostics.postLogoutPushSuppression, 'exactCandidateDiagnostics.postLogoutPushSuppression')}\`; noch kein vollständiger kandidatenspezifischer Nachweis`;
+  const crashEvidence = crashReleaseMapping.evidenceRef
+    ? `; \`${nonEmptyString(crashReleaseMapping.evidenceRef, 'releaseChecks.crashReleaseMapping.evidenceRef')}\``
+    : '; noch kein kandidatenspezifischer Nachweis';
 
   const passedCells = Array.isArray(manifest.deviceMatrix)
     ? manifest.deviceMatrix.filter((cell) => cell?.status === 'passed').length
@@ -150,14 +161,14 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
 | Android-AAB SHA-256 | \`${sha256(android.aabSha256, 'candidate.android.aabSha256')}\` |
 | Android-APK SHA-256 | \`${sha256(android.apkSha256, 'candidate.android.apkSha256')}\` |
 | Uploadzertifikat SHA-256 | \`${sha256(android.signingCertificateSha256, 'candidate.android.signingCertificateSha256')}\` |
-| Direkte Android-Diagnose | \`${nonEmptyString(diagnostic.status, 'candidate.android.directDiagnostic.status')}\` auf ${nonEmptyString(diagnostic.deviceModel, 'candidate.android.directDiagnostic.deviceModel')}, Android ${nonEmptyString(diagnostic.osVersion, 'candidate.android.directDiagnostic.osVersion')}; \`${nonEmptyString(diagnostic.evidenceRef, 'candidate.android.directDiagnostic.evidenceRef')}\` |
-| Direkte Android-App-Link-Diagnose | \`${nonEmptyString(appLinks.status, 'candidate.android.directAppLinks.status')}\` auf ${nonEmptyString(appLinks.deviceModel, 'candidate.android.directAppLinks.deviceModel')}, Android ${nonEmptyString(appLinks.osVersion, 'candidate.android.directAppLinks.osVersion')}; \`${nonEmptyString(appLinks.evidenceRef, 'candidate.android.directAppLinks.evidenceRef')}\` |
-| Angemeldete Android-Sitzungsdiagnose | \`${nonEmptyString(session.status, 'candidate.android.authenticatedSession.status')}\` auf ${nonEmptyString(session.deviceModel, 'candidate.android.authenticatedSession.deviceModel')}, Android ${nonEmptyString(session.osVersion, 'candidate.android.authenticatedSession.osVersion')}; \`${nonEmptyString(session.evidenceRef, 'candidate.android.authenticatedSession.evidenceRef')}\` |
-| Synthetische Android-Rollenbuchung | \`${nonEmptyString(roleBooking.status, 'candidate.android.syntheticRoleBooking.status')}\` auf ${nonEmptyString(roleBooking.deviceModel, 'candidate.android.syntheticRoleBooking.deviceModel')}, Android ${nonEmptyString(roleBooking.osVersion, 'candidate.android.syntheticRoleBooking.osVersion')}; \`${nonEmptyString(roleBooking.evidenceRef, 'candidate.android.syntheticRoleBooking.evidenceRef')}\` |
-| Authentifizierte Android-Deep-Links | \`${nonEmptyString(authenticatedLinks.status, 'candidate.android.authenticatedDeepLinks.status')}\` auf ${nonEmptyString(authenticatedLinks.deviceModel, 'candidate.android.authenticatedDeepLinks.deviceModel')}, Android ${nonEmptyString(authenticatedLinks.osVersion, 'candidate.android.authenticatedDeepLinks.osVersion')}; \`${nonEmptyString(authenticatedLinks.evidenceRef, 'candidate.android.authenticatedDeepLinks.evidenceRef')}\` |
-| Kontrollierte Android-FCM-Diagnose | \`passed\` in Vordergrund, Hintergrund und bei beendetem Prozess; \`${nonEmptyString(controlledFcm.evidenceRef, 'candidate evidence controlled FCM evidenceRef')}\` |
-| Android-Abmeldung und Push-Unterdrückung | \`passed\`; \`${nonEmptyString(logoutLifecycle.evidenceRef, 'candidate evidence logout lifecycle evidenceRef')}\` |
-| Crashlytics-Releasezuordnung | \`${nonEmptyString(crashReleaseMapping.status, 'releaseChecks.crashReleaseMapping.status')}\`; \`${nonEmptyString(crashReleaseMapping.evidenceRef, 'releaseChecks.crashReleaseMapping.evidenceRef')}\` |
+| Direkte Android-Diagnose | ${renderAndroidDiagnostic(android.directDiagnostic, 'candidate.android.directDiagnostic')} |
+| Direkte Android-App-Link-Diagnose | ${renderAndroidDiagnostic(android.directAppLinks, 'candidate.android.directAppLinks')} |
+| Angemeldete Android-Sitzungsdiagnose | ${renderAndroidDiagnostic(android.authenticatedSession, 'candidate.android.authenticatedSession')} |
+| Synthetische Android-Rollenbuchung | ${renderAndroidDiagnostic(android.syntheticRoleBooking, 'candidate.android.syntheticRoleBooking')} |
+| Authentifizierte Android-Deep-Links | ${renderAndroidDiagnostic(android.authenticatedDeepLinks, 'candidate.android.authenticatedDeepLinks')} |
+| Kontrollierte Android-FCM-Diagnose | ${fcmSummary} |
+| Android-Abmeldung und Push-Unterdrückung | ${logoutSummary} |
+| Crashlytics-Releasezuordnung | \`${nonEmptyString(crashReleaseMapping.status, 'releaseChecks.crashReleaseMapping.status')}\`${crashEvidence} |
 | Kandidatenbeleg | \`${nonEmptyString(manifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef, 'releaseChecks.candidateIdentityAndSignatures.evidenceRef')}\` |
 | Staging-Servercommit | \`${fullCommit(staging.serverCommit, 'candidate evidence.staging.serverCommit')}\` |
 | Ehrlicher Freigabestand | \`${nonEmptyString(manifest.state, 'state')}/${nonEmptyString(manifest.goNoGo, 'goNoGo')}\`; Gerätezellen ${passedCells}/${totalCells}; Releaseprüfungen ${passedReleaseChecks}/${releaseChecks.length} |

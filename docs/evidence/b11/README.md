@@ -75,24 +75,24 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Merkmal | Verbindlicher Wert |
 |---|---|
 | App-Identität | `com.shareittoo.app` (Android und iOS) |
-| Version und Build | `1.0.0 (2026081029)` |
-| App-Commit | `fc57adbfdf676e6abf9b7df63ec7e657e6a92a89` |
+| Version und Build | `1.0.0 (2026081101)` |
+| App-Commit | `3f28e43a18b3733e617b695f9dbc794370f6e05b` |
 | Kanal und API | `internal`, `https://staging.shareittoo.com/api/v1` |
 | Firebase und Zahlung | vollständig: `true`; `memory`; `stripeLivemode=false` |
-| Android-AAB SHA-256 | `58baa13fab35f233a80e4d7240db2db5df999511b3b1d001ec16b893ba6ee382` |
-| Android-APK SHA-256 | `99f69b05943bb8d4a18ec63e6a6c9425e81d1cf72b1815265067d5774cbbfc4e` |
+| Android-AAB SHA-256 | `ade2d6b0d87b749c7455f296c83d3182b52d3ea3c54f8f3399a04d2938933904` |
+| Android-APK SHA-256 | `eb87f839e1c8d169f3e9e774e3d0261f3d1196481d0d4ecdc97f65700247601d` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
-| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081029-20260810T164321Z.json` |
-| Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081029-20260810T180136Z.json` |
-| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081029-20260810T173454Z.json` |
-| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081029-20260810T165735Z.json` |
-| Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081029-20260810T173841Z.json` |
-| Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081029-20260810T172500Z.json` |
-| Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081029-20260810T175031Z.json` |
-| Crashlytics-Releasezuordnung | `passed`; `docs/evidence/b11/android-crash-release-check-2026081029.json` |
-| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081029.json` |
+| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081101-20260810T223204Z.json` |
+| Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Kontrollierte Android-FCM-Diagnose | `pending/pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
+| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081101.json` |
 | Staging-Servercommit | `ec570acfddc218cec6d2bfba43d4feb33bda4cfc` |
-| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
+| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
 
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM- und Abmeldediagnosen sind keine Store-Installation. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->

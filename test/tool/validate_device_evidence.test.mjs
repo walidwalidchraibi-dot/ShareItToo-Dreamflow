@@ -633,7 +633,7 @@ test('accepts the honest in-progress B11 evidence state', () => {
     goNoGo: 'hold',
     matrixPassed: 0,
     matrixTotal: 4,
-    releaseChecksPassed: 4,
+    releaseChecksPassed: 3,
     releaseChecksTotal: 7,
     minimumBuild: '2026080903',
   });
@@ -672,7 +672,7 @@ test('rejects a controlled-event claim without the sanitized staging boundary', 
 test('strict mode rejects the in-progress evidence state', () => {
   assert.throws(
     () => validate({ requirePassed: true }),
-    /remains testing: matrix=0\/4, releaseChecks=4\/7/,
+    /remains testing: matrix=0\/4, releaseChecks=3\/7/,
   );
 });
 
