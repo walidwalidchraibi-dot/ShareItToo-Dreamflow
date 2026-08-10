@@ -30,11 +30,12 @@ sind ausdrücklich nicht Bestandteil dieser Freigabe.
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
 | Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081018-20260810T043849Z.json` |
 | Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081018-20260810T055418Z.json` |
+| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081018-20260810T071148Z.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081018.json` |
 | Staging-Servercommit | `9a1371e02d8e7d63d3dee30ca169c6c7f37fa966` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
 
-Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK- und App-Link-Diagnosen sind keine Store-Installation und schließen weder die Rollen-/Netzmatrix noch angemeldete Deep Links, TalkBack, Push, iOS/TestFlight, Produktion oder Echtgeld.
+Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link- und angemeldeten Sitzungsdiagnosen sind keine Store-Installation und schließen weder die synthetische Rollen-/Netzmatrix und Buchung noch angemeldete Deep Links, TalkBack, Push, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
 
 ## Chronologischer technischer Nachweis

@@ -58,6 +58,16 @@ test('rejects a stale or missing app-link diagnostic in a snapshot', () => {
   assert.throws(() => validate({ documents: changed }), /snapshot is stale or incomplete/);
 });
 
+test('rejects a stale or missing authenticated-session diagnostic in a snapshot', () => {
+  const changed = structuredClone(documents);
+  const path = documentPaths[2];
+  changed[path] = changed[path].replace(
+    '| Angemeldete Android-Sitzungsdiagnose | `passed`',
+    '| Angemeldete Android-Sitzungsdiagnose | `open`',
+  );
+  assert.throws(() => validate({ documents: changed }), /snapshot is stale or incomplete/);
+});
+
 test('rejects duplicate snapshot markers', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[2];

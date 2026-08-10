@@ -42,6 +42,14 @@ Der Nachweis schließt weder Store-Installation noch angemeldete Deep Links,
 Rollen-/Netzmatrix, Push oder eine Buchung. Das Werkzeug verwendet keinen
 Sperrcode und bricht bei einem gesperrten Gerät ab.
 
+`tool/diagnose_android_authenticated_session.mjs` prüft auf dem exakt
+gebundenen Android-Kandidaten, ob ein bereits vom Nutzer selbst angemeldetes
+Staging-Konto die geschützten Profilaktionen erreicht und ob diese Sitzung
+einen vollständigen App-Neustart übersteht. Der bereinigte Nachweis enthält
+weder Name noch E-Mail oder Zugangsdaten. Er schließt ausdrücklich weder die
+synthetische Vermieter-/Mieter-Matrix und Buchung noch Store-Installation,
+angemeldete Deep Links, Push oder die manuelle TalkBack-Prüfung.
+
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_BEGIN -->
 ### Aktueller maschinengebundener B11-Kandidat
 
@@ -57,11 +65,12 @@ Sperrcode und bricht bei einem gesperrten Gerät ab.
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
 | Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081018-20260810T043849Z.json` |
 | Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081018-20260810T055418Z.json` |
+| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081018-20260810T071148Z.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081018.json` |
 | Staging-Servercommit | `9a1371e02d8e7d63d3dee30ca169c6c7f37fa966` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
 
-Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK- und App-Link-Diagnosen sind keine Store-Installation und schließen weder die Rollen-/Netzmatrix noch angemeldete Deep Links, TalkBack, Push, iOS/TestFlight, Produktion oder Echtgeld.
+Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link- und angemeldeten Sitzungsdiagnosen sind keine Store-Installation und schließen weder die synthetische Rollen-/Netzmatrix und Buchung noch angemeldete Deep Links, TalkBack, Push, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
 
 Die folgenden Direkt-Smoke-Nachweise bleiben als chronologische Historie

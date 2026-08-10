@@ -35,11 +35,12 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
 | Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081018-20260810T043849Z.json` |
 | Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081018-20260810T055418Z.json` |
+| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081018-20260810T071148Z.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081018.json` |
 | Staging-Servercommit | `9a1371e02d8e7d63d3dee30ca169c6c7f37fa966` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
 
-Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK- und App-Link-Diagnosen sind keine Store-Installation und schließen weder die Rollen-/Netzmatrix noch angemeldete Deep Links, TalkBack, Push, iOS/TestFlight, Produktion oder Echtgeld.
+Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link- und angemeldeten Sitzungsdiagnosen sind keine Store-Installation und schließen weder die synthetische Rollen-/Netzmatrix und Buchung noch angemeldete Deep Links, TalkBack, Push, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
 
 Der Kandidat ist gebaut, kanonisch signiert, privat archiviert und auf einem
@@ -76,6 +77,31 @@ Vor Beginn müssen alle zutreffenden Punkte nachweisbar erfüllt sein:
   meldet Datenbank und Mail gesund sowie keine tote Queue.
 - Vor dem Lauf besteht eine geprüfte Staging-Sicherung von Datenbank und
   Uploads.
+
+### Synthetische Rollen-Konten ohne Secret-Leak
+
+Für die wiederholbare Besitzer-/Mietermatrix erzeugt
+`tool/provision_staging_test_accounts.mjs` genau zwei neue Alias-Konten über
+den öffentlichen Staging-Registrierungsweg. Die Basis-Mailadresse wird nur aus
+einer nicht leeren, eigentümerlesbaren Datei außerhalb des Repositories
+gelesen; sie erscheint dadurch weder in der Prozessliste noch in Git. Der
+Helfer schreibt E-Mail-Adressen und zufällige Passwörter ausschließlich in
+einen lokalen Tresor unter
+`~/Library/Application Support/ShareItToo/qa/staging-accounts/` mit privaten
+Verzeichnis- und Dateirechten. Seine Konsolenausgabe enthält nur Laufkennung,
+Rollen und Status, aber keine Adresse und kein Passwort.
+
+```text
+node tool/provision_staging_test_accounts.mjs --mailbox-file <private-datei>
+```
+
+Eine angenommene Registrierung ist noch kein bestätigtes Konto und schließt
+kein Geräte-Gate. Der Verifizierungsweg muss separat auf Staging bestätigt
+oder als ausdrücklich dokumentierte, isolierte Staging-Fixture vorbereitet
+werden. Der Tresor darf nie in Git, Drive, Telegram, Maximus, Screenshots oder
+Store-Review-Unterlagen gelangen und wird nach bereinigter Kontolöschung
+entfernt. Der Helfer besitzt kein Produktionsziel und verändert weder
+Produktionskonten noch Stripe-Live.
 
 ## Geräte- und Rollentabelle
 

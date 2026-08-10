@@ -42,6 +42,10 @@ node --test test/tool/prepare_android_device_test.test.mjs
 
 node --check tool/diagnose_android_app_links.mjs
 node --test test/tool/diagnose_android_app_links.test.mjs
+node --check tool/diagnose_android_authenticated_session.mjs
+node --test test/tool/diagnose_android_authenticated_session.test.mjs
+node --check tool/provision_staging_test_accounts.mjs
+node --test test/tool/provision_staging_test_accounts.test.mjs
 
 node --check tool/validate_firebase_release_config.mjs
 node --test test/tool/validate_firebase_release_config.test.mjs

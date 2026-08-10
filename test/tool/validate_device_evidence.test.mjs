@@ -91,6 +91,7 @@ function passedFixture() {
   });
   delete deviceManifest.candidate.android.directDiagnostic;
   delete deviceManifest.candidate.android.directAppLinks;
+  delete deviceManifest.candidate.android.authenticatedSession;
   Object.assign(deviceManifest.candidate.ios, {
     delivery: 'testflight-internal',
     ipaSha256: 'e'.repeat(64),
@@ -189,6 +190,7 @@ function progressFixture() {
   const root = mkdtempSync(resolve(tmpdir(), 'sit-device-progress-'));
   const deviceManifest = clone(baseDeviceManifest);
   delete deviceManifest.candidate.android.directAppLinks;
+  delete deviceManifest.candidate.android.authenticatedSession;
   const diagnosticRef = 'docs/evidence/b11/android-direct-smoke-progress-fixture.json';
   const capturedAt = '2026-08-09T18:00:00+02:00';
   deviceManifest.candidate.android.directDiagnostic = {
@@ -303,6 +305,68 @@ function appLinkFixture() {
       authenticatedDeepLinksPassed: false,
       realPushPassed: false,
       lockCodeUsed: false,
+    },
+  });
+  return fixture;
+}
+
+function authenticatedSessionFixture() {
+  const fixture = progressFixture();
+  const { root, deviceManifest } = fixture;
+  const ref = 'docs/evidence/b11/android-authenticated-session-progress-fixture.json';
+  const capturedAt = '2026-08-10T07:11:48.605Z';
+  deviceManifest.candidate.android.authenticatedSession = {
+    status: 'passed',
+    capturedAt,
+    installMethod: 'direct-apk-diagnostic',
+    manufacturer: 'Sanitized Android',
+    deviceModel: 'Physical test device',
+    osVersion: 'Android test version',
+    evidenceRef: ref,
+  };
+  writeEvidence(root, ref, {
+    schemaVersion: 1,
+    kind: 'android-authenticated-session-diagnostic',
+    status: 'passed-bounded-authenticated-session-diagnostic',
+    capturedAt,
+    candidate: evidenceCandidate(deviceManifest.candidate),
+    installed: {
+      packageIdentityVerified: true,
+      versionName: deviceManifest.candidate.versionName,
+      buildNumber: deviceManifest.candidate.buildNumber,
+      apkSha256: deviceManifest.candidate.android.apkSha256,
+    },
+    device: {
+      platform: 'android',
+      physical: true,
+      manufacturer: 'Sanitized Android',
+      model: 'Physical test device',
+      osVersion: 'Android test version',
+      apiLevel: 36,
+      securityPatch: '2026-04-05',
+      containsRawDeviceIdentifier: false,
+    },
+    tests: {
+      authenticatedProfileAccess: { status: 'passed', result: 'authenticated-actions-present' },
+      coldStartSessionRestore: {
+        status: 'passed',
+        result: 'authenticated-profile-restored-after-force-stop',
+      },
+    },
+    boundaries: {
+      directDiagnosticOnly: true,
+      storeInstallationGateSatisfied: false,
+      syntheticRoleMatrixPassed: false,
+      bookingFlowPassed: false,
+      authenticatedDeepLinksPassed: false,
+      realPushPassed: false,
+      manualTalkBackTraversalPassed: false,
+      lockCodeUsed: false,
+      accountIdentityRecorded: false,
+      containsPersonalAccountData: false,
+      containsSecrets: false,
+      containsRawDeviceIdentifiers: false,
+      containsReviewCredentials: false,
     },
   });
   return fixture;
@@ -510,5 +574,37 @@ test('direct app-link evidence rejects a different installed candidate APK', () 
   assert.throws(
     () => validate(fixture),
     /must prove the exact installed candidate APK and package identity/,
+  );
+});
+
+test('accepts exact, bounded authenticated-session evidence without closing device gates', () => {
+  const fixture = authenticatedSessionFixture();
+  const summary = validate(fixture);
+  assert.equal(summary.state, 'testing');
+  assert.equal(summary.matrixPassed, 0);
+});
+
+test('authenticated-session evidence rejects a different installed candidate APK', () => {
+  const fixture = authenticatedSessionFixture();
+  const ref = fixture.deviceManifest.candidate.android.authenticatedSession.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.installed.apkSha256 = 'f'.repeat(64);
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must prove the exact installed candidate APK and package identity/,
+  );
+});
+
+test('authenticated-session evidence cannot record identity or close the synthetic role matrix', () => {
+  const fixture = authenticatedSessionFixture();
+  const ref = fixture.deviceManifest.candidate.android.authenticatedSession.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.boundaries.accountIdentityRecorded = true;
+  evidence.boundaries.syntheticRoleMatrixPassed = true;
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must remain identity-free and keep store, role, booking, link, push, TalkBack, and lock-code gates open/,
   );
 });
