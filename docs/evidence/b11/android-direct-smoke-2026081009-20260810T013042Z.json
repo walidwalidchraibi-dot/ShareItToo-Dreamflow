@@ -29,7 +29,12 @@
     "largeTextCategoryStartVerified": true,
     "largeTextCategoryEndVerified": true,
     "largeTextHorizontalScrollVerified": true,
-    "originalFontScaleRestored": true
+    "originalFontScaleRestored": true,
+    "offlineErrorStateVerified": true,
+    "offlineRetryActionVerified": true,
+    "networkRecoveryVerified": true,
+    "originalNetworkStateRestored": true,
+    "offlineRecoveryCheckedAt": "2026-08-10T01:35:26.000Z"
   },
   "boundaries": {
     "manualFunctionalMatrixPassed": false,

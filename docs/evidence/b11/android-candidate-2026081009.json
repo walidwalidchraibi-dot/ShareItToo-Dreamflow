@@ -45,6 +45,14 @@
     "restoredFontScale": 0.85,
     "screenReader": "not-tested"
   },
+  "offlineRecoveryDiagnostics": {
+    "checkedAt": "2026-08-10T01:35:26.000Z",
+    "offlineErrorState": "passed",
+    "retryActionVisible": true,
+    "networkRecovery": "passed",
+    "originalWifiStateRestored": true,
+    "originalMobileDataStateRestored": true
+  },
   "staging": {
     "serverCommit": "9a1371e02d8e7d63d3dee30ca169c6c7f37fa966",
     "liveHttpStatus": 200,
