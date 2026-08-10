@@ -269,6 +269,10 @@ void main() {
       final paragraph = tester.renderObject<RenderParagraph>(find.text(label));
       expect(paragraph.didExceedMaxLines, isFalse, reason: label);
     }
+    expect(tester.getRect(find.text('Alle\nKategorien')).left,
+        greaterThanOrEqualTo(0));
+    expect(tester.getRect(find.text('Technik\n& Elektronik')).right,
+        lessThanOrEqualTo(412));
     expect(tester.takeException(), isNull);
   });
 }

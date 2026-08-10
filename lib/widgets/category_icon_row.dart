@@ -59,6 +59,7 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
     final itemWidth = math.max(baseItemWidth, labelWidth);
     final rowHeight = 84.0 + ((textScale - 1) * 72.0);
     final labelMaxLines = textScale > 1.3 ? 4 : 2;
+    final centerLargeTextContent = textScale > 1.3;
     // Increase spacing between circles by ~0.3mm total (previous +0.2mm, now +0.1mm more)
     const baseSpacing = 6.0;
     const extraMm = 0.3; // mm
@@ -69,6 +70,7 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
       width: itemWidth,
       labelWidth: labelWidth,
       labelMaxLines: labelMaxLines,
+      centerContent: centerLargeTextContent,
       onTap: widget.onAllCategoriesTap,
     ));
     for (int i = 0; i < widget.categories.length; i++) {
@@ -78,6 +80,7 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
           width: itemWidth,
           labelWidth: labelWidth,
           labelMaxLines: labelMaxLines,
+          centerContent: centerLargeTextContent,
           label: c.label,
           icon: c.icon,
           isSelected: isSelected,
@@ -101,8 +104,10 @@ class _CategoryIconRowState extends State<CategoryIconRow> {
     //     zu können. Das erreichen wir mit rechter Innen‑Padding: rightPad = 60 - itemWidth.
     //
     // Diese Kombination garantiert die exakte Ausrichtung über alle Displaybreiten.
-    final double cutoffPx = math.max(0.0, itemWidth - 60.0);
-    final double rightPadPx = math.max(0.0, 60.0 - itemWidth);
+    final circleCenterInItem = centerLargeTextContent ? itemWidth / 2 : 22.0;
+    final trailingCircleDistance = itemWidth - circleCenterInItem;
+    final double cutoffPx = math.max(0.0, trailingCircleDistance - 38.0);
+    final double rightPadPx = math.max(0.0, 38.0 - trailingCircleDistance);
 
     return SizedBox(
       height: rowHeight,
@@ -140,11 +145,13 @@ class _AllTile extends StatefulWidget {
   final double width;
   final double labelWidth;
   final int labelMaxLines;
+  final bool centerContent;
   final VoidCallback? onTap;
   const _AllTile({
     required this.width,
     required this.labelWidth,
     required this.labelMaxLines,
+    required this.centerContent,
     this.onTap,
   });
   @override
@@ -170,26 +177,30 @@ class _AllTileState extends State<_AllTile> {
             width: widget.width,
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  color:
-                      AppTheme.categoryCircleFill(context, active: _hovering),
-                  border: Border.all(
-                      color: AppTheme.categoryCircleBorder(context,
-                          active: _hovering),
-                      width: 1.5),
-                  boxShadow: AppTheme.cardShadow(context),
-                ),
-                child: Center(
-                  child: AnimatedScale(
-                    scale: _hovering ? 1.33 : 1.0,
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOut,
-                    child: MaterialOutlineIcon(
-                        icon: Icons.apps, color: color, size: 20),
+              Padding(
+                padding: EdgeInsets.only(
+                    left: widget.centerContent ? (widget.width - 44) / 2 : 0),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    color:
+                        AppTheme.categoryCircleFill(context, active: _hovering),
+                    border: Border.all(
+                        color: AppTheme.categoryCircleBorder(context,
+                            active: _hovering),
+                        width: 1.5),
+                    boxShadow: AppTheme.cardShadow(context),
+                  ),
+                  child: Center(
+                    child: AnimatedScale(
+                      scale: _hovering ? 1.33 : 1.0,
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOut,
+                      child: MaterialOutlineIcon(
+                          icon: Icons.apps, color: color, size: 20),
+                    ),
                   ),
                 ),
               ),
@@ -197,7 +208,9 @@ class _AllTileState extends State<_AllTile> {
               Builder(builder: (context) {
                 final l10n = context.watch<LocalizationController>();
                 // Widen label to avoid truncation; keep visual center under the 44px circle
-                final dx = -((widget.labelWidth - 44) / 2);
+                final dx = widget.centerContent
+                    ? 0.0
+                    : -((widget.labelWidth - 44) / 2);
                 return Transform.translate(
                   offset: Offset(dx, 0),
                   child: SizedBox(
@@ -269,6 +282,7 @@ class _CategoryTile extends StatefulWidget {
   final double width;
   final double labelWidth;
   final int labelMaxLines;
+  final bool centerContent;
   final String label;
   final IconData icon;
   final bool isSelected;
@@ -277,6 +291,7 @@ class _CategoryTile extends StatefulWidget {
       {required this.width,
       required this.labelWidth,
       required this.labelMaxLines,
+      required this.centerContent,
       required this.label,
       required this.icon,
       required this.isSelected,
@@ -305,29 +320,33 @@ class _CategoryTileState extends State<_CategoryTile> {
             width: widget.width,
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  color: AppTheme.categoryCircleFill(context, active: active),
-                  border: Border.all(
-                      color: AppTheme.categoryCircleBorder(context,
-                          active: active),
-                      width: 1.5),
-                  boxShadow: AppTheme.cardShadow(context),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: Center(
-                    child: AnimatedScale(
-                      scale: _hovering ? 1.33 : 1.0,
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOut,
-                      child: MaterialOutlineIcon(
-                          icon: widget.icon, size: 22, color: color),
+              Padding(
+                padding: EdgeInsets.only(
+                    left: widget.centerContent ? (widget.width - 44) / 2 : 0),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOut,
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    color: AppTheme.categoryCircleFill(context, active: active),
+                    border: Border.all(
+                        color: AppTheme.categoryCircleBorder(context,
+                            active: active),
+                        width: 1.5),
+                    boxShadow: AppTheme.cardShadow(context),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: Center(
+                      child: AnimatedScale(
+                        scale: _hovering ? 1.33 : 1.0,
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                        child: MaterialOutlineIcon(
+                            icon: widget.icon, size: 22, color: color),
+                      ),
                     ),
                   ),
                 ),
@@ -335,7 +354,9 @@ class _CategoryTileState extends State<_CategoryTile> {
               const SizedBox(height: 6),
               // Widen label to avoid truncation; keep visual center under the 44px circle
               Builder(builder: (_) {
-                final dx = -((widget.labelWidth - 44) / 2);
+                final dx = widget.centerContent
+                    ? 0.0
+                    : -((widget.labelWidth - 44) / 2);
                 return Transform.translate(
                   offset: Offset(dx, 0),
                   child: SizedBox(
