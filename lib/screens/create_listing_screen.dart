@@ -2196,23 +2196,28 @@ class _AddPhotoTile extends StatelessWidget {
   const _AddPhotoTile({required this.onTap});
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 84,
-        height: 84,
-        decoration: BoxDecoration(
-          color: _listingPanelSurface(context),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: _listingPanelBorder(context),
-              style: BorderStyle.solid,
-              width: 1),
+    return Semantics(
+      button: true,
+      label: 'Foto hinzufügen',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 84,
+          height: 84,
+          decoration: BoxDecoration(
+            color: _listingPanelSurface(context),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color: _listingPanelBorder(context),
+                style: BorderStyle.solid,
+                width: 1),
+          ),
+          alignment: Alignment.center,
+          child: Icon(Icons.add_a_photo,
+              color: Theme.of(context).colorScheme.primary),
         ),
-        alignment: Alignment.center,
-        child: Icon(Icons.add_a_photo,
-            color: Theme.of(context).colorScheme.primary),
       ),
     );
   }

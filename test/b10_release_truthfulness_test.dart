@@ -10,6 +10,7 @@ import 'package:lendify/screens/explore_screen_pinned_header.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_http.dart';
+import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
 import 'package:lendify/widgets/category_icon_row.dart';
@@ -85,6 +86,31 @@ void main() {
         const FormatException('temporary malformed response'),
       ),
       isFalse,
+    );
+  });
+
+  test('backend guest cannot reuse a stale cached profile as authentication',
+      () {
+    expect(
+      DataService.canExposeCachedCurrentUser(
+        backendEnabled: true,
+        hasSession: false,
+      ),
+      isFalse,
+    );
+    expect(
+      DataService.canExposeCachedCurrentUser(
+        backendEnabled: true,
+        hasSession: true,
+      ),
+      isTrue,
+    );
+    expect(
+      DataService.canExposeCachedCurrentUser(
+        backendEnabled: false,
+        hasSession: false,
+      ),
+      isTrue,
     );
   });
 

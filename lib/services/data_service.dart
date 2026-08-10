@@ -3,7 +3,8 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart' show DateTimeRange;
-import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
+import 'package:flutter/foundation.dart'
+    show debugPrint, kDebugMode, visibleForTesting;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_config.dart';
@@ -76,6 +77,13 @@ class DataService {
   static const String _qaMessagesAndNotifsSeedFlagPrefix =
       'qa_messages_notifs_seeded_v3_for_';
   static final Set<String> _qaSeedUsersInProgress = <String>{};
+
+  @visibleForTesting
+  static bool canExposeCachedCurrentUser({
+    required bool backendEnabled,
+    required bool hasSession,
+  }) =>
+      !backendEnabled || hasSession;
 
   static Future<void> _persistMessageThreads(
     SharedPreferences prefs,
@@ -1071,21 +1079,33 @@ class DataService {
     }
 
     String? userJson = await safeReadCurrentUser();
+    AuthSession? backendSession;
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
       final session = await AuthService.readSession();
+      backendSession = session;
+      if (!canExposeCachedCurrentUser(
+        backendEnabled: true,
+        hasSession: session != null,
+      )) {
+        if (userJson != null && userJson.isNotEmpty) {
+          await prefs.remove(_currentUserKey);
+        }
+        return null;
+      }
+      if (session == null) return null;
       var localUserId = '';
       if (userJson != null && userJson.isNotEmpty) {
         try {
           localUserId = (jsonDecode(userJson) as Map)['id']?.toString() ?? '';
         } catch (_) {}
       }
-      if (session != null && localUserId != session.userId) {
+      if (localUserId != session.userId) {
         await syncCurrentUserForSessionEmail(session.email);
         userJson = await safeReadCurrentUser();
       }
     }
     if (userJson == null || userJson.isEmpty) {
-      final session = await AuthService.readSession();
+      final session = backendSession ?? await AuthService.readSession();
       if (session != null) {
         await syncCurrentUserForSessionEmail(session.email);
         userJson = await safeReadCurrentUser();
