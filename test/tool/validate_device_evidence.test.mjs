@@ -187,12 +187,58 @@ function passedFixture() {
 function progressFixture() {
   const root = mkdtempSync(resolve(tmpdir(), 'sit-device-progress-'));
   const deviceManifest = clone(baseDeviceManifest);
-  const refs = new Set([
-    deviceManifest.candidate.android.directDiagnostic.evidenceRef,
-    ...Object.values(deviceManifest.releaseChecks)
+  const diagnosticRef = 'docs/evidence/b11/android-direct-smoke-progress-fixture.json';
+  const capturedAt = '2026-08-09T18:00:00+02:00';
+  deviceManifest.candidate.android.directDiagnostic = {
+    status: 'passed',
+    capturedAt,
+    installMethod: 'direct-apk-diagnostic',
+    manufacturer: 'Sanitized Android',
+    deviceModel: 'Physical test device',
+    osVersion: 'Android test version',
+    evidenceRef: diagnosticRef,
+  };
+  writeEvidence(root, diagnosticRef, {
+    schemaVersion: 1,
+    kind: 'android-direct-device-smoke',
+    status: 'installed-launched-pending-manual-matrix',
+    capturedAt,
+    candidate: {
+      ...evidenceCandidate(deviceManifest.candidate),
+      apkSha256: deviceManifest.candidate.android.apkSha256,
+      signingCertificateSha256:
+        deviceManifest.candidate.android.signingCertificateSha256,
+      privacyScan: 'passed',
+    },
+    installation: {
+      method: 'direct-apk-diagnostic',
+      installed: true,
+      installedVersionVerified: true,
+      installedBuildVerified: true,
+      firstLaunchEvent: 'passed',
+      foregroundActivityVerified: true,
+      storeInstallationGateSatisfied: false,
+    },
+    boundaries: {
+      ...safeBoundaries(),
+      manualFunctionalMatrixPassed: false,
+      playInternalInstallPassed: false,
+      realPushPassed: false,
+    },
+    device: {
+      platform: 'android',
+      physical: true,
+      manufacturer: 'Sanitized Android',
+      model: 'Physical test device',
+      osVersion: 'Android test version',
+      containsRawDeviceIdentifier: false,
+    },
+  });
+  const refs = new Set(
+    Object.values(deviceManifest.releaseChecks)
       .map((check) => check.evidenceRef)
       .filter((ref) => ref !== null),
-  ]);
+  );
   for (const ref of refs) {
     const source = resolve(repositoryRoot, ref);
     const target = resolve(root, ref);
