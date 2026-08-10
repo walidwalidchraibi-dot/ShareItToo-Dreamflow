@@ -1018,6 +1018,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           SliverPersistentHeader(
                             pinned: true,
                             delegate: PinnedCategoriesHeader(
+                              textScale: MediaQuery.textScalerOf(context)
+                                      .scale(10.5) /
+                                  10.5,
                               builder: (context) {
                                 final l10n =
                                     context.watch<LocalizationController>();

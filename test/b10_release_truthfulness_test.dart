@@ -1,15 +1,18 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/screens/language_screen.dart';
 import 'package:lendify/screens/privacy_info_screen.dart';
+import 'package:lendify/screens/explore_screen_pinned_header.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_http.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
+import 'package:lendify/widgets/category_icon_row.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -214,5 +217,58 @@ void main() {
     semantics.dispose();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('category header expands without clipping at 200 percent text',
+      (tester) async {
+    final localization = LocalizationController();
+    final delegate = PinnedCategoriesHeader(
+      textScale: 2,
+      builder: (_) => const SizedBox.shrink(),
+    );
+
+    expect(delegate.minExtent, 172);
+    expect(delegate.maxExtent, 172);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<LocalizationController>.value(
+        value: localization,
+        child: const MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData(
+              size: Size(412, 915),
+              textScaler: TextScaler.linear(2),
+            ),
+            child: Scaffold(
+              body: CategoryIconRow(
+                categories: [
+                  CategoryIconDataModel(
+                    id: 'technology',
+                    icon: Icons.devices,
+                    label: 'Technik & Elektronik',
+                  ),
+                  CategoryIconDataModel(
+                    id: 'tools',
+                    icon: Icons.construction,
+                    label: 'Werkzeuge & Kleingeräte',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    for (final label in <String>[
+      'Alle\nKategorien',
+      'Technik\n& Elektronik',
+      'Werkzeuge\n& Kleingeräte',
+    ]) {
+      final paragraph = tester.renderObject<RenderParagraph>(find.text(label));
+      expect(paragraph.didExceedMaxLines, isFalse, reason: label);
+    }
+    expect(tester.takeException(), isNull);
   });
 }
