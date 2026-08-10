@@ -21,15 +21,22 @@ class BackendRealtimeService {
     await disconnect();
     _stopped = false;
     _accessToken = accessToken;
-    _open();
+    unawaited(_open());
   }
 
-  static void _open() {
+  static Future<void> _open() async {
     if (_stopped || _accessToken == null) return;
+    final accessToken = _accessToken;
+    WebSocketChannel? channel;
     try {
-      final channel = WebSocketChannel.connect(BackendConfig.realtimeUri);
+      channel = WebSocketChannel.connect(BackendConfig.realtimeUri);
       _channel = channel;
-      channel.sink.add(jsonEncode({'type': 'auth', 'token': _accessToken}));
+      await channel.ready;
+      if (_stopped || _accessToken != accessToken || _channel != channel) {
+        await channel.sink.close();
+        return;
+      }
+      channel.sink.add(jsonEncode({'type': 'auth', 'token': accessToken}));
       _subscription = channel.stream.listen(
         _handleMessage,
         onError: (Object error) {
@@ -41,6 +48,14 @@ class BackendRealtimeService {
       );
     } catch (error) {
       debugPrint('[BackendRealtime] connect failed: $error');
+      if (_channel == channel) _channel = null;
+      if (channel != null) {
+        try {
+          await channel.sink.close();
+        } catch (_) {
+          // The connection may have failed before a close frame was possible.
+        }
+      }
       _scheduleReconnect();
     }
   }
@@ -82,7 +97,7 @@ class BackendRealtimeService {
     if (_stopped || _reconnectTimer != null) return;
     _reconnectTimer = Timer(const Duration(seconds: 3), () {
       _reconnectTimer = null;
-      _open();
+      unawaited(_open());
     });
   }
 

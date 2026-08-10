@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'backend_config.dart';
 import 'backend_repository.dart';
@@ -22,6 +23,11 @@ bool controlledCrashDiagnosticAllowed({
       releaseChannel == 'internal' &&
       configuredRunId == requestedRunId &&
       RegExp(r'^b11-[a-z0-9-]{6,64}$').hasMatch(configuredRunId);
+}
+
+@visibleForTesting
+bool shouldRecordUnhandledErrorAsFatal(Object error) {
+  return error is! WebSocketChannelException;
 }
 
 class FirebaseRuntimeConfig {
@@ -231,10 +237,17 @@ class FirebaseRuntime {
     );
   }
 
-  static void recordFatalError(Object error, StackTrace stack) {
+  static void recordUnhandledError(Object error, StackTrace stack) {
     if (!_initialized || !kReleaseMode) return;
     unawaited(
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
+      FirebaseCrashlytics.instance.recordError(
+        error,
+        stack,
+        fatal: shouldRecordUnhandledErrorAsFatal(error),
+        reason: error is WebSocketChannelException
+            ? 'Transient realtime connectivity failure'
+            : 'Unhandled asynchronous application error',
+      ),
     );
   }
 

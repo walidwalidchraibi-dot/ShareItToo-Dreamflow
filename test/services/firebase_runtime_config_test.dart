@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/services/firebase_runtime.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 void main() {
   group('FirebaseRuntimeConfig', () {
@@ -118,6 +119,24 @@ void main() {
       expect(allowed(releaseChannel: 'production'), isFalse);
       expect(allowed(requestedRunId: 'b11-other-run'), isFalse);
       expect(allowed(configuredRunId: 'unsafe/value'), isFalse);
+    });
+  });
+
+  group('Crashlytics fatality classification', () {
+    test('keeps unexpected asynchronous errors fatal', () {
+      expect(
+        shouldRecordUnhandledErrorAsFatal(StateError('unexpected')),
+        isTrue,
+      );
+    });
+
+    test('treats realtime connection failures as non-fatal', () {
+      expect(
+        shouldRecordUnhandledErrorAsFatal(
+          WebSocketChannelException('offline'),
+        ),
+        isFalse,
+      );
     });
   });
 

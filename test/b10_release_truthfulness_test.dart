@@ -311,9 +311,15 @@ void main() {
     expect(profile, contains('Navigator.of(dialogContext).pop();'));
     expect(
       profile,
+      contains(
+        'final preview = context.read<DeveloperPreviewController>();',
+      ),
+    );
+    expect(
+      profile,
       matches(
         RegExp(
-          r'if \(!mounted\) return;\s+await context\s*\.read<DeveloperPreviewController>\(\)',
+          r'if \(!mounted\) return;\s+await preview\.setState\(DeveloperUserState\.loggedOut\)',
         ),
       ),
     );

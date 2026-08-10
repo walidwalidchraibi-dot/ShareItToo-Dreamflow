@@ -41,7 +41,7 @@ Future<void> main() async {
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
     debugPrint('Uncaught async error: ' + error.toString());
     debugPrint(stack.toString());
-    FirebaseRuntime.recordFatalError(error, stack);
+    FirebaseRuntime.recordUnhandledError(error, stack);
     return true; // handled
   };
 
