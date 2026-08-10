@@ -41,7 +41,7 @@
   "exactCandidateDiagnostics": {
     "directInstallAndLaunch": "passed",
     "crashlyticsReleaseAssignment": "pending",
-    "guestAppLinks": "pending",
+    "guestAppLinks": "passed",
     "authenticatedSessionRestore": "pending",
     "syntheticRoleBooking": "pending",
     "authenticatedDeepLinks": "pending",
