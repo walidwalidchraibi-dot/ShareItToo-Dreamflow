@@ -13,6 +13,7 @@ import 'package:lendify/services/backend_http.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
 import 'package:lendify/widgets/category_icon_row.dart';
+import 'package:lendify/widgets/search_header.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -287,5 +288,33 @@ void main() {
     expect(lastCategoryRect.left, greaterThanOrEqualTo(0));
     expect(lastCategoryRect.right, lessThanOrEqualTo(412));
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('explore header actions expose meaningful screen reader names',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    final localization = LocalizationController();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<LocalizationController>.value(
+        value: localization,
+        child: MaterialApp(
+          home: Scaffold(
+            body: SearchHeader(
+              onFiltersPressed: () {},
+              onSearchTap: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsLabel('Neue Anzeige erstellen'), findsOneWidget);
+    expect(find.bySemanticsLabel('Jetzt suchen'), findsOneWidget);
+    expect(find.bySemanticsLabel('Mietanfragen'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    semantics.dispose();
   });
 }
