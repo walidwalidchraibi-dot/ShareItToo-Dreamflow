@@ -5,7 +5,10 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 
 import {
+  archiveCompletedSyntheticBookingFixture,
   createSyntheticBookingFixture,
+  prepareSyntheticBookingThread,
+  sendSyntheticBookingDiagnosticMessage,
   transitionSyntheticBookingFixture,
 } from '../../tool/run_staging_synthetic_booking.mjs';
 
@@ -150,6 +153,117 @@ test('recovers one already-created requested fixture without creating a duplicat
   assert.equal(calls.includes('/uploads'), false);
   assert.equal(calls.includes('/listings'), false);
   assert.equal(calls.includes('/bookings'), false);
+});
+
+test('archives only a completed payment-free fixture without returning private identifiers', async () => {
+  const fixture = vaultFixture();
+  await createSyntheticBookingFixture({
+    ...fixture,
+    fetchImpl: createFetch([]),
+    random: () => Buffer.from('a1b2c3d4', 'hex'),
+  });
+  for (const [status, workflowStatus] of [
+    ['accepted', 'accepted'],
+    ['running', 'active'],
+    ['completed', 'completed'],
+  ]) {
+    await transitionSyntheticBookingFixture({
+      ...fixture,
+      status,
+      fetchImpl: async (url) => {
+        const path = new URL(url).pathname.replace('/api/v1', '');
+        if (path === '/auth/login') return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+        if (path.endsWith('/transitions')) return response(200, { booking: { workflowStatus } });
+        throw new Error(`Unexpected path ${path}`);
+      },
+    });
+  }
+  const result = archiveCompletedSyntheticBookingFixture({
+    vaultFile: fixture.vaultFile,
+    nextRunId: 'next-private-run',
+    now: new Date('2026-08-10T17:40:00.000Z'),
+  });
+  assert.deepEqual(result, {
+    status: 'synthetic-booking-archived',
+    historyCount: 1,
+    readyForNextFixture: true,
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+    containsSecrets: false,
+    containsEmailAddresses: false,
+    containsTokens: false,
+    containsFixtureIdentifiers: false,
+  });
+  const stored = JSON.parse(readFileSync(fixture.vaultFile, 'utf8'));
+  assert.equal(stored.syntheticBooking, undefined);
+  assert.equal(stored.syntheticBookingHistory.length, 1);
+  assert.equal(stored.syntheticBookingHistory[0].workflowStatus, 'completed');
+  assert.equal(stored.runId, 'next-private-run');
+  assert.equal(stored.status, 'fixture-verified-ready-for-login');
+});
+
+test('refuses to archive an active fixture', async () => {
+  const fixture = vaultFixture();
+  await createSyntheticBookingFixture({
+    ...fixture,
+    fetchImpl: createFetch([]),
+    random: () => Buffer.from('a1b2c3d4', 'hex'),
+  });
+  assert.throws(
+    () => archiveCompletedSyntheticBookingFixture({
+      vaultFile: fixture.vaultFile,
+      nextRunId: 'next-private-run',
+    }),
+    /Only a completed, payment-free Staging fixture can be archived/,
+  );
+});
+
+test('prepares a controlled thread and sends an identifier-free diagnostic message result', async () => {
+  const fixture = vaultFixture();
+  await createSyntheticBookingFixture({
+    ...fixture,
+    fetchImpl: createFetch([]),
+    random: () => Buffer.from('a1b2c3d4', 'hex'),
+  });
+  await transitionSyntheticBookingFixture({
+    ...fixture,
+    status: 'accepted',
+    fetchImpl: async (url) => {
+      const path = new URL(url).pathname.replace('/api/v1', '');
+      if (path === '/auth/login') return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+      if (path.endsWith('/transitions')) return response(200, { booking: { workflowStatus: 'accepted' } });
+      throw new Error(`Unexpected path ${path}`);
+    },
+  });
+  const threadResult = await prepareSyntheticBookingThread({
+    ...fixture,
+    fetchImpl: async (url) => {
+      const path = new URL(url).pathname.replace('/api/v1', '');
+      if (path === '/auth/login') return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+      if (path.includes('/message-threads/booking/')) {
+        return response(201, { thread: { id: 'private-thread-id' } });
+      }
+      throw new Error(`Unexpected path ${path}`);
+    },
+  });
+  assert.equal(threadResult.containsFixtureIdentifiers, false);
+  assert.equal(JSON.parse(readFileSync(fixture.vaultFile, 'utf8')).syntheticBooking.threadId, 'private-thread-id');
+
+  const messageResult = await sendSyntheticBookingDiagnosticMessage({
+    ...fixture,
+    fetchImpl: async (url) => {
+      const path = new URL(url).pathname.replace('/api/v1', '');
+      if (path === '/auth/login') return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+      if (path.includes('/message-threads/private-thread-id/messages')) {
+        return response(201, { message: { id: 'private-message-id' } });
+      }
+      throw new Error(`Unexpected path ${path}`);
+    },
+  });
+  assert.equal(messageResult.status, 'synthetic-booking-diagnostic-message-sent');
+  assert.equal(messageResult.containsFixtureIdentifiers, false);
+  assert.equal(messageResult.paymentEndpointCalled, false);
 });
 
 test('rejects a production or otherwise different API base before any request', async () => {

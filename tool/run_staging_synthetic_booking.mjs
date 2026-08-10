@@ -23,6 +23,16 @@ function fail(message) {
   throw new Error(message);
 }
 
+function safeFixtureIdentifier(value, label) {
+  if (typeof value !== 'string'
+      || value.length < 1
+      || value.length > 120
+      || !/^[A-Za-z0-9_.:-]+$/.test(value)) {
+    fail(`The ${label} is not a safe fixture identifier.`);
+  }
+  return value;
+}
+
 function privateVaultFile(value) {
   if (typeof value !== 'string' || !isAbsolute(value)) {
     fail('The synthetic account vault must be an absolute path.');
@@ -350,6 +360,130 @@ export async function transitionSyntheticBookingFixture({
   });
 }
 
+export function archiveCompletedSyntheticBookingFixture({
+  vaultFile,
+  nextRunId,
+  now = new Date(),
+} = {}) {
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
+    fail('The fixture archive time is invalid.');
+  }
+  if (typeof nextRunId !== 'string'
+      || nextRunId.length < 4
+      || nextRunId.length > 80
+      || !/^[A-Za-z0-9_-]+$/.test(nextRunId)) {
+    fail('The next synthetic run identifier is invalid.');
+  }
+  const { path, vault } = readVault(vaultFile);
+  const fixture = vault.syntheticBooking;
+  if (vault.status !== 'synthetic-booking-completed'
+      || fixture?.workflowStatus !== 'completed'
+      || fixture?.paymentMode !== 'memory'
+      || fixture?.stripeLivemode !== false
+      || fixture?.paymentEndpointCalled !== false) {
+    fail('Only a completed, payment-free Staging fixture can be archived.');
+  }
+  const history = Array.isArray(vault.syntheticBookingHistory)
+    ? vault.syntheticBookingHistory.slice(-19)
+    : [];
+  history.push({ ...fixture, archivedAt: now.toISOString() });
+  vault.syntheticBookingHistory = history;
+  delete vault.syntheticBooking;
+  vault.runId = nextRunId;
+  vault.status = 'fixture-verified-ready-for-login';
+  saveVault(path, vault);
+  return Object.freeze({
+    status: 'synthetic-booking-archived',
+    historyCount: history.length,
+    readyForNextFixture: true,
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+    containsSecrets: false,
+    containsEmailAddresses: false,
+    containsTokens: false,
+    containsFixtureIdentifiers: false,
+  });
+}
+
+export async function prepareSyntheticBookingThread({
+  vaultFile,
+  actorRole = 'owner',
+  fetchImpl = globalThis.fetch,
+} = {}) {
+  if (!['owner', 'renter'].includes(actorRole)) fail('The thread actor role is invalid.');
+  const { path, vault, accounts } = readVault(vaultFile);
+  const fixture = vault.syntheticBooking;
+  if (!fixture
+      || !['accepted', 'active'].includes(fixture.workflowStatus)
+      || fixture.paymentEndpointCalled !== false
+      || fixture.stripeLivemode !== false) {
+    fail('The synthetic booking is not ready for a controlled chat thread.');
+  }
+  const token = await login(fetchImpl, accounts.get(actorRole));
+  const result = await request(fetchImpl,
+    `/message-threads/booking/${encodeURIComponent(safeFixtureIdentifier(fixture.bookingId, 'booking fixture'))}`,
+    { method: 'POST', token, expected: [200, 201] });
+  const threadId = safeFixtureIdentifier(result?.thread?.id, 'thread fixture');
+  fixture.threadId = threadId;
+  fixture.threadPreparedAt = new Date().toISOString();
+  saveVault(path, vault);
+  return Object.freeze({
+    status: 'synthetic-booking-thread-ready',
+    workflowStatus: fixture.workflowStatus,
+    actorRole,
+    paymentMode: fixture.paymentMode,
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+    containsSecrets: false,
+    containsEmailAddresses: false,
+    containsTokens: false,
+    containsFixtureIdentifiers: false,
+  });
+}
+
+export async function sendSyntheticBookingDiagnosticMessage({
+  vaultFile,
+  senderRole = 'owner',
+  fetchImpl = globalThis.fetch,
+} = {}) {
+  if (!['owner', 'renter'].includes(senderRole)) fail('The message sender role is invalid.');
+  const { vault, accounts } = readVault(vaultFile);
+  const fixture = vault.syntheticBooking;
+  if (!fixture
+      || !['accepted', 'active'].includes(fixture.workflowStatus)
+      || fixture.paymentEndpointCalled !== false
+      || fixture.stripeLivemode !== false) {
+    fail('The synthetic booking is not ready for a controlled diagnostic message.');
+  }
+  const threadId = safeFixtureIdentifier(fixture.threadId, 'thread fixture');
+  const bookingId = safeFixtureIdentifier(fixture.bookingId, 'booking fixture');
+  const token = await login(fetchImpl, accounts.get(senderRole));
+  const result = await request(fetchImpl,
+    `/message-threads/${encodeURIComponent(threadId)}/messages`, {
+      method: 'POST',
+      token,
+      headers: { 'Idempotency-Key': `${bookingId}-logout-push-diagnostic` },
+      body: { text: 'Kontrollierte SIT Staging-Abmeldeprüfung.' },
+      expected: [200, 201],
+    });
+  if (typeof result?.message?.id !== 'string' || result.message.id.length < 1) {
+    fail('The controlled diagnostic message was not accepted.');
+  }
+  return Object.freeze({
+    status: 'synthetic-booking-diagnostic-message-sent',
+    senderRole,
+    workflowStatus: fixture.workflowStatus,
+    paymentMode: fixture.paymentMode,
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+    containsSecrets: false,
+    containsEmailAddresses: false,
+    containsTokens: false,
+    containsFixtureIdentifiers: false,
+  });
+}
+
 function cliValue(args, flag) {
   const index = args.indexOf(flag);
   return index >= 0 ? args[index + 1] : null;
@@ -362,10 +496,25 @@ if (invokedPath === import.meta.url) {
   try {
     const result = command === 'create'
       ? await createSyntheticBookingFixture({ vaultFile })
-      : await transitionSyntheticBookingFixture({
-          vaultFile,
-          status: cliValue(process.argv.slice(2), '--status'),
-        });
+      : command === 'archive-completed'
+        ? archiveCompletedSyntheticBookingFixture({
+            vaultFile,
+            nextRunId: cliValue(process.argv.slice(2), '--next-run-id'),
+          })
+        : command === 'prepare-thread'
+          ? await prepareSyntheticBookingThread({
+              vaultFile,
+              actorRole: cliValue(process.argv.slice(2), '--actor-role') ?? 'owner',
+            })
+          : command === 'send-diagnostic-message'
+            ? await sendSyntheticBookingDiagnosticMessage({
+                vaultFile,
+                senderRole: cliValue(process.argv.slice(2), '--sender-role') ?? 'owner',
+              })
+        : await transitionSyntheticBookingFixture({
+            vaultFile,
+            status: cliValue(process.argv.slice(2), '--status'),
+          });
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {
     console.error(`ERROR: ${error.message}`);

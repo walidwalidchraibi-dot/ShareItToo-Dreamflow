@@ -113,6 +113,18 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
   const authenticatedLinks = object(android.authenticatedDeepLinks, 'candidate.android.authenticatedDeepLinks');
   const evidence = object(candidateEvidence, 'candidate evidence');
   const staging = object(evidence.staging, 'candidate evidence.staging');
+  const exactDiagnostics = object(evidence.exactCandidateDiagnostics, 'candidate evidence.exactCandidateDiagnostics');
+  const controlledFcm = evidence.controlledFcm ?? evidence.logoutAndPushLifecycle;
+  const logoutLifecycle = evidence.logoutLifecycle ?? evidence.logoutAndPushLifecycle;
+  if (exactDiagnostics.foregroundFcm !== 'passed'
+      || exactDiagnostics.backgroundFcm !== 'passed'
+      || exactDiagnostics.terminatedProcessFcm !== 'passed'
+      || controlledFcm?.status !== 'passed') {
+    fail('candidate evidence must prove foreground, background, and terminated-process FCM.');
+  }
+  if (logoutLifecycle?.status !== 'passed') {
+    fail('candidate evidence must prove the bounded logout and post-logout push lifecycle.');
+  }
 
   const passedCells = Array.isArray(manifest.deviceMatrix)
     ? manifest.deviceMatrix.filter((cell) => cell?.status === 'passed').length
@@ -139,11 +151,13 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
 | Angemeldete Android-Sitzungsdiagnose | \`${nonEmptyString(session.status, 'candidate.android.authenticatedSession.status')}\` auf ${nonEmptyString(session.deviceModel, 'candidate.android.authenticatedSession.deviceModel')}, Android ${nonEmptyString(session.osVersion, 'candidate.android.authenticatedSession.osVersion')}; \`${nonEmptyString(session.evidenceRef, 'candidate.android.authenticatedSession.evidenceRef')}\` |
 | Synthetische Android-Rollenbuchung | \`${nonEmptyString(roleBooking.status, 'candidate.android.syntheticRoleBooking.status')}\` auf ${nonEmptyString(roleBooking.deviceModel, 'candidate.android.syntheticRoleBooking.deviceModel')}, Android ${nonEmptyString(roleBooking.osVersion, 'candidate.android.syntheticRoleBooking.osVersion')}; \`${nonEmptyString(roleBooking.evidenceRef, 'candidate.android.syntheticRoleBooking.evidenceRef')}\` |
 | Authentifizierte Android-Deep-Links | \`${nonEmptyString(authenticatedLinks.status, 'candidate.android.authenticatedDeepLinks.status')}\` auf ${nonEmptyString(authenticatedLinks.deviceModel, 'candidate.android.authenticatedDeepLinks.deviceModel')}, Android ${nonEmptyString(authenticatedLinks.osVersion, 'candidate.android.authenticatedDeepLinks.osVersion')}; \`${nonEmptyString(authenticatedLinks.evidenceRef, 'candidate.android.authenticatedDeepLinks.evidenceRef')}\` |
+| Kontrollierte Android-FCM-Diagnose | \`passed\` in Vordergrund, Hintergrund und bei beendetem Prozess; \`${nonEmptyString(controlledFcm.evidenceRef, 'candidate evidence controlled FCM evidenceRef')}\` |
+| Android-Abmeldung und Push-Unterdrückung | \`passed\`; \`${nonEmptyString(logoutLifecycle.evidenceRef, 'candidate evidence logout lifecycle evidenceRef')}\` |
 | Kandidatenbeleg | \`${nonEmptyString(manifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef, 'releaseChecks.candidateIdentityAndSignatures.evidenceRef')}\` |
 | Staging-Servercommit | \`${fullCommit(staging.serverCommit, 'candidate evidence.staging.serverCommit')}\` |
 | Ehrlicher Freigabestand | \`${nonEmptyString(manifest.state, 'state')}/${nonEmptyString(manifest.goNoGo, 'goNoGo')}\`; Gerätezellen ${passedCells}/${totalCells}; Releaseprüfungen ${passedReleaseChecks}/${releaseChecks.length} |
 
-Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs- und authentifizierten Deep-Link-Diagnosen sind keine Store-Installation. Der synthetische WLAN-Nachweis schließt weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, echte Push-Zustellung, iOS/TestFlight, Produktion, Echtgeld oder eine gesendete Chatnachricht.
+Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM- und Abmeldediagnosen sind keine Store-Installation. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 ${snapshotEnd}`;
 }
 
@@ -205,8 +219,16 @@ export function validateB11ReleaseDocs({
     fail('The current candidate evidence must preserve store, secret, and device-identifier boundaries.');
   }
 
-  const isActiveRollover = allowCandidateRollover &&
-    BigInt(pubspec.buildNumber) > BigInt(candidate.buildNumber);
+  const currentBuildMarker =
+    `| Version und Build | \`${candidate.versionName} (${candidate.buildNumber})\` |`;
+  const documentsDescribeCurrentCandidate = snapshotDocuments.every((relativePath) => {
+    const content = documents?.[relativePath] ?? readFileSync(resolve(root, relativePath), 'utf8');
+    return content.includes(currentBuildMarker);
+  });
+  const isActiveRollover = allowCandidateRollover && (
+    BigInt(pubspec.buildNumber) > BigInt(candidate.buildNumber)
+    || !documentsDescribeCurrentCandidate
+  );
   if (isActiveRollover) {
     const documentedBuild = validateRolloverBaseline({
       manifest,

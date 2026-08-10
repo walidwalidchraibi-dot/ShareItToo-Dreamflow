@@ -126,6 +126,7 @@ function passedFixture() {
   delete deviceManifest.candidate.android.authenticatedSession;
   delete deviceManifest.candidate.android.syntheticRoleBooking;
   delete deviceManifest.candidate.android.authenticatedDeepLinks;
+  delete deviceManifest.candidate.android.logoutLifecycle;
   Object.assign(deviceManifest.candidate.ios, {
     delivery: 'testflight-internal',
     ipaSha256: 'e'.repeat(64),
@@ -227,6 +228,7 @@ function progressFixture() {
   delete deviceManifest.candidate.android.authenticatedSession;
   delete deviceManifest.candidate.android.syntheticRoleBooking;
   delete deviceManifest.candidate.android.authenticatedDeepLinks;
+  delete deviceManifest.candidate.android.logoutLifecycle;
   const diagnosticRef = 'docs/evidence/b11/android-direct-smoke-progress-fixture.json';
   const capturedAt = '2026-08-09T18:00:00+02:00';
   deviceManifest.candidate.android.directDiagnostic = {
@@ -548,6 +550,82 @@ function authenticatedDeepLinksFixture() {
   return fixture;
 }
 
+function logoutLifecycleFixture() {
+  const fixture = progressFixture();
+  const { root, deviceManifest } = fixture;
+  const ref = 'docs/evidence/b11/android-logout-lifecycle-progress-fixture.json';
+  const capturedAt = '2026-08-10T17:50:31Z';
+  deviceManifest.candidate.android.logoutLifecycle = {
+    status: 'passed',
+    capturedAt,
+    installMethod: 'direct-apk-diagnostic',
+    manufacturer: 'Sanitized Android',
+    deviceModel: 'Physical test device',
+    osVersion: 'Android test version',
+    evidenceRef: ref,
+  };
+  writeEvidence(root, ref, {
+    schemaVersion: 1,
+    kind: 'android-logout-lifecycle-diagnostic',
+    status: 'passed-bounded-logout-lifecycle-diagnostic',
+    capturedAt,
+    candidate: evidenceCandidate(deviceManifest.candidate),
+    installed: {
+      packageIdentityVerified: true,
+      versionName: deviceManifest.candidate.versionName,
+      buildNumber: deviceManifest.candidate.buildNumber,
+      apkSha256: deviceManifest.candidate.android.apkSha256,
+    },
+    device: {
+      platform: 'android',
+      physical: true,
+      manufacturer: 'Sanitized Android',
+      model: 'Physical test device',
+      osVersion: 'Android test version',
+      apiLevel: 36,
+      securityPatch: '2026-04-05',
+      containsRawDeviceIdentifier: false,
+    },
+    tests: {
+      uiLogout: { status: 'passed', result: 'logout-confirmed-and-session-cleared' },
+      coldStartGuestPersistence: { status: 'passed', result: 'guest-profile-restored-after-process-restart' },
+      protectedChatAfterLogout: { status: 'passed', result: 'authentication-required-private-content-hidden' },
+      postLogoutProcessAbsentPush: { status: 'passed', result: 'controlled-message-created-no-device-notification' },
+    },
+    notificationProbe: {
+      processAbsent: true,
+      messageAccepted: true,
+      observedNotificationCountBefore: 0,
+      observedNotificationCountAfter: 0,
+      notificationCountUnchanged: true,
+      observationSeconds: 35,
+    },
+    boundaries: {
+      syntheticAccountsOnly: true,
+      directDiagnosticOnly: true,
+      storeInstallationGateSatisfied: false,
+      fullDeviceMatrixPassed: false,
+      wifiOnlyDiagnostic: true,
+      hotspotPassed: false,
+      authenticatedDeepLinksPassed: false,
+      realPushPassed: false,
+      controlledPushSuppressionPassed: true,
+      manualTalkBackTraversalPassed: false,
+      iosTestFlightPassed: false,
+      paymentEndpointCalled: false,
+      stripeLivemode: false,
+      messageSent: true,
+      lockCodeUsed: false,
+      accountIdentityRecorded: false,
+      containsPersonalAccountData: false,
+      containsSecrets: false,
+      containsRawDeviceIdentifiers: false,
+      containsReviewCredentials: false,
+    },
+  });
+  return fixture;
+}
+
 test('accepts the honest in-progress B11 evidence state', () => {
   const summary = validate();
   assert.deepEqual(summary, {
@@ -555,7 +633,7 @@ test('accepts the honest in-progress B11 evidence state', () => {
     goNoGo: 'hold',
     matrixPassed: 0,
     matrixTotal: 4,
-    releaseChecksPassed: 3,
+    releaseChecksPassed: 4,
     releaseChecksTotal: 7,
     minimumBuild: '2026080903',
   });
@@ -594,7 +672,7 @@ test('rejects a controlled-event claim without the sanitized staging boundary', 
 test('strict mode rejects the in-progress evidence state', () => {
   assert.throws(
     () => validate({ requirePassed: true }),
-    /remains testing: matrix=0\/4, releaseChecks=3\/7/,
+    /remains testing: matrix=0\/4, releaseChecks=4\/7/,
   );
 });
 
@@ -879,5 +957,37 @@ test('authenticated deep-link evidence cannot claim push, hotspot, payment, or a
   assert.throws(
     () => validate(fixture),
     /must prove only the three identity-free Staging links while keeping store, matrix, hotspot, push, TalkBack, iOS, payment, and message gates open/,
+  );
+});
+
+test('accepts exact bounded logout lifecycle evidence without closing the device matrix', () => {
+  const fixture = logoutLifecycleFixture();
+  const summary = validate(fixture);
+  assert.equal(summary.state, 'testing');
+  assert.equal(summary.matrixPassed, 0);
+});
+
+test('logout lifecycle evidence rejects a different candidate APK', () => {
+  const fixture = logoutLifecycleFixture();
+  const ref = fixture.deviceManifest.candidate.android.logoutLifecycle.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.installed.apkSha256 = 'f'.repeat(64);
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must prove the exact installed candidate APK and package identity/,
+  );
+});
+
+test('logout lifecycle evidence requires a process-absent unchanged notification observation', () => {
+  const fixture = logoutLifecycleFixture();
+  const ref = fixture.deviceManifest.candidate.android.logoutLifecycle.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.notificationProbe.processAbsent = false;
+  evidence.notificationProbe.observedNotificationCountAfter = 1;
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must prove a process-absent, accepted-message suppression observation/,
   );
 });
