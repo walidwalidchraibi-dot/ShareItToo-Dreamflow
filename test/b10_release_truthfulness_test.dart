@@ -3,9 +3,32 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lendify/services/auth_service.dart';
+import 'package:lendify/services/backend_http.dart';
 import 'package:lendify/screens/privacy_info_screen.dart';
 
 void main() {
+  test('transient refresh failures preserve the stored session for retry', () {
+    expect(
+      AuthService.shouldClearStoredSessionAfterRefreshFailure(
+        const BackendException(401, 'invalid_refresh_token'),
+      ),
+      isTrue,
+    );
+    expect(
+      AuthService.shouldClearStoredSessionAfterRefreshFailure(
+        const BackendException(503, 'service_unavailable'),
+      ),
+      isFalse,
+    );
+    expect(
+      AuthService.shouldClearStoredSessionAfterRefreshFailure(
+        const FormatException('temporary malformed response'),
+      ),
+      isFalse,
+    );
+  });
+
   test('release client contains no AI proxy secret and all helpers fail closed',
       () async {
     final source = await File('lib/openai/openai_config.dart').readAsString();
@@ -44,19 +67,30 @@ void main() {
 
   test('authenticated empty states do not present invented marketplace data',
       () async {
-    final profile = await File('lib/screens/profile_screen.dart').readAsString();
-    final profileHeader = await File('lib/widgets/profile_header_card.dart').readAsString();
-    final publicProfile = await File('lib/screens/public_profile_screen.dart').readAsString();
-    final ownProfile = await File('lib/screens/own_profile_screen.dart').readAsString();
-    final ownerRequests = await File('lib/screens/owner_requests_screen.dart').readAsString();
-    final messageThread = await File('lib/screens/message_thread_screen.dart').readAsString();
-    final accountSettings = await File('lib/screens/account_settings_screen.dart').readAsString();
+    final profile =
+        await File('lib/screens/profile_screen.dart').readAsString();
+    final profileHeader =
+        await File('lib/widgets/profile_header_card.dart').readAsString();
+    final publicProfile =
+        await File('lib/screens/public_profile_screen.dart').readAsString();
+    final ownProfile =
+        await File('lib/screens/own_profile_screen.dart').readAsString();
+    final ownerRequests =
+        await File('lib/screens/owner_requests_screen.dart').readAsString();
+    final messageThread =
+        await File('lib/screens/message_thread_screen.dart').readAsString();
+    final accountSettings =
+        await File('lib/screens/account_settings_screen.dart').readAsString();
     final maps = await File('lib/services/maps_service.dart').readAsString();
     final appRoot = await File('lib/main.dart').readAsString();
-    final navigation = await File('lib/navigation/main_navigation.dart').readAsString();
-    final explore = await File('lib/screens/explore_screen.dart').readAsString();
-    final backendHttp = await File('lib/services/backend_http.dart').readAsString();
-    final securityScreen = await File('lib/screens/security_screen.dart').readAsString();
+    final navigation =
+        await File('lib/navigation/main_navigation.dart').readAsString();
+    final explore =
+        await File('lib/screens/explore_screen.dart').readAsString();
+    final backendHttp =
+        await File('lib/services/backend_http.dart').readAsString();
+    final securityScreen =
+        await File('lib/screens/security_screen.dart').readAsString();
 
     expect(profile, isNot(contains('walid.placeholder')));
     expect(profile, isNot(contains('responseTimeMinutes: 42')));
@@ -67,18 +101,28 @@ void main() {
     expect(ownProfile, isNot(contains('responseTimeMin = 42')));
     expect(ownProfile, isNot(contains('DJI Mavic Air 2')));
     expect(ownProfile, isNot(contains('Makita Akkuschrauber')));
-    expect(RegExp(r'if \(QaRuntimeService\.isEnabled\)').allMatches(ownerRequests).length, greaterThanOrEqualTo(2));
+    expect(
+        RegExp(r'if \(QaRuntimeService\.isEnabled\)')
+            .allMatches(ownerRequests)
+            .length,
+        greaterThanOrEqualTo(2));
     expect(messageThread, contains('QaRuntimeService.isEnabled &&'));
     expect(messageThread, contains('_thread?.id == _translationDemoThreadId'));
     expect(accountSettings, contains('const SecurityScreen()'));
     expect(accountSettings, isNot(contains('const ChangePasswordScreen()')));
     expect(maps, isNot(contains('Musterstraße 1')));
-    expect(appRoot, contains('final accessToken = await AuthService.accessToken()'));
+    expect(appRoot,
+        contains('final accessToken = await AuthService.accessToken()'));
     expect(appRoot, contains('if (BackendConfig.enabled || kReleaseMode)'));
-    expect(navigation, contains('(BackendConfig.enabled || kReleaseMode || preview.isGuest)'));
-    expect(explore, contains('_savedIds = hasRealSession ? saved : <String>{}'));
+    expect(navigation,
+        contains('(BackendConfig.enabled || kReleaseMode || preview.isGuest)'));
+    expect(
+        explore, contains('_savedIds = hasRealSession ? saved : <String>{}'));
     expect(profileHeader, contains('if (user.isVerified)'));
-    expect(backendHttp, contains("'User-Agent': 'ShareItToo (\${defaultTargetPlatform.name})'"));
+    expect(
+        backendHttp,
+        contains(
+            "'User-Agent': 'ShareItToo (\${defaultTargetPlatform.name})'"));
     expect(securityScreen, contains("rawName == 'Unbekanntes Gerät'"));
   });
 

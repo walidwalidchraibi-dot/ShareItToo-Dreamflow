@@ -359,10 +359,17 @@ class AuthService {
     } catch (error) {
       debugPrint('[AuthService] refresh failed: $error');
       await BackendRealtimeService.disconnect();
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_sessionKey);
+      if (shouldClearStoredSessionAfterRefreshFailure(error)) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_sessionKey);
+      }
       return null;
     }
+  }
+
+  @visibleForTesting
+  static bool shouldClearStoredSessionAfterRefreshFailure(Object error) {
+    return error is BackendException && error.statusCode == 401;
   }
 
   static Future<AuthResult> signInWithSocialProvider(
