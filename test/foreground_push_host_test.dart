@@ -11,12 +11,15 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(800, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final messages = StreamController<ForegroundPushMessage>.broadcast();
+    final messengerKey = GlobalKey<ScaffoldMessengerState>();
     ForegroundPushMessage? opened;
     addTearDown(messages.close);
 
     await tester.pumpWidget(
       MaterialApp(
+        scaffoldMessengerKey: messengerKey,
         home: ForegroundPushHost(
+          messengerKey: messengerKey,
           messages: messages.stream,
           onOpen: (message) => opened = message,
           child: const Scaffold(body: Text('Start')),
@@ -32,12 +35,14 @@ void main() {
     messages.add(message);
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Neue Nachricht'), findsOneWidget);
     expect(find.text('Deine Buchung wurde aktualisiert.'), findsOneWidget);
     expect(find.text('Öffnen'), findsOneWidget);
 
-    tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed();
+    await tester.tap(find.text('Öffnen'));
+    await tester.pump();
     expect(opened, same(message));
   });
 }

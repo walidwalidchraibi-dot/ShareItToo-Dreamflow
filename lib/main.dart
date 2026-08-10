@@ -20,6 +20,9 @@ import 'package:lendify/services/firebase_runtime.dart';
 import 'package:lendify/screens/app_link_destination_screen.dart';
 import 'package:lendify/widgets/foreground_push_host.dart';
 
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
 Future<void> main() async {
   // Initialize bindings once in the same zone as runApp to avoid zone mismatch warnings.
   WidgetsFlutterBinding.ensureInitialized();
@@ -115,10 +118,12 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             title: 'ShareItToo',
             debugShowCheckedModeBanner: false,
+            scaffoldMessengerKey: rootScaffoldMessengerKey,
             theme: buildLightTheme(context),
             darkTheme: buildDarkTheme(context),
             themeMode: ThemeMode.system,
             builder: (context, child) => ForegroundPushHost(
+              messengerKey: rootScaffoldMessengerKey,
               child: AppGradientBackground(
                 child: child ?? const SizedBox.shrink(),
               ),

@@ -7,12 +7,14 @@ class ForegroundPushHost extends StatefulWidget {
   final Widget child;
   final Stream<ForegroundPushMessage>? messages;
   final void Function(ForegroundPushMessage message)? onOpen;
+  final GlobalKey<ScaffoldMessengerState>? messengerKey;
 
   const ForegroundPushHost({
     super.key,
     required this.child,
     this.messages,
     this.onOpen,
+    this.messengerKey,
   });
 
   @override
@@ -43,7 +45,8 @@ class _ForegroundPushHostState extends State<ForegroundPushHost> {
   void _showMessage(ForegroundPushMessage message) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.maybeOf(context);
+      final messenger = widget.messengerKey?.currentState ??
+          ScaffoldMessenger.maybeOf(context);
       if (messenger == null) return;
       messenger.hideCurrentSnackBar();
       messenger.showSnackBar(
