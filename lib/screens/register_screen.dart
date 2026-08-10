@@ -922,7 +922,7 @@ class _SITTextField extends StatelessWidget {
           }
         },
         decoration: InputDecoration(
-          labelText: label,
+          label: ExcludeSemantics(child: Text(label)),
           hintText: placeholder,
           hintStyle: theme.textTheme.bodySmall?.copyWith(
               color: Colors.white.withValues(alpha: 0.42),

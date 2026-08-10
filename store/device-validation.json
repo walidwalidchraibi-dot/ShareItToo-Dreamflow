@@ -7,8 +7,8 @@
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
     "minimumBuildNumber": "2026080903",
-    "buildNumber": "2026081016",
-    "commit": "cf69a89f2c69455186a1b5fe599d315828cc93a4",
+    "buildNumber": "2026081017",
+    "commit": "17c9a62958ea77fff539651e5c9205e20989d219",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
@@ -16,8 +16,8 @@
     "stripeLivemode": false,
     "android": {
       "delivery": "pending",
-      "aabSha256": "fbf7624437a7b812c32a688f38a09f85f2d3bbdabb055c96b317f60a334e07fd",
-      "apkSha256": "56939494fca44a28882a4676a76b29f3938b026fc4594bbdad6e57559bb13870",
+      "aabSha256": "b1a33e4c20fd4d64722d02835552680788b687abc9af2c1ca7ee38cba7b7e0d7",
+      "apkSha256": "ec68c91c7971afdffdc37ac4134f637d66af4aa345a4e43326dce5de610cdb0c",
       "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
     },
     "ios": {
@@ -136,15 +136,15 @@
   "releaseChecks": {
     "candidateIdentityAndSignatures": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081016.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081017.json"
     },
     "firebaseFcmAndApns": {
       "status": "testing",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081016.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081017.json"
     },
     "binaryPrivacyAndNetwork": {
       "status": "testing",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081016.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081017.json"
     },
     "crashReleaseMapping": {
       "status": "open",
@@ -156,11 +156,11 @@
     },
     "stagingCleanupAndHealth": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081016.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081017.json"
     },
     "productionInvariant": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081016.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081017.json"
     }
   },
   "approvals": {

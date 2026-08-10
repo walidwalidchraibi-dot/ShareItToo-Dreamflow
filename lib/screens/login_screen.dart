@@ -946,7 +946,7 @@ class _SITTextField extends StatelessWidget {
           }
         },
         decoration: InputDecoration(
-          labelText: label,
+          label: ExcludeSemantics(child: Text(label)),
           hintText: placeholder,
           hintStyle: theme.textTheme.bodySmall?.copyWith(
               color: Colors.white.withValues(alpha: 0.42),
@@ -1256,7 +1256,7 @@ class _SITResetField extends StatelessWidget {
             color: theme.colorScheme.onSurface),
         validator: validator,
         decoration: InputDecoration(
-          labelText: 'E-Mail',
+          label: const ExcludeSemantics(child: Text('E-Mail')),
           hintText: 'deine@email.com',
           filled: true,
           fillColor: Colors.white.withValues(alpha: 0.06),
