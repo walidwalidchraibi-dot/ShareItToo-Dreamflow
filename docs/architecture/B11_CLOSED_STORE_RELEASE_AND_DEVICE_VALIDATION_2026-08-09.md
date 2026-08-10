@@ -53,6 +53,14 @@ nach dem Logout. Er wurde durch die oben referenzierten exakten Build-1029-
 Nachweise abgelöst und schließt weiterhin kein Store-, Hotspot-, TalkBack- oder
 iOS-Gate.
 
+Die anschließende lesende Crashlytics-Triage ist unter
+`docs/evidence/b11/crashlytics-open-issues-triage-20260810T221142Z.json`
+festgehalten. Beide offenen Fatal-Gruppen stammen aus älteren Builds; für die
+vorbereitete Korrektur sind 200 Flutter-Tests sowie Web- und Android-Debug-Build
+grün. Da diese Änderung nicht Bestandteil des archivierten Build `2026081029`
+ist, muss sie in einem neuen exakten Kandidaten erneut auf Geräten geprüft
+werden und schließt hier kein Gate.
+
 ## Chronologischer technischer Nachweis
 
 Die folgenden Abschnitte halten die Entwicklungsschritte und damaligen

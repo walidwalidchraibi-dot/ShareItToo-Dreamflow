@@ -119,6 +119,16 @@ die öffentlichen Pfade liefern jedoch nur die App-Hülle ohne Seiten- und
 Compliance-Marker. Der Befund schließt kein Gate und hat weder Produktion noch
 Staging verändert.
 
+Die lesende Crashlytics-Triage
+`crashlytics-open-issues-triage-20260810T221142Z.json` ordnet beide offenen
+Fatal-Gruppen ausschließlich älteren Builds bis `2026081026` beziehungsweise
+`2026081019` zu; Build `2026081029` wurde in diesen Gruppen nicht beobachtet.
+Die vorbereitete Korrektur fängt den Echtzeit-Verbindungsaufbau ab, klassifiziert
+Verbindungsfehler defensiv als nicht fatal und entfernt den alten Widget-Kontext
+aus der Abmelde-Navigation. Sie bestand 200 Flutter-Tests sowie Web- und
+Android-Debug-Build, ist aber noch nicht auf einem physischen Gerät installiert.
+Deshalb ist ein neuer exakter Kandidaten-Build mit erneuter Geräteprüfung nötig.
+
 Die folgenden Direkt-Smoke-Nachweise bleiben als chronologische Historie
 erhalten; nur der obige Snapshot und die Referenzen im Manifest bezeichnen den
 aktuellen Kandidaten.
