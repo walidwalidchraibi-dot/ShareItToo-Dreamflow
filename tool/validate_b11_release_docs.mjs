@@ -70,6 +70,7 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
   const candidate = object(manifest.candidate, 'candidate');
   const android = object(candidate.android, 'candidate.android');
   const diagnostic = object(android.directDiagnostic, 'candidate.android.directDiagnostic');
+  const appLinks = object(android.directAppLinks, 'candidate.android.directAppLinks');
   const evidence = object(candidateEvidence, 'candidate evidence');
   const staging = object(evidence.staging, 'candidate evidence.staging');
 
@@ -94,11 +95,12 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
 | Android-APK SHA-256 | \`${sha256(android.apkSha256, 'candidate.android.apkSha256')}\` |
 | Uploadzertifikat SHA-256 | \`${sha256(android.signingCertificateSha256, 'candidate.android.signingCertificateSha256')}\` |
 | Direkte Android-Diagnose | \`${nonEmptyString(diagnostic.status, 'candidate.android.directDiagnostic.status')}\` auf ${nonEmptyString(diagnostic.deviceModel, 'candidate.android.directDiagnostic.deviceModel')}, Android ${nonEmptyString(diagnostic.osVersion, 'candidate.android.directDiagnostic.osVersion')}; \`${nonEmptyString(diagnostic.evidenceRef, 'candidate.android.directDiagnostic.evidenceRef')}\` |
+| Direkte Android-App-Link-Diagnose | \`${nonEmptyString(appLinks.status, 'candidate.android.directAppLinks.status')}\` auf ${nonEmptyString(appLinks.deviceModel, 'candidate.android.directAppLinks.deviceModel')}, Android ${nonEmptyString(appLinks.osVersion, 'candidate.android.directAppLinks.osVersion')}; \`${nonEmptyString(appLinks.evidenceRef, 'candidate.android.directAppLinks.evidenceRef')}\` |
 | Kandidatenbeleg | \`${nonEmptyString(manifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef, 'releaseChecks.candidateIdentityAndSignatures.evidenceRef')}\` |
 | Staging-Servercommit | \`${fullCommit(staging.serverCommit, 'candidate evidence.staging.serverCommit')}\` |
 | Ehrlicher Freigabestand | \`${nonEmptyString(manifest.state, 'state')}/${nonEmptyString(manifest.goNoGo, 'goNoGo')}\`; Gerätezellen ${passedCells}/${totalCells}; Releaseprüfungen ${passedReleaseChecks}/${releaseChecks.length} |
 
-Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkte APK-Diagnose ist keine Store-Installation und schließt weder die Rollen-/Netzmatrix noch TalkBack, Push, iOS/TestFlight, Produktion oder Echtgeld.
+Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK- und App-Link-Diagnosen sind keine Store-Installation und schließen weder die Rollen-/Netzmatrix noch angemeldete Deep Links, TalkBack, Push, iOS/TestFlight, Produktion oder Echtgeld.
 ${snapshotEnd}`;
 }
 

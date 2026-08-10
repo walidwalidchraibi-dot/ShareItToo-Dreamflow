@@ -48,6 +48,16 @@ test('rejects a stale build number in a snapshot', () => {
   assert.throws(() => validate({ documents: changed }), /snapshot is stale or incomplete/);
 });
 
+test('rejects a stale or missing app-link diagnostic in a snapshot', () => {
+  const changed = structuredClone(documents);
+  const path = documentPaths[1];
+  changed[path] = changed[path].replace(
+    '| Direkte Android-App-Link-Diagnose | `passed`',
+    '| Direkte Android-App-Link-Diagnose | `open`',
+  );
+  assert.throws(() => validate({ documents: changed }), /snapshot is stale or incomplete/);
+});
+
 test('rejects duplicate snapshot markers', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[2];
