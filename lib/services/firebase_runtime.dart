@@ -86,6 +86,43 @@ class FirebaseRuntimeConfig {
   }
 }
 
+class ForegroundPushMessage {
+  final String title;
+  final String body;
+  final Uri? actionUri;
+
+  const ForegroundPushMessage({
+    required this.title,
+    required this.body,
+    this.actionUri,
+  });
+}
+
+@visibleForTesting
+ForegroundPushMessage? parseForegroundPushMessage({
+  String? title,
+  String? body,
+  Map<String, dynamic> data = const {},
+}) {
+  final safeTitle = title?.trim() ?? '';
+  final safeBody = body?.trim() ?? '';
+  if (safeTitle.isEmpty && safeBody.isEmpty) return null;
+
+  final rawAction = data['actionUrl']?.toString().trim() ?? '';
+  final parsedAction = rawAction.isEmpty ? null : Uri.tryParse(rawAction);
+  const supportedSchemes = {'https', 'http', 'shareittoo'};
+  final actionUri = parsedAction != null &&
+          supportedSchemes.contains(parsedAction.scheme.toLowerCase()) &&
+          parsedAction.userInfo.isEmpty
+      ? parsedAction
+      : null;
+  return ForegroundPushMessage(
+    title: safeTitle.isEmpty ? 'ShareItToo' : safeTitle,
+    body: safeBody,
+    actionUri: actionUri,
+  );
+}
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await FirebaseRuntime.ensureFirebaseApp();
@@ -110,14 +147,19 @@ Future<String?> waitForApplePushToken({
 class FirebaseRuntime {
   static final StreamController<Uri> _actionLinks =
       StreamController<Uri>.broadcast(sync: true);
+  static final StreamController<ForegroundPushMessage> _foregroundMessages =
+      StreamController<ForegroundPushMessage>.broadcast(sync: true);
   static Future<bool>? _initialization;
   static StreamSubscription<String>? _tokenRefreshSubscription;
   static StreamSubscription<RemoteMessage>? _openedMessageSubscription;
+  static StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
   static bool _initialized = false;
   static Uri? _pendingActionLink;
   static String _locale = 'de-DE';
 
   static Stream<Uri> get actionLinks => _actionLinks.stream;
+  static Stream<ForegroundPushMessage> get foregroundMessages =>
+      _foregroundMessages.stream;
   static bool get isInitialized => _initialized;
 
   static Future<bool> initialize() {
@@ -148,6 +190,8 @@ class FirebaseRuntime {
       );
       _openedMessageSubscription ??=
           FirebaseMessaging.onMessageOpenedApp.listen(_captureActionLink);
+      _foregroundMessageSubscription ??=
+          FirebaseMessaging.onMessage.listen(_captureForegroundMessage);
       _captureActionLink(await FirebaseMessaging.instance.getInitialMessage());
       _initialized = true;
       return true;
@@ -248,6 +292,23 @@ class FirebaseRuntime {
     if (uri == null || uri.scheme.isEmpty) return;
     _pendingActionLink = uri;
     _actionLinks.add(uri);
+  }
+
+  static void _captureForegroundMessage(RemoteMessage message) {
+    final notification = message.notification;
+    final foreground = parseForegroundPushMessage(
+      title: notification?.title,
+      body: notification?.body,
+      data: message.data,
+    );
+    if (foreground != null) _foregroundMessages.add(foreground);
+  }
+
+  static void openForegroundMessage(ForegroundPushMessage message) {
+    final actionUri = message.actionUri;
+    if (actionUri == null) return;
+    _pendingActionLink = actionUri;
+    _actionLinks.add(actionUri);
   }
 
   static Uri? takePendingActionLink() {

@@ -18,6 +18,7 @@ import 'package:lendify/services/app_link_service.dart';
 import 'package:lendify/services/release_identity.dart';
 import 'package:lendify/services/firebase_runtime.dart';
 import 'package:lendify/screens/app_link_destination_screen.dart';
+import 'package:lendify/widgets/foreground_push_host.dart';
 
 Future<void> main() async {
   // Initialize bindings once in the same zone as runApp to avoid zone mismatch warnings.
@@ -117,8 +118,11 @@ class MyApp extends StatelessWidget {
             theme: buildLightTheme(context),
             darkTheme: buildDarkTheme(context),
             themeMode: ThemeMode.system,
-            builder: (context, child) =>
-                AppGradientBackground(child: child ?? const SizedBox.shrink()),
+            builder: (context, child) => ForegroundPushHost(
+              child: AppGradientBackground(
+                child: child ?? const SizedBox.shrink(),
+              ),
+            ),
             home: const AppLinkHost(child: AppRoot()),
           );
         },
