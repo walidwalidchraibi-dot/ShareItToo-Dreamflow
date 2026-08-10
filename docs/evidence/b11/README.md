@@ -89,7 +89,7 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Kontrollierte Android-FCM-Diagnose | `pending/pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
 | Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
+| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081101.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081101.json` |
 | Staging-Servercommit | `ec570acfddc218cec6d2bfba43d4feb33bda4cfc` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |

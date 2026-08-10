@@ -40,6 +40,7 @@
   },
   "exactCandidateDiagnostics": {
     "directInstallAndLaunch": "passed",
+    "crashlyticsMappingAndNativeSymbols": "passed",
     "crashlyticsReleaseAssignment": "pending",
     "guestAppLinks": "passed",
     "authenticatedSessionRestore": "pending",
