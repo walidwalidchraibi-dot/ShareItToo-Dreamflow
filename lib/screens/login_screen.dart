@@ -293,7 +293,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Row(children: [
                                   _GlassIconButton(
                                       icon: Icons.arrow_back,
-                                      semanticLabel: MaterialLocalizations.of(context).backButtonTooltip,
+                                      semanticLabel:
+                                          MaterialLocalizations.of(context)
+                                              .backButtonTooltip,
                                       onTap: () =>
                                           Navigator.of(context).maybePop()),
                                   Expanded(
@@ -804,7 +806,8 @@ class _GlassIconButton extends StatelessWidget {
   final IconData icon;
   final String semanticLabel;
   final VoidCallback onTap;
-  const _GlassIconButton({required this.icon, required this.semanticLabel, required this.onTap});
+  const _GlassIconButton(
+      {required this.icon, required this.semanticLabel, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -834,7 +837,8 @@ class _GlassSuffixIconButton extends StatelessWidget {
   final IconData icon;
   final String semanticLabel;
   final VoidCallback onTap;
-  const _GlassSuffixIconButton({required this.icon, required this.semanticLabel, required this.onTap});
+  const _GlassSuffixIconButton(
+      {required this.icon, required this.semanticLabel, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -918,7 +922,8 @@ class _SITTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Semantics(
+    return MergeSemantics(
+        child: Semantics(
       label: label,
       textField: true,
       child: TextFormField(
@@ -941,49 +946,53 @@ class _SITTextField extends StatelessWidget {
           }
         },
         decoration: InputDecoration(
-        labelText: label,
-        hintText: placeholder,
-        hintStyle: theme.textTheme.bodySmall?.copyWith(
-            color: Colors.white.withValues(alpha: 0.42),
-            fontWeight: FontWeight.w600),
-        labelStyle: theme.textTheme.bodySmall?.copyWith(
-            color: Colors.white.withValues(alpha: 0.78),
-            fontWeight: FontWeight.w700),
-        prefixIcon: Padding(
-          padding: const EdgeInsets.only(left: 12, right: 10),
-          child: Icon(prefixIcon,
-              color: Colors.white.withValues(alpha: 0.78), size: 18),
-        ),
-        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-        suffixIcon: suffix == null
-            ? null
-            : Padding(padding: const EdgeInsets.only(right: 8), child: suffix),
-        filled: true,
-        fillColor: Colors.black.withValues(alpha: 0.12),
-        contentPadding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide:
-                BorderSide(color: Colors.white.withValues(alpha: 0.10))),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide:
-                const BorderSide(color: BrandColors.logoAccent, width: 1.4)),
-        errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(
-                color: BrandColors.danger.withValues(alpha: 0.9), width: 1.2)),
-        focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(
-                color: BrandColors.danger.withValues(alpha: 0.95), width: 1.3)),
-        errorStyle: theme.textTheme.bodySmall?.copyWith(
-            color: Colors.white.withValues(alpha: 0.92),
-            height: 1.25,
-            fontWeight: FontWeight.w700),
+          labelText: label,
+          hintText: placeholder,
+          hintStyle: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.42),
+              fontWeight: FontWeight.w600),
+          labelStyle: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.78),
+              fontWeight: FontWeight.w700),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 12, right: 10),
+            child: Icon(prefixIcon,
+                color: Colors.white.withValues(alpha: 0.78), size: 18),
+          ),
+          prefixIconConstraints:
+              const BoxConstraints(minWidth: 0, minHeight: 0),
+          suffixIcon: suffix == null
+              ? null
+              : Padding(
+                  padding: const EdgeInsets.only(right: 8), child: suffix),
+          filled: true,
+          fillColor: Colors.black.withValues(alpha: 0.12),
+          contentPadding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide:
+                  BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide:
+                  const BorderSide(color: BrandColors.logoAccent, width: 1.4)),
+          errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide(
+                  color: BrandColors.danger.withValues(alpha: 0.9),
+                  width: 1.2)),
+          focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide(
+                  color: BrandColors.danger.withValues(alpha: 0.95),
+                  width: 1.3)),
+          errorStyle: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.92),
+              height: 1.25,
+              fontWeight: FontWeight.w700),
         ),
       ),
-    );
+    ));
   }
 }
 
@@ -1222,7 +1231,8 @@ class _SITResetField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Semantics(
+    return MergeSemantics(
+        child: Semantics(
       label: 'E-Mail für Passwortzurücksetzung',
       textField: true,
       child: TextFormField(
@@ -1238,31 +1248,33 @@ class _SITResetField extends StatelessWidget {
             color: theme.colorScheme.onSurface),
         validator: validator,
         decoration: InputDecoration(
-        labelText: 'E-Mail',
-        hintText: 'deine@email.com',
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.06),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide:
-                BorderSide(color: Colors.white.withValues(alpha: 0.12))),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide:
-                const BorderSide(color: BrandColors.logoAccent, width: 1.4)),
-        errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(
-                color: BrandColors.danger.withValues(alpha: 0.9), width: 1.2)),
-        focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(
-                color: BrandColors.danger.withValues(alpha: 0.95), width: 1.3)),
-        errorStyle: theme.textTheme.bodySmall?.copyWith(
-            color: Colors.white.withValues(alpha: 0.95), height: 1.25),
+          labelText: 'E-Mail',
+          hintText: 'deine@email.com',
+          filled: true,
+          fillColor: Colors.white.withValues(alpha: 0.06),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide:
+                  BorderSide(color: Colors.white.withValues(alpha: 0.12))),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide:
+                  const BorderSide(color: BrandColors.logoAccent, width: 1.4)),
+          errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide(
+                  color: BrandColors.danger.withValues(alpha: 0.9),
+                  width: 1.2)),
+          focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide(
+                  color: BrandColors.danger.withValues(alpha: 0.95),
+                  width: 1.3)),
+          errorStyle: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.95), height: 1.25),
         ),
       ),
-    );
+    ));
   }
 }
 

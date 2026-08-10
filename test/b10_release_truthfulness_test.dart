@@ -196,7 +196,8 @@ void main() {
     expect(profile, contains('overrideContent: const GuestGateContent'));
     expect(profile, contains("label: l10n.t('Profil durchsuchen')"));
     expect(profile, contains("'Sucheingabe löschen'"));
-    expect(profile, contains("_isProfileSearchOpen ? 'Suche schließen' : 'Suchen'"));
+    expect(profile,
+        contains("_isProfileSearchOpen ? 'Suche schließen' : 'Suchen'"));
     expect(
       notifications,
       contains('tooltip: MaterialLocalizations.of(context).backButtonTooltip'),
@@ -204,19 +205,26 @@ void main() {
   });
 
   test('login fields and icon controls expose screen reader names', () async {
-    final login =
-        await File('lib/screens/login_screen.dart').readAsString();
+    final login = await File('lib/screens/login_screen.dart').readAsString();
     final register =
         await File('lib/screens/register_screen.dart').readAsString();
 
     for (final source in [login, register]) {
       expect(source, contains('label: label'));
       expect(source, contains('textField: true'));
+      expect(
+        source,
+        matches(RegExp(r'MergeSemantics\(\s*child:\s*Semantics\(')),
+      );
       expect(source, contains("? 'Passwort verbergen'"));
       expect(source, contains(": 'Passwort anzeigen'"));
       expect(
         source,
-        contains('MaterialLocalizations.of(context).backButtonTooltip'),
+        matches(
+          RegExp(
+            r'MaterialLocalizations\s*\.of\(context\)\s*\.backButtonTooltip',
+          ),
+        ),
       );
     }
     expect(
@@ -233,6 +241,12 @@ void main() {
 
     expect(help, contains("label: 'Hilfe durchsuchen'"));
     expect(help, contains("label: 'Support-Anliegen'"));
+    expect(
+      RegExp(r'MergeSemantics\(\s*child:\s*Semantics\(')
+          .allMatches(help)
+          .length,
+      2,
+    );
     expect(help, contains("tooltip: 'Sucheingabe löschen'"));
     expect(
       help,
