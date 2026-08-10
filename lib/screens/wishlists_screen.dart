@@ -258,6 +258,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: IconButton(
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             onPressed: () => Navigator.of(context).maybePop(),
             icon: const Icon(Icons.arrow_back)),
         title: Column(mainAxisSize: MainAxisSize.min, children: [

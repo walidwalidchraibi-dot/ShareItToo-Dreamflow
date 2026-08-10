@@ -203,6 +203,67 @@ void main() {
     );
   });
 
+  test('login fields and icon controls expose screen reader names', () async {
+    final login =
+        await File('lib/screens/login_screen.dart').readAsString();
+    final register =
+        await File('lib/screens/register_screen.dart').readAsString();
+
+    for (final source in [login, register]) {
+      expect(source, contains('label: label'));
+      expect(source, contains('textField: true'));
+      expect(source, contains("? 'Passwort verbergen'"));
+      expect(source, contains(": 'Passwort anzeigen'"));
+      expect(
+        source,
+        contains('MaterialLocalizations.of(context).backButtonTooltip'),
+      );
+    }
+    expect(
+      register,
+      contains("? 'Passwortbestätigung verbergen'"),
+    );
+    expect(register, contains(": 'Passwortbestätigung anzeigen'"));
+    expect(login, contains("label: 'E-Mail für Passwortzurücksetzung'"));
+  });
+
+  test('help search, support field, and back action are named', () async {
+    final help =
+        await File('lib/screens/help_center_screen.dart').readAsString();
+
+    expect(help, contains("label: 'Hilfe durchsuchen'"));
+    expect(help, contains("label: 'Support-Anliegen'"));
+    expect(help, contains("tooltip: 'Sucheingabe löschen'"));
+    expect(
+      help,
+      contains('MaterialLocalizations.of(context).backButtonTooltip'),
+    );
+  });
+
+  test('every back-arrow control has an accessible name', () async {
+    final dartFiles = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'));
+
+    for (final file in dartFiles) {
+      final lines = await file.readAsLines();
+      for (var index = 0; index < lines.length; index++) {
+        if (!lines[index].contains('Icons.arrow_back')) continue;
+        final start = index > 5 ? index - 5 : 0;
+        final end = index + 4 < lines.length ? index + 4 : lines.length;
+        final context = lines.sublist(start, end).join('\n');
+        expect(
+          context.contains('tooltip:') ||
+              context.contains('semanticLabel:') ||
+              context.contains('label:'),
+          isTrue,
+          reason: '${file.path}:${index + 1} has an unnamed back arrow',
+        );
+      }
+    }
+  });
+
   test('authenticated empty states do not present invented marketplace data',
       () async {
     final profile =

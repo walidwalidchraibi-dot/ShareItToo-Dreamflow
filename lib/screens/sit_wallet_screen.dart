@@ -95,7 +95,7 @@ class _SitWalletScreenState extends State<SitWalletScreen> {
           surfaceTintColor: Colors.transparent,
           title: Text('SIT Guthaben', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
           centerTitle: true,
-          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
+          leading: IconButton(tooltip: MaterialLocalizations.of(context).backButtonTooltip, icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
         ),
         body: SafeArea(
           child: _loading

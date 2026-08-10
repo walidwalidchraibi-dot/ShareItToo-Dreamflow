@@ -3950,6 +3950,7 @@ class _ThreadHeader extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: Colors.transparent,
       elevation: 0,
       leading: IconButton(
+        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
         onPressed: () => Navigator.of(context).pop(true),
         icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary(context)),
       ),

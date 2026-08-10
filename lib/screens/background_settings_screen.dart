@@ -21,6 +21,7 @@ class BackgroundSettingsScreen extends StatelessWidget {
         title: const Text('Hintergrund'),
         centerTitle: true,
         leading: IconButton(
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
         ),

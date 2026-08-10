@@ -291,6 +291,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Row(children: [
                         _GlassIconButton(
                             icon: Icons.arrow_back,
+                            semanticLabel: MaterialLocalizations.of(context).backButtonTooltip,
                             onTap: () => Navigator.of(context).maybePop()),
                         const SizedBox(width: 10),
                         Expanded(
@@ -469,6 +470,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                                   .visibility_off_outlined
                                                               : Icons
                                                                   .visibility_outlined,
+                                                          semanticLabel: _pwVisible
+                                                              ? 'Passwort verbergen'
+                                                              : 'Passwort anzeigen',
                                                           onTap: () => setState(
                                                               () => _pwVisible =
                                                                   !_pwVisible)),
@@ -520,6 +524,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                                   .visibility_off_outlined
                                                               : Icons
                                                                   .visibility_outlined,
+                                                          semanticLabel: _pw2Visible
+                                                              ? 'Passwortbestätigung verbergen'
+                                                              : 'Passwortbestätigung anzeigen',
                                                           onTap: () => setState(
                                                               () => _pw2Visible =
                                                                   !_pw2Visible)),
@@ -756,24 +763,29 @@ class _RegisterBackdrop extends StatelessWidget {
 
 class _GlassIconButton extends StatelessWidget {
   final IconData icon;
+  final String semanticLabel;
   final VoidCallback onTap;
-  const _GlassIconButton({required this.icon, required this.onTap});
+  const _GlassIconButton({required this.icon, required this.semanticLabel, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return _Pressable(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        width: 44,
-        height: 44,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: _Pressable(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          child: Icon(icon, color: Colors.white, size: 20),
         ),
-        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }
@@ -781,21 +793,26 @@ class _GlassIconButton extends StatelessWidget {
 
 class _GlassSuffixIconButton extends StatelessWidget {
   final IconData icon;
+  final String semanticLabel;
   final VoidCallback onTap;
-  const _GlassSuffixIconButton({required this.icon, required this.onTap});
+  const _GlassSuffixIconButton({required this.icon, required this.semanticLabel, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
 // Keep it “free-floating” inside the text field (no chip/background).
-    return _Pressable(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: SizedBox(
-        width: 40,
-        height: 40,
-        child: Center(
-            child: Icon(icon,
-                color: Colors.white.withValues(alpha: 0.85), size: 20)),
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: _Pressable(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Center(
+              child: Icon(icon,
+                  color: Colors.white.withValues(alpha: 0.85), size: 20)),
+        ),
       ),
     );
   }
@@ -878,26 +895,29 @@ class _SITTextField extends StatelessWidget {
       _FieldStatus.neutral => BrandColors.primary,
     };
 
-    return TextFormField(
-      controller: controller,
-      focusNode: focusNode,
-      keyboardType: keyboardType,
-      textInputAction: textInputAction,
-      obscureText: obscureText,
-      autocorrect: autocorrect,
-      enableSuggestions: enableSuggestions,
-      textCapitalization: textCapitalization,
-      style: theme.textTheme.bodyMedium?.copyWith(
-          fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
-      validator: validator,
-      onFieldSubmitted: (v) {
-        if (nextFocusNode != null) {
-          FocusScope.of(context).requestFocus(nextFocusNode);
-        } else {
-          onSubmitted?.call(v);
-        }
-      },
-      decoration: InputDecoration(
+    return Semantics(
+      label: label,
+      textField: true,
+      child: TextFormField(
+        controller: controller,
+        focusNode: focusNode,
+        keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        obscureText: obscureText,
+        autocorrect: autocorrect,
+        enableSuggestions: enableSuggestions,
+        textCapitalization: textCapitalization,
+        style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+        validator: validator,
+        onFieldSubmitted: (v) {
+          if (nextFocusNode != null) {
+            FocusScope.of(context).requestFocus(nextFocusNode);
+          } else {
+            onSubmitted?.call(v);
+          }
+        },
+        decoration: InputDecoration(
         labelText: label,
         hintText: placeholder,
         hintStyle: theme.textTheme.bodySmall?.copyWith(
@@ -937,6 +957,7 @@ class _SITTextField extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.92),
             height: 1.25,
             fontWeight: FontWeight.w700),
+        ),
       ),
     );
   }

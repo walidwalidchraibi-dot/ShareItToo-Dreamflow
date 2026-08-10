@@ -43,7 +43,11 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         centerTitle: true,
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
+        leading: IconButton(
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
         title: const Text('Hilfe-Center'),
       ),
       body: SingleChildScrollView(
@@ -676,17 +680,21 @@ class _SearchField extends StatelessWidget {
         Icon(Icons.search, color: Colors.white.withValues(alpha: 0.70)),
         const SizedBox(width: 8),
         Expanded(
-          child: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            onChanged: onChanged,
-            style: t.textTheme.bodyMedium?.copyWith(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Wie können wir dir helfen?',
-              hintStyle: t.textTheme.bodyMedium?.copyWith(color: Colors.white38),
-              border: InputBorder.none,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          child: Semantics(
+            label: 'Hilfe durchsuchen',
+            textField: true,
+            child: TextField(
+              controller: controller,
+              focusNode: focusNode,
+              onChanged: onChanged,
+              style: t.textTheme.bodyMedium?.copyWith(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Wie können wir dir helfen?',
+                hintStyle: t.textTheme.bodyMedium?.copyWith(color: Colors.white38),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              ),
             ),
           ),
         ),
@@ -696,6 +704,7 @@ class _SearchField extends StatelessWidget {
               ? const SizedBox(width: 42, height: 42)
               : IconButton(
                   key: const ValueKey('clear'),
+                  tooltip: 'Sucheingabe löschen',
                   onPressed: onClear,
                   icon: const Icon(Icons.close),
                   color: Colors.white70,
@@ -1074,21 +1083,25 @@ class _SupportCard extends StatelessWidget {
           style: t.textTheme.bodySmall?.copyWith(color: Colors.white70, height: 1.5),
         ),
         const SizedBox(height: 12),
-        TextField(
-          controller: controller,
-          maxLines: 4,
-          minLines: 3,
-          onChanged: onChanged,
-          style: t.textTheme.bodyMedium?.copyWith(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: 'Beschreibe dein Anliegen…',
-            hintStyle: t.textTheme.bodyMedium?.copyWith(color: Colors.white38),
-            filled: true,
-            fillColor: Colors.black.withValues(alpha: 0.20),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: t.colorScheme.primary.withValues(alpha: 0.65))),
+        Semantics(
+          label: 'Support-Anliegen',
+          textField: true,
+          child: TextField(
+            controller: controller,
+            maxLines: 4,
+            minLines: 3,
+            onChanged: onChanged,
+            style: t.textTheme.bodyMedium?.copyWith(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Beschreibe dein Anliegen…',
+              hintStyle: t.textTheme.bodyMedium?.copyWith(color: Colors.white38),
+              filled: true,
+              fillColor: Colors.black.withValues(alpha: 0.20),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: t.colorScheme.primary.withValues(alpha: 0.65))),
+            ),
           ),
         ),
         if (tooShort) ...[

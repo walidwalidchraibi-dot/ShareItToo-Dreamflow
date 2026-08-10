@@ -88,7 +88,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> with SingleTickerProvid
           surfaceTintColor: Colors.transparent,
           centerTitle: true,
           title: const Text('Rechnungen & Belege'),
-          leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => Navigator.of(context).maybePop()),
+          leading: IconButton(tooltip: MaterialLocalizations.of(context).backButtonTooltip, icon: const Icon(Icons.arrow_back_rounded), onPressed: () => Navigator.of(context).maybePop()),
         ),
         body: RefreshIndicator(
           color: cs.primary,

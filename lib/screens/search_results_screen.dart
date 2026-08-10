@@ -311,6 +311,7 @@ class _ResultsHeader extends StatelessWidget {
           width: 44,
           height: 44,
           child: IconButton(
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             onPressed: onBack,
             icon: const Icon(Icons.arrow_back),
             color: Colors.white,

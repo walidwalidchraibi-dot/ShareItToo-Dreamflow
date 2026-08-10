@@ -319,6 +319,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
           title: const Text('Sicherheit'),
           centerTitle: true,
           leading: IconButton(
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
               icon: const Icon(Icons.arrow_back),
               onPressed: () => Navigator.of(context).maybePop()),
         ),

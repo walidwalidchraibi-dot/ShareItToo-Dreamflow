@@ -178,6 +178,7 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                 child: Row(children: [
                   _TopIcon(
                     icon: Icons.arrow_back_rounded,
+                    semanticLabel: MaterialLocalizations.of(context).backButtonTooltip,
                     onTap: () => Navigator.of(context).maybePop(),
                   ),
                   const Spacer(),
@@ -185,6 +186,9 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                     icon: widget.isWishlisted()
                         ? Icons.favorite
                         : Icons.favorite_border,
+                    semanticLabel: widget.isWishlisted()
+                        ? 'Aus Wunschliste entfernen'
+                        : 'Zur Wunschliste hinzufügen',
                     iconSize: 20, // Herz bewusst etwas kleiner als Teilen-Icon
                     onTap: () async {
                       try {
@@ -204,6 +208,7 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                             Theme.of(context).platform == TargetPlatform.macOS)
                         ? Icons.ios_share_rounded
                         : Icons.share_rounded, // Android-typisches Teilen-Icon
+                    semanticLabel: 'Teilen',
                     onTap: () async {
                       try {
                         if (widget.onShare != null) {
@@ -239,24 +244,29 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
 
 class _TopIcon extends StatelessWidget {
   final IconData icon;
+  final String semanticLabel;
   final VoidCallback onTap;
   final double iconSize;
-  const _TopIcon({required this.icon, required this.onTap, this.iconSize = 24});
+  const _TopIcon({required this.icon, required this.semanticLabel, required this.onTap, this.iconSize = 24});
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 40,
-        height: 40,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.28),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.18))),
-        child: Icon(icon,
-            size: iconSize, color: Colors.white.withValues(alpha: 0.95)),
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.28),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.18))),
+          child: Icon(icon,
+              size: iconSize, color: Colors.white.withValues(alpha: 0.95)),
+        ),
       ),
     );
   }

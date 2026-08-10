@@ -138,7 +138,7 @@ class _EditSocialMediaScreenState extends State<EditSocialMediaScreen> {
           surfaceTintColor: Colors.transparent,
           title: const Text('Social Media hinzufügen'),
           centerTitle: true,
-          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
+          leading: IconButton(tooltip: MaterialLocalizations.of(context).backButtonTooltip, icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())

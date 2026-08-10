@@ -962,6 +962,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: IconButton(
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).maybePop()),
         title: Text(

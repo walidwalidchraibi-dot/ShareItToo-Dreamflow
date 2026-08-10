@@ -221,7 +221,7 @@ class _CheckAvailabilityScreenState extends State<CheckAvailabilityScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
             child: Row(children: [
-              IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back, color: Colors.white)),
+              IconButton(tooltip: MaterialLocalizations.of(context).backButtonTooltip, onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back, color: Colors.white)),
               const SizedBox(width: 4),
               // Month navigation cluster
               Container(

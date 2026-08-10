@@ -36,7 +36,7 @@ class LegalScreen extends StatelessWidget {
           surfaceTintColor: Colors.transparent,
           title: const Text('Rechtliches'),
           centerTitle: true,
-          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
+          leading: IconButton(tooltip: MaterialLocalizations.of(context).backButtonTooltip, icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 16, 16, 24),

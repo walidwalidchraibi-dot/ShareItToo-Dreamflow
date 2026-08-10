@@ -410,6 +410,7 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
                     Align(
                       alignment: Alignment.centerLeft,
                       child: IconButton(
+                        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
                         onPressed: () => Navigator.of(context).maybePop(),
                         icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : AppTheme.textPrimary(context)),
                       ),

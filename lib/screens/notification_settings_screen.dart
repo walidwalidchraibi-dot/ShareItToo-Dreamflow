@@ -68,6 +68,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             title: const SizedBox.shrink(),
             centerTitle: true,
             leading: IconButton(
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
               icon: const Icon(Icons.arrow_back, size: 22),
               color: Colors.white.withValues(alpha: 0.92),
               onPressed: () => Navigator.of(context).maybePop(),

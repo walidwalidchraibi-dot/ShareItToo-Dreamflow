@@ -586,6 +586,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
                     child: Row(
                       children: [
                         IconButton(
+                          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
                           onPressed: _handleBack,
                           icon: Icon(
                             Icons.arrow_back_ios_new_rounded,

@@ -59,6 +59,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         title: Text(l10n.t('profile.menu.accountSettings')),
         centerTitle: true,
         leading: IconButton(
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).maybePop()),
       ),

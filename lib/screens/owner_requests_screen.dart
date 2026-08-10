@@ -450,7 +450,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        leading: IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
+        leading: IconButton(tooltip: MaterialLocalizations.of(context).backButtonTooltip, onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
         title: Text(title),
         centerTitle: true,
         bottom: TabBar(

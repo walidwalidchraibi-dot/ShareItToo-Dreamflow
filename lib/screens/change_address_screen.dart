@@ -101,7 +101,7 @@ class _ChangeAddressScreenState extends State<ChangeAddressScreen> {
           surfaceTintColor: Colors.transparent,
           title: const Text('Adresse ändern'),
           centerTitle: true,
-          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
+          leading: IconButton(tooltip: MaterialLocalizations.of(context).backButtonTooltip, icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
