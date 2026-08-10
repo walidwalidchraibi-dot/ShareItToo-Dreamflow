@@ -116,6 +116,10 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
   const exactDiagnostics = object(evidence.exactCandidateDiagnostics, 'candidate evidence.exactCandidateDiagnostics');
   const controlledFcm = evidence.controlledFcm ?? evidence.logoutAndPushLifecycle;
   const logoutLifecycle = evidence.logoutLifecycle ?? evidence.logoutAndPushLifecycle;
+  const crashReleaseMapping = object(
+    manifest.releaseChecks?.crashReleaseMapping,
+    'releaseChecks.crashReleaseMapping',
+  );
   if (exactDiagnostics.foregroundFcm !== 'passed'
       || exactDiagnostics.backgroundFcm !== 'passed'
       || exactDiagnostics.terminatedProcessFcm !== 'passed'
@@ -153,6 +157,7 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
 | Authentifizierte Android-Deep-Links | \`${nonEmptyString(authenticatedLinks.status, 'candidate.android.authenticatedDeepLinks.status')}\` auf ${nonEmptyString(authenticatedLinks.deviceModel, 'candidate.android.authenticatedDeepLinks.deviceModel')}, Android ${nonEmptyString(authenticatedLinks.osVersion, 'candidate.android.authenticatedDeepLinks.osVersion')}; \`${nonEmptyString(authenticatedLinks.evidenceRef, 'candidate.android.authenticatedDeepLinks.evidenceRef')}\` |
 | Kontrollierte Android-FCM-Diagnose | \`passed\` in Vordergrund, Hintergrund und bei beendetem Prozess; \`${nonEmptyString(controlledFcm.evidenceRef, 'candidate evidence controlled FCM evidenceRef')}\` |
 | Android-Abmeldung und Push-Unterdrückung | \`passed\`; \`${nonEmptyString(logoutLifecycle.evidenceRef, 'candidate evidence logout lifecycle evidenceRef')}\` |
+| Crashlytics-Releasezuordnung | \`${nonEmptyString(crashReleaseMapping.status, 'releaseChecks.crashReleaseMapping.status')}\`; \`${nonEmptyString(crashReleaseMapping.evidenceRef, 'releaseChecks.crashReleaseMapping.evidenceRef')}\` |
 | Kandidatenbeleg | \`${nonEmptyString(manifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef, 'releaseChecks.candidateIdentityAndSignatures.evidenceRef')}\` |
 | Staging-Servercommit | \`${fullCommit(staging.serverCommit, 'candidate evidence.staging.serverCommit')}\` |
 | Ehrlicher Freigabestand | \`${nonEmptyString(manifest.state, 'state')}/${nonEmptyString(manifest.goNoGo, 'goNoGo')}\`; Gerätezellen ${passedCells}/${totalCells}; Releaseprüfungen ${passedReleaseChecks}/${releaseChecks.length} |

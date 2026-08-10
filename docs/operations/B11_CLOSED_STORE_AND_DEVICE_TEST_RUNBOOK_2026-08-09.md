@@ -40,6 +40,7 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081029-20260810T173841Z.json` |
 | Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081029-20260810T172500Z.json` |
 | Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081029-20260810T175031Z.json` |
+| Crashlytics-Releasezuordnung | `passed`; `docs/evidence/b11/android-crash-release-check-2026081029.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081029.json` |
 | Staging-Servercommit | `ec570acfddc218cec6d2bfba43d4feb33bda4cfc` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |

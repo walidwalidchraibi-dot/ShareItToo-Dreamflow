@@ -89,6 +89,7 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081029-20260810T173841Z.json` |
 | Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081029-20260810T172500Z.json` |
 | Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081029-20260810T175031Z.json` |
+| Crashlytics-Releasezuordnung | `passed`; `docs/evidence/b11/android-crash-release-check-2026081029.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081029.json` |
 | Staging-Servercommit | `ec570acfddc218cec6d2bfba43d4feb33bda4cfc` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
@@ -96,21 +97,27 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM- und Abmeldediagnosen sind keine Store-Installation. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
 
-Der zusätzliche Crash-/Symbolnachweis
-`android-crash-release-mapping-2026081026.json` bindet die im AAB
-eingebettete R8-Zuordnung und alle nativen Android-Symbole per SHA-256 an
-denselben Kandidaten. Die Originalzuordnung wurde erfolgreich zu Crashlytics
-übertragen. Der bereinigte kontrollierte Testfehler und seine sichtbare
-Releasezuordnung in der Firebase-Konsole bleiben bewusst offen; deshalb steht
-die Releaseprüfung ehrlich auf `testing` und nicht auf `passed`.
+Der aktuelle Crash-/Symbolnachweis
+`android-crash-release-mapping-2026081029.json` bindet die im AAB eingebettete
+R8-Zuordnung und alle nativen Android-Symbole per SHA-256 an Build 2026081029.
+`android-crash-release-check-2026081029.json` belegt zusätzlich das bereinigte
+kontrollierte Diagnoseereignis und seine sichtbare Zuordnung zur exakten
+Version und Buildnummer in der Firebase-Konsole. Deshalb steht die
+Releaseprüfung `crashReleaseMapping` jetzt nachweislich auf `passed`.
 
-Der zusätzliche exakte Logout-/Push-Lebenszyklusnachweis für Build
-`2026081026` liegt unter
-`android-logout-push-lifecycle-2026081026-20260810T140200Z.json`. Er belegt
-Vordergrund-, Hintergrund- und bei zuvor beendetem Prozess ausgelöste
-Staging-Pushs, das vergrößerte adaptive Symbol, die Anmeldesperre nach einem
-Kaltstart und die ausbleibende Zustellung nach dem Logout. Store-Installation,
-Hotspot, TalkBack, iOS und die vollständige Gerätematrix bleiben offen.
+Der aktuelle Abmelde-/Push-Unterdrückungsnachweis liegt unter
+`android-logout-lifecycle-2026081029-20260810T175031Z.json`. Er belegt den
+persistenten Gastzustand nach Kaltstart, den erneut geschützten privaten
+Chat-Link und die ausbleibende Gerätebenachrichtigung nach einer kontrollierten
+Testnachricht. Store-Installation, Hotspot, TalkBack, iOS und die vollständige
+Gerätematrix bleiben offen.
+
+Die negative Routendiagnose
+`public-store-route-diagnostic-20260810T214657Z.json` hält einen separaten
+B12-Blocker fest: Die drei Backend-Seiten verhalten sich auf Staging korrekt,
+die öffentlichen Pfade liefern jedoch nur die App-Hülle ohne Seiten- und
+Compliance-Marker. Der Befund schließt kein Gate und hat weder Produktion noch
+Staging verändert.
 
 Die folgenden Direkt-Smoke-Nachweise bleiben als chronologische Historie
 erhalten; nur der obige Snapshot und die Referenzen im Manifest bezeichnen den
