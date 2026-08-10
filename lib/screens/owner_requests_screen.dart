@@ -157,13 +157,19 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
       setState(() => _entries = const []);
       return;
     }
-    final items = await DataService.getItems();
-    final users = await DataService.getUsers();
-    final byItem = {for (final it in items) it.id: it};
-    final byUser = {for (final u in users) u.id: u};
-    // Load delivery selection per item (demo persistence)
-    for (final it in items) {
-      _deliveryByItemId[it.id] = await DataService.getSavedDeliverySelection(it.id);
+    // A freshly registered renter is not guaranteed to be present in the
+    // owner's local user cache. Hydrate every referenced backend record just
+    // like the renter-side BookingsScreen does.
+    final byItem = <String, Item?>{};
+    final byUser = <String, model.User?>{};
+    for (final request in requests) {
+      byItem[request.itemId] = byItem[request.itemId] ?? await DataService.getItemById(request.itemId);
+      byUser[request.renterId] = byUser[request.renterId] ?? await DataService.getUserById(request.renterId);
+    }
+    for (final item in byItem.values) {
+      if (item != null) {
+        _deliveryByItemId[item.id] = await DataService.getSavedDeliverySelection(item.id);
+      }
     }
     final list = <_OwnerEntry>[];
     for (final r in requests) {

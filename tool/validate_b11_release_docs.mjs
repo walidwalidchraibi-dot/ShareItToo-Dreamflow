@@ -65,6 +65,43 @@ function same(actual, expected, label) {
   if (actual !== expected) fail(`${label} does not match the current candidate.`);
 }
 
+function validateRolloverBaseline({ manifest, pubspec, documents, root }) {
+  const documentedBuilds = new Set();
+  for (const relativePath of snapshotDocuments) {
+    const content = documents?.[relativePath] ?? readFileSync(resolve(root, relativePath), 'utf8');
+    if (countMatches(content, snapshotBegin) !== 1 || countMatches(content, snapshotEnd) !== 1) {
+      fail(`${relativePath} must contain exactly one current-release snapshot block.`);
+    }
+    const snapshot = content.slice(
+      content.indexOf(snapshotBegin),
+      content.indexOf(snapshotEnd) + snapshotEnd.length,
+    );
+    const match = /\| Version und Build \| `[^`]+ \((\d{10})\)` \|/.exec(snapshot);
+    if (!match) fail(`${relativePath} must identify its documented B11 build.`);
+    documentedBuilds.add(match[1]);
+  }
+  if (documentedBuilds.size !== 1) {
+    fail('All B11 snapshot documents must identify the same rollover baseline build.');
+  }
+  const [documentedBuild] = documentedBuilds;
+  const minimumBuild = nonEmptyString(manifest.candidate.minimumBuildNumber, 'candidate.minimumBuildNumber');
+  if (BigInt(documentedBuild) < BigInt(minimumBuild) ||
+      BigInt(documentedBuild) > BigInt(manifest.candidate.buildNumber) ||
+      BigInt(documentedBuild) >= BigInt(pubspec.buildNumber)) {
+    fail('The documented rollover baseline must remain between the minimum and current incomplete candidates.');
+  }
+
+  const runbookPath = 'docs/operations/B11_CLOSED_STORE_AND_DEVICE_TEST_RUNBOOK_2026-08-09.md';
+  const runbook = documents?.[runbookPath] ?? readFileSync(resolve(root, runbookPath), 'utf8');
+  const matrixRows = runbook
+    .split('\n')
+    .filter((line) => /^\| (Android|iOS) real \|/.test(line));
+  if (matrixRows.length !== 4 || matrixRows.some((line) => !line.includes(`\`${documentedBuild}\``))) {
+    fail('The four runbook device-matrix rows must use the documented rollover baseline build.');
+  }
+  return documentedBuild;
+}
+
 export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) {
   const manifest = object(deviceManifest, 'store/device-validation.json');
   const candidate = object(manifest.candidate, 'candidate');
@@ -166,6 +203,28 @@ export function validateB11ReleaseDocs({
   }
   if (evidence.boundaries?.uploadedToStore !== false || evidence.boundaries?.containsSecrets !== false || evidence.boundaries?.containsRawDeviceIdentifiers !== false) {
     fail('The current candidate evidence must preserve store, secret, and device-identifier boundaries.');
+  }
+
+  const isActiveRollover = allowCandidateRollover &&
+    BigInt(pubspec.buildNumber) > BigInt(candidate.buildNumber);
+  if (isActiveRollover) {
+    const documentedBuild = validateRolloverBaseline({
+      manifest,
+      pubspec,
+      documents,
+      root,
+    });
+    return {
+      buildNumber: candidate.buildNumber,
+      commit: candidate.commit,
+      documents: snapshotDocuments.length,
+      passedCells: manifest.deviceMatrix.filter((cell) => cell.status === 'passed').length,
+      totalCells: manifest.deviceMatrix.length,
+      passedReleaseChecks: Object.values(manifest.releaseChecks).filter((check) => check.status === 'passed').length,
+      totalReleaseChecks: Object.keys(manifest.releaseChecks).length,
+      rolloverBuildNumber: pubspec.buildNumber,
+      documentedBuild,
+    };
   }
 
   const expectedSnapshot = renderB11ReleaseSnapshot({ deviceManifest: manifest, candidateEvidence: evidence });

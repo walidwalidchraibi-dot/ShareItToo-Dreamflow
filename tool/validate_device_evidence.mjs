@@ -656,9 +656,13 @@ function validateReleaseCheckEvidence(root, ref, checkId, candidate, label) {
 
 function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
   const evidence = readEvidenceJson(root, ref, label);
+  const mappingUploadedEventPending =
+    evidence.status === 'mapping-and-native-symbols-uploaded-controlled-event-pending';
+  const controlledEventSentConsolePending =
+    evidence.status === 'mapping-symbols-and-controlled-event-sent-console-pending';
   if (evidence.schemaVersion !== 1 ||
       evidence.kind !== 'android-crash-release-mapping' ||
-      evidence.status !== 'mapping-and-native-symbols-uploaded-controlled-event-pending') {
+      (!mappingUploadedEventPending && !controlledEventSentConsolePending)) {
     fail(`${label} must be the bounded in-progress Android crash mapping evidence.`);
   }
   isoTimestamp(evidence.capturedAt, `${label}.capturedAt`, { required: true });
@@ -705,13 +709,22 @@ function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
     }
   }
   if (verifications.uploadBuildResult !== 'successful' ||
-      verifications.controlledSanitizedCrashEvent !== 'pending' ||
       verifications.consoleReleaseAssignment !== 'pending') {
-    fail(`${label}.verifications must preserve the honest pending controlled-event boundary.`);
+    fail(`${label}.verifications must preserve the honest pending console-assignment boundary.`);
   }
-  if (evidence.boundaries.productionCrashGenerated !== false ||
-      evidence.boundaries.controlledStagingEventGenerated !== false) {
-    fail(`${label}.boundaries must prove that no crash event was generated yet.`);
+  if (mappingUploadedEventPending) {
+    if (verifications.controlledSanitizedCrashEvent !== 'pending' ||
+        evidence.boundaries.productionCrashGenerated !== false ||
+        evidence.boundaries.controlledStagingEventGenerated !== false) {
+      fail(`${label} must preserve the honest pending controlled-event boundary.`);
+    }
+  } else if (verifications.controlledSanitizedCrashEvent !== 'passed' ||
+      verifications.deviceDiagnosticUi !== 'passed' ||
+      evidence.boundaries.productionCrashGenerated !== false ||
+      evidence.boundaries.controlledStagingEventGenerated !== true ||
+      evidence.boundaries.eventContainsAccountData !== false ||
+      evidence.boundaries.eventContainsMessageOrAddressData !== false) {
+    fail(`${label} must prove a sanitized staging event while console assignment remains pending.`);
   }
 }
 

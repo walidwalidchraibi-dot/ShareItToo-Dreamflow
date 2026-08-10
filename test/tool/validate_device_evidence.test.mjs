@@ -52,6 +52,23 @@ function progressEvidenceRoot() {
   return root;
 }
 
+function crashProgressFixture() {
+  const root = progressEvidenceRoot();
+  const deviceManifest = clone(baseDeviceManifest);
+  const ref = 'docs/evidence/b11/android-crash-progress-test.json';
+  const evidence = JSON.parse(readFileSync(
+    resolve(repositoryRoot, 'docs/evidence/b11/android-crash-release-mapping-2026081027.json'),
+    'utf8',
+  ));
+  evidence.status = 'mapping-symbols-and-controlled-event-sent-console-pending';
+  evidence.verifications.consoleReleaseAssignment = 'pending';
+  delete evidence.verifications.consoleObservedVersion;
+  delete evidence.verifications.consoleObservedEventCount;
+  delete evidence.verifications.consoleCustomKeysBoundToCandidate;
+  deviceManifest.releaseChecks.crashReleaseMapping = { status: 'testing', evidenceRef: ref };
+  return { root, deviceManifest, ref, evidence };
+}
+
 function evidenceCandidate(candidate) {
   return {
     applicationId: candidate.applicationId,
@@ -533,40 +550,46 @@ test('accepts the honest in-progress B11 evidence state', () => {
     goNoGo: 'hold',
     matrixPassed: 0,
     matrixTotal: 4,
-    releaseChecksPassed: 3,
+    releaseChecksPassed: 4,
     releaseChecksTotal: 7,
     minimumBuild: '2026080903',
   });
 });
 
 test('rejects crash-mapping progress evidence for a different AAB', () => {
-  const ref = baseDeviceManifest.releaseChecks.crashReleaseMapping.evidenceRef;
-  const evidence = JSON.parse(readFileSync(resolve(repositoryRoot, ref), 'utf8'));
+  const { root, deviceManifest, ref, evidence } = crashProgressFixture();
   evidence.artifacts.aabSha256 = 'f'.repeat(64);
-  const root = progressEvidenceRoot();
   writeEvidence(root, ref, evidence);
   assert.throws(
-    () => validate({ root }),
+    () => validate({ root, deviceManifest }),
     /must match the exact Android candidate binaries/,
   );
 });
 
-test('rejects a premature crash-event claim in progress evidence', () => {
-  const ref = baseDeviceManifest.releaseChecks.crashReleaseMapping.evidenceRef;
-  const evidence = JSON.parse(readFileSync(resolve(repositoryRoot, ref), 'utf8'));
-  evidence.verifications.controlledSanitizedCrashEvent = 'passed';
-  const root = progressEvidenceRoot();
+test('accepts the earlier mapping-uploaded event-pending progress stage', () => {
+  const { root, deviceManifest, ref, evidence } = crashProgressFixture();
+  evidence.status = 'mapping-and-native-symbols-uploaded-controlled-event-pending';
+  evidence.verifications.controlledSanitizedCrashEvent = 'pending';
+  delete evidence.verifications.deviceDiagnosticUi;
+  evidence.boundaries.controlledStagingEventGenerated = false;
+  writeEvidence(root, ref, evidence);
+  assert.equal(validate({ root, deviceManifest }).state, 'testing');
+});
+
+test('rejects a controlled-event claim without the sanitized staging boundary', () => {
+  const { root, deviceManifest, ref, evidence } = crashProgressFixture();
+  evidence.boundaries.eventContainsAccountData = true;
   writeEvidence(root, ref, evidence);
   assert.throws(
-    () => validate({ root }),
-    /honest pending controlled-event boundary/,
+    () => validate({ root, deviceManifest }),
+    /sanitized staging event while console assignment remains pending/,
   );
 });
 
 test('strict mode rejects the in-progress evidence state', () => {
   assert.throws(
     () => validate({ requirePassed: true }),
-    /remains testing: matrix=0\/4, releaseChecks=3\/7/,
+    /remains testing: matrix=0\/4, releaseChecks=4\/7/,
   );
 });
 
