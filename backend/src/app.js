@@ -21,6 +21,7 @@ import {
   publicSupportPage,
   resultPage,
 } from './account_actions.js';
+import { revokeSessionByRefreshToken } from './auth_session_actions.js';
 import { config } from './config.js';
 import { inTransaction, pool } from './db.js';
 import {
@@ -1250,24 +1251,7 @@ export function createApp() {
     const refreshToken = safeText(req.body?.refreshToken, 500);
     if (refreshToken) {
       await inTransaction(async (client) => {
-        const found = await client.query(
-          `SELECT user_id, session_id FROM refresh_tokens WHERE token_hash = $1 FOR UPDATE`,
-          [hashRefreshToken(refreshToken)],
-        );
-        const row = found.rows[0];
-        if (!row) return;
-        await client.query(
-          `UPDATE auth_sessions
-           SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'logout')
-           WHERE id = $1`,
-          [row.session_id],
-        );
-        await client.query(
-          `UPDATE refresh_tokens
-           SET revoked_at = COALESCE(revoked_at, now()), revoked_reason = COALESCE(revoked_reason, 'logout')
-           WHERE session_id = $1`,
-          [row.session_id],
-        );
+        await revokeSessionByRefreshToken(client, refreshToken);
       });
     }
     res.status(204).end();
