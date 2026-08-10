@@ -91,22 +91,40 @@ class AuthService {
   static Future<void> clearSession() async {
     try {
       final session = await readSession();
-      if (BackendConfig.enabled && (session?.refreshToken ?? '').isNotEmpty) {
-        try {
-          await BackendHttp.requestJson(
-            method: 'POST',
-            path: '/auth/logout',
-            body: {'refreshToken': session!.refreshToken},
-          );
-        } catch (_) {
-          // Local logout must still succeed while offline.
-        }
-      }
-      await BackendRealtimeService.disconnect();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_sessionKey);
+      await runBestEffortLogoutCleanup(
+        remoteLogout: () async {
+          if (BackendConfig.enabled &&
+              (session?.refreshToken ?? '').isNotEmpty) {
+            await BackendHttp.requestJson(
+              method: 'POST',
+              path: '/auth/logout',
+              body: {'refreshToken': session!.refreshToken},
+            );
+          }
+        },
+        disconnectRealtime: BackendRealtimeService.disconnect,
+      );
     } catch (error) {
       debugPrint('[AuthService] clearSession failed: $error');
+    }
+  }
+
+  @visibleForTesting
+  static Future<void> runBestEffortLogoutCleanup({
+    required Future<void> Function() remoteLogout,
+    required Future<void> Function() disconnectRealtime,
+    Duration timeout = const Duration(seconds: 3),
+  }) async {
+    try {
+      await Future.wait<void>([
+        remoteLogout(),
+        disconnectRealtime(),
+      ]).timeout(timeout);
+    } catch (_) {
+      // Local session removal is authoritative even while offline or when a
+      // stale realtime socket cannot complete its closing handshake.
     }
   }
 
