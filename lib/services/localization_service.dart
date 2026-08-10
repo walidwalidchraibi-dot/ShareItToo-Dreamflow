@@ -139,6 +139,7 @@ class LocalizationController extends ChangeNotifier {
     'Verifiziert': 'Verifiziert',
     'Identität bestätigt': 'Identität bestätigt',
     'Identität noch nicht geprüft': 'Identität noch nicht geprüft',
+    'Nicht angemeldet': 'Nicht angemeldet',
     'Eingestellt am': 'Eingestellt am',
     '€/Tag': '€/Tag',
 
@@ -354,6 +355,7 @@ class LocalizationController extends ChangeNotifier {
     'Verifiziert': 'Verified',
     'Identität bestätigt': 'Identity verified',
     'Identität noch nicht geprüft': 'Identity not yet verified',
+    'Nicht angemeldet': 'Not signed in',
     'Eingestellt am': 'Listed on',
     '€/Tag': '€/day',
 

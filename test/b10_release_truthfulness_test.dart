@@ -5,12 +5,47 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/screens/language_screen.dart';
 import 'package:lendify/screens/privacy_info_screen.dart';
+import 'package:lendify/models/user.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_http.dart';
 import 'package:lendify/services/localization_service.dart';
+import 'package:lendify/widgets/profile_header_card.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  testWidgets('guest profile does not claim an identity verification state',
+      (tester) async {
+    final localization = LocalizationController();
+    final guest = User(
+      id: 'guest-user',
+      displayName: 'Gast',
+      email: '',
+      city: '',
+      country: '',
+      preferredLanguage: 'de-DE',
+      isVerified: false,
+      isBanned: false,
+      role: 'guest',
+      avgRating: 0,
+      reviewCount: 0,
+      createdAt: DateTime(2026),
+    );
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<LocalizationController>.value(
+        value: localization,
+        child: MaterialApp(
+          home: Scaffold(
+            body: ProfileHeaderCard(user: guest, listingsCount: 0),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Nicht angemeldet'), findsOneWidget);
+    expect(find.text('Identität noch nicht geprüft'), findsNothing);
+  });
+
   testWidgets('language selector offers only maintained app translations',
       (tester) async {
     final localization = LocalizationController();

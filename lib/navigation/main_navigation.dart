@@ -65,19 +65,10 @@ class _MainNavigationState extends State<MainNavigation> {
       builder: (context, sessionSnap) {
         final hasSession = sessionSnap.data != null;
         if (!hasSession) {
-          return Stack(clipBehavior: Clip.none, children: [
-            KeyedSubtree(
-              key: ValueKey('profile_guest_${active ? 'active' : 'idle'}'),
-              child: _ProfileNavIcon(photoUrl: null, active: active),
-            ),
-            const Positioned(
-                right: -2,
-                top: -2,
-                child: DecoratedBox(
-                    decoration: BoxDecoration(
-                        color: BrandColors.logoAccent, shape: BoxShape.circle),
-                    child: SizedBox(width: 8, height: 8))),
-          ]);
+          return KeyedSubtree(
+            key: ValueKey('profile_guest_${active ? 'active' : 'idle'}'),
+            child: _ProfileNavIcon(photoUrl: null, active: active),
+          );
         }
         return FutureBuilder<model.User?>(
           future: DataService.getCurrentUser(),
@@ -90,20 +81,10 @@ class _MainNavigationState extends State<MainNavigation> {
             final keySuffix = photoUrl == null
                 ? 'profile_guest_${active ? 'active' : 'idle'}'
                 : 'profile_${user?.id ?? 'unknown'}_${photoUrl}_${active ? 'active' : 'idle'}';
-            return Stack(clipBehavior: Clip.none, children: [
-              KeyedSubtree(
-                key: ValueKey(keySuffix),
-                child: _ProfileNavIcon(photoUrl: photoUrl, active: active),
-              ),
-              const Positioned(
-                  right: -2,
-                  top: -2,
-                  child: DecoratedBox(
-                      decoration: BoxDecoration(
-                          color: BrandColors.logoAccent,
-                          shape: BoxShape.circle),
-                      child: SizedBox(width: 8, height: 8))),
-            ]);
+            return KeyedSubtree(
+              key: ValueKey(keySuffix),
+              child: _ProfileNavIcon(photoUrl: photoUrl, active: active),
+            );
           },
         );
       },
@@ -310,7 +291,8 @@ class _ProfileNavIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color border = active ? BrandColors.primary : AppTheme.navInactive(context);
+    final Color border =
+        active ? BrandColors.primary : AppTheme.navInactive(context);
     final double size = 20;
     return MouseRegion(
       child: SitUserAvatar(
