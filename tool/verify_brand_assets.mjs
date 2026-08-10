@@ -88,6 +88,14 @@ const notificationAssets = [
   { ...asset('android/app/src/main/res/drawable-xxxhdpi/ic_stat_shareittoo.png', 96), sha256: 'ae0879587da8edfcf130c43586b13578c2b3bc934b769a37fdb52b2e9c42f5b1' },
 ];
 
+const adaptiveLauncherAssets = [
+  { ...asset('android/app/src/main/res/drawable-mdpi/ic_launcher_foreground.png', 108), sha256: 'c4f823963d8bf8d387695a789127749663b2a4d5fd43db533567ed787e542f31' },
+  { ...asset('android/app/src/main/res/drawable-hdpi/ic_launcher_foreground.png', 162), sha256: 'b0c16f9db01995f32367ded2df5db3f8e9d948f370f0cbbd732e6bd695975292' },
+  { ...asset('android/app/src/main/res/drawable-xhdpi/ic_launcher_foreground.png', 216), sha256: '95af1389891647633ba65d9d60e89354d5b1d00256308983c017e8734819e54b' },
+  { ...asset('android/app/src/main/res/drawable-xxhdpi/ic_launcher_foreground.png', 324), sha256: '7870f6f94e06f7c531364a3cb72d3adf87e34a04b9f03dd761d72dfa474d9347' },
+  { ...asset('android/app/src/main/res/drawable-xxxhdpi/ic_launcher_foreground.png', 432), sha256: '6ea6c76f3002402cac8a5ab7f28008d9ed8aa86bfc20218f5def30c77ec767cb' },
+];
+
 function inspectPng(relativePath) {
   const contents = readFileSync(`${root}${relativePath}`);
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -138,6 +146,19 @@ for (const entry of notificationAssets) {
   }
 }
 
+for (const entry of adaptiveLauncherAssets) {
+  const png = inspectPng(entry.path);
+  if (png.width !== entry.width || png.height !== entry.height) {
+    fail(`${entry.path} must be ${entry.width}x${entry.height}.`);
+  }
+  if (png.bitDepth !== 8 || png.colorType !== 6 || png.interlace !== 0) {
+    fail(`${entry.path} must be a transparent, non-interlaced 8-bit RGBA PNG.`);
+  }
+  if (png.sha256 !== entry.sha256) {
+    fail(`${entry.path} is not the approved ShareItToo adaptive launcher foreground.`);
+  }
+}
+
 const manifest = JSON.parse(readFileSync(`${root}web/manifest.json`, 'utf8'));
 if (manifest.background_color !== '#FFFFFF') {
   fail('web/manifest.json must use a white PWA background_color.');
@@ -173,6 +194,13 @@ if (!androidColors.includes('<color name="shareittoo_launch_background">#FFFFFF<
 if (!androidColors.includes('<color name="shareittoo_notification_accent">#00A9E0</color>')) {
   fail('Android notification accent must use the ShareItToo blue.');
 }
+const adaptiveBackground = readFileSync(
+  `${root}android/app/src/main/res/values/ic_launcher_background.xml`,
+  'utf8',
+);
+if (!adaptiveBackground.includes('<color name="ic_launcher_background">#FFFFFF</color>')) {
+  fail('Android adaptive launcher background must remain white.');
+}
 
 const androidManifest = readFileSync(
   `${root}android/app/src/main/AndroidManifest.xml`,
@@ -186,6 +214,20 @@ if (!androidManifest.includes('com.google.firebase.messaging.default_notificatio
     || !androidManifest.includes('android:resource="@color/shareittoo_notification_accent"')) {
   fail('Android Firebase notifications must use the ShareItToo accent color.');
 }
+if (!androidManifest.includes('android:roundIcon="@mipmap/ic_launcher_round"')) {
+  fail('Android must declare the approved adaptive round launcher icon.');
+}
+
+for (const adaptiveIcon of ['ic_launcher.xml', 'ic_launcher_round.xml']) {
+  const contents = readFileSync(
+    `${root}android/app/src/main/res/mipmap-anydpi-v26/${adaptiveIcon}`,
+    'utf8',
+  );
+  if (!contents.includes('@color/ic_launcher_background')
+      || !contents.includes('@drawable/ic_launcher_foreground')) {
+    fail(`${adaptiveIcon} must use the approved white background and ShareItToo foreground.`);
+  }
+}
 
 const iosLaunchScreen = readFileSync(
   `${root}ios/Runner/Base.lproj/LaunchScreen.storyboard`,
@@ -195,4 +237,4 @@ if (!iosLaunchScreen.includes('<color key="backgroundColor" white="1" alpha="1"'
   fail('iOS launch background must remain opaque white.');
 }
 
-console.log(`Brand asset verification passed for ${assets.length} PNG files.`);
+console.log(`Brand asset verification passed for ${assets.length + notificationAssets.length + adaptiveLauncherAssets.length} PNG files.`);
