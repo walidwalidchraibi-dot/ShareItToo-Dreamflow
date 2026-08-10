@@ -8,6 +8,7 @@ import 'package:lendify/screens/language_screen.dart';
 import 'package:lendify/screens/privacy_info_screen.dart';
 import 'package:lendify/screens/explore_screen_pinned_header.dart';
 import 'package:lendify/models/user.dart';
+import 'package:lendify/navigation/main_navigation.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_http.dart';
 import 'package:lendify/services/data_service.dart';
@@ -114,6 +115,39 @@ void main() {
     );
   });
 
+  test('account tabs require both a stored session and a resolved user', () {
+    expect(
+      shouldGateAccountTab(
+        hasSession: true,
+        hasCurrentUser: false,
+        backendEnabled: true,
+        releaseMode: true,
+        previewGuest: false,
+      ),
+      isTrue,
+    );
+    expect(
+      shouldGateAccountTab(
+        hasSession: true,
+        hasCurrentUser: true,
+        backendEnabled: true,
+        releaseMode: true,
+        previewGuest: false,
+      ),
+      isFalse,
+    );
+    expect(
+      shouldGateAccountTab(
+        hasSession: false,
+        hasCurrentUser: false,
+        backendEnabled: false,
+        releaseMode: false,
+        previewGuest: false,
+      ),
+      isFalse,
+    );
+  });
+
   test('release client contains no AI proxy secret and all helpers fail closed',
       () async {
     final source = await File('lib/openai/openai_config.dart').readAsString();
@@ -199,8 +233,15 @@ void main() {
     expect(appRoot,
         contains('final accessToken = await AuthService.accessToken()'));
     expect(appRoot, contains('if (BackendConfig.enabled || kReleaseMode)'));
-    expect(navigation,
-        contains('(BackendConfig.enabled || kReleaseMode || preview.isGuest)'));
+    expect(
+      navigation,
+      contains(
+          'final guestGateEnabled = backendEnabled || releaseMode || previewGuest;'),
+    );
+    expect(
+      navigation,
+      contains('guestGateEnabled && (!hasSession || !hasCurrentUser)'),
+    );
     expect(
         explore, contains('_savedIds = hasRealSession ? saved : <String>{}'));
     expect(profileHeader, contains('if (user.isVerified)'));

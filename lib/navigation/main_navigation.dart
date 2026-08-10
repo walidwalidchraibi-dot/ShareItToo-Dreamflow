@@ -18,6 +18,17 @@ import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/widgets/login_nudge_sheet.dart';
 
+bool shouldGateAccountTab({
+  required bool hasSession,
+  required bool hasCurrentUser,
+  required bool backendEnabled,
+  required bool releaseMode,
+  required bool previewGuest,
+}) {
+  final guestGateEnabled = backendEnabled || releaseMode || previewGuest;
+  return guestGateEnabled && (!hasSession || !hasCurrentUser);
+}
+
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
   const MainNavigation({super.key, this.initialIndex = 0});
@@ -121,8 +132,18 @@ class _MainNavigationState extends State<MainNavigation> {
             onTap: (index) async {
               final preview = context.read<DeveloperPreviewController>();
               final session = await AuthService.readSession();
-              final isGuest = session == null &&
-                  (BackendConfig.enabled || kReleaseMode || preview.isGuest);
+              final currentUser =
+                  session == null ? null : await DataService.getCurrentUser();
+              if (mounted && _currentUser?.id != currentUser?.id) {
+                setState(() => _currentUser = currentUser);
+              }
+              final isGuest = shouldGateAccountTab(
+                hasSession: session != null,
+                hasCurrentUser: currentUser != null,
+                backendEnabled: BackendConfig.enabled,
+                releaseMode: kReleaseMode,
+                previewGuest: preview.isGuest,
+              );
               // Soft logged-out experience:
               // - Guests can open the Profile tab to explore.
               // - Other tabs remain locked in guest mode.

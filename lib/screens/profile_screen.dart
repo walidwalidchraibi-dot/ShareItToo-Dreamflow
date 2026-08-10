@@ -475,7 +475,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         centerTitle: true,
-        leading: IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
+        leading: IconButton(
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back),
+        ),
         title: Text(l10n.t('Profil')),
         actions: [
           Padding(
@@ -488,6 +492,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               Stack(children: [
                 IconButton(
+                  tooltip: l10n.t('Benachrichtigungen'),
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => const NotificationsScreen(),

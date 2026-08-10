@@ -67,12 +67,17 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: IconButton(
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             onPressed: () => Navigator.of(context).maybePop(),
             icon: const Icon(Icons.arrow_back)),
         title: Text(l10n.t('Wunschlisten')),
         centerTitle: true,
         actions: [
-          IconButton(onPressed: _addCustomList, icon: const Icon(Icons.add))
+          IconButton(
+            tooltip: 'Neue Wunschliste',
+            onPressed: _addCustomList,
+            icon: const Icon(Icons.add),
+          )
         ],
       ),
       body: _loading

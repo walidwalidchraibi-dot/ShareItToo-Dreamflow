@@ -747,12 +747,24 @@ class _MessagesScreenState extends State<MessagesScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        leading: IconButton(onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back)),
+        leading: IconButton(
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+          onPressed: () => Navigator.of(context).maybePop(),
+          icon: const Icon(Icons.arrow_back),
+        ),
         centerTitle: true,
         title: const Text('Nachrichten'),
         actions: [
-          IconButton(onPressed: _toggleSearch, icon: Icon(_searchVisible ? Icons.close : Icons.search)),
-          IconButton(onPressed: _openMessageSettings, icon: const Icon(Icons.settings)),
+          IconButton(
+            tooltip: _searchVisible ? 'Suche schließen' : 'Suche öffnen',
+            onPressed: _toggleSearch,
+            icon: Icon(_searchVisible ? Icons.close : Icons.search),
+          ),
+          IconButton(
+            tooltip: 'Nachrichten-Einstellungen',
+            onPressed: _openMessageSettings,
+            icon: const Icon(Icons.settings),
+          ),
         ],
       ),
       body: SafeArea(
