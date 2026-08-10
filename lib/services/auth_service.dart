@@ -23,6 +23,8 @@ class AuthService {
   static const demoEmail = 'demo@shareittoo.app';
   static const demoPassword = 'shareittoo';
   static Future<String?>? _refreshInFlight;
+  static int _sessionGeneration = 0;
+  static bool _sessionClearing = false;
 
   static Future<void> ensureSeeded() async {
     if (BackendConfig.enabled) return;
@@ -89,6 +91,9 @@ class AuthService {
   }
 
   static Future<void> clearSession() async {
+    _sessionGeneration += 1;
+    _sessionClearing = true;
+    _refreshInFlight = null;
     try {
       final session = await readSession();
       final prefs = await SharedPreferences.getInstance();
@@ -108,6 +113,9 @@ class AuthService {
       );
     } catch (error) {
       debugPrint('[AuthService] clearSession failed: $error');
+    } finally {
+      _sessionClearing = false;
+      _refreshInFlight = null;
     }
   }
 
@@ -351,9 +359,10 @@ class AuthService {
 
   static Future<String?> refreshAccessToken() async {
     if (!BackendConfig.enabled) return null;
+    if (_sessionClearing) return null;
     final inFlight = _refreshInFlight;
     if (inFlight != null) return inFlight;
-    final refresh = _performAccessTokenRefresh();
+    final refresh = _performAccessTokenRefresh(_sessionGeneration);
     _refreshInFlight = refresh;
     try {
       return await refresh;
@@ -362,7 +371,11 @@ class AuthService {
     }
   }
 
-  static Future<String?> _performAccessTokenRefresh() async {
+  static Future<String?> _performAccessTokenRefresh(
+      int expectedGeneration) async {
+    if (_sessionClearing || expectedGeneration != _sessionGeneration) {
+      return null;
+    }
     final session = await readSession();
     final refreshToken = session?.refreshToken;
     if (refreshToken == null || refreshToken.isEmpty) return null;
@@ -372,8 +385,13 @@ class AuthService {
         path: '/auth/refresh',
         body: {'refreshToken': refreshToken},
       );
-      final refreshed = await _saveRemoteSession(response);
+      final refreshed = await _saveRemoteSession(
+        response,
+        expectedGeneration: expectedGeneration,
+      );
       return refreshed.accessToken;
+    } on _DiscardedRefreshResult {
+      return null;
     } catch (error) {
       debugPrint('[AuthService] refresh failed: $error');
       await BackendRealtimeService.disconnect();
@@ -400,8 +418,9 @@ class AuthService {
   }
 
   static Future<AuthSession> _saveRemoteSession(
-    Map<String, dynamic> response,
-  ) async {
+    Map<String, dynamic> response, {
+    int? expectedGeneration,
+  }) async {
     final user = Map<String, dynamic>.from(response['user'] as Map);
     final accessToken = response['accessToken']?.toString() ?? '';
     final refreshToken = response['refreshToken']?.toString() ?? '';
@@ -421,20 +440,41 @@ class AuthService {
       accessTokenExpiresAt: now.add(Duration(seconds: expiresIn)),
     );
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _sessionKey,
-      jsonEncode({
-        'userId': session.userId,
-        'email': session.email,
-        'createdAt': session.createdAt?.toIso8601String(),
-        'accessToken': session.accessToken,
-        'refreshToken': session.refreshToken,
-        'sessionId': session.sessionId,
-        'accessTokenExpiresAt': session.accessTokenExpiresAt?.toIso8601String(),
-      }),
-    );
+    final encoded = jsonEncode({
+      'userId': session.userId,
+      'email': session.email,
+      'createdAt': session.createdAt?.toIso8601String(),
+      'accessToken': session.accessToken,
+      'refreshToken': session.refreshToken,
+      'sessionId': session.sessionId,
+      'accessTokenExpiresAt': session.accessTokenExpiresAt?.toIso8601String(),
+    });
+    if (expectedGeneration == null) {
+      await prefs.setString(_sessionKey, encoded);
+    } else {
+      final persisted = await persistRefreshResultSafely(
+        isCurrent: () =>
+            !_sessionClearing && expectedGeneration == _sessionGeneration,
+        persist: () => prefs.setString(_sessionKey, encoded),
+        remove: () => prefs.remove(_sessionKey),
+      );
+      if (!persisted) throw const _DiscardedRefreshResult();
+    }
     await BackendRealtimeService.connect(accessToken);
     return session;
+  }
+
+  @visibleForTesting
+  static Future<bool> persistRefreshResultSafely({
+    required bool Function() isCurrent,
+    required Future<void> Function() persist,
+    required Future<void> Function() remove,
+  }) async {
+    if (!isCurrent()) return false;
+    await persist();
+    if (isCurrent()) return true;
+    await remove();
+    return false;
   }
 
   static Future<List<Map<String, dynamic>>> _readAccounts(
@@ -454,6 +494,10 @@ class AuthService {
       return <Map<String, dynamic>>[];
     }
   }
+}
+
+class _DiscardedRefreshResult implements Exception {
+  const _DiscardedRefreshResult();
 }
 
 enum AuthSocialProvider { google, apple }

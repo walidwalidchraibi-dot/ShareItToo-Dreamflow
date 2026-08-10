@@ -40,4 +40,55 @@ void main() {
 
     expect(disconnectStarted, isTrue);
   });
+
+  test('stale refresh result is discarded before it can restore a session',
+      () async {
+    var persisted = false;
+    var removed = false;
+
+    final accepted = await AuthService.persistRefreshResultSafely(
+      isCurrent: () => false,
+      persist: () async => persisted = true,
+      remove: () async => removed = true,
+    );
+
+    expect(accepted, isFalse);
+    expect(persisted, isFalse);
+    expect(removed, isFalse);
+  });
+
+  test('refresh that becomes stale while saving removes its session again',
+      () async {
+    var current = true;
+    var persisted = false;
+    var removed = false;
+
+    final accepted = await AuthService.persistRefreshResultSafely(
+      isCurrent: () => current,
+      persist: () async {
+        persisted = true;
+        current = false;
+      },
+      remove: () async => removed = true,
+    );
+
+    expect(accepted, isFalse);
+    expect(persisted, isTrue);
+    expect(removed, isTrue);
+  });
+
+  test('current refresh result remains persisted', () async {
+    var persisted = false;
+    var removed = false;
+
+    final accepted = await AuthService.persistRefreshResultSafely(
+      isCurrent: () => true,
+      persist: () async => persisted = true,
+      remove: () async => removed = true,
+    );
+
+    expect(accepted, isTrue);
+    expect(persisted, isTrue);
+    expect(removed, isFalse);
+  });
 }
