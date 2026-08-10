@@ -8,10 +8,51 @@ Never _fail(String message) {
 
 String _readText(Directory root, String relativePath) {
   final file = File('${root.path}/$relativePath');
-  if (!file.existsSync()) _fail('Missing store metadata file: $relativePath');
+  if (!file.existsSync()) {
+    _fail('Missing store metadata file: $relativePath');
+  }
   final value = file.readAsStringSync().trim();
-  if (value.isEmpty) _fail('Store metadata file is empty: $relativePath');
+  if (value.isEmpty) {
+    _fail('Store metadata file is empty: $relativePath');
+  }
   return value;
+}
+
+void _validateGooglePlayIcon(Directory root, String relativePath) {
+  final file = File('${root.path}/$relativePath');
+  if (!file.existsSync()) {
+    _fail('Missing Google Play store icon: $relativePath');
+  }
+  final bytes = file.readAsBytesSync();
+  if (bytes.length > 1024 * 1024) {
+    _fail('Google Play store icon exceeds 1,024 KB.');
+  }
+  const signature = <int>[137, 80, 78, 71, 13, 10, 26, 10];
+  if (bytes.length < 33 ||
+      !List<int>.generate(8, (index) => bytes[index])
+          .asMap()
+          .entries
+          .every((entry) => entry.value == signature[entry.key])) {
+    _fail('Google Play store icon must be a valid PNG.');
+  }
+  final chunkType = ascii.decode(bytes.sublist(12, 16));
+  if (chunkType != 'IHDR') {
+    _fail('Google Play store icon has no PNG IHDR.');
+  }
+  int uint32(int offset) =>
+      (bytes[offset] << 24) |
+      (bytes[offset + 1] << 16) |
+      (bytes[offset + 2] << 8) |
+      bytes[offset + 3];
+  final width = uint32(16);
+  final height = uint32(20);
+  final colorType = bytes[25];
+  if (width != 512 || height != 512) {
+    _fail('Google Play store icon must be exactly 512 x 512 pixels.');
+  }
+  if (colorType == 4 || colorType == 6) {
+    _fail('Google Play store icon must not contain an alpha channel.');
+  }
 }
 
 Map<String, dynamic> _map(Object? value, String field) {
@@ -106,6 +147,8 @@ void main(List<String> arguments) {
   final googleFiles =
       _map(metadataFiles['googlePlay'], 'metadataFiles.googlePlay');
   final appleFiles = _map(metadataFiles['apple'], 'metadataFiles.apple');
+  final assets = _map(manifest['assets'], 'assets');
+  final googleAssets = _map(assets['googlePlay'], 'assets.googlePlay');
 
   const expectedId = 'com.shareittoo.app';
   if (_string(identity, 'applicationId') != expectedId ||
@@ -156,6 +199,15 @@ void main(List<String> arguments) {
   final appleKeywords = _readText(root, _string(appleFiles, 'keywords'));
   final appleReviewNotes =
       _readText(root, _string(appleFiles, 'reviewNotesTemplate'));
+  _validateGooglePlayIcon(root, _string(googleAssets, 'storeIcon'));
+  if (googleAssets['featureGraphic'] != null) {
+    _fail(
+        'Google Play feature graphic must remain null until it is validated.');
+  }
+  final phoneScreenshots = googleAssets['phoneScreenshots'];
+  if (phoneScreenshots is! List || phoneScreenshots.isNotEmpty) {
+    _fail('Google Play phone screenshots must remain empty until validated.');
+  }
 
   _maxRunes('Google title', googleTitle, 30);
   _maxRunes('Google short description', googleShort, 80);

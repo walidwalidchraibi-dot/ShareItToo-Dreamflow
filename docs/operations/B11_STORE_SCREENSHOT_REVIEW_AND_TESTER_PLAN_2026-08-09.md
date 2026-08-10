@@ -58,9 +58,10 @@ Produktions-Löschseite final sind.
 
 ### Google Play
 
-- Store-Icon: 512 × 512 Pixel, 32-Bit-PNG, maximal 1.024 KB; die bereits weiße
-  Masterdarstellung wird in eine Play-konforme Variante übertragen und visuell
-  gegen die Maskierung geprüft.
+- Store-Icon: Die aus dem weißen Masterlogo abgeleitete Play-Datei liegt geprüft
+  unter `store/assets/google-play/icon-512.png`: 512 × 512 Pixel, PNG ohne
+  Alphakanal und 80.578 Byte. Der Metadatenvalidator prüft Abmessungen, Format,
+  Alphakanal und die 1.024-KB-Grenze bei jedem Lauf.
 - Feature-Grafik: 1024 × 500 Pixel, JPEG oder 24-Bit-PNG ohne Alpha.
 - Telefon: zwei bis acht Screenshots, JPEG oder 24-Bit-PNG ohne Alpha;
   Mindestkante 320 Pixel, Maximalkante 3.840 Pixel und längste Kante höchstens
@@ -209,4 +210,3 @@ Kein Asset-Upload und keine Review-Anforderung bei:
 - [Apple: Screenshots hochladen](https://developer.apple.com/help/app-store-connect/manage-app-information/upload-app-previews-and-screenshots/)
 - [Apple: Screenshot-Spezifikationen](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/)
 - [Apple: App-Review-Vorbereitung](https://developer.apple.com/app-store/review/)
-

@@ -70,6 +70,13 @@
       "reviewNotesTemplate": "store/apple/review_notes_template_en.txt"
     }
   },
+  "assets": {
+    "googlePlay": {
+      "storeIcon": "store/assets/google-play/icon-512.png",
+      "featureGraphic": null,
+      "phoneScreenshots": []
+    }
+  },
   "sourceDocuments": [
     "docs/operations/B11_STORE_SUBMISSION_PACKET_2026-08-09.md",
     "docs/operations/B11_STORE_PRIVACY_DISCLOSURE_MATRIX_2026-08-09.md",

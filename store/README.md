@@ -24,7 +24,7 @@ Store-Automation muss zusätzlich mit `--require-submittable` prüfen und darf
 bei einem offenen Gate keinen Upload starten.
 
 Der Gerätevalidator bleibt derzeit bewusst bei `state=testing`,
-`goNoGo=hold`, `matrix=0/4` und `releaseChecks=3/7`. Kandidatenidentität und
+`goNoGo=hold`, `matrix=0/4` und `releaseChecks=4/7`. Kandidatenidentität und
 Signaturen, Staging-Bereinigung/-Gesundheit sowie die Produktionsinvariante
 sind bereits nachgewiesen. Nach den realen
 Internal-/TestFlight-Läufen darf der Zustand nur mit echten, bereinigten
@@ -44,6 +44,12 @@ node tool/prepare_android_device_test.mjs
 
 Erst die separate Option `--install` installiert und startet das geprüfte APK.
 Dieser Diagnoseweg zählt ausdrücklich nicht als Play-Internal-Installation.
+
+Das geprüfte Google-Play-Store-Icon liegt unter
+`store/assets/google-play/icon-512.png`. Der Metadatenvalidator verlangt exakt
+512 × 512 Pixel, PNG ohne Alphakanal und höchstens 1.024 KB. Feature-Grafik und
+Telefon-Screenshots bleiben im Manifest bewusst leer, bis sie aus dem finalen
+Store-Build wahrheitsgetreu aufgenommen und einzeln geprüft wurden.
 
 Er verlangt Build `2026080903` oder höher, denselben vollständigen Commit,
 Android- und iOS-Artefakthashes, Play-Internal-/TestFlight-Installation,
