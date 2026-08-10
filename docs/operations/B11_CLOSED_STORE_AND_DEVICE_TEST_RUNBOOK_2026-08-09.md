@@ -48,13 +48,15 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM- und Abmeldediagnosen sind keine Store-Installation. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
 
-Der zusätzliche exakte Logout-/Push-Lebenszyklusnachweis für Build
+Der chronologisch erhaltene historische Logout-/Push-Lebenszyklusnachweis für Build
 `2026081026` liegt unter
 `docs/evidence/b11/android-logout-push-lifecycle-2026081026-20260810T140200Z.json`.
 Er belegt auf dem physischen Android-Gerät Vordergrund-, Hintergrund- und bei
 zuvor beendetem Prozess ausgelöste Staging-Pushs, das vergrößerte adaptive
 Symbol, die Anmeldesperre nach einem Kaltstart und die ausbleibende Zustellung
-nach dem Logout. Store-, Hotspot-, TalkBack- und iOS-Gates bleiben offen.
+nach dem Logout. Er wurde durch die oben referenzierten exakten Build-1029-
+Nachweise abgelöst und schließt weiterhin kein Store-, Hotspot-, TalkBack- oder
+iOS-Gate.
 
 Der Kandidat ist gebaut, kanonisch signiert, privat archiviert und auf einem
 physischen Pixel 7 Pro direkt diagnostisch installiert. Version, Buildnummer,
