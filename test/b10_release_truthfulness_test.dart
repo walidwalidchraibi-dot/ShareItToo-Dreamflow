@@ -307,6 +307,16 @@ void main() {
 
     expect(profile, isNot(contains('walid.placeholder')));
     expect(profile, isNot(contains('responseTimeMinutes: 42')));
+    expect(profile, contains('builder: (dialogContext)'));
+    expect(profile, contains('Navigator.of(dialogContext).pop();'));
+    expect(
+      profile,
+      matches(
+        RegExp(
+          r'if \(!mounted\) return;\s+await context\s+\.read<DeveloperPreviewController>\(\)',
+        ),
+      ),
+    );
     expect(profileHeader, isNot(contains('_estimatedBookings')));
     expect(profileHeader, isNot(contains('images.unsplash.com/photo')));
     expect(publicProfile, isNot(contains('_mockResponseTimeMin')));
