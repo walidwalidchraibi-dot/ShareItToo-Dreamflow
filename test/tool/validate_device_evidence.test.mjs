@@ -92,6 +92,7 @@ function passedFixture() {
   delete deviceManifest.candidate.android.directDiagnostic;
   delete deviceManifest.candidate.android.directAppLinks;
   delete deviceManifest.candidate.android.authenticatedSession;
+  delete deviceManifest.candidate.android.syntheticRoleBooking;
   Object.assign(deviceManifest.candidate.ios, {
     delivery: 'testflight-internal',
     ipaSha256: 'e'.repeat(64),
@@ -191,6 +192,7 @@ function progressFixture() {
   const deviceManifest = clone(baseDeviceManifest);
   delete deviceManifest.candidate.android.directAppLinks;
   delete deviceManifest.candidate.android.authenticatedSession;
+  delete deviceManifest.candidate.android.syntheticRoleBooking;
   const diagnosticRef = 'docs/evidence/b11/android-direct-smoke-progress-fixture.json';
   const capturedAt = '2026-08-09T18:00:00+02:00';
   deviceManifest.candidate.android.directDiagnostic = {
@@ -367,6 +369,80 @@ function authenticatedSessionFixture() {
       containsSecrets: false,
       containsRawDeviceIdentifiers: false,
       containsReviewCredentials: false,
+    },
+  });
+  return fixture;
+}
+
+function syntheticRoleBookingFixture() {
+  const fixture = progressFixture();
+  const { root, deviceManifest } = fixture;
+  const ref = 'docs/evidence/b11/android-synthetic-role-booking-progress-fixture.json';
+  const capturedAt = '2026-08-10T07:50:42.053Z';
+  deviceManifest.candidate.android.syntheticRoleBooking = {
+    status: 'passed',
+    capturedAt,
+    installMethod: 'direct-apk-diagnostic',
+    manufacturer: 'Sanitized Android',
+    deviceModel: 'Physical test device',
+    osVersion: 'Android test version',
+    evidenceRef: ref,
+  };
+  writeEvidence(root, ref, {
+    schemaVersion: 1,
+    kind: 'android-synthetic-role-booking-diagnostic',
+    status: 'passed-bounded-synthetic-role-booking-diagnostic',
+    capturedAt,
+    candidate: evidenceCandidate(deviceManifest.candidate),
+    installed: {
+      packageIdentityVerified: true,
+      versionName: deviceManifest.candidate.versionName,
+      buildNumber: deviceManifest.candidate.buildNumber,
+      apkSha256: deviceManifest.candidate.android.apkSha256,
+    },
+    device: {
+      platform: 'android',
+      physical: true,
+      manufacturer: 'Sanitized Android',
+      model: 'Physical test device',
+      osVersion: 'Android test version',
+      apiLevel: 36,
+      securityPatch: '2026-04-05',
+      containsRawDeviceIdentifier: false,
+    },
+    backendFixture: {
+      accountCount: 2,
+      roles: ['owner', 'renter'],
+      registration: 'public-staging-accepted',
+      verification: 'isolated-staging-fixture',
+      listingStatus: 'active',
+      workflow: ['requested', 'accepted', 'active', 'completed'],
+      paymentMode: 'memory',
+      stripeLivemode: false,
+      paymentEndpointCalled: false,
+    },
+    tests: {
+      ownerRequestVisibility: { status: 'passed', result: 'requested-visible-to-owner' },
+      renterUpcomingVisibility: { status: 'passed', result: 'accepted-visible-to-renter' },
+      renterRunningVisibility: { status: 'passed', result: 'active-visible-to-renter' },
+      renterCompletedVisibility: { status: 'passed', result: 'completed-visible-to-renter' },
+    },
+    boundaries: {
+      ...safeBoundaries(),
+      directDiagnosticOnly: true,
+      storeInstallationGateSatisfied: false,
+      fullDeviceMatrixPassed: false,
+      wifiOnlyDiagnostic: true,
+      hotspotPassed: false,
+      authenticatedDeepLinksPassed: false,
+      realPushPassed: false,
+      manualTalkBackTraversalPassed: false,
+      iosTestFlightPassed: false,
+      paymentEndpointCalled: false,
+      stripeLivemode: false,
+      lockCodeUsed: false,
+      accountIdentityRecorded: false,
+      containsPersonalAccountData: false,
     },
   });
   return fixture;
@@ -606,5 +682,38 @@ test('authenticated-session evidence cannot record identity or close the synthet
   assert.throws(
     () => validate(fixture),
     /must remain identity-free and keep store, role, booking, link, push, TalkBack, and lock-code gates open/,
+  );
+});
+
+test('accepts exact, bounded synthetic-role booking evidence without closing the device matrix', () => {
+  const fixture = syntheticRoleBookingFixture();
+  const summary = validate(fixture);
+  assert.equal(summary.state, 'testing');
+  assert.equal(summary.matrixPassed, 0);
+});
+
+test('synthetic-role booking evidence rejects a different candidate APK', () => {
+  const fixture = syntheticRoleBookingFixture();
+  const ref = fixture.deviceManifest.candidate.android.syntheticRoleBooking.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.installed.apkSha256 = 'f'.repeat(64);
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must prove the exact installed candidate APK and package identity/,
+  );
+});
+
+test('synthetic-role booking evidence cannot claim payment, hotspot, or the full matrix', () => {
+  const fixture = syntheticRoleBookingFixture();
+  const ref = fixture.deviceManifest.candidate.android.syntheticRoleBooking.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.boundaries.paymentEndpointCalled = true;
+  evidence.boundaries.hotspotPassed = true;
+  evidence.boundaries.fullDeviceMatrixPassed = true;
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must keep store, matrix, hotspot, link, push, TalkBack, iOS, payment, identity, and lock-code gates open/,
   );
 });

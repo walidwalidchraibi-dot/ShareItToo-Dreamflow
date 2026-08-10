@@ -414,6 +414,100 @@ function validateAndroidAuthenticatedSession(root, diagnostic, candidate) {
   }
 }
 
+function validateAndroidSyntheticRoleBooking(root, diagnostic, candidate) {
+  const label = 'candidate.android.syntheticRoleBooking';
+  if (diagnostic.status !== 'passed' || diagnostic.installMethod !== 'direct-apk-diagnostic') {
+    fail(`${label} must record a passed direct-apk-diagnostic.`);
+  }
+  isoTimestamp(diagnostic.capturedAt, `${label}.capturedAt`, { required: true });
+  for (const key of ['manufacturer', 'deviceModel', 'osVersion']) {
+    nonEmptyString(diagnostic[key], `${label}.${key}`);
+  }
+  const ref = evidenceRef(root, diagnostic.evidenceRef, `${label}.evidenceRef`, { required: true });
+  const evidence = readEvidenceJson(root, ref, `${label}.evidence`);
+  if (evidence.schemaVersion !== 1 ||
+      evidence.kind !== 'android-synthetic-role-booking-diagnostic' ||
+      evidence.status !== 'passed-bounded-synthetic-role-booking-diagnostic') {
+    fail(`${label}.evidence must be a passed bounded synthetic-role booking diagnostic.`);
+  }
+  if (evidence.capturedAt !== diagnostic.capturedAt) {
+    fail(`${label}.evidence.capturedAt must match the diagnostic manifest.`);
+  }
+  isoTimestamp(evidence.capturedAt, `${label}.evidence.capturedAt`, { required: true });
+  assertEvidenceCandidate(evidence, candidate, `${label}.evidence`);
+  assertEvidenceBoundaries(evidence, `${label}.evidence`);
+
+  const installed = object(evidence.installed, `${label}.evidence.installed`);
+  const expectedAndroid = object(candidate.android, 'candidate.android');
+  if (installed.packageIdentityVerified !== true ||
+      installed.versionName !== candidate.versionName ||
+      installed.buildNumber !== candidate.buildNumber ||
+      installed.apkSha256 !== expectedAndroid.apkSha256) {
+    fail(`${label}.evidence must prove the exact installed candidate APK and package identity.`);
+  }
+  const device = object(evidence.device, `${label}.evidence.device`);
+  if (device.platform !== 'android' || device.physical !== true ||
+      device.manufacturer !== diagnostic.manufacturer ||
+      device.model !== diagnostic.deviceModel ||
+      device.osVersion !== diagnostic.osVersion ||
+      !Number.isInteger(device.apiLevel) || device.apiLevel <= 0 ||
+      typeof device.securityPatch !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(device.securityPatch) ||
+      device.containsRawDeviceIdentifier !== false) {
+    fail(`${label}.evidence.device must match the sanitized physical Android device.`);
+  }
+
+  const fixture = object(evidence.backendFixture, `${label}.evidence.backendFixture`);
+  if (fixture.accountCount !== 2 ||
+      !Array.isArray(fixture.roles) ||
+      fixture.roles.length !== 2 ||
+      fixture.roles[0] !== 'owner' || fixture.roles[1] !== 'renter' ||
+      fixture.registration !== 'public-staging-accepted' ||
+      fixture.verification !== 'isolated-staging-fixture' ||
+      fixture.listingStatus !== 'active' ||
+      !Array.isArray(fixture.workflow) ||
+      fixture.workflow.join(',') !== 'requested,accepted,active,completed' ||
+      fixture.paymentMode !== 'memory' ||
+      fixture.stripeLivemode !== false ||
+      fixture.paymentEndpointCalled !== false) {
+    fail(`${label}.evidence must prove the isolated two-role Staging lifecycle without payment.`);
+  }
+
+  const expectedTests = new Map([
+    ['ownerRequestVisibility', 'requested-visible-to-owner'],
+    ['renterUpcomingVisibility', 'accepted-visible-to-renter'],
+    ['renterRunningVisibility', 'active-visible-to-renter'],
+    ['renterCompletedVisibility', 'completed-visible-to-renter'],
+  ]);
+  const tests = object(evidence.tests, `${label}.evidence.tests`);
+  if (Object.keys(tests).length !== expectedTests.size) {
+    fail(`${label}.evidence.tests must contain exactly the four bounded role-booking checks.`);
+  }
+  for (const [key, expectedResult] of expectedTests) {
+    const result = object(tests[key], `${label}.evidence.tests.${key}`);
+    if (result.status !== 'passed' || result.result !== expectedResult) {
+      fail(`${label}.evidence.tests.${key} must contain the expected passed result.`);
+    }
+  }
+
+  const boundaries = object(evidence.boundaries, `${label}.evidence.boundaries`);
+  if (boundaries.directDiagnosticOnly !== true ||
+      boundaries.storeInstallationGateSatisfied !== false ||
+      boundaries.fullDeviceMatrixPassed !== false ||
+      boundaries.wifiOnlyDiagnostic !== true ||
+      boundaries.hotspotPassed !== false ||
+      boundaries.authenticatedDeepLinksPassed !== false ||
+      boundaries.realPushPassed !== false ||
+      boundaries.manualTalkBackTraversalPassed !== false ||
+      boundaries.iosTestFlightPassed !== false ||
+      boundaries.paymentEndpointCalled !== false ||
+      boundaries.stripeLivemode !== false ||
+      boundaries.lockCodeUsed !== false ||
+      boundaries.accountIdentityRecorded !== false ||
+      boundaries.containsPersonalAccountData !== false) {
+    fail(`${label}.evidence must keep store, matrix, hotspot, link, push, TalkBack, iOS, payment, identity, and lock-code gates open.`);
+  }
+}
+
 function validateLegacyCandidateReleaseEvidence(evidence, candidate, checkId, label) {
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'android-release-candidate') return false;
   assertEvidenceCandidate(evidence, candidate, label);
@@ -623,6 +717,13 @@ export function validateDeviceEvidence({
     validateAndroidAuthenticatedSession(
       root,
       object(android.authenticatedSession, 'candidate.android.authenticatedSession'),
+      candidate,
+    );
+  }
+  if (android.syntheticRoleBooking !== undefined) {
+    validateAndroidSyntheticRoleBooking(
+      root,
+      object(android.syntheticRoleBooking, 'candidate.android.syntheticRoleBooking'),
       candidate,
     );
   }

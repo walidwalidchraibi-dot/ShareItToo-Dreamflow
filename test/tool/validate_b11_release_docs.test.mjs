@@ -68,6 +68,16 @@ test('rejects a stale or missing authenticated-session diagnostic in a snapshot'
   assert.throws(() => validate({ documents: changed }), /snapshot is stale or incomplete/);
 });
 
+test('rejects a stale or missing synthetic-role booking diagnostic in a snapshot', () => {
+  const changed = structuredClone(documents);
+  const path = documentPaths[0];
+  changed[path] = changed[path].replace(
+    '| Synthetische Android-Rollenbuchung | `passed`',
+    '| Synthetische Android-Rollenbuchung | `open`',
+  );
+  assert.throws(() => validate({ documents: changed }), /snapshot is stale or incomplete/);
+});
+
 test('rejects duplicate snapshot markers', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[2];

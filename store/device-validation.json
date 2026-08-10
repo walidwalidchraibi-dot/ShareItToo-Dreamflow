@@ -45,6 +45,15 @@
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
         "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081018-20260810T071148Z.json"
+      },
+      "syntheticRoleBooking": {
+        "status": "passed",
+        "capturedAt": "2026-08-10T07:50:42.053Z",
+        "installMethod": "direct-apk-diagnostic",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081018-20260810T075042Z.json"
       }
     },
     "ios": {
