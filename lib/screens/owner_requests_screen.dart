@@ -22,7 +22,6 @@ class OwnerRequestsScreen extends StatefulWidget {
   @override
   State<OwnerRequestsScreen> createState() => _OwnerRequestsScreenState();
 }
-
 class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String? _ownerId;
@@ -157,14 +156,22 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
       setState(() => _entries = const []);
       return;
     }
-    // A freshly registered renter is not guaranteed to be present in the
-    // owner's local user cache. Hydrate every referenced backend record just
-    // like the renter-side BookingsScreen does.
-    final byItem = <String, Item?>{};
-    final byUser = <String, model.User?>{};
+    // Load the catalog and local profile cache once. Calling getItemById for
+    // every booking would reload the complete remote catalog each time and can
+    // abort the screen before any request card is rendered. Only participants
+    // missing from the local cache need an individual public-profile lookup.
+    final items = await DataService.getItems();
+    final users = await DataService.getUsers();
+    final byItem = <String, Item?>{
+      for (final item in items) item.id: item,
+    };
+    final byUser = <String, model.User?>{
+      for (final user in users) user.id: user,
+    };
     for (final request in requests) {
-      byItem[request.itemId] = byItem[request.itemId] ?? await DataService.getItemById(request.itemId);
-      byUser[request.renterId] = byUser[request.renterId] ?? await DataService.getUserById(request.renterId);
+      if (!byUser.containsKey(request.renterId)) {
+        byUser[request.renterId] = await DataService.getUserById(request.renterId);
+      }
     }
     for (final item in byItem.values) {
       if (item != null) {

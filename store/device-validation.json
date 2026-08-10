@@ -7,8 +7,8 @@
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
     "minimumBuildNumber": "2026080903",
-    "buildNumber": "2026081027",
-    "commit": "341a8356015bc367e48fe6a7134c10a1e7bc0193",
+    "buildNumber": "2026081028",
+    "commit": "9164685c2983c2bbe34404c62c58f54163c35626",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
@@ -16,44 +16,17 @@
     "stripeLivemode": false,
     "android": {
       "delivery": "pending",
-      "aabSha256": "7ea2c358914ac2934e5401119ee7bf3417f75e25a20e571e9d4f8d81813d79e0",
-      "apkSha256": "341d4a695209795423f756beffb8062a10da1ea428820014793d99d4269a81ae",
+      "aabSha256": "5cd056956b65b28ff0ebcb607be3cb01fb20251a8b1d5936f28c83af47545b8c",
+      "apkSha256": "1a945182066545a8183fc7718394b6d55215aef1ddc0d3c5d31fc96e37461f93",
       "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
       "directDiagnostic": {
         "status": "passed",
-        "capturedAt": "2026-08-10T15:13:50Z",
+        "capturedAt": "2026-08-10T16:15:22.237Z",
         "installMethod": "direct-apk-diagnostic",
         "manufacturer": "Google",
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-direct-smoke-2026081027-20260810T151350Z.json"
-      },
-      "directAppLinks": {
-        "status": "passed",
-        "capturedAt": "2026-08-10T15:46:18.687Z",
-        "installMethod": "direct-apk-diagnostic",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-app-link-diagnostic-2026081027-20260810T154618Z.json"
-      },
-      "authenticatedSession": {
-        "status": "passed",
-        "capturedAt": "2026-08-10T15:27:54.926Z",
-        "installMethod": "direct-apk-diagnostic",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081027-20260810T152754Z.json"
-      },
-      "authenticatedDeepLinks": {
-        "status": "passed",
-        "capturedAt": "2026-08-10T15:29:59.603Z",
-        "installMethod": "direct-apk-diagnostic",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081027-20260810T152959Z.json"
+        "evidenceRef": "docs/evidence/b11/android-direct-smoke-2026081028-20260810T161522Z.json"
       }
     },
     "ios": {
@@ -172,19 +145,19 @@
   "releaseChecks": {
     "candidateIdentityAndSignatures": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081027.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081028.json"
     },
     "firebaseFcmAndApns": {
       "status": "testing",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081027.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081028.json"
     },
     "binaryPrivacyAndNetwork": {
       "status": "testing",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081027.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081028.json"
     },
     "crashReleaseMapping": {
-      "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-crash-release-check-2026081027.json"
+      "status": "open",
+      "evidenceRef": null
     },
     "storeWarningsLinksAndSigning": {
       "status": "open",
@@ -192,11 +165,11 @@
     },
     "stagingCleanupAndHealth": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081027.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081028.json"
     },
     "productionInvariant": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081027.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081028.json"
     }
   },
   "approvals": {

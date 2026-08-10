@@ -60,6 +60,11 @@ function crashProgressFixture() {
     resolve(repositoryRoot, 'docs/evidence/b11/android-crash-release-mapping-2026081027.json'),
     'utf8',
   ));
+  evidence.candidate = evidenceCandidate(deviceManifest.candidate);
+  evidence.artifacts.aabSha256 = deviceManifest.candidate.android.aabSha256;
+  evidence.artifacts.apkSha256 = deviceManifest.candidate.android.apkSha256;
+  evidence.artifacts.signingCertificateSha256 =
+    deviceManifest.candidate.android.signingCertificateSha256;
   evidence.status = 'mapping-symbols-and-controlled-event-sent-console-pending';
   evidence.verifications.consoleReleaseAssignment = 'pending';
   delete evidence.verifications.consoleObservedVersion;
@@ -550,7 +555,7 @@ test('accepts the honest in-progress B11 evidence state', () => {
     goNoGo: 'hold',
     matrixPassed: 0,
     matrixTotal: 4,
-    releaseChecksPassed: 4,
+    releaseChecksPassed: 3,
     releaseChecksTotal: 7,
     minimumBuild: '2026080903',
   });
@@ -589,7 +594,7 @@ test('rejects a controlled-event claim without the sanitized staging boundary', 
 test('strict mode rejects the in-progress evidence state', () => {
   assert.throws(
     () => validate({ requirePassed: true }),
-    /remains testing: matrix=0\/4, releaseChecks=4\/7/,
+    /remains testing: matrix=0\/4, releaseChecks=3\/7/,
   );
 });
 

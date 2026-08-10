@@ -187,10 +187,10 @@ test('rejects pubspec drift from the documented candidate', () => {
 
 test('rollover mode accepts an incomplete current candidate above the documented baseline', () => {
   const result = validate();
-  assert.equal(result.buildNumber, '2026081027');
-  assert.equal(result.rolloverBuildNumber, '2026081028');
+  assert.equal(result.buildNumber, '2026081028');
+  assert.equal(result.rolloverBuildNumber, '2026081029');
   assert.equal(result.documentedBuild, '2026081026');
-  assert.equal(result.passedReleaseChecks, 4);
+  assert.equal(result.passedReleaseChecks, 3);
 });
 
 test('rollover mode rejects a build older than the documented candidate', () => {
