@@ -4,24 +4,17 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
 
-const rules = [
-  ['private_key', /-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/u],
-  ['aws_access_key', /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/u],
-  ['github_token', /\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{60,})\b/u],
-  ['openai_key', /\bsk-(?:proj-)?[A-Za-z0-9_-]{32,}\b/u],
-  ['stripe_live_key', /\b(?:sk|rk)_live_[A-Za-z0-9]{20,}\b/u],
-  ['google_api_key', /\bAIza[0-9A-Za-z_-]{35}\b/u],
-  ['slack_token', /\bxox[baprs]-[0-9A-Za-z-]{20,}\b/u],
-];
+import { detectHighConfidenceSecretRules } from './secret_scan_rules.mjs';
 
 const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
   encoding: 'utf8',
 }).trim();
 const findings = new Set();
+const workingTreeOnly = process.argv.includes('--working-tree-only');
 
 function inspect(text, source, file) {
-  for (const [rule, pattern] of rules) {
-    if (pattern.test(text)) findings.add(`${rule}\t${source}\t${file}`);
+  for (const rule of detectHighConfidenceSecretRules(text, file)) {
+    findings.add(`${rule}\t${source}\t${file}`);
   }
 }
 
@@ -80,7 +73,7 @@ async function scanWorkingTree() {
   }
 }
 
-await scanHistory();
+if (!workingTreeOnly) await scanHistory();
 await scanWorkingTree();
 
 if (findings.size > 0) {
@@ -91,5 +84,7 @@ if (findings.size > 0) {
   }
   process.exitCode = 1;
 } else {
-  console.log('[secret-scan] no high-confidence secrets found in Git history or working tree');
+  console.log(workingTreeOnly
+    ? '[secret-scan] no high-confidence secrets found in the working tree'
+    : '[secret-scan] no high-confidence secrets found in Git history or working tree');
 }

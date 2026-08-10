@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import http from 'node:http';
 import os from 'node:os';
@@ -9,6 +10,8 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import sharp from 'sharp';
 
+import { createEphemeralAcceptancePassword } from '../ops/ephemeral_acceptance_password.mjs';
+
 const databaseUrl = process.env.TEST_DATABASE_URL?.trim();
 
 if (!databaseUrl) {
@@ -16,7 +19,7 @@ if (!databaseUrl) {
 } else {
   test('migrations, concurrency guard, and private-resource boundaries work together', async () => {
     process.env.DATABASE_URL = databaseUrl;
-    process.env.JWT_SECRET ??= 'test-secret-that-is-longer-than-thirty-two-characters';
+    process.env.JWT_SECRET ??= crypto.randomBytes(48).toString('base64url');
     process.env.MAIL_TRANSPORT = 'memory';
     process.env.PAYMENT_TRANSPORT = 'memory';
     process.env.PAYOUT_HOLD_HOURS = '0';
@@ -278,8 +281,8 @@ if (!databaseUrl) {
       const { applyProviderEvent } = await import('../src/payment_workflow.js');
       const { hashActionToken, hashPassword, signAccessToken } = await import('../src/security.js');
       applicationPool = pool;
-      const adminPassword = 'AdminStepUpPassword9';
-      const supportPassword = 'SupportStepUpPassword8';
+      const adminPassword = createEphemeralAcceptancePassword();
+      const supportPassword = createEphemeralAcceptancePassword();
       await setupPool.query(
         `UPDATE users SET password_hash = CASE id WHEN 'admin' THEN $1 ELSE $2 END,
                           email_verified_at = now()
@@ -1664,9 +1667,9 @@ if (!databaseUrl) {
       assert.equal(suspendedResponse.status, 401);
       assert.equal((await suspendedResponse.json()).error, 'account_not_active');
 
-      const initialPassword = 'InitialPassword1';
-      const nextPassword = 'NextSecurePassword2';
-      const emailChangePassword = 'EmailChangePassword4';
+      const initialPassword = createEphemeralAcceptancePassword();
+      const nextPassword = createEphemeralAcceptancePassword();
+      const emailChangePassword = createEphemeralAcceptancePassword();
       await setupPool.query(
         `INSERT INTO users (
            id, email, password_hash, profile, role, account_status,
@@ -1808,7 +1811,7 @@ if (!databaseUrl) {
       for (let attempt = 0; attempt < 10; attempt += 1) {
         const failure = await emailLogin(
           'email-new@example.com',
-          'WrongPassword9',
+          createEphemeralAcceptancePassword(),
           `203.0.114.${attempt + 1}`,
         );
         assert.equal(failure.status, 401);
@@ -1887,7 +1890,7 @@ if (!databaseUrl) {
       const wrongDeletion = await fetch(`${baseUrl}/v1/account/deletion`, {
         method: 'POST',
         headers: deletionHeaders,
-        body: JSON.stringify({ currentPassword: 'wrong-password' }),
+        body: JSON.stringify({ currentPassword: createEphemeralAcceptancePassword() }),
       });
       assert.equal(wrongDeletion.status, 401);
       const deletion = await fetch(`${baseUrl}/v1/account/deletion`, {
@@ -1955,7 +1958,7 @@ if (!databaseUrl) {
 
       const registrationBody = {
         email: 'new-account@example.com',
-        password: 'RegistrationPassword3',
+        password: createEphemeralAcceptancePassword(),
         displayName: 'New Account',
         termsAccepted: true,
         privacyAccepted: true,
@@ -1997,7 +2000,7 @@ if (!databaseUrl) {
             'Content-Type': 'application/json',
             'X-Forwarded-For': '203.0.113.77',
           },
-          body: JSON.stringify({ email: 'unknown@example.com', password: 'WrongPassword9' }),
+          body: JSON.stringify({ email: 'unknown@example.com', password: createEphemeralAcceptancePassword() }),
         }));
       }
       assert.equal(limitedAttempts.at(-1).status, 429);

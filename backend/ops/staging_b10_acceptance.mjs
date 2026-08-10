@@ -3,6 +3,8 @@ import crypto from 'node:crypto';
 
 import sharp from 'sharp';
 
+import { createEphemeralAcceptancePassword } from './ephemeral_acceptance_password.mjs';
+
 import { pool } from '../src/db.js';
 import { hashPassword, signAccessToken } from '../src/security.js';
 
@@ -10,7 +12,7 @@ const baseUrl = (process.env.ACCEPTANCE_BASE_URL || 'http://127.0.0.1:8080/v1')
   .replace(/\/$/u, '');
 const serviceUrl = baseUrl.replace(/\/v1$/u, '');
 const runId = `b10-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`;
-const password = `SIT-${runId}-Password10`;
+const password = createEphemeralAcceptancePassword();
 
 function dateOnly(daysFromNow) {
   return new Date(Date.now() + daysFromNow * 86_400_000).toISOString().slice(0, 10);

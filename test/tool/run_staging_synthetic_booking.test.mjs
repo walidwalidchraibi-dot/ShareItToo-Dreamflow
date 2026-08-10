@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import { chmodSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
@@ -11,6 +12,10 @@ import {
   sendSyntheticBookingDiagnosticMessage,
   transitionSyntheticBookingFixture,
 } from '../../tool/run_staging_synthetic_booking.mjs';
+
+function createEphemeralFixturePassword() {
+  return `Aa9!${crypto.randomBytes(24).toString('base64url')}`;
+}
 
 function vaultFixture({ baseUrl = 'https://staging.shareittoo.com/api/v1' } = {}) {
   const root = mkdtempSync(resolve(tmpdir(), 'sit-synthetic-booking-'));
@@ -26,8 +31,8 @@ function vaultFixture({ baseUrl = 'https://staging.shareittoo.com/api/v1' } = {}
     apiBaseUrl: baseUrl,
     stripeLivemode: false,
     accounts: [
-      { role: 'owner', email: 'owner@example.invalid', password: 'Owner-Password-123456' },
-      { role: 'renter', email: 'renter@example.invalid', password: 'Renter-Password-123456' },
+      { role: 'owner', email: 'owner@example.invalid', password: createEphemeralFixturePassword() },
+      { role: 'renter', email: 'renter@example.invalid', password: createEphemeralFixturePassword() },
     ],
   }, null, 2)}\n`, { mode: 0o600 });
   chmodSync(vaultFile, 0o600);
