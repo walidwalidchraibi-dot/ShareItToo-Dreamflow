@@ -347,10 +347,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (entry.action != null) {
       switch (entry.action!) {
         case _ProfileSearchEntryAction.notifications:
-          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+          _openNotifications(isGuest: isGuest);
           break;
       }
     }
+  }
+
+  void _openNotifications({required bool isGuest}) {
+    if (isGuest) {
+      showGuestRestrictionSheet(
+        context,
+        overrideContent: const GuestGateContent(
+          icon: Icons.notifications_outlined,
+          title: 'Benachrichtigungen ansehen',
+          description: 'Melde dich an oder registriere dich kostenlos, um deine persönlichen Benachrichtigungen zu sehen.',
+          benefits: ['Buchungsstatus im Blick behalten', 'Neue Nachrichten nicht verpassen', 'Wichtige Konto-Hinweise erhalten'],
+        ),
+      );
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+    );
   }
 
   User _guestUser() {
@@ -493,11 +511,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Stack(children: [
                 IconButton(
                   tooltip: l10n.t('Benachrichtigungen'),
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const NotificationsScreen(),
-                    ),
-                  ),
+                  onPressed: () => _openNotifications(isGuest: isGuest),
                   icon: const Icon(Icons.notifications_outlined),
                 ),
                 if (_hasAnyNotifications)

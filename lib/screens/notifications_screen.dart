@@ -667,7 +667,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: Text(widget.titleOverride ?? l10n.t('account.item.notifications'), textAlign: TextAlign.center),
             ),
             centerTitle: true,
-            leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
+            leading: IconButton(
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
             actions: [
               Padding(
                 padding: const EdgeInsets.only(right: 4),

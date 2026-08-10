@@ -184,6 +184,22 @@ void main() {
     expect(security, contains('!BackendConfig.enabled && !kReleaseMode'));
   });
 
+  test('guest notification entry is gated and its header control is named',
+      () async {
+    final profile =
+        await File('lib/screens/profile_screen.dart').readAsString();
+    final notifications =
+        await File('lib/screens/notifications_screen.dart').readAsString();
+
+    expect(profile, contains('_openNotifications(isGuest: isGuest)'));
+    expect(profile, contains("title: 'Benachrichtigungen ansehen'"));
+    expect(profile, contains('overrideContent: const GuestGateContent'));
+    expect(
+      notifications,
+      contains('tooltip: MaterialLocalizations.of(context).backButtonTooltip'),
+    );
+  });
+
   test('authenticated empty states do not present invented marketplace data',
       () async {
     final profile =
