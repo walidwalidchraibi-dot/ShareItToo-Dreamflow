@@ -34,6 +34,31 @@ ohne ADB-Seriennummer aus. Eine direkte APK-Installation darf als technischer
 Smoke-Test dokumentiert werden, jedoch niemals als Play-Internal-Installation
 oder bestandene Gerätematrix.
 
+<!-- SIT_CURRENT_RELEASE_SNAPSHOT_BEGIN -->
+### Aktueller maschinengebundener B11-Kandidat
+
+| Merkmal | Verbindlicher Wert |
+|---|---|
+| App-Identität | `com.shareittoo.app` (Android und iOS) |
+| Version und Build | `1.0.0 (2026081018)` |
+| App-Commit | `555946e64e583e5b6ee3321de2c1f74f35fbf238` |
+| Kanal und API | `internal`, `https://staging.shareittoo.com/api/v1` |
+| Firebase und Zahlung | vollständig: `true`; `memory`; `stripeLivemode=false` |
+| Android-AAB SHA-256 | `1a35e64413c840c59660e6ffa7416e16fe38398190b0968d89a4d63b0d2a04d4` |
+| Android-APK SHA-256 | `51121b9866dac109eaa42c78950d90d33b3d4ef9f9ec7301ddfe62fbe6120619` |
+| Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
+| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081018-20260810T043849Z.json` |
+| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081018.json` |
+| Staging-Servercommit | `9a1371e02d8e7d63d3dee30ca169c6c7f37fa966` |
+| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
+
+Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkte APK-Diagnose ist keine Store-Installation und schließt weder die Rollen-/Netzmatrix noch TalkBack, Push, iOS/TestFlight, Produktion oder Echtgeld.
+<!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
+
+Die folgenden Direkt-Smoke-Nachweise bleiben als chronologische Historie
+erhalten; nur der obige Snapshot und die Referenzen im Manifest bezeichnen den
+aktuellen Kandidaten.
+
 Der erste reale Direkt-Smoke-Test des unveränderten Builds `2026080903` bleibt
 in `android-direct-smoke-2026080903-20260809T202357Z.json` als historische
 Evidenz erhalten. Nach der Korrektur der Registrierungsweiterleitung wurde der

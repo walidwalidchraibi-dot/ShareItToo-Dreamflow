@@ -33,6 +33,10 @@ node --check tool/validate_device_evidence.mjs
 node --test test/tool/validate_device_evidence.test.mjs
 node tool/validate_device_evidence.mjs
 
+node --check tool/validate_b11_release_docs.mjs
+node --test test/tool/validate_b11_release_docs.test.mjs
+node tool/validate_b11_release_docs.mjs
+
 node --check tool/prepare_android_device_test.mjs
 node --test test/tool/prepare_android_device_test.test.mjs
 

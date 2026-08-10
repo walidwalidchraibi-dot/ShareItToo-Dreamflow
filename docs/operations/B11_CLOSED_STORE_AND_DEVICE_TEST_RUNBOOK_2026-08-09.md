@@ -20,29 +20,34 @@ Vor jeder Installation werden alle Felder ausgefüllt. Ändert sich Commit,
 Buildnummer, Signatur, Firebase-Konfiguration oder API-Ziel, beginnt die
 betroffene Abnahme mit einem neuen Eintrag von vorn.
 
-| Feld | Aktueller technischer Kandidat |
-|---|---|
-| Android/iOS Kennung | `com.shareittoo.app` |
-| Version | `1.0.0` |
-| Buildnummer | `2026080903` |
-| Commit | `5594cd32dea38b67c330f75cd71b50325f72c407` |
-| Kanal | `internal` |
-| API | `https://staging.shareittoo.com/api/v1` |
-| Firebase | vollständig an `shareittoo-staging` gebunden |
-| AAB SHA-256 | `b62de0ebc0b5b3ba828881f3ed8753a2fe58ac3d82347a14baecc69df593538f` |
-| APK SHA-256 | `13a84826527931652bb16e2bf1eb809757d6a16529b819f7fff53157937d4914` |
-| Staging-API-Image-Digest | `sha256:d7f9c0216bfc4801abdd8126d943af0101d894ccb9f24370d4aa5af9327b8d12` |
+<!-- SIT_CURRENT_RELEASE_SNAPSHOT_BEGIN -->
+### Aktueller maschinengebundener B11-Kandidat
 
-Dieser Push-fähige Kandidat ist gebaut, privat archiviert und technisch
-nachgewiesen. Am 9. August 2026 wurde er nach bestandener fail-closed
-Vorprüfung direkt auf einem physischen OnePlus-Gerät mit Android 16
-installiert; Version und Buildnummer wurden zurückgelesen, der Erststart und
-die ShareItToo-Vordergrundaktivität bestätigt. Dieser Diagnoseweg ist keine
-Google-Play-Installation und schließt keine Funktions-, Push-, Netzwerk- oder
-Accessibility-Zelle. Der bereinigte Nachweis liegt unter
-`docs/evidence/b11/android-direct-smoke-2026080903-20260809T202357Z.json`.
-Eine neue Buildnummer oder Funktionsänderung würde einen vollständig neuen
-Kandidatennachweis verlangen.
+| Merkmal | Verbindlicher Wert |
+|---|---|
+| App-Identität | `com.shareittoo.app` (Android und iOS) |
+| Version und Build | `1.0.0 (2026081018)` |
+| App-Commit | `555946e64e583e5b6ee3321de2c1f74f35fbf238` |
+| Kanal und API | `internal`, `https://staging.shareittoo.com/api/v1` |
+| Firebase und Zahlung | vollständig: `true`; `memory`; `stripeLivemode=false` |
+| Android-AAB SHA-256 | `1a35e64413c840c59660e6ffa7416e16fe38398190b0968d89a4d63b0d2a04d4` |
+| Android-APK SHA-256 | `51121b9866dac109eaa42c78950d90d33b3d4ef9f9ec7301ddfe62fbe6120619` |
+| Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
+| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081018-20260810T043849Z.json` |
+| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081018.json` |
+| Staging-Servercommit | `9a1371e02d8e7d63d3dee30ca169c6c7f37fa966` |
+| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
+
+Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkte APK-Diagnose ist keine Store-Installation und schließt weder die Rollen-/Netzmatrix noch TalkBack, Push, iOS/TestFlight, Produktion oder Echtgeld.
+<!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
+
+Der Kandidat ist gebaut, kanonisch signiert, privat archiviert und auf einem
+physischen Pixel 7 Pro direkt diagnostisch installiert. Version, Buildnummer,
+Paket, Start, Staging-Bindung und eine begrenzte maschinelle
+Barrierefreiheitsprüfung wurden zurückgelesen. Eine neue Buildnummer oder
+Funktionsänderung verlangt einen neuen Kandidatennachweis; die direkte
+Installation ersetzt weiterhin weder Google Play Internal noch die manuelle
+Rollen-, Netzwerk-, Push- und TalkBack-Matrix.
 
 ## Eintrittsbedingungen
 
@@ -79,10 +84,10 @@ ersetzen.
 
 | Plattform | Gerät/Modell | Betriebssystem | Build | Netz | Rolle | Ergebnis |
 |---|---|---|---|---|---|---|
-| Android real | offen | offen | `2026080903` | WLAN | Vermieter | offen |
-| Android real | offen | offen | `2026080903` | Mobilfunk/Hotspot | Mieter | offen |
-| iOS real | offen | offen | `2026080903` oder höher | WLAN | Vermieter | offen |
-| iOS real | offen | offen | `2026080903` oder höher | Mobilfunk/Hotspot | Mieter | offen |
+| Android real | offen | offen | `2026081018` | WLAN | Vermieter | offen |
+| Android real | offen | offen | `2026081018` | Mobilfunk/Hotspot | Mieter | offen |
+| iOS real | offen | offen | `2026081018` oder höher | WLAN | Vermieter | offen |
+| iOS real | offen | offen | `2026081018` oder höher | Mobilfunk/Hotspot | Mieter | offen |
 
 ## Artefakt- und Installationsprüfung
 
