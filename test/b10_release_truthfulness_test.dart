@@ -194,6 +194,9 @@ void main() {
     expect(profile, contains('_openNotifications(isGuest: isGuest)'));
     expect(profile, contains("title: 'Benachrichtigungen ansehen'"));
     expect(profile, contains('overrideContent: const GuestGateContent'));
+    expect(profile, contains("label: l10n.t('Profil durchsuchen')"));
+    expect(profile, contains("'Sucheingabe löschen'"));
+    expect(profile, contains("_isProfileSearchOpen ? 'Suche schließen' : 'Suchen'"));
     expect(
       notifications,
       contains('tooltip: MaterialLocalizations.of(context).backButtonTooltip'),

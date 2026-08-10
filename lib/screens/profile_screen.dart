@@ -504,7 +504,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.only(right: 4),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               IconButton(
-                tooltip: l10n.t('Suchen'),
+                tooltip: l10n.t(_isProfileSearchOpen ? 'Suche schließen' : 'Suchen'),
                 onPressed: _toggleProfileSearch,
                 icon: Icon(_isProfileSearchOpen ? Icons.close : Icons.search),
               ),
@@ -535,36 +535,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
               child: Column(children: [
-                TextField(
-                  controller: _profileSearchCtrl,
-                  focusNode: _profileSearchFocus,
-                  onChanged: (_) => setState(() {}),
-                  onSubmitted: (_) {
-                    if (visibleProfileResults.isNotEmpty) {
-                      _openProfileSearchEntry(visibleProfileResults.first, isGuest: isGuest);
-                    }
-                  },
-                  decoration: InputDecoration(
-                    hintText: l10n.t('Nach Kontoeinstellungen, Hilfe oder Rechtlichem suchen'),
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () {
-                        if (_profileSearchCtrl.text.isNotEmpty) {
-                          setState(() {
-                            _profileSearchCtrl.clear();
-                          });
-                          return;
-                        }
-                        _toggleProfileSearch();
-                      },
+                Semantics(
+                  label: l10n.t('Profil durchsuchen'),
+                  textField: true,
+                  child: TextField(
+                    controller: _profileSearchCtrl,
+                    focusNode: _profileSearchFocus,
+                    onChanged: (_) => setState(() {}),
+                    onSubmitted: (_) {
+                      if (visibleProfileResults.isNotEmpty) {
+                        _openProfileSearchEntry(visibleProfileResults.first, isGuest: isGuest);
+                      }
+                    },
+                    decoration: InputDecoration(
+                      hintText: l10n.t('Nach Kontoeinstellungen, Hilfe oder Rechtlichem suchen'),
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: IconButton(
+                        tooltip: l10n.t(_profileSearchCtrl.text.isEmpty ? 'Suche schließen' : 'Sucheingabe löschen'),
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          if (_profileSearchCtrl.text.isNotEmpty) {
+                            setState(() {
+                              _profileSearchCtrl.clear();
+                            });
+                            return;
+                          }
+                          _toggleProfileSearch();
+                        },
+                      ),
+                      filled: true,
+                      fillColor: Colors.black.withValues(alpha: 0.25),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6))),
                     ),
-                    filled: true,
-                    fillColor: Colors.black.withValues(alpha: 0.25),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6))),
                   ),
                 ),
                 if (!showProfileSearchEmpty && visibleProfileResults.isNotEmpty) ...[
