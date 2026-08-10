@@ -34,6 +34,14 @@ ohne ADB-Seriennummer aus. Eine direkte APK-Installation darf als technischer
 Smoke-Test dokumentiert werden, jedoch niemals als Play-Internal-Installation
 oder bestandene Gerätematrix.
 
+`tool/diagnose_android_app_links.mjs` prüft zusätzlich vier eng begrenzte,
+anonyme Linkfälle auf dem bereits verifizierten Android-Kandidaten: eine nicht
+vorhandene Anzeige über Staging-HTTPS, den Gast-Chat über das eigene Schema,
+eine verworfene unsichere Kennung und die Nichtzuordnung einer fremden Domain.
+Der Nachweis schließt weder Store-Installation noch angemeldete Deep Links,
+Rollen-/Netzmatrix, Push oder eine Buchung. Das Werkzeug verwendet keinen
+Sperrcode und bricht bei einem gesperrten Gerät ab.
+
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_BEGIN -->
 ### Aktueller maschinengebundener B11-Kandidat
 

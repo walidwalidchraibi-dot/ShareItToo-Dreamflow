@@ -90,6 +90,7 @@ function passedFixture() {
     signingCertificateSha256: 'd'.repeat(64),
   });
   delete deviceManifest.candidate.android.directDiagnostic;
+  delete deviceManifest.candidate.android.directAppLinks;
   Object.assign(deviceManifest.candidate.ios, {
     delivery: 'testflight-internal',
     ipaSha256: 'e'.repeat(64),
@@ -187,6 +188,7 @@ function passedFixture() {
 function progressFixture() {
   const root = mkdtempSync(resolve(tmpdir(), 'sit-device-progress-'));
   const deviceManifest = clone(baseDeviceManifest);
+  delete deviceManifest.candidate.android.directAppLinks;
   const diagnosticRef = 'docs/evidence/b11/android-direct-smoke-progress-fixture.json';
   const capturedAt = '2026-08-09T18:00:00+02:00';
   deviceManifest.candidate.android.directDiagnostic = {
@@ -251,6 +253,59 @@ function progressFixture() {
     submissionManifest: clone(baseSubmissionManifest),
     pubspecText: basePubspec,
   };
+}
+
+function appLinkFixture() {
+  const fixture = progressFixture();
+  const { root, deviceManifest } = fixture;
+  const ref = 'docs/evidence/b11/android-app-link-progress-fixture.json';
+  const capturedAt = '2026-08-10T06:00:00.000Z';
+  deviceManifest.candidate.android.directAppLinks = {
+    status: 'passed',
+    capturedAt,
+    installMethod: 'direct-apk-diagnostic',
+    manufacturer: 'Sanitized Android',
+    deviceModel: 'Physical test device',
+    osVersion: 'Android test version',
+    evidenceRef: ref,
+  };
+  writeEvidence(root, ref, {
+    schemaVersion: 1,
+    kind: 'android-direct-app-link-diagnostic',
+    status: 'passed-bounded-app-link-diagnostic',
+    capturedAt,
+    candidate: evidenceCandidate(deviceManifest.candidate),
+    installed: {
+      packageIdentityVerified: true,
+      versionName: deviceManifest.candidate.versionName,
+      buildNumber: deviceManifest.candidate.buildNumber,
+      apkSha256: deviceManifest.candidate.android.apkSha256,
+    },
+    device: {
+      platform: 'android',
+      physical: true,
+      manufacturer: 'Sanitized Android',
+      model: 'Physical test device',
+      osVersion: 'Android test version',
+      containsRawDeviceIdentifier: false,
+    },
+    tests: {
+      verifiedHttpsMissingListing: { status: 'passed', result: 'safe-listing-unavailable-surface' },
+      customSchemeGuestChat: { status: 'passed', result: 'authentication-required-surface' },
+      unsafeIdentifierRejected: { status: 'passed', result: 'guest-start-preserved' },
+      foreignHostNotAssociated: { status: 'passed', result: 'shareittoo-package-absent' },
+    },
+    boundaries: {
+      ...safeBoundaries(),
+      directDiagnosticOnly: true,
+      storeInstallationGateSatisfied: false,
+      manualFunctionalMatrixPassed: false,
+      authenticatedDeepLinksPassed: false,
+      realPushPassed: false,
+      lockCodeUsed: false,
+    },
+  });
+  return fixture;
 }
 
 test('accepts the honest in-progress B11 evidence state', () => {
@@ -424,5 +479,36 @@ test('direct diagnostic evidence cannot claim Play Internal or real push', () =>
   assert.throws(
     () => validate(fixture),
     /must keep manual, Play Internal, and real-push gates open/,
+  );
+});
+
+test('accepts exact, bounded direct app-link evidence without closing device gates', () => {
+  const fixture = appLinkFixture();
+  const summary = validate(fixture);
+  assert.equal(summary.state, 'testing');
+  assert.equal(summary.matrixPassed, 0);
+});
+
+test('direct app-link evidence cannot claim an authenticated or store-install pass', () => {
+  const fixture = appLinkFixture();
+  const ref = fixture.deviceManifest.candidate.android.directAppLinks.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.boundaries.authenticatedDeepLinksPassed = true;
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must keep store, manual, authenticated, push, and lock-code gates open/,
+  );
+});
+
+test('direct app-link evidence rejects a different installed candidate APK', () => {
+  const fixture = appLinkFixture();
+  const ref = fixture.deviceManifest.candidate.android.directAppLinks.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.installed.apkSha256 = 'f'.repeat(64);
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must prove the exact installed candidate APK and package identity/,
   );
 });

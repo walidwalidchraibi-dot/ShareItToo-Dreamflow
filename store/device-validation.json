@@ -27,6 +27,15 @@
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
         "evidenceRef": "docs/evidence/b11/android-direct-smoke-2026081018-20260810T043849Z.json"
+      },
+      "directAppLinks": {
+        "status": "passed",
+        "capturedAt": "2026-08-10T05:54:18.726Z",
+        "installMethod": "direct-apk-diagnostic",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-app-link-diagnostic-2026081018-20260810T055418Z.json"
       }
     },
     "ios": {

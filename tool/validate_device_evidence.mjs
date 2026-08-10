@@ -265,6 +265,75 @@ function validateAndroidDirectDiagnostic(root, diagnostic, candidate) {
   }
 }
 
+function validateAndroidDirectAppLinks(root, diagnostic, candidate) {
+  const label = 'candidate.android.directAppLinks';
+  if (diagnostic.status !== 'passed' || diagnostic.installMethod !== 'direct-apk-diagnostic') {
+    fail(`${label} must record a passed direct-apk-diagnostic.`);
+  }
+  isoTimestamp(diagnostic.capturedAt, `${label}.capturedAt`, { required: true });
+  for (const key of ['manufacturer', 'deviceModel', 'osVersion']) {
+    nonEmptyString(diagnostic[key], `${label}.${key}`);
+  }
+  const ref = evidenceRef(root, diagnostic.evidenceRef, `${label}.evidenceRef`, { required: true });
+  const evidence = readEvidenceJson(root, ref, `${label}.evidence`);
+  if (evidence.schemaVersion !== 1 ||
+      evidence.kind !== 'android-direct-app-link-diagnostic' ||
+      evidence.status !== 'passed-bounded-app-link-diagnostic') {
+    fail(`${label}.evidence must be a passed bounded Android app-link diagnostic.`);
+  }
+  if (evidence.capturedAt !== diagnostic.capturedAt) {
+    fail(`${label}.evidence.capturedAt must match the diagnostic manifest.`);
+  }
+  isoTimestamp(evidence.capturedAt, `${label}.evidence.capturedAt`, { required: true });
+  assertEvidenceCandidate(evidence, candidate, `${label}.evidence`);
+  assertEvidenceBoundaries(evidence, `${label}.evidence`);
+
+  const installed = object(evidence.installed, `${label}.evidence.installed`);
+  const expectedAndroid = object(candidate.android, 'candidate.android');
+  if (installed.packageIdentityVerified !== true ||
+      installed.versionName !== candidate.versionName ||
+      installed.buildNumber !== candidate.buildNumber ||
+      installed.apkSha256 !== expectedAndroid.apkSha256) {
+    fail(`${label}.evidence must prove the exact installed candidate APK and package identity.`);
+  }
+
+  const device = object(evidence.device, `${label}.evidence.device`);
+  if (device.platform !== 'android' || device.physical !== true ||
+      device.manufacturer !== diagnostic.manufacturer ||
+      device.model !== diagnostic.deviceModel ||
+      device.osVersion !== diagnostic.osVersion ||
+      device.containsRawDeviceIdentifier !== false) {
+    fail(`${label}.evidence.device must match the sanitized physical Android device.`);
+  }
+
+  const expectedTests = new Map([
+    ['verifiedHttpsMissingListing', 'safe-listing-unavailable-surface'],
+    ['customSchemeGuestChat', 'authentication-required-surface'],
+    ['unsafeIdentifierRejected', 'guest-start-preserved'],
+    ['foreignHostNotAssociated', 'shareittoo-package-absent'],
+  ]);
+  const tests = object(evidence.tests, `${label}.evidence.tests`);
+  if (Object.keys(tests).length !== expectedTests.size) {
+    fail(`${label}.evidence.tests must contain exactly the four bounded app-link checks.`);
+  }
+  for (const [key, expectedResult] of expectedTests) {
+    const result = object(tests[key], `${label}.evidence.tests.${key}`);
+    if (result.status !== 'passed' || result.result !== expectedResult) {
+      fail(`${label}.evidence.tests.${key} must contain the expected passed result.`);
+    }
+  }
+
+  const boundaries = evidence.boundaries;
+  if (boundaries.directDiagnosticOnly !== true ||
+      boundaries.storeInstallationGateSatisfied !== false ||
+      boundaries.manualFunctionalMatrixPassed !== false ||
+      boundaries.authenticatedDeepLinksPassed !== false ||
+      boundaries.realPushPassed !== false ||
+      boundaries.lockCodeUsed !== false) {
+    fail(`${label}.evidence must keep store, manual, authenticated, push, and lock-code gates open.`);
+  }
+}
+
 function validateLegacyCandidateReleaseEvidence(evidence, candidate, checkId, label) {
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'android-release-candidate') return false;
   assertEvidenceCandidate(evidence, candidate, label);
@@ -466,6 +535,9 @@ export function validateDeviceEvidence({
   }
   if (android.directDiagnostic !== undefined) {
     validateAndroidDirectDiagnostic(root, object(android.directDiagnostic, 'candidate.android.directDiagnostic'), candidate);
+  }
+  if (android.directAppLinks !== undefined) {
+    validateAndroidDirectAppLinks(root, object(android.directAppLinks, 'candidate.android.directAppLinks'), candidate);
   }
 
   if (!Array.isArray(manifest.deviceMatrix)) fail('deviceMatrix must be an array.');
