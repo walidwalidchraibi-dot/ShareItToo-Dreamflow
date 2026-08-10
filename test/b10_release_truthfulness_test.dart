@@ -3,11 +3,31 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lendify/screens/language_screen.dart';
+import 'package:lendify/screens/privacy_info_screen.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_http.dart';
-import 'package:lendify/screens/privacy_info_screen.dart';
+import 'package:lendify/services/localization_service.dart';
+import 'package:provider/provider.dart';
 
 void main() {
+  testWidgets('language selector offers only maintained app translations',
+      (tester) async {
+    final localization = LocalizationController();
+    await tester.pumpWidget(
+      ChangeNotifierProvider<LocalizationController>.value(
+        value: localization,
+        child: const MaterialApp(home: LanguageScreen()),
+      ),
+    );
+
+    expect(find.text('Deutsch'), findsOneWidget);
+    expect(find.text('English'), findsOneWidget);
+    expect(find.text('Español'), findsNothing);
+    expect(find.text('Français'), findsNothing);
+    expect(find.text('العربية'), findsNothing);
+  });
+
   test('transient refresh failures preserve the stored session for retry', () {
     expect(
       AuthService.shouldClearStoredSessionAfterRefreshFailure(

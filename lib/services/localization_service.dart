@@ -44,29 +44,25 @@ class LocalizationController extends ChangeNotifier {
         return AppLanguage.en;
       case 'es':
       case 'es-es':
-        return AppLanguage.es;
       case 'fr':
       case 'fr-fr':
-        return AppLanguage.fr;
       case 'it':
       case 'it-it':
-        return AppLanguage.it;
       case 'nl':
       case 'nl-nl':
-        return AppLanguage.nl;
       case 'pl':
       case 'pl-pl':
-        return AppLanguage.pl;
       case 'pt':
       case 'pt-pt':
       case 'pt-br':
-        return AppLanguage.pt;
       case 'tr':
       case 'tr-tr':
-        return AppLanguage.tr;
       case 'ar':
       case 'ar-sa':
-        return AppLanguage.ar;
+        // Older builds offered these choices but silently displayed the
+        // maintained English table. Keep that effective language while the
+        // unavailable choices are removed from the selector.
+        return AppLanguage.en;
       default:
         return AppLanguage.de;
     }
@@ -121,15 +117,18 @@ class LocalizationController extends ChangeNotifier {
     'Ort hinzufügen': 'Ort hinzufügen',
     'Noch keine Anzeigen': 'Noch keine Anzeigen',
     'Noch keine Daten': 'Noch keine Daten',
-    'Sobald die ersten Anzeigen veröffentlicht sind, erscheinen sie hier.': 'Sobald die ersten Anzeigen veröffentlicht sind, erscheinen sie hier.',
-    'Wähle eine andere Kategorie oder setze die Filter zurück.': 'Wähle eine andere Kategorie oder setze die Filter zurück.',
+    'Sobald die ersten Anzeigen veröffentlicht sind, erscheinen sie hier.':
+        'Sobald die ersten Anzeigen veröffentlicht sind, erscheinen sie hier.',
+    'Wähle eine andere Kategorie oder setze die Filter zurück.':
+        'Wähle eine andere Kategorie oder setze die Filter zurück.',
     'Jetzt suchen': 'Jetzt suchen',
     'Zurücksetzen': 'Zurücksetzen',
     'Anwenden': 'Anwenden',
 
     // Explore
     'Willkommen 👋': 'Willkommen 👋',
-    'Sieh dir Details zu deiner letzten Miete an': 'Sieh dir Details zu deiner letzten Miete an',
+    'Sieh dir Details zu deiner letzten Miete an':
+        'Sieh dir Details zu deiner letzten Miete an',
     'Am meisten gebucht': 'Am meisten gebucht',
     'Neue Angebote': 'Neue Angebote',
     'Kunden gefällt auch …': 'Kunden gefällt auch …',
@@ -151,7 +150,8 @@ class LocalizationController extends ChangeNotifier {
     'Anfrage gesendet (Demo)': 'Anfrage gesendet (Demo)',
     'Zum Profil': 'Zum Profil',
     'Profil des Anbieters': 'Profil des Anbieters',
-    'Öffentliches Profil und Bewertungen (Demoseite).': 'Öffentliches Profil und Bewertungen (Demoseite).',
+    'Öffentliches Profil und Bewertungen (Demoseite).':
+        'Öffentliches Profil und Bewertungen (Demoseite).',
     'Anbieter': 'Anbieter',
     'Laden …': 'Laden …',
     'Verliehen': 'Verliehen',
@@ -198,11 +198,13 @@ class LocalizationController extends ChangeNotifier {
 
     // Profile
     'Benachrichtigungen': 'Benachrichtigungen',
-    'Hier siehst du künftig deine Benachrichtigungen.': 'Hier siehst du künftig deine Benachrichtigungen.',
+    'Hier siehst du künftig deine Benachrichtigungen.':
+        'Hier siehst du künftig deine Benachrichtigungen.',
     'Mein Profil anzeigen': 'Mein Profil anzeigen',
     // New i18n namespaced keys
     'profile.action.verifyNow': 'Jetzt verifizieren',
-    'profile.action.verificationUnavailable': 'Identitätsprüfung noch nicht verfügbar',
+    'profile.action.verificationUnavailable':
+        'Identitätsprüfung noch nicht verfügbar',
     'profile.action.viewMyProfile': 'Mein Profil anzeigen',
     'profile.menu.myListings': 'Meine Anzeigen',
     'profile.menu.rentalRequests': 'Mietanfragen',
@@ -241,11 +243,15 @@ class LocalizationController extends ChangeNotifier {
     'Rechtliches': 'Rechtliches',
     'Abmelden': 'Abmelden',
     'Abmelden?': 'Abmelden?',
-    'Du kannst dich jederzeit wieder anmelden.': 'Du kannst dich jederzeit wieder anmelden.',
+    'Du kannst dich jederzeit wieder anmelden.':
+        'Du kannst dich jederzeit wieder anmelden.',
     'Abgemeldet (Demo)': 'Abgemeldet (Demo)',
-    'Hier erscheinen deine abgeschlossenen Buchungen.': 'Hier erscheinen deine abgeschlossenen Buchungen.',
-    'Verwalte deine Kontakte und Vermieter.': 'Verwalte deine Kontakte und Vermieter.',
-    'Profil, Sicherheit und Benachrichtigungen.': 'Profil, Sicherheit und Benachrichtigungen.',
+    'Hier erscheinen deine abgeschlossenen Buchungen.':
+        'Hier erscheinen deine abgeschlossenen Buchungen.',
+    'Verwalte deine Kontakte und Vermieter.':
+        'Verwalte deine Kontakte und Vermieter.',
+    'Profil, Sicherheit und Benachrichtigungen.':
+        'Profil, Sicherheit und Benachrichtigungen.',
     'FAQ und Support.': 'FAQ und Support.',
     'AGB, Datenschutz und Impressum.': 'AGB, Datenschutz und Impressum.',
 
@@ -261,7 +267,8 @@ class LocalizationController extends ChangeNotifier {
     'Keine Historie': 'Keine Historie',
     'Abgeschlossen': 'Abgeschlossen',
     'Nutzer': 'Nutzer',
-    'Sehr freundliche Kommunikation und schnelle Abwicklung.': 'Sehr freundliche Kommunikation und schnelle Abwicklung.',
+    'Sehr freundliche Kommunikation und schnelle Abwicklung.':
+        'Sehr freundliche Kommunikation und schnelle Abwicklung.',
     'Kurzbeschreibung': 'Kurzbeschreibung',
     'Erzähle etwas über dich…': 'Erzähle etwas über dich…',
     'Speichern': 'Speichern',
@@ -292,14 +299,17 @@ class LocalizationController extends ChangeNotifier {
     'Zu Wunschlisten hinzufügen': 'Zu Wunschlisten hinzufügen',
 
     // Monetize teaser
-    'you want to make money with any item you posess?': 'Willst du mit jedem Gegenstand, den du besitzt, Geld verdienen?',
+    'you want to make money with any item you posess?':
+        'Willst du mit jedem Gegenstand, den du besitzt, Geld verdienen?',
     'Neue Anzeige erstellen': 'Neue Anzeige erstellen',
-    'Starte eine neue Anzeige in wenigen Schritten.': 'Starte eine neue Anzeige in wenigen Schritten.',
+    'Starte eine neue Anzeige in wenigen Schritten.':
+        'Starte eine neue Anzeige in wenigen Schritten.',
     'Erstelle eine neue Anzeige': 'Erstelle eine neue Anzeige',
 
     // Language screen
     'language.title': 'Sprache auswählen',
-    'language.subtitle': 'Wähle eine Sprache aus. Die Änderung wird sofort übernommen und auf diesem Gerät gespeichert.',
+    'language.subtitle':
+        'Wähle Deutsch oder Englisch. Die Änderung wird sofort übernommen und auf diesem Gerät gespeichert. Weitere vollständig übersetzte Sprachen folgen.',
   };
 
   static const Map<String, String> _en = {
@@ -322,15 +332,18 @@ class LocalizationController extends ChangeNotifier {
     'Ort hinzufügen': 'Add location',
     'Noch keine Anzeigen': 'No listings yet',
     'Noch keine Daten': 'No data yet',
-    'Sobald die ersten Anzeigen veröffentlicht sind, erscheinen sie hier.': 'The first published listings will appear here.',
-    'Wähle eine andere Kategorie oder setze die Filter zurück.': 'Choose another category or reset the filters.',
+    'Sobald die ersten Anzeigen veröffentlicht sind, erscheinen sie hier.':
+        'The first published listings will appear here.',
+    'Wähle eine andere Kategorie oder setze die Filter zurück.':
+        'Choose another category or reset the filters.',
     'Jetzt suchen': 'Search now',
     'Zurücksetzen': 'Reset',
     'Anwenden': 'Apply',
 
     // Explore
     'Willkommen 👋': 'Welcome 👋',
-    'Sieh dir Details zu deiner letzten Miete an': 'See details of your last rental',
+    'Sieh dir Details zu deiner letzten Miete an':
+        'See details of your last rental',
     'Am meisten gebucht': 'Most booked',
     'Neue Angebote': 'New listings',
     'Kunden gefällt auch …': 'Customers also like …',
@@ -352,7 +365,8 @@ class LocalizationController extends ChangeNotifier {
     'Anfrage gesendet (Demo)': 'Request sent (demo)',
     'Zum Profil': 'View profile',
     'Profil des Anbieters': 'Owner profile',
-    'Öffentliches Profil und Bewertungen (Demoseite).': 'Public profile and reviews (demo).',
+    'Öffentliches Profil und Bewertungen (Demoseite).':
+        'Public profile and reviews (demo).',
     'Anbieter': 'Owner',
     'Laden …': 'Loading …',
     'Verliehen': 'Times lent',
@@ -399,11 +413,13 @@ class LocalizationController extends ChangeNotifier {
 
     // Profile
     'Benachrichtigungen': 'Notifications',
-    'Hier siehst du künftig deine Benachrichtigungen.': 'You will see your notifications here.',
+    'Hier siehst du künftig deine Benachrichtigungen.':
+        'You will see your notifications here.',
     'Mein Profil anzeigen': 'View my profile',
     // New i18n namespaced keys
     'profile.action.verifyNow': 'Verify now',
-    'profile.action.verificationUnavailable': 'Identity verification not yet available',
+    'profile.action.verificationUnavailable':
+        'Identity verification not yet available',
     'profile.action.viewMyProfile': 'View my profile',
     'profile.menu.myListings': 'My listings',
     'profile.menu.rentalRequests': 'Rental requests',
@@ -442,11 +458,14 @@ class LocalizationController extends ChangeNotifier {
     'Rechtliches': 'Legal',
     'Abmelden': 'Log out',
     'Abmelden?': 'Log out?',
-    'Du kannst dich jederzeit wieder anmelden.': 'You can sign in again any time.',
+    'Du kannst dich jederzeit wieder anmelden.':
+        'You can sign in again any time.',
     'Abgemeldet (Demo)': 'Logged out (demo)',
-    'Hier erscheinen deine abgeschlossenen Buchungen.': 'Your completed bookings will appear here.',
+    'Hier erscheinen deine abgeschlossenen Buchungen.':
+        'Your completed bookings will appear here.',
     'Verwalte deine Kontakte und Vermieter.': 'Manage your contacts and hosts.',
-    'Profil, Sicherheit und Benachrichtigungen.': 'Profile, security and notifications.',
+    'Profil, Sicherheit und Benachrichtigungen.':
+        'Profile, security and notifications.',
     'FAQ und Support.': 'FAQ and support.',
     'AGB, Datenschutz und Impressum.': 'Terms, privacy and imprint.',
 
@@ -462,7 +481,8 @@ class LocalizationController extends ChangeNotifier {
     'Keine Historie': 'No history',
     'Abgeschlossen': 'Completed',
     'Nutzer': 'User',
-    'Sehr freundliche Kommunikation und schnelle Abwicklung.': 'Very friendly communication and quick processing.',
+    'Sehr freundliche Kommunikation und schnelle Abwicklung.':
+        'Very friendly communication and quick processing.',
     'Kurzbeschreibung': 'Short bio',
     'Erzähle etwas über dich…': 'Tell something about yourself…',
     'Speichern': 'Save',
@@ -493,13 +513,16 @@ class LocalizationController extends ChangeNotifier {
     'Zu Wunschlisten hinzufügen': 'Add to wishlist',
 
     // Monetize teaser
-    'you want to make money with any item you posess?': 'Do you want to make money with any item you possess?',
+    'you want to make money with any item you posess?':
+        'Do you want to make money with any item you possess?',
     'Neue Anzeige erstellen': 'Create a new listing',
-    'Starte eine neue Anzeige in wenigen Schritten.': 'Start a new listing in a few steps.',
+    'Starte eine neue Anzeige in wenigen Schritten.':
+        'Start a new listing in a few steps.',
     'Erstelle eine neue Anzeige': 'Create a new listing',
 
     // Language screen
     'language.title': 'Select language',
-    'language.subtitle': 'Choose a language. Changes apply immediately and are saved on this device.',
+    'language.subtitle':
+        'Choose German or English. Changes apply immediately and are saved on this device. More fully translated languages will follow.',
   };
 }
