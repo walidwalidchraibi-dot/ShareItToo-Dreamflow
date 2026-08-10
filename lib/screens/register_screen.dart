@@ -898,7 +898,7 @@ class _SITTextField extends StatelessWidget {
       _FieldStatus.neutral => BrandColors.primary,
     };
 
-    return MergeSemantics(
+    final field = MergeSemantics(
         child: Semantics(
       label: label,
       textField: true,
@@ -939,8 +939,9 @@ class _SITTextField extends StatelessWidget {
               const BoxConstraints(minWidth: 0, minHeight: 0),
           suffixIcon: suffix == null
               ? null
-              : Padding(
-                  padding: const EdgeInsets.only(right: 8), child: suffix),
+              : const ExcludeSemantics(
+                  child: SizedBox(width: 48, height: 40),
+                ),
           filled: true,
           fillColor: Colors.black.withValues(alpha: 0.10),
           contentPadding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
@@ -968,6 +969,13 @@ class _SITTextField extends StatelessWidget {
         ),
       ),
     ));
+    if (suffix == null) return field;
+    return Stack(
+      children: [
+        field,
+        PositionedDirectional(top: 8, end: 8, child: suffix!),
+      ],
+    );
   }
 }
 
