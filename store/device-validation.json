@@ -7,8 +7,8 @@
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
     "minimumBuildNumber": "2026080903",
-    "buildNumber": "2026081011",
-    "commit": "28466f281c0699a2bbf92b0ebc5e3b502bec818e",
+    "buildNumber": "2026081012",
+    "commit": "90c27c897c94eb72f2548f1f54a81e923a44ba94",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
@@ -16,9 +16,18 @@
     "stripeLivemode": false,
     "android": {
       "delivery": "pending",
-      "aabSha256": "4228da303fc8b3a091e731e786139a53d1b84a49e8e5b7cb0f705efd8a8cab1e",
-      "apkSha256": "2f77886a66f74b2e5b39bda037e2c46df83035fd47ad70883b27aac46b2b69a9",
-      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
+      "aabSha256": "0e55a7d7bf9de98f9b6d548cf7137a99d0535150bad07a1ceac49714e102da7f",
+      "apkSha256": "97c0ac5b0366546eb84e6017bca18d2f2b6a473144564fae6ef398131d457983",
+      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
+      "directDiagnostic": {
+        "status": "passed",
+        "capturedAt": "2026-08-10T02:55:23.625Z",
+        "installMethod": "direct-apk-diagnostic",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-direct-smoke-2026081012-20260810T025523Z.json"
+      }
     },
     "ios": {
       "delivery": "pending",
@@ -136,15 +145,15 @@
   "releaseChecks": {
     "candidateIdentityAndSignatures": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081011.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081012.json"
     },
     "firebaseFcmAndApns": {
       "status": "testing",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081011.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081012.json"
     },
     "binaryPrivacyAndNetwork": {
       "status": "testing",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081011.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081012.json"
     },
     "crashReleaseMapping": {
       "status": "open",
@@ -156,11 +165,11 @@
     },
     "stagingCleanupAndHealth": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081011.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081012.json"
     },
     "productionInvariant": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081011.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081012.json"
     }
   },
   "approvals": {
