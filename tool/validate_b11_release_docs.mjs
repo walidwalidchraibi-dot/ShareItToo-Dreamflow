@@ -116,6 +116,7 @@ export function validateB11ReleaseDocs({
   candidateEvidence,
   pubspecText,
   documents,
+  allowCandidateRollover = false,
 }) {
   const manifest = object(deviceManifest, 'store/device-validation.json');
   const candidate = object(manifest.candidate, 'candidate');
@@ -132,7 +133,13 @@ export function validateB11ReleaseDocs({
     fail('The candidate evidence must use kind=android-release-candidate.');
   }
   same(candidate.versionName, pubspec.versionName, 'candidate.versionName');
-  same(candidate.buildNumber, pubspec.buildNumber, 'candidate.buildNumber');
+  if (allowCandidateRollover) {
+    if (BigInt(pubspec.buildNumber) < BigInt(candidate.buildNumber)) {
+      fail('The rollover build number must not be older than the documented candidate.');
+    }
+  } else {
+    same(candidate.buildNumber, pubspec.buildNumber, 'candidate.buildNumber');
+  }
 
   for (const key of [
     'applicationId',
@@ -189,6 +196,7 @@ export function validateB11ReleaseDocs({
     totalCells: manifest.deviceMatrix.length,
     passedReleaseChecks: Object.values(manifest.releaseChecks).filter((check) => check.status === 'passed').length,
     totalReleaseChecks: Object.keys(manifest.releaseChecks).length,
+    rolloverBuildNumber: pubspec.buildNumber,
   };
 }
 
@@ -212,10 +220,16 @@ const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).hr
 if (invokedPath === import.meta.url) {
   try {
     const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
-    const result = validateB11ReleaseDocs({ root, ...loadRepositoryInputs(root) });
+    const allowCandidateRollover = process.argv.includes('--allow-candidate-rollover');
+    const result = validateB11ReleaseDocs({
+      root,
+      ...loadRepositoryInputs(root),
+      allowCandidateRollover,
+    });
     console.log(
       `B11 release docs valid: build=${result.buildNumber}, documents=${result.documents}, ` +
-      `matrix=${result.passedCells}/${result.totalCells}, releaseChecks=${result.passedReleaseChecks}/${result.totalReleaseChecks}.`,
+      `matrix=${result.passedCells}/${result.totalCells}, releaseChecks=${result.passedReleaseChecks}/${result.totalReleaseChecks}, ` +
+      `rolloverBuild=${result.rolloverBuildNumber}.`,
     );
   } catch (error) {
     console.error(`ERROR: ${error.message}`);

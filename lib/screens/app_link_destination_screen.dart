@@ -12,6 +12,7 @@ import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:lendify/services/app_link_service.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/firebase_runtime.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
@@ -79,6 +80,7 @@ class AppLinkDestinationScreen extends StatefulWidget {
 class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
   late Future<_ResolvedBooking?> _booking = _resolveBooking();
   late Future<Item?> _listing = _resolveListing();
+  late final Future<bool> _crashDiagnostic = _runCrashDiagnostic();
   bool _externalOpened = false;
 
   Future<Item?> _resolveListing() async {
@@ -106,6 +108,13 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
       viewer: values[0] as User?,
       item: values[1] as Item?,
       owner: values[2] as User?,
+    );
+  }
+
+  Future<bool> _runCrashDiagnostic() async {
+    if (widget.target.kind != AppLinkKind.crashDiagnostic) return false;
+    return FirebaseRuntime.recordControlledStagingCrashDiagnostic(
+      widget.target.id!,
     );
   }
 
@@ -233,6 +242,26 @@ class _AppLinkDestinationScreenState extends State<AppLinkDestinationScreen> {
               );
             }
             return PaymentCheckoutScreen(bookingId: widget.target.id!);
+          },
+        );
+      case AppLinkKind.crashDiagnostic:
+        return FutureBuilder<bool>(
+          future: _crashDiagnostic,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const _LinkLoadingScreen();
+            }
+            final sent = snapshot.data == true;
+            return _LinkErrorScreen(
+              title: sent ? 'Diagnose gesendet' : 'Diagnose gesperrt',
+              message: sent
+                  ? 'Der bereinigte interne Crashlytics-Test wurde übertragen.'
+                  : 'Dieser Test ist nur im ausdrücklich freigegebenen internen Staging-Build möglich.',
+              actionLabel: 'Zurück',
+              onAction: () async {
+                if (mounted) Navigator.of(context).pop();
+              },
+            );
           },
         );
     }

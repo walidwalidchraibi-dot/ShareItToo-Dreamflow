@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
@@ -40,6 +40,16 @@ function writeEvidence(root, ref, contents) {
   const target = resolve(root, ref);
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, `${JSON.stringify(contents, null, 2)}\n`);
+}
+
+function progressEvidenceRoot() {
+  const root = mkdtempSync(resolve(tmpdir(), 'sit-progress-evidence-'));
+  cpSync(
+    resolve(repositoryRoot, 'docs/evidence/b11'),
+    resolve(root, 'docs/evidence/b11'),
+    { recursive: true },
+  );
+  return root;
 }
 
 function evidenceCandidate(candidate) {
@@ -527,6 +537,30 @@ test('accepts the honest in-progress B11 evidence state', () => {
     releaseChecksTotal: 7,
     minimumBuild: '2026080903',
   });
+});
+
+test('rejects crash-mapping progress evidence for a different AAB', () => {
+  const ref = baseDeviceManifest.releaseChecks.crashReleaseMapping.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(repositoryRoot, ref), 'utf8'));
+  evidence.artifacts.aabSha256 = 'f'.repeat(64);
+  const root = progressEvidenceRoot();
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root }),
+    /must match the exact Android candidate binaries/,
+  );
+});
+
+test('rejects a premature crash-event claim in progress evidence', () => {
+  const ref = baseDeviceManifest.releaseChecks.crashReleaseMapping.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(repositoryRoot, ref), 'utf8'));
+  evidence.verifications.controlledSanitizedCrashEvent = 'passed';
+  const root = progressEvidenceRoot();
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root }),
+    /honest pending controlled-event boundary/,
+  );
 });
 
 test('strict mode rejects the in-progress evidence state', () => {

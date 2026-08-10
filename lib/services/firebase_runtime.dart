@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -8,6 +6,23 @@ import 'package:flutter/foundation.dart';
 
 import 'backend_config.dart';
 import 'backend_repository.dart';
+import 'release_identity.dart';
+
+bool controlledCrashDiagnosticAllowed({
+  required bool releaseMode,
+  required bool enabled,
+  required String apiBaseUrl,
+  required String releaseChannel,
+  required String configuredRunId,
+  required String requestedRunId,
+}) {
+  return releaseMode &&
+      enabled &&
+      apiBaseUrl == 'https://staging.shareittoo.com/api/v1' &&
+      releaseChannel == 'internal' &&
+      configuredRunId == requestedRunId &&
+      RegExp(r'^b11-[a-z0-9-]{6,64}$').hasMatch(configuredRunId);
+}
 
 class FirebaseRuntimeConfig {
   static const String projectId = String.fromEnvironment(
@@ -145,6 +160,13 @@ Future<String?> waitForApplePushToken({
 }
 
 class FirebaseRuntime {
+  static const bool _controlledCrashDiagnosticEnabled = bool.fromEnvironment(
+    'SIT_ENABLE_STAGING_CRASH_DIAGNOSTIC',
+    defaultValue: false,
+  );
+  static const String _controlledCrashDiagnosticRunId = String.fromEnvironment(
+    'SIT_STAGING_CRASH_DIAGNOSTIC_RUN_ID',
+  );
   static final StreamController<Uri> _actionLinks =
       StreamController<Uri>.broadcast(sync: true);
   static final StreamController<ForegroundPushMessage> _foregroundMessages =
@@ -214,6 +236,53 @@ class FirebaseRuntime {
     unawaited(
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
     );
+  }
+
+  static Future<bool> recordControlledStagingCrashDiagnostic(
+    String requestedRunId,
+  ) async {
+    if (!_initialized ||
+        !controlledCrashDiagnosticAllowed(
+          releaseMode: kReleaseMode,
+          enabled: _controlledCrashDiagnosticEnabled,
+          apiBaseUrl: BackendConfig.apiBaseUrl,
+          releaseChannel: ReleaseIdentity.releaseChannel,
+          configuredRunId: _controlledCrashDiagnosticRunId,
+          requestedRunId: requestedRunId,
+        )) {
+      return false;
+    }
+    try {
+      final crashlytics = FirebaseCrashlytics.instance;
+      await crashlytics.setCustomKey(
+        'sit_release_commit',
+        ReleaseIdentity.appCommit,
+      );
+      await crashlytics.setCustomKey(
+        'sit_build_number',
+        ReleaseIdentity.buildNumber,
+      );
+      await crashlytics.setCustomKey(
+        'sit_release_channel',
+        ReleaseIdentity.releaseChannel,
+      );
+      await crashlytics.setCustomKey(
+        'sit_diagnostic_run_id',
+        requestedRunId,
+      );
+      await crashlytics.recordError(
+        StateError('SIT_B11_CONTROLLED_CRASH_DIAGNOSTIC'),
+        StackTrace.current,
+        reason: 'Sanitized internal release-mapping diagnostic',
+        fatal: false,
+      );
+      await crashlytics.sendUnsentReports();
+      await crashlytics.setCustomKey('sit_diagnostic_run_id', '');
+      return true;
+    } catch (_) {
+      debugPrint('[FirebaseRuntime] controlled crash diagnostic unavailable');
+      return false;
+    }
   }
 
   static Future<bool> syncPushRegistration() async {

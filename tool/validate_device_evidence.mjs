@@ -654,6 +654,67 @@ function validateReleaseCheckEvidence(root, ref, checkId, candidate, label) {
   }
 }
 
+function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
+  const evidence = readEvidenceJson(root, ref, label);
+  if (evidence.schemaVersion !== 1 ||
+      evidence.kind !== 'android-crash-release-mapping' ||
+      evidence.status !== 'mapping-and-native-symbols-uploaded-controlled-event-pending') {
+    fail(`${label} must be the bounded in-progress Android crash mapping evidence.`);
+  }
+  isoTimestamp(evidence.capturedAt, `${label}.capturedAt`, { required: true });
+  assertEvidenceCandidate(evidence, candidate, label);
+  assertEvidenceBoundaries(evidence, label);
+
+  const artifacts = object(evidence.artifacts, `${label}.artifacts`);
+  if (artifacts.aabSha256 !== candidate.android.aabSha256 ||
+      artifacts.apkSha256 !== candidate.android.apkSha256) {
+    fail(`${label}.artifacts must match the exact Android candidate binaries.`);
+  }
+  for (const key of [
+    'embeddedProguardMappingSha256',
+    'embeddedMappingIdSha256',
+    'nativeDebugSymbolsZipSha256',
+  ]) {
+    assertSha256(artifacts[key], `${label}.artifacts.${key}`, { required: true });
+  }
+  if (!Array.isArray(artifacts.nativeSymbolMembers) ||
+      artifacts.nativeSymbolMembers.length !== 3) {
+    fail(`${label}.artifacts.nativeSymbolMembers must bind exactly the three bundled Android ABIs.`);
+  }
+  const expectedAbis = new Set(['armeabi-v7a', 'arm64-v8a', 'x86_64']);
+  for (const [index, member] of artifacts.nativeSymbolMembers.entries()) {
+    const item = object(member, `${label}.artifacts.nativeSymbolMembers[${index}]`);
+    const abi = nonEmptyString(item.abi, `${label}.artifacts.nativeSymbolMembers[${index}].abi`);
+    if (!expectedAbis.delete(abi)) {
+      fail(`${label}.artifacts.nativeSymbolMembers contains an unexpected or duplicate ABI.`);
+    }
+    assertSha256(item.sha256, `${label}.artifacts.nativeSymbolMembers[${index}].sha256`, { required: true });
+  }
+
+  const verifications = object(evidence.verifications, `${label}.verifications`);
+  for (const key of [
+    'aabIdentity',
+    'embeddedMappingPresent',
+    'mappingIdPresentAndHashed',
+    'nativeSymbolsPresentForAllBundledAbis',
+    'nativeSymbolsMatchStandaloneArchive',
+    'originalAabMappingUploadedToCrashlytics',
+  ]) {
+    if (verifications[key] !== 'passed') {
+      fail(`${label}.verifications.${key} must be passed.`);
+    }
+  }
+  if (verifications.uploadBuildResult !== 'successful' ||
+      verifications.controlledSanitizedCrashEvent !== 'pending' ||
+      verifications.consoleReleaseAssignment !== 'pending') {
+    fail(`${label}.verifications must preserve the honest pending controlled-event boundary.`);
+  }
+  if (evidence.boundaries.productionCrashGenerated !== false ||
+      evidence.boundaries.controlledStagingEventGenerated !== false) {
+    fail(`${label}.boundaries must prove that no crash event was generated yet.`);
+  }
+}
+
 function validateApprovalEvidence(root, ref, approvalType, approval, candidate, label) {
   const evidence = readEvidenceJson(root, ref, label);
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'approval' || evidence.status !== 'passed') {
@@ -881,6 +942,13 @@ export function validateDeviceEvidence({
     });
     if (check.status === 'passed') {
       validateReleaseCheckEvidence(root, ref, key, candidate, `releaseChecks.${key}.evidence`);
+    } else if (key === 'crashReleaseMapping' && check.status === 'testing') {
+      validateCrashMappingProgressEvidence(
+        root,
+        ref,
+        candidate,
+        `releaseChecks.${key}.evidence`,
+      );
     }
     if (strict && check.status !== 'passed') fail(`releaseChecks.${key} must be passed.`);
   }

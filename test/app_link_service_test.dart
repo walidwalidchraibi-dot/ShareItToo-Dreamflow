@@ -86,4 +86,25 @@ void main() {
       isNull,
     );
   });
+
+  test('accepts only the bounded custom-scheme Crashlytics diagnostic link',
+      () {
+    final diagnostic = AppLinkParser.parse(
+      Uri.parse('shareittoo://qa/crashlytics/b11-android-2026081027'),
+    );
+    expect(diagnostic?.kind, AppLinkKind.crashDiagnostic);
+    expect(diagnostic?.id, 'b11-android-2026081027');
+
+    expect(
+      AppLinkParser.parse(
+        Uri.parse(
+            'https://staging.shareittoo.com/qa/crashlytics/b11-android-2026081027'),
+      ),
+      isNull,
+    );
+    expect(
+      AppLinkParser.parse(Uri.parse('shareittoo://qa/crashlytics/unsafe%2Fid')),
+      isNull,
+    );
+  });
 }

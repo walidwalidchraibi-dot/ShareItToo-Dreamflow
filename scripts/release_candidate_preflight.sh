@@ -28,7 +28,18 @@ node --check tool/validate_android_signing_config.mjs
 node tool/verify_brand_assets.mjs
 dart run tool/validate_store_metadata.dart
 node tool/validate_device_evidence.mjs
-node tool/validate_b11_release_docs.mjs
+if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  [[ "${SIT_RELEASE_CHANNEL:-internal}" == "internal" ]] || \
+    fail "Candidate rollover is restricted to the internal channel."
+  [[ "${SIT_API_BASE_URL:-https://staging.shareittoo.com/api/v1}" == \
+      "https://staging.shareittoo.com/api/v1" ]] || \
+    fail "Candidate rollover is restricted to the isolated staging API."
+  [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" != "1" ]] || \
+    fail "Candidate rollover is forbidden for a Store-submission build."
+  node tool/validate_b11_release_docs.mjs --allow-candidate-rollover
+else
+  node tool/validate_b11_release_docs.mjs
+fi
 node tool/validate_firebase_release_config.mjs
 if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
   node tool/validate_firebase_release_config.mjs --require-configured --platform all

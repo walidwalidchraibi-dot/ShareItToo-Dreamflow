@@ -14,6 +14,7 @@ enum AppLinkKind {
   emailVerification,
   passwordReset,
   paymentReturn,
+  crashDiagnostic,
 }
 
 class AppLinkTarget {
@@ -119,6 +120,20 @@ class AppLinkParser {
             ? null
             : AppLinkTarget(
                 kind: AppLinkKind.paymentReturn,
+                id: id,
+                uri: uri,
+              );
+      case 'qa':
+        if (!isCustom ||
+            segments.length != 3 ||
+            segments[1].toLowerCase() != 'crashlytics') {
+          return null;
+        }
+        final id = safeId(2);
+        return id == null
+            ? null
+            : AppLinkTarget(
+                kind: AppLinkKind.crashDiagnostic,
                 id: id,
                 uri: uri,
               );

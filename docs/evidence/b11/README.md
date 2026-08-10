@@ -94,6 +94,14 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs- und authentifizierten Deep-Link-Diagnosen sind keine Store-Installation. Der synthetische WLAN-Nachweis schließt weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, echte Push-Zustellung, iOS/TestFlight, Produktion, Echtgeld oder eine gesendete Chatnachricht.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
 
+Der zusätzliche Crash-/Symbolnachweis
+`android-crash-release-mapping-2026081026.json` bindet die im AAB
+eingebettete R8-Zuordnung und alle nativen Android-Symbole per SHA-256 an
+denselben Kandidaten. Die Originalzuordnung wurde erfolgreich zu Crashlytics
+übertragen. Der bereinigte kontrollierte Testfehler und seine sichtbare
+Releasezuordnung in der Firebase-Konsole bleiben bewusst offen; deshalb steht
+die Releaseprüfung ehrlich auf `testing` und nicht auf `passed`.
+
 Der zusätzliche exakte Logout-/Push-Lebenszyklusnachweis für Build
 `2026081026` liegt unter
 `android-logout-push-lifecycle-2026081026-20260810T140200Z.json`. Er belegt

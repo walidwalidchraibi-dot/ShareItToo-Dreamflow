@@ -79,6 +79,48 @@ void main() {
     });
   });
 
+  group('controlled Crashlytics diagnostic gate', () {
+    test('allows only the exact internal staging release run', () {
+      expect(
+        controlledCrashDiagnosticAllowed(
+          releaseMode: true,
+          enabled: true,
+          apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+          releaseChannel: 'internal',
+          configuredRunId: 'b11-android-2026081027',
+          requestedRunId: 'b11-android-2026081027',
+        ),
+        isTrue,
+      );
+    });
+
+    test('fails closed outside the exact bounded run', () {
+      bool allowed({
+        bool releaseMode = true,
+        bool enabled = true,
+        String apiBaseUrl = 'https://staging.shareittoo.com/api/v1',
+        String releaseChannel = 'internal',
+        String configuredRunId = 'b11-android-2026081027',
+        String requestedRunId = 'b11-android-2026081027',
+      }) =>
+          controlledCrashDiagnosticAllowed(
+            releaseMode: releaseMode,
+            enabled: enabled,
+            apiBaseUrl: apiBaseUrl,
+            releaseChannel: releaseChannel,
+            configuredRunId: configuredRunId,
+            requestedRunId: requestedRunId,
+          );
+
+      expect(allowed(releaseMode: false), isFalse);
+      expect(allowed(enabled: false), isFalse);
+      expect(allowed(apiBaseUrl: 'https://shareittoo.com/api/v1'), isFalse);
+      expect(allowed(releaseChannel: 'production'), isFalse);
+      expect(allowed(requestedRunId: 'b11-other-run'), isFalse);
+      expect(allowed(configuredRunId: 'unsafe/value'), isFalse);
+    });
+  });
+
   group('foreground push message', () {
     test('normalizes visible copy and keeps a safe action URI', () {
       final message = parseForegroundPushMessage(

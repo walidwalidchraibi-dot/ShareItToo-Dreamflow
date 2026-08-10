@@ -201,8 +201,8 @@
       "evidenceRef": "docs/evidence/b11/android-candidate-2026081026.json"
     },
     "crashReleaseMapping": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "testing",
+      "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081026.json"
     },
     "storeWarningsLinksAndSigning": {
       "status": "open",

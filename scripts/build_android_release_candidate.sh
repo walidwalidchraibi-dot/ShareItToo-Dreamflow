@@ -32,6 +32,21 @@ common_args=(
   "--dart-define=SIT_BUNDLE_ID=com.shareittoo.app"
 )
 
+if [[ "${SIT_ENABLE_STAGING_CRASH_DIAGNOSTIC:-0}" == "1" ]]; then
+  diagnostic_run_id="${SIT_STAGING_CRASH_DIAGNOSTIC_RUN_ID:-}"
+  if [[ "$API_BASE_URL" != "https://staging.shareittoo.com/api/v1" ||
+        "$CHANNEL" != "internal" ||
+        "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ||
+        ! "$diagnostic_run_id" =~ ^b11-[a-z0-9-]{6,64}$ ]]; then
+    echo "ERROR: Controlled Crashlytics diagnostics require internal staging, a safe run ID, and a non-submission build." >&2
+    exit 1
+  fi
+  common_args+=(
+    "--dart-define=SIT_ENABLE_STAGING_CRASH_DIAGNOSTIC=true"
+    "--dart-define=SIT_STAGING_CRASH_DIAGNOSTIC_RUN_ID=$diagnostic_run_id"
+  )
+fi
+
 firebase_define_names=(
   SIT_FIREBASE_PROJECT_ID
   SIT_FIREBASE_MESSAGING_SENDER_ID
