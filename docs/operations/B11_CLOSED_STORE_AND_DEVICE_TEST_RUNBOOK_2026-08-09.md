@@ -128,6 +128,35 @@ ersetzen.
 | iOS real | offen | offen | `2026081029` | WLAN | Vermieter | offen |
 | iOS real | offen | offen | `2026081029` | Mobilfunk/Hotspot | Mieter | offen |
 
+Vor einer manuellen Android-Matrixrunde muss der neue, rein lesende Preflight
+`tool/preflight_android_manual_matrix.mjs` den Status
+`ready-for-manual-matrix` ausgeben. Er prüft fail-closed den exakten installierten
+Build, die Installation durch Google Play, das aktive Netz, TalkBack und
+mindestens 200 Prozent Textskalierung. Er schreibt keinen Nachweis und kann
+keine Matrixzelle selbst als bestanden markieren.
+
+Für WLAN wird zuerst ausgeführt:
+
+```bash
+node tool/preflight_android_manual_matrix.mjs --cell android-wifi-owner
+```
+
+Der ausgegebene bereinigte `networkFingerprint` wird anschließend als
+Ausgangswert für die Hotspot-Runde verwendet. Erst nachdem das Telefon sichtbar
+mit dem getrennten Handy-Hotspot verbunden wurde, darf die ausdrücklich manuelle
+Bestätigung gesetzt werden:
+
+```bash
+node tool/preflight_android_manual_matrix.mjs \
+  --cell android-hotspot-renter \
+  --baseline-network-fingerprint <BEREINIGTER_WLAN_FINGERPRINT> \
+  --confirm-hotspot
+```
+
+Der Preflight weist eine unveränderte WLAN-Verbindung, eine direkte APK statt
+Play Internal, deaktiviertes TalkBack oder zu kleine Schrift als Blocker aus.
+Auch ein grüner Preflight ersetzt keinen der elf manuellen Matrixpunkte.
+
 ## Artefakt- und Installationsprüfung
 
 Vor jedem direkten Android-Gerätelauf wird der unveränderte Kandidat samt
