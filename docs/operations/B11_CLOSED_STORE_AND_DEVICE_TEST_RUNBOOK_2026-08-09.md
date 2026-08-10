@@ -26,24 +26,33 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Merkmal | Verbindlicher Wert |
 |---|---|
 | App-Identität | `com.shareittoo.app` (Android und iOS) |
-| Version und Build | `1.0.0 (2026081018)` |
-| App-Commit | `555946e64e583e5b6ee3321de2c1f74f35fbf238` |
+| Version und Build | `1.0.0 (2026081020)` |
+| App-Commit | `69bbb127e3c3a6a85905915ea289c5be981b9951` |
 | Kanal und API | `internal`, `https://staging.shareittoo.com/api/v1` |
 | Firebase und Zahlung | vollständig: `true`; `memory`; `stripeLivemode=false` |
-| Android-AAB SHA-256 | `1a35e64413c840c59660e6ffa7416e16fe38398190b0968d89a4d63b0d2a04d4` |
-| Android-APK SHA-256 | `51121b9866dac109eaa42c78950d90d33b3d4ef9f9ec7301ddfe62fbe6120619` |
+| Android-AAB SHA-256 | `143d968023d1ecf5eabf65175a04b87bb420fc89fbf1295611a60fe554c9b3a6` |
+| Android-APK SHA-256 | `3039ea1b7182b8b4e7e7f58816cca4ec2c80cf2cf4cac256be1c709a86742fe7` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
-| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081018-20260810T043849Z.json` |
-| Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081018-20260810T055418Z.json` |
-| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081018-20260810T071148Z.json` |
-| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081018-20260810T075042Z.json` |
-| Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081018-20260810T081206Z.json` |
-| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081018.json` |
-| Staging-Servercommit | `9a1371e02d8e7d63d3dee30ca169c6c7f37fa966` |
+| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081020-20260810T101102Z.json` |
+| Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081020-20260810T101134Z.json` |
+| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081020-20260810T101432Z.json` |
+| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081020-20260810T102320Z.json` |
+| Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081020-20260810T101536Z.json` |
+| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081020.json` |
+| Staging-Servercommit | `ec570acfddc218cec6d2bfba43d4feb33bda4cfc` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
 
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs- und authentifizierten Deep-Link-Diagnosen sind keine Store-Installation. Der synthetische WLAN-Nachweis schließt weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, echte Push-Zustellung, iOS/TestFlight, Produktion, Echtgeld oder eine gesendete Chatnachricht.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
+
+Der zusätzliche exakte Logout-/Push-Lebenszyklusnachweis für Build
+`2026081020` liegt unter
+`docs/evidence/b11/android-logout-push-lifecycle-2026081020-20260810T102452Z.json`.
+Er belegt auf dem physischen Android-Gerät den sofortigen Wechsel zur
+Gastansicht ohne App-Neustart sowie die serverseitige Reduktion aktiver
+Push-Geräte von eins auf null. Er ist ausdrücklich kein Nachweis einer neuen
+Push-Zustellung auf diesem Build; dieser Teil der vollständigen Matrix bleibt
+offen.
 
 Der Kandidat ist gebaut, kanonisch signiert, privat archiviert und auf einem
 physischen Pixel 7 Pro direkt diagnostisch installiert. Version, Buildnummer,
@@ -113,10 +122,10 @@ ersetzen.
 
 | Plattform | Gerät/Modell | Betriebssystem | Build | Netz | Rolle | Ergebnis |
 |---|---|---|---|---|---|---|
-| Android real | offen | offen | `2026081018` | WLAN | Vermieter | offen |
-| Android real | offen | offen | `2026081018` | Mobilfunk/Hotspot | Mieter | offen |
-| iOS real | offen | offen | `2026081018` oder höher | WLAN | Vermieter | offen |
-| iOS real | offen | offen | `2026081018` oder höher | Mobilfunk/Hotspot | Mieter | offen |
+| Android real | offen | offen | `2026081020` | WLAN | Vermieter | offen |
+| Android real | offen | offen | `2026081020` | Mobilfunk/Hotspot | Mieter | offen |
+| iOS real | offen | offen | `2026081020` | WLAN | Vermieter | offen |
+| iOS real | offen | offen | `2026081020` | Mobilfunk/Hotspot | Mieter | offen |
 
 ## Artefakt- und Installationsprüfung
 
