@@ -406,3 +406,42 @@ test('rejects a production or otherwise different API base before any request', 
   );
   assert.equal(called, false);
 });
+
+test('redacts private fixture identifiers from diagnostic message transport errors', async () => {
+  const fixture = vaultFixture();
+  const vault = JSON.parse(readFileSync(fixture.vaultFile, 'utf8'));
+  vault.status = 'synthetic-booking-active';
+  vault.syntheticBooking = {
+    schemaVersion: 1,
+    listingId: 'private-listing-id',
+    bookingId: 'private-booking-id',
+    threadId: 'private-thread-id',
+    title: 'Private fixture title',
+    workflowStatus: 'accepted',
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+  };
+  writeFileSync(fixture.vaultFile, `${JSON.stringify(vault, null, 2)}\n`, { mode: 0o600 });
+  chmodSync(fixture.vaultFile, 0o600);
+
+  await assert.rejects(
+    sendSyntheticBookingDiagnosticMessage({
+      ...fixture,
+      diagnosticKind: 'logout',
+      fetchImpl: async (url) => {
+        const path = new URL(url).pathname.replace('/api/v1', '');
+        if (path === '/auth/login') {
+          return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+        }
+        return response(409, { error: 'fixture-conflict' });
+      },
+    }),
+    (error) => {
+      assert.match(error.message, /Staging POST request failed with HTTP 409/);
+      assert.equal(error.message.includes('private-thread-id'), false);
+      assert.equal(error.message.includes('private-booking-id'), false);
+      return true;
+    },
+  );
+});

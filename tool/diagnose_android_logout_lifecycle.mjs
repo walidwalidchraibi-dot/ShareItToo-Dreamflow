@@ -315,54 +315,62 @@ export async function diagnoseAndroidLogoutLifecycle({
   const account = vault.accounts?.[0] ?? fail('The private synthetic account fixture is unavailable.');
   const threadId = nonEmptyString(vault.syntheticBooking?.threadId, 'syntheticBooking.threadId');
 
-  let profile = await openProfile({ commandRunner, adbPath, device, wait });
-  if (!hasAuthenticatedProfile(profile)) {
-    const preflightRestored = await restoreSyntheticSession({
+  let processAbsent = false;
+  let observedNotificationCountBefore = null;
+  let observedNotificationCountAfter = null;
+  let diagnosticFailure = null;
+  try {
+    let profile = await openProfile({ commandRunner, adbPath, device, wait });
+    if (!hasAuthenticatedProfile(profile)) {
+      const preflightRestored = await restoreSyntheticSession({
+        commandRunner,
+        adbPath,
+        device,
+        wait,
+        account,
+      });
+      if (!preflightRestored) fail('The Pixel could not restore the private synthetic Staging session.');
+      profile = await openProfile({ commandRunner, adbPath, device, wait });
+    }
+    tapNamedNode(commandRunner, adbPath, device, profile, 'Abmelden');
+    const confirmation = await waitForHierarchy({
       commandRunner,
       adbPath,
       device,
+      predicate: (hierarchy) => hierarchy.includes('Abmelden?') && hierarchy.includes('Abbrechen'),
       wait,
-      account,
     });
-    if (!preflightRestored) fail('The Pixel could not restore the private synthetic Staging session.');
-    profile = await openProfile({ commandRunner, adbPath, device, wait });
-  }
-  tapNamedNode(commandRunner, adbPath, device, profile, 'Abmelden');
-  const confirmation = await waitForHierarchy({
-    commandRunner,
-    adbPath,
-    device,
-    predicate: (hierarchy) => hierarchy.includes('Abmelden?') && hierarchy.includes('Abbrechen'),
-    wait,
-  });
-  tapNamedNode(commandRunner, adbPath, device, confirmation, 'Abmelden', { chooseLast: true });
-  await waitForHierarchy({ commandRunner, adbPath, device, predicate: hasGuestProfile, wait, attempts: 24 });
+    tapNamedNode(commandRunner, adbPath, device, confirmation, 'Abmelden', { chooseLast: true });
+    await waitForHierarchy({ commandRunner, adbPath, device, predicate: hasGuestProfile, wait, attempts: 24 });
 
-  const guestAfterRestart = await openProfile({ commandRunner, adbPath, device, wait });
-  if (!hasGuestProfile(guestAfterRestart)) fail('The guest profile did not persist after the cold start.');
+    const guestAfterRestart = await openProfile({ commandRunner, adbPath, device, wait });
+    if (!hasGuestProfile(guestAfterRestart)) fail('The guest profile did not persist after the cold start.');
 
-  startLink(commandRunner, adbPath, device, `shareittoo://chat/${encodeURIComponent(threadId)}`);
-  await waitForHierarchy({
-    commandRunner,
-    adbPath,
-    device,
-    predicate: hasProtectedChatGate,
-    wait,
-    attempts: 18,
-  });
+    startLink(commandRunner, adbPath, device, `shareittoo://chat/${encodeURIComponent(threadId)}`);
+    await waitForHierarchy({
+      commandRunner,
+      adbPath,
+      device,
+      predicate: hasProtectedChatGate,
+      wait,
+      attempts: 18,
+    });
 
-  adb(commandRunner, adbPath, device, ['shell', 'am', 'force-stop', applicationId]);
-  const processAbsent = await waitFor(
-    () => !processPresent(commandRunner, adbPath, device),
-    { attempts: 10, intervalMs: 300, wait },
-  );
-  if (!processAbsent) fail('The ShareItToo process did not stop before the post-logout probe.');
-  const observedNotificationCountBefore = notificationCount(commandRunner, adbPath, device);
-  await sendPair(vaultFile, sender);
-  await wait(35_000);
-  const observedNotificationCountAfter = notificationCount(commandRunner, adbPath, device);
-  if (observedNotificationCountAfter !== observedNotificationCountBefore) {
-    fail('A ShareItToo notification appeared after the synthetic session was logged out.');
+    adb(commandRunner, adbPath, device, ['shell', 'am', 'force-stop', applicationId]);
+    processAbsent = await waitFor(
+      () => !processPresent(commandRunner, adbPath, device),
+      { attempts: 10, intervalMs: 300, wait },
+    );
+    if (!processAbsent) fail('The ShareItToo process did not stop before the post-logout probe.');
+    observedNotificationCountBefore = notificationCount(commandRunner, adbPath, device);
+    await sendPair(vaultFile, sender);
+    await wait(35_000);
+    observedNotificationCountAfter = notificationCount(commandRunner, adbPath, device);
+    if (observedNotificationCountAfter !== observedNotificationCountBefore) {
+      fail('A ShareItToo notification appeared after the synthetic session was logged out.');
+    }
+  } catch (error) {
+    diagnosticFailure = error;
   }
 
   const sessionRestored = await restoreSyntheticSession({
@@ -372,7 +380,10 @@ export async function diagnoseAndroidLogoutLifecycle({
     wait,
     account,
   });
-  if (!sessionRestored) fail('The private synthetic Staging session could not be restored after the passed probe.');
+  if (!sessionRestored) {
+    fail('The private synthetic Staging session could not be restored after the logout probe.');
+  }
+  if (diagnosticFailure !== null) throw diagnosticFailure;
 
   return {
     evidence: {

@@ -71,6 +71,8 @@ node --check tool/diagnose_android_authenticated_links.mjs
 node --test test/tool/diagnose_android_authenticated_links.test.mjs
 node --check tool/provision_staging_test_accounts.mjs
 node --test test/tool/provision_staging_test_accounts.test.mjs
+node --check tool/prepare_store_screenshot_fixture.mjs
+node --test test/tool/prepare_store_screenshot_fixture.test.mjs
 node --check tool/run_staging_synthetic_booking.mjs
 node --test test/tool/run_staging_synthetic_booking.test.mjs
 

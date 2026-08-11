@@ -141,3 +141,35 @@ test('fails closed when an expected identifier conflicts with another listing', 
     /conflicting curated Staging listing/u,
   );
 });
+
+test('redacts fixture identifiers from screenshot preparation transport errors', async () => {
+  const privateListingId = storeScreenshotListings[0].id;
+  await assert.rejects(
+    prepareStoreScreenshotFixture({
+      vaultFile: privateVault(),
+      fetchImpl: async (url, options = {}) => {
+        const path = new URL(url).pathname.replace('/api/v1', '');
+        if (path === '/auth/login') {
+          return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+        }
+        if (path === '/listings/mine') return response(200, { listings: [] });
+        if (path === '/uploads') {
+          return response(201, { url: 'https://staging.shareittoo.com/api/v1/uploads/store.webp' });
+        }
+        if (path === '/listings') {
+          const body = JSON.parse(options.body);
+          return response(201, { listing: { id: body.id } });
+        }
+        if (path === `/listings/${privateListingId}/availability`) {
+          return response(409, { error: 'fixture-conflict' });
+        }
+        throw new Error(`Unexpected path ${path}`);
+      },
+    }),
+    (error) => {
+      assert.match(error.message, /Staging PUT request failed with HTTP 409/);
+      assert.equal(error.message.includes(privateListingId), false);
+      return true;
+    },
+  );
+});
