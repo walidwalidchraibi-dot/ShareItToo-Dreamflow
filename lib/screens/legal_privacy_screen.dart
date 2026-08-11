@@ -15,7 +15,8 @@ class LegalPrivacyScreen extends StatelessWidget {
           icon: Icons.inventory_2_outlined,
           title: 'Welche Daten Nutzer angeben',
           children: const [
-            LegalParagraph('Je nach Nutzung können u.a. folgende Angaben erforderlich sein:'),
+            LegalParagraph(
+                'Je nach Nutzung können u.a. folgende Angaben erforderlich sein:'),
             SizedBox(height: 10),
             LegalBullets(items: [
               'Kontodaten (z.B. Name, E‑Mail, ggf. Telefonnummer)',
@@ -28,15 +29,20 @@ class LegalPrivacyScreen extends StatelessWidget {
           icon: Icons.storage_outlined,
           title: 'Welche Daten gespeichert werden',
           children: const [
-            LegalParagraph('Im Rahmen des Plattformbetriebs können u.a. folgende Daten gespeichert werden:'),
+            LegalParagraph(
+                'Im Rahmen des Plattformbetriebs können u.a. folgende Daten gespeichert werden:'),
             SizedBox(height: 10),
             LegalBullets(items: [
               'Kontodaten',
               'Buchungsdaten (z.B. Zeitraum, Artikel, Status, Übergabe/Rückgabe)',
               'Zahlungsdaten (z.B. Buchungsbeträge, Gebühren, Auszahlungen)',
               'Nachrichten zwischen Nutzern (zur Abwicklung der Buchung)',
-              'Standortdaten (nur Stadt/Region – keine Live‑Ortung)',
+              'Standortdaten: Stadt/Region sowie – wenn du entsprechende Funktionen nutzt – genaue Adressen und genaue Standortkoordinaten für Inserate, Buchungen, Lieferungen, Übergaben oder Rückgaben',
             ]),
+            SizedBox(height: 10),
+            LegalParagraph(
+              'Einen präzisen aktuellen Gerätestandort fragt die App nur ab, wenn du die Funktion „Standort prüfen“ selbst startest. Er wird dabei einmalig für die Entfernungsprüfung verwendet. Eine dauerhafte Hintergrund- oder Live‑Ortung findet nicht statt.',
+            ),
           ],
         ),
         LegalSectionCard(
@@ -47,11 +53,30 @@ class LegalPrivacyScreen extends StatelessWidget {
               'um Buchungen zu ermöglichen und abzuwickeln',
               'um Kommunikation zwischen Mietern und Vermietern bereitzustellen',
               'um Zahlungen/Auszahlungen zu verarbeiten (später auch via Zahlungsdienstleister)',
+              'um Adressen vorzuschlagen, Entfernungen zu berechnen und ausdrücklich gestartete Standortprüfungen bei Übergaben oder Rückgaben durchzuführen',
               'um Missbrauch, Betrug und Sicherheitsfälle zu verhindern',
               'um Supportfälle bearbeiten zu können',
             ]),
             SizedBox(height: 10),
-            LegalParagraph('Personenbezogene Daten werden nicht zu Werbezwecken „verkauft“. Sie werden ausschließlich zur Bereitstellung der Plattform verarbeitet.'),
+            LegalParagraph(
+                'Personenbezogene Daten werden nicht zu Werbezwecken verkauft. Sie werden nur für die beschriebenen Plattform-, Sicherheits-, Support- und gesetzlichen Zwecke verarbeitet.'),
+          ],
+        ),
+        LegalSectionCard(
+          icon: Icons.hub_outlined,
+          title: 'Technische Dienste',
+          children: const [
+            LegalParagraph(
+                'Für einzelne Funktionen nutzt die aktuelle App technische Dienstleister:'),
+            SizedBox(height: 10),
+            LegalBullets(items: [
+              'Google Maps Platform für Adressvorschläge sowie Standort- und Entfernungsfunktionen',
+              'Firebase Cloud Messaging für Push‑Benachrichtigungen',
+              'Firebase Crashlytics für Absturz- und technische Diagnosedaten',
+            ]),
+            SizedBox(height: 10),
+            LegalParagraph(
+                'Analyse zu Werbezwecken und Werbe-SDKs sind im aktuellen Kandidaten nicht aktiviert. Eine finale rechtliche Einordnung der technischen Empfänger ist vor der Veröffentlichung noch freizugeben.'),
           ],
         ),
         LegalSectionCard(
@@ -67,7 +92,8 @@ class LegalPrivacyScreen extends StatelessWidget {
           icon: Icons.gavel_outlined,
           title: 'Deine Rechte nach DSGVO',
           children: const [
-            LegalParagraph('Du hast – je nach Fall – insbesondere folgende Rechte:'),
+            LegalParagraph(
+                'Du hast – je nach Fall – insbesondere folgende Rechte:'),
             SizedBox(height: 10),
             LegalBullets(items: [
               'Auskunft über gespeicherte Daten',

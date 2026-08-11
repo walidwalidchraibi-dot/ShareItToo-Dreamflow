@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
@@ -19,6 +20,10 @@ const baseDeviceManifest = JSON.parse(
 
 function clone(value) {
   return structuredClone(value);
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex');
 }
 
 function validate({
@@ -72,6 +77,18 @@ test('rejects omitting precise location while fine-location flows exist', () => 
   assert.throws(
     () => validate({ privacyManifest }),
     /require preciseLocation disclosure/,
+  );
+});
+
+test('rejects privacy copy that hides the precise on-demand location flow', () => {
+  const path = 'lib/screens/legal_privacy_screen.dart';
+  const privacyManifest = clone(basePrivacyManifest);
+  const changed = readFileSync(resolve(repositoryRoot, path), 'utf8')
+    .replace('genaue Standortkoordinaten', 'ungefähre Standortangaben');
+  privacyManifest.sourceInventory.find((entry) => entry.path === path).sha256 = sha256(changed);
+  assert.throws(
+    () => validate({ privacyManifest, sourceTexts: { [path]: changed } }),
+    /missing the truthful disclosure marker: genaue Standortkoordinaten/,
   );
 });
 

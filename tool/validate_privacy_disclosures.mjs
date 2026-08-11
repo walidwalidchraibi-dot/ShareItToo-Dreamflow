@@ -194,6 +194,24 @@ function assertSourceContracts({ root, sourceTexts }) {
 
   const ai = sourceText(root, sourceTexts, 'lib/openai/openai_config.dart');
   if (!/aiHelpersEnabled\s*=\s*false/.test(ai)) fail('OpenAI helpers must remain disabled in this candidate.');
+
+  const legalPrivacy = sourceText(root, sourceTexts, 'lib/screens/legal_privacy_screen.dart');
+  const privacyInfo = sourceText(root, sourceTexts, 'lib/screens/privacy_info_screen.dart');
+  for (const [label, source] of [
+    ['legal privacy notice', legalPrivacy],
+    ['in-app privacy information', privacyInfo],
+  ]) {
+    for (const marker of [
+      'genaue Standortkoordinaten',
+      'Standort prüfen',
+      'dauerhafte Hintergrund- oder Live‑Ortung findet nicht statt',
+      'Google Maps Platform',
+      'Firebase Cloud Messaging',
+      'Firebase Crashlytics',
+    ]) {
+      if (!source.includes(marker)) fail(`The ${label} is missing the truthful disclosure marker: ${marker}.`);
+    }
+  }
 }
 
 export function validatePrivacyDisclosures({

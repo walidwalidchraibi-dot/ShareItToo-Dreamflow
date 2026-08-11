@@ -37,12 +37,15 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dein Datenexport wurde sicher erstellt.')),
+        const SnackBar(
+            content: Text('Dein Datenexport wurde sicher erstellt.')),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Der Datenexport konnte gerade nicht erstellt werden. Bitte versuche es erneut.')),
+        const SnackBar(
+            content: Text(
+                'Der Datenexport konnte gerade nicht erstellt werden. Bitte versuche es erneut.')),
       );
     } finally {
       if (mounted) setState(() => _exporting = false);
@@ -58,7 +61,8 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
       const _PrivacySectionData(
         icon: Icons.public,
         title: 'Öffentliche Informationen',
-        description: 'Diese Informationen können andere Nutzer auf deinem Profil sehen:',
+        description:
+            'Diese Informationen können andere Nutzer auf deinem Profil sehen:',
         bullets: [
           'Profilbild',
           'Vorname',
@@ -70,7 +74,8 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           'Anzahl Buchungen und Vermietungen',
           'Mitglied seit',
         ],
-        note: 'Diese Informationen helfen dabei, Vertrauen zwischen Mietern und Vermietern aufzubauen.',
+        note:
+            'Diese Informationen helfen dabei, Vertrauen zwischen Mietern und Vermietern aufzubauen.',
       ),
       const _PrivacySectionData(
         icon: Icons.lock_outline,
@@ -80,6 +85,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           'E‑Mail-Adresse',
           'Telefonnummer',
           'vollständige Adresse',
+          'genaue Standortkoordinaten',
           'Zahlungsinformationen',
           'Verifizierungsdokumente',
         ],
@@ -95,17 +101,20 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
       const _PrivacySectionData(
         icon: Icons.forum_outlined,
         title: 'Chat & Kommunikation',
-        description: 'Der Chat zwischen Mietern und Vermietern wird erst freigeschaltet, wenn eine Buchungsanfrage angenommen wurde.',
+        description:
+            'Der Chat zwischen Mietern und Vermietern wird erst freigeschaltet, wenn eine Buchungsanfrage angenommen wurde.',
         bullets: [
           'persönliche Kontaktdaten zu früh ausgetauscht werden',
           'Kommunikation außerhalb der Plattform stattfindet',
         ],
-        extraTitle: 'Während einer aktiven Buchung dient der Chat dazu, Übergabe und Rückgabe zu koordinieren.',
+        extraTitle:
+            'Während einer aktiven Buchung dient der Chat dazu, Übergabe und Rückgabe zu koordinieren.',
       ),
       const _PrivacySectionData(
         icon: Icons.location_on_outlined,
         title: 'Adresse & Standort',
-        description: 'Deine vollständige Adresse wird nicht öffentlich angezeigt.',
+        description:
+            'Deine vollständige Adresse und genaue Standortkoordinaten werden nicht öffentlich angezeigt.',
         extraTitle: 'Die Adresse wird ausschließlich verwendet für:',
         extraBullets: [
           'Übergaben',
@@ -114,24 +123,29 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           'Berechnung von Liefergebühren',
         ],
         ruleTitle: 'Regel',
-        ruleText: 'Die genaue Adresse wird je nach Buchungsart erst kurz vor der Übergabe oder Rückgabe sichtbar.',
-        note: 'Andere Nutzer sehen nur deine Stadt oder ungefähre Region.',
+        ruleText:
+            'Die genaue Adresse wird je nach Buchungsart erst nach einer bestätigten Anfrage für die notwendige Übergabe, Lieferung oder Rückgabe sichtbar.',
+        note:
+            'Andere Nutzer sehen öffentlich nur deine Stadt oder ungefähre Region. Einen präzisen aktuellen Gerätestandort fragt die App nur einmalig ab, wenn du „Standort prüfen“ selbst startest; eine dauerhafte Hintergrund- oder Live‑Ortung findet nicht statt.',
       ),
       const _PrivacySectionData(
         icon: Icons.photo_camera_outlined,
         title: 'Übergabe & Rückgabe',
-        description: 'Bei jeder Übergabe und Rückgabe ist eine Foto‑Dokumentation verpflichtend.',
+        description:
+            'Bei jeder Übergabe und Rückgabe ist eine Foto‑Dokumentation verpflichtend.',
         bullets: [
           'den Zustand des Artikels zu dokumentieren',
           'Missverständnisse zu vermeiden',
           'mögliche Streitfälle zu klären',
         ],
-        note: 'Diese Fotos werden ausschließlich zur Dokumentation der Buchung verwendet.',
+        note:
+            'Diese Fotos werden ausschließlich zur Dokumentation der Buchung verwendet.',
       ),
       const _PrivacySectionData(
         icon: Icons.verified_user_outlined,
         title: 'Sicherheit & Verifizierung',
-        description: 'Um Vertrauen auf der Plattform zu stärken, können folgende Verifizierungen durchgeführt werden:',
+        description:
+            'Um Vertrauen auf der Plattform zu stärken, können folgende Verifizierungen durchgeführt werden:',
         bullets: [
           'Telefonnummer‑Verifizierung',
           'E‑Mail‑Bestätigung',
@@ -155,25 +169,42 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           'die Sicherheit der Plattform zu gewährleisten',
           'die Nutzung der Plattform zu verbessern',
         ],
-        note: 'ShareItToo verkauft oder vermietet keine personenbezogenen Daten an Dritte.',
+        note:
+            'ShareItToo verkauft oder vermietet keine personenbezogenen Daten an Dritte.',
+      ),
+      const _PrivacySectionData(
+        icon: Icons.hub_outlined,
+        title: 'Technische Dienste',
+        description:
+            'Einige App-Funktionen werden durch technische Dienstleister unterstützt:',
+        bullets: [
+          'Google Maps Platform für Adressvorschläge sowie Standort- und Entfernungsfunktionen',
+          'Firebase Cloud Messaging für Push‑Benachrichtigungen',
+          'Firebase Crashlytics für Absturz- und technische Diagnosedaten',
+        ],
+        note:
+            'Werbe-SDKs und Analyse zu Werbezwecken sind im aktuellen App-Kandidaten nicht aktiviert.',
       ),
       const _PrivacySectionData(
         icon: Icons.file_download_outlined,
         title: 'Datenexport',
-        description: 'Du kannst jederzeit eine maschinenlesbare Kopie deiner gespeicherten Daten erstellen:',
+        description:
+            'Du kannst jederzeit eine maschinenlesbare Kopie deiner gespeicherten Daten erstellen:',
         bullets: [
           'Kontodaten und Zustimmungen',
           'eigene Angebote, Buchungen und Kommunikation',
           'Benachrichtigungen, Bewertungen und Zahlungsstatus',
         ],
-        note: 'Passwörter, Sitzungsschlüssel und interne Sicherheitsgeheimnisse sind niemals enthalten.',
+        note:
+            'Passwörter, Sitzungsschlüssel und interne Sicherheitsgeheimnisse sind niemals enthalten.',
         badgeText: 'Verfügbar',
         actionLabel: 'Meine Daten exportieren',
       ),
       const _PrivacySectionData(
         icon: Icons.person_remove_outlined,
         title: 'Konto löschen',
-        description: 'Du kannst dein Konto jederzeit in den Kontoeinstellungen löschen.',
+        description:
+            'Du kannst dein Konto jederzeit in den Kontoeinstellungen löschen.',
         extraTitle: 'Beim Löschen eines Kontos werden:',
         extraBullets: [
           'persönliche Daten entfernt oder anonymisiert',
@@ -200,11 +231,15 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           surfaceTintColor: Colors.transparent,
           title: const Text('Datenschutz-Infos'),
           centerTitle: true,
-          leading: IconButton(tooltip: MaterialLocalizations.of(context).backButtonTooltip, icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).maybePop()),
+          leading: IconButton(
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).maybePop()),
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, kToolbarHeight + 16, 16, 24),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             _HeaderCard(
               title: 'Datenschutz-Infos',
               description:
@@ -216,10 +251,12 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
               (i) => _AnimatedSection(
                 index: i,
                 child: Padding(
-                  padding: EdgeInsets.only(bottom: i == sections.length - 1 ? 0 : 12),
+                  padding: EdgeInsets.only(
+                      bottom: i == sections.length - 1 ? 0 : 12),
                   child: _PrivacyInfoCard(
                     data: sections[i],
-                    onAction: sections[i].actionLabel == null ? null : _exportData,
+                    onAction:
+                        sections[i].actionLabel == null ? null : _exportData,
                     actionBusy: sections[i].actionLabel != null && _exporting,
                   ),
                 ),
@@ -233,13 +270,16 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
               ),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Icon(Icons.info_outline, color: BrandColors.primary.withValues(alpha: 0.95)),
+              child:
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.info_outline,
+                    color: BrandColors.primary.withValues(alpha: 0.95)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Wichtig: Diese Seite erklärt die Datenschutz‑Logik innerhalb der ShareItToo‑App in verständlicher Form. Detaillierte rechtliche Texte (z.B. Datenschutzerklärung/AGB) werden in einer späteren Version ergänzt.',
-                    style: textTheme.bodySmall?.copyWith(color: onSurface.withValues(alpha: 0.85), height: 1.5),
+                    'Wichtig: Diese Seite erklärt die Datenschutz‑Logik innerhalb der ShareItToo‑App in verständlicher Form. Die finale rechtliche Datenschutzerklärung und die Einordnung der technischen Empfänger müssen vor einer Store-Veröffentlichung noch geprüft und freigegeben werden.',
+                    style: textTheme.bodySmall?.copyWith(
+                        color: onSurface.withValues(alpha: 0.85), height: 1.5),
                   ),
                 ),
               ]),
@@ -283,9 +323,12 @@ class _HeaderCard extends StatelessWidget {
         ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: t.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        Text(title,
+            style: t.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: 10),
-        Text(description, style: t.bodyMedium?.copyWith(color: onSurface.withValues(alpha: 0.88), height: 1.55)),
+        Text(description,
+            style: t.bodyMedium?.copyWith(
+                color: onSurface.withValues(alpha: 0.88), height: 1.55)),
       ]),
     );
   }
@@ -313,7 +356,8 @@ class _AnimatedSection extends StatelessWidget {
             final a = visible ? eased : 0.0;
             return Opacity(
               opacity: a,
-              child: Transform.translate(offset: Offset(0, (1 - a) * 10), child: c),
+              child: Transform.translate(
+                  offset: Offset(0, (1 - a) * 10), child: c),
             );
           },
         );
@@ -401,13 +445,19 @@ class _PrivacyInfoCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                Expanded(child: Text(data.title, style: t.titleMedium?.copyWith(fontWeight: FontWeight.w700))),
+                Expanded(
+                    child: Text(data.title,
+                        style: t.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700))),
                 if (data.badgeText != null) _Badge(text: data.badgeText!),
               ]),
               const SizedBox(height: 6),
-              Text(data.description, style: t.bodyMedium?.copyWith(color: onSurface.withValues(alpha: 0.88), height: 1.55)),
+              Text(data.description,
+                  style: t.bodyMedium?.copyWith(
+                      color: onSurface.withValues(alpha: 0.88), height: 1.55)),
             ]),
           ),
         ]),
@@ -430,13 +480,17 @@ class _PrivacyInfoCard extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.download_outlined),
-              label: Text(actionBusy ? 'Export wird erstellt …' : data.actionLabel!),
+              label: Text(
+                  actionBusy ? 'Export wird erstellt …' : data.actionLabel!),
             ),
           ),
         ],
         if (data.extraTitle != null) ...[
           const SizedBox(height: 12),
-          Text(data.extraTitle!, style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w700, color: onSurface.withValues(alpha: 0.92))),
+          Text(data.extraTitle!,
+              style: t.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: onSurface.withValues(alpha: 0.92))),
         ],
         if (data.extraBullets != null && data.extraBullets!.isNotEmpty) ...[
           const SizedBox(height: 8),
@@ -456,9 +510,15 @@ class _PrivacyInfoCard extends StatelessWidget {
               border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(Icons.lightbulb_outline, color: BrandColors.logoAccent.withValues(alpha: 0.95), size: 18),
+              Icon(Icons.lightbulb_outline,
+                  color: BrandColors.logoAccent.withValues(alpha: 0.95),
+                  size: 18),
               const SizedBox(width: 10),
-              Expanded(child: Text(data.note!, style: t.bodySmall?.copyWith(color: onSurface.withValues(alpha: 0.86), height: 1.55))),
+              Expanded(
+                  child: Text(data.note!,
+                      style: t.bodySmall?.copyWith(
+                          color: onSurface.withValues(alpha: 0.86),
+                          height: 1.55))),
             ]),
           ),
         ],
@@ -481,7 +541,9 @@ class _Badge extends StatelessWidget {
         color: BrandColors.primary.withValues(alpha: 0.14),
         border: Border.all(color: BrandColors.primary.withValues(alpha: 0.35)),
       ),
-      child: Text(text, style: t.labelSmall?.copyWith(color: BrandColors.primary, fontWeight: FontWeight.w800)),
+      child: Text(text,
+          style: t.labelSmall?.copyWith(
+              color: BrandColors.primary, fontWeight: FontWeight.w800)),
     );
   }
 }
@@ -510,9 +572,13 @@ class _RuleCard extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: t.labelSmall?.copyWith(letterSpacing: 0.2, color: onSurface.withValues(alpha: 0.9))),
+        Text(title,
+            style: t.labelSmall?.copyWith(
+                letterSpacing: 0.2, color: onSurface.withValues(alpha: 0.9))),
         const SizedBox(height: 6),
-        Text(text, style: t.bodySmall?.copyWith(color: onSurface.withValues(alpha: 0.9), height: 1.55)),
+        Text(text,
+            style: t.bodySmall?.copyWith(
+                color: onSurface.withValues(alpha: 0.9), height: 1.55)),
       ]),
     );
   }
@@ -533,15 +599,22 @@ class _BulletList extends StatelessWidget {
           .map(
             (s) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              child:
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Container(
                   margin: const EdgeInsets.only(top: 7),
                   width: 6,
                   height: 6,
-                  decoration: BoxDecoration(color: onSurface.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(99)),
+                  decoration: BoxDecoration(
+                      color: onSurface.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(99)),
                 ),
                 const SizedBox(width: 10),
-                Expanded(child: Text(s, style: t.bodyMedium?.copyWith(color: onSurface.withValues(alpha: 0.88), height: 1.55))),
+                Expanded(
+                    child: Text(s,
+                        style: t.bodyMedium?.copyWith(
+                            color: onSurface.withValues(alpha: 0.88),
+                            height: 1.55))),
               ]),
             ),
           )
