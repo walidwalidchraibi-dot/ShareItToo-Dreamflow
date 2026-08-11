@@ -393,9 +393,7 @@ class FirebaseRuntime {
           _captureRawActionLink(call.arguments);
         }
       });
-      final initial = await _androidActionLinkChannel.invokeMethod<String>(
-        'takeInitialActionLink',
-      );
+      final initial = await takeAndroidPendingActionLink();
       _captureRawActionLink(initial);
     } on MissingPluginException {
       debugPrint('[FirebaseRuntime] native action-link bridge unavailable');
@@ -403,6 +401,20 @@ class FirebaseRuntime {
       debugPrint(
         '[FirebaseRuntime] native action-link bridge unavailable: ${error.code}',
       );
+    }
+  }
+
+  static Future<Uri?> takeAndroidPendingActionLink() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return null;
+    try {
+      final raw = await _androidActionLinkChannel.invokeMethod<String>(
+        'takeInitialActionLink',
+      );
+      return parsePushActionUri(raw);
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
     }
   }
 

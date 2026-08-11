@@ -182,11 +182,16 @@ class AppLinkParser {
 
 class AppLinkController extends ChangeNotifier with WidgetsBindingObserver {
   final AppLinkTargetInbox _inbox;
+  final Future<Uri?> Function() _takeNativePendingActionLink;
   bool _initialized = false;
   StreamSubscription<Uri>? _firebaseActionSubscription;
 
-  AppLinkController({AppLinkTargetInbox? inbox})
-      : _inbox = inbox ?? AppLinkTargetInbox();
+  AppLinkController({
+    AppLinkTargetInbox? inbox,
+    Future<Uri?> Function()? takeNativePendingActionLink,
+  })  : _inbox = inbox ?? AppLinkTargetInbox(),
+        _takeNativePendingActionLink = takeNativePendingActionLink ??
+            FirebaseRuntime.takeAndroidPendingActionLink;
 
   AppLinkTarget? takePending() => _inbox.takePending();
 
@@ -210,6 +215,18 @@ class AppLinkController extends ChangeNotifier with WidgetsBindingObserver {
       RouteInformation routeInformation) async {
     _accept(routeInformation.uri.toString());
     return true;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_refreshNativePendingActionLink());
+    }
+  }
+
+  Future<void> _refreshNativePendingActionLink() async {
+    final uri = await _takeNativePendingActionLink();
+    if (uri != null) _accept(uri.toString());
   }
 
   void _accept(String raw) {

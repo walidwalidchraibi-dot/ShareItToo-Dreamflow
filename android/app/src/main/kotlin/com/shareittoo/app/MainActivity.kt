@@ -17,9 +17,16 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onNewIntent(intent: Intent) {
-        val actionLink = safePushActionLink(intent)
         super.onNewIntent(intent)
-        if (actionLink != null) deliverPushActionLink(actionLink)
+        setIntent(intent)
+        val actionLink = safePushActionLink(intent)
+        if (actionLink != null) {
+            // Keep the link until Dart explicitly consumes it. Android can deliver
+            // the notification intent before the Flutter isolate is fully resumed,
+            // so the immediate channel event is an optimization, not the only path.
+            pendingPushActionLink = actionLink
+            deliverPushActionLink(actionLink)
+        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {

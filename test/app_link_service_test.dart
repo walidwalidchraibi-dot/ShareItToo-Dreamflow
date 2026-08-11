@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/services/app_link_service.dart';
 
@@ -137,5 +138,23 @@ void main() {
       isFalse,
     );
     expect(inbox.takePending()?.id, 'thread_456');
+  });
+
+  testWidgets('replays a pending Android notification link when app resumes',
+      (tester) async {
+    final controller = AppLinkController(
+      takeNativePendingActionLink: () async => Uri.parse(
+        'https://staging.shareittoo.com/api/v1/open/booking/booking-resumed',
+      ),
+    );
+    addTearDown(controller.dispose);
+    controller.initialize();
+
+    controller.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    await tester.pump();
+
+    final target = controller.takePending();
+    expect(target?.kind, AppLinkKind.booking);
+    expect(target?.id, 'booking-resumed');
   });
 }
