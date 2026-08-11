@@ -6,8 +6,8 @@
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081113",
-    "commit": "e2671899fb08808a78ed9fbbc48fe39a4370e96b"
+    "buildNumber": "2026081114",
+    "commit": "f2961cfe97a85c5698d4967ae08808eaa6b25ce8"
   },
   "environment": {
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
@@ -28,7 +28,7 @@
   ],
   "technicalAccess": {
     "status": "passed",
-    "evidenceRef": "docs/evidence/b11/store-review-access-refresh-2026081113.json"
+    "evidenceRef": "docs/evidence/b11/store-review-access-refresh-2026081114.json"
   },
   "reviewScenarios": {
     "ownerLogin": "passed",
