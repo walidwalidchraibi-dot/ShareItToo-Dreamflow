@@ -7,6 +7,18 @@ double? listingRatingForDisplay(double? rating) {
   return rating;
 }
 
+/// Returns an owner's real average only when at least one review exists.
+///
+/// This keeps inconsistent backend data (for example, an average with a zero
+/// review count) from becoming a trust signal in the listing UI.
+double? ownerRatingForDisplay({
+  required double? averageRating,
+  required int? reviewCount,
+}) {
+  if (reviewCount == null || reviewCount <= 0) return null;
+  return listingRatingForDisplay(averageRating);
+}
+
 /// Normalizes the user's configured city without inventing a default.
 String? configuredUserCity(String? city) {
   final normalized = city?.trim() ?? '';

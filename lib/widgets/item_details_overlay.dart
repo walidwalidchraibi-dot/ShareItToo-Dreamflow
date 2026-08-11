@@ -29,6 +29,8 @@ import 'package:lendify/utils/condition_labels.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 import 'package:lendify/widgets/image_gallery_overlay.dart';
 import 'package:lendify/widgets/login_nudge_sheet.dart';
+import 'package:lendify/widgets/listing_display_truth.dart';
+import 'package:lendify/widgets/rating_badge.dart';
 import 'package:lendify/theme.dart';
 
 class ItemDetailsOverlay {
@@ -427,82 +429,13 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
                               ),
                             ),
                           ),
-                          // Bottom-left: rating (tap to open reviews) – nudged ~1.5mm to the right
+                          // Show a rating only when the owner has real reviews.
                           Positioned(
                             left: 13,
                             bottom: 10,
-                            child: GestureDetector(
-                              onTap: () async {
-                                final owner =
-                                    await ItemDetailsOverlay._loadOwner(
-                                        item.ownerId);
-                                if (!mounted) return;
-                                await showModalBottomSheet<void>(
-                                  context: context,
-                                  isScrollControlled: false,
-                                  backgroundColor: Colors.transparent,
-                                  barrierColor:
-                                      Colors.black.withValues(alpha: 0.65),
-                                  builder: (ctx) => SafeArea(
-                                    top: false,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                          color: Colors.black
-                                              .withValues(alpha: 0.34),
-                                          borderRadius:
-                                              const BorderRadius.vertical(
-                                                  top: Radius.circular(16)),
-                                          border: Border.all(
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.10))),
-                                      padding: const EdgeInsets.fromLTRB(
-                                          16, 12, 16, 16),
-                                      child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: [
-                                            Row(children: const [
-                                              Icon(Icons.rate_review_outlined,
-                                                  color: Colors.white70),
-                                              SizedBox(width: 8),
-                                              Expanded(
-                                                  child: Text('Bewertungen',
-                                                      style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.w800)))
-                                            ]),
-                                            const SizedBox(height: 10),
-                                            if (owner != null)
-                                              _ListingReviewsPreview(
-                                                  ownerId: owner.id,
-                                                  itemId: item.id)
-                                            else
-                                              const SizedBox.shrink(),
-                                          ]),
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.55),
-                                    borderRadius: BorderRadius.circular(10)),
-                                child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: const [
-                                      Icon(Icons.star,
-                                          size: 14, color: Color(0xFFFB923C)),
-                                      SizedBox(width: 4),
-                                      Text('4.8',
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w700)),
-                                    ]),
-                              ),
+                            child: _ListingImageRatingBadge(
+                              ownerFuture: widget.ownerFuture,
+                              item: item,
                             ),
                           ),
                           // Bottom-right: price (nudged ~1.5mm to the right edge)
@@ -606,7 +539,8 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
                                     : AppTheme.textBody(context))),
                     const SizedBox(height: 12),
                     // Show combined info table directly under description; includes owner at bottom
-                    _ItemMetaSection(item: item),
+                    _ItemMetaSection(
+                        item: item, ownerFuture: widget.ownerFuture),
                     if (_canReserve) ...[
                       const SizedBox(height: 8),
                       // Use the same expandable card design as in Ausstehende Buchung – full width
@@ -1115,76 +1049,13 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                       ),
                     ),
                   ),
-                  // Bottom-left: rating (tap to open reviews) – nudged ~1.5mm to the right
+                  // Show a rating only when the owner has real reviews.
                   Positioned(
                     left: 13,
                     bottom: 10,
-                    child: GestureDetector(
-                      onTap: () async {
-                        final owner =
-                            await ItemDetailsOverlay._loadOwner(item.ownerId);
-                        if (!mounted) return;
-                        await showModalBottomSheet<void>(
-                          context: context,
-                          isScrollControlled: false,
-                          backgroundColor: Colors.transparent,
-                          barrierColor: Colors.black.withValues(alpha: 0.65),
-                          builder: (ctx) => SafeArea(
-                            top: false,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.34),
-                                  borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(16)),
-                                  border: Border.all(
-                                      color: Colors.white
-                                          .withValues(alpha: 0.10))),
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    Row(children: const [
-                                      Icon(Icons.rate_review_outlined,
-                                          color: Colors.white70),
-                                      SizedBox(width: 8),
-                                      Expanded(
-                                          child: Text('Bewertungen',
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w800)))
-                                    ]),
-                                    const SizedBox(height: 10),
-                                    if (owner != null)
-                                      _ListingReviewsPreview(
-                                          ownerId: owner.id, itemId: item.id)
-                                    else
-                                      const SizedBox.shrink(),
-                                  ]),
-                            ),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.55),
-                            borderRadius: BorderRadius.circular(10)),
-                        child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              Icon(Icons.star,
-                                  size: 14, color: Color(0xFFFB923C)),
-                              SizedBox(width: 4),
-                              Text('4.8',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700)),
-                            ]),
-                      ),
+                    child: _ListingImageRatingBadge(
+                      ownerFuture: widget.ownerFuture,
+                      item: item,
                     ),
                   ),
                   // Bottom-right: price (nudged ~1.5mm to the right edge)
@@ -1285,7 +1156,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
 
             const SizedBox(height: 12),
             // Infos zum Listing als Kompakttabelle direkt unter der Beschreibung
-            _ItemMetaSection(item: item),
+            _ItemMetaSection(item: item, ownerFuture: widget.ownerFuture),
 
             if (_canReserve) ...[
               const SizedBox(height: 8),
@@ -1466,29 +1337,7 @@ class _ItemMetaSection extends StatelessWidget {
                                   : Colors.grey),
                         ]),
                         const SizedBox(height: 2),
-                        Row(children: [
-                          Text(
-                              u != null
-                                  ? '${u.reviewCount} ${l10n.t('Bewertungen')}'
-                                  : l10n.t('Laden …'),
-                              style: TextStyle(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.white70
-                                      : AppTheme.textSecondary(context),
-                                  fontSize: 12)),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.star,
-                              size: 14, color: Color(0xFFFB923C)),
-                          const SizedBox(width: 4),
-                          Text(u != null ? u.avgRating.toStringAsFixed(1) : '—',
-                              style: TextStyle(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.white70
-                                      : AppTheme.textSecondary(context),
-                                  fontSize: 12)),
-                        ]),
+                        _OwnerReviewSummary(user: u),
                         if (u?.city != null) ...[
                           const SizedBox(height: 2),
                           Text(
@@ -1938,29 +1787,7 @@ class _OwnerRow extends StatelessWidget {
                   color: verified ? const Color(0xFF22C55E) : Colors.grey),
             ]),
             const SizedBox(height: 2),
-            Row(children: [
-              Builder(builder: (context) {
-                final l10n = context.watch<LocalizationController>();
-                return Text(
-                    owner != null
-                        ? '${owner!.reviewCount} ${l10n.t('Bewertungen')}'
-                        : l10n.t('Laden …'),
-                    style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white70
-                            : AppTheme.textSecondary(context),
-                        fontSize: 12));
-              }),
-              const SizedBox(width: 8),
-              const Icon(Icons.star, size: 14, color: Color(0xFFFB923C)),
-              const SizedBox(width: 4),
-              Text(owner != null ? owner!.avgRating.toStringAsFixed(1) : '—',
-                  style: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white70
-                          : AppTheme.textSecondary(context),
-                      fontSize: 12)),
-            ]),
+            _OwnerReviewSummary(user: owner),
           ]),
         ),
       ]),
@@ -2014,26 +1841,7 @@ class _ListerDetailsCard extends StatelessWidget {
                           : Colors.grey)
                 ]),
                 const SizedBox(height: 2),
-                Row(children: [
-                  Text(
-                      u != null
-                          ? '${u.reviewCount} ${l10n.t('Bewertungen')}'
-                          : l10n.t('Laden …'),
-                      style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white70
-                              : AppTheme.textSecondary(context),
-                          fontSize: 12)),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.star, size: 16, color: Color(0xFFFB923C)),
-                  const SizedBox(width: 4),
-                  Text(u != null ? u.avgRating.toStringAsFixed(1) : '—',
-                      style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white70
-                              : AppTheme.textSecondary(context),
-                          fontSize: 12)),
-                ]),
+                _OwnerReviewSummary(user: u, iconSize: 16),
                 if (u?.city != null) ...[
                   const SizedBox(height: 2),
                   Text('${u!.city}${u.country != null ? ', ${u.country}' : ''}',
@@ -2107,6 +1915,115 @@ class _ListerDetailsCard extends StatelessWidget {
     ];
     final m = monthsDe[createdAt.month - 1];
     return '$m ${createdAt.year}';
+  }
+}
+
+class _ListingImageRatingBadge extends StatelessWidget {
+  final Future<model.User?> ownerFuture;
+  final Item item;
+
+  const _ListingImageRatingBadge({
+    required this.ownerFuture,
+    required this.item,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<model.User?>(
+      future: ownerFuture,
+      builder: (context, snapshot) {
+        final owner = snapshot.data;
+        final rating = ownerRatingForDisplay(
+          averageRating: owner?.avgRating,
+          reviewCount: owner?.reviewCount,
+        );
+        if (owner == null || rating == null) {
+          return const SizedBox.shrink();
+        }
+        return GestureDetector(
+          onTap: () => _showReviews(context, owner),
+          child: RatingBadge(
+            rating: rating,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showReviews(BuildContext context, model.User owner) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: false,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.34),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Row(children: [
+                Icon(Icons.rate_review_outlined, color: Colors.white70),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Bewertungen',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 10),
+              _ListingReviewsPreview(ownerId: owner.id, itemId: item.id),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OwnerReviewSummary extends StatelessWidget {
+  final model.User? user;
+  final double iconSize;
+
+  const _OwnerReviewSummary({required this.user, this.iconSize = 14});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.watch<LocalizationController>();
+    final color = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white70
+        : AppTheme.textSecondary(context);
+    final style = TextStyle(color: color, fontSize: 12);
+    final u = user;
+    if (u == null) return Text(l10n.t('Laden …'), style: style);
+
+    final rating = ownerRatingForDisplay(
+      averageRating: u.avgRating,
+      reviewCount: u.reviewCount,
+    );
+    if (rating == null) {
+      return Text(l10n.t('Noch keine Bewertungen'), style: style);
+    }
+
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Text('${u.reviewCount} ${l10n.t('Bewertungen')}', style: style),
+      const SizedBox(width: 8),
+      Icon(Icons.star, size: iconSize, color: const Color(0xFFFB923C)),
+      const SizedBox(width: 4),
+      Text(rating.toStringAsFixed(1), style: style),
+    ]);
   }
 }
 

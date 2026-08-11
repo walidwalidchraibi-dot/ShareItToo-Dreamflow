@@ -19,6 +19,25 @@ void main() {
       expect(listingRatingForDisplay(double.nan), isNull);
       expect(listingRatingForDisplay(double.infinity), isNull);
     });
+
+    test('shows an owner average only when real reviews exist', () {
+      expect(
+        ownerRatingForDisplay(averageRating: 4.8, reviewCount: 3),
+        4.8,
+      );
+      expect(
+        ownerRatingForDisplay(averageRating: 4.8, reviewCount: 0),
+        isNull,
+      );
+      expect(
+        ownerRatingForDisplay(averageRating: 0, reviewCount: 3),
+        isNull,
+      );
+      expect(
+        ownerRatingForDisplay(averageRating: 4.8, reviewCount: null),
+        isNull,
+      );
+    });
   });
 
   group('listing location labels', () {
@@ -73,6 +92,8 @@ void main() {
       'lib/screens/explore_screen.dart',
       'lib/widgets/item_card.dart',
       'lib/widgets/listing_carousel_card.dart',
+      'lib/widgets/item_details_overlay.dart',
+      'lib/screens/see_all_screen.dart',
     ]) {
       final source = File(path).readAsStringSync();
       expect(source, isNot(contains('_deriveRating')),
@@ -81,6 +102,8 @@ void main() {
           reason: '$path must not invent a stable-looking rating.');
       expect(source, isNot(contains('4.4 +')),
           reason: '$path must not manufacture a positive rating floor.');
+      expect(source, isNot(contains("Text('4.8'")),
+          reason: '$path must not contain a fixed listing rating.');
     }
   });
 

@@ -127,14 +127,6 @@ class _SquareCard extends StatelessWidget {
                               ?.copyWith(
                                   color: AppTheme.textPrimary(context),
                                   fontWeight: FontWeight.w700))),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.star, size: 12, color: Color(0xFFFB923C)),
-                  const SizedBox(width: 2),
-                  Text('4.8',
-                      style: TextStyle(
-                          color: AppTheme.textPrimary(context),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600)),
                 ]),
               )),
           Positioned(
