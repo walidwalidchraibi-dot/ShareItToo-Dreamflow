@@ -34,7 +34,7 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Android-APK SHA-256 | `495dba0e792b75aa5c279f64ed09bccd8de4db257b5737b30a111634df5b9dc9` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
 | Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081104-20260811T073210Z.json` |
-| Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081104-20260811T083339Z.json` |
 | Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
