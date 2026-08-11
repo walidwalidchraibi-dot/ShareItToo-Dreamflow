@@ -166,12 +166,14 @@ export async function validateCandidateArchive({ root, candidateDirectory }) {
 
   return {
     applicationId: expectedApplicationId,
+    bundleId: nonEmptyString(candidate.bundleId, 'candidate.bundleId'),
     versionName: expectedIdentity.versionName,
     buildNumber: expectedIdentity.versionCode,
     commit: expectedIdentity.commit,
     releaseChannel: candidate.releaseChannel,
     apiBaseUrl: expectedApiBaseUrl,
     firebaseConfigured: true,
+    paymentMode: nonEmptyString(candidate.paymentMode, 'candidate.paymentMode'),
     stripeLivemode: false,
     apkSha256: apkDigest,
     aabSha256: aabDigest,
@@ -314,6 +316,11 @@ export function installAndLaunchCandidate({
   if (!/Events injected:\s*1/.test(launchResult)) {
     fail('Android did not confirm the first ShareItToo launch event.');
   }
+  const activities = adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'activity', 'activities']);
+  const escapedApplicationId = candidate.applicationId.replaceAll('.', '\\.');
+  if (!new RegExp(`(?:mResumedActivity|topResumedActivity).*${escapedApplicationId}/`).test(activities)) {
+    fail('ShareItToo did not become the verified foreground activity after launch.');
+  }
 
   return {
     schemaVersion: 1,
@@ -322,12 +329,14 @@ export function installAndLaunchCandidate({
     capturedAt,
     candidate: {
       applicationId: candidate.applicationId,
+      bundleId: candidate.bundleId,
       versionName: candidate.versionName,
       buildNumber: candidate.buildNumber,
       commit: candidate.commit,
       releaseChannel: candidate.releaseChannel,
       apiBaseUrl: candidate.apiBaseUrl,
       firebaseConfigured: candidate.firebaseConfigured,
+      paymentMode: candidate.paymentMode,
       stripeLivemode: candidate.stripeLivemode,
       apkSha256: candidate.apkSha256,
       signingCertificateSha256: candidate.signingCertificateSha256,
@@ -336,6 +345,9 @@ export function installAndLaunchCandidate({
     installation: {
       method: 'direct-apk-diagnostic',
       installed: true,
+      installedVersionVerified: true,
+      installedBuildVerified: true,
+      foregroundActivityVerified: true,
       firstLaunchEvent: 'passed',
       storeInstallationGateSatisfied: false,
     },
@@ -346,6 +358,7 @@ export function installAndLaunchCandidate({
       containsSecrets: false,
       containsRawDeviceIdentifiers: false,
       containsReviewCredentials: false,
+      syntheticAccountsOnly: true,
     },
     nextRequired: [
       'manual Android Wi-Fi owner matrix',

@@ -60,12 +60,14 @@ function archiveFixture() {
   const deviceManifest = {
     candidate: {
       applicationId: 'com.shareittoo.app',
+      bundleId: 'com.shareittoo.app',
       versionName: '1.0.0',
       buildNumber: '2026080903',
       commit: 'a'.repeat(40),
       releaseChannel: 'internal',
       apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
       firebaseConfigured: true,
+      paymentMode: 'memory',
       stripeLivemode: false,
       android: {
         apkSha256: digest(apk),
@@ -141,6 +143,9 @@ test('direct installation evidence never contains the raw ADB serial and never c
       return '  versionCode=2026080903 minSdk=23 targetSdk=35\n  versionName=1.0.0\n';
     }
     if (command[0] === 'shell' && command[1] === 'monkey') return 'Events injected: 1\n';
+    if (command.join(' ') === 'shell dumpsys activity activities') {
+      return 'mResumedActivity: ActivityRecord{fixture com.shareittoo.app/.MainActivity}\n';
+    }
     throw new Error(`Unexpected fake ADB command: ${command.join(' ')}`);
   };
   const evidence = installAndLaunchCandidate({
@@ -149,12 +154,14 @@ test('direct installation evidence never contains the raw ADB serial and never c
     capturedAt: '2026-08-09T20:00:00.000Z',
     candidate: {
       applicationId: 'com.shareittoo.app',
+      bundleId: 'com.shareittoo.app',
       versionName: '1.0.0',
       buildNumber: '2026080903',
       commit: 'a'.repeat(40),
       releaseChannel: 'internal',
       apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
       firebaseConfigured: true,
+      paymentMode: 'memory',
       stripeLivemode: false,
       apkSha256: 'b'.repeat(64),
       signingCertificateSha256: 'd'.repeat(64),
@@ -178,12 +185,14 @@ test('an ADB command failure never leaks the raw serial through the error messag
       device: { serial: privateSerial, attributes: {}, state: 'device' },
       candidate: {
         applicationId: 'com.shareittoo.app',
+        bundleId: 'com.shareittoo.app',
         versionName: '1.0.0',
         buildNumber: '2026080903',
         commit: 'a'.repeat(40),
         releaseChannel: 'internal',
         apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
         firebaseConfigured: true,
+        paymentMode: 'memory',
         stripeLivemode: false,
         apkSha256: 'b'.repeat(64),
         signingCertificateSha256: 'd'.repeat(64),

@@ -6,8 +6,8 @@
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081107",
-    "commit": "99de848db090372f09d9c6f2fe3b838329584677"
+    "buildNumber": "2026081111",
+    "commit": "9ac3e5a74dceb51141357e423df3e3d4ea64bd8a"
   },
   "sourceInventory": [
     {
@@ -52,9 +52,9 @@
     }
   ],
   "binaryEvidence": {
-    "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081107.json",
+    "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081111.json",
     "binaryScan": "passed",
-    "binaryScanReportSha256": "3aa28f842f7390474e98b385e52e0f7007327cbf2a3cfbdf60ef657624ab9afc",
+    "binaryScanReportSha256": "fdce94f1045b986f14b9bb3bdcfde8daa4c0d02fada072aef83ea28dfd8b4ea6",
     "releaseCheckStatus": "testing"
   },
   "externalServices": {
