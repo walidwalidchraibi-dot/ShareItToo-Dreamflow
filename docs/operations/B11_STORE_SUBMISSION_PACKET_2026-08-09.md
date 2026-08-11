@@ -346,7 +346,10 @@ Upload-Automation muss zusätzlich `--require-submittable` verwenden und darf
 bei einem Fehler keinen Store-Upload starten. Der signierte Release-Preflight
 führt die Standardprüfung immer aus; mit
 `SIT_REQUIRE_STORE_SUBMISSION=1` erzwingt er vor einem tatsächlichen Upload
-zusätzlich den strengen Modus.
+zusätzlich den strengen Store-Metadatenmodus und
+`node tool/validate_legal_readiness.mjs --require-approved`. Ein Upload kann
+damit weder die allgemeinen Store-Gates noch die inhaltsgebundene
+Rechtsfreigabe umgehen.
 
 ## 11. Offizielle Referenzen
 

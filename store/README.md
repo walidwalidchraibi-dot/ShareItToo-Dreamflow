@@ -34,8 +34,9 @@ Entwurf:
 node tool/validate_legal_readiness.mjs
 ```
 
-Ein späterer Store-Schritt muss zusätzlich `--require-approved` verwenden.
-Dieser Modus bleibt geschlossen, bis alle vier Texte inhaltsgleich freigegeben,
+Der signierte Release-Preflight führt die Entwurfsprüfung immer aus und ruft
+bei `SIT_REQUIRE_STORE_SUBMISSION=1` zusätzlich `--require-approved` auf.
+Dieser Store-Modus bleibt geschlossen, bis alle vier Texte inhaltsgleich freigegeben,
 unter den kanonischen öffentlichen HTTPS-URLs erreichbar, alle erforderlichen
 Freigaben belegt und `termsAndUserContentRules` im Store-Manifest geschlossen
 sind. Der aktuelle Rechtsstatus bleibt ausdrücklich `draft`; der technische

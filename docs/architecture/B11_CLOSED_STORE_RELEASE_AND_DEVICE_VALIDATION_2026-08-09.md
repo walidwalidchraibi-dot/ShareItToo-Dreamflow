@@ -455,6 +455,12 @@ Regression sowie des signierten Release-Preflights. Ein tatsächlicher Upload
 muss zusätzlich `SIT_REQUIRE_STORE_SUBMISSION=1` setzen; der strenge Modus
 schließt bei jedem offenen Gate.
 
+Der Release-Preflight prüft außerdem immer den ehrlichen Rechtsentwurf mit
+`tool/validate_legal_readiness.mjs`. Im Store-Modus erzwingt er zusätzlich
+`--require-approved`; geänderte oder nicht freigegebene AGB, Community-Regeln,
+Storno-/Widerrufsregeln oder Gebühren-/Zahlungstexte sowie offene Rechts-,
+Moderations- oder Konsistenzfreigaben stoppen den Build vor einem Upload.
+
 Der geprüfte Entwurfsstand besteht mit `submissionAllowed=false`, drei offenen
 Pflicht-URLs, elf offenen Gates, aktuellem Build `2026080902` und Mindest-
 Store-Build `2026080903`. Der strenge Modus bricht mit genau diesen offenen
