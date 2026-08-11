@@ -125,9 +125,18 @@ Fatal-Gruppen ausschließlich älteren Builds bis `2026081026` beziehungsweise
 `2026081019` zu; Build `2026081029` wurde in diesen Gruppen nicht beobachtet.
 Die vorbereitete Korrektur fängt den Echtzeit-Verbindungsaufbau ab, klassifiziert
 Verbindungsfehler defensiv als nicht fatal und entfernt den alten Widget-Kontext
-aus der Abmelde-Navigation. Sie bestand 200 Flutter-Tests sowie Web- und
-Android-Debug-Build, ist aber noch nicht auf einem physischen Gerät installiert.
-Deshalb ist ein neuer exakter Kandidaten-Build mit erneuter Geräteprüfung nötig.
+aus der Abmelde-Navigation. Zu diesem Zeitpunkt bestand sie 200 Flutter-Tests
+sowie Web- und Android-Debug-Build; ein neuer exakter Kandidaten-Build mit
+erneuter Geräteprüfung war noch nötig.
+
+Die erneute lesende Prüfung
+`crashlytics-open-issues-recheck-20260811T003517Z.json` bindet denselben Befund
+an den inzwischen auf dem physischen Android-Gerät installierten Kandidaten
+`2026081101`. Dieser Kandidat erscheint in keiner der beiden historischen
+Fatal-Gruppen; seine Offline-/Wiederverbindungsdiagnose ist bestanden. Die
+Gruppen bleiben dennoch offen, bis Abmeldung und Kaltstart mit einer
+synthetischen angemeldeten Sitzung auf genau diesem Kandidaten wiederholt sind.
+Firebase-Status, Produktion und Store-Einreichung wurden nicht verändert.
 
 Die folgenden Direkt-Smoke-Nachweise bleiben als chronologische Historie
 erhalten; nur der obige Snapshot und die Referenzen im Manifest bezeichnen den

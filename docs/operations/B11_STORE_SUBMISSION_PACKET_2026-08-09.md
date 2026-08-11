@@ -249,6 +249,28 @@ gültigem TLS erreichbar sein:
    die gleichwertige Produktions-API-URL liefert am 9. August 2026 noch 404.
 5. **OFFEN:** finale AGB/Nutzungsbedingungen und Nutzerinhaltsregeln.
 
+### Fail-closed Rechts- und Registrierungsnachweis
+
+`store/legal-readiness.json` bindet den weiterhin offenen
+`termsAndUserContentRules`-Gate an die aktuellen Inhalte von AGB,
+Community-Regeln, Widerrufs-/Stornoregeln sowie Gebühren und Zahlungen. Die
+Registrierung verlangt nun drei getrennte, standardmäßig nicht gesetzte
+Bestätigungen für Mindestalter, AGB und Datenschutz. Der Auth-Service reicht
+die tatsächlichen Werte weiter; das Backend weist jede fehlende Bestätigung ab
+und speichert die drei Annahmezeitpunkte getrennt.
+
+```text
+node tool/validate_legal_readiness.mjs
+node tool/validate_legal_readiness.mjs --require-approved
+```
+
+Der erste Befehl prüft den ehrlichen Entwurfszustand. Der zweite bleibt
+absichtlich rot, bis die Inhalte geprüft und exakt gehasht, die öffentlichen
+HTTPS-Seiten verifiziert, alle Rechts-/Moderations-/Konsistenzfreigaben belegt
+und der Store-Gate geschlossen sind. Diese technische Absicherung ist keine
+Rechtsberatung und ändert weder öffentliche Routen noch den
+Store-Einreichungsstatus.
+
 Die Flutter-Web-App liefert für unbekannte Pfade derzeit ihre Startseite aus.
 Ein HTTP-200 allein beweist deshalb keine gültige Support-, Datenschutz- oder
 Löschseite. Der sichtbare Inhalt muss jeweils manuell und automatisiert geprüft

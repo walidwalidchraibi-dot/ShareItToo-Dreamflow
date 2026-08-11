@@ -43,6 +43,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _pw2Visible = false;
   bool _peekBackdrop = false;
   bool _minimumAgeConfirmed = false;
+  bool _termsAccepted = false;
+  bool _privacyAccepted = false;
 
   bool _didInteract = false;
 
@@ -151,6 +153,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       return;
     }
+    if (!_termsAccepted || !_privacyAccepted) {
+      await AppPopup.toast(
+        context,
+        icon: Icons.gavel_outlined,
+        title: 'Bitte bestätige AGB und Datenschutz.',
+      );
+      return;
+    }
 
     setState(() => _busy = true);
     try {
@@ -159,6 +169,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: _emailCtrl.text.trim(),
         password: _pwCtrl.text,
         displayName: _nameCtrl.text.trim(),
+        termsAccepted: _termsAccepted,
+        privacyAccepted: _privacyAccepted,
         minimumAgeConfirmed: _minimumAgeConfirmed,
       );
       if (!mounted) return;
@@ -558,6 +570,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                       dense: true,
                                                       title: const Text(
                                                         'Ich bestätige, dass ich mindestens 18 Jahre alt bin.',
+                                                      ),
+                                                    ),
+                                                    CheckboxListTile(
+                                                      value: _termsAccepted,
+                                                      onChanged: _busy
+                                                          ? null
+                                                          : (value) => setState(
+                                                              () =>
+                                                                  _termsAccepted =
+                                                                      value ==
+                                                                          true),
+                                                      controlAffinity:
+                                                          ListTileControlAffinity
+                                                              .leading,
+                                                      contentPadding:
+                                                          EdgeInsets.zero,
+                                                      dense: true,
+                                                      title: const Text(
+                                                        'Ich akzeptiere die AGB.',
+                                                      ),
+                                                    ),
+                                                    CheckboxListTile(
+                                                      value: _privacyAccepted,
+                                                      onChanged: _busy
+                                                          ? null
+                                                          : (value) => setState(
+                                                              () =>
+                                                                  _privacyAccepted =
+                                                                      value ==
+                                                                          true),
+                                                      controlAffinity:
+                                                          ListTileControlAffinity
+                                                              .leading,
+                                                      contentPadding:
+                                                          EdgeInsets.zero,
+                                                      dense: true,
+                                                      title: const Text(
+                                                        'Ich akzeptiere die Datenschutzbestimmungen.',
                                                       ),
                                                     ),
                                                     if (!BackendConfig
@@ -1159,8 +1209,7 @@ class _LegalText extends StatelessWidget {
         TextSpan(
           children: [
             TextSpan(
-                text: 'Mit dem Erstellen eines Kontos stimmst du unseren ',
-                style: base),
+                text: 'Bitte lies vor der Registrierung unsere ', style: base),
             TextSpan(
                 text: 'AGB',
                 style: link,
@@ -1170,7 +1219,7 @@ class _LegalText extends StatelessWidget {
                 text: 'Datenschutzbestimmungen',
                 style: link,
                 recognizer: TapGestureRecognizer()..onTap = onOpenPrivacy),
-            TextSpan(text: ' zu.', style: base),
+            TextSpan(text: '.', style: base),
           ],
         ),
         textAlign: TextAlign.center,

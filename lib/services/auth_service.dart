@@ -207,8 +207,13 @@ class AuthService {
     required String email,
     required String password,
     String? displayName,
-    bool minimumAgeConfirmed = true,
+    required bool termsAccepted,
+    required bool privacyAccepted,
+    required bool minimumAgeConfirmed,
   }) async {
+    if (!termsAccepted || !privacyAccepted || !minimumAgeConfirmed) {
+      return const AuthResult.failure(AuthFailure.consentRequired);
+    }
     if (BackendConfig.enabled) {
       try {
         final response = await BackendHttp.requestJson(
@@ -218,8 +223,8 @@ class AuthService {
             'email': email.trim(),
             'password': password,
             'displayName': displayName?.trim(),
-            'termsAccepted': true,
-            'privacyAccepted': true,
+            'termsAccepted': termsAccepted,
+            'privacyAccepted': privacyAccepted,
             'minimumAgeConfirmed': minimumAgeConfirmed,
           },
         );

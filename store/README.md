@@ -23,6 +23,24 @@ Der Standardlauf prüft den ehrlichen Entwurfszustand. Eine spätere
 Store-Automation muss zusätzlich mit `--require-submittable` prüfen und darf
 bei einem offenen Gate keinen Upload starten.
 
+`store/legal-readiness.json` bindet den Rechts-/Nutzerinhalts-Gate zusätzlich
+an die vier derzeitigen App-Texte und an die technische Registrierungskette.
+Mindestalter, AGB und Datenschutz müssen separat und ausdrücklich bestätigt
+werden; App, Auth-Service und Backend dürfen diese Zustimmungen nicht
+vorausfüllen. Der Standardlauf akzeptiert den nachweislich unfreigegebenen
+Entwurf:
+
+```text
+node tool/validate_legal_readiness.mjs
+```
+
+Ein späterer Store-Schritt muss zusätzlich `--require-approved` verwenden.
+Dieser Modus bleibt geschlossen, bis alle vier Texte inhaltsgleich freigegeben,
+unter den kanonischen öffentlichen HTTPS-URLs erreichbar, alle erforderlichen
+Freigaben belegt und `termsAndUserContentRules` im Store-Manifest geschlossen
+sind. Der aktuelle Rechtsstatus bleibt ausdrücklich `draft`; der technische
+Nachweis ist keine Rechtsberatung oder Rechtsfreigabe.
+
 Der Gerätevalidator bleibt derzeit bewusst bei `state=testing`,
 `goNoGo=hold`, `matrix=0/4` und `releaseChecks=4/7`. Kandidatenidentität und
 Signaturen, Staging-Bereinigung/-Gesundheit sowie die Produktionsinvariante

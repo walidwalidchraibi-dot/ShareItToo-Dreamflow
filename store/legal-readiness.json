@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "state": "draft",
+  "approvalAllowed": false,
+  "consentContract": {
+    "minimumUserAge": 18,
+    "explicitConfirmations": [
+      "minimumAge",
+      "terms",
+      "privacy"
+    ],
+    "technicalStatus": "explicit-unversioned-draft",
+    "registrationSource": "lib/screens/register_screen.dart",
+    "authServiceSource": "lib/services/auth_service.dart",
+    "backendSource": "backend/src/app.js"
+  },
+  "documents": {
+    "terms": {
+      "status": "draft",
+      "sourceFile": "lib/screens/legal_terms_screen.dart",
+      "currentContentSha256": "649298685252e04d15be8d24ef234ba5b5bf87291a66b2be87053254e13e795c",
+      "approvedContentSha256": null,
+      "publicUrl": null,
+      "approvalEvidenceRef": null
+    },
+    "communityRules": {
+      "status": "draft",
+      "sourceFile": "lib/screens/legal_community_rules_screen.dart",
+      "currentContentSha256": "e811a9a885b05d80c51a04e23e967e2edf898583ed9c483c7ee1431edaf218de",
+      "approvedContentSha256": null,
+      "publicUrl": null,
+      "approvalEvidenceRef": null
+    },
+    "cancellationPolicy": {
+      "status": "draft",
+      "sourceFile": "lib/screens/legal_cancellation_policy_screen.dart",
+      "currentContentSha256": "d02c64e26b3b2f424dd20c2b955455264996e96f8be08ebd2cfb65241929ab9f",
+      "approvedContentSha256": null,
+      "publicUrl": null,
+      "approvalEvidenceRef": null
+    },
+    "feesAndPayments": {
+      "status": "draft",
+      "sourceFile": "lib/screens/legal_fees_payments_screen.dart",
+      "currentContentSha256": "a06e35913ec4a9928504a435d8268097fccef5e74e12ccee8f880f6cb0eab00e",
+      "approvedContentSha256": null,
+      "publicUrl": null,
+      "approvalEvidenceRef": null
+    }
+  },
+  "requiredApprovals": {
+    "legalProviderIdentity": "open",
+    "legalReview": "open",
+    "userContentModerationPolicy": "open",
+    "cancellationRefundDepositConsistency": "open"
+  },
+  "storeGate": {
+    "field": "blockingGates.termsAndUserContentRules",
+    "status": "open"
+  },
+  "boundaries": {
+    "legalApproval": false,
+    "storeSubmissionChanged": false,
+    "publicRoutesChanged": false,
+    "containsSecrets": false,
+    "containsAccountData": false
+  }
+}
