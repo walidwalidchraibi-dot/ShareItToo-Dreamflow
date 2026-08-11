@@ -28,6 +28,7 @@ flutter --version
 dart --version
 
 dart run tool/validate_store_metadata.dart
+node --test test/tool/validate_store_metadata_cli.test.mjs
 
 node --check tool/validate_legal_readiness.mjs
 node --test test/tool/validate_legal_readiness.test.mjs

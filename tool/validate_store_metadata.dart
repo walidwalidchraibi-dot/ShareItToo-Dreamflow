@@ -175,17 +175,30 @@ String _pubspecVersion(Directory root) {
 }
 
 void main(List<String> arguments) {
-  final requireSubmittable = arguments.contains('--require-submittable');
-  final unknownArguments =
-      arguments.where((value) => value != '--require-submittable').toList();
-  if (unknownArguments.isNotEmpty) {
-    _fail('Unknown arguments: ${unknownArguments.join(', ')}');
+  var requireSubmittable = false;
+  String? manifestPath;
+  for (var index = 0; index < arguments.length; index += 1) {
+    final value = arguments[index];
+    if (value == '--require-submittable') {
+      requireSubmittable = true;
+    } else if (value == '--manifest') {
+      if (index + 1 >= arguments.length) {
+        _fail('--manifest requires a path.');
+      }
+      manifestPath = arguments[index + 1];
+      index += 1;
+    } else {
+      _fail('Unknown argument: $value');
+    }
   }
 
   final scriptFile = File.fromUri(Platform.script).absolute;
   final root = scriptFile.parent.parent;
-  final manifestFile = File('${root.path}/store/submission.json');
-  if (!manifestFile.existsSync()) _fail('store/submission.json is missing.');
+  final manifestFile = manifestPath == null
+      ? File('${root.path}/store/submission.json')
+      : File(manifestPath).absolute;
+  if (!manifestFile.existsSync())
+    _fail('Store submission manifest is missing.');
 
   final decoded = jsonDecode(manifestFile.readAsStringSync());
   final manifest = _map(decoded, 'store/submission.json');
@@ -201,6 +214,25 @@ void main(List<String> arguments) {
   final appleFiles = _map(metadataFiles['apple'], 'metadataFiles.apple');
   final assets = _map(manifest['assets'], 'assets');
   final googleAssets = _map(assets['googlePlay'], 'assets.googlePlay');
+
+  const requiredBlockingGates = <String>{
+    'legalProviderIdentity',
+    'copyrightOwner',
+    'termsAndUserContentRules',
+    'firebaseTermsAcceptedByOwner',
+    'firebaseFcmAndApns',
+    'googlePlayAccountAndFee',
+    'appleAccountXcodeAndSigning',
+    'reviewAccounts',
+    'realAndroidAndIosDevices',
+    'finalBinaryPrivacyScan',
+    'closedStoreAndAccessibilityMatrix',
+  };
+  if (gates.length != requiredBlockingGates.length ||
+      !requiredBlockingGates.every(gates.containsKey)) {
+    _fail(
+        'blockingGates must contain exactly the required Store release gates.');
+  }
 
   const expectedId = 'com.shareittoo.app';
   if (_string(identity, 'applicationId') != expectedId ||
