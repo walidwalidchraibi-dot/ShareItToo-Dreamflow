@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "public-store-route-rollout-readiness",
+  "capturedAt": "2026-08-11",
+  "status": "ready-awaiting-explicit-production-route-approval",
+  "localCaddySha256": "a880acf8d9eb9d2e1d2b1753884f341c10dd78a1935fb4fe8fb5c71c31ec4caa",
+  "canonical": {
+    "productionRoutes": [
+      "support",
+      "privacy",
+      "account-deletion"
+    ],
+    "stagingRoutes": [
+      "support",
+      "privacy",
+      "account-deletion"
+    ],
+    "appShellFallbackAfterRoutes": true,
+    "apiRoutingPreserved": true
+  },
+  "deployedState": "deployed-config-out-of-date",
+  "checks": [
+    {
+      "id": "support",
+      "path": "/support",
+      "httpStatus": 200,
+      "pageMarkerPresent": false,
+      "complianceStatus": null
+    },
+    {
+      "id": "privacy",
+      "path": "/privacy",
+      "httpStatus": 200,
+      "pageMarkerPresent": false,
+      "complianceStatus": null
+    },
+    {
+      "id": "account-deletion",
+      "path": "/account-deletion",
+      "httpStatus": 200,
+      "pageMarkerPresent": false,
+      "complianceStatus": null
+    }
+  ],
+  "validation": {
+    "canonicalRouteContractTests": "6/6 passed",
+    "liveDraftVerifier": "failed closed: support returned HTTP 200 instead of 503",
+    "containerizedCaddyValidation": "not run: Docker and a local Caddy binary are unavailable on this Mac",
+    "productionChangeRequiredForCompletion": true
+  },
+  "requiredRolloutSequence": [
+    "capture deployed Caddyfile hash and create an owner-only backup",
+    "compare the deployed file with the validated canonical Caddyfile",
+    "validate the candidate configuration on the VPS before reload",
+    "obtain explicit production-route approval",
+    "reload Caddy without changing API containers, DNS, mail, cron, Stripe, or app images",
+    "verify all three public routes and the unchanged API health endpoints",
+    "restore the backup immediately on any mismatch"
+  ],
+  "boundaries": {
+    "readOnly": true,
+    "caddyReloaded": false,
+    "productionChanged": false,
+    "stagingChanged": false,
+    "legalContentApproved": false,
+    "containsSecrets": false,
+    "containsPersonalAccountData": false,
+    "containsRawDeviceIdentifiers": false
+  }
+}

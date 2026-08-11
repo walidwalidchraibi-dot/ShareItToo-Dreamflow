@@ -149,3 +149,48 @@ kein Store-Build.
   `4aea918ebb07f3bd52c17342172b24bb3a7df3c17dc4be0afe749de940f5d44d`.
 - Kein Caddy-Reload, keine DNS-/Mail-/Cron-Änderung, kein Produktionsdeploy und
   kein Echtgeld.
+
+## Fail-closed Rollout-Vorbereitung vom 11. August 2026
+
+Der lokale kanonische Stand enthält die drei Root-Routen sowohl für Produktion
+als auch für Staging, bewahrt das bestehende `/api/*`-Routing und setzt den
+Flutter-App-Fallback erst nach den drei Pflichtseiten ein. Der neue
+Read-only-Prüfer `tool/prepare_public_store_route_rollout.mjs` validiert diese
+Reihenfolge und klassifiziert anschließend ausschließlich Statuscode,
+Seitenmarker und Compliance-Status der öffentlich erreichbaren Antworten.
+
+Der aktuelle Live-Befund lautet `deployed-config-out-of-date`: Alle drei
+öffentlichen Root-Pfade antworten zwar mit HTTP 200, enthalten aber weder den
+erwarteten Seitenmarker noch einen Compliance-Status. Sie liefern weiterhin
+die App-Shell. Der strengere Seitenprüfer stoppt deshalb bereits bei
+`/support`, weil im Entwurfszustand HTTP 503 statt HTTP 200 erforderlich ist.
+Der Befund beweist ausdrücklich **keine** Freigabe der öffentlichen URLs.
+
+Die kanonischen Route-Vertragstests bestehen mit 6/6. Eine containerisierte
+Caddy-Prüfung war auf diesem Mac nicht möglich, weil weder Docker noch ein
+lokales Caddy-Binary vorhanden ist. Sie muss daher direkt auf dem VPS gegen
+die dortige Kandidatenkonfiguration erfolgen, bevor ein Reload überhaupt in
+Betracht kommt.
+
+Verbindliche Reihenfolge für einen später ausdrücklich freigegebenen Rollout:
+
+1. Den tatsächlich laufenden Caddy-Stand schreibgeschützt erfassen,
+   Prüfsumme bilden und eine nur für den Besitzer lesbare Sicherung anlegen.
+2. Den laufenden Stand mit der kanonischen Datei vergleichen; bei
+   unerwarteten Abweichungen stoppen.
+3. Die Kandidatenkonfiguration auf dem VPS mit Caddy validieren, ohne sie zu
+   aktivieren.
+4. Eine separate ausdrückliche Freigabe für die produktionssichtbare
+   Routenänderung einholen.
+5. Erst danach Caddy neu laden. API-Container, DNS, Mail, Cron, Stripe und
+   App-Images bleiben unverändert.
+6. Support, Datenschutz und Kontolöschung sowie alle bestehenden API-Health-
+   Endpunkte extern prüfen.
+7. Bei jeder Abweichung sofort die gesicherte Datei wiederherstellen und
+   erneut validieren.
+
+Der maschinenlesbare Beleg liegt unter
+`docs/evidence/b11/public-store-route-rollout-readiness-20260811.json`.
+Bis zur separaten Freigabe gilt weiterhin: kein Caddy-Reload, keine Änderung
+auf Produktion oder Staging und keine rechtliche Freigabe von Support oder
+Datenschutz.
