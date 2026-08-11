@@ -18,24 +18,24 @@
     {
       "role": "owner",
       "credentialStorage": "owner-only-vault",
-      "status": "pending-verification"
+      "status": "verified"
     },
     {
       "role": "renter",
       "credentialStorage": "owner-only-vault",
-      "status": "pending-verification"
+      "status": "verified"
     }
   ],
   "technicalAccess": {
-    "status": "testing",
+    "status": "passed",
     "evidenceRef": "docs/evidence/b11/store-review-access-readiness-20260811.json"
   },
   "reviewScenarios": {
-    "ownerLogin": "pending",
-    "renterLogin": "pending",
-    "activeListing": "pending",
-    "acceptedBooking": "pending",
-    "sharedChat": "pending",
+    "ownerLogin": "passed",
+    "renterLogin": "passed",
+    "activeListing": "passed",
+    "acceptedBooking": "passed",
+    "sharedChat": "passed",
     "freshInstall": "pending",
     "secondNetwork": "pending",
     "reportAndBlock": "pending",

@@ -72,11 +72,11 @@ function validate({
   return validateStoreReviewAccess({ root: repositoryRoot, reviewManifest: review, deviceManifest: device, submissionManifest: submission, evidenceOverride: evidence, requireReady });
 }
 
-test('accepts the honest fail-closed testing state', () => {
+test('accepts the honest fail-closed testing state with technical access passed', () => {
   const result = validate();
   assert.equal(result.state, 'testing');
   assert.equal(result.readyForStore, false);
-  assert.equal(result.passedScenarios, 0);
+  assert.equal(result.passedScenarios, 5);
   assert.equal(result.storeGate, 'open');
 });
 

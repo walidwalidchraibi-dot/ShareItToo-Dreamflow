@@ -55,10 +55,13 @@ node tool/diagnose_store_review_accounts.mjs
 node tool/validate_store_review_access.mjs
 ```
 
-Der aktuelle Zustand ist ehrlich `testing`: Ein neuer Kontensatz ist auf
-Staging registriert, wartet aber noch auf die E-Mail-Bestätigung. Frühere
-synthetische Buchungsfälle sind storniert und werden deshalb nicht als
-Review-Nachweis wiederverwendet. Der strenge Release-Gate bleibt geschlossen:
+Der aktuelle Zustand ist weiterhin ehrlich `testing`, aber der technische
+Zugang ist bestanden: Zwei neue synthetische Staging-Konten sind über den
+realen SMTP-Weg bestätigt, beide Passwort-Logins funktionieren, und beide
+Rollen sehen dasselbe aktive Inserat, dieselbe akzeptierte Buchung und den
+gemeinsamen Chat. Damit stehen fünf von zehn Review-Szenarien auf `passed`.
+Der strenge Release-Gate bleibt wegen der noch offenen Geräte-, Kontoaktions-
+und geschützten Store-Feld-Prüfungen geschlossen:
 
 ```text
 node tool/validate_store_review_access.mjs --require-ready

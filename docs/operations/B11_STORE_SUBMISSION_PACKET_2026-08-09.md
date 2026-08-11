@@ -128,11 +128,14 @@ keine echte Zahlungsinformation verwenden.
 Der technische Status wird maschinenlesbar in `store/review-access.json`
 geführt und durch `tool/validate_store_review_access.mjs` gegen Kandidat,
 Staging-Grenzen, bereinigte Evidenz und den Store-Gate geprüft. Am
-11. August 2026 ist der erneuerte Kontensatz registriert, aber noch nicht per
-E-Mail bestätigt; deshalb bleiben die Review-Szenarien, die geschützten
-Store-Felder und `blockingGates.reviewAccounts` offen. Der Release-Preflight
-erzwingt im echten Store-Modus zusätzlich `--require-ready` und stoppt bis zum
-vollständigen Nachweis.
+11. August 2026 sind die zwei erneuerten Konten per realem Staging-Mailweg
+bestätigt. Passwort-Login, aktives Inserat, akzeptierte Testbuchung und
+gemeinsamer Chat sind für Vermieter und Mieter nachgewiesen; fünf von zehn
+Review-Szenarien sind damit bestanden. Frische Installation, Zweitnetz,
+Melden/Blockieren, Datenexport, Kontolöschung und die geschützten Store-Felder
+bleiben offen. `blockingGates.reviewAccounts` bleibt deshalb offen. Der
+Release-Preflight erzwingt im echten Store-Modus zusätzlich `--require-ready`
+und stoppt bis zum vollständigen Nachweis.
 
 ## 4. Apple-App-Store-Eintrag – Deutsch
 
