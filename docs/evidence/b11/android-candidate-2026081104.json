@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "installed-launched-background-fcm-navigation-crash-mapping-and-guest-app-links-passed-other-gates-pending",
+  "status": "installed-launched-background-fcm-navigation-crash-mapping-console-release-and-guest-app-links-passed-other-gates-pending",
   "generatedAt": "2026-08-11T07:37:25.591Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -42,7 +42,7 @@
   "exactCandidateDiagnostics": {
     "directInstallAndLaunch": "passed",
     "crashlyticsMappingAndNativeSymbols": "passed",
-    "crashlyticsReleaseAssignment": "pending",
+    "crashlyticsReleaseAssignment": "passed",
     "guestAppLinks": "passed",
     "authenticatedSessionRestore": "passed",
     "syntheticRoleBooking": "pending",

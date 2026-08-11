@@ -700,6 +700,32 @@ test('rejects a controlled-event claim without the sanitized staging boundary', 
   );
 });
 
+test('rejects a Crashlytics console observation for a different release build', () => {
+  const root = progressEvidenceRoot();
+  const deviceManifest = clone(baseDeviceManifest);
+  const ref = deviceManifest.releaseChecks.crashReleaseMapping.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
+  evidence.verifications.consoleObservedVersion = '1.0.0 (2026081199)';
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root, deviceManifest }),
+    /must prove only the exact console release assignment while keeping the controlled event pending/,
+  );
+});
+
+test('rejects using aggregate Crashlytics issue counts as exact candidate proof', () => {
+  const root = progressEvidenceRoot();
+  const deviceManifest = clone(baseDeviceManifest);
+  const ref = deviceManifest.releaseChecks.crashReleaseMapping.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
+  evidence.consoleObservation.issueCountsUsedAsCandidateProof = true;
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root, deviceManifest }),
+    /must prove only the exact console release assignment while keeping the controlled event pending/,
+  );
+});
+
 test('accepts bounded Store links and signing progress without closing Store gates', () => {
   const { root, deviceManifest, ref, evidence } = storeLinksProgressFixture();
   writeEvidence(root, ref, evidence);

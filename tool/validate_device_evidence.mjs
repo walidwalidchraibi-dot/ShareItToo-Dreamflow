@@ -758,11 +758,16 @@ function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
   const evidence = readEvidenceJson(root, ref, label);
   const mappingUploadedEventPending =
     evidence.status === 'mapping-and-native-symbols-uploaded-controlled-event-pending';
+  const mappingUploadedConsoleObservedEventPending =
+    evidence.status ===
+      'mapping-and-native-symbols-uploaded-console-release-observed-controlled-event-pending';
   const controlledEventSentConsolePending =
     evidence.status === 'mapping-symbols-and-controlled-event-sent-console-pending';
   if (evidence.schemaVersion !== 1 ||
       evidence.kind !== 'android-crash-release-mapping' ||
-      (!mappingUploadedEventPending && !controlledEventSentConsolePending)) {
+      (!mappingUploadedEventPending &&
+       !mappingUploadedConsoleObservedEventPending &&
+       !controlledEventSentConsolePending)) {
     fail(`${label} must be the bounded in-progress Android crash mapping evidence.`);
   }
   isoTimestamp(evidence.capturedAt, `${label}.capturedAt`, { required: true });
@@ -808,17 +813,31 @@ function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
       fail(`${label}.verifications.${key} must be passed.`);
     }
   }
-  if (verifications.uploadBuildResult !== 'successful' ||
-      verifications.consoleReleaseAssignment !== 'pending') {
-    fail(`${label}.verifications must preserve the honest pending console-assignment boundary.`);
+  if (verifications.uploadBuildResult !== 'successful') {
+    fail(`${label}.verifications.uploadBuildResult must be successful.`);
   }
   if (mappingUploadedEventPending) {
-    if (verifications.controlledSanitizedCrashEvent !== 'pending' ||
+    if (verifications.consoleReleaseAssignment !== 'pending' ||
+        verifications.controlledSanitizedCrashEvent !== 'pending' ||
         evidence.boundaries.productionCrashGenerated !== false ||
         evidence.boundaries.controlledStagingEventGenerated !== false) {
       fail(`${label} must preserve the honest pending controlled-event boundary.`);
     }
-  } else if (verifications.controlledSanitizedCrashEvent !== 'passed' ||
+  } else if (mappingUploadedConsoleObservedEventPending) {
+    const expectedVersion = `${candidate.versionName} (${candidate.buildNumber})`;
+    const observation = object(evidence.consoleObservation, `${label}.consoleObservation`);
+    if (verifications.consoleReleaseAssignment !== 'passed' ||
+        verifications.consoleObservedVersion !== expectedVersion ||
+        verifications.controlledSanitizedCrashEvent !== 'pending' ||
+        observation.source !== 'firebase-console-read-only' ||
+        observation.latestReleaseMatchesExactCandidate !== true ||
+        observation.issueCountsUsedAsCandidateProof !== false ||
+        evidence.boundaries.productionCrashGenerated !== false ||
+        evidence.boundaries.controlledStagingEventGenerated !== false) {
+      fail(`${label} must prove only the exact console release assignment while keeping the controlled event pending.`);
+    }
+  } else if (verifications.consoleReleaseAssignment !== 'pending' ||
+      verifications.controlledSanitizedCrashEvent !== 'passed' ||
       verifications.deviceDiagnosticUi !== 'passed' ||
       evidence.boundaries.productionCrashGenerated !== false ||
       evidence.boundaries.controlledStagingEventGenerated !== true ||
