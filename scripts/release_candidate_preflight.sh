@@ -19,6 +19,8 @@ node --check tool/verify_android_binary_privacy.mjs
 node --check tool/validate_device_evidence.mjs
 node --check tool/validate_legal_readiness.mjs
 node --check tool/diagnose_store_review_accounts.mjs
+node --check tool/diagnose_store_review_safety_actions.mjs
+node --check tool/diagnose_store_review_disposable_deletion.mjs
 node --check tool/validate_store_review_access.mjs
 node --check tool/validate_b11_release_docs.mjs
 node --check tool/prepare_android_device_test.mjs

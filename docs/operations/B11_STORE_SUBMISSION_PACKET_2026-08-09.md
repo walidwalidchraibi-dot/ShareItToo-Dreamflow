@@ -130,9 +130,11 @@ geführt und durch `tool/validate_store_review_access.mjs` gegen Kandidat,
 Staging-Grenzen, bereinigte Evidenz und den Store-Gate geprüft. Am
 11. August 2026 sind die zwei erneuerten Konten per realem Staging-Mailweg
 bestätigt. Passwort-Login, aktives Inserat, akzeptierte Testbuchung und
-gemeinsamer Chat sind für Vermieter und Mieter nachgewiesen; fünf von zehn
-Review-Szenarien sind damit bestanden. Frische Installation, Zweitnetz,
-Melden/Blockieren, Datenexport, Kontolöschung und die geschützten Store-Felder
+gemeinsamer Chat sind für Vermieter und Mieter nachgewiesen. Auch
+Melden/Blockieren, privater Datenexport und die Kontolöschung eines älteren
+entbehrlichen synthetischen Mieterkontos sind nachgewiesen; die aktiven
+Review-Konten blieben unverändert. Acht von zehn Review-Szenarien sind damit
+bestanden. Frische Installation, Zweitnetz und die geschützten Store-Felder
 bleiben offen. `blockingGates.reviewAccounts` bleibt deshalb offen. Der
 Release-Preflight erzwingt im echten Store-Modus zusätzlich `--require-ready`
 und stoppt bis zum vollständigen Nachweis.

@@ -35,6 +35,10 @@ node tool/validate_legal_readiness.mjs
 
 node --check tool/diagnose_store_review_accounts.mjs
 node --test test/tool/diagnose_store_review_accounts.test.mjs
+node --check tool/diagnose_store_review_safety_actions.mjs
+node --test test/tool/diagnose_store_review_safety_actions.test.mjs
+node --check tool/diagnose_store_review_disposable_deletion.mjs
+node --test test/tool/diagnose_store_review_disposable_deletion.test.mjs
 node --check tool/validate_store_review_access.mjs
 node --test test/tool/validate_store_review_access.test.mjs
 node tool/validate_store_review_access.mjs

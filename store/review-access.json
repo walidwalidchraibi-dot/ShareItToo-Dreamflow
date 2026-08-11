@@ -38,9 +38,19 @@
     "sharedChat": "passed",
     "freshInstall": "pending",
     "secondNetwork": "pending",
-    "reportAndBlock": "pending",
-    "accountExport": "pending",
-    "accountDeletion": "pending"
+    "reportAndBlock": "passed",
+    "accountExport": "passed",
+    "accountDeletion": "passed"
+  },
+  "scenarioEvidence": {
+    "safetyActions": {
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/store-review-safety-actions-20260811.json"
+    },
+    "accountDeletion": {
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/store-review-disposable-deletion-20260811.json"
+    }
   },
   "protectedStoreFields": {
     "googlePlay": "pending",

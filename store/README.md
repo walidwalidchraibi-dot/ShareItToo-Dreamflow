@@ -59,21 +59,24 @@ Der aktuelle Zustand ist weiterhin ehrlich `testing`, aber der technische
 Zugang ist bestanden: Zwei neue synthetische Staging-Konten sind über den
 realen SMTP-Weg bestätigt, beide Passwort-Logins funktionieren, und beide
 Rollen sehen dasselbe aktive Inserat, dieselbe akzeptierte Buchung und den
-gemeinsamen Chat. Damit stehen fünf von zehn Review-Szenarien auf `passed`.
-Der strenge Release-Gate bleibt wegen der noch offenen Geräte-, Kontoaktions-
-und geschützten Store-Feld-Prüfungen geschlossen:
+gemeinsamen Chat. Melden/Blockieren, ein vollständiger privater Datenexport
+und die Kontolöschung wurden zusätzlich mit kontrollierten synthetischen
+Staging-Daten nachgewiesen. Für den Löschtest wurde ausschließlich ein älteres
+entbehrliches Mieterkonto geschlossen; die aktiven Review-Konten blieben
+unverändert. Damit stehen acht von zehn Review-Szenarien auf `passed`. Der
+strenge Release-Gate bleibt wegen der noch offenen Geräte- und geschützten
+Store-Feld-Prüfungen geschlossen:
 
 ```text
 node tool/validate_store_review_access.mjs --require-ready
 ```
 
-Erst nach frischer Installation, Zweitnetz, Melden/Blockieren, Datenexport,
-Kontolöschung und Eintrag beider Konten in die geschützten Store-Felder dürfen
-`readyForStore`, der Store-Gate `reviewAccounts` und der strenge Validator
-gemeinsam auf bestanden wechseln.
+Erst nach frischer Installation, Zweitnetz und Eintrag beider Konten in die
+geschützten Store-Felder dürfen `readyForStore`, der Store-Gate
+`reviewAccounts` und der strenge Validator gemeinsam auf bestanden wechseln.
 
 Der Gerätevalidator bleibt derzeit bewusst bei `state=testing`,
-`goNoGo=hold`, `matrix=0/4` und `releaseChecks=4/7`. Kandidatenidentität und
+`goNoGo=hold`, `matrix=0/4` und `releaseChecks=3/7`. Kandidatenidentität und
 Signaturen, Staging-Bereinigung/-Gesundheit sowie die Produktionsinvariante
 sind bereits nachgewiesen. Nach den realen
 Internal-/TestFlight-Läufen darf der Zustand nur mit echten, bereinigten

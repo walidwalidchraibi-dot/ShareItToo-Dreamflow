@@ -27,6 +27,15 @@ const requiredScenarios = [
   'accountExport',
   'accountDeletion',
 ];
+const requiredSafetyChecks = [
+  'privateNoStoreAccountExport',
+  'completeStructuredAccountExport',
+  'syntheticListingReportCreated',
+  'reportVisibleToReporter',
+  'temporaryUserBlockCreated',
+  'temporaryUserBlockRemoved',
+  'sharedChatRestored',
+];
 const forbiddenSensitiveKeys = /^(password|secret|token|apiKey|privateKey|serviceAccount|credential|credentials|reviewPassword|reviewUsername|accountIdentifier|emailAddress)$/i;
 const emailPattern = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
 
@@ -117,6 +126,8 @@ export function validateStoreReviewAccess({
   deviceManifest,
   submissionManifest,
   evidenceOverride = null,
+  safetyEvidenceOverride = null,
+  deletionEvidenceOverride = null,
   requireReady = false,
 }) {
   const review = object(reviewManifest, 'store/review-access.json');
@@ -209,6 +220,100 @@ export function validateStoreReviewAccess({
   }
   for (const key of requiredScenarios) {
     if (!['pending', 'passed'].includes(scenarios[key])) fail(`reviewScenarios.${key} is invalid.`);
+  }
+  const scenarioEvidence = object(review.scenarioEvidence, 'scenarioEvidence');
+  if (Object.keys(scenarioEvidence).sort().join(',') !== 'accountDeletion,safetyActions') {
+    fail('scenarioEvidence must contain exactly safetyActions and accountDeletion.');
+  }
+  const safety = object(scenarioEvidence.safetyActions, 'scenarioEvidence.safetyActions');
+  const safetyShouldPass = scenarios.reportAndBlock === 'passed' && scenarios.accountExport === 'passed';
+  if (scenarios.reportAndBlock !== scenarios.accountExport
+      || safety.status !== (safetyShouldPass ? 'passed' : 'pending')) {
+    fail('safetyActions status must match reportAndBlock and accountExport.');
+  }
+  if (safetyShouldPass) {
+    const safetyEvidence = safetyEvidenceOverride ?? readEvidence(root, safety.evidenceRef);
+    assertSanitized(safetyEvidence, 'safety evidence');
+    if (safetyEvidence.schemaVersion !== 1
+        || safetyEvidence.kind !== 'store-review-safety-actions-diagnostic'
+        || safetyEvidence.status !== 'report-block-export-passed-deletion-pending'
+        || Number.isNaN(Date.parse(safetyEvidence.capturedAt))
+        || safetyEvidence.scenarios?.reportAndBlock !== 'passed'
+        || safetyEvidence.scenarios?.accountExport !== 'passed'
+        || safetyEvidence.scenarios?.accountDeletion !== 'pending') {
+      fail('safety evidence must prove report, block cleanup, and account export.');
+    }
+    for (const key of requiredSafetyChecks) {
+      if (safetyEvidence.checks?.[key] !== true) fail(`safety evidence.checks.${key} must be true.`);
+    }
+    if (safetyEvidence.environment?.apiBaseUrl !== environment.apiBaseUrl
+        || safetyEvidence.environment?.paymentMode !== 'memory'
+        || safetyEvidence.environment?.stripeLivemode !== false
+        || safetyEvidence.environment?.paymentEndpointCalled !== false) {
+      fail('safety evidence must remain on non-live Staging without payment calls.');
+    }
+    assertFalseBoundaries(object(safetyEvidence.boundaries, 'safety evidence.boundaries'), 'safety evidence.boundaries', [
+      'lastingUserBlockCreated',
+      'reviewerAccountDeleted',
+      'containsSecrets',
+      'containsEmailAddresses',
+      'containsTokens',
+      'containsAccountIdentifiers',
+      'containsFixtureIdentifiers',
+      'publicStoreChanged',
+      'productionChanged',
+    ]);
+    if (safetyEvidence.boundaries.authenticationSessionsCreated !== true
+        || safetyEvidence.boundaries.auditEventCreatedByExport !== true
+        || safetyEvidence.boundaries.syntheticModerationRecordCreated !== true
+        || safetyEvidence.boundaries.syntheticAccountsOnly !== true) {
+      fail('safety evidence must disclose its bounded synthetic Staging mutations.');
+    }
+  } else if (safety.evidenceRef !== null) {
+    fail('Pending safetyActions must not reference passed evidence.');
+  }
+  const deletion = object(scenarioEvidence.accountDeletion, 'scenarioEvidence.accountDeletion');
+  const deletionShouldPass = scenarios.accountDeletion === 'passed';
+  if (deletion.status !== (deletionShouldPass ? 'passed' : 'pending')) {
+    fail('accountDeletion evidence status must match the review scenario.');
+  }
+  if (deletionShouldPass) {
+    const deletionEvidence = deletionEvidenceOverride ?? readEvidence(root, deletion.evidenceRef);
+    assertSanitized(deletionEvidence, 'deletion evidence');
+    if (deletionEvidence.schemaVersion !== 1
+        || deletionEvidence.kind !== 'store-review-disposable-deletion-diagnostic'
+        || deletionEvidence.status !== 'passed-disposable-account-deletion'
+        || Number.isNaN(Date.parse(deletionEvidence.capturedAt))
+        || deletionEvidence.scenario !== 'accountDeletion'
+        || deletionEvidence.checks?.deletionPreflightClear !== true
+        || deletionEvidence.checks?.currentPasswordRequired !== true
+        || deletionEvidence.checks?.accountDeletionAccepted !== true
+        || deletionEvidence.checks?.deletedCredentialsRejected !== true
+        || deletionEvidence.checks?.privateVaultCredentialsScrubbed !== true) {
+      fail('deletion evidence must prove a disposable synthetic account deletion.');
+    }
+    if (deletionEvidence.environment?.apiBaseUrl !== environment.apiBaseUrl
+        || deletionEvidence.environment?.paymentMode !== 'memory'
+        || deletionEvidence.environment?.stripeLivemode !== false
+        || deletionEvidence.environment?.paymentEndpointCalled !== false) {
+      fail('deletion evidence must remain on non-live Staging without payment calls.');
+    }
+    assertFalseBoundaries(object(deletionEvidence.boundaries, 'deletion evidence.boundaries'), 'deletion evidence.boundaries', [
+      'reviewerAccountsDeleted',
+      'containsSecrets',
+      'containsEmailAddresses',
+      'containsTokens',
+      'containsAccountIdentifiers',
+      'containsFixtureIdentifiers',
+      'publicStoreChanged',
+      'productionChanged',
+    ]);
+    if (deletionEvidence.boundaries.disposableSyntheticAccountDeleted !== true
+        || deletionEvidence.boundaries.syntheticAccountsOnly !== true) {
+      fail('deletion evidence must disclose the disposable synthetic deletion boundary.');
+    }
+  } else if (deletion.evidenceRef !== null) {
+    fail('Pending accountDeletion must not reference passed evidence.');
   }
   const protectedFields = object(review.protectedStoreFields, 'protectedStoreFields');
   if (!['pending', 'passed'].includes(protectedFields.googlePlay)

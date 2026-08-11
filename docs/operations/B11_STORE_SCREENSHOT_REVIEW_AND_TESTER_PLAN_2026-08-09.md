@@ -138,10 +138,13 @@ geschützten Store-Felder oder `blockingGates.reviewAccounts` offen sind.
 Status vom 11. August 2026: Ein neuer synthetischer Rollen-Satz wurde über den
 realen Staging-SMTP-Weg bestätigt. Beide Rollen bestehen den Passwort-Login
 ohne OTP, sehen dasselbe aktive Inserat und dieselbe akzeptierte Testbuchung
-und können den gemeinsamen Chat lesen. Damit sind fünf von zehn Review-
-Szenarien technisch bestanden. Frische Installation, Zweitnetz,
-Melden/Blockieren, Datenexport und Kontolöschung sowie die geschützten
-Store-Felder bleiben offen; deshalb gilt weiterhin `readyForStore=false`.
+und können den gemeinsamen Chat lesen. Melden/Blockieren, ein vollständiger
+privater Kontodatenexport und die Kontolöschung sind ebenfalls technisch
+bestanden. Für den Löschtest wurde ausschließlich ein älteres entbehrliches
+synthetisches Mieterkonto geschlossen; die aktiven Review-Konten blieben
+unverändert. Damit sind acht von zehn Review-Szenarien technisch bestanden.
+Frische Installation, Zweitnetz und die geschützten Store-Felder bleiben
+offen; deshalb gilt weiterhin `readyForStore=false`.
 Der bereinigte Laufzeitnachweis für gleichzeitig aktives SMTP und FCM liegt in
 `docs/evidence/b11/staging-mail-push-runtime-20260811.json`; er enthält keine
 Konten, Tokens oder Zugangsdaten und dokumentiert den unveränderten

@@ -56,7 +56,7 @@ function assertPrivateExternalFile(value) {
   return canonical;
 }
 
-function parseEligibleVault(value) {
+export function parseEligibleVault(value) {
   let vault;
   try {
     vault = JSON.parse(readFileSync(assertPrivateExternalFile(value), 'utf8'));
@@ -120,7 +120,7 @@ function regularFilesBelow(root, depth = 0) {
   return output;
 }
 
-function selectLatestEligibleVault(vaultRoot) {
+export function selectLatestEligibleVault(vaultRoot) {
   const canonicalRoot = realpathSync(resolve(vaultRoot));
   const rootRelative = relative(repositoryRoot, canonicalRoot);
   if (rootRelative === '' || (!rootRelative.startsWith('..') && !isAbsolute(rootRelative))) {

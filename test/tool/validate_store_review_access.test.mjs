@@ -52,6 +52,38 @@ const passedEvidence = {
     productionChanged: false,
   },
 };
+const passedDeletionEvidence = {
+  schemaVersion: 1,
+  kind: 'store-review-disposable-deletion-diagnostic',
+  status: 'passed-disposable-account-deletion',
+  capturedAt: '2026-08-11T03:00:00.000Z',
+  scenario: 'accountDeletion',
+  checks: {
+    deletionPreflightClear: true,
+    currentPasswordRequired: true,
+    accountDeletionAccepted: true,
+    deletedCredentialsRejected: true,
+    privateVaultCredentialsScrubbed: true,
+  },
+  environment: {
+    apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+  },
+  boundaries: {
+    disposableSyntheticAccountDeleted: true,
+    reviewerAccountsDeleted: false,
+    syntheticAccountsOnly: true,
+    containsSecrets: false,
+    containsEmailAddresses: false,
+    containsTokens: false,
+    containsAccountIdentifiers: false,
+    containsFixtureIdentifiers: false,
+    publicStoreChanged: false,
+    productionChanged: false,
+  },
+};
 
 function clone(value) { return structuredClone(value); }
 function validate({
@@ -59,6 +91,8 @@ function validate({
   device = clone(baseDevice),
   submission = clone(baseSubmission),
   evidence = clone(currentEvidence),
+  safetyEvidence = null,
+  deletionEvidence = null,
   technicalPass = false,
   requireReady = false,
 } = {}) {
@@ -69,14 +103,23 @@ function validate({
       review.reviewScenarios[key] = 'passed';
     }
   }
-  return validateStoreReviewAccess({ root: repositoryRoot, reviewManifest: review, deviceManifest: device, submissionManifest: submission, evidenceOverride: evidence, requireReady });
+  return validateStoreReviewAccess({
+    root: repositoryRoot,
+    reviewManifest: review,
+    deviceManifest: device,
+    submissionManifest: submission,
+    evidenceOverride: evidence,
+    safetyEvidenceOverride: safetyEvidence,
+    deletionEvidenceOverride: deletionEvidence,
+    requireReady,
+  });
 }
 
 test('accepts the honest fail-closed testing state with technical access passed', () => {
   const result = validate();
   assert.equal(result.state, 'testing');
   assert.equal(result.readyForStore, false);
-  assert.equal(result.passedScenarios, 5);
+  assert.equal(result.passedScenarios, 8);
   assert.equal(result.storeGate, 'open');
 });
 
@@ -108,6 +151,15 @@ test('rejects incomplete technical evidence', () => {
   assert.throws(() => validate({ evidence, technicalPass: true }), /must be true/);
 });
 
+test('rejects incomplete safety action evidence', () => {
+  const safetyEvidence = clone(JSON.parse(readFileSync(resolve(
+    repositoryRoot,
+    'docs/evidence/b11/store-review-safety-actions-20260811.json',
+  ))));
+  safetyEvidence.checks.sharedChatRestored = false;
+  assert.throws(() => validate({ safetyEvidence }), /must be true/);
+});
+
 test('accepts a complete internally consistent ready fixture', () => {
   const review = clone(baseReview);
   const submission = clone(baseSubmission);
@@ -116,8 +168,17 @@ test('accepts a complete internally consistent ready fixture', () => {
   for (const key of Object.keys(review.reviewScenarios)) review.reviewScenarios[key] = 'passed';
   review.protectedStoreFields.googlePlay = 'passed';
   review.protectedStoreFields.appStoreConnect = 'passed';
+  review.scenarioEvidence.accountDeletion.status = 'passed';
+  review.scenarioEvidence.accountDeletion.evidenceRef = 'docs/evidence/b11/store-review-disposable-deletion-20260811.json';
   review.storeGate.status = 'closed';
   submission.blockingGates.reviewAccounts = 'closed';
-  const result = validate({ review, submission, evidence: clone(passedEvidence), technicalPass: true, requireReady: true });
+  const result = validate({
+    review,
+    submission,
+    evidence: clone(passedEvidence),
+    deletionEvidence: clone(passedDeletionEvidence),
+    technicalPass: true,
+    requireReady: true,
+  });
   assert.equal(result.readyForStore, true);
 });
