@@ -17,10 +17,11 @@ OUTPUTS = {
     "xxxhdpi": 96,
 }
 
-# Android displays this resource inside a circular notification surface. Keeping
-# every visible pixel inside 80% of that circle prevents asymmetric clipping
-# while still filling the surface similarly to other system notification icons.
-TARGET_RADIUS_FRACTION = 0.40
+# Android and individual device launchers apply slightly different circular
+# notification masks. Keep every visible pixel inside 68% of the source canvas
+# so the SIT mark remains centered with a consistent white safety margin even
+# on launchers that use the tighter mask seen on the physical test device.
+TARGET_RADIUS_FRACTION = 0.34
 ALPHA_VISIBILITY_THRESHOLD = 16
 
 
@@ -77,7 +78,7 @@ def render(
     final_radius = max_visible_radius(canvas, final_center)
     if abs(final_center[0] - size / 2) > 0.75 or abs(final_center[1] - size / 2) > 0.75:
         raise ValueError(f"The {size}px notification icon is not centered.")
-    if final_radius > size * 0.42:
+    if final_radius > size * 0.36:
         raise ValueError(f"The {size}px notification icon exceeds its circular safety area.")
     return canvas
 

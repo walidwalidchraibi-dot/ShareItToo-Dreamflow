@@ -81,11 +81,11 @@ const assets = [
 ];
 
 const notificationAssets = [
-  { ...asset('android/app/src/main/res/drawable-mdpi/ic_stat_shareittoo.png', 24), sha256: 'aece6b4451faa8245348b091b2601e2bdb7bd586af4a1c15ee1bbbceaa0446f3' },
-  { ...asset('android/app/src/main/res/drawable-hdpi/ic_stat_shareittoo.png', 36), sha256: 'a196f4aaaab7b8240d5210ea5353a47e4bce49a48f616b6e01ea6ccf0a59cc7f' },
-  { ...asset('android/app/src/main/res/drawable-xhdpi/ic_stat_shareittoo.png', 48), sha256: '714b4335936f757d43bc3a74834dfeb27735abb092d25c59c7af42c1dd6665ca' },
-  { ...asset('android/app/src/main/res/drawable-xxhdpi/ic_stat_shareittoo.png', 72), sha256: 'ccc192a2004177ad6d25144b503a193b4e3791f691e2920b5f73e5c6c3983467' },
-  { ...asset('android/app/src/main/res/drawable-xxxhdpi/ic_stat_shareittoo.png', 96), sha256: '89cb61216593cf8ce7a9e35f4669f072134bdeeb347d58483eee075f74e670b5' },
+  { ...asset('android/app/src/main/res/drawable-mdpi/ic_stat_shareittoo.png', 24), sha256: 'c7999784d051b0245bc57e1cb00a50901446c4f923a13eff511e7959d78343c3' },
+  { ...asset('android/app/src/main/res/drawable-hdpi/ic_stat_shareittoo.png', 36), sha256: '2d8c539477f9d5e74a3146bdab47c91a6c22da5fd19910130d9e0cac1a08d879' },
+  { ...asset('android/app/src/main/res/drawable-xhdpi/ic_stat_shareittoo.png', 48), sha256: '115cf657d64a9b62cccff629c33b35d04869d76df931d8c3babd4133eac95e12' },
+  { ...asset('android/app/src/main/res/drawable-xxhdpi/ic_stat_shareittoo.png', 72), sha256: 'ef24d5430276d4a49f7dcbfba1736044bf009508e111afe79a9f63e444e500dc' },
+  { ...asset('android/app/src/main/res/drawable-xxxhdpi/ic_stat_shareittoo.png', 96), sha256: '420dfc97c4accd12d2c7347a9715c29494d83d98c003fd41859a6160c87a26d5' },
 ];
 
 const adaptiveLauncherAssets = [
