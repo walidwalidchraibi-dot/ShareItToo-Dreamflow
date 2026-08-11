@@ -56,7 +56,7 @@ function validateStrict(overrides = {}) {
 
 test('repository B11 release documentation matches the current candidate', () => {
   const result = validateStrict();
-  assert.equal(result.buildNumber, '2026081104');
+  assert.equal(result.buildNumber, deviceManifest.candidate.buildNumber);
   assert.equal(result.documents, 3);
   assert.equal(result.passedCells, 0);
   assert.equal(result.passedReleaseChecks, 3);
@@ -66,7 +66,7 @@ test('rejects a stale build number in a snapshot', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[0];
   changed[path] = changed[path].replace(
-    '1.0.0 (2026081104)',
+    `1.0.0 (${deviceManifest.candidate.buildNumber})`,
     '1.0.0 (2026080903)',
   );
   assert.throws(() => validateStrict({ documents: changed }), /snapshot is stale or incomplete/);
@@ -75,9 +75,10 @@ test('rejects a stale build number in a snapshot', () => {
 test('rejects a stale or missing app-link diagnostic in a snapshot', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[1];
+  const appLinkEvidenceRef = deviceManifest.candidate.android.directAppLinks.evidenceRef;
   changed[path] = changed[path].replace(
-    '| Direkte Android-App-Link-Diagnose | `passed`',
-    '| Direkte Android-App-Link-Diagnose | `pending`',
+    `\`${appLinkEvidenceRef}\``,
+    '`docs/evidence/b11/android-app-link-diagnostic-stale.json`',
   );
   assert.throws(() => validateStrict({ documents: changed }), /snapshot is stale or incomplete/);
 });
@@ -132,7 +133,7 @@ test('rejects a device matrix row that points to an older build', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[1];
   changed[path] = changed[path].replace(
-    '| Android real | offen | offen | `2026081104` | WLAN',
+    `| Android real | offen | offen | \`${deviceManifest.candidate.buildNumber}\` | WLAN`,
     '| Android real | offen | offen | `2026080903` | WLAN',
   );
   assert.throws(() => validateStrict({ documents: changed }), /four runbook device-matrix rows/);
@@ -146,10 +147,11 @@ test('rejects pubspec drift from the documented candidate', () => {
 });
 
 test('rollover mode accepts an incomplete current candidate above the documented baseline', () => {
-  const result = validate({ pubspecText: 'version: 1.0.0+2026081105\n' });
-  assert.equal(result.buildNumber, '2026081104');
-  assert.equal(result.rolloverBuildNumber, '2026081105');
-  assert.equal(result.documentedBuild, '2026081104');
+  const nextBuild = (BigInt(deviceManifest.candidate.buildNumber) + 1n).toString();
+  const result = validate({ pubspecText: `version: 1.0.0+${nextBuild}\n` });
+  assert.equal(result.buildNumber, deviceManifest.candidate.buildNumber);
+  assert.equal(result.rolloverBuildNumber, nextBuild);
+  assert.equal(result.documentedBuild, deviceManifest.candidate.buildNumber);
   assert.equal(result.passedReleaseChecks, 3);
 });
 

@@ -75,22 +75,22 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Merkmal | Verbindlicher Wert |
 |---|---|
 | App-Identität | `com.shareittoo.app` (Android und iOS) |
-| Version und Build | `1.0.0 (2026081104)` |
-| App-Commit | `d4511175a03a9eb574db55b5efcb140f60364765` |
+| Version und Build | `1.0.0 (2026081105)` |
+| App-Commit | `de8e668e09fbd7ba2a03c0a3dd29214e5c47c9b5` |
 | Kanal und API | `internal`, `https://staging.shareittoo.com/api/v1` |
 | Firebase und Zahlung | vollständig: `true`; `memory`; `stripeLivemode=false` |
-| Android-AAB SHA-256 | `4e0ca39cc393cdb1ef52a03838a0c30dd6d588fad54e83b889d9c70f80647c7a` |
-| Android-APK SHA-256 | `495dba0e792b75aa5c279f64ed09bccd8de4db257b5737b30a111634df5b9dc9` |
+| Android-AAB SHA-256 | `abfc1550d9075181e55a7d53f491126d6bd91abb1470c7f14ac1c5a00be83fad` |
+| Android-APK SHA-256 | `c91cade0a54879930acd1b8a6f166196f1e98f6939545103ef5a2e564da30c0f` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
-| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081104-20260811T073210Z.json` |
-| Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081104-20260811T083339Z.json` |
+| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081105-20260811T095034Z.json` |
+| Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081105-20260811T095447Z.json` |
 | Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Kontrollierte Android-FCM-Diagnose | `pending/passed/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Kontrollierte Android-FCM-Diagnose | `pending/pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
 | Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081104.json` |
-| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081104.json` |
+| Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
+| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081105.json` |
 | Staging-Servercommit | `46e56f489d1fba7decdb1e3f5942425b3c0f9f83` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
 

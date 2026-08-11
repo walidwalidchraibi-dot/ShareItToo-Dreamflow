@@ -6,8 +6,8 @@
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081104",
-    "commit": "d4511175a03a9eb574db55b5efcb140f60364765"
+    "buildNumber": "2026081105",
+    "commit": "de8e668e09fbd7ba2a03c0a3dd29214e5c47c9b5"
   },
   "environment": {
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
@@ -18,24 +18,24 @@
     {
       "role": "owner",
       "credentialStorage": "owner-only-vault",
-      "status": "verified"
+      "status": "pending-verification"
     },
     {
       "role": "renter",
       "credentialStorage": "owner-only-vault",
-      "status": "verified"
+      "status": "pending-verification"
     }
   ],
   "technicalAccess": {
-    "status": "passed",
-    "evidenceRef": "docs/evidence/b11/store-review-access-readiness-20260811.json"
+    "status": "testing",
+    "evidenceRef": "docs/evidence/b11/store-review-access-refresh-2026081105.json"
   },
   "reviewScenarios": {
-    "ownerLogin": "passed",
-    "renterLogin": "passed",
-    "activeListing": "passed",
-    "acceptedBooking": "passed",
-    "sharedChat": "passed",
+    "ownerLogin": "pending",
+    "renterLogin": "pending",
+    "activeListing": "pending",
+    "acceptedBooking": "pending",
+    "sharedChat": "pending",
     "freshInstall": "pending",
     "secondNetwork": "pending",
     "reportAndBlock": "passed",

@@ -121,7 +121,7 @@ async function request(fetchImpl, path, {
     value = null;
   }
   if (!expected.includes(response.status)) {
-    fail(`Staging ${method} request failed with HTTP ${response.status}.`);
+    fail(`Staging ${method} ${path} request failed with HTTP ${response.status}.`);
   }
   return value;
 }

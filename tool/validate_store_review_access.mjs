@@ -166,12 +166,16 @@ export function validateStoreReviewAccess({
   }
   const evidence = evidenceOverride ?? readEvidence(root, technical.evidenceRef);
   assertSanitized(evidence, 'review evidence');
-  const expectedEvidenceStatus = technical.status === 'passed'
-    ? 'technical-review-access-passed-store-fields-pending'
-    : 'review-accounts-refresh-pending-email-verification';
+  const testingEvidenceStatuses = new Set([
+    'review-accounts-refresh-pending-email-verification',
+    'review-fixture-refresh-pending',
+  ]);
+  const evidenceStatusValid = technical.status === 'passed'
+    ? evidence.status === 'technical-review-access-passed-store-fields-pending'
+    : testingEvidenceStatuses.has(evidence.status);
   if (evidence.schemaVersion !== 1
       || evidence.kind !== 'store-review-access-diagnostic'
-      || evidence.status !== expectedEvidenceStatus
+      || !evidenceStatusValid
       || Number.isNaN(Date.parse(evidence.capturedAt))) {
     fail('review evidence must match the current technical access state.');
   }
@@ -179,6 +183,16 @@ export function validateStoreReviewAccess({
   if (technical.status === 'passed') {
     for (const key of requiredChecks) {
       if (evidence.checks?.[key] !== true) fail(`review evidence.checks.${key} must be true.`);
+    }
+  } else if (evidence.status === 'review-fixture-refresh-pending') {
+    if (evidence.checks?.privateVaultCreated !== true
+        || evidence.checks?.registrationsAccepted !== true
+        || evidence.checks?.priorVerificationEvidenceAvailable !== true
+        || evidence.checks?.ownerLoginPassed !== true
+        || evidence.checks?.renterLoginPassed !== false
+        || evidence.checks?.liveAccessPassed !== false
+        || evidence.checks?.fixtureRefreshRequired !== true) {
+      fail('fixture-refresh evidence must preserve only the bounded owner login and renter refresh blocker.');
     }
   } else if (evidence.checks?.privateVaultCreated !== true
       || evidence.checks?.registrationsAccepted !== true
@@ -210,9 +224,15 @@ export function validateStoreReviewAccess({
       && evidence.boundaries.authenticationSessionsCreated !== true) {
     fail('passed review evidence must disclose that authentication sessions were created.');
   }
-  if (technical.status === 'testing'
-      && evidence.boundaries.syntheticAccountRegistrationsCreated !== true) {
-    fail('testing review evidence must disclose the synthetic account registrations.');
+  if (technical.status === 'testing') {
+    const refreshPending = evidence.status === 'review-fixture-refresh-pending';
+    const expectedRegistrationsCreated = refreshPending ? false : true;
+    if (evidence.boundaries.syntheticAccountRegistrationsCreated !== expectedRegistrationsCreated) {
+      fail('testing review evidence must disclose whether synthetic account registrations were created.');
+    }
+    if (refreshPending && evidence.boundaries.authenticationSessionsCreated !== true) {
+      fail('fixture-refresh evidence must disclose the bounded owner authentication session.');
+    }
   }
   const scenarios = object(review.reviewScenarios, 'reviewScenarios');
   if (Object.keys(scenarios).sort().join(',') !== requiredScenarios.slice().sort().join(',')) {

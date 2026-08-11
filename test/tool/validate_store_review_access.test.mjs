@@ -12,7 +12,7 @@ const baseDevice = JSON.parse(readFileSync(resolve(repositoryRoot, 'store/device
 const baseSubmission = JSON.parse(readFileSync(resolve(repositoryRoot, 'store/submission.json')));
 const currentEvidence = JSON.parse(readFileSync(resolve(
   repositoryRoot,
-  'docs/evidence/b11/store-review-access-readiness-20260811.json',
+  baseReview.technicalAccess.evidenceRef,
 )));
 const passedEvidence = {
   schemaVersion: 1,
@@ -115,11 +115,11 @@ function validate({
   });
 }
 
-test('accepts the honest fail-closed testing state with technical access passed', () => {
+test('accepts the honest fail-closed testing state with fixture refresh pending', () => {
   const result = validate();
   assert.equal(result.state, 'testing');
   assert.equal(result.readyForStore, false);
-  assert.equal(result.passedScenarios, 8);
+  assert.equal(result.passedScenarios, 3);
   assert.equal(result.storeGate, 'open');
 });
 

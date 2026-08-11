@@ -106,8 +106,33 @@ function storeLinksProgressFixture() {
     resolve(repositoryRoot, 'docs/evidence/b11/store-links-signing-readiness-2026081104.json'),
     'utf8',
   ));
+  evidence.candidate = evidenceCandidate(deviceManifest.candidate);
+  evidence.artifacts.aabSha256 = deviceManifest.candidate.android.aabSha256;
+  evidence.artifacts.apkSha256 = deviceManifest.candidate.android.apkSha256;
+  evidence.artifacts.uploadCertificateSha256 =
+    deviceManifest.candidate.android.signingCertificateSha256;
+  evidence.sources.candidateEvidenceRef =
+    deviceManifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef;
   deviceManifest.releaseChecks.storeWarningsLinksAndSigning = { status: 'testing', evidenceRef: ref };
   return { root, deviceManifest, ref, evidence };
+}
+
+function crashConsoleObservationFixture() {
+  const fixture = crashProgressFixture();
+  fixture.evidence.status =
+    'mapping-and-native-symbols-uploaded-console-release-observed-controlled-event-pending';
+  fixture.evidence.verifications.controlledSanitizedCrashEvent = 'pending';
+  fixture.evidence.verifications.consoleReleaseAssignment = 'passed';
+  fixture.evidence.verifications.consoleObservedVersion =
+    `${fixture.deviceManifest.candidate.versionName} (${fixture.deviceManifest.candidate.buildNumber})`;
+  delete fixture.evidence.verifications.deviceDiagnosticUi;
+  fixture.evidence.consoleObservation = {
+    source: 'firebase-console-read-only',
+    latestReleaseMatchesExactCandidate: true,
+    issueCountsUsedAsCandidateProof: false,
+  };
+  fixture.evidence.boundaries.controlledStagingEventGenerated = false;
+  return fixture;
 }
 
 function evidenceCandidate(candidate) {
@@ -701,10 +726,7 @@ test('rejects a controlled-event claim without the sanitized staging boundary', 
 });
 
 test('rejects a Crashlytics console observation for a different release build', () => {
-  const root = progressEvidenceRoot();
-  const deviceManifest = clone(baseDeviceManifest);
-  const ref = deviceManifest.releaseChecks.crashReleaseMapping.evidenceRef;
-  const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
+  const { root, deviceManifest, ref, evidence } = crashConsoleObservationFixture();
   evidence.verifications.consoleObservedVersion = '1.0.0 (2026081199)';
   writeEvidence(root, ref, evidence);
   assert.throws(
@@ -714,10 +736,7 @@ test('rejects a Crashlytics console observation for a different release build', 
 });
 
 test('rejects using aggregate Crashlytics issue counts as exact candidate proof', () => {
-  const root = progressEvidenceRoot();
-  const deviceManifest = clone(baseDeviceManifest);
-  const ref = deviceManifest.releaseChecks.crashReleaseMapping.evidenceRef;
-  const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
+  const { root, deviceManifest, ref, evidence } = crashConsoleObservationFixture();
   evidence.consoleObservation.issueCountsUsedAsCandidateProof = true;
   writeEvidence(root, ref, evidence);
   assert.throws(
