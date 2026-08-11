@@ -375,6 +375,7 @@ test('prepares a controlled thread and sends an identifier-free diagnostic messa
 
   const messageResult = await sendSyntheticBookingDiagnosticMessage({
     ...fixture,
+    diagnosticKind: 'foreground',
     fetchImpl: async (url) => {
       const path = new URL(url).pathname.replace('/api/v1', '');
       if (path === '/auth/login') return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
@@ -385,6 +386,7 @@ test('prepares a controlled thread and sends an identifier-free diagnostic messa
     },
   });
   assert.equal(messageResult.status, 'synthetic-booking-diagnostic-message-sent');
+  assert.equal(messageResult.diagnosticKind, 'foreground');
   assert.equal(messageResult.containsFixtureIdentifiers, false);
   assert.equal(messageResult.paymentEndpointCalled, false);
 });

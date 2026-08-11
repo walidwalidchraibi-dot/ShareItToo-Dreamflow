@@ -647,9 +647,13 @@ export async function prepareSyntheticBookingThread({
 export async function sendSyntheticBookingDiagnosticMessage({
   vaultFile,
   senderRole = 'owner',
+  diagnosticKind = 'generic',
   fetchImpl = globalThis.fetch,
 } = {}) {
   if (!['owner', 'renter'].includes(senderRole)) fail('The message sender role is invalid.');
+  if (!['generic', 'foreground', 'background', 'terminated'].includes(diagnosticKind)) {
+    fail('The message diagnostic kind is invalid.');
+  }
   const { vault, accounts } = readVault(vaultFile);
   const fixture = vault.syntheticBooking;
   if (!fixture
@@ -665,8 +669,8 @@ export async function sendSyntheticBookingDiagnosticMessage({
     `/message-threads/${encodeURIComponent(threadId)}/messages`, {
       method: 'POST',
       token,
-      headers: { 'Idempotency-Key': `${bookingId}-logout-push-diagnostic` },
-      body: { text: 'Kontrollierte SIT Staging-Abmeldeprüfung.' },
+      headers: { 'Idempotency-Key': `${bookingId}-${diagnosticKind}-push-diagnostic-${senderRole}` },
+      body: { text: `Kontrollierte SIT Staging-Pushprüfung (${diagnosticKind}).` },
       expected: [200, 201],
     });
   if (typeof result?.message?.id !== 'string' || result.message.id.length < 1) {
@@ -675,6 +679,7 @@ export async function sendSyntheticBookingDiagnosticMessage({
   return Object.freeze({
     status: 'synthetic-booking-diagnostic-message-sent',
     senderRole,
+    diagnosticKind,
     workflowStatus: fixture.workflowStatus,
     paymentMode: fixture.paymentMode,
     stripeLivemode: false,
@@ -719,6 +724,7 @@ if (invokedPath === import.meta.url) {
             ? await sendSyntheticBookingDiagnosticMessage({
                 vaultFile,
                 senderRole: cliValue(process.argv.slice(2), '--sender-role') ?? 'owner',
+                diagnosticKind: cliValue(process.argv.slice(2), '--diagnostic-kind') ?? 'generic',
               })
           : command === 'diagnose-lifecycle'
             ? await runSyntheticRoleBookingLifecycle({ vaultFile })
