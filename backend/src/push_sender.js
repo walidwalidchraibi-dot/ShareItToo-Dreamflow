@@ -75,7 +75,10 @@ export function buildFcmMessageForTest(device, payload) {
     data: fcmData(payload),
     android: {
       priority: 'high',
-      notification: { sound: 'default' },
+      notification: {
+        sound: 'default',
+        clickAction: 'SIT_NOTIFICATION_CLICK',
+      },
     },
     apns: {
       headers: { 'apns-priority': '10' },

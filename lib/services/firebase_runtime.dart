@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'backend_config.dart';
@@ -120,6 +121,19 @@ class ForegroundPushMessage {
 }
 
 @visibleForTesting
+Uri? parsePushActionUri(Object? rawValue) {
+  final raw = rawValue?.toString().trim() ?? '';
+  final parsed = raw.isEmpty ? null : Uri.tryParse(raw);
+  const supportedSchemes = {'https', 'http', 'shareittoo'};
+  return parsed != null &&
+          parsed.scheme.isNotEmpty &&
+          supportedSchemes.contains(parsed.scheme.toLowerCase()) &&
+          parsed.userInfo.isEmpty
+      ? parsed
+      : null;
+}
+
+@visibleForTesting
 ForegroundPushMessage? parseForegroundPushMessage({
   String? title,
   String? body,
@@ -129,14 +143,7 @@ ForegroundPushMessage? parseForegroundPushMessage({
   final safeBody = body?.trim() ?? '';
   if (safeTitle.isEmpty && safeBody.isEmpty) return null;
 
-  final rawAction = data['actionUrl']?.toString().trim() ?? '';
-  final parsedAction = rawAction.isEmpty ? null : Uri.tryParse(rawAction);
-  const supportedSchemes = {'https', 'http', 'shareittoo'};
-  final actionUri = parsedAction != null &&
-          supportedSchemes.contains(parsedAction.scheme.toLowerCase()) &&
-          parsedAction.userInfo.isEmpty
-      ? parsedAction
-      : null;
+  final actionUri = parsePushActionUri(data['actionUrl']);
   return ForegroundPushMessage(
     title: safeTitle.isEmpty ? 'ShareItToo' : safeTitle,
     body: safeBody,
@@ -166,6 +173,9 @@ Future<String?> waitForApplePushToken({
 }
 
 class FirebaseRuntime {
+  static const MethodChannel _androidActionLinkChannel = MethodChannel(
+    'com.shareittoo.app/push_action_links',
+  );
   static const bool _controlledCrashDiagnosticEnabled = bool.fromEnvironment(
     'SIT_ENABLE_STAGING_CRASH_DIAGNOSTIC',
     defaultValue: false,
@@ -182,6 +192,7 @@ class FirebaseRuntime {
   static StreamSubscription<RemoteMessage>? _openedMessageSubscription;
   static StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
   static bool _initialized = false;
+  static bool _nativeActionLinkChannelInitialized = false;
   static Uri? _pendingActionLink;
   static String _locale = 'de-DE';
 
@@ -201,6 +212,7 @@ class FirebaseRuntime {
   }
 
   static Future<bool> _initialize() async {
+    await _initializeNativeActionLinks();
     final options = FirebaseRuntimeConfig.currentOptions;
     if (options == null) return false;
     try {
@@ -368,10 +380,39 @@ class FirebaseRuntime {
     };
   }
 
+  static Future<void> _initializeNativeActionLinks() async {
+    if (kIsWeb ||
+        defaultTargetPlatform != TargetPlatform.android ||
+        _nativeActionLinkChannelInitialized) {
+      return;
+    }
+    _nativeActionLinkChannelInitialized = true;
+    try {
+      _androidActionLinkChannel.setMethodCallHandler((call) async {
+        if (call.method == 'pushActionLink') {
+          _captureRawActionLink(call.arguments);
+        }
+      });
+      final initial = await _androidActionLinkChannel.invokeMethod<String>(
+        'takeInitialActionLink',
+      );
+      _captureRawActionLink(initial);
+    } on MissingPluginException {
+      debugPrint('[FirebaseRuntime] native action-link bridge unavailable');
+    } on PlatformException catch (error) {
+      debugPrint(
+        '[FirebaseRuntime] native action-link bridge unavailable: ${error.code}',
+      );
+    }
+  }
+
   static void _captureActionLink(RemoteMessage? message) {
-    final raw = message?.data['actionUrl']?.toString().trim() ?? '';
-    final uri = Uri.tryParse(raw);
-    if (uri == null || uri.scheme.isEmpty) return;
+    _captureRawActionLink(message?.data['actionUrl']);
+  }
+
+  static void _captureRawActionLink(Object? raw) {
+    final uri = parsePushActionUri(raw);
+    if (uri == null) return;
     _pendingActionLink = uri;
     _actionLinks.add(uri);
   }
@@ -389,8 +430,7 @@ class FirebaseRuntime {
   static void openForegroundMessage(ForegroundPushMessage message) {
     final actionUri = message.actionUri;
     if (actionUri == null) return;
-    _pendingActionLink = actionUri;
-    _actionLinks.add(actionUri);
+    _captureRawActionLink(actionUri);
   }
 
   static Uri? takePendingActionLink() {

@@ -175,4 +175,30 @@ void main() {
       expect(unsupported!.actionUri, isNull);
     });
   });
+
+  group('push action URI', () {
+    test('accepts supported link schemes without embedded credentials', () {
+      expect(
+        parsePushActionUri(
+          'https://staging.shareittoo.com/api/v1/open/booking/booking-123',
+        ),
+        Uri.parse(
+          'https://staging.shareittoo.com/api/v1/open/booking/booking-123',
+        ),
+      );
+      expect(
+        parsePushActionUri('shareittoo://chat/thread-123'),
+        Uri.parse('shareittoo://chat/thread-123'),
+      );
+    });
+
+    test('rejects empty, credentialed and executable action URIs', () {
+      expect(parsePushActionUri(null), isNull);
+      expect(
+        parsePushActionUri('https://user:pass@shareittoo.com/open/booking/1'),
+        isNull,
+      );
+      expect(parsePushActionUri('javascript:alert(1)'), isNull);
+    });
+  });
 }

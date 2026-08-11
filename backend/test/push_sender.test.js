@@ -30,5 +30,6 @@ test('FCM messages preserve safe navigation context with string-only data', () =
     entityId: '123',
   });
   assert.equal(message.android.priority, 'high');
+  assert.equal(message.android.notification.clickAction, 'SIT_NOTIFICATION_CLICK');
   assert.equal(message.apns.headers['apns-priority'], '10');
 });

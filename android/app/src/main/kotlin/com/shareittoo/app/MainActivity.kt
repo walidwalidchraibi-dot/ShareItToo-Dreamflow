@@ -4,24 +4,55 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private var pendingPushActionLink: String? = null
+    private lateinit var pushActionLinkChannel: MethodChannel
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        promoteSafePushActionLink(intent)
+        pendingPushActionLink = safePushActionLink(intent)
         super.onCreate(savedInstanceState)
     }
 
     override fun onNewIntent(intent: Intent) {
-        promoteSafePushActionLink(intent)
+        val actionLink = safePushActionLink(intent)
         super.onNewIntent(intent)
+        if (actionLink != null) deliverPushActionLink(actionLink)
     }
 
-    private fun promoteSafePushActionLink(intent: Intent?) {
-        if (intent == null || intent.data != null) return
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        pushActionLinkChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            pushActionLinkChannelName,
+        )
+        pushActionLinkChannel.setMethodCallHandler { call, result ->
+            if (call.method != "takeInitialActionLink") {
+                result.notImplemented()
+                return@setMethodCallHandler
+            }
+            val pending = pendingPushActionLink
+            pendingPushActionLink = null
+            result.success(pending)
+        }
+    }
+
+    private fun deliverPushActionLink(actionLink: String) {
+        if (::pushActionLinkChannel.isInitialized) {
+            pushActionLinkChannel.invokeMethod("pushActionLink", actionLink)
+        } else {
+            pendingPushActionLink = actionLink
+        }
+    }
+
+    private fun safePushActionLink(intent: Intent?): String? {
+        if (intent == null) return null
         val raw = intent.getStringExtra("actionUrl")?.trim().orEmpty()
-        if (raw.isEmpty()) return
+        if (raw.isEmpty()) return null
         val uri = Uri.parse(raw)
-        if (isSafePushActionLink(uri)) intent.data = uri
+        return if (isSafePushActionLink(uri)) uri.toString() else null
     }
 
     private fun isSafePushActionLink(uri: Uri): Boolean {
@@ -56,6 +87,8 @@ class MainActivity : FlutterActivity() {
     }
 
     companion object {
+        private const val pushActionLinkChannelName =
+            "com.shareittoo.app/push_action_links"
         private val allowedWebHosts = setOf(
             "shareittoo.com",
             "www.shareittoo.com",
