@@ -40,11 +40,12 @@
       "authenticatedSession": {
         "status": "passed",
         "installMethod": "direct-apk-diagnostic",
-        "capturedAt": "2026-08-11T19:34:23.180Z",
+        "networkCondition": "offline",
+        "capturedAt": "2026-08-11T20:07:12.941Z",
         "manufacturer": "Google",
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081114-20260811T193423Z.json"
+        "evidenceRef": "docs/evidence/b11/android-authenticated-session-offline-2026081114-20260811T200712Z.json"
       },
       "syntheticRoleBooking": {
         "status": "passed",

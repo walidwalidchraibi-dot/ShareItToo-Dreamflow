@@ -40,10 +40,18 @@ const mainHierarchy = `<hierarchy>${node('Erkunden&#10;Tab 1 of 5', '[0,100][200
 const authenticatedHierarchy = `<hierarchy>${node('Meine Anzeigen', '[10,10][300,80]')}${node('Offene Box mit runder Sprechblase&#10;Mietanfragen', '[10,90][300,160]')}${node('Abmelden', '[10,170][300,240]')}${node('Erkunden', '[0,100][200,200]')}${node('Profil', '[800,100][1000,200]')}<node text="private@example.com" content-desc=""/></hierarchy>`;
 const guestHierarchy = `<hierarchy>${node('Anmelden', '[10,10][300,80]')}${node('Konto erstellen', '[10,90][300,160]')}${node('Erkunden', '[0,100][200,200]')}${node('Profil', '[800,100][1000,200]')}</hierarchy>`;
 
-function fakeRunner({ locked = false, guest = false, transientGuestDumps = 0, bytes = apkBytes } = {}) {
+function fakeRunner({
+  locked = false,
+  guest = false,
+  transientGuestDumps = 0,
+  bytes = apkBytes,
+  internetLeak = false,
+} = {}) {
   let surface = 'main';
   let launches = 0;
   let profileDumps = 0;
+  let wifiEnabled = true;
+  let mobileDataEnabled = true;
   const calls = [];
   const runner = (_file, args, options = {}) => {
     calls.push(args);
@@ -55,6 +63,32 @@ function fakeRunner({ locked = false, guest = false, transientGuestDumps = 0, by
     if (command.join(' ') === 'exec-out cat /data/app/base.apk') return options.binary ? bytes : bytes.toString();
     if (command.join(' ') === 'shell dumpsys package com.shareittoo.app') {
       return '  versionName=1.0.0\n  versionCode=2026081018 minSdk=23 targetSdk=36';
+    }
+    if (command.join(' ') === 'shell settings get global wifi_on') {
+      return wifiEnabled ? '1' : '0';
+    }
+    if (command.join(' ') === 'shell settings get global mobile_data') {
+      return mobileDataEnabled ? '1' : '0';
+    }
+    if (command.join(' ') === 'shell svc wifi disable') {
+      wifiEnabled = false;
+      return '';
+    }
+    if (command.join(' ') === 'shell svc wifi enable') {
+      wifiEnabled = true;
+      return '';
+    }
+    if (command.join(' ') === 'shell svc data disable') {
+      mobileDataEnabled = false;
+      return '';
+    }
+    if (command.join(' ') === 'shell svc data enable') {
+      mobileDataEnabled = true;
+      return '';
+    }
+    if (command[0] === 'shell' && command[1] === 'ping') {
+      if (internetLeak || wifiEnabled || mobileDataEnabled) return 'reachable';
+      throw new Error('offline');
     }
     if (command[0] === 'shell' && command[1] === 'am' && command[2] === 'force-stop') {
       surface = 'main';
@@ -84,7 +118,13 @@ function fakeRunner({ locked = false, guest = false, transientGuestDumps = 0, by
     if (command[0] === 'shell' && command[1] === 'rm') return '';
     throw new Error(`unexpected command: ${command.join(' ')}`);
   };
-  return { runner, calls, get launches() { return launches; } };
+  return {
+    runner,
+    calls,
+    get launches() { return launches; },
+    get wifiEnabled() { return wifiEnabled; },
+    get mobileDataEnabled() { return mobileDataEnabled; },
+  };
 }
 
 test('proves a bounded authenticated cold-start session without emitting identity data', async () => {
@@ -158,6 +198,49 @@ test('waits through a transient guest profile while the persisted session hydrat
   });
   assert.equal(evidence.tests.coldStartSessionRestore.status, 'passed');
   assert.equal(fake.launches, 2);
+});
+
+test('proves the authenticated cold-start session offline and restores both network toggles', async () => {
+  const fake = fakeRunner();
+  const evidence = await diagnoseAndroidAuthenticatedSession({
+    commandRunner: fake.runner,
+    adbPath: 'adb',
+    device,
+    deviceSummary,
+    candidate,
+    archive,
+    networkCondition: 'offline',
+    wait: async () => {},
+  });
+  assert.deepEqual(evidence.network, {
+    condition: 'offline',
+    wifiDisabled: true,
+    mobileDataDisabled: true,
+    connectivityGate: 'passed-no-connectivity',
+    networkRestored: 'passed',
+  });
+  assert.equal(fake.wifiEnabled, true);
+  assert.equal(fake.mobileDataEnabled, true);
+  assert.equal(fake.launches, 2);
+});
+
+test('rejects an offline diagnostic with remaining connectivity and still restores the network', async () => {
+  const fake = fakeRunner({ internetLeak: true });
+  await assert.rejects(
+    diagnoseAndroidAuthenticatedSession({
+      commandRunner: fake.runner,
+      adbPath: 'adb',
+      device,
+      deviceSummary,
+      candidate,
+      archive,
+      networkCondition: 'offline',
+      wait: async () => {},
+    }),
+    /offline gate still had Internet connectivity/,
+  );
+  assert.equal(fake.wifiEnabled, true);
+  assert.equal(fake.mobileDataEnabled, true);
 });
 
 test('rejects an installed APK that differs from the candidate', async () => {

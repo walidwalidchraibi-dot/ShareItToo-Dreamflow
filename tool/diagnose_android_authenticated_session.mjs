@@ -61,6 +61,74 @@ function assertDeviceAlreadyUnlocked(commandRunner, adbPath, device) {
   }
 }
 
+function readBinarySetting(commandRunner, adbPath, device, key) {
+  const value = adb(commandRunner, adbPath, device, [
+    'shell',
+    'settings',
+    'get',
+    'global',
+    key,
+  ]);
+  if (value !== '0' && value !== '1') {
+    fail('The Android network state could not be read safely.');
+  }
+  return value === '1';
+}
+
+async function setNetworkToggle({
+  commandRunner,
+  adbPath,
+  device,
+  service,
+  setting,
+  enabled,
+  verifySetting = true,
+  wait,
+}) {
+  adb(commandRunner, adbPath, device, [
+    'shell',
+    'svc',
+    service,
+    enabled ? 'enable' : 'disable',
+  ]);
+  if (!verifySetting) {
+    await wait(500);
+    return;
+  }
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    if (readBinarySetting(commandRunner, adbPath, device, setting) === enabled) return;
+    await wait(300);
+  }
+  fail('The Android network toggle did not reach the requested safe state.');
+}
+
+function canReachInternet(commandRunner, adbPath, device) {
+  try {
+    commandRunner(adbPath, [
+      '-s',
+      device.serial,
+      'shell',
+      'ping',
+      '-c',
+      '1',
+      '-W',
+      '1',
+      '1.1.1.1',
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function waitForNoConnectivity({ commandRunner, adbPath, device, wait }) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    if (!canReachInternet(commandRunner, adbPath, device)) return;
+    await wait(500);
+  }
+  fail('The bounded offline gate still had Internet connectivity.');
+}
+
 function verifyInstalledCandidate(commandRunner, adbPath, device, candidate, archive) {
   const packagePaths = adb(commandRunner, adbPath, device, ['shell', 'pm', 'path', applicationId])
     .split(/\r?\n/)
@@ -236,14 +304,87 @@ export async function diagnoseAndroidAuthenticatedSession({
   deviceSummary,
   candidate,
   archive,
+  networkCondition = null,
   capturedAt = new Date().toISOString(),
   wait = (milliseconds) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds)),
 }) {
   assertDeviceAlreadyUnlocked(commandRunner, adbPath, device);
   const installed = verifyInstalledCandidate(commandRunner, adbPath, device, candidate, archive);
-  await verifyAuthenticatedProfileCycle({ commandRunner, adbPath, device, wait });
-  await verifyAuthenticatedProfileCycle({ commandRunner, adbPath, device, wait });
-  restoreExplore(commandRunner, adbPath, device);
+  let network = null;
+  if (networkCondition !== null && networkCondition !== 'offline') {
+    fail('Only the bounded offline network condition is supported.');
+  }
+
+  if (networkCondition === 'offline') {
+    const wifiInitiallyEnabled = readBinarySetting(
+      commandRunner,
+      adbPath,
+      device,
+      'wifi_on',
+    );
+    const mobileDataInitiallyEnabled = readBinarySetting(
+      commandRunner,
+      adbPath,
+      device,
+      'mobile_data',
+    );
+    try {
+      await setNetworkToggle({
+        commandRunner,
+        adbPath,
+        device,
+        service: 'wifi',
+        setting: 'wifi_on',
+        enabled: false,
+        wait,
+      });
+      await setNetworkToggle({
+        commandRunner,
+        adbPath,
+        device,
+        service: 'data',
+        setting: 'mobile_data',
+        enabled: false,
+        verifySetting: false,
+        wait,
+      });
+      await waitForNoConnectivity({ commandRunner, adbPath, device, wait });
+      await verifyAuthenticatedProfileCycle({ commandRunner, adbPath, device, wait });
+      await verifyAuthenticatedProfileCycle({ commandRunner, adbPath, device, wait });
+      restoreExplore(commandRunner, adbPath, device);
+    } finally {
+      await setNetworkToggle({
+        commandRunner,
+        adbPath,
+        device,
+        service: 'wifi',
+        setting: 'wifi_on',
+        enabled: wifiInitiallyEnabled,
+        wait,
+      });
+      await setNetworkToggle({
+        commandRunner,
+        adbPath,
+        device,
+        service: 'data',
+        setting: 'mobile_data',
+        enabled: mobileDataInitiallyEnabled,
+        verifySetting: false,
+        wait,
+      });
+    }
+    network = {
+      condition: 'offline',
+      wifiDisabled: true,
+      mobileDataDisabled: true,
+      connectivityGate: 'passed-no-connectivity',
+      networkRestored: 'passed',
+    };
+  } else {
+    await verifyAuthenticatedProfileCycle({ commandRunner, adbPath, device, wait });
+    await verifyAuthenticatedProfileCycle({ commandRunner, adbPath, device, wait });
+    restoreExplore(commandRunner, adbPath, device);
+  }
 
   return {
     schemaVersion: 1,
@@ -273,6 +414,7 @@ export async function diagnoseAndroidAuthenticatedSession({
       authenticatedProfileAccess: { status: 'passed', result: 'authenticated-actions-present' },
       coldStartSessionRestore: { status: 'passed', result: 'authenticated-profile-restored-after-force-stop' },
     },
+    ...(network === null ? {} : { network }),
     boundaries: {
       directDiagnosticOnly: true,
       storeInstallationGateSatisfied: false,
@@ -294,6 +436,7 @@ export async function diagnoseAndroidAuthenticatedSession({
 function parseArguments(values) {
   let candidateDirectory = null;
   let adbPath = 'adb';
+  let networkCondition = null;
   for (let index = 0; index < values.length; index += 1) {
     if (values[index] === '--candidate-dir') {
       candidateDirectory = values[index + 1] ?? fail('--candidate-dir requires a path.');
@@ -301,11 +444,15 @@ function parseArguments(values) {
     } else if (values[index] === '--adb') {
       adbPath = values[index + 1] ?? fail('--adb requires a path.');
       index += 1;
+    } else if (values[index] === '--network') {
+      networkCondition = values[index + 1] ?? fail('--network requires a value.');
+      if (networkCondition !== 'offline') fail('--network only supports offline.');
+      index += 1;
     } else {
       fail(`Unknown argument: ${values[index]}`);
     }
   }
-  return { candidateDirectory, adbPath };
+  return { candidateDirectory, adbPath, networkCondition };
 }
 
 async function run() {
@@ -335,6 +482,7 @@ async function run() {
     deviceSummary,
     candidate,
     archive,
+    networkCondition: args.networkCondition,
   });
   console.log(JSON.stringify(evidence, null, 2));
 }

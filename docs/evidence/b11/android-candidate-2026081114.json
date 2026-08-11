@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "installed-guest-links-authenticated-role-booking-links-logout-push-suppression-full-fcm-crash-mapping-centered-icon-offline-realtime-and-staging-passed",
-  "generatedAt": "2026-08-11T19:43:21.923Z",
+  "status": "installed-guest-links-authenticated-offline-role-booking-links-logout-push-suppression-full-fcm-crash-mapping-centered-icon-offline-realtime-and-staging-passed",
+  "generatedAt": "2026-08-11T20:07:12.941Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
@@ -45,7 +45,7 @@
     "crashlyticsReleaseAssignment": "pending",
     "guestAppLinks": "passed",
     "authenticatedSessionRestore": "passed",
-    "offlineAuthenticatedProfile": "pending",
+    "offlineAuthenticatedProfile": "passed",
     "syntheticRoleBooking": "passed",
     "authenticatedDeepLinks": "passed",
     "foregroundFcm": "passed",
