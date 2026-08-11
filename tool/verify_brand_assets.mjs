@@ -86,11 +86,11 @@ const assets = [
 ];
 
 const notificationAssets = [
-  { ...asset('android/app/src/main/res/drawable-mdpi/ic_stat_shareittoo.png', 24), sha256: 'c7999784d051b0245bc57e1cb00a50901446c4f923a13eff511e7959d78343c3' },
-  { ...asset('android/app/src/main/res/drawable-hdpi/ic_stat_shareittoo.png', 36), sha256: '2d8c539477f9d5e74a3146bdab47c91a6c22da5fd19910130d9e0cac1a08d879' },
-  { ...asset('android/app/src/main/res/drawable-xhdpi/ic_stat_shareittoo.png', 48), sha256: '115cf657d64a9b62cccff629c33b35d04869d76df931d8c3babd4133eac95e12' },
-  { ...asset('android/app/src/main/res/drawable-xxhdpi/ic_stat_shareittoo.png', 72), sha256: 'ef24d5430276d4a49f7dcbfba1736044bf009508e111afe79a9f63e444e500dc' },
-  { ...asset('android/app/src/main/res/drawable-xxxhdpi/ic_stat_shareittoo.png', 96), sha256: '420dfc97c4accd12d2c7347a9715c29494d83d98c003fd41859a6160c87a26d5' },
+  { ...asset('android/app/src/main/res/drawable-mdpi/ic_stat_shareittoo_v2.png', 24), sha256: 'fbcade666cd7c4e6996e4445a6cbf54a9e43ade230ccfca70fffd304cf1d5103' },
+  { ...asset('android/app/src/main/res/drawable-hdpi/ic_stat_shareittoo_v2.png', 36), sha256: '9d1871f608ad21bed1fcc9092b340a1f650ad88b10b7506e2d1abf204cf2cb61' },
+  { ...asset('android/app/src/main/res/drawable-xhdpi/ic_stat_shareittoo_v2.png', 48), sha256: '2cb1c2b86e5b380c39a2967b14b7e05a4821643d0ff0e044bb5b8a8b5fc2aefa' },
+  { ...asset('android/app/src/main/res/drawable-xxhdpi/ic_stat_shareittoo_v2.png', 72), sha256: '8cbf38b9ae3c30286cfc7034612585a4db8b7a57d43e6e817fe3806b479fc016' },
+  { ...asset('android/app/src/main/res/drawable-xxxhdpi/ic_stat_shareittoo_v2.png', 96), sha256: 'a108a91a8252b1c0ff9f0f9d9391bbaae62e1a663694a71fc79d4dc4f52f96cd' },
 ];
 
 const adaptiveLauncherAssets = [
@@ -212,7 +212,7 @@ const androidManifest = readFileSync(
   'utf8',
 );
 if (!androidManifest.includes('com.google.firebase.messaging.default_notification_icon')
-    || !androidManifest.includes('android:resource="@drawable/ic_stat_shareittoo"')) {
+    || !androidManifest.includes('android:resource="@drawable/ic_stat_shareittoo_v2"')) {
   fail('Android Firebase notifications must use the approved ShareItToo status icon.');
 }
 if (!androidManifest.includes('com.google.firebase.messaging.default_notification_color')

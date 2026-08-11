@@ -76,6 +76,7 @@ export function buildFcmMessageForTest(device, payload) {
     android: {
       priority: 'high',
       notification: {
+        icon: 'ic_stat_shareittoo_v2',
         sound: 'default',
         clickAction: 'SIT_NOTIFICATION_CLICK',
       },
