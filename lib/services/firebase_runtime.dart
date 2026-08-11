@@ -9,6 +9,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'backend_config.dart';
 import 'backend_repository.dart';
 import 'release_identity.dart';
+import 'shared_persistence_sync.dart';
 
 bool controlledCrashDiagnosticAllowed({
   required bool releaseMode,
@@ -149,6 +150,23 @@ ForegroundPushMessage? parseForegroundPushMessage({
     body: safeBody,
     actionUri: actionUri,
   );
+}
+
+@visibleForTesting
+Set<String> sharedPersistenceKeysForForegroundPush(
+  Map<String, dynamic> data,
+) {
+  final entityType = data['entityType']?.toString().trim().toLowerCase();
+  if (entityType == 'thread') {
+    return {SharedPersistenceSync.messageThreadsKey};
+  }
+  if (entityType == 'booking') {
+    return {
+      SharedPersistenceSync.rentalRequestsKey,
+      SharedPersistenceSync.messageThreadsKey,
+    };
+  }
+  return const {};
 }
 
 @pragma('vm:entry-point')
@@ -430,6 +448,9 @@ class FirebaseRuntime {
   }
 
   static void _captureForegroundMessage(RemoteMessage message) {
+    for (final key in sharedPersistenceKeysForForegroundPush(message.data)) {
+      SharedPersistenceSync.notify(key);
+    }
     final notification = message.notification;
     final foreground = parseForegroundPushMessage(
       title: notification?.title,

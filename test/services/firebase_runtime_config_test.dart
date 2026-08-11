@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/services/firebase_runtime.dart';
+import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 void main() {
@@ -173,6 +174,30 @@ void main() {
         data: {'actionUrl': 'javascript:alert(1)'},
       );
       expect(unsupported!.actionUri, isNull);
+    });
+
+    test('maps chat and booking pushes to the affected local caches', () {
+      expect(
+        sharedPersistenceKeysForForegroundPush(
+          const {'entityType': 'thread'},
+        ),
+        {SharedPersistenceSync.messageThreadsKey},
+      );
+      expect(
+        sharedPersistenceKeysForForegroundPush(
+          const {'entityType': 'booking'},
+        ),
+        {
+          SharedPersistenceSync.rentalRequestsKey,
+          SharedPersistenceSync.messageThreadsKey,
+        },
+      );
+      expect(
+        sharedPersistenceKeysForForegroundPush(
+          const {'entityType': 'unknown'},
+        ),
+        isEmpty,
+      );
     });
   });
 
