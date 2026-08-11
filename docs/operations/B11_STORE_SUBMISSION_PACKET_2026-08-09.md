@@ -282,6 +282,12 @@ Bestätigungen für Mindestalter, AGB und Datenschutz. Der Auth-Service reicht
 die tatsächlichen Werte weiter; das Backend weist jede fehlende Bestätigung ab
 und speichert die drei Annahmezeitpunkte getrennt.
 
+Anbieteridentität und Copyright-Inhaber sind zusätzlich als zwei getrennte
+Freigaben an die gleichnamigen Store-Gates gekoppelt. Ein Wechsel auf
+`closed` ist nur zusammen mit einer bereinigten JSON-Nachweisreferenz unter
+`docs/evidence/b11/` gültig. Der aktuelle Entwurf hält sämtliche
+Rechtsfreigaben ausdrücklich auf `open` und enthält keine solche Referenz.
+
 ```text
 node tool/validate_legal_readiness.mjs
 node tool/validate_legal_readiness.mjs --require-approved
@@ -290,7 +296,7 @@ node tool/validate_legal_readiness.mjs --require-approved
 Der erste Befehl prüft den ehrlichen Entwurfszustand. Der zweite bleibt
 absichtlich rot, bis die Inhalte geprüft und exakt gehasht, die öffentlichen
 HTTPS-Seiten verifiziert, alle Rechts-/Moderations-/Konsistenzfreigaben belegt
-und der Store-Gate geschlossen sind. Diese technische Absicherung ist keine
+und alle verbundenen Store-Gates geschlossen sind. Diese technische Absicherung ist keine
 Rechtsberatung und ändert weder öffentliche Routen noch den
 Store-Einreichungsstatus.
 

@@ -68,6 +68,26 @@ test('rejects hardcoded client consent', () => {
   );
 });
 
+test('rejects closing the provider identity Store gate without legal evidence', () => {
+  const submissionManifest = clone(baseSubmissionManifest);
+  submissionManifest.blockingGates.legalProviderIdentity = 'closed';
+  assert.throws(
+    () => validate({ submissionManifest }),
+    /legalProviderIdentity must match blockingGates.legalProviderIdentity/,
+  );
+});
+
+test('rejects closing copyright approval without evidence', () => {
+  const legalManifest = clone(baseLegalManifest);
+  const submissionManifest = clone(baseSubmissionManifest);
+  legalManifest.requiredApprovals.copyrightOwner.status = 'closed';
+  submissionManifest.blockingGates.copyrightOwner = 'closed';
+  assert.throws(
+    () => validate({ legalManifest, submissionManifest }),
+    /copyrightOwner.evidenceRef must be a non-empty string/,
+  );
+});
+
 test('accepts a complete internally consistent approved fixture', () => {
   const legalManifest = clone(baseLegalManifest);
   const submissionManifest = clone(baseSubmissionManifest);
@@ -86,9 +106,13 @@ test('accepts a complete internally consistent approved fixture', () => {
     item.approvalEvidenceRef = `docs/evidence/b11/legal-${key}-approval.json`;
   }
   for (const key of Object.keys(legalManifest.requiredApprovals)) {
-    legalManifest.requiredApprovals[key] = 'closed';
+    legalManifest.requiredApprovals[key].status = 'closed';
+    legalManifest.requiredApprovals[key].evidenceRef =
+      `docs/evidence/b11/legal-${key}-approval.json`;
   }
   legalManifest.storeGate.status = 'closed';
+  submissionManifest.blockingGates.legalProviderIdentity = 'closed';
+  submissionManifest.blockingGates.copyrightOwner = 'closed';
   submissionManifest.blockingGates.termsAndUserContentRules = 'closed';
 
   const result = validate({

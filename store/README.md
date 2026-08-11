@@ -36,6 +36,11 @@ bei einem offenen Gate keinen Upload starten.
 
 `store/legal-readiness.json` bindet den Rechts-/Nutzerinhalts-Gate zusätzlich
 an die vier derzeitigen App-Texte und an die technische Registrierungskette.
+Die rechtliche Anbieteridentität und der Copyright-Inhaber sind eigene,
+fail-closed Freigaben: Ihr jeweiliger Store-Gate muss denselben Status haben
+und darf erst mit einem bereinigten JSON-Nachweis unter `docs/evidence/b11/`
+geschlossen werden. Im Entwurf bleiben alle Rechtsfreigaben offen und ohne
+Nachweisreferenz.
 Mindestalter, AGB und Datenschutz müssen separat und ausdrücklich bestätigt
 werden; App, Auth-Service und Backend dürfen diese Zustimmungen nicht
 vorausfüllen. Der Standardlauf akzeptiert den nachweislich unfreigegebenen
@@ -49,8 +54,8 @@ Der signierte Release-Preflight führt die Entwurfsprüfung immer aus und ruft
 bei `SIT_REQUIRE_STORE_SUBMISSION=1` zusätzlich `--require-approved` auf.
 Dieser Store-Modus bleibt geschlossen, bis alle vier Texte inhaltsgleich freigegeben,
 unter den kanonischen öffentlichen HTTPS-URLs erreichbar, alle erforderlichen
-Freigaben belegt und `termsAndUserContentRules` im Store-Manifest geschlossen
-sind. Der aktuelle Rechtsstatus bleibt ausdrücklich `draft`; der technische
+Freigaben belegt und die verbundenen Store-Gates geschlossen sind. Der
+aktuelle Rechtsstatus bleibt ausdrücklich `draft`; der technische
 Nachweis ist keine Rechtsberatung oder Rechtsfreigabe.
 
 `store/review-access.json` hält den Zugang für die zwei synthetischen

@@ -49,10 +49,26 @@
     }
   },
   "requiredApprovals": {
-    "legalProviderIdentity": "open",
-    "legalReview": "open",
-    "userContentModerationPolicy": "open",
-    "cancellationRefundDepositConsistency": "open"
+    "legalProviderIdentity": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "copyrightOwner": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "legalReview": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "userContentModerationPolicy": {
+      "status": "open",
+      "evidenceRef": null
+    },
+    "cancellationRefundDepositConsistency": {
+      "status": "open",
+      "evidenceRef": null
+    }
   },
   "storeGate": {
     "field": "blockingGates.termsAndUserContentRules",

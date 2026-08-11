@@ -32,6 +32,7 @@ const consentSourceContract = {
 
 const requiredApprovalKeys = [
   'legalProviderIdentity',
+  'copyrightOwner',
   'legalReview',
   'userContentModerationPolicy',
   'cancellationRefundDepositConsistency',
@@ -227,8 +228,35 @@ export function validateLegalReadiness({
     fail('requiredApprovals must contain exactly the required legal approvals.');
   }
   for (const key of requiredApprovalKeys) {
-    if (!['open', 'closed'].includes(approvals[key])) {
-      fail(`requiredApprovals.${key} must be open or closed.`);
+    const approval = object(approvals[key], `requiredApprovals.${key}`);
+    if (Object.keys(approval).sort().join(',') !== 'evidenceRef,status') {
+      fail(`requiredApprovals.${key} must contain exactly status and evidenceRef.`);
+    }
+    if (!['open', 'closed'].includes(approval.status)) {
+      fail(`requiredApprovals.${key}.status must be open or closed.`);
+    }
+    if (approval.status === 'open') {
+      if (approval.evidenceRef !== null) {
+        fail(`requiredApprovals.${key} open must not reference approval evidence.`);
+      }
+    } else {
+      const ref = nonEmptyString(
+        approval.evidenceRef,
+        `requiredApprovals.${key}.evidenceRef`,
+      );
+      if (!ref.startsWith('docs/evidence/b11/') || ref.includes('..') || !ref.endsWith('.json')) {
+        fail(`requiredApprovals.${key}.evidenceRef must stay under docs/evidence/b11.`);
+      }
+    }
+  }
+
+  const linkedApprovalGates = {
+    legalProviderIdentity: 'legalProviderIdentity',
+    copyrightOwner: 'copyrightOwner',
+  };
+  for (const [approvalKey, gateKey] of Object.entries(linkedApprovalGates)) {
+    if (approvals[approvalKey].status !== submission.blockingGates?.[gateKey]) {
+      fail(`requiredApprovals.${approvalKey} must match blockingGates.${gateKey}.`);
     }
   }
 
@@ -252,7 +280,12 @@ export function validateLegalReadiness({
   }
 
   const allDocumentsApproved = Object.values(documents).every((item) => item.status === 'approved');
-  const allApprovalsClosed = requiredApprovalKeys.every((key) => approvals[key] === 'closed');
+  const allApprovalsClosed = requiredApprovalKeys.every(
+    (key) => approvals[key].status === 'closed',
+  );
+  const allApprovalsOpen = requiredApprovalKeys.every(
+    (key) => approvals[key].status === 'open',
+  );
   const approved = legal.state === 'approved'
     && legal.approvalAllowed === true
     && allDocumentsApproved
@@ -260,8 +293,8 @@ export function validateLegalReadiness({
     && storeGate.status === 'closed';
 
   if (legal.state === 'draft') {
-    if (legal.approvalAllowed !== false || storeGate.status !== 'open') {
-      fail('Draft legal readiness must fail closed with approvalAllowed=false and an open store gate.');
+    if (legal.approvalAllowed !== false || storeGate.status !== 'open' || !allApprovalsOpen) {
+      fail('Draft legal readiness must fail closed with approvalAllowed=false and every legal approval open.');
     }
   } else if (!approved) {
     fail('Approved legal readiness is internally incomplete.');
