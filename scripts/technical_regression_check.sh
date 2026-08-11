@@ -33,6 +33,12 @@ node --check tool/validate_legal_readiness.mjs
 node --test test/tool/validate_legal_readiness.test.mjs
 node tool/validate_legal_readiness.mjs
 
+node --check tool/diagnose_store_review_accounts.mjs
+node --test test/tool/diagnose_store_review_accounts.test.mjs
+node --check tool/validate_store_review_access.mjs
+node --test test/tool/validate_store_review_access.test.mjs
+node tool/validate_store_review_access.mjs
+
 node --check tool/validate_device_evidence.mjs
 node --test test/tool/validate_device_evidence.test.mjs
 node tool/validate_device_evidence.mjs

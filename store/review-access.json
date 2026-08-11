@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "state": "testing",
+  "readyForStore": false,
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "bundleId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081101",
+    "commit": "3f28e43a18b3733e617b695f9dbc794370f6e05b"
+  },
+  "environment": {
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
+    "paymentMode": "memory",
+    "stripeLivemode": false
+  },
+  "roles": [
+    {
+      "role": "owner",
+      "credentialStorage": "owner-only-vault",
+      "status": "pending-verification"
+    },
+    {
+      "role": "renter",
+      "credentialStorage": "owner-only-vault",
+      "status": "pending-verification"
+    }
+  ],
+  "technicalAccess": {
+    "status": "testing",
+    "evidenceRef": "docs/evidence/b11/store-review-access-readiness-20260811.json"
+  },
+  "reviewScenarios": {
+    "ownerLogin": "pending",
+    "renterLogin": "pending",
+    "activeListing": "pending",
+    "acceptedBooking": "pending",
+    "sharedChat": "pending",
+    "freshInstall": "pending",
+    "secondNetwork": "pending",
+    "reportAndBlock": "pending",
+    "accountExport": "pending",
+    "accountDeletion": "pending"
+  },
+  "protectedStoreFields": {
+    "googlePlay": "pending",
+    "appStoreConnect": "pending",
+    "credentialsEmbedded": false
+  },
+  "instructions": {
+    "apple": "store/apple/review_notes_template_en.txt",
+    "googlePlay": "docs/operations/B11_STORE_SUBMISSION_PACKET_2026-08-09.md"
+  },
+  "storeGate": {
+    "field": "blockingGates.reviewAccounts",
+    "status": "open"
+  },
+  "boundaries": {
+    "containsSecrets": false,
+    "containsEmailAddresses": false,
+    "containsTokens": false,
+    "containsAccountIdentifiers": false,
+    "publicStoreChanged": false,
+    "productionChanged": false
+  }
+}

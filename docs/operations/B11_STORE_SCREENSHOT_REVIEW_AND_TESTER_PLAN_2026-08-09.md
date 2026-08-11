@@ -126,6 +126,21 @@ Reviewzeitraum und läuft nicht automatisch ab. Falls eine E-Mail-Verifizierung
 nötig ist, wird das Konto vorher verifiziert. Reviewkonten dürfen keine
 Produktionsrechte und keine Verbindung zu realen Zahlungsdaten besitzen.
 
+Der maschinenlesbare Status liegt in `store/review-access.json`; der bereinigte
+Nachweis liegt ausschließlich unter `docs/evidence/b11/`. Die Prüfung mit
+`tool/diagnose_store_review_accounts.mjs` darf keine Konto-, Fixture- oder
+Sessionkennungen ausgeben. Sie erzeugt beim Login lediglich technische
+Testsitzungen und verändert keine Inserate, Buchungen, Nachrichten oder
+Produktionsdaten. `tool/validate_store_review_access.mjs --require-ready`
+sperrt jede Store-Einreichung, solange die realen Review-Szenarien, die
+geschützten Store-Felder oder `blockingGates.reviewAccounts` offen sind.
+
+Status vom 11. August 2026: Ein neuer synthetischer Rollen-Satz wurde auf
+Staging akzeptiert und wartet auf die E-Mail-Bestätigung. Die ältere
+Chat-Buchung ist storniert und wird bewusst nicht als gültiger Review-Fall
+gezählt. Bis zur Verifizierung und Neuaufbereitung bleiben alle Review-
+Szenarien auf `pending` und `readyForStore=false`.
+
 Für die Review-Konten werden folgende Zustände vorbereitet:
 
 1. ein sichtbares, buchbares Inserat des Vermieters;

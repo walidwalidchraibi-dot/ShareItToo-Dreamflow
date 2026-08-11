@@ -42,6 +42,33 @@ Freigaben belegt und `termsAndUserContentRules` im Store-Manifest geschlossen
 sind. Der aktuelle Rechtsstatus bleibt ausdrücklich `draft`; der technische
 Nachweis ist keine Rechtsberatung oder Rechtsfreigabe.
 
+`store/review-access.json` hält den Zugang für die zwei synthetischen
+Store-Review-Rollen getrennt vom Geräte- und Rechtsstatus fest. Zugangsdaten
+bleiben ausschließlich in einem privaten, nur für den Eigentümer lesbaren
+Tresor außerhalb des Repositories und später in den geschützten Store-Feldern.
+Die technische Diagnose meldet beide Rollen per Passwort an und liest nur
+Konto-, Inserat-, Buchungs- und Chatstatus; sie gibt weder E-Mail-Adressen,
+Passwörter, Tokens noch interne Objektkennungen aus:
+
+```text
+node tool/diagnose_store_review_accounts.mjs
+node tool/validate_store_review_access.mjs
+```
+
+Der aktuelle Zustand ist ehrlich `testing`: Ein neuer Kontensatz ist auf
+Staging registriert, wartet aber noch auf die E-Mail-Bestätigung. Frühere
+synthetische Buchungsfälle sind storniert und werden deshalb nicht als
+Review-Nachweis wiederverwendet. Der strenge Release-Gate bleibt geschlossen:
+
+```text
+node tool/validate_store_review_access.mjs --require-ready
+```
+
+Erst nach frischer Installation, Zweitnetz, Melden/Blockieren, Datenexport,
+Kontolöschung und Eintrag beider Konten in die geschützten Store-Felder dürfen
+`readyForStore`, der Store-Gate `reviewAccounts` und der strenge Validator
+gemeinsam auf bestanden wechseln.
+
 Der Gerätevalidator bleibt derzeit bewusst bei `state=testing`,
 `goNoGo=hold`, `matrix=0/4` und `releaseChecks=4/7`. Kandidatenidentität und
 Signaturen, Staging-Bereinigung/-Gesundheit sowie die Produktionsinvariante

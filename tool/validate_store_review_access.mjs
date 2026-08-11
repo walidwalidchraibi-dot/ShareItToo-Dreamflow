@@ -1,0 +1,284 @@
+#!/usr/bin/env node
+
+import { lstatSync, readFileSync, realpathSync } from 'node:fs';
+import { isAbsolute, relative, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const requiredChecks = [
+  'isolatedStagingFixture',
+  'ownerPasswordLoginWithoutOtp',
+  'renterPasswordLoginWithoutOtp',
+  'ownerActiveVerifiedAndConsented',
+  'renterActiveVerifiedAndConsented',
+  'ownerListingVisible',
+  'acceptedBookingVisibleToBothRoles',
+  'sharedChatVisibleToBothRoles',
+  'sharedChatReadableByBothRoles',
+];
+const requiredScenarios = [
+  'ownerLogin',
+  'renterLogin',
+  'activeListing',
+  'acceptedBooking',
+  'sharedChat',
+  'freshInstall',
+  'secondNetwork',
+  'reportAndBlock',
+  'accountExport',
+  'accountDeletion',
+];
+const forbiddenSensitiveKeys = /^(password|secret|token|apiKey|privateKey|serviceAccount|credential|credentials|reviewPassword|reviewUsername|accountIdentifier|emailAddress)$/i;
+const emailPattern = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
+
+function fail(message) {
+  throw new Error(message);
+}
+
+function object(value, label) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    fail(`${label} must be an object.`);
+  }
+  return value;
+}
+
+function assertSanitized(value, label = 'review access') {
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => assertSanitized(entry, `${label}[${index}]`));
+    return;
+  }
+  if (typeof value === 'string') {
+    if (emailPattern.test(value)) fail(`${label} must not contain an email address.`);
+    return;
+  }
+  if (value === null || typeof value !== 'object') return;
+  for (const [key, entry] of Object.entries(value)) {
+    if (forbiddenSensitiveKeys.test(key)) {
+      const allowedBoundary = [
+        'containsSecrets',
+        'containsEmailAddresses',
+        'containsTokens',
+        'containsAccountIdentifiers',
+      ].includes(key) && entry === false;
+      const allowedStorage = key === 'credentialStorage' && entry === 'owner-only-vault';
+      if (!allowedBoundary && !allowedStorage) {
+        fail(`${label}.${key} must not contain sensitive account or credential data.`);
+      }
+    }
+    assertSanitized(entry, `${label}.${key}`);
+  }
+}
+
+function readEvidence(root, ref) {
+  if (typeof ref !== 'string' || isAbsolute(ref) || ref.includes('..')
+      || !ref.startsWith('docs/evidence/b11/') || !ref.endsWith('.json')) {
+    fail('technicalAccess.evidenceRef must be a B11 JSON evidence path.');
+  }
+  const evidenceRoot = resolve(root, 'docs/evidence/b11');
+  const fullPath = resolve(root, ref);
+  const rel = relative(evidenceRoot, fullPath);
+  if (rel.startsWith('..') || isAbsolute(rel)) fail('The review evidence path escapes B11 evidence.');
+  let stat;
+  try {
+    stat = lstatSync(fullPath);
+  } catch {
+    fail('The review access evidence file does not exist.');
+  }
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size < 2 || stat.size > 1024 * 1024) {
+    fail('The review access evidence must be a non-empty regular file.');
+  }
+  const canonicalRel = relative(realpathSync(evidenceRoot), realpathSync(fullPath));
+  if (canonicalRel.startsWith('..') || isAbsolute(canonicalRel)) {
+    fail('The review access evidence escapes B11 evidence through a link.');
+  }
+  let evidence;
+  try {
+    evidence = JSON.parse(readFileSync(fullPath, 'utf8'));
+  } catch {
+    fail('The review access evidence must contain valid JSON.');
+  }
+  return object(evidence, 'review evidence');
+}
+
+function assertSameCandidate(actual, expected, label) {
+  for (const key of ['applicationId', 'bundleId', 'versionName', 'buildNumber', 'commit']) {
+    if (actual?.[key] !== expected?.[key]) fail(`${label}.${key} must match the device candidate.`);
+  }
+}
+
+function assertFalseBoundaries(boundaries, label, keys) {
+  for (const key of keys) {
+    if (boundaries[key] !== false) fail(`${label}.${key} must be false.`);
+  }
+}
+
+export function validateStoreReviewAccess({
+  root,
+  reviewManifest,
+  deviceManifest,
+  submissionManifest,
+  evidenceOverride = null,
+  requireReady = false,
+}) {
+  const review = object(reviewManifest, 'store/review-access.json');
+  const device = object(deviceManifest, 'store/device-validation.json');
+  const submission = object(submissionManifest, 'store/submission.json');
+  assertSanitized(review);
+  if (review.schemaVersion !== 1 || !['testing', 'passed'].includes(review.state)) {
+    fail('review access must use schemaVersion 1 and state testing or passed.');
+  }
+  if (typeof review.readyForStore !== 'boolean') fail('readyForStore must be boolean.');
+  assertSameCandidate(review.candidate, device.candidate, 'candidate');
+  const environment = object(review.environment, 'environment');
+  if (environment.apiBaseUrl !== device.candidate?.apiBaseUrl
+      || environment.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1'
+      || environment.paymentMode !== device.candidate?.paymentMode
+      || environment.paymentMode !== 'memory'
+      || environment.stripeLivemode !== false
+      || device.candidate?.stripeLivemode !== false) {
+    fail('review access must remain on isolated, non-live Staging.');
+  }
+  if (!Array.isArray(review.roles) || review.roles.length !== 2
+      || review.roles.map((entry) => entry.role).join(',') !== 'owner,renter') {
+    fail('review access must contain exactly owner and renter roles.');
+  }
+  for (const role of review.roles) {
+    const expectedRoleStatus = review.technicalAccess?.status === 'passed'
+      ? 'verified'
+      : 'pending-verification';
+    if (role.credentialStorage !== 'owner-only-vault' || role.status !== expectedRoleStatus) {
+      fail(`review roles must be ${expectedRoleStatus} and stored only in the owner-only vault.`);
+    }
+  }
+  const technical = object(review.technicalAccess, 'technicalAccess');
+  if (!['testing', 'passed'].includes(technical.status)) {
+    fail('technicalAccess.status must be testing or passed.');
+  }
+  const evidence = evidenceOverride ?? readEvidence(root, technical.evidenceRef);
+  assertSanitized(evidence, 'review evidence');
+  const expectedEvidenceStatus = technical.status === 'passed'
+    ? 'technical-review-access-passed-store-fields-pending'
+    : 'review-accounts-refresh-pending-email-verification';
+  if (evidence.schemaVersion !== 1
+      || evidence.kind !== 'store-review-access-diagnostic'
+      || evidence.status !== expectedEvidenceStatus
+      || Number.isNaN(Date.parse(evidence.capturedAt))) {
+    fail('review evidence must match the current technical access state.');
+  }
+  assertSameCandidate(evidence.candidate, device.candidate, 'review evidence.candidate');
+  if (technical.status === 'passed') {
+    for (const key of requiredChecks) {
+      if (evidence.checks?.[key] !== true) fail(`review evidence.checks.${key} must be true.`);
+    }
+  } else if (evidence.checks?.privateVaultCreated !== true
+      || evidence.checks?.registrationsAccepted !== true
+      || evidence.checks?.emailVerificationPending !== true
+      || evidence.checks?.liveAccessPassed !== false) {
+    fail('testing review evidence must honestly record the pending verification boundary.');
+  }
+  if (evidence.environment?.apiBaseUrl !== environment.apiBaseUrl
+      || evidence.environment?.paymentMode !== 'memory'
+      || evidence.environment?.stripeLivemode !== false
+      || evidence.environment?.paymentEndpointCalled !== false) {
+    fail('review evidence environment must prove non-live Staging without payment calls.');
+  }
+  assertFalseBoundaries(object(evidence.boundaries, 'review evidence.boundaries'), 'review evidence.boundaries', [
+    'containsSecrets',
+    'containsEmailAddresses',
+    'containsTokens',
+    'containsAccountIdentifiers',
+    'containsFixtureIdentifiers',
+    'publicStoreChanged',
+    'productionChanged',
+  ]);
+  if (evidence.boundaries.productDataReadOnly !== true
+      || evidence.boundaries.businessDataMutations !== false
+      || evidence.boundaries.syntheticAccountsOnly !== true) {
+    fail('review evidence must prove read-only business data and synthetic-only scope.');
+  }
+  if (technical.status === 'passed'
+      && evidence.boundaries.authenticationSessionsCreated !== true) {
+    fail('passed review evidence must disclose that authentication sessions were created.');
+  }
+  if (technical.status === 'testing'
+      && evidence.boundaries.syntheticAccountRegistrationsCreated !== true) {
+    fail('testing review evidence must disclose the synthetic account registrations.');
+  }
+  const scenarios = object(review.reviewScenarios, 'reviewScenarios');
+  if (Object.keys(scenarios).sort().join(',') !== requiredScenarios.slice().sort().join(',')) {
+    fail('reviewScenarios must contain exactly the required checks.');
+  }
+  for (const key of requiredScenarios) {
+    if (!['pending', 'passed'].includes(scenarios[key])) fail(`reviewScenarios.${key} is invalid.`);
+  }
+  const protectedFields = object(review.protectedStoreFields, 'protectedStoreFields');
+  if (!['pending', 'passed'].includes(protectedFields.googlePlay)
+      || !['pending', 'passed'].includes(protectedFields.appStoreConnect)
+      || protectedFields.credentialsEmbedded !== false) {
+    fail('protectedStoreFields must remain credential-free and explicitly tracked.');
+  }
+  const storeGate = object(review.storeGate, 'storeGate');
+  if (storeGate.field !== 'blockingGates.reviewAccounts'
+      || storeGate.status !== submission.blockingGates?.reviewAccounts) {
+    fail('review access store gate must match store/submission.json.');
+  }
+  assertFalseBoundaries(object(review.boundaries, 'boundaries'), 'boundaries', [
+    'containsSecrets',
+    'containsEmailAddresses',
+    'containsTokens',
+    'containsAccountIdentifiers',
+    'publicStoreChanged',
+    'productionChanged',
+  ]);
+
+  const fullyReady = review.state === 'passed'
+    && review.readyForStore === true
+    && technical.status === 'passed'
+    && Object.values(scenarios).every((status) => status === 'passed')
+    && protectedFields.googlePlay === 'passed'
+    && protectedFields.appStoreConnect === 'passed'
+    && storeGate.status === 'closed';
+  if (requireReady && !fullyReady) fail('Store review access is not fully ready.');
+  if (!requireReady && review.state === 'passed' && !fullyReady) {
+    fail('A passed review access manifest must be fully ready.');
+  }
+  if (review.readyForStore !== fullyReady) fail('readyForStore must match the proven review readiness state.');
+  return Object.freeze({
+    state: review.state,
+    readyForStore: review.readyForStore,
+    technicalAccess: technical.status,
+    passedScenarios: Object.values(scenarios).filter((status) => status === 'passed').length,
+    totalScenarios: requiredScenarios.length,
+    storeGate: storeGate.status,
+    containsSecrets: false,
+  });
+}
+
+function readJson(path) {
+  return JSON.parse(readFileSync(path, 'utf8'));
+}
+
+function cliOptions(argv) {
+  const options = { requireReady: false };
+  for (const argument of argv) {
+    if (argument === '--require-ready') options.requireReady = true;
+    else fail(`Unknown argument: ${argument}`);
+  }
+  return options;
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  try {
+    const root = realpathSync(resolve(fileURLToPath(new URL('..', import.meta.url))));
+    const result = validateStoreReviewAccess({
+      root,
+      reviewManifest: readJson(resolve(root, 'store/review-access.json')),
+      deviceManifest: readJson(resolve(root, 'store/device-validation.json')),
+      submissionManifest: readJson(resolve(root, 'store/submission.json')),
+      ...cliOptions(process.argv.slice(2)),
+    });
+    process.stdout.write(`${JSON.stringify(result)}\n`);
+  } catch (error) {
+    process.stderr.write(`ERROR: ${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  }
+}
