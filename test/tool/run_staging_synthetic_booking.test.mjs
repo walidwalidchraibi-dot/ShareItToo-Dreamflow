@@ -7,8 +7,10 @@ import test from 'node:test';
 
 import {
   archiveCompletedSyntheticBookingFixture,
+  archiveTerminalSyntheticBookingFixture,
   createSyntheticBookingFixture,
   prepareSyntheticBookingThread,
+  reconcileSyntheticBookingFixture,
   sendSyntheticBookingDiagnosticMessage,
   transitionSyntheticBookingFixture,
 } from '../../tool/run_staging_synthetic_booking.mjs';
@@ -221,6 +223,73 @@ test('refuses to archive an active fixture', async () => {
       nextRunId: 'next-private-run',
     }),
     /Only a completed, payment-free Staging fixture can be archived/,
+  );
+});
+
+test('reconciles and archives a server-cancelled payment-free fixture', async () => {
+  const fixture = vaultFixture();
+  await createSyntheticBookingFixture({
+    ...fixture,
+    fetchImpl: createFetch([]),
+    random: () => Buffer.from('a1b2c3d4', 'hex'),
+  });
+  const storedBefore = JSON.parse(readFileSync(fixture.vaultFile, 'utf8'));
+  const result = await reconcileSyntheticBookingFixture({
+    ...fixture,
+    now: new Date('2026-08-11T07:50:00.000Z'),
+    fetchImpl: async (url) => {
+      const path = new URL(url).pathname.replace('/api/v1', '');
+      if (path === '/auth/login') return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+      if (path === '/rental-requests') {
+        return response(200, {requests: [{
+          id: storedBefore.syntheticBooking.bookingId,
+          workflowStatus: 'cancelled',
+        }]});
+      }
+      throw new Error(`Unexpected path ${path}`);
+    },
+  });
+  assert.deepEqual(result, {
+    status: 'synthetic-booking-reconciled-terminal',
+    workflowStatus: 'cancelled',
+    terminal: true,
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+    containsSecrets: false,
+    containsEmailAddresses: false,
+    containsTokens: false,
+    containsFixtureIdentifiers: false,
+  });
+  const reconciled = JSON.parse(readFileSync(fixture.vaultFile, 'utf8'));
+  assert.equal(reconciled.status, 'synthetic-booking-terminal');
+  assert.equal(reconciled.syntheticBooking.workflowStatus, 'cancelled');
+
+  const archived = archiveTerminalSyntheticBookingFixture({
+    vaultFile: fixture.vaultFile,
+    nextRunId: 'fresh-push-run',
+  });
+  assert.equal(archived.readyForNextFixture, true);
+  assert.equal(archived.containsFixtureIdentifiers, false);
+  const ready = JSON.parse(readFileSync(fixture.vaultFile, 'utf8'));
+  assert.equal(ready.status, 'fixture-verified-ready-for-login');
+  assert.equal(ready.syntheticBooking, undefined);
+  assert.equal(ready.syntheticBookingHistory.at(-1).workflowStatus, 'cancelled');
+});
+
+test('refuses terminal archive before server reconciliation', async () => {
+  const fixture = vaultFixture();
+  await createSyntheticBookingFixture({
+    ...fixture,
+    fetchImpl: createFetch([]),
+    random: () => Buffer.from('a1b2c3d4', 'hex'),
+  });
+  assert.throws(
+    () => archiveTerminalSyntheticBookingFixture({
+      vaultFile: fixture.vaultFile,
+      nextRunId: 'fresh-push-run',
+    }),
+    /Only a reconciled terminal, payment-free Staging fixture can be archived/,
   );
 });
 

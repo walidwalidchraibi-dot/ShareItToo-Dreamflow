@@ -18,6 +18,7 @@ const allowedTransitions = new Map([
   ['running', { role: 'renter', previous: 'accepted', result: 'active' }],
   ['completed', { role: 'owner', previous: 'active', result: 'completed' }],
 ]);
+const terminalWorkflowStatuses = new Set(['completed', 'declined', 'cancelled', 'refunded']);
 
 function fail(message) {
   throw new Error(message);
@@ -61,7 +62,7 @@ function readVault(vaultFile) {
       || vault?.kind !== 'sit-staging-synthetic-account-vault'
       || vault?.apiBaseUrl !== stagingApiBaseUrl
       || vault?.stripeLivemode !== false
-      || !['fixture-verified-ready-for-login', 'email-link-verified-ready-for-login', 'synthetic-booking-active', 'synthetic-booking-completed'].includes(vault?.status)
+      || !['fixture-verified-ready-for-login', 'email-link-verified-ready-for-login', 'synthetic-booking-active', 'synthetic-booking-completed', 'synthetic-booking-terminal'].includes(vault?.status)
       || !Array.isArray(vault?.accounts)
       || vault.accounts.length !== 2) {
     fail('The vault is not an isolated, verified Staging role set.');
@@ -406,6 +407,101 @@ export function archiveCompletedSyntheticBookingFixture({
   });
 }
 
+export async function reconcileSyntheticBookingFixture({
+  vaultFile,
+  fetchImpl = globalThis.fetch,
+  now = new Date(),
+} = {}) {
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
+    fail('The fixture reconciliation timestamp is invalid.');
+  }
+  const { path, vault, accounts } = readVault(vaultFile);
+  const fixture = vault.syntheticBooking;
+  if (!fixture || fixture.paymentEndpointCalled !== false || fixture.stripeLivemode !== false) {
+    fail('The active synthetic booking fixture is missing or unsafe.');
+  }
+  const token = await login(fetchImpl, accounts.get('owner'));
+  const result = await request(fetchImpl, '/rental-requests', { token });
+  const booking = Array.isArray(result?.requests)
+    ? result.requests.find((entry) => entry?.id === fixture.bookingId)
+    : null;
+  const workflowStatus = booking?.workflowStatus;
+  if (typeof workflowStatus !== 'string'
+      || ![
+        'draft', 'requested', 'accepted', 'payment_pending', 'confirmed',
+        'active', 'returned', 'completed', 'declined', 'cancelled',
+        'refunded', 'disputed',
+      ].includes(workflowStatus)) {
+    fail('The synthetic booking could not be reconciled safely.');
+  }
+  fixture.workflowStatus = workflowStatus;
+  fixture.reconciledAt = now.toISOString();
+  vault.status = terminalWorkflowStatuses.has(workflowStatus)
+    ? 'synthetic-booking-terminal'
+    : 'synthetic-booking-active';
+  saveVault(path, vault);
+  return Object.freeze({
+    status: terminalWorkflowStatuses.has(workflowStatus)
+      ? 'synthetic-booking-reconciled-terminal'
+      : 'synthetic-booking-reconciled-active',
+    workflowStatus,
+    terminal: terminalWorkflowStatuses.has(workflowStatus),
+    paymentMode: fixture.paymentMode,
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+    containsSecrets: false,
+    containsEmailAddresses: false,
+    containsTokens: false,
+    containsFixtureIdentifiers: false,
+  });
+}
+
+export function archiveTerminalSyntheticBookingFixture({
+  vaultFile,
+  nextRunId,
+  now = new Date(),
+} = {}) {
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
+    fail('The fixture archive timestamp is invalid.');
+  }
+  if (typeof nextRunId !== 'string'
+      || nextRunId.length < 4
+      || nextRunId.length > 80
+      || !/^[A-Za-z0-9_-]+$/.test(nextRunId)) {
+    fail('The next synthetic run identifier is invalid.');
+  }
+  const { path, vault } = readVault(vaultFile);
+  const fixture = vault.syntheticBooking;
+  if (vault.status !== 'synthetic-booking-terminal'
+      || !terminalWorkflowStatuses.has(fixture?.workflowStatus)
+      || fixture?.paymentMode !== 'memory'
+      || fixture?.stripeLivemode !== false
+      || fixture?.paymentEndpointCalled !== false) {
+    fail('Only a reconciled terminal, payment-free Staging fixture can be archived.');
+  }
+  const history = Array.isArray(vault.syntheticBookingHistory)
+    ? vault.syntheticBookingHistory.slice(-19)
+    : [];
+  history.push({ ...fixture, archivedAt: now.toISOString() });
+  vault.syntheticBookingHistory = history;
+  delete vault.syntheticBooking;
+  vault.runId = nextRunId;
+  vault.status = 'fixture-verified-ready-for-login';
+  saveVault(path, vault);
+  return Object.freeze({
+    status: 'synthetic-booking-terminal-archived',
+    historyCount: history.length,
+    readyForNextFixture: true,
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+    containsSecrets: false,
+    containsEmailAddresses: false,
+    containsTokens: false,
+    containsFixtureIdentifiers: false,
+  });
+}
+
 export async function prepareSyntheticBookingThread({
   vaultFile,
   actorRole = 'owner',
@@ -496,6 +592,13 @@ if (invokedPath === import.meta.url) {
   try {
     const result = command === 'create'
       ? await createSyntheticBookingFixture({ vaultFile })
+      : command === 'reconcile'
+        ? await reconcileSyntheticBookingFixture({ vaultFile })
+        : command === 'archive-terminal'
+          ? archiveTerminalSyntheticBookingFixture({
+              vaultFile,
+              nextRunId: cliValue(process.argv.slice(2), '--next-run-id'),
+            })
       : command === 'archive-completed'
         ? archiveCompletedSyntheticBookingFixture({
             vaultFile,

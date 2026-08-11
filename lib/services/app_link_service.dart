@@ -25,6 +25,43 @@ class AppLinkTarget {
   const AppLinkTarget({required this.kind, required this.uri, this.id});
 }
 
+class AppLinkTargetInbox {
+  static const duplicateWindow = Duration(seconds: 5);
+
+  final DateTime Function() _now;
+  AppLinkTarget? _pending;
+  Uri? _lastAcceptedUri;
+  DateTime? _lastAcceptedAt;
+
+  AppLinkTargetInbox({DateTime Function()? now}) : _now = now ?? DateTime.now;
+
+  AppLinkTarget? takePending() {
+    final target = _pending;
+    _pending = null;
+    return target;
+  }
+
+  bool accept(String raw) {
+    if (raw.isEmpty || raw == '/') return false;
+    final uri = Uri.tryParse(raw);
+    final target = uri == null ? null : AppLinkParser.parse(uri);
+    if (target == null) return false;
+
+    final acceptedAt = _now();
+    final previousAt = _lastAcceptedAt;
+    if (_lastAcceptedUri == uri &&
+        previousAt != null &&
+        acceptedAt.difference(previousAt) <= duplicateWindow) {
+      return false;
+    }
+
+    _pending = target;
+    _lastAcceptedUri = uri;
+    _lastAcceptedAt = acceptedAt;
+    return true;
+  }
+}
+
 class AppLinkBuilder {
   static Uri listing(String itemId) => _publicTarget('listing', itemId);
 
@@ -144,15 +181,14 @@ class AppLinkParser {
 }
 
 class AppLinkController extends ChangeNotifier with WidgetsBindingObserver {
-  AppLinkTarget? _pending;
+  final AppLinkTargetInbox _inbox;
   bool _initialized = false;
   StreamSubscription<Uri>? _firebaseActionSubscription;
 
-  AppLinkTarget? takePending() {
-    final target = _pending;
-    _pending = null;
-    return target;
-  }
+  AppLinkController({AppLinkTargetInbox? inbox})
+      : _inbox = inbox ?? AppLinkTargetInbox();
+
+  AppLinkTarget? takePending() => _inbox.takePending();
 
   void initialize() {
     if (_initialized) return;
@@ -177,12 +213,7 @@ class AppLinkController extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _accept(String raw) {
-    if (raw.isEmpty || raw == '/') return;
-    final uri = Uri.tryParse(raw);
-    final target = uri == null ? null : AppLinkParser.parse(uri);
-    if (target == null) return;
-    _pending = target;
-    notifyListeners();
+    if (_inbox.accept(raw)) notifyListeners();
   }
 
   @override

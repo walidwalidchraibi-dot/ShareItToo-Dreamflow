@@ -107,4 +107,35 @@ void main() {
       isNull,
     );
   });
+
+  test('keeps one pending target and suppresses duplicate push ingress', () {
+    var now = DateTime.utc(2026, 8, 11, 8);
+    final inbox = AppLinkTargetInbox(now: () => now);
+    const raw =
+        'https://staging.shareittoo.com/api/v1/open/booking/booking-123';
+
+    expect(inbox.accept(raw), isTrue);
+    expect(inbox.takePending()?.id, 'booking-123');
+
+    now = now.add(const Duration(seconds: 1));
+    expect(inbox.accept(raw), isFalse);
+    expect(inbox.takePending(), isNull);
+
+    now = now.add(AppLinkTargetInbox.duplicateWindow);
+    expect(inbox.accept(raw), isTrue);
+    expect(inbox.takePending()?.kind, AppLinkKind.booking);
+  });
+
+  test('does not let an invalid link replace a valid pending target', () {
+    final inbox = AppLinkTargetInbox();
+    expect(
+      inbox.accept('shareittoo://chat/thread_456'),
+      isTrue,
+    );
+    expect(
+      inbox.accept('https://attacker.example/open/booking/booking-123'),
+      isFalse,
+    );
+    expect(inbox.takePending()?.id, 'thread_456');
+  });
 }
