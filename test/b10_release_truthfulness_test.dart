@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -112,6 +113,67 @@ void main() {
         hasSession: false,
       ),
       isTrue,
+    );
+  });
+
+  test(
+      'transient profile failure may reuse only the exact active-session cache',
+      () {
+    final cached = User(
+      id: 'owner-1',
+      displayName: 'SIT Owner',
+      email: 'owner@synthetic.invalid',
+      city: 'Berlin',
+      country: 'DE',
+      preferredLanguage: 'de-DE',
+      isVerified: true,
+      isBanned: false,
+      role: 'user',
+      avgRating: 0,
+      reviewCount: 0,
+      createdAt: DateTime.utc(2026, 8, 11),
+    );
+    const matchingSession = AuthSession(
+      userId: 'owner-1',
+      email: 'owner@synthetic.invalid',
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      sessionId: 'session',
+    );
+
+    expect(
+      DataService.cachedCurrentUserForSession(
+        encodedUser: jsonEncode(cached.toJson()),
+        session: matchingSession,
+      )?.id,
+      'owner-1',
+    );
+    expect(
+      DataService.cachedCurrentUserForSession(
+        encodedUser: jsonEncode(cached.toJson()),
+        session: null,
+      ),
+      isNull,
+    );
+    expect(
+      DataService.cachedCurrentUserForSession(
+        encodedUser: jsonEncode(cached.toJson()),
+        session: const AuthSession(
+          userId: 'different-user',
+          email: 'owner@synthetic.invalid',
+        ),
+      ),
+      isNull,
+    );
+    expect(
+      DataService.cachedCurrentUserForSession(
+        encodedUser: jsonEncode(cached.toJson()),
+        session: const AuthSession(
+          userId: 'owner-1',
+          email: 'different@synthetic.invalid',
+        ),
+      ),
+      isNull,
     );
   });
 

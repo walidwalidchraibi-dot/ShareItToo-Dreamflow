@@ -85,6 +85,45 @@ class DataService {
   }) =>
       !backendEnabled || hasSession;
 
+  @visibleForTesting
+  static User? cachedCurrentUserForSession({
+    required String? encodedUser,
+    required AuthSession? session,
+  }) {
+    if (session == null || encodedUser == null || encodedUser.isEmpty) {
+      return null;
+    }
+    try {
+      final decoded = jsonDecode(encodedUser);
+      if (decoded is! Map) return null;
+      final user = User.fromJson(Map<String, dynamic>.from(decoded));
+      final sessionUserId = (session.userId ?? '').trim();
+      if (sessionUserId.isEmpty || user.id.trim() != sessionUserId) return null;
+      final sessionEmail = session.email.trim().toLowerCase();
+      if (sessionEmail.isEmpty ||
+          user.email.trim().toLowerCase() != sessionEmail) {
+        return null;
+      }
+      return user;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<User?> getCachedCurrentUserForSession(
+      AuthSession? session) async {
+    if (session == null) return null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return cachedCurrentUserForSession(
+        encodedUser: prefs.getString(_currentUserKey),
+        session: session,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<void> _persistMessageThreads(
     SharedPreferences prefs,
     List<dynamic> threads,

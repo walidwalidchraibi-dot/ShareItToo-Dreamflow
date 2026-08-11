@@ -255,14 +255,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _load() async {
     User? maybeUser;
-    bool hasSession = false;
+    AuthSession? session;
     try {
+      session = await AuthService.readSession();
       maybeUser = await DataService.getCurrentUser();
-      hasSession = await AuthService.readSession() != null;
     } catch (e, st) {
       debugPrint('[Profile] Failed to load user: $e');
       debugPrint(st.toString());
+      // Keep the exact session-bound cached profile visible while offline.
+      // A real logout or mismatched cache continues to fail closed.
+      session = await AuthService.readSession();
+      maybeUser = await DataService.getCachedCurrentUserForSession(session);
+    }
+
+    // An authoritative refresh rejection may remove the session while the
+    // profile request is in flight, so confirm it once more after hydration.
+    session = await AuthService.readSession();
+    final hasSession = session != null;
+    if (!hasSession) {
       maybeUser = null;
+    } else {
+      maybeUser ??= await DataService.getCachedCurrentUserForSession(session);
     }
 
     final bool loggedOut = !hasSession || maybeUser == null;
