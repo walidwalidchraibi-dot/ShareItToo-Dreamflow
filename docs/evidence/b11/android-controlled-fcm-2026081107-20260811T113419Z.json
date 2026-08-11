@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "kind": "android-controlled-fcm-diagnostic",
-  "status": "passed-bounded-background-fcm-icon-visual-failed",
-  "capturedAt": "2026-08-11T11:00:33Z",
+  "status": "passed-bounded-background-fcm-and-centered-icon-visual",
+  "capturedAt": "2026-08-11T11:34:19Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081106",
-    "commit": "5c8c4ddcdea221a8520336aa06e017945f2ce733",
-    "apkSha256": "4559246a6b4be9daf5be2bcd1d9c7f5440b4c991f0f461ef200430a47ced83b8",
+    "buildNumber": "2026081107",
+    "commit": "99de848db090372f09d9c6f2fe3b838329584677",
+    "apkSha256": "ae249b35d5724b11dda182765cf0482ade540dbd13b0d08c07af0cf25a8738ab",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "stripeLivemode": false
   },
@@ -34,9 +34,9 @@
       "result": "not-claimed-for-this-candidate"
     },
     "notificationIconVisual": {
-      "status": "failed",
-      "result": "user-confirmed-brand-glyph-clipped-outside-system-circle",
-      "privateDiagnosticScreenshotSha256": "ab283128fe5eda29baa67457569ef6e27168180bde44103ddd30447d23170a2f",
+      "status": "passed",
+      "result": "brand-glyph-centered-and-fully-contained-within-system-circle-with-even-visible-safety-margin",
+      "privateDiagnosticScreenshotSha256": "09474432578971f14b91cbef900a4fbf0f91a2a50afd6aee20fb3050c3d91131",
       "privateDiagnosticScreenshotCommitted": false
     }
   },

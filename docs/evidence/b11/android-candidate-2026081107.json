@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "installed-launched-guest-and-authenticated-diagnostics-passed-background-fcm-passed",
-  "generatedAt": "2026-08-11T10:38:49Z",
+  "status": "installed-launched-and-background-fcm-centered-icon-passed",
+  "generatedAt": "2026-08-11T11:25:21Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081106",
-    "commit": "5c8c4ddcdea221a8520336aa06e017945f2ce733",
+    "buildNumber": "2026081107",
+    "commit": "99de848db090372f09d9c6f2fe3b838329584677",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
@@ -17,8 +17,8 @@
   },
   "android": {
     "delivery": "pending",
-    "aabSha256": "63c929874ca11fe46d0e16083cd9faa4dc89cad1b16305f0de5f1e7ece9a0297",
-    "apkSha256": "4559246a6b4be9daf5be2bcd1d9c7f5440b4c991f0f461ef200430a47ced83b8",
+    "aabSha256": "5dea2813a9e57343f7896faa44a41904f1a585ef6cc0d2992135dc1d970eab3b",
+    "apkSha256": "ae249b35d5724b11dda182765cf0482ade540dbd13b0d08c07af0cf25a8738ab",
     "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
     "signatureVerified": true,
     "packageIdentityVerified": true,
@@ -26,7 +26,7 @@
   },
   "privacyAndNetwork": {
     "binaryScan": "passed",
-    "binaryScanReportSha256": "62cd27ac89e15f42fd89b6059df1b2be0f78d736eb492f5be61fdccc7b916e59",
+    "binaryScanReportSha256": "3aa28f842f7390474e98b385e52e0f7007327cbf2a3cfbdf60ef657624ab9afc",
     "targetSdkVersion": 35,
     "backupDisabled": true,
     "cleartextTrafficDisabled": true,
@@ -43,10 +43,10 @@
     "directInstallAndLaunch": "passed",
     "crashlyticsMappingAndNativeSymbols": "pending",
     "crashlyticsReleaseAssignment": "pending",
-    "guestAppLinks": "passed",
-    "authenticatedSessionRestore": "passed",
+    "guestAppLinks": "pending",
+    "authenticatedSessionRestore": "pending",
     "syntheticRoleBooking": "pending",
-    "authenticatedDeepLinks": "passed",
+    "authenticatedDeepLinks": "pending",
     "foregroundFcm": "pending",
     "backgroundFcm": "passed",
     "terminatedProcessFcm": "pending",
@@ -55,8 +55,8 @@
     "offlineRealtimeRecovery": "pending"
   },
   "controlledFcm": {
-    "status": "partial-background-passed-icon-visual-failed",
-    "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081106-20260811T110033Z.json"
+    "status": "partial-background-and-centered-icon-visual-passed",
+    "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081107-20260811T113419Z.json"
   },
   "staging": {
     "serverCommit": "46e56f489d1fba7decdb1e3f5942425b3c0f9f83",
