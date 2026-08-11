@@ -107,10 +107,16 @@ test('rejects a stale or missing authenticated-session diagnostic in a snapshot'
 test('rejects a stale or missing synthetic-role booking diagnostic in a snapshot', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[0];
-  changed[path] = changed[path].replace(
-    '| Synthetische Android-Rollenbuchung | `pending`',
-    '| Synthetische Android-Rollenbuchung | `passed`',
-  );
+  const roleEvidenceRef = deviceManifest.candidate.android.syntheticRoleBooking?.evidenceRef;
+  changed[path] = roleEvidenceRef
+    ? changed[path].replace(
+        `\`${roleEvidenceRef}\``,
+        '`docs/evidence/b11/android-synthetic-role-booking-stale.json`',
+      )
+    : changed[path].replace(
+        '| Synthetische Android-Rollenbuchung | `pending`',
+        '| Synthetische Android-Rollenbuchung | `passed`',
+      );
   assert.throws(() => validateStrict({ documents: changed }), /snapshot is stale or incomplete/);
 });
 

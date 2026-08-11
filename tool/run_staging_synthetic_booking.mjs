@@ -361,6 +361,112 @@ export async function transitionSyntheticBookingFixture({
   });
 }
 
+const roleVisibilityExpectations = Object.freeze({
+  requested: Object.freeze({
+    actorRole: 'owner',
+    result: 'requested-visible-to-owner',
+  }),
+  accepted: Object.freeze({
+    actorRole: 'renter',
+    result: 'accepted-visible-to-renter',
+  }),
+  active: Object.freeze({
+    actorRole: 'renter',
+    result: 'active-visible-to-renter',
+  }),
+  completed: Object.freeze({
+    actorRole: 'renter',
+    result: 'completed-visible-to-renter',
+  }),
+});
+
+export async function inspectSyntheticBookingRoleVisibility({
+  vaultFile,
+  expectedStatus,
+  fetchImpl = globalThis.fetch,
+} = {}) {
+  const expectation = roleVisibilityExpectations[expectedStatus];
+  if (!expectation) fail('The synthetic booking visibility status is invalid.');
+  const { vault, accounts } = readVault(vaultFile);
+  const fixture = vault.syntheticBooking;
+  if (!fixture
+      || fixture.workflowStatus !== expectedStatus
+      || fixture.paymentMode !== 'memory'
+      || fixture.paymentEndpointCalled !== false
+      || fixture.stripeLivemode !== false) {
+    fail('The synthetic booking is not ready for the requested role-visibility check.');
+  }
+  const token = await login(fetchImpl, accounts.get(expectation.actorRole));
+  const result = await request(fetchImpl, '/rental-requests', { token });
+  const booking = Array.isArray(result?.requests)
+    ? result.requests.find((entry) => entry?.id === fixture.bookingId)
+    : null;
+  if (booking?.workflowStatus !== expectedStatus) {
+    fail(`The ${expectedStatus} synthetic booking is not visible to the expected role.`);
+  }
+  return Object.freeze({
+    status: 'passed',
+    result: expectation.result,
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+    containsSecrets: false,
+    containsEmailAddresses: false,
+    containsTokens: false,
+    containsFixtureIdentifiers: false,
+  });
+}
+
+export async function runSyntheticRoleBookingLifecycle({
+  vaultFile,
+  imagePath = resolve(repositoryRoot, 'assets/images/shareittoo_app_icon_master.png'),
+  fetchImpl = globalThis.fetch,
+  now = new Date(),
+  random = (size) => randomBytes(size),
+} = {}) {
+  await createSyntheticBookingFixture({ vaultFile, imagePath, fetchImpl, now, random });
+  const ownerRequestVisibility = await inspectSyntheticBookingRoleVisibility({
+    vaultFile,
+    expectedStatus: 'requested',
+    fetchImpl,
+  });
+  await transitionSyntheticBookingFixture({ vaultFile, status: 'accepted', fetchImpl, now });
+  const renterUpcomingVisibility = await inspectSyntheticBookingRoleVisibility({
+    vaultFile,
+    expectedStatus: 'accepted',
+    fetchImpl,
+  });
+  await transitionSyntheticBookingFixture({ vaultFile, status: 'running', fetchImpl, now });
+  const renterRunningVisibility = await inspectSyntheticBookingRoleVisibility({
+    vaultFile,
+    expectedStatus: 'active',
+    fetchImpl,
+  });
+  await transitionSyntheticBookingFixture({ vaultFile, status: 'completed', fetchImpl, now });
+  const renterCompletedVisibility = await inspectSyntheticBookingRoleVisibility({
+    vaultFile,
+    expectedStatus: 'completed',
+    fetchImpl,
+  });
+  return Object.freeze({
+    status: 'passed-bounded-synthetic-role-booking-lifecycle',
+    workflow: Object.freeze(['requested', 'accepted', 'active', 'completed']),
+    tests: Object.freeze({
+      ownerRequestVisibility,
+      renterUpcomingVisibility,
+      renterRunningVisibility,
+      renterCompletedVisibility,
+    }),
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+    containsSecrets: false,
+    containsEmailAddresses: false,
+    containsTokens: false,
+    containsFixtureIdentifiers: false,
+  });
+}
+
 export function archiveCompletedSyntheticBookingFixture({
   vaultFile,
   nextRunId,
@@ -511,7 +617,7 @@ export async function prepareSyntheticBookingThread({
   const { path, vault, accounts } = readVault(vaultFile);
   const fixture = vault.syntheticBooking;
   if (!fixture
-      || !['accepted', 'active'].includes(fixture.workflowStatus)
+      || !['accepted', 'active', 'completed'].includes(fixture.workflowStatus)
       || fixture.paymentEndpointCalled !== false
       || fixture.stripeLivemode !== false) {
     fail('The synthetic booking is not ready for a controlled chat thread.');
@@ -614,6 +720,8 @@ if (invokedPath === import.meta.url) {
                 vaultFile,
                 senderRole: cliValue(process.argv.slice(2), '--sender-role') ?? 'owner',
               })
+          : command === 'diagnose-lifecycle'
+            ? await runSyntheticRoleBookingLifecycle({ vaultFile })
         : await transitionSyntheticBookingFixture({
             vaultFile,
             status: cliValue(process.argv.slice(2), '--status'),

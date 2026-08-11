@@ -11,6 +11,7 @@ import {
   createSyntheticBookingFixture,
   prepareSyntheticBookingThread,
   reconcileSyntheticBookingFixture,
+  runSyntheticRoleBookingLifecycle,
   sendSyntheticBookingDiagnosticMessage,
   transitionSyntheticBookingFixture,
 } from '../../tool/run_staging_synthetic_booking.mjs';
@@ -121,6 +122,54 @@ test('transitions the synthetic booking with the correct roles and no payment en
   }
   assert.equal(calls.some((path) => path.includes('payment')), false);
   assert.equal(JSON.parse(readFileSync(fixture.vaultFile, 'utf8')).status, 'synthetic-booking-completed');
+});
+
+test('runs the complete role-visible lifecycle without returning private fixture data', async () => {
+  const fixture = vaultFixture();
+  const calls = [];
+  let workflowStatus = null;
+  let login = 0;
+  const result = await runSyntheticRoleBookingLifecycle({
+    ...fixture,
+    now: new Date('2026-08-11T19:20:00.000Z'),
+    random: () => Buffer.from('a1b2c3d4', 'hex'),
+    fetchImpl: async (url, options = {}) => {
+      const path = new URL(url).pathname.replace('/api/v1', '');
+      calls.push({ path, method: options.method ?? 'GET' });
+      if (path === '/auth/login') {
+        login += 1;
+        return response(200, { accessToken: `synthetic-token-${login}-${'x'.repeat(30)}` });
+      }
+      if (path === '/listings/mine') return response(200, { listings: [] });
+      if (path === '/rental-requests') {
+        if (workflowStatus === null) return response(200, { requests: [] });
+        return response(200, { requests: [{ id: 'sit-20260810t065907z-a6b6f407-a1b2c3d4-booking', workflowStatus }] });
+      }
+      if (path === '/uploads') return response(201, { url: 'https://staging.shareittoo.com/api/v1/uploads/fixture.webp' });
+      if (path === '/listings') return response(201, { listing: { id: 'fixture' } });
+      if (path.endsWith('/availability')) return response(200, { availability: {} });
+      if (path === '/bookings') {
+        workflowStatus = 'requested';
+        return response(201, { booking: { workflowStatus } });
+      }
+      if (path.endsWith('/transitions')) {
+        const requested = JSON.parse(options.body).status;
+        workflowStatus = { accepted: 'accepted', running: 'active', completed: 'completed' }[requested];
+        return response(200, { booking: { workflowStatus } });
+      }
+      throw new Error(`Unexpected path ${path}`);
+    },
+  });
+  assert.equal(result.status, 'passed-bounded-synthetic-role-booking-lifecycle');
+  assert.deepEqual(result.workflow, ['requested', 'accepted', 'active', 'completed']);
+  assert.equal(result.tests.ownerRequestVisibility.result, 'requested-visible-to-owner');
+  assert.equal(result.tests.renterUpcomingVisibility.result, 'accepted-visible-to-renter');
+  assert.equal(result.tests.renterRunningVisibility.result, 'active-visible-to-renter');
+  assert.equal(result.tests.renterCompletedVisibility.result, 'completed-visible-to-renter');
+  assert.equal(result.paymentEndpointCalled, false);
+  assert.equal(result.containsSecrets, false);
+  assert.equal(result.containsFixtureIdentifiers, false);
+  assert.equal(calls.some(({ path }) => path.includes('payment')), false);
 });
 
 test('recovers one already-created requested fixture without creating a duplicate', async () => {
