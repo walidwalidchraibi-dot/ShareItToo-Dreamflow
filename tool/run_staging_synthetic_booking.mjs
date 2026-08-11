@@ -651,7 +651,7 @@ export async function sendSyntheticBookingDiagnosticMessage({
   fetchImpl = globalThis.fetch,
 } = {}) {
   if (!['owner', 'renter'].includes(senderRole)) fail('The message sender role is invalid.');
-  if (!['generic', 'foreground', 'background', 'terminated'].includes(diagnosticKind)) {
+  if (!['generic', 'foreground', 'background', 'terminated', 'logout'].includes(diagnosticKind)) {
     fail('The message diagnostic kind is invalid.');
   }
   const { vault, accounts } = readVault(vaultFile);

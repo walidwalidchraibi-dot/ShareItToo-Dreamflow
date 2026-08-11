@@ -13,6 +13,10 @@ import {
   selectSinglePhysicalDevice,
   validateCandidateArchive,
 } from './prepare_android_device_test.mjs';
+import {
+  ensureAndroidGuestSession,
+  restoreSyntheticSession,
+} from './diagnose_android_logout_lifecycle.mjs';
 
 const applicationId = 'com.shareittoo.app';
 const remoteUiDump = '/sdcard/sit-app-link-diagnostic.xml';
@@ -187,6 +191,7 @@ function restoreGuestStart(commandRunner, adbPath, device) {
 }
 
 export async function diagnoseAndroidAppLinks({
+  vaultFile = null,
   commandRunner = defaultCommandRunner,
   adbPath = 'adb',
   device,
@@ -198,6 +203,12 @@ export async function diagnoseAndroidAppLinks({
 }) {
   assertDeviceAlreadyUnlocked(commandRunner, adbPath, device);
   const installed = verifyInstalledCandidate(commandRunner, adbPath, device, candidate, archive);
+  const account = vaultFile === null
+    ? null
+    : JSON.parse(readFileSync(vaultFile, 'utf8')).accounts?.[0] ?? fail('The private synthetic account fixture is unavailable.');
+  if (account !== null) {
+    await ensureAndroidGuestSession({ commandRunner, adbPath, device, wait });
+  }
 
   try {
     startLink(
@@ -249,6 +260,10 @@ export async function diagnoseAndroidAppLinks({
     queryForeignHost(commandRunner, adbPath, device);
   } finally {
     restoreGuestStart(commandRunner, adbPath, device);
+    if (account !== null) {
+      const restored = await restoreSyntheticSession({ commandRunner, adbPath, device, wait, account });
+      if (!restored) fail('The private synthetic Staging session could not be restored after the app-link diagnostic.');
+    }
   }
 
   return {
@@ -298,6 +313,7 @@ export async function diagnoseAndroidAppLinks({
 
 function parseArguments(values) {
   let candidateDirectory = null;
+  let vaultFile = null;
   let adbPath = 'adb';
   for (let index = 0; index < values.length; index += 1) {
     if (values[index] === '--candidate-dir') {
@@ -306,11 +322,14 @@ function parseArguments(values) {
     } else if (values[index] === '--adb') {
       adbPath = values[index + 1] ?? fail('--adb requires a path.');
       index += 1;
+    } else if (values[index] === '--vault-file') {
+      vaultFile = values[index + 1] ?? fail('--vault-file requires a path.');
+      index += 1;
     } else {
       fail(`Unknown argument: ${values[index]}`);
     }
   }
-  return { candidateDirectory, adbPath };
+  return { candidateDirectory, vaultFile, adbPath };
 }
 
 async function run() {
@@ -335,6 +354,7 @@ async function run() {
   const device = selectSinglePhysicalDevice(devices);
   const deviceSummary = inspectPhysicalDevice({ adbPath: args.adbPath, device });
   const evidence = await diagnoseAndroidAppLinks({
+    vaultFile: args.vaultFile === null ? null : resolve(args.vaultFile),
     adbPath: args.adbPath,
     device,
     deviceSummary,

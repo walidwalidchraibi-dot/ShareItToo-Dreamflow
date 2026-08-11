@@ -83,13 +83,13 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Android-APK SHA-256 | `2860dc4905c2eaf23943c97ce5034a24a6c57dfeaa82cb868ca622760ff9e34d` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
 | Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081113-20260811T164317Z.json` |
-| Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081113-20260811T182946Z.json` |
 | Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-offline-2026081113-20260811T170909Z.json` |
 | Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081113-20260811T172124Z.json` |
 | Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081113-20260811T172230Z.json` |
 | Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081113-20260811T173603Z.json` |
-| Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
+| Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081113-20260811T182238Z.json` |
+| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081113.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081113.json` |
 | Staging-Servercommit | `e2671899fb08808a78ed9fbbc48fe39a4370e96b` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
@@ -104,19 +104,23 @@ R8-Zuordnung und alle nativen Android-Symbole per SHA-256 an Build 2026081029.
 kontrollierte Diagnoseereignis und seine sichtbare Zuordnung zur exakten
 Version und Buildnummer in der Firebase-Konsole. Deshalb steht die
 Releaseprüfung `crashReleaseMapping` für diesen früheren Build nachweislich auf
-`passed`. Für den aktuellen Build `2026081104` sind die im exakten AAB
+`passed`. Für den aktuellen Build `2026081113` sind die im exakten AAB
 eingebettete R8-Zuordnung, die Mapping-ID und alle drei nativen Symbolgruppen
 hashgebunden; die Originalzuordnung wurde erfolgreich zu Crashlytics geladen.
-Der kontrollierte bereinigte Laufzeitbefund und seine sichtbare Zuordnung in
-der Firebase-Konsole bleiben kandidatenspezifisch offen, daher steht die
-Releaseprüfung weiterhin ehrlich auf `testing`.
+Der kontrollierte Diagnoseweg war in diesem exakten Kandidaten absichtlich
+nicht einkompiliert. Deshalb wurde kein abweichender Binärstand unter derselben
+Buildidentität verwendet. Der bereinigte Laufzeitbefund und seine sichtbare
+Zuordnung in der Firebase-Konsole bleiben kandidatenspezifisch offen, daher
+steht die Releaseprüfung weiterhin ehrlich auf `testing`.
 
 Der aktuelle Abmelde-/Push-Unterdrückungsnachweis liegt unter
-`android-logout-lifecycle-2026081029-20260810T175031Z.json`. Er belegt den
+`android-logout-lifecycle-2026081113-20260811T182238Z.json`. Er belegt den
 persistenten Gastzustand nach Kaltstart, den erneut geschützten privaten
 Chat-Link und die ausbleibende Gerätebenachrichtigung nach einer kontrollierten
-Testnachricht. Store-Installation, Hotspot, TalkBack, iOS und die vollständige
-Gerätematrix bleiben offen.
+Testnachricht auf dem exakten Kandidaten. Das synthetische Testkonto wurde
+danach privat wieder angemeldet, damit weitere Prüfungen ohne manuellen
+Anmeldestopp fortgesetzt werden können. Store-Installation, Hotspot, TalkBack,
+iOS und die vollständige Gerätematrix bleiben offen.
 
 Die negative Routendiagnose
 `public-store-route-diagnostic-20260810T214657Z.json` hält einen separaten
