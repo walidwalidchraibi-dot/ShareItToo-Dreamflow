@@ -11,8 +11,8 @@
     <application
         android:label="ShareItToo"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:icon="@mipmap/ic_launcher_v2"
+        android:roundIcon="@mipmap/ic_launcher_round_v2"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"

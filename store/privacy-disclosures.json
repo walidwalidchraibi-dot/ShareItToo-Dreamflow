@@ -12,11 +12,11 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "33dceb4d2396fef1a17e2d5044681a56cd0289ce79ce039b75ee68e366584c4c"
+      "sha256": "89dc6fcebd5d552dfaaf8f47075ca21cba066dfc481b52f292190b0ff33a01f8"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
-      "sha256": "9bf6c9115340ef993ad84446c6ab223bcb4f0e9369b2f3292f1e8c7b434ebc7b"
+      "sha256": "2107e99317717a1ce74025cd55c2d569da6f0a3fca44414a81b333bead04d3e4"
     },
     {
       "path": "ios/Runner/Info.plist",

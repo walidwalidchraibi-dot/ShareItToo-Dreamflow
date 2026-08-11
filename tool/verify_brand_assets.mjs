@@ -55,6 +55,11 @@ const assets = [
   asset('android/app/src/main/res/mipmap-xhdpi/ic_launcher.png', 96),
   asset('android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png', 144),
   asset('android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png', 192),
+  asset('android/app/src/main/res/mipmap-mdpi/ic_launcher_v2.png', 48),
+  asset('android/app/src/main/res/mipmap-hdpi/ic_launcher_v2.png', 72),
+  asset('android/app/src/main/res/mipmap-xhdpi/ic_launcher_v2.png', 96),
+  asset('android/app/src/main/res/mipmap-xxhdpi/ic_launcher_v2.png', 144),
+  asset('android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_v2.png', 192),
   asset('android/app/src/main/res/mipmap-mdpi/launch_logo.png', 96),
   asset('android/app/src/main/res/mipmap-hdpi/launch_logo.png', 144),
   asset('android/app/src/main/res/mipmap-xhdpi/launch_logo.png', 192),
@@ -214,11 +219,17 @@ if (!androidManifest.includes('com.google.firebase.messaging.default_notificatio
     || !androidManifest.includes('android:resource="@color/shareittoo_notification_accent"')) {
   fail('Android Firebase notifications must use the ShareItToo accent color.');
 }
-if (!androidManifest.includes('android:roundIcon="@mipmap/ic_launcher_round"')) {
-  fail('Android must declare the approved adaptive round launcher icon.');
+if (!androidManifest.includes('android:icon="@mipmap/ic_launcher_v2"')
+    || !androidManifest.includes('android:roundIcon="@mipmap/ic_launcher_round_v2"')) {
+  fail('Android must declare the cache-busted approved adaptive launcher icons.');
 }
 
-for (const adaptiveIcon of ['ic_launcher.xml', 'ic_launcher_round.xml']) {
+for (const adaptiveIcon of [
+  'ic_launcher.xml',
+  'ic_launcher_round.xml',
+  'ic_launcher_v2.xml',
+  'ic_launcher_round_v2.xml',
+]) {
   const contents = readFileSync(
     `${root}android/app/src/main/res/mipmap-anydpi-v26/${adaptiveIcon}`,
     'utf8',
