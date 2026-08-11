@@ -23,6 +23,30 @@ class BackendRealtimeService {
   static bool hasUsableConnectivity(Iterable<ConnectivityResult> results) =>
       results.any((result) => result != ConnectivityResult.none);
 
+  @visibleForTesting
+  static Set<String> sharedPersistenceKeysForEvent(
+    Map<dynamic, dynamic> event,
+  ) {
+    switch (event['type']) {
+      case 'ready':
+        // Realtime events are intentionally transient. Anything that changed
+        // while the socket was offline must be fetched once the authenticated
+        // connection is ready again.
+        return const {
+          SharedPersistenceSync.rentalRequestsKey,
+          SharedPersistenceSync.messageThreadsKey,
+        };
+      case 'changed':
+        switch (event['resource']) {
+          case 'rental_requests':
+            return const {SharedPersistenceSync.rentalRequestsKey};
+          case 'message_threads':
+            return const {SharedPersistenceSync.messageThreadsKey};
+        }
+    }
+    return const {};
+  }
+
   static Future<void> connect(String accessToken) async {
     if (!BackendConfig.enabled || accessToken.trim().isEmpty) return;
     if (_channel != null && _accessToken == accessToken && !_stopped) return;
@@ -131,24 +155,18 @@ class BackendRealtimeService {
   static Future<void> _handleMessage(dynamic raw) async {
     try {
       final decoded = jsonDecode(raw.toString());
-      if (decoded is! Map || decoded['type'] != 'changed') return;
+      if (decoded is! Map) return;
       final resource = decoded['resource']?.toString();
       final prefs = await SharedPreferences.getInstance();
+      final syncKeys = sharedPersistenceKeysForEvent(decoded);
+      for (final key in syncKeys) {
+        await prefs.remove(key);
+        SharedPersistenceSync.notify(key);
+      }
+      if (decoded['type'] != 'changed') return;
       switch (resource) {
         case 'listings':
           await prefs.remove('items');
-          break;
-        case 'rental_requests':
-          await prefs.remove(SharedPersistenceSync.rentalRequestsKey);
-          SharedPersistenceSync.notify(
-            SharedPersistenceSync.rentalRequestsKey,
-          );
-          break;
-        case 'message_threads':
-          await prefs.remove(SharedPersistenceSync.messageThreadsKey);
-          SharedPersistenceSync.notify(
-            SharedPersistenceSync.messageThreadsKey,
-          );
           break;
         case 'profiles':
           await prefs.remove('currentUser');

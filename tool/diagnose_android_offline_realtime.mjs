@@ -1,0 +1,375 @@
+#!/usr/bin/env node
+
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { homedir } from 'node:os';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import {
+  inspectPhysicalDevice,
+  parseAdbDevices,
+  selectSinglePhysicalDevice,
+  validateCandidateArchive,
+} from './prepare_android_device_test.mjs';
+import { sendSyntheticBookingDiagnosticMessage } from './run_staging_synthetic_booking.mjs';
+
+const applicationId = 'com.shareittoo.app';
+const remoteUiDump = '/sdcard/sit-offline-realtime.xml';
+const offlineMessage = 'Kontrollierte SIT Staging-Pushprüfung (offline).';
+
+function fail(message) {
+  throw new Error(message);
+}
+
+function nonEmptyString(value, label) {
+  if (typeof value !== 'string' || value.trim() === '') fail(`${label} must be a non-empty string.`);
+  return value.trim();
+}
+
+function defaultCommandRunner(file, args, { binary = false } = {}) {
+  return execFileSync(file, args, {
+    encoding: binary ? null : 'utf8',
+    maxBuffer: 512 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
+
+function adb(commandRunner, adbPath, device, args, { binary = false } = {}) {
+  try {
+    const result = commandRunner(adbPath, ['-s', device.serial, ...args], { binary });
+    return binary ? Buffer.from(result) : String(result).trim();
+  } catch {
+    fail('ADB offline/realtime command failed without exposing the device identifier.');
+  }
+}
+
+function parseInstalledPackage(output) {
+  const versionName = /^\s*versionName=([^\s]+)\s*$/m.exec(output)?.[1] ?? null;
+  const buildNumber = /^\s*versionCode=(\d+)\b/m.exec(output)?.[1] ?? null;
+  if (versionName === null || buildNumber === null) fail('Installed ShareItToo version could not be verified.');
+  return { versionName, buildNumber };
+}
+
+function verifyInstalledCandidate(commandRunner, adbPath, device, candidate, archive) {
+  const packagePaths = adb(commandRunner, adbPath, device, ['shell', 'pm', 'path', applicationId])
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^package:/, '').trim())
+    .filter(Boolean);
+  if (packagePaths.length !== 1 || !packagePaths[0].startsWith('/data/app/')) {
+    fail('Installed ShareItToo package path is missing or ambiguous.');
+  }
+  const installedSha256 = createHash('sha256').update(adb(
+    commandRunner,
+    adbPath,
+    device,
+    ['exec-out', 'cat', packagePaths[0]],
+    { binary: true },
+  )).digest('hex');
+  if (installedSha256 !== archive.apkSha256 || installedSha256 !== candidate.android.apkSha256) {
+    fail('Installed ShareItToo APK does not match the verified candidate.');
+  }
+  const installed = parseInstalledPackage(
+    adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'package', applicationId]),
+  );
+  if (installed.versionName !== candidate.versionName || installed.buildNumber !== candidate.buildNumber) {
+    fail('Installed ShareItToo version does not match the verified candidate.');
+  }
+  return { ...installed, apkSha256: installedSha256 };
+}
+
+function assertDeviceAlreadyUnlocked(commandRunner, adbPath, device) {
+  const policy = adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'window', 'policy']);
+  if (/keyguardShowing=true|isStatusBarKeyguard=true/.test(policy)) {
+    fail('The Android phone is locked. Unlock it manually; this diagnostic never enters a passcode.');
+  }
+}
+
+function dumpUi(commandRunner, adbPath, device) {
+  adb(commandRunner, adbPath, device, ['shell', 'uiautomator', 'dump', remoteUiDump]);
+  try {
+    return adb(commandRunner, adbPath, device, ['exec-out', 'cat', remoteUiDump]);
+  } finally {
+    try {
+      adb(commandRunner, adbPath, device, ['shell', 'rm', '-f', remoteUiDump]);
+    } catch {
+      // A later run safely overwrites the fixed hierarchy path.
+    }
+  }
+}
+
+function startChatLink(commandRunner, adbPath, device, threadId) {
+  adb(commandRunner, adbPath, device, ['shell', 'am', 'force-stop', applicationId]);
+  const result = adb(commandRunner, adbPath, device, [
+    'shell', 'am', 'start', '-W',
+    '-a', 'android.intent.action.VIEW',
+    '-c', 'android.intent.category.BROWSABLE',
+    '-p', applicationId,
+    '-d', `shareittoo://chat/${encodeURIComponent(threadId)}`,
+  ]);
+  if (!/Status:\s*ok/.test(result) || !result.includes(applicationId)) {
+    fail('Android did not route the expected authenticated chat link to ShareItToo.');
+  }
+}
+
+async function waitFor(predicate, { attempts, intervalMs, wait }) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (await predicate()) return true;
+    await wait(intervalMs);
+  }
+  return false;
+}
+
+function processId(commandRunner, adbPath, device) {
+  return adb(commandRunner, adbPath, device, ['shell', 'pidof', applicationId]);
+}
+
+function wifiEnabled(commandRunner, adbPath, device) {
+  return /^Wifi is enabled\b/m.test(adb(commandRunner, adbPath, device, ['shell', 'cmd', 'wifi', 'status']));
+}
+
+function wifiConnected(commandRunner, adbPath, device) {
+  return /^Wifi is connected to /m.test(adb(commandRunner, adbPath, device, ['shell', 'cmd', 'wifi', 'status']));
+}
+
+function mobileDataEnabled(commandRunner, adbPath, device) {
+  return adb(commandRunner, adbPath, device, ['shell', 'settings', 'get', 'global', 'mobile_data']) === '1';
+}
+
+function mobileDataDisconnected(commandRunner, adbPath, device) {
+  const registry = adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'telephony.registry']);
+  const states = [...registry.matchAll(/mDataConnectionState=(\d+)/g)].map((match) => Number(match[1]));
+  return states.length > 0 && states.every((state) => state !== 2);
+}
+
+function setNetwork(commandRunner, adbPath, device, { wifi, mobileData }) {
+  adb(commandRunner, adbPath, device, ['shell', 'svc', 'wifi', wifi ? 'enable' : 'disable']);
+  adb(commandRunner, adbPath, device, ['shell', 'svc', 'data', mobileData ? 'enable' : 'disable']);
+}
+
+function appForeground(commandRunner, adbPath, device) {
+  const activities = adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'activity', 'activities']);
+  return /topResumedActivity=.*com\.shareittoo\.app\/.MainActivity/.test(activities);
+}
+
+function packageCrashEntries(commandRunner, adbPath, device, pid) {
+  const log = adb(commandRunner, adbPath, device, ['logcat', '-d', '--pid', pid, '-v', 'brief', '*:E']);
+  return log.split(/\r?\n/).filter((line) => /FATAL EXCEPTION|Fatal signal/.test(line)).length;
+}
+
+export async function diagnoseAndroidOfflineRealtime({
+  vaultFile,
+  commandRunner = defaultCommandRunner,
+  adbPath = 'adb',
+  device,
+  deviceSummary,
+  candidate,
+  archive,
+  capturedAt = new Date().toISOString(),
+  wait = (milliseconds) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds)),
+  sender = sendSyntheticBookingDiagnosticMessage,
+}) {
+  assertDeviceAlreadyUnlocked(commandRunner, adbPath, device);
+  const installed = verifyInstalledCandidate(commandRunner, adbPath, device, candidate, archive);
+  const vault = JSON.parse(readFileSync(vaultFile, 'utf8'));
+  const fixture = vault.syntheticBooking;
+  if (!fixture || fixture.workflowStatus !== 'accepted'
+      || fixture.paymentMode !== 'memory' || fixture.stripeLivemode !== false
+      || fixture.paymentEndpointCalled !== false) {
+    fail('The private synthetic booking is not safe for the offline/realtime diagnostic.');
+  }
+  const threadId = nonEmptyString(fixture.threadId, 'syntheticBooking.threadId');
+  const signedInRole = nonEmptyString(vault.accounts?.[0]?.role, 'accounts[0].role');
+  const senderRole = signedInRole === 'owner' ? 'renter' : 'owner';
+
+  const originalNetwork = {
+    wifi: wifiEnabled(commandRunner, adbPath, device),
+    mobileData: mobileDataEnabled(commandRunner, adbPath, device),
+  };
+  let networkRestored = false;
+  try {
+    startChatLink(commandRunner, adbPath, device, threadId);
+    const chatPreloaded = await waitFor(() => {
+      const hierarchy = dumpUi(commandRunner, adbPath, device);
+      return hierarchy.includes(nonEmptyString(fixture.title, 'syntheticBooking.title'))
+        && hierarchy.includes('Nachricht…')
+        && !hierarchy.includes('Bitte zuerst anmelden');
+    }, { attempts: 16, intervalMs: 700, wait });
+    if (!chatPreloaded) fail('The authenticated chat did not preload before the offline window.');
+
+    const pidBefore = nonEmptyString(processId(commandRunner, adbPath, device), 'app process');
+    setNetwork(commandRunner, adbPath, device, { wifi: false, mobileData: false });
+    const offlineState = await waitFor(
+      () => !wifiEnabled(commandRunner, adbPath, device)
+        && mobileDataDisconnected(commandRunner, adbPath, device),
+      { attempts: 20, intervalMs: 500, wait },
+    );
+    if (!offlineState) fail('The bounded device network-off state was not confirmed.');
+
+    const sent = await sender({ vaultFile, senderRole, diagnosticKind: 'offline' });
+    if (sent?.status !== 'synthetic-booking-diagnostic-message-sent'
+        || sent?.paymentEndpointCalled !== false || sent?.stripeLivemode !== false) {
+      fail('The controlled Staging offline message was not accepted safely.');
+    }
+    await wait(15_000);
+    if (dumpUi(commandRunner, adbPath, device).includes(offlineMessage)) {
+      fail('The new message appeared before network restoration.');
+    }
+
+    setNetwork(commandRunner, adbPath, device, originalNetwork);
+    const transportRestored = await waitFor(
+      () => (!originalNetwork.wifi || wifiConnected(commandRunner, adbPath, device))
+        && mobileDataEnabled(commandRunner, adbPath, device) === originalNetwork.mobileData,
+      { attempts: 45, intervalMs: 700, wait },
+    );
+    if (!transportRestored) fail('The original Android network state did not return.');
+    networkRestored = true;
+
+    const recoveredInChat = await waitFor(
+      () => dumpUi(commandRunner, adbPath, device).includes(offlineMessage),
+      { attempts: 45, intervalMs: 700, wait },
+    );
+    if (!recoveredInChat) fail('The controlled message did not appear after realtime recovery.');
+    const pidAfter = nonEmptyString(processId(commandRunner, adbPath, device), 'recovered app process');
+    const processIdentityStable = pidAfter === pidBefore;
+    if (!processIdentityStable || !appForeground(commandRunner, adbPath, device)) {
+      fail('The app process or foreground chat did not survive the offline/realtime recovery.');
+    }
+    const crashEntries = packageCrashEntries(commandRunner, adbPath, device, pidAfter);
+    if (crashEntries !== 0) fail('A package fatal entry was observed during the offline/realtime recovery.');
+
+    return {
+      schemaVersion: 1,
+      kind: 'android-offline-realtime-diagnostic',
+      status: 'passed-bounded-offline-realtime-diagnostic',
+      capturedAt,
+      candidate: {
+        applicationId: candidate.applicationId,
+        bundleId: candidate.bundleId,
+        versionName: candidate.versionName,
+        buildNumber: candidate.buildNumber,
+        commit: candidate.commit,
+        releaseChannel: candidate.releaseChannel,
+        apiBaseUrl: candidate.apiBaseUrl,
+        firebaseConfigured: candidate.firebaseConfigured,
+        paymentMode: candidate.paymentMode,
+        stripeLivemode: candidate.stripeLivemode,
+      },
+      installed: {
+        packageIdentityVerified: true,
+        versionName: installed.versionName,
+        buildNumber: installed.buildNumber,
+        apkSha256: installed.apkSha256,
+      },
+      device: deviceSummary,
+      tests: {
+        authenticatedChatPreloaded: { status: 'passed', result: 'chat-visible-before-offline-window' },
+        messageHiddenWhileOffline: { status: 'passed', result: 'new-message-absent-during-15-second-offline-window' },
+        sameProcessRealtimeRecovery: { status: 'passed', result: 'new-message-visible-after-network-restoration' },
+        originalNetworkRestored: { status: 'passed', result: 'wifi-and-mobile-data-restored-to-original-state' },
+      },
+      diagnostic: {
+        offlineWindowSeconds: 15,
+        appProcessSurvived: true,
+        processIdentityStable: true,
+        appForegroundAfterRecovery: true,
+        packageCrashBufferEntries: 0,
+        networkRestored: true,
+      },
+      boundaries: {
+        syntheticAccountsOnly: true,
+        directDiagnosticOnly: true,
+        storeInstallationGateSatisfied: false,
+        fullDeviceMatrixPassed: false,
+        wifiOnlyDiagnostic: true,
+        hotspotPassed: false,
+        manualTalkBackTraversalPassed: false,
+        iosTestFlightPassed: false,
+        paymentEndpointCalled: false,
+        stripeLivemode: false,
+        messageSent: true,
+        lockCodeUsed: false,
+        accountIdentityRecorded: false,
+        containsPersonalAccountData: false,
+        containsSecrets: false,
+        containsRawDeviceIdentifiers: false,
+        containsReviewCredentials: false
+      }
+    };
+  } finally {
+    if (!networkRestored) {
+      try {
+        setNetwork(commandRunner, adbPath, device, originalNetwork);
+      } catch {
+        // The caller receives the original diagnostic failure. A separate
+        // read-only network check must follow if restoration itself failed.
+      }
+    }
+  }
+}
+
+function parseArguments(values) {
+  let candidateDirectory = null;
+  let vaultFile = null;
+  let adbPath = 'adb';
+  for (let index = 0; index < values.length; index += 1) {
+    if (values[index] === '--candidate-dir') {
+      candidateDirectory = values[index + 1] ?? fail('--candidate-dir requires a path.');
+      index += 1;
+    } else if (values[index] === '--vault-file') {
+      vaultFile = values[index + 1] ?? fail('--vault-file requires a path.');
+      index += 1;
+    } else if (values[index] === '--adb') {
+      adbPath = values[index + 1] ?? fail('--adb requires a path.');
+      index += 1;
+    } else {
+      fail(`Unknown argument: ${values[index]}`);
+    }
+  }
+  return { candidateDirectory, vaultFile, adbPath };
+}
+
+async function run() {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const args = parseArguments(process.argv.slice(2));
+  const vaultFile = resolve(args.vaultFile ?? fail('--vault-file is required.'));
+  const manifest = JSON.parse(readFileSync(resolve(root, 'store/device-validation.json'), 'utf8'));
+  const candidate = manifest.candidate;
+  const candidateDirectory = resolve(
+    args.candidateDirectory
+      ?? resolve(
+        homedir(),
+        'Library',
+        'Application Support',
+        'ShareItToo',
+        'release',
+        'android',
+        `${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')}-${nonEmptyString(candidate.commit, 'candidate.commit')}`,
+      ),
+  );
+  const archive = await validateCandidateArchive({ root, candidateDirectory });
+  const devices = parseAdbDevices(defaultCommandRunner(args.adbPath, ['devices', '-l']));
+  const device = selectSinglePhysicalDevice(devices);
+  const deviceSummary = inspectPhysicalDevice({ adbPath: args.adbPath, device });
+  const evidence = await diagnoseAndroidOfflineRealtime({
+    vaultFile,
+    adbPath: args.adbPath,
+    device,
+    deviceSummary,
+    candidate,
+    archive,
+  });
+  console.log(JSON.stringify(evidence, null, 2));
+}
+
+if (typeof process !== 'undefined'
+    && process.argv?.[1]
+    && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  try {
+    await run();
+  } catch (error) {
+    console.error(`ERROR: ${error.message}`);
+    process.exitCode = 1;
+  }
+}

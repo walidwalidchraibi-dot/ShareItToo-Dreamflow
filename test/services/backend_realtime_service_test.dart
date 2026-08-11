@@ -31,5 +31,39 @@ void main() {
         isTrue,
       );
     });
+
+    test('refreshes booking and chat caches after an authenticated reconnect',
+        () {
+      expect(
+        BackendRealtimeService.sharedPersistenceKeysForEvent(
+          const {'type': 'ready'},
+        ),
+        {
+          'rental_requests',
+          'message_threads_v1',
+        },
+      );
+    });
+
+    test('keeps ordinary changed events scoped to their resource', () {
+      expect(
+        BackendRealtimeService.sharedPersistenceKeysForEvent(
+          const {'type': 'changed', 'resource': 'message_threads'},
+        ),
+        {'message_threads_v1'},
+      );
+      expect(
+        BackendRealtimeService.sharedPersistenceKeysForEvent(
+          const {'type': 'changed', 'resource': 'listings'},
+        ),
+        isEmpty,
+      );
+      expect(
+        BackendRealtimeService.sharedPersistenceKeysForEvent(
+          const {'type': 'unknown'},
+        ),
+        isEmpty,
+      );
+    });
   });
 }
