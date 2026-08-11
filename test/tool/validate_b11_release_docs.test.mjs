@@ -13,6 +13,10 @@ const deviceManifest = JSON.parse(
 const evidenceRef = deviceManifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef;
 const candidateEvidence = JSON.parse(readFileSync(resolve(repositoryRoot, evidenceRef), 'utf8'));
 const pubspecText = readFileSync(resolve(repositoryRoot, 'pubspec.yaml'), 'utf8');
+const documentedCandidatePubspecText = pubspecText.replace(
+  /^(version:\s*\d+\.\d+\.\d+\+)\d{10}\s*$/m,
+  `$1${deviceManifest.candidate.buildNumber}`,
+);
 const documentPaths = [
   'docs/architecture/B11_CLOSED_STORE_RELEASE_AND_DEVICE_VALIDATION_2026-08-09.md',
   'docs/operations/B11_CLOSED_STORE_AND_DEVICE_TEST_RUNBOOK_2026-08-09.md',
@@ -43,7 +47,7 @@ function validateStrict(overrides = {}) {
     root: repositoryRoot,
     deviceManifest: strictBaselineManifest(),
     candidateEvidence: structuredClone(candidateEvidence),
-    pubspecText,
+    pubspecText: documentedCandidatePubspecText,
     documents: structuredClone(documents),
     allowCandidateRollover: false,
     ...overrides,

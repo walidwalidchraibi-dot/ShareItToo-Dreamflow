@@ -9,7 +9,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Ich bestätige, dass ich mindestens 18 Jahre alt bin.'),
+      find.text('Ich bin 18 Jahre oder älter.'),
       findsOneWidget,
     );
     expect(find.text('Ich akzeptiere die AGB.'), findsOneWidget);

@@ -11,6 +11,7 @@ import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/utils/registration_input_policy.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/social_auth_button.dart';
 import 'package:provider/provider.dart';
@@ -108,10 +109,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   String? _validateName(String? v) {
-    final value = (v ?? '').trim();
-    if (value.isEmpty) return 'Bitte gib deinen Namen ein.';
-    if (value.length < 2) return 'Bitte gib einen gültigen Namen ein.';
-    return null;
+    return registrationDisplayNameError(v);
   }
 
   String? _validateEmail(String? v) {
@@ -149,7 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await AppPopup.toast(
         context,
         icon: Icons.cake_outlined,
-        title: 'Bitte bestätige, dass du mindestens 18 Jahre alt bist.',
+        title: 'Bitte bestätige, dass du 18 Jahre oder älter bist.',
       );
       return;
     }
@@ -180,7 +178,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           AuthFailure.weakPassword =>
             'Das Passwort muss mindestens 10 Zeichen, einen Buchstaben und eine Zahl enthalten.',
           AuthFailure.consentRequired =>
-            'Bitte bestätige Mindestalter, AGB und Datenschutz.',
+            'Bitte bestätige: 18 Jahre oder älter, AGB und Datenschutz.',
           AuthFailure.network =>
             'Es ist ein Netzwerkfehler aufgetreten. Bitte versuche es erneut.',
           _ => 'Es ist ein Fehler aufgetreten. Bitte versuche es erneut.',
@@ -569,7 +567,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                           EdgeInsets.zero,
                                                       dense: true,
                                                       title: const Text(
-                                                        'Ich bestätige, dass ich mindestens 18 Jahre alt bin.',
+                                                        'Ich bin 18 Jahre oder älter.',
                                                       ),
                                                     ),
                                                     CheckboxListTile(

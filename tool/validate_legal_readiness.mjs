@@ -99,7 +99,7 @@ function assertExplicitConsentContract({ root, sourceTexts, consent }) {
     '_minimumAgeConfirmed',
     '_termsAccepted',
     '_privacyAccepted',
-    'Ich bestätige, dass ich mindestens 18 Jahre alt bin.',
+    'Ich bin 18 Jahre oder älter.',
     'Ich akzeptiere die AGB.',
     'Ich akzeptiere die Datenschutzbestimmungen.',
     'termsAccepted: _termsAccepted',
