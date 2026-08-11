@@ -26,22 +26,22 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Merkmal | Verbindlicher Wert |
 |---|---|
 | App-Identität | `com.shareittoo.app` (Android und iOS) |
-| Version und Build | `1.0.0 (2026081114)` |
-| App-Commit | `f2961cfe97a85c5698d4967ae08808eaa6b25ce8` |
+| Version und Build | `1.0.0 (2026081116)` |
+| App-Commit | `03a76e23b0db656b48fc1729b3cd20e6260f2133` |
 | Kanal und API | `internal`, `https://staging.shareittoo.com/api/v1` |
 | Firebase und Zahlung | vollständig: `true`; `memory`; `stripeLivemode=false` |
-| Android-AAB SHA-256 | `65f5afb982353a4ce1c1dbb66dc7e8e9b23dd83abeee6008c3d80a821d0b6163` |
-| Android-APK SHA-256 | `f707d8abdee51d8b71ecc58a90083322a50d366cb6fe06f5714d53b96e17c32f` |
+| Android-AAB SHA-256 | `4da9336aeabc86c28bb5fe49fb96ba5bdb5329fb5af60ecfa0b73e513f0db204` |
+| Android-APK SHA-256 | `25e9d37dcd79976970f164b8c0531513ea07091bde5492ce8f11009f67cd4869` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
-| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081114-20260811T192321Z.json` |
-| Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081114-20260811T193121Z.json` |
-| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-offline-2026081114-20260811T200712Z.json` |
-| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081114-20260811T193642Z.json` |
-| Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081114-20260811T193805Z.json` |
-| Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081114-20260811T193947Z.json` |
-| Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081114-20260811T194321Z.json` |
-| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081114.json` |
-| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081114.json` |
+| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081116-20260811T224738Z.json` |
+| Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-offline-2026081116-20260811T230514Z.json` |
+| Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081116-20260811T230644Z.json` |
+| Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
+| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081116.json` |
 | Staging-Servercommit | `f2961cfe97a85c5698d4967ae08808eaa6b25ce8` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
 
@@ -134,10 +134,10 @@ ersetzen.
 
 | Plattform | Gerät/Modell | Betriebssystem | Build | Netz | Rolle | Ergebnis |
 |---|---|---|---|---|---|---|
-| Android real | offen | offen | `2026081114` | WLAN | Vermieter | offen |
-| Android real | offen | offen | `2026081114` | Mobilfunk/Hotspot | Mieter | offen |
-| iOS real | offen | offen | `2026081114` | WLAN | Vermieter | offen |
-| iOS real | offen | offen | `2026081114` | Mobilfunk/Hotspot | Mieter | offen |
+| Android real | offen | offen | `2026081116` | WLAN | Vermieter | offen |
+| Android real | offen | offen | `2026081116` | Mobilfunk/Hotspot | Mieter | offen |
+| iOS real | offen | offen | `2026081116` | WLAN | Vermieter | offen |
+| iOS real | offen | offen | `2026081116` | Mobilfunk/Hotspot | Mieter | offen |
 
 Vor einer manuellen Android-Matrixrunde muss der neue, rein lesende Preflight
 `tool/preflight_android_manual_matrix.mjs` den Status
