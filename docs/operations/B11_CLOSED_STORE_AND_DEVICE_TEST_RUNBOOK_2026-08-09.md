@@ -33,7 +33,7 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Android-AAB SHA-256 | `65f5afb982353a4ce1c1dbb66dc7e8e9b23dd83abeee6008c3d80a821d0b6163` |
 | Android-APK SHA-256 | `f707d8abdee51d8b71ecc58a90083322a50d366cb6fe06f5714d53b96e17c32f` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
-| Direkte Android-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081114-20260811T192321Z.json` |
 | Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
@@ -42,8 +42,8 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
 | Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081114.json` |
-| Staging-Servercommit | `e2671899fb08808a78ed9fbbc48fe39a4370e96b` |
-| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 2/7 |
+| Staging-Servercommit | `f2961cfe97a85c5698d4967ae08808eaa6b25ce8` |
+| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
 
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM- und Abmeldediagnosen sind keine Store-Installation. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->

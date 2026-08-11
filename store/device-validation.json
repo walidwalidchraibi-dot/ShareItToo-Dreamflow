@@ -18,7 +18,16 @@
       "delivery": "pending",
       "aabSha256": "65f5afb982353a4ce1c1dbb66dc7e8e9b23dd83abeee6008c3d80a821d0b6163",
       "apkSha256": "f707d8abdee51d8b71ecc58a90083322a50d366cb6fe06f5714d53b96e17c32f",
-      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
+      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
+      "directDiagnostic": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-11T19:23:21.996Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-direct-smoke-2026081114-20260811T192321Z.json"
+      }
     },
     "ios": {
       "delivery": "pending",
@@ -155,8 +164,8 @@
       "evidenceRef": null
     },
     "stagingCleanupAndHealth": {
-      "status": "testing",
-      "evidenceRef": null
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081114.json"
     },
     "productionInvariant": {
       "status": "passed",
