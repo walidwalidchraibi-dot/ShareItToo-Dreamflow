@@ -18,7 +18,8 @@ Maßgebliche technische Grundlage:
 - Nachrichten, Anhänge, Bilder, Bewertungen, Meldungen und Streitfälle;
 - Push-Registrierungen, Benachrichtigungseinstellungen und -historie;
 - Audit-, IP-, User-Agent- und Sicherheitsinformationen;
-- Firebase Cloud Messaging und Crashlytics im Release-Build;
+- Firebase Cloud Messaging, Crashlytics und die Google-Maps-Platform-
+  Webservices im Release-Build;
 - kein Firebase Analytics, kein Werbe-SDK und kein ATT-Tracking;
 - lokaler App-Zustand in SharedPreferences;
 - Stripe-hosted payment data nur im später freigegebenen Test-/Livepfad.
@@ -141,6 +142,12 @@ Vor jedem Store-Upload wird aus dem finalen AAB/IPA beziehungsweise dessen
 Lockfiles und Privacy Manifests geprüft:
 
 - Firebase Core, Messaging, Installations, Sessions und Crashlytics;
+- Google Maps Platform für adressbezogene Autovervollständigung,
+  Ortsauflösung und Kartenbilder; eingegebene Adresse sowie Standortbezug als
+  Datenfluss zum Serviceanbieter berücksichtigen;
+- Anwendungs- und API-Beschränkungen des im Client technisch notwendigen
+  Google-Maps-Schlüssels in der Google-Cloud-Konsole nachweisen, ohne den
+  Schlüssel in Evidenz oder Store-Unterlagen zu kopieren;
 - keine unbeabsichtigte Firebase-Analytics-, Performance-, AdMob- oder
   Advertising-ID-Abhängigkeit;
 - FCM erfasst Installations-/Push-IDs und Geräte-/App-Metadaten;
@@ -152,7 +159,7 @@ Lockfiles und Privacy Manifests geprüft:
 - Google-Play-SDK-Index-Warnungen sind geprüft und dokumentiert.
 
 Firebase Analytics bleibt ausgeschlossen. Wird später ein Analytics-,
-Attribution-, Werbe-, Karten-, Identitäts- oder KYC-SDK ergänzt, ist diese
+  Attribution-, Werbe-, weitere Karten-, Identitäts- oder KYC-SDK ergänzt, ist diese
 Matrix vor dem nächsten Build vollständig neu zu bewerten.
 
 ## 7. Offene Datenschutz-/Rechtsgates
@@ -175,20 +182,24 @@ Matrix vor dem nächsten Build vollständig neu zu bewerten.
 
 ## 8. Verifikation und Nachweis
 
-Der exakte Android-Kandidat 1.0.0 (2026081029) ist an App-Commit
-`fc57adbfdf676e6abf9b7df63ec7e657e6a92a89` und die kanonisch geprüften AAB-,
+Der exakte Android-Kandidat 1.0.0 (2026081101) ist an App-Commit
+`3f28e43a18b3733e617b695f9dbc794370f6e05b` und die kanonisch geprüften AAB-,
 APK-, Signatur- und Datenschutzberichte gebunden. Das Release-Manifest
 deaktiviert Backup, Geräteübertragung, Klartextverkehr und Legacy-Speichermodus;
 alte Speicherberechtigungen sind auf die dokumentierten älteren API-Stufen
 begrenzt. Der finale Android-Binärscan bestätigt die erwarteten
-Firebase-Messaging-/Crashlytics-Komponenten, kein Analytics-/Werbe-SDK und
-keine bekannten Platzhalter- oder lokalen Laufzeitursprünge.
+Firebase-Messaging-/Crashlytics-Komponenten, den aktivierten Google-Maps-
+Dienst, kein Analytics-/Werbe-SDK, keine aktive KI-Verbindung und keine
+bekannten Platzhalter-, direkten OpenAI- oder lokalen Laufzeitursprünge. Die
+Maps-Anwendungs-/API-Beschränkung bleibt ein offener Console-Nachweis.
 
-Firebase ist auf genau diesem Kandidaten konfiguriert. Kontrollierte
-Staging-Pushs bestanden im Vordergrund, Hintergrund und bei beendetem Prozess;
-Crashlytics wurde samt Mapping-/Symbolzuordnung und bereinigtem Diagnoseereignis
-der exakten Version und Buildnummer zugeordnet. Die maschinenlesbaren
-Kandidatennachweise liegen secret-frei unter `docs/evidence/b11/`.
+Firebase ist auf genau diesem Kandidaten konfiguriert. Der aktuelle
+maschinenlesbare Datenschutzentwurf liegt in
+`store/privacy-disclosures.json`; er bindet 17 Datentypen, acht Dienste,
+Quellhashes und den erneuerten Binärscan an denselben Kandidaten. Push- und
+Crashlytics-Laufzeitprüfungen sind für diesen Kandidaten noch nicht final
+abgeschlossen. Die bereinigten Kandidatennachweise liegen unter
+`docs/evidence/b11/`.
 
 Dies ist noch nicht der abschließende plattformübergreifende Store-Nachweis:
 Ein IPA liegt nicht vor, Xcode und Apple-Developer-Zugang fehlen, die gezählte

@@ -1,0 +1,312 @@
+{
+  "schemaVersion": 1,
+  "state": "draft",
+  "approvalAllowed": false,
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "bundleId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081101",
+    "commit": "3f28e43a18b3733e617b695f9dbc794370f6e05b"
+  },
+  "sourceInventory": [
+    {
+      "path": "pubspec.yaml",
+      "sha256": "a30fd2fc7d8e66eb03e730b0b4d0d256a078e1df9501062f9ae48ab8cf6fc633"
+    },
+    {
+      "path": "android/app/src/main/AndroidManifest.xml",
+      "sha256": "1a4c5d29112f71b5034b2f297c0ec6a864fd74d92c14b26582d6a9e6f1cac7b4"
+    },
+    {
+      "path": "ios/Runner/Info.plist",
+      "sha256": "6b91b6265bc8882ed260c5ce8905e868da25281d2269d822528e2b75f19cbc47"
+    },
+    {
+      "path": "lib/screens/legal_privacy_screen.dart",
+      "sha256": "267e09161217853d0e39ed04b00539863d610f105494fa7c76174b3237c141c8"
+    },
+    {
+      "path": "lib/screens/privacy_info_screen.dart",
+      "sha256": "bbd830ac0caac9a3cd0d06dea96e2f3807767e10e5d13a10e125b3ede3a6e4cb"
+    },
+    {
+      "path": "backend/src/privacy_export.js",
+      "sha256": "9d2812fe72ad3639a04956412ca02ac1165937d90b2b5b7e736098deded74877"
+    },
+    {
+      "path": "backend/src/security.js",
+      "sha256": "85607b768d372b282ff67ae80b28e1b356a08a6ccfe1064f5ea89973135186fa"
+    },
+    {
+      "path": "lib/services/firebase_runtime.dart",
+      "sha256": "19f8cb2db09548243fb0e391a52ba30946af2209ef2ef01b5d14ed39a98c775e"
+    },
+    {
+      "path": "lib/openai/openai_config.dart",
+      "sha256": "68237c956a680f685c5b62416d6657ffa52da3b9a4976eec4018c0e76c783cc7"
+    },
+    {
+      "path": "lib/services/maps_service.dart",
+      "sha256": "d8d5272b3d49cf065e7ab287915a727b98c8ad4be1e45021eb8b7bfe74f79310"
+    }
+  ],
+  "binaryEvidence": {
+    "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081101.json",
+    "binaryScan": "passed",
+    "binaryScanReportSha256": "efb9774d2e380e99915a171bacc5a46b59fc2485a576aaa78e8ec687aef40eaf",
+    "releaseCheckStatus": "testing"
+  },
+  "externalServices": {
+    "firstPartyBackend": {
+      "enabled": true,
+      "role": "controller-service"
+    },
+    "firebaseCloudMessaging": {
+      "enabled": true,
+      "role": "processor",
+      "dataTypes": [
+        "deviceOrOtherIds"
+      ]
+    },
+    "firebaseCrashlytics": {
+      "enabled": true,
+      "role": "processor",
+      "dataTypes": [
+        "deviceOrOtherIds",
+        "crashData",
+        "otherDiagnostics"
+      ]
+    },
+    "googleMapsPlatform": {
+      "enabled": true,
+      "role": "processor-review-required",
+      "dataTypes": [
+        "physicalAddress",
+        "approximateLocation",
+        "preciseLocation"
+      ],
+      "clientCredentialEmbedded": true,
+      "applicationRestrictionVerified": false
+    },
+    "stripe": {
+      "enabledInCandidate": false,
+      "configuredMode": "memory",
+      "role": "future-processor-review-required",
+      "dataTypes": [
+        "paymentInfo",
+        "otherFinancialInfo",
+        "purchaseHistory"
+      ]
+    },
+    "openAiHelpers": {
+      "enabledInCandidate": false,
+      "endpointEmbedded": false,
+      "dataTypes": []
+    },
+    "analytics": {
+      "enabled": false,
+      "dataTypes": []
+    },
+    "advertising": {
+      "enabled": false,
+      "dataTypes": []
+    }
+  },
+  "dataTypes": [
+    {
+      "id": "name",
+      "google": "Personal info / Name",
+      "apple": "Contact Info / Name",
+      "collected": true,
+      "optional": false,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["accountManagement", "appFunctionality"]
+    },
+    {
+      "id": "emailAddress",
+      "google": "Personal info / Email address",
+      "apple": "Contact Info / Email Address",
+      "collected": true,
+      "optional": false,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["accountManagement", "developerCommunications", "fraudPreventionSecurityCompliance"]
+    },
+    {
+      "id": "phoneNumber",
+      "google": "Personal info / Phone number",
+      "apple": "Contact Info / Phone Number",
+      "collected": true,
+      "optional": true,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["accountManagement", "fraudPreventionSecurityCompliance"]
+    },
+    {
+      "id": "physicalAddress",
+      "google": "Personal info / Address",
+      "apple": "Contact Info / Physical Address",
+      "collected": true,
+      "optional": true,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["appFunctionality"]
+    },
+    {
+      "id": "userId",
+      "google": "Personal info / User IDs",
+      "apple": "Identifiers / User ID",
+      "collected": true,
+      "optional": false,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["accountManagement", "appFunctionality", "fraudPreventionSecurityCompliance"]
+    },
+    {
+      "id": "approximateLocation",
+      "google": "Location / Approximate location",
+      "apple": "Location / Coarse Location",
+      "collected": true,
+      "optional": true,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["appFunctionality", "personalization"]
+    },
+    {
+      "id": "preciseLocation",
+      "google": "Location / Precise location",
+      "apple": "Location / Precise Location",
+      "collected": true,
+      "optional": true,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["appFunctionality"]
+    },
+    {
+      "id": "photos",
+      "google": "Photos and videos / Photos",
+      "apple": "User Content / Photos or Videos",
+      "collected": true,
+      "optional": true,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
+    },
+    {
+      "id": "filesAndDocuments",
+      "google": "Files and docs / Files and docs",
+      "apple": "User Content / Other User Content",
+      "collected": true,
+      "optional": true,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
+    },
+    {
+      "id": "inAppMessages",
+      "google": "Messages / Other in-app messages",
+      "apple": "User Content / Emails or Text Messages",
+      "collected": true,
+      "optional": true,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
+    },
+    {
+      "id": "otherUserContent",
+      "google": "Other / Other user-generated content",
+      "apple": "User Content / Other User Content",
+      "collected": true,
+      "optional": true,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
+    },
+    {
+      "id": "purchaseHistory",
+      "google": "Financial info / Purchase history",
+      "apple": "Purchases / Purchase History",
+      "collected": true,
+      "optional": true,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
+    },
+    {
+      "id": "paymentInfo",
+      "google": "Financial info / User payment info",
+      "apple": "Financial Info / Payment Info",
+      "collected": false,
+      "optional": true,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["appFunctionality"]
+    },
+    {
+      "id": "otherFinancialInfo",
+      "google": "Financial info / Other financial info",
+      "apple": "Financial Info / Other Financial Info",
+      "collected": true,
+      "optional": true,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
+    },
+    {
+      "id": "deviceOrOtherIds",
+      "google": "Device or other IDs / Device or other IDs",
+      "apple": "Identifiers / Device ID",
+      "collected": true,
+      "optional": true,
+      "linkedToUser": true,
+      "tracking": false,
+      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
+    },
+    {
+      "id": "crashData",
+      "google": "App info and performance / Crash logs",
+      "apple": "Diagnostics / Crash Data",
+      "collected": true,
+      "optional": false,
+      "linkedToUser": false,
+      "tracking": false,
+      "purposes": ["fraudPreventionSecurityCompliance"]
+    },
+    {
+      "id": "otherDiagnostics",
+      "google": "App info and performance / Other app performance data",
+      "apple": "Diagnostics / Other Diagnostic Data",
+      "collected": true,
+      "optional": false,
+      "linkedToUser": false,
+      "tracking": false,
+      "purposes": ["fraudPreventionSecurityCompliance"]
+    }
+  ],
+  "requiredDecisions": {
+    "googlePlayDataSafetyQuestionnaire": {"status": "open", "evidenceRef": null},
+    "appleAppPrivacyQuestionnaire": {"status": "open", "evidenceRef": null},
+    "processorSharingClassification": {"status": "open", "evidenceRef": null},
+    "googleMapsCredentialRestrictions": {"status": "open", "evidenceRef": null},
+    "retentionAndDeletionSchedule": {"status": "open", "evidenceRef": null},
+    "stripeFinalDataFlow": {"status": "open", "evidenceRef": null}
+  },
+  "platformForms": {
+    "googlePlay": {"status": "draft", "evidenceRef": null},
+    "apple": {"status": "draft", "evidenceRef": null}
+  },
+  "storeGate": {
+    "field": "blockingGates.finalBinaryPrivacyScan",
+    "status": "open"
+  },
+  "boundaries": {
+    "legalApproval": false,
+    "storeSubmissionChanged": false,
+    "publicRoutesChanged": false,
+    "productionChanged": false,
+    "containsSecrets": false,
+    "containsAccountData": false
+  }
+}

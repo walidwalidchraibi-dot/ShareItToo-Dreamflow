@@ -34,6 +34,32 @@ Der Standardlauf prüft den ehrlichen Entwurfszustand. Eine spätere
 Store-Automation muss zusätzlich mit `--require-submittable` prüfen und darf
 bei einem offenen Gate keinen Upload starten.
 
+`store/privacy-disclosures.json` ist die maschinenlesbare, quell- und
+binärgebundene Grundlage für Google Play Data Safety und Apple App Privacy.
+Sie inventarisiert aktuell 17 Datentypen und acht Dienste bzw. technische
+Empfänger. Der signierte Android-Kandidat enthält neben Firebase Cloud
+Messaging und Crashlytics auch die aktivierte Google-Maps-Platform-Anbindung.
+Präziser Standort bleibt deshalb konservativ deklariert; die
+Anwendungs-/API-Beschränkung des eingebetteten Maps-Client-Schlüssels ist ein
+offener Console-Nachweis. KI-Helfer, Analytics, Werbung und Stripe sind im
+Kandidaten deaktiviert; der Zahlungsmodus bleibt `memory`.
+
+Der Standardlauf akzeptiert nur den ehrlichen Entwurf mit offenen
+Eigentümerentscheidungen, nicht abgesendeten Store-Formularen,
+`binaryPrivacyAndNetwork=testing` und
+`finalBinaryPrivacyScan=open`:
+
+```text
+node tool/validate_privacy_disclosures.mjs
+```
+
+Der Store-Modus verlangt zusätzlich `--require-approved`. Er bleibt gesperrt,
+bis die Data-Safety-/App-Privacy-Formulare, Empfängerklassifizierung,
+Aufbewahrung/Löschung, Maps-Schlüsselbeschränkung und der finale Stripe-
+Datenfluss separat belegt sind, der plattformübergreifende Binär-/Netztest
+bestanden ist und der Store-Gate geschlossen wurde. Die technische Matrix ist
+keine Rechtsfreigabe.
+
 `store/legal-readiness.json` bindet den Rechts-/Nutzerinhalts-Gate zusätzlich
 an die vier derzeitigen App-Texte und an die technische Registrierungskette.
 Die rechtliche Anbieteridentität und der Copyright-Inhaber sind eigene,

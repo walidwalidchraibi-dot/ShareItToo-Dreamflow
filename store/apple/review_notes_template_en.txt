@@ -4,8 +4,8 @@ Two non-expiring synthetic review accounts are provided in the protected Sign-In
 
 Suggested review path: sign in as owner, open or create the prepared listing; sign in as renter on the second account, search and request the listing; return to the owner account to accept; continue through test payment, chat, handover and return. Reporting, blocking, reviews, data export and account deletion are available from the relevant profile, conversation and account screens.
 
-Camera: listing photos, chat/report evidence and handover QR scanning. Photo library/files: user-initiated uploads. Location: nearby discovery and optional handover location. Notifications: booking, chat and handover events.
+Camera: listing photos, chat/report evidence and handover QR scanning. Photo library/files: user-initiated uploads. Location: nearby discovery, address completion/maps and optional handover location; precise location is requested only in a user-initiated feature flow. Notifications: booking, chat and handover events.
 
-There are no ads and no advertising tracking. Firebase Analytics is not included. Firebase Cloud Messaging and Crashlytics are used only for push delivery and release diagnostics. Crash reports must not contain account, message, address, token or payment content.
+There are no ads and no advertising tracking. Firebase Analytics is not included. Firebase Cloud Messaging and Crashlytics are used only for push delivery and release diagnostics. Google Maps Platform is used for user-initiated address and map functions. AI helpers and live Stripe processing are disabled in this staging candidate. Crash reports must not contain account, message, address, token or payment content.
 
 Contact information and reusable reviewer credentials must be entered only in the protected App Store Connect fields.

@@ -215,8 +215,10 @@ eintragen. Apple ergänzt das Copyright-Zeichen selbst.
 >
 > There are no ads and no advertising tracking. Firebase Analytics is not
 > included. Firebase Cloud Messaging and Crashlytics are used only for push
-> delivery and release diagnostics. Crash reports must not contain account,
-> message, address, token or payment content.
+> delivery and release diagnostics. Google Maps Platform is used for
+> user-initiated address and map functions. AI helpers and live Stripe
+> processing are disabled in this staging candidate. Crash reports must not
+> contain account, message, address, token or payment content.
 >
 > Contact: [PROTECTED APP STORE CONNECT FIELDS]. If any feature cannot be
 > reached with the supplied accounts, contact us before rejecting the build.
@@ -344,6 +346,7 @@ offen ist:
 - rechtliche Anbieteridentität oder Copyright-Inhaber nicht bestätigt;
 - finale Datenschutz-, Support- oder öffentliche Kontolösch-URL fehlt;
 - Data-Safety-/App-Privacy-Matrix stimmt nicht mit dem finalen Binärartefakt;
+- Google-Maps-Anwendungs-/API-Beschränkung des Client-Schlüssels nicht belegt;
 - Review-Konten fehlen, laufen ab oder benötigen OTP;
 - Nutzerinhaltsregeln, Melden oder Blockieren funktionieren nicht;
 - Firebase-/APNs-Konfiguration, Signierung oder höhere Buildnummer fehlt;
@@ -376,9 +379,10 @@ bei einem Fehler keinen Store-Upload starten. Der signierte Release-Preflight
 führt die Standardprüfung immer aus; mit
 `SIT_REQUIRE_STORE_SUBMISSION=1` erzwingt er vor einem tatsächlichen Upload
 zusätzlich den strengen Store-Metadatenmodus und
-`node tool/validate_legal_readiness.mjs --require-approved`. Ein Upload kann
-damit weder die allgemeinen Store-Gates noch die inhaltsgebundene
-Rechtsfreigabe umgehen.
+`node tool/validate_legal_readiness.mjs --require-approved` sowie
+`node tool/validate_privacy_disclosures.mjs --require-approved`. Ein Upload
+kann damit weder die allgemeinen Store-Gates noch die inhaltsgebundene
+Rechtsfreigabe oder den quell-/binärgebundenen Datenschutzentwurf umgehen.
 
 ## 11. Offizielle Referenzen
 

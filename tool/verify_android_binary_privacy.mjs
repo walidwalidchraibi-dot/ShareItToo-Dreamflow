@@ -61,6 +61,10 @@ function includesAscii(buffer, value) {
   return buffer.includes(Buffer.from(value, 'utf8'));
 }
 
+function includesAsciiPattern(buffer, pattern) {
+  return pattern.test(buffer.toString('latin1'));
+}
+
 function sha256(path) {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
@@ -76,6 +80,7 @@ const permissionDump = command(args.aapt, ['dump', 'permissions', args.apk]);
 const apkDex = archivePayload(args.apk, (entry) => /^classes\d*\.dex$/.test(entry));
 const apkApp = archivePayload(args.apk, (entry) => /(^|\/)libapp\.so$/.test(entry));
 const aabApp = archivePayload(args.aab, (entry) => /(^|\/)libapp\.so$/.test(entry));
+const compiledPayload = Buffer.concat([apkDex.payload, apkApp.payload, aabApp.payload]);
 
 const findings = [];
 const requireCheck = (condition, code, message) => {
@@ -226,6 +231,7 @@ const forbiddenRuntimeMarkers = [
   'https://shareittoo.app/items/',
   'https://shareittoo.app/u/',
   'http://127.0.0.1:8123/',
+  'https://api.openai.com/',
 ];
 for (const marker of forbiddenRuntimeMarkers) {
   requireCheck(
@@ -234,6 +240,46 @@ for (const marker of forbiddenRuntimeMarkers) {
     `Placeholder, legacy, or local runtime origin found: ${marker}`,
   );
 }
+
+const googleMapsEndpointPresent = includesAscii(compiledPayload, 'maps.googleapis.com');
+const googleMapsClientCredentialPresent = includesAsciiPattern(
+  compiledPayload,
+  /AIza[0-9A-Za-z_-]{20,}/,
+);
+requireCheck(
+  googleMapsEndpointPresent === googleMapsClientCredentialPresent,
+  'google_maps_configuration_mismatch',
+  'Google Maps endpoint and client credential must either both be present or both be absent.',
+);
+
+const externalServices = {
+  firebaseCloudMessaging: {
+    detected: manifest.includes('FirebaseMessagingRegistrar'),
+    disclosure: 'Firebase Cloud Messaging',
+  },
+  firebaseCrashlytics: {
+    detected: manifest.includes('CrashlyticsRegistrar'),
+    disclosure: 'Firebase Crashlytics',
+  },
+  googleMapsPlatform: {
+    detected: googleMapsEndpointPresent && googleMapsClientCredentialPresent,
+    disclosure: 'Google Maps Platform',
+    clientCredentialEmbedded: googleMapsClientCredentialPresent,
+    applicationRestrictionVerification: googleMapsClientCredentialPresent
+      ? 'pending-console-verification'
+      : 'not-applicable',
+  },
+  openAiHelpers: {
+    detected: includesAscii(compiledPayload, 'api.openai.com'),
+    disclosure: 'disabled-in-candidate',
+  },
+};
+
+const disclosedSdks = [
+  'Firebase Cloud Messaging',
+  'Firebase Crashlytics',
+  ...(externalServices.googleMapsPlatform.detected ? ['Google Maps Platform'] : []),
+];
 
 const report = {
   schemaVersion: 1,
@@ -263,7 +309,11 @@ const report = {
       manifest.includes('android:fullBackupContent'),
   },
   permissions,
-  disclosedSdks: ['Firebase Cloud Messaging', 'Firebase Crashlytics'],
+  disclosedSdks,
+  externalServices,
+  requiredConsoleVerifications: externalServices.googleMapsPlatform.detected
+    ? ['googleMapsClientCredentialApplicationAndApiRestrictions']
+    : [],
   prohibitedSdkMarkersChecked: prohibitedSdkMarkers,
   forbiddenRuntimeMarkersChecked: forbiddenRuntimeMarkers,
   findings,

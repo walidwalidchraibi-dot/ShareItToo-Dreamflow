@@ -18,6 +18,7 @@ node --check tool/verify_brand_assets.mjs
 node --check tool/verify_android_binary_privacy.mjs
 node --check tool/validate_device_evidence.mjs
 node --check tool/validate_legal_readiness.mjs
+node --check tool/validate_privacy_disclosures.mjs
 node --check tool/diagnose_store_review_accounts.mjs
 node --check tool/diagnose_store_review_safety_actions.mjs
 node --check tool/diagnose_store_review_disposable_deletion.mjs
@@ -34,6 +35,7 @@ node tool/verify_brand_assets.mjs
 dart run tool/validate_store_metadata.dart
 node tool/validate_device_evidence.mjs
 node tool/validate_legal_readiness.mjs
+node tool/validate_privacy_disclosures.mjs
 node tool/validate_store_review_access.mjs
 if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
   [[ "${SIT_RELEASE_CHANNEL:-internal}" == "internal" ]] || \
@@ -52,6 +54,7 @@ if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
   node tool/validate_firebase_release_config.mjs --require-configured --platform all
   node tool/validate_device_evidence.mjs --require-passed
   node tool/validate_legal_readiness.mjs --require-approved
+  node tool/validate_privacy_disclosures.mjs --require-approved
   node tool/validate_store_review_access.mjs --require-ready
   dart run tool/validate_store_metadata.dart --require-submittable
   node tool/verify_public_store_pages.mjs
