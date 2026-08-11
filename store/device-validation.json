@@ -18,7 +18,25 @@
       "delivery": "pending",
       "aabSha256": "b4d6b091e5fc8d1b4ac383507ace30022909eddf7f3301e87f123f2148079551",
       "apkSha256": "7f9deba87c54650ccf0198ef755a91c67b2347c17406e7800834d28ce58ded37",
-      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
+      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
+      "directDiagnostic": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-11T16:25:03.358Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-direct-smoke-2026081112-20260811T162503Z.json"
+      },
+      "authenticatedSession": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-11T16:25:21.684Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081112-20260811T162521Z.json"
+      }
     },
     "ios": {
       "delivery": "pending",
@@ -135,8 +153,8 @@
   ],
   "releaseChecks": {
     "candidateIdentityAndSignatures": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081112.json"
     },
     "firebaseFcmAndApns": {
       "status": "testing",
@@ -155,12 +173,12 @@
       "evidenceRef": null
     },
     "stagingCleanupAndHealth": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081112.json"
     },
     "productionInvariant": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081112.json"
     }
   },
   "approvals": {

@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/models/user.dart';
@@ -280,37 +282,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final bool loggedOut = !hasSession || maybeUser == null;
     final user = loggedOut ? _guestUser() : maybeUser!;
-
-    int count = 0;
-    bool hasNew = false;
-    if (!loggedOut) {
-      try {
-        final items = await DataService.getItems();
-        count = items.where((e) => e.ownerId == user.id).length;
-        hasNew = await DataService.hasNewOwnerRequests(user.id);
-      } catch (e) {
-        debugPrint('[Profile] Failed to load stats: $e');
-      }
-    }
-
-    int completedBookings = 0;
-    if (!loggedOut) {
-      try {
-        final renterCompleted = await DataService.getRentalRequestsForRenter(user.id, status: 'completed');
-        completedBookings = renterCompleted.length;
-      } catch (e) {
-        debugPrint('[Profile] Failed to compute completed bookings: $e');
-      }
-    }
     if (!mounted) return;
     setState(() {
       _user = user;
-      _myListingsCount = count;
-      _completedBookingsCount = completedBookings;
+      _myListingsCount = 0;
+      _completedBookingsCount = 0;
       _isLoading = false;
-      _hasNewRequests = hasNew;
+      _hasNewRequests = false;
       _isLoggedOutUser = loggedOut;
       _hasActiveSession = hasSession;
+    });
+    if (loggedOut) return;
+
+    // The session-bound profile is useful immediately, even while offline.
+    // Network-backed counters may take longer and update independently.
+    unawaited(_loadProfileStats(user));
+  }
+
+  Future<void> _loadProfileStats(User user) async {
+    int count = 0;
+    bool hasNew = false;
+    int completedBookings = 0;
+    await Future.wait<void>([
+      (() async {
+        try {
+          final items = await DataService.getItems();
+          count = items.where((e) => e.ownerId == user.id).length;
+          hasNew = await DataService.hasNewOwnerRequests(user.id);
+        } catch (e) {
+          debugPrint('[Profile] Failed to load stats: $e');
+        }
+      })(),
+      (() async {
+        try {
+          final renterCompleted =
+              await DataService.getRentalRequestsForRenter(
+            user.id,
+            status: 'completed',
+          );
+          completedBookings = renterCompleted.length;
+        } catch (e) {
+          debugPrint('[Profile] Failed to compute completed bookings: $e');
+        }
+      })(),
+    ]);
+
+    final activeSession = await AuthService.readSession();
+    if (!mounted) return;
+    if (activeSession == null) {
+      setState(() {
+        _user = _guestUser();
+        _myListingsCount = 0;
+        _completedBookingsCount = 0;
+        _hasNewRequests = false;
+        _isLoggedOutUser = true;
+        _hasActiveSession = false;
+      });
+      return;
+    }
+    if (_user?.id != user.id || !_hasActiveSession) return;
+    setState(() {
+      _myListingsCount = count;
+      _completedBookingsCount = completedBookings;
+      _hasNewRequests = hasNew;
     });
   }
 
