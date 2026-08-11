@@ -137,11 +137,22 @@ function nodeCenter(tag, label) {
   };
 }
 
-async function waitForHierarchy({ commandRunner, adbPath, device, predicate, wait }) {
+async function waitForHierarchy({
+  commandRunner,
+  adbPath,
+  device,
+  predicate,
+  failFastPredicate = null,
+  failFastMessage = null,
+  wait,
+}) {
   for (let attempt = 0; attempt < 8; attempt += 1) {
     await wait(750);
     const hierarchy = dumpUi(commandRunner, adbPath, device);
     if (predicate(hierarchy)) return hierarchy;
+    if (failFastPredicate?.(hierarchy)) {
+      fail(failFastMessage ?? 'The authenticated-session diagnostic stopped at a safe manual checkpoint.');
+    }
   }
   fail('The expected sanitized authenticated ShareItToo surface did not appear.');
 }
@@ -154,6 +165,11 @@ function hasAuthenticatedProfile(hierarchy) {
   return ['Meine Anzeigen', 'Mietanfragen', 'Abmelden'].every((label) => namedNodes(hierarchy, label).length >= 1)
     && namedNodes(hierarchy, 'Anmelden').length === 0
     && namedNodes(hierarchy, 'Konto erstellen').length === 0;
+}
+
+function hasGuestProfile(hierarchy) {
+  return namedNodes(hierarchy, 'Anmelden').length >= 1
+    && namedNodes(hierarchy, 'Konto erstellen').length >= 1;
 }
 
 function tapSingleNamedNode(commandRunner, adbPath, device, hierarchy, label) {
@@ -194,6 +210,8 @@ async function verifyAuthenticatedProfileCycle({ commandRunner, adbPath, device,
     adbPath,
     device,
     predicate: hasAuthenticatedProfile,
+    failFastPredicate: hasGuestProfile,
+    failFastMessage: 'The Pixel is still signed out. Sign in manually; this diagnostic never enters review credentials.',
     wait,
   });
 }

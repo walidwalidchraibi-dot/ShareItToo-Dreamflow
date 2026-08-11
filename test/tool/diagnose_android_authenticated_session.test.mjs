@@ -132,8 +132,10 @@ test('does not misclassify the guest profile as an authenticated session', async
       archive,
       wait: async () => {},
     }),
-    /authenticated ShareItToo surface did not appear/,
+    /still signed out.*never enters review credentials/,
   );
+  const dumps = fake.calls.filter((args) => args.includes('uiautomator'));
+  assert.equal(dumps.length, 2);
 });
 
 test('rejects an installed APK that differs from the candidate', async () => {
