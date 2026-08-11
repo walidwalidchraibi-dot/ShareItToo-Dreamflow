@@ -89,7 +89,7 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Kontrollierte Android-FCM-Diagnose | `pending/passed/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
 | Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
+| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081104.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081104.json` |
 | Staging-Servercommit | `46e56f489d1fba7decdb1e3f5942425b3c0f9f83` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
@@ -104,8 +104,12 @@ R8-Zuordnung und alle nativen Android-Symbole per SHA-256 an Build 2026081029.
 kontrollierte Diagnoseereignis und seine sichtbare Zuordnung zur exakten
 Version und Buildnummer in der Firebase-Konsole. Deshalb steht die
 Releaseprüfung `crashReleaseMapping` für diesen früheren Build nachweislich auf
-`passed`. Für den aktuellen Build `2026081104` ist die Zuordnung wieder offen
-und muss kandidatenspezifisch neu erzeugt und geprüft werden.
+`passed`. Für den aktuellen Build `2026081104` sind die im exakten AAB
+eingebettete R8-Zuordnung, die Mapping-ID und alle drei nativen Symbolgruppen
+hashgebunden; die Originalzuordnung wurde erfolgreich zu Crashlytics geladen.
+Der kontrollierte bereinigte Laufzeitbefund und seine sichtbare Zuordnung in
+der Firebase-Konsole bleiben kandidatenspezifisch offen, daher steht die
+Releaseprüfung weiterhin ehrlich auf `testing`.
 
 Der aktuelle Abmelde-/Push-Unterdrückungsnachweis liegt unter
 `android-logout-lifecycle-2026081029-20260810T175031Z.json`. Er belegt den
