@@ -89,11 +89,11 @@ const notificationAssets = [
 ];
 
 const adaptiveLauncherAssets = [
-  { ...asset('android/app/src/main/res/drawable-mdpi/ic_launcher_foreground.png', 108), sha256: 'c4f823963d8bf8d387695a789127749663b2a4d5fd43db533567ed787e542f31' },
-  { ...asset('android/app/src/main/res/drawable-hdpi/ic_launcher_foreground.png', 162), sha256: 'b0c16f9db01995f32367ded2df5db3f8e9d948f370f0cbbd732e6bd695975292' },
-  { ...asset('android/app/src/main/res/drawable-xhdpi/ic_launcher_foreground.png', 216), sha256: '95af1389891647633ba65d9d60e89354d5b1d00256308983c017e8734819e54b' },
-  { ...asset('android/app/src/main/res/drawable-xxhdpi/ic_launcher_foreground.png', 324), sha256: '7870f6f94e06f7c531364a3cb72d3adf87e34a04b9f03dd761d72dfa474d9347' },
-  { ...asset('android/app/src/main/res/drawable-xxxhdpi/ic_launcher_foreground.png', 432), sha256: '6ea6c76f3002402cac8a5ab7f28008d9ed8aa86bfc20218f5def30c77ec767cb' },
+  { ...asset('android/app/src/main/res/drawable-mdpi/ic_launcher_foreground.png', 108), sha256: '54a64f48940f0665ab6e0d4a852d3178289a0314cddf772b08ca972fcdef6573' },
+  { ...asset('android/app/src/main/res/drawable-hdpi/ic_launcher_foreground.png', 162), sha256: 'ccb98a19583205f2da4716db9b863940a4729b9639526ff1b9ac6fc2c8e9db50' },
+  { ...asset('android/app/src/main/res/drawable-xhdpi/ic_launcher_foreground.png', 216), sha256: '1d48159341444549b7ea22beacb4c4c6afa3a9efc848f166b71265b6e99d6356' },
+  { ...asset('android/app/src/main/res/drawable-xxhdpi/ic_launcher_foreground.png', 324), sha256: '32439c0e31a21442b57c9eeb57342c80b656948a453aa671230acbc60a5fa9a1' },
+  { ...asset('android/app/src/main/res/drawable-xxxhdpi/ic_launcher_foreground.png', 432), sha256: '81a3334cced1a60e37e8636e6081b743260cfb787866a770525e01a0505c281d' },
 ];
 
 function inspectPng(relativePath) {
