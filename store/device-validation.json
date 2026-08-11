@@ -27,6 +27,51 @@
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
         "evidenceRef": "docs/evidence/b11/android-direct-smoke-2026081114-20260811T192321Z.json"
+      },
+      "directAppLinks": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-11T19:31:21.497Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-app-link-diagnostic-2026081114-20260811T193121Z.json"
+      },
+      "authenticatedSession": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-11T19:34:23.180Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081114-20260811T193423Z.json"
+      },
+      "syntheticRoleBooking": {
+        "status": "passed",
+        "capturedAt": "2026-08-11T19:36:42.407Z",
+        "installMethod": "direct-apk-diagnostic",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081114-20260811T193642Z.json"
+      },
+      "authenticatedDeepLinks": {
+        "status": "passed",
+        "capturedAt": "2026-08-11T19:38:05.171Z",
+        "installMethod": "direct-apk-diagnostic",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081114-20260811T193805Z.json"
+      },
+      "logoutLifecycle": {
+        "status": "passed",
+        "capturedAt": "2026-08-11T19:43:21.923Z",
+        "installMethod": "direct-apk-diagnostic",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081114-20260811T194321Z.json"
       }
     },
     "ios": {
@@ -149,15 +194,15 @@
     },
     "firebaseFcmAndApns": {
       "status": "testing",
-      "evidenceRef": null
+      "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081114-20260811T193947Z.json"
     },
     "binaryPrivacyAndNetwork": {
       "status": "testing",
       "evidenceRef": null
     },
     "crashReleaseMapping": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "testing",
+      "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081114.json"
     },
     "storeWarningsLinksAndSigning": {
       "status": "open",

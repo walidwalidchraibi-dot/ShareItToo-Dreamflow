@@ -29,13 +29,13 @@ sind ausdrücklich nicht Bestandteil dieser Freigabe.
 | Android-APK SHA-256 | `f707d8abdee51d8b71ecc58a90083322a50d366cb6fe06f5714d53b96e17c32f` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
 | Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081114-20260811T192321Z.json` |
-| Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Kontrollierte Android-FCM-Diagnose | `pending/pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
+| Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081114-20260811T193121Z.json` |
+| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081114-20260811T193423Z.json` |
+| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081114-20260811T193642Z.json` |
+| Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081114-20260811T193805Z.json` |
+| Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081114-20260811T193947Z.json` |
+| Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081114-20260811T194321Z.json` |
+| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081114.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081114.json` |
 | Staging-Servercommit | `f2961cfe97a85c5698d4967ae08808eaa6b25ce8` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
