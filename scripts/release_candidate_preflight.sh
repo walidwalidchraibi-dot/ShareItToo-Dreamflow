@@ -31,6 +31,7 @@ node --check tool/diagnose_android_authenticated_session.mjs
 node --check tool/diagnose_android_authenticated_links.mjs
 node --check tool/diagnose_android_offline_realtime.mjs
 node --check tool/run_staging_synthetic_booking.mjs
+node --check tool/prepare_store_screenshot_fixture.mjs
 node --check tool/validate_firebase_release_config.mjs
 node --check tool/validate_android_signing_config.mjs
 node tool/verify_brand_assets.mjs

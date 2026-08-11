@@ -26,6 +26,7 @@ import 'package:lendify/screens/explore_screen_pinned_header.dart';
 import 'package:lendify/widgets/scroll_edge_indicators.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/listing_carousel_card.dart';
+import 'package:lendify/widgets/listing_display_truth.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/screens/developer_preview_screen.dart';
@@ -33,12 +34,6 @@ import 'package:lendify/widgets/rating_badge.dart';
 import 'package:lendify/widgets/listing_options_dialog.dart';
 import 'package:lendify/widgets/long_press_feedback_wrapper.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
-
-double _deriveStableListingRating(Item item) {
-  final base = 4.4 + ((item.id.hashCode.abs() % 40) / 100); // 4.40 - 4.79
-  final boost = (item.timesLent.clamp(0, 30) / 300); // up to +0.10
-  return (base + boost).clamp(4.3, 5.0);
-}
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -667,7 +662,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   double? _distanceFromUserKm(Item item) {
     final cities = DataService.getCities();
-    final city = _currentUserCity ?? 'Berlin';
+    final city = configuredUserCity(_currentUserCity);
+    if (city == null) return null;
     final origin = cities[city];
     if (origin == null) return null;
     return _haversine(origin.$1, origin.$2, item.lat, item.lng);
@@ -759,25 +755,37 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           slivers: [
                             SliverToBoxAdapter(
                               child: Padding(
-                                padding: const EdgeInsets.fromLTRB(24, 42, 24, 24),
+                                padding:
+                                    const EdgeInsets.fromLTRB(24, 42, 24, 24),
                                 child: Column(
                                   children: [
-                                    Icon(Icons.inventory_2_outlined, size: 46, color: Colors.white.withValues(alpha: 0.62)),
+                                    Icon(Icons.inventory_2_outlined,
+                                        size: 46,
+                                        color: Colors.white
+                                            .withValues(alpha: 0.62)),
                                     const SizedBox(height: 14),
                                     Text(
                                       showingCategoryResults
                                           ? l10n.t('Keine Anzeigen gefunden')
                                           : l10n.t('Noch keine Anzeigen'),
                                       textAlign: TextAlign.center,
-                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(color: Colors.white),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
                                       showingCategoryResults
-                                          ? l10n.t('Wähle eine andere Kategorie oder setze die Filter zurück.')
-                                          : l10n.t('Sobald die ersten Anzeigen veröffentlicht sind, erscheinen sie hier.'),
+                                          ? l10n.t(
+                                              'Wähle eine andere Kategorie oder setze die Filter zurück.')
+                                          : l10n.t(
+                                              'Sobald die ersten Anzeigen veröffentlicht sind, erscheinen sie hier.'),
                                       textAlign: TextAlign.center,
-                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(color: Colors.white70),
                                     ),
                                   ],
                                 ),
@@ -852,6 +860,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                                 onFavoriteToggle: () =>
                                                     _toggleFavorite(it.id),
                                                 distanceKm: dist,
+                                                rating: _usersById[it.ownerId]
+                                                    ?.avgRating,
                                               ),
                                             ),
                                           ),
@@ -866,42 +876,43 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               ),
                             ),
                           SliverPadding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 24, 32),
-                              sliver: SliverGrid(
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount:
-                                      isDesktop ? 4 : (isTablet ? 3 : 2),
-                                  mainAxisSpacing: 12,
-                                  crossAxisSpacing: 12,
-                                  // Make cards more compact vertically so the tile ends right below
-                                  // the price row (matching "Meine Anzeigen" density).
-                                  // Higher ratio => less height for the same width.
-                                  // Tuned to remove the remaining bottom "air" under "Preis pro Tag".
-                                  // Slightly higher ratio => slightly less tile height (tighter bottom edge).
-                                  // 4:3 image + trust row + price rows.
-                                  // Slightly taller on phones to avoid bottom overflows in tight grid tiles
-                                  // (e.g., with larger textScaleFactor).
-                                  childAspectRatio:
-                                      _exploreListingChildAspectRatio(context,
-                                          isDesktop: isDesktop,
-                                          isTablet: isTablet),
-                                ),
-                                delegate: SliverChildBuilderDelegate(
-                                  (context, index) {
-                                    final item = items[index];
-                                    final isFav = _savedIds.contains(item.id);
-                                    return _ExploreListingCard(
-                                      item: item,
-                                      isFavorite: isFav,
-                                      onFavoriteToggle: () =>
-                                          _toggleFavorite(item.id),
-                                      distanceKm: _distanceFromUserKm(item),
-                                    );
-                                  },
-                                  childCount: items.length,
-                                ),
+                            padding: const EdgeInsets.fromLTRB(16, 0, 24, 32),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount:
+                                    isDesktop ? 4 : (isTablet ? 3 : 2),
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                // Make cards more compact vertically so the tile ends right below
+                                // the price row (matching "Meine Anzeigen" density).
+                                // Higher ratio => less height for the same width.
+                                // Tuned to remove the remaining bottom "air" under "Preis pro Tag".
+                                // Slightly higher ratio => slightly less tile height (tighter bottom edge).
+                                // 4:3 image + trust row + price rows.
+                                // Slightly taller on phones to avoid bottom overflows in tight grid tiles
+                                // (e.g., with larger textScaleFactor).
+                                childAspectRatio:
+                                    _exploreListingChildAspectRatio(context,
+                                        isDesktop: isDesktop,
+                                        isTablet: isTablet),
                               ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  final item = items[index];
+                                  final isFav = _savedIds.contains(item.id);
+                                  return _ExploreListingCard(
+                                    item: item,
+                                    isFavorite: isFav,
+                                    onFavoriteToggle: () =>
+                                        _toggleFavorite(item.id),
+                                    distanceKm: _distanceFromUserKm(item),
+                                    rating: _usersById[item.ownerId]?.avgRating,
+                                  );
+                                },
+                                childCount: items.length,
+                              ),
+                            ),
                           ),
                         ],
                       );
@@ -970,13 +981,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                                 borderRadius:
                                                     BorderRadius.circular(12),
                                                 child: Padding(
-                                                  padding: const EdgeInsets.all(4.0),
+                                                  padding:
+                                                      const EdgeInsets.all(4.0),
                                                   child: Row(
-                                                    mainAxisSize: MainAxisSize.min,
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
                                                     children: [
-                                                      Icon(Icons.location_on, size: 16, color: secondaryText),
+                                                      Icon(Icons.location_on,
+                                                          size: 16,
+                                                          color: secondaryText),
                                                       const SizedBox(width: 4),
-                                                      Text(locationLabel, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: secondaryText, fontSize: 14)),
+                                                      Text(locationLabel,
+                                                          style: Theme.of(
+                                                                  context)
+                                                              .textTheme
+                                                              .bodyMedium
+                                                              ?.copyWith(
+                                                                  color:
+                                                                      secondaryText,
+                                                                  fontSize:
+                                                                      14)),
                                                     ],
                                                   ),
                                                 ),
@@ -1018,9 +1042,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           SliverPersistentHeader(
                             pinned: true,
                             delegate: PinnedCategoriesHeader(
-                              textScale: MediaQuery.textScalerOf(context)
-                                      .scale(10.5) /
-                                  10.5,
+                              textScale:
+                                  MediaQuery.textScalerOf(context).scale(10.5) /
+                                      10.5,
                               builder: (context) {
                                 final l10n =
                                     context.watch<LocalizationController>();
@@ -1086,30 +1110,34 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         child: itemsFiltered.isEmpty
                             ? feedPage(title: '', items: const <Item>[])
                             : PageView(
-                          controller: _feedPager,
-                          physics: const BouncingScrollPhysics(),
-                          children: [
-                            feedPage(
-                                title: context
-                                    .watch<LocalizationController>()
-                                    .t('Am meisten gebucht'),
-                                items: topBooked),
-                            feedPage(
-                                title: context
-                                    .watch<LocalizationController>()
-                                    .t('Neue Angebote'),
-                                items: neueQuelle),
-                            feedPage(
-                                title: context
-                                    .watch<LocalizationController>()
-                                    .t('In der Nähe von dir'),
-                                items: nearYou),
-                            feedPage(
-                                title: context
-                                    .watch<LocalizationController>()
-                                    .t('Kunden gefällt auch'),
-                                items: customersLike),
-                          ],
+                                controller: _feedPager,
+                                physics: const BouncingScrollPhysics(),
+                                children: [
+                                  feedPage(
+                                      title: context
+                                          .watch<LocalizationController>()
+                                          .t('Am meisten gebucht'),
+                                      items: topBooked),
+                                  feedPage(
+                                      title: context
+                                          .watch<LocalizationController>()
+                                          .t('Neue Angebote'),
+                                      items: neueQuelle),
+                                  feedPage(
+                                      title: context
+                                          .watch<LocalizationController>()
+                                          .t(configuredUserCity(
+                                                      _currentUserCity) !=
+                                                  null
+                                              ? 'In der Nähe von dir'
+                                              : 'Weitere Angebote'),
+                                      items: nearYou),
+                                  feedPage(
+                                      title: context
+                                          .watch<LocalizationController>()
+                                          .t('Kunden gefällt auch'),
+                                      items: customersLike),
+                                ],
                               ),
                       ),
                     );
@@ -1536,7 +1564,6 @@ class _SquareItemCardState extends State<_SquareItemCard> {
 
   @override
   Widget build(BuildContext context) {
-    final derivedRating = _deriveStableListingRating(widget.item);
     return MouseRegion(
       cursor: SystemMouseCursors.basic,
       child: LongPressFeedbackWrapper(
@@ -1624,12 +1651,6 @@ class _SquareItemCardState extends State<_SquareItemCard> {
                         ]),
                   ),
                 ),
-
-              // Rating on image (bottom-right)
-              Positioned(
-                  right: 8,
-                  bottom: 8,
-                  child: RatingBadge(rating: derivedRating)),
               if (widget.showFavorite)
                 Positioned(
                   top: 8,
@@ -1719,7 +1740,6 @@ class _SmallScrollCardState extends State<_SmallScrollCard> {
 
   @override
   Widget build(BuildContext context) {
-    final derivedRating = _deriveStableListingRating(widget.item);
     return MouseRegion(
       cursor: SystemMouseCursors.basic,
       child: LongPressFeedbackWrapper(
@@ -1806,11 +1826,6 @@ class _SmallScrollCardState extends State<_SmallScrollCard> {
                   ),
                 ),
 
-                // Rating on image (bottom-right)
-                Positioned(
-                    right: 8,
-                    bottom: 8,
-                    child: RatingBadge(rating: derivedRating)),
 // Favorite heart (top-right)
                 Positioned(
                   top: 8,
@@ -2051,12 +2066,14 @@ class _ExploreListingCard extends StatelessWidget {
   final bool isFavorite;
   final VoidCallback onFavoriteToggle;
   final double? distanceKm;
+  final double? rating;
 
   const _ExploreListingCard(
       {required this.item,
       required this.isFavorite,
       required this.onFavoriteToggle,
-      required this.distanceKm});
+      required this.distanceKm,
+      required this.rating});
 
   bool get _isVerified =>
       item.verificationStatus == 'approved' ||
@@ -2078,7 +2095,8 @@ class _ExploreListingCard extends StatelessWidget {
           item: item,
           isFavorite: isFavorite,
           onFavoriteToggle: onFavoriteToggle,
-          distanceKm: distanceKm),
+          distanceKm: distanceKm,
+          rating: rating),
     );
   }
 }
@@ -2088,12 +2106,14 @@ class _ExploreListingCardContent extends StatelessWidget {
   final bool isFavorite;
   final VoidCallback onFavoriteToggle;
   final double? distanceKm;
+  final double? rating;
 
   const _ExploreListingCardContent(
       {required this.item,
       required this.isFavorite,
       required this.onFavoriteToggle,
-      required this.distanceKm});
+      required this.distanceKm,
+      required this.rating});
 
   bool get _isVerified =>
       item.verificationStatus == 'approved' ||
@@ -2105,7 +2125,7 @@ class _ExploreListingCardContent extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final cs = theme.colorScheme;
-    final derivedRating = _deriveStableListingRating(item);
+    final displayRating = listingRatingForDisplay(rating);
     final textScale = MediaQuery.textScalerOf(context).scale(1.0);
     final titleColor = isDark ? Colors.white : AppTheme.textPrimary(context);
     final metaColor = isDark
@@ -2231,10 +2251,11 @@ class _ExploreListingCardContent extends StatelessWidget {
                 ),
 
                 // Rating badge bottom-right on image
-                Positioned(
-                    right: 10,
-                    bottom: 10,
-                    child: RatingBadge(rating: derivedRating)),
+                if (displayRating != null)
+                  Positioned(
+                      right: 10,
+                      bottom: 10,
+                      child: RatingBadge(rating: displayRating)),
               ]),
             ),
             Expanded(
@@ -2279,9 +2300,12 @@ class _ExploreListingCardContent extends StatelessWidget {
                                           size: iconSize, color: metaIconColor),
                                       const SizedBox(width: 3),
                                       Text(
-                                          distanceKm == null
-                                              ? l10n.t('in deiner Nähe')
-                                              : '${distanceKm!.toStringAsFixed(distanceKm! < 10 ? 1 : 0)} km',
+                                          listingLocationLabel(
+                                            distanceKm: distanceKm,
+                                            listingCity: item.city,
+                                            unavailableLabel:
+                                                l10n.t('Nicht verfügbar'),
+                                          ),
                                           style: style),
                                       const SizedBox(width: 6),
                                       Icon(Icons.loop,

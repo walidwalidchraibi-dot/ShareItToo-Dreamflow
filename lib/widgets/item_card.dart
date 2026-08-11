@@ -9,6 +9,7 @@ import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/listing_display_truth.dart';
 import 'package:lendify/widgets/rating_badge.dart';
 import 'package:lendify/widgets/listing_options_dialog.dart';
 import 'package:lendify/widgets/long_press_feedback_wrapper.dart';
@@ -59,12 +60,6 @@ class ItemCard extends StatelessWidget {
     return (colWidth / cardHeight).clamp(0.72, 1.08);
   }
 
-  static double _deriveRating(Item item) {
-    final base = 4.4 + ((item.id.hashCode.abs() % 40) / 100); // 4.40 - 4.79
-    final boost = (item.timesLent.clamp(0, 30) / 300); // up to +0.10
-    return (base + boost).clamp(4.3, 5.0);
-  }
-
   @override
   Widget build(BuildContext context) {
     return LongPressFeedbackWrapper(
@@ -107,32 +102,46 @@ class ItemCard extends StatelessWidget {
                           fit: BoxFit.cover,
                         ),
                       ),
-                      // Verified badge on the LEFT
-                      FutureBuilder<model.User?>(
-                        future: DataService.getUserById(item.ownerId),
-                        builder: (context, snap) {
-                          final verified = snap.data?.isVerified == true;
-                          return Positioned(
-                            top: 8,
-                            left: 8,
-                            child: Container(
-                              padding: EdgeInsets.all(iconSize * 0.35),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                verified
-                                    ? Icons.verified
-                                    : Icons.verified_outlined,
-                                size: iconSize,
-                                color: verified
-                                    ? BrandColors.success
-                                    : Colors.black45,
-                              ),
-                            ),
-                          );
-                        },
+                      // Verification and rating come only from the real owner.
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: FutureBuilder<model.User?>(
+                            future: DataService.getUserById(item.ownerId),
+                            builder: (context, snap) {
+                              final verified = snap.data?.isVerified == true;
+                              final rating =
+                                  listingRatingForDisplay(snap.data?.avgRating);
+                              return Stack(children: [
+                                Positioned(
+                                  top: 8,
+                                  left: 8,
+                                  child: Container(
+                                    padding: EdgeInsets.all(iconSize * 0.35),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      verified
+                                          ? Icons.verified
+                                          : Icons.verified_outlined,
+                                      size: iconSize,
+                                      color: verified
+                                          ? BrandColors.success
+                                          : Colors.black45,
+                                    ),
+                                  ),
+                                ),
+                                if (rating != null)
+                                  Positioned(
+                                    right: 8,
+                                    bottom: 8,
+                                    child: RatingBadge(rating: rating),
+                                  ),
+                              ]);
+                            },
+                          ),
+                        ),
                       ),
                       // Wishlist heart on the RIGHT (manual selection flow)
                       Positioned(
@@ -140,13 +149,6 @@ class ItemCard extends StatelessWidget {
                           right: 5,
                           child: _WishlistHeartButton(
                               itemId: item.id, size: iconSize)),
-
-                      // Rating badge bottom-right on image
-                      Positioned(
-                        right: 8,
-                        bottom: 8,
-                        child: RatingBadge(rating: _deriveRating(item)),
-                      ),
                     ]),
                   ),
                   Expanded(

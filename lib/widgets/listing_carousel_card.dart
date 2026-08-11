@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/listing_display_truth.dart';
 import 'package:lendify/widgets/rating_badge.dart';
 
 class ListingCarouselCard extends StatelessWidget {
@@ -25,20 +26,13 @@ class ListingCarouselCard extends StatelessWidget {
     this.rentals,
   });
 
-  static double _deriveRating(Item item) {
-    // Deterministic and stable without backend.
-    final base = 4.4 + ((item.id.hashCode.abs() % 40) / 100); // 4.40 - 4.79
-    final boost = (item.timesLent.clamp(0, 30) / 300); // up to +0.10
-    return (base + boost).clamp(4.3, 5.0);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final cs = theme.colorScheme;
     final l10n = context.watch<LocalizationController>();
-    final derivedRating = rating ?? _deriveRating(item);
+    final displayRating = listingRatingForDisplay(rating);
     final derivedRentals = rentals ?? item.timesLent;
     final highlight = badgeText;
     final isVerified = item.verificationStatus == 'verified' ||
@@ -148,11 +142,12 @@ class ListingCarouselCard extends StatelessWidget {
             ),
 
             // Rating badge (bottom-right on image)
-            Positioned(
-              right: 10,
-              bottom: 10,
-              child: RatingBadge(rating: derivedRating),
-            ),
+            if (displayRating != null)
+              Positioned(
+                right: 10,
+                bottom: 10,
+                child: RatingBadge(rating: displayRating),
+              ),
           ]),
         ),
         Padding(
@@ -175,6 +170,7 @@ class ListingCarouselCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 _TrustRow(
                   distanceKm: distanceKm,
+                  listingCity: item.city,
                   rentals: derivedRentals,
                   textColor: metaColor,
                   iconColor: metaIconColor,
@@ -210,11 +206,13 @@ class ListingCarouselCard extends StatelessWidget {
 
 class _TrustRow extends StatelessWidget {
   final double? distanceKm;
+  final String listingCity;
   final int rentals;
   final Color textColor;
   final Color iconColor;
   const _TrustRow({
     required this.distanceKm,
+    required this.listingCity,
     required this.rentals,
     required this.textColor,
     required this.iconColor,
@@ -236,9 +234,11 @@ class _TrustRow extends StatelessWidget {
       Icon(Icons.place_outlined, size: iconSize, color: iconColor),
       const SizedBox(width: 3),
       Text(
-          distanceKm == null
-              ? l10n.t('in deiner Nähe')
-              : '${distanceKm!.toStringAsFixed(distanceKm! < 10 ? 1 : 0)} km',
+          listingLocationLabel(
+            distanceKm: distanceKm,
+            listingCity: listingCity,
+            unavailableLabel: l10n.t('Nicht verfügbar'),
+          ),
           style: style),
       const SizedBox(width: 6),
       Icon(Icons.loop, size: iconSize, color: iconColor),
