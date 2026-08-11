@@ -115,11 +115,11 @@ function validate({
   });
 }
 
-test('accepts the honest fail-closed testing state with fixture refresh pending', () => {
+test('accepts the honest fail-closed testing state with device and network checks pending', () => {
   const result = validate();
   assert.equal(result.state, 'testing');
   assert.equal(result.readyForStore, false);
-  assert.equal(result.passedScenarios, 3);
+  assert.equal(result.passedScenarios, 8);
   assert.equal(result.storeGate, 'open');
 });
 

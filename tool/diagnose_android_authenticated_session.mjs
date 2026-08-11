@@ -150,7 +150,10 @@ async function waitForHierarchy({
     await wait(750);
     const hierarchy = dumpUi(commandRunner, adbPath, device);
     if (predicate(hierarchy)) return hierarchy;
-    if (failFastPredicate?.(hierarchy)) {
+    // A valid persisted session can briefly render the guest profile while
+    // the remote profile hydration finishes after a cold start. Only treat a
+    // fail-fast surface as authoritative after the full bounded wait window.
+    if (attempt === 7 && failFastPredicate?.(hierarchy)) {
       fail(failFastMessage ?? 'The authenticated-session diagnostic stopped at a safe manual checkpoint.');
     }
   }

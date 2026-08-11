@@ -86,9 +86,10 @@ test('rejects a stale or missing app-link diagnostic in a snapshot', () => {
 test('rejects a stale or missing authenticated-session diagnostic in a snapshot', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[2];
+  const sessionEvidenceRef = deviceManifest.candidate.android.authenticatedSession.evidenceRef;
   changed[path] = changed[path].replace(
-    '| Angemeldete Android-Sitzungsdiagnose | `pending`',
-    '| Angemeldete Android-Sitzungsdiagnose | `passed`',
+    `\`${sessionEvidenceRef}\``,
+    '`docs/evidence/b11/android-authenticated-session-stale.json`',
   );
   assert.throws(() => validateStrict({ documents: changed }), /snapshot is stale or incomplete/);
 });
@@ -106,9 +107,10 @@ test('rejects a stale or missing synthetic-role booking diagnostic in a snapshot
 test('rejects a stale or missing authenticated deep-link diagnostic in a snapshot', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[1];
+  const deepLinkEvidenceRef = deviceManifest.candidate.android.authenticatedDeepLinks.evidenceRef;
   changed[path] = changed[path].replace(
-    '| Authentifizierte Android-Deep-Links | `pending`',
-    '| Authentifizierte Android-Deep-Links | `passed`',
+    `\`${deepLinkEvidenceRef}\``,
+    '`docs/evidence/b11/android-authenticated-deep-links-stale.json`',
   );
   assert.throws(() => validateStrict({ documents: changed }), /snapshot is stale or incomplete/);
 });

@@ -40,9 +40,10 @@ const mainHierarchy = `<hierarchy>${node('Erkunden&#10;Tab 1 of 5', '[0,100][200
 const authenticatedHierarchy = `<hierarchy>${node('Meine Anzeigen', '[10,10][300,80]')}${node('Offene Box mit runder Sprechblase&#10;Mietanfragen', '[10,90][300,160]')}${node('Abmelden', '[10,170][300,240]')}${node('Erkunden', '[0,100][200,200]')}${node('Profil', '[800,100][1000,200]')}<node text="private@example.com" content-desc=""/></hierarchy>`;
 const guestHierarchy = `<hierarchy>${node('Anmelden', '[10,10][300,80]')}${node('Konto erstellen', '[10,90][300,160]')}${node('Erkunden', '[0,100][200,200]')}${node('Profil', '[800,100][1000,200]')}</hierarchy>`;
 
-function fakeRunner({ locked = false, guest = false, bytes = apkBytes } = {}) {
+function fakeRunner({ locked = false, guest = false, transientGuestDumps = 0, bytes = apkBytes } = {}) {
   let surface = 'main';
   let launches = 0;
+  let profileDumps = 0;
   const calls = [];
   const runner = (_file, args, options = {}) => {
     calls.push(args);
@@ -57,6 +58,7 @@ function fakeRunner({ locked = false, guest = false, bytes = apkBytes } = {}) {
     }
     if (command[0] === 'shell' && command[1] === 'am' && command[2] === 'force-stop') {
       surface = 'main';
+      profileDumps = 0;
       return '';
     }
     if (command[0] === 'shell' && command[1] === 'monkey') {
@@ -66,7 +68,12 @@ function fakeRunner({ locked = false, guest = false, bytes = apkBytes } = {}) {
     }
     if (command[0] === 'shell' && command[1] === 'uiautomator') return 'UI hierarchy dumped';
     if (command.join(' ') === 'exec-out cat /sdcard/sit-authenticated-session-diagnostic.xml') {
-      if (surface === 'profile') return guest ? guestHierarchy : authenticatedHierarchy;
+      if (surface === 'profile') {
+        profileDumps += 1;
+        return guest || profileDumps <= transientGuestDumps
+          ? guestHierarchy
+          : authenticatedHierarchy;
+      }
       return mainHierarchy;
     }
     if (command[0] === 'shell' && command[1] === 'input' && command[2] === 'tap') {
@@ -135,7 +142,22 @@ test('does not misclassify the guest profile as an authenticated session', async
     /still signed out.*never enters review credentials/,
   );
   const dumps = fake.calls.filter((args) => args.includes('uiautomator'));
-  assert.equal(dumps.length, 2);
+  assert.equal(dumps.length, 9);
+});
+
+test('waits through a transient guest profile while the persisted session hydrates', async () => {
+  const fake = fakeRunner({ transientGuestDumps: 2 });
+  const evidence = await diagnoseAndroidAuthenticatedSession({
+    commandRunner: fake.runner,
+    adbPath: 'adb',
+    device,
+    deviceSummary,
+    candidate,
+    archive,
+    wait: async () => {},
+  });
+  assert.equal(evidence.tests.coldStartSessionRestore.status, 'passed');
+  assert.equal(fake.launches, 2);
 });
 
 test('rejects an installed APK that differs from the candidate', async () => {
