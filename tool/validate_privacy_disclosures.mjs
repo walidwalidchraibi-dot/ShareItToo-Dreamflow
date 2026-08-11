@@ -260,7 +260,8 @@ export function validatePrivacyDisclosures({
   assertSourceContracts({ root, sourceTexts });
 
   const binary = object(privacy.binaryEvidence, 'binaryEvidence');
-  if (binary.candidateEvidenceRef !== 'docs/evidence/b11/android-candidate-2026081101.json') {
+  const expectedCandidateEvidenceRef = `docs/evidence/b11/android-candidate-${candidate.buildNumber}.json`;
+  if (binary.candidateEvidenceRef !== expectedCandidateEvidenceRef) {
     fail('binaryEvidence must reference the current sanitized Android candidate evidence.');
   }
   if (binary.binaryScan !== 'passed') fail('The bound Android binary privacy scan must pass.');

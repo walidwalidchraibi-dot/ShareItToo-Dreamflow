@@ -52,7 +52,7 @@ function validateStrict(overrides = {}) {
 
 test('repository B11 release documentation matches the current candidate', () => {
   const result = validateStrict();
-  assert.equal(result.buildNumber, '2026081101');
+  assert.equal(result.buildNumber, '2026081104');
   assert.equal(result.documents, 3);
   assert.equal(result.passedCells, 0);
   assert.equal(result.passedReleaseChecks, 3);
@@ -62,7 +62,7 @@ test('rejects a stale build number in a snapshot', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[0];
   changed[path] = changed[path].replace(
-    '1.0.0 (2026081101)',
+    '1.0.0 (2026081104)',
     '1.0.0 (2026080903)',
   );
   assert.throws(() => validateStrict({ documents: changed }), /snapshot is stale or incomplete/);
@@ -72,8 +72,8 @@ test('rejects a stale or missing app-link diagnostic in a snapshot', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[1];
   changed[path] = changed[path].replace(
+    '| Direkte Android-App-Link-Diagnose | `pending`',
     '| Direkte Android-App-Link-Diagnose | `passed`',
-    '| Direkte Android-App-Link-Diagnose | `open`',
   );
   assert.throws(() => validateStrict({ documents: changed }), /snapshot is stale or incomplete/);
 });
@@ -128,7 +128,7 @@ test('rejects a device matrix row that points to an older build', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[1];
   changed[path] = changed[path].replace(
-    '| Android real | offen | offen | `2026081101` | WLAN',
+    '| Android real | offen | offen | `2026081104` | WLAN',
     '| Android real | offen | offen | `2026080903` | WLAN',
   );
   assert.throws(() => validateStrict({ documents: changed }), /four runbook device-matrix rows/);
@@ -142,17 +142,17 @@ test('rejects pubspec drift from the documented candidate', () => {
 });
 
 test('rollover mode accepts an incomplete current candidate above the documented baseline', () => {
-  const result = validate({ pubspecText: 'version: 1.0.0+2026081102\n' });
-  assert.equal(result.buildNumber, '2026081101');
-  assert.equal(result.rolloverBuildNumber, '2026081102');
-  assert.equal(result.documentedBuild, '2026081101');
+  const result = validate({ pubspecText: 'version: 1.0.0+2026081105\n' });
+  assert.equal(result.buildNumber, '2026081104');
+  assert.equal(result.rolloverBuildNumber, '2026081105');
+  assert.equal(result.documentedBuild, '2026081104');
   assert.equal(result.passedReleaseChecks, 3);
 });
 
 test('rollover mode rejects a build older than the documented candidate', () => {
   assert.throws(
     () => validate({
-      pubspecText: `version: 1.0.0+2026081100\n`,
+      pubspecText: `version: 1.0.0+2026081103\n`,
     }),
     /must not be older than the documented candidate/,
   );

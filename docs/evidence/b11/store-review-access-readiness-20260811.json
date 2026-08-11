@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "kind": "store-review-access-diagnostic",
   "status": "technical-review-access-passed-store-fields-pending",
-  "capturedAt": "2026-08-11T02:11:35.810Z",
+  "capturedAt": "2026-08-11T07:37:25.591Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081101",
-    "commit": "3f28e43a18b3733e617b695f9dbc794370f6e05b"
+    "buildNumber": "2026081104",
+    "commit": "d4511175a03a9eb574db55b5efcb140f60364765"
   },
   "roles": [
     "owner",

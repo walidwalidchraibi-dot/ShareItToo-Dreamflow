@@ -204,8 +204,8 @@ oder bloßes Umschalten eines Store-Gates keine Freigabe erzeugen.
 
 ## 8. Verifikation und Nachweis
 
-Der exakte Android-Kandidat 1.0.0 (2026081101) ist an App-Commit
-`3f28e43a18b3733e617b695f9dbc794370f6e05b` und die kanonisch geprüften AAB-,
+Der exakte Android-Kandidat 1.0.0 (2026081104) ist an App-Commit
+`d4511175a03a9eb574db55b5efcb140f60364765` und die kanonisch geprüften AAB-,
 APK-, Signatur- und Datenschutzberichte gebunden. Das Release-Manifest
 deaktiviert Backup, Geräteübertragung, Klartextverkehr und Legacy-Speichermodus;
 alte Speicherberechtigungen sind auf die dokumentierten älteren API-Stufen
@@ -215,7 +215,10 @@ Dienst, kein Analytics-/Werbe-SDK, keine aktive KI-Verbindung und keine
 bekannten Platzhalter-, direkten OpenAI- oder lokalen Laufzeitursprünge. Die
 Maps-Anwendungs-/API-Beschränkung bleibt ein offener Console-Nachweis.
 
-Firebase ist auf genau diesem Kandidaten konfiguriert. Der aktuelle
+Firebase ist auf genau diesem Kandidaten konfiguriert. Die reale
+Hintergrund-FCM-Zustellung samt Tap und Navigation in den authentifizierten
+Vermietungsdetailbereich ist bestanden; Vordergrund, beendeter Prozess und die
+vollständige Gerätematrix bleiben offen. Der aktuelle
 maschinenlesbare Datenschutzentwurf liegt in
 `store/privacy-disclosures.json`; er bindet 17 Datentypen, acht Dienste,
 Quellhashes und den erneuerten Binärscan an denselben Kandidaten. Push- und

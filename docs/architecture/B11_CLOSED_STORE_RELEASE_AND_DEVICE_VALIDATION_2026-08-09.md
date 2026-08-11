@@ -21,23 +21,23 @@ sind ausdrücklich nicht Bestandteil dieser Freigabe.
 | Merkmal | Verbindlicher Wert |
 |---|---|
 | App-Identität | `com.shareittoo.app` (Android und iOS) |
-| Version und Build | `1.0.0 (2026081101)` |
-| App-Commit | `3f28e43a18b3733e617b695f9dbc794370f6e05b` |
+| Version und Build | `1.0.0 (2026081104)` |
+| App-Commit | `d4511175a03a9eb574db55b5efcb140f60364765` |
 | Kanal und API | `internal`, `https://staging.shareittoo.com/api/v1` |
 | Firebase und Zahlung | vollständig: `true`; `memory`; `stripeLivemode=false` |
-| Android-AAB SHA-256 | `ade2d6b0d87b749c7455f296c83d3182b52d3ea3c54f8f3399a04d2938933904` |
-| Android-APK SHA-256 | `eb87f839e1c8d169f3e9e774e3d0261f3d1196481d0d4ecdc97f65700247601d` |
+| Android-AAB SHA-256 | `4e0ca39cc393cdb1ef52a03838a0c30dd6d588fad54e83b889d9c70f80647c7a` |
+| Android-APK SHA-256 | `495dba0e792b75aa5c279f64ed09bccd8de4db257b5737b30a111634df5b9dc9` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
-| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081101-20260810T223204Z.json` |
-| Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081101-20260810T225137Z.json` |
+| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081104-20260811T073210Z.json` |
+| Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Kontrollierte Android-FCM-Diagnose | `pending/pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Kontrollierte Android-FCM-Diagnose | `pending/passed/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
 | Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081101.json` |
-| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081101.json` |
-| Staging-Servercommit | `ec570acfddc218cec6d2bfba43d4feb33bda4cfc` |
+| Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
+| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081104.json` |
+| Staging-Servercommit | `46e56f489d1fba7decdb1e3f5942425b3c0f9f83` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |
 
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM- und Abmeldediagnosen sind keine Store-Installation. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.

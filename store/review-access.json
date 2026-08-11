@@ -6,8 +6,8 @@
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081101",
-    "commit": "3f28e43a18b3733e617b695f9dbc794370f6e05b"
+    "buildNumber": "2026081104",
+    "commit": "d4511175a03a9eb574db55b5efcb140f60364765"
   },
   "environment": {
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
