@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "installed-launched-session-restored-and-background-fcm-centered-icon-passed",
+  "status": "installed-launched-app-links-session-restored-authenticated-links-and-background-fcm-centered-icon-passed",
   "generatedAt": "2026-08-11T11:25:21Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -43,10 +43,10 @@
     "directInstallAndLaunch": "passed",
     "crashlyticsMappingAndNativeSymbols": "pending",
     "crashlyticsReleaseAssignment": "pending",
-    "guestAppLinks": "pending",
+    "guestAppLinks": "passed",
     "authenticatedSessionRestore": "passed",
     "syntheticRoleBooking": "pending",
-    "authenticatedDeepLinks": "pending",
+    "authenticatedDeepLinks": "passed",
     "foregroundFcm": "pending",
     "backgroundFcm": "passed",
     "terminatedProcessFcm": "pending",
