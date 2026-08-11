@@ -81,6 +81,12 @@
     "evidenceRef": "docs/evidence/b11/android-app-link-diagnostic-2026081114-20260811T193121Z.json",
     "syntheticSessionRestoredAfterProbe": true
   },
+  "storeReadiness": {
+    "status": "testing",
+    "evidenceRef": "docs/evidence/b11/store-links-signing-readiness-2026081114.json",
+    "publicRoutes": "pending-explicit-production-approval",
+    "storeConsole": "pending"
+  },
   "staging": {
     "serverCommit": "f2961cfe97a85c5698d4967ae08808eaa6b25ce8",
     "liveHttpStatus": 200,
