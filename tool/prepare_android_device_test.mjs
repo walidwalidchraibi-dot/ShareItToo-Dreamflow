@@ -318,7 +318,7 @@ export function installAndLaunchCandidate({
   }
   const activities = adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'activity', 'activities']);
   const escapedApplicationId = candidate.applicationId.replaceAll('.', '\\.');
-  if (!new RegExp(`(?:mResumedActivity|topResumedActivity).*${escapedApplicationId}/`).test(activities)) {
+  if (!new RegExp(`(?:mResumedActivity|topResumedActivity|ResumedActivity:).*${escapedApplicationId}/`).test(activities)) {
     fail('ShareItToo did not become the verified foreground activity after launch.');
   }
 

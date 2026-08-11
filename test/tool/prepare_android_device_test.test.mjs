@@ -144,7 +144,7 @@ test('direct installation evidence never contains the raw ADB serial and never c
     }
     if (command[0] === 'shell' && command[1] === 'monkey') return 'Events injected: 1\n';
     if (command.join(' ') === 'shell dumpsys activity activities') {
-      return 'mResumedActivity: ActivityRecord{fixture com.shareittoo.app/.MainActivity}\n';
+      return 'ResumedActivity: ActivityRecord{fixture com.shareittoo.app/.MainActivity}\n';
     }
     throw new Error(`Unexpected fake ADB command: ${command.join(' ')}`);
   };
