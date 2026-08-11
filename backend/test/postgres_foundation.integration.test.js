@@ -1877,6 +1877,41 @@ if (!databaseUrl) {
          )`,
         [erasedStorageName, Buffer.byteLength('private-profile-image')],
       );
+      await setupPool.query(
+        `INSERT INTO notification_preferences (user_id)
+         VALUES ('auth-user')
+         ON CONFLICT (user_id) DO NOTHING`,
+      );
+      await setupPool.query(
+        `INSERT INTO notifications (
+           event_key, user_id, category, kind, priority, title, body, payload
+         ) VALUES (
+           'account-deletion-notification', 'auth-user', 'system',
+           'account_deletion_test', 1, 'Private title', 'Private body',
+           '{"private":"value"}'::jsonb
+         )`,
+      );
+      const deletionOutbox = await setupPool.query(
+        `INSERT INTO notification_outbox (
+           event_key, user_id, channel, kind, payload, status, provider_message_id
+         ) VALUES (
+           'account-deletion-outbox', 'auth-user', 'push',
+           'account_deletion_test', '{"private":"value"}'::jsonb,
+           'retry', 'provider-private-reference'
+         )
+         RETURNING id`,
+      );
+      await setupPool.query(
+        `INSERT INTO notification_delivery_attempts (
+           outbox_id, attempt_number, channel, outcome, provider,
+           provider_message_id, metadata
+         ) VALUES ($1, 1, 'push', 'retry', 'fcm', 'provider-private-reference', '{}')`,
+        [deletionOutbox.rows[0].id],
+      );
+      await setupPool.query(
+        `INSERT INTO user_blocks (blocker_id, blocked_id)
+         VALUES ('auth-user', 'email-user')`,
+      );
       const deletionHeaders = {
         Authorization: `Bearer ${deletionSession.accessToken}`,
         'Content-Type': 'application/json',
@@ -1917,6 +1952,28 @@ if (!databaseUrl) {
       assert.equal((await setupPool.query(
         `SELECT count(*)::int AS count FROM uploads WHERE owner_id = 'auth-user'`,
       )).rows[0].count, 0);
+      for (const table of ['notification_preferences', 'notifications', 'message_reads']) {
+        assert.equal((await setupPool.query(
+          `SELECT count(*)::int AS count FROM ${table} WHERE user_id = 'auth-user'`,
+        )).rows[0].count, 0);
+      }
+      assert.equal((await setupPool.query(
+        `SELECT count(*)::int AS count FROM user_blocks
+         WHERE blocker_id = 'auth-user' OR blocked_id = 'auth-user'`,
+      )).rows[0].count, 0);
+      const scrubbedOutbox = await setupPool.query(
+        `SELECT status, payload, provider_message_id, locked_at, locked_by, last_error_code
+         FROM notification_outbox WHERE id = $1`,
+        [deletionOutbox.rows[0].id],
+      );
+      assert.deepEqual(scrubbedOutbox.rows[0], {
+        status: 'suppressed',
+        payload: {},
+        provider_message_id: null,
+        locked_at: null,
+        locked_by: null,
+        last_error_code: 'account_deleted',
+      });
       await assert.rejects(fs.access(path.join(uploadDir, erasedStorageName)), { code: 'ENOENT' });
       const erasedListing = await setupPool.query(
         `SELECT is_active, payload FROM listings WHERE id = 'auth-user-listing'`,

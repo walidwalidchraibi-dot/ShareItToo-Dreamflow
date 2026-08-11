@@ -778,6 +778,30 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
      RETURNING storage_name`,
     [user.id],
   );
+  await client.query('DELETE FROM notification_preferences WHERE user_id = $1', [user.id]);
+  await client.query('DELETE FROM notifications WHERE user_id = $1', [user.id]);
+  await client.query('DELETE FROM message_reads WHERE user_id = $1', [user.id]);
+  await client.query(
+    'DELETE FROM user_blocks WHERE blocker_id = $1 OR blocked_id = $1',
+    [user.id],
+  );
+  await client.query(
+    `UPDATE notification_outbox
+     SET payload = '{}'::jsonb,
+         status = CASE
+           WHEN status IN ('pending', 'processing', 'retry') THEN 'suppressed'
+           ELSE status
+         END,
+         locked_at = NULL,
+         locked_by = NULL,
+         provider_message_id = NULL,
+         last_error_code = CASE
+           WHEN status IN ('pending', 'processing', 'retry') THEN 'account_deleted'
+           ELSE NULL
+         END
+     WHERE user_id = $1`,
+    [user.id],
+  );
   await client.query('DELETE FROM push_devices WHERE user_id = $1', [user.id]);
   await client.query('DELETE FROM auth_identities WHERE user_id = $1', [user.id]);
   await client.query('DELETE FROM auth_action_tokens WHERE user_id = $1', [user.id]);
@@ -806,7 +830,12 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
     resourceId: user.id,
     metadata: {
       source,
-      retained: ['pseudonymous_booking_records', 'legally_required_financial_records', 'audit_log'],
+      retained: [
+        'pseudonymous_booking_records',
+        'legally_required_financial_records',
+        'pseudonymous_notification_delivery_audit',
+        'audit_log',
+      ],
       erasedUploadCount: erasedUploads.rowCount,
     },
   });

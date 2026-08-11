@@ -380,7 +380,12 @@ führt die Standardprüfung immer aus; mit
 `SIT_REQUIRE_STORE_SUBMISSION=1` erzwingt er vor einem tatsächlichen Upload
 zusätzlich den strengen Store-Metadatenmodus und
 `node tool/validate_legal_readiness.mjs --require-approved` sowie
-`node tool/validate_privacy_disclosures.mjs --require-approved`. Ein Upload
+`node tool/validate_privacy_disclosures.mjs --require-approved` und
+`node tool/validate_retention_deletion_readiness.mjs --require-approved`.
+Der Aufbewahrungs-/Löschvalidator bindet die tatsächlich implementierte
+Kontolöschung an Quellhashes und lässt alle noch ungeklärten Rechtsfristen,
+Purge-/Legal-Hold-Abläufe, Backup-Löschgrenzen und externen
+Auftragsverarbeiter-Nachweise fail-closed. Ein Upload
 kann damit weder die allgemeinen Store-Gates noch die inhaltsgebundene
 Rechtsfreigabe oder den quell-/binärgebundenen Datenschutzentwurf umgehen.
 

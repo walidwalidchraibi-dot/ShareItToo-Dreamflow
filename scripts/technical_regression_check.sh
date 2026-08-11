@@ -38,6 +38,10 @@ node --check tool/validate_privacy_disclosures.mjs
 node --test test/tool/validate_privacy_disclosures.test.mjs
 node tool/validate_privacy_disclosures.mjs
 
+node --check tool/validate_retention_deletion_readiness.mjs
+node --test test/tool/validate_retention_deletion_readiness.test.mjs
+node tool/validate_retention_deletion_readiness.mjs
+
 node --check tool/diagnose_store_review_accounts.mjs
 node --test test/tool/diagnose_store_review_accounts.test.mjs
 node --check tool/diagnose_store_review_safety_actions.mjs

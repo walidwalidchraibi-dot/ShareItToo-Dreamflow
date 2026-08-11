@@ -180,6 +180,28 @@ Matrix vor dem nächsten Build vollständig neu zu bewerten.
 8. Store-Formulare erst absenden, nachdem exakt der hochgeladene Binärbuild
    gegen diese Matrix verglichen wurde.
 
+### 7.1 Technische Aufbewahrungs- und Löschbereitschaft
+
+Der maschinenlesbare Entwurf `store/retention-deletion-readiness.json` bindet
+den Löschumfang an die tatsächlichen Backend-, Datenbank-, Backup- und
+App-Quellen. Die Kontolöschung anonymisiert die Nutzeridentität, widerruft
+Zugangsdaten und entfernt oder bereinigt direkte Inhalte sowie verbleibende
+Benachrichtigungsdaten, Lesestatus, Blockbeziehungen und Push-Payloads. Eine
+PostgreSQL-Integrationsprüfung deckt diese Restdaten explizit ab.
+
+Technisch erhalten bleiben nur die ausgewiesenen pseudonymen Buchungs-,
+Finanz-, Zustell- und Auditnachweise. Deren konkrete Rechtsfristen sind noch
+nicht festgelegt. Ebenfalls offen bleiben der allgemeine Kategorien-Purge,
+abgelaufene Datenbankzeilen, Legal Hold, kontospezifische Löschung aus bereits
+erzeugten Backups sowie die verifizierte Aufbewahrung/Löschung bei Firebase und
+Google Maps. Die vorhandene Backup-Rotation löscht betriebliche Sicherungen
+nach 14 Tagen; das ist keine bereits freigegebene Rechtsfrist.
+
+Der Validator akzeptiert diesen ehrlichen Entwurf, verweigert jedoch
+`--require-approved`, solange die neun Eigentümer-/Rechtsentscheidungen und
+der gekoppelte Datenschutz-Gate offen sind. Dadurch können erfundene Fristen
+oder bloßes Umschalten eines Store-Gates keine Freigabe erzeugen.
+
 ## 8. Verifikation und Nachweis
 
 Der exakte Android-Kandidat 1.0.0 (2026081101) ist an App-Commit
@@ -200,6 +222,10 @@ Quellhashes und den erneuerten Binärscan an denselben Kandidaten. Push- und
 Crashlytics-Laufzeitprüfungen sind für diesen Kandidaten noch nicht final
 abgeschlossen. Die bereinigten Kandidatennachweise liegen unter
 `docs/evidence/b11/`.
+
+Der ergänzende Aufbewahrungs-/Löschentwurf liegt in
+`store/retention-deletion-readiness.json`. Er ist fail-closed, enthält keine
+Kontodaten oder Zugangsdaten und wird im Release-Preflight immer geprüft.
 
 Dies ist noch nicht der abschließende plattformübergreifende Store-Nachweis:
 Ein IPA liegt nicht vor, Xcode und Apple-Developer-Zugang fehlen, die gezählte

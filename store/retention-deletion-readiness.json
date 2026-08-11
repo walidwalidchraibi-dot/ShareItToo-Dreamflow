@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "state": "draft",
+  "approvalAllowed": false,
+  "sourceInventory": [
+    {"path": "backend/src/app.js", "sha256": "65c7d2b78cc891f193f3cf52af80e3c269b8f59b0899b3b7f3183a62b91c3d5c"},
+    {"path": "backend/src/privacy_export.js", "sha256": "9d2812fe72ad3639a04956412ca02ac1165937d90b2b5b7e736098deded74877"},
+    {"path": "backend/src/account_actions.js", "sha256": "76f06a08d76c5b98afc77bff991c1ad949451414fb21f62ceee797e11ce45ffb"},
+    {"path": "backend/src/config.js", "sha256": "8eaaf66fd60788068277fd41a2fbbe5fe3087a609072db8b82af1cf83fde24aa"},
+    {"path": "backend/sql/schema.sql", "sha256": "8534006cf23be1a3376bc4ea2952a2d0317028aa4c3c8a70f0cba5072ff969a6"},
+    {"path": "backend/sql/migrations/006_b7_communications.up.sql", "sha256": "f1452d85f736cc013c33747ec6de71a9d139a1b6f993eb39f591171cc2a1dd83"},
+    {"path": "backend/ops/backup.sh", "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"},
+    {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "d421b05ed8e4598c14068976fcd1cf505554ee7aaa7c9925f714bf658629ec12"},
+    {"path": "lib/screens/privacy_info_screen.dart", "sha256": "d5b7170e1acab0624585df69f6d5db1fa4a55961b85e363b6a6484d3d3dd0a6c"}
+  ],
+  "implementedControls": {
+    "accountErasure": {
+      "status": "implemented-integration-covered",
+      "identity": "anonymized",
+      "directContent": "deleted-or-scrubbed",
+      "notificationResidue": "deleted-or-scrubbed",
+      "activeCredentials": "revoked-and-deleted"
+    },
+    "credentialExpiry": {
+      "status": "lifetime-enforced",
+      "automaticExpiredRowPurge": false
+    },
+    "categoryPurge": {
+      "status": "not-implemented"
+    },
+    "legalHold": {
+      "status": "not-implemented"
+    },
+    "backups": {
+      "status": "operational-rotation-only",
+      "observedRotationDays": 14,
+      "accountSpecificEraseFromExistingBackups": false
+    }
+  },
+  "retainedAfterAccountErasure": [
+    "pseudonymous-booking-records",
+    "legally-required-financial-records-pending-legal-definition",
+    "pseudonymous-notification-delivery-audit",
+    "security-and-account-erasure-audit"
+  ],
+  "externalProcessors": {
+    "firebaseCloudMessaging": {
+      "retentionOwnerVerified": false,
+      "deletionProcedureVerified": false
+    },
+    "firebaseCrashlytics": {
+      "retentionOwnerVerified": false,
+      "deletionProcedureVerified": false
+    },
+    "googleMapsPlatform": {
+      "retentionOwnerVerified": false,
+      "deletionProcedureVerified": false
+    }
+  },
+  "requiredDecisions": {
+    "inactiveAccountPeriod": {"status": "open", "value": null, "evidenceRef": null},
+    "transactionalRecordPeriod": {"status": "open", "value": null, "evidenceRef": null},
+    "communicationPeriod": {"status": "open", "value": null, "evidenceRef": null},
+    "moderationEvidencePeriod": {"status": "open", "value": null, "evidenceRef": null},
+    "auditSecurityLogPeriod": {"status": "open", "value": null, "evidenceRef": null},
+    "expiredCredentialPurgePeriod": {"status": "open", "value": null, "evidenceRef": null},
+    "backupErasureWindow": {"status": "open", "value": null, "evidenceRef": null},
+    "externalProcessorRetention": {"status": "open", "value": null, "evidenceRef": null},
+    "legalHoldProcess": {"status": "open", "value": null, "evidenceRef": null}
+  },
+  "storeGate": {
+    "privacyDecision": "retentionAndDeletionSchedule",
+    "status": "open"
+  },
+  "boundaries": {
+    "legalPeriodsInvented": false,
+    "legalApproval": false,
+    "productionChanged": false,
+    "containsSecrets": false,
+    "containsAccountData": false
+  }
+}

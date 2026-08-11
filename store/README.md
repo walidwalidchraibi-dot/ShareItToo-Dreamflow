@@ -60,6 +60,29 @@ Datenfluss separat belegt sind, der plattformübergreifende Binär-/Netztest
 bestanden ist und der Store-Gate geschlossen wurde. Die technische Matrix ist
 keine Rechtsfreigabe.
 
+`store/retention-deletion-readiness.json` trennt den tatsächlich
+implementierten Löschumfang von noch fehlenden rechtlichen und betrieblichen
+Aufbewahrungsentscheidungen. Die Kontolöschung anonymisiert die Identität,
+widerruft aktive Zugangsdaten und entfernt oder bereinigt direkte Inhalte,
+Benachrichtigungen, Lesestatus, Blocklisten und ausstehende Push-Payloads.
+Pseudonyme Buchungs-, Finanz-, minimale Zustell- und Sicherheitsnachweise
+bleiben technisch erhalten. Für keine dieser Kategorien wird im Repository
+eine Rechtsfrist erfunden.
+
+Der Entwurf dokumentiert außerdem ehrlich: Es gibt noch keinen allgemeinen
+Kategorien-Purge, keinen belegten Legal-Hold-Ablauf, keine automatische
+Bereinigung abgelaufener Datenbankzeilen und keine kontospezifische Löschung
+aus bereits erzeugten Backups. Die beobachtete Backup-Rotation beträgt 14
+Tage; Firebase- und Maps-Aufbewahrung/Löschung ist noch nicht durch den
+Eigentümer bestätigt. Prüfung:
+
+```text
+node tool/validate_retention_deletion_readiness.mjs
+```
+
+Der Store-Modus verwendet auch hier `--require-approved` und bleibt bei allen
+neun offenen Entscheidungen gesperrt.
+
 `store/legal-readiness.json` bindet den Rechts-/Nutzerinhalts-Gate zusätzlich
 an die vier derzeitigen App-Texte und an die technische Registrierungskette.
 Die rechtliche Anbieteridentität und der Copyright-Inhaber sind eigene,
