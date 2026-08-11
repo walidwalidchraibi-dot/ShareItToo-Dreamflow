@@ -392,6 +392,20 @@ function validateAndroidAuthenticatedSession(root, diagnostic, candidate) {
     }
   }
 
+  if (diagnostic.networkCondition !== undefined) {
+    if (diagnostic.networkCondition !== 'offline') {
+      fail(`${label}.networkCondition must be offline when recorded.`);
+    }
+    const network = object(evidence.network, `${label}.evidence.network`);
+    if (network.condition !== 'offline' ||
+        network.wifiDisabled !== true ||
+        network.mobileDataDisabled !== true ||
+        network.connectivityGate !== 'passed-no-connectivity' ||
+        network.networkRestored !== 'passed') {
+      fail(`${label}.evidence.network must prove the bounded offline gate and network restoration.`);
+    }
+  }
+
   const expectedBoundaries = {
     directDiagnosticOnly: true,
     storeInstallationGateSatisfied: false,

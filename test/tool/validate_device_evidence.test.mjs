@@ -466,6 +466,22 @@ function authenticatedSessionFixture() {
   return fixture;
 }
 
+function offlineAuthenticatedSessionFixture() {
+  const fixture = authenticatedSessionFixture();
+  const diagnostic = fixture.deviceManifest.candidate.android.authenticatedSession;
+  diagnostic.networkCondition = 'offline';
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, diagnostic.evidenceRef), 'utf8'));
+  evidence.network = {
+    condition: 'offline',
+    wifiDisabled: true,
+    mobileDataDisabled: true,
+    connectivityGate: 'passed-no-connectivity',
+    networkRestored: 'passed',
+  };
+  writeEvidence(fixture.root, diagnostic.evidenceRef, evidence);
+  return fixture;
+}
+
 function syntheticRoleBookingFixture() {
   const fixture = progressFixture();
   const { root, deviceManifest } = fixture;
@@ -968,6 +984,24 @@ test('accepts exact, bounded authenticated-session evidence without closing devi
   const summary = validate(fixture);
   assert.equal(summary.state, 'testing');
   assert.equal(summary.matrixPassed, 0);
+});
+
+test('accepts an authenticated-session diagnostic bound to an offline gate', () => {
+  const fixture = offlineAuthenticatedSessionFixture();
+  const summary = validate(fixture);
+  assert.equal(summary.state, 'testing');
+});
+
+test('offline authenticated-session evidence must prove connectivity loss and restoration', () => {
+  const fixture = offlineAuthenticatedSessionFixture();
+  const ref = fixture.deviceManifest.candidate.android.authenticatedSession.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.network.networkRestored = 'pending';
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must prove the bounded offline gate and network restoration/,
+  );
 });
 
 test('authenticated-session evidence rejects a different installed candidate APK', () => {

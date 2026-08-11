@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "installed-and-staging-passed-authenticated-session-pending",
-  "generatedAt": "2026-08-11T16:54:24Z",
+  "status": "installed-authenticated-offline-profile-and-staging-passed",
+  "generatedAt": "2026-08-11T17:09:09Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
@@ -44,7 +44,8 @@
     "crashlyticsMappingAndNativeSymbols": "pending",
     "crashlyticsReleaseAssignment": "pending",
     "guestAppLinks": "pending",
-    "authenticatedSessionRestore": "pending",
+    "authenticatedSessionRestore": "passed",
+    "offlineAuthenticatedProfile": "passed",
     "syntheticRoleBooking": "pending",
     "authenticatedDeepLinks": "pending",
     "foregroundFcm": "pending",
