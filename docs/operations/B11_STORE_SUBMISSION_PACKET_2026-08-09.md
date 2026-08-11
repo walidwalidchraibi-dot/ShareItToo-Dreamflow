@@ -45,6 +45,15 @@ Buildnummer `2026080903`. Der bestehende technische Zwischenkandidat
 | Datenschutz-URL | noch nicht freigabefähig | **BLOCKER: öffentliche, finale Datenschutzerklärung** |
 | Löschantrag-URL | Staging technisch unter `https://staging.shareittoo.com/api/v1/account-deletion` erreichbar | **BLOCKER: dauerhafte öffentliche Produktions-URL bereitstellen** |
 
+Kontostatus vom 11. August 2026: Die angemeldete Google-Play-Konsole zeigt
+weiterhin die Entwicklerkonto-Erstellung; Kontotyp, Registrierungsgebühr,
+Identitätsprüfung und App-Datensatz sind nicht abgeschlossen. Für Apple wurde
+noch keine Entwicklermitgliedschaft angelegt. Die Firebase-Bedingungen sind
+noch nicht als vom Produkteigentümer bestätigt belegt. Dieser geheimnisfreie
+Stand liegt in `store/platform-account-readiness.json` und ist fest mit den
+drei zugehörigen Store-Gates verknüpft. Es wurde weder ein Kontotyp gewählt
+noch eine Gebühr bezahlt, ein Vertrag angenommen oder eine App eingereicht.
+
 ## 3. Google-Play-Store-Eintrag – Deutsch
 
 ### App-Name

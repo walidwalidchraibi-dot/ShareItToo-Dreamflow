@@ -35,6 +35,28 @@ List<dynamic> _readJsonList(Directory root, String relativePath) {
   return decoded;
 }
 
+Map<String, dynamic> _readJsonMapFile(File file, String label) {
+  if (!file.existsSync()) _fail('$label is missing.');
+  Object? decoded;
+  try {
+    decoded = jsonDecode(file.readAsStringSync());
+  } on FormatException {
+    _fail('$label is not valid JSON.');
+  }
+  if (decoded is! Map) _fail('$label must contain a JSON object.');
+  return decoded.cast<String, dynamic>();
+}
+
+void _expectExactKeys(
+  Map<String, dynamic> value,
+  Set<String> expected,
+  String label,
+) {
+  if (value.length != expected.length || !expected.every(value.containsKey)) {
+    _fail('$label must contain exactly the required fields.');
+  }
+}
+
 void _validateGooglePlayIcon(Directory root, String relativePath) {
   final file = File('${root.path}/$relativePath');
   if (!file.existsSync()) {
@@ -177,6 +199,7 @@ String _pubspecVersion(Directory root) {
 void main(List<String> arguments) {
   var requireSubmittable = false;
   String? manifestPath;
+  String? accountReadinessPath;
   for (var index = 0; index < arguments.length; index += 1) {
     final value = arguments[index];
     if (value == '--require-submittable') {
@@ -186,6 +209,12 @@ void main(List<String> arguments) {
         _fail('--manifest requires a path.');
       }
       manifestPath = arguments[index + 1];
+      index += 1;
+    } else if (value == '--account-readiness') {
+      if (index + 1 >= arguments.length) {
+        _fail('--account-readiness requires a path.');
+      }
+      accountReadinessPath = arguments[index + 1];
       index += 1;
     } else {
       _fail('Unknown argument: $value');
@@ -197,12 +226,19 @@ void main(List<String> arguments) {
   final manifestFile = manifestPath == null
       ? File('${root.path}/store/submission.json')
       : File(manifestPath).absolute;
-  if (!manifestFile.existsSync())
-    _fail('Store submission manifest is missing.');
-
-  final decoded = jsonDecode(manifestFile.readAsStringSync());
-  final manifest = _map(decoded, 'store/submission.json');
+  final manifest = _readJsonMapFile(manifestFile, 'Store submission manifest');
   if (manifest['schemaVersion'] != 1) _fail('Unsupported schemaVersion.');
+
+  final accountReadinessFile = accountReadinessPath == null
+      ? File('${root.path}/store/platform-account-readiness.json')
+      : File(accountReadinessPath).absolute;
+  final accountReadiness = _readJsonMapFile(
+    accountReadinessFile,
+    'Store platform account readiness manifest',
+  );
+  if (accountReadiness['schemaVersion'] != 1) {
+    _fail('Unsupported Store platform account readiness schemaVersion.');
+  }
 
   final identity = _map(manifest['identity'], 'identity');
   final product = _map(manifest['product'], 'product');
@@ -232,6 +268,168 @@ void main(List<String> arguments) {
       !requiredBlockingGates.every(gates.containsKey)) {
     _fail(
         'blockingGates must contain exactly the required Store release gates.');
+  }
+
+  _expectExactKeys(
+    accountReadiness,
+    const {
+      'schemaVersion',
+      'state',
+      'googlePlay',
+      'apple',
+      'firebase',
+      'boundaries',
+    },
+    'Store platform account readiness manifest',
+  );
+  final googlePlayAccount = _map(
+    accountReadiness['googlePlay'],
+    'platformAccountReadiness.googlePlay',
+  );
+  final appleAccount = _map(
+    accountReadiness['apple'],
+    'platformAccountReadiness.apple',
+  );
+  final firebaseAccount = _map(
+    accountReadiness['firebase'],
+    'platformAccountReadiness.firebase',
+  );
+  final accountBoundaries = _map(
+    accountReadiness['boundaries'],
+    'platformAccountReadiness.boundaries',
+  );
+  _expectExactKeys(
+    googlePlayAccount,
+    const {
+      'status',
+      'accountType',
+      'developerAccountCreated',
+      'registrationFeePaid',
+      'identityVerification',
+      'appRecordCreated',
+      'evidenceRef',
+    },
+    'platformAccountReadiness.googlePlay',
+  );
+  _expectExactKeys(
+    appleAccount,
+    const {
+      'status',
+      'developerAccountCreated',
+      'membershipActive',
+      'identityVerification',
+      'agreementsAccepted',
+      'signingTeamAvailable',
+      'appRecordCreated',
+      'evidenceRef',
+    },
+    'platformAccountReadiness.apple',
+  );
+  _expectExactKeys(
+    firebaseAccount,
+    const {'status', 'ownerTermsAccepted', 'evidenceRef'},
+    'platformAccountReadiness.firebase',
+  );
+  _expectExactKeys(
+    accountBoundaries,
+    const {
+      'containsEmailAddresses',
+      'containsAccountIdentifiers',
+      'containsSecrets',
+      'purchaseMade',
+      'agreementAccepted',
+      'storeSubmissionChanged',
+    },
+    'platformAccountReadiness.boundaries',
+  );
+  if (accountBoundaries.values.any((value) => value != false) ||
+      jsonEncode(accountReadiness).contains('@')) {
+    _fail(
+        'Store platform account readiness must remain sanitized and side-effect free.');
+  }
+
+  final googlePlayReady = googlePlayAccount['status'] == 'ready' &&
+      const {'personal', 'organization'}
+          .contains(googlePlayAccount['accountType']) &&
+      googlePlayAccount['developerAccountCreated'] == true &&
+      googlePlayAccount['registrationFeePaid'] == true &&
+      googlePlayAccount['identityVerification'] == 'verified' &&
+      googlePlayAccount['appRecordCreated'] == true;
+  final appleReady = appleAccount['status'] == 'ready' &&
+      appleAccount['developerAccountCreated'] == true &&
+      appleAccount['membershipActive'] == true &&
+      appleAccount['identityVerification'] == 'verified' &&
+      appleAccount['agreementsAccepted'] == true &&
+      appleAccount['signingTeamAvailable'] == true &&
+      appleAccount['appRecordCreated'] == true;
+  final firebaseReady = firebaseAccount['status'] == 'owner-terms-accepted' &&
+      firebaseAccount['ownerTermsAccepted'] == true;
+  if ((gates['googlePlayAccountAndFee'] == 'closed') != googlePlayReady) {
+    _fail(
+        'googlePlayAccountAndFee must match verified Play account readiness.');
+  }
+  if ((gates['appleAccountXcodeAndSigning'] == 'closed') != appleReady) {
+    _fail(
+        'appleAccountXcodeAndSigning must match verified Apple account readiness.');
+  }
+  if ((gates['firebaseTermsAcceptedByOwner'] == 'closed') != firebaseReady) {
+    _fail('firebaseTermsAcceptedByOwner must match the owner confirmation.');
+  }
+  final allPlatformAccountsReady =
+      googlePlayReady && appleReady && firebaseReady;
+  if (accountReadiness['state'] !=
+      (allPlatformAccountsReady ? 'ready' : 'setup-required')) {
+    _fail('Store platform account readiness state is inconsistent.');
+  }
+
+  final evidenceRefs = <String>{};
+  for (final entry in [googlePlayAccount, appleAccount, firebaseAccount]) {
+    final ref = entry['evidenceRef'];
+    if (ref == null) continue;
+    if (ref is! String ||
+        !ref.startsWith('docs/evidence/b11/') ||
+        ref.contains('..') ||
+        !ref.endsWith('.json')) {
+      _fail(
+          'Store platform account evidence must stay under docs/evidence/b11.');
+    }
+    evidenceRefs.add(ref);
+  }
+  if (googlePlayAccount['evidenceRef'] == null ||
+      appleAccount['evidenceRef'] == null ||
+      (firebaseReady && firebaseAccount['evidenceRef'] == null)) {
+    _fail('Store platform account readiness is missing required evidence.');
+  }
+  for (final ref in evidenceRefs) {
+    final evidence = _readJsonMapFile(
+      File('${root.path}/$ref'),
+      'Store platform account evidence',
+    );
+    if (evidence['schemaVersion'] != 1 ||
+        evidence['kind'] != 'store-platform-account-readiness-observation' ||
+        !const {'setup-required', 'ready'}.contains(evidence['status']) ||
+        DateTime.tryParse(evidence['capturedAt']?.toString() ?? '') == null ||
+        jsonEncode(evidence).contains('@')) {
+      _fail(
+          'Store platform account evidence is invalid or contains account data.');
+    }
+    final boundaries = _map(
+      evidence['boundaries'],
+      'storePlatformAccountEvidence.boundaries',
+    );
+    for (final key in [
+      'containsEmailAddresses',
+      'containsAccountIdentifiers',
+      'containsSecrets',
+      'purchaseMade',
+      'agreementAccepted',
+      'storeSubmissionChanged',
+    ]) {
+      if (boundaries[key] != false) {
+        _fail(
+            'Store platform account evidence must remain sanitized and side-effect free.');
+      }
+    }
   }
 
   const expectedId = 'com.shareittoo.app';
