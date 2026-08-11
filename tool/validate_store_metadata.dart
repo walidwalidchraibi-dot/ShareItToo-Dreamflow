@@ -342,10 +342,38 @@ void main(List<String> arguments) {
     },
     'platformAccountReadiness.boundaries',
   );
-  if (accountBoundaries.values.any((value) => value != false) ||
-      jsonEncode(accountReadiness).contains('@')) {
+  for (final key in const [
+    'containsEmailAddresses',
+    'containsAccountIdentifiers',
+    'containsSecrets',
+    'storeSubmissionChanged',
+  ]) {
+    if (accountBoundaries[key] != false) {
+      _fail(
+          'Store platform account readiness must remain sanitized and must not change a Store submission.');
+    }
+  }
+  for (final key in const ['purchaseMade', 'agreementAccepted']) {
+    if (accountBoundaries[key] is! bool) {
+      _fail('Store platform account readiness side-effect flags must be booleans.');
+    }
+  }
+  if (jsonEncode(accountReadiness).contains('@')) {
     _fail(
-        'Store platform account readiness must remain sanitized and side-effect free.');
+        'Store platform account readiness must remain sanitized and contain no account address.');
+  }
+  final playFeePaid = googlePlayAccount['registrationFeePaid'] == true;
+  final anyPaidMembership = playFeePaid || appleAccount['membershipActive'] == true;
+  if ((accountBoundaries['purchaseMade'] == true) != anyPaidMembership) {
+    _fail(
+        'Store platform account purchase history must match the recorded paid account state.');
+  }
+  final anyAgreementAccepted = googlePlayAccount['developerAccountCreated'] == true ||
+      appleAccount['agreementsAccepted'] == true ||
+      firebaseAccount['ownerTermsAccepted'] == true;
+  if ((accountBoundaries['agreementAccepted'] == true) != anyAgreementAccepted) {
+    _fail(
+        'Store platform account agreement history must match the recorded account state.');
   }
 
   final googlePlayReady = googlePlayAccount['status'] == 'ready' &&
@@ -421,14 +449,37 @@ void main(List<String> arguments) {
       'containsEmailAddresses',
       'containsAccountIdentifiers',
       'containsSecrets',
-      'purchaseMade',
-      'agreementAccepted',
       'storeSubmissionChanged',
     ]) {
       if (boundaries[key] != false) {
         _fail(
-            'Store platform account evidence must remain sanitized and side-effect free.');
+            'Store platform account evidence must remain sanitized and must not change a Store submission.');
       }
+    }
+    for (final key in ['purchaseMade', 'agreementAccepted']) {
+      if (boundaries[key] is! bool) {
+        _fail('Store platform account evidence side-effect flags must be booleans.');
+      }
+    }
+    final evidenceGoogle = _map(
+      evidence['googlePlay'],
+      'storePlatformAccountEvidence.googlePlay',
+    );
+    final evidenceApple = _map(
+      evidence['apple'],
+      'storePlatformAccountEvidence.apple',
+    );
+    final evidencePaid = evidenceGoogle['registrationFeePaid'] == true ||
+        evidenceApple['membershipActive'] == true;
+    if ((boundaries['purchaseMade'] == true) != evidencePaid) {
+      _fail(
+          'Store platform account evidence purchase history must match its observed paid state.');
+    }
+    final evidenceAgreement = evidenceGoogle['developerAccountCreated'] == true ||
+        evidenceApple['agreementsAccepted'] == true;
+    if ((boundaries['agreementAccepted'] == true) != evidenceAgreement) {
+      _fail(
+          'Store platform account evidence agreement history must match its observed account state.');
     }
   }
 

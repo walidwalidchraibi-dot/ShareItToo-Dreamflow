@@ -45,14 +45,16 @@ Buildnummer `2026080903`. Der bestehende technische Zwischenkandidat
 | Datenschutz-URL | noch nicht freigabefähig | **BLOCKER: öffentliche, finale Datenschutzerklärung** |
 | Löschantrag-URL | Staging technisch unter `https://staging.shareittoo.com/api/v1/account-deletion` erreichbar | **BLOCKER: dauerhafte öffentliche Produktions-URL bereitstellen** |
 
-Kontostatus vom 11. August 2026: Die angemeldete Google-Play-Konsole zeigt
-weiterhin die Entwicklerkonto-Erstellung; Kontotyp, Registrierungsgebühr,
-Identitätsprüfung und App-Datensatz sind nicht abgeschlossen. Für Apple wurde
-noch keine Entwicklermitgliedschaft angelegt. Die Firebase-Bedingungen sind
-noch nicht als vom Produkteigentümer bestätigt belegt. Dieser geheimnisfreie
-Stand liegt in `store/platform-account-readiness.json` und ist fest mit den
-drei zugehörigen Store-Gates verknüpft. Es wurde weder ein Kontotyp gewählt
-noch eine Gebühr bezahlt, ein Vertrag angenommen oder eine App eingereicht.
+Kontostatus vom 12. August 2026: Das persönliche Google-Play-Entwicklerkonto
+ist erstellt, die erforderlichen Verträge wurden von Walid bewusst angenommen
+und die einmalige Registrierungsgebühr wurde bezahlt. Offen bleiben die
+persönliche Identitätsprüfung mit amtlichem Ausweis und gegebenenfalls
+Adressnachweis, anschließend die Geräte- und Telefonnummernbestätigung sowie
+der erste App-Datensatz. Für Apple wurde noch keine Entwicklermitgliedschaft
+angelegt. Die Firebase-Bedingungen sind noch nicht als vom Produkteigentümer
+bestätigt belegt. Dieser geheimnisfreie Stand liegt in
+`store/platform-account-readiness.json` und ist fest mit den drei zugehörigen
+Store-Gates verknüpft. Es wurde noch keine App und kein Track eingereicht.
 
 ## 3. Google-Play-Store-Eintrag – Deutsch
 
@@ -311,14 +313,15 @@ werden.
 
 ### Google Play
 
-1. Entwicklerkontoart und rechtliche Angaben durch Walid festlegen;
-   Registrierungsgebühr persönlich abschließen.
+1. Persönliche Identitätsprüfung abschließen; danach Gerätezugang und
+   Telefonnummer im bereits erstellten und bezahlten Konto bestätigen.
 2. App mit `com.shareittoo.app` anlegen, Primärsprache Deutsch, kostenlos.
 3. App-Zugriff, Anzeigen, Zielgruppe, Inhaltsbewertung, Nutzerinhalte,
    Datenschutz und Data Safety als Entwurf ausfüllen.
 4. Icon 512 × 512, Feature-Grafik 1024 × 500 und bereinigte Screenshots laden.
-5. Firebase-fähigen AAB-Build `2026080903` oder höher nur in Internal Testing
-   laden; Play-App-Signing-Fingerabdruck erfassen und Asset Links ergänzen.
+5. Exakt den gebundenen Firebase-fähigen AAB-Kandidaten `2026081116` nur in
+   Internal Testing laden; Play-App-Signing-Fingerabdruck erfassen und Asset
+   Links ergänzen.
 6. Nach interner Abnahme gegebenenfalls Closed Testing starten. Falls ein neu
    angelegtes persönliches Konto betroffen ist, ist vor Produktionszugang ein
    geschlossener Test mit mindestens 12 durchgehend angemeldeten Testern über

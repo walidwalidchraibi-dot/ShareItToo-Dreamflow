@@ -912,13 +912,23 @@ function validateStoreLinksAndSigningProgressEvidence(root, ref, candidate, labe
     fail(`${label}.publicRouteReadiness must preserve the out-of-date, no-production-change state.`);
   }
   const accountEvidence = readEvidenceJson(root, accountRef, `${label}.platformAccountReadiness`);
+  const playBeforeSignup = accountEvidence.googlePlay?.developerAccountCreated === false &&
+    accountEvidence.googlePlay?.registrationFeePaid === false &&
+    accountEvidence.googlePlay?.identityVerified === false &&
+    accountEvidence.googlePlay?.appRecordCreated === false &&
+    accountEvidence.boundaries?.purchaseMade === false &&
+    accountEvidence.boundaries?.agreementAccepted === false;
+  const playIdentityPending = accountEvidence.googlePlay?.developerAccountCreated === true &&
+    accountEvidence.googlePlay?.registrationFeePaid === true &&
+    accountEvidence.googlePlay?.identityVerified === false &&
+    accountEvidence.googlePlay?.appRecordCreated === false &&
+    accountEvidence.boundaries?.purchaseMade === true &&
+    accountEvidence.boundaries?.agreementAccepted === true;
   if (accountEvidence.kind !== 'store-platform-account-readiness-observation' ||
       accountEvidence.status !== 'setup-required' ||
-      accountEvidence.googlePlay?.developerAccountCreated !== false ||
       accountEvidence.apple?.membershipActive !== false ||
-      accountEvidence.boundaries?.purchaseMade !== false ||
-      accountEvidence.boundaries?.agreementAccepted !== false) {
-    fail(`${label}.platformAccountReadiness must preserve the setup-required Store account state.`);
+      (!playBeforeSignup && !playIdentityPending)) {
+    fail(`${label}.platformAccountReadiness must preserve a truthful, sanitized setup-required Store account state.`);
   }
 
   const expectedVerifications = {
@@ -950,8 +960,8 @@ function validateStoreLinksAndSigningProgressEvidence(root, ref, candidate, labe
     storeWarningsReviewed: false,
     playAppSigningObserved: false,
     appleSigningTeamAvailable: false,
-    purchaseMade: false,
-    agreementAccepted: false,
+    purchaseMade: accountEvidence.boundaries.purchaseMade,
+    agreementAccepted: accountEvidence.boundaries.agreementAccepted,
     legalContentApproved: false,
     containsPersonalAccountData: false,
     containsSecrets: false,
@@ -962,7 +972,7 @@ function validateStoreLinksAndSigningProgressEvidence(root, ref, candidate, labe
   const boundaries = object(evidence.boundaries, `${label}.boundaries`);
   if (Object.keys(boundaries).length !== Object.keys(expectedBoundaries).length ||
       Object.entries(expectedBoundaries).some(([key, value]) => boundaries[key] !== value)) {
-    fail(`${label}.boundaries must preserve the no-upload, no-production-change, no-purchase state.`);
+    fail(`${label}.boundaries must preserve the observed account history without claiming an upload or production change.`);
   }
 }
 

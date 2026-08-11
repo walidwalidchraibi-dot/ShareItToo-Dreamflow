@@ -45,7 +45,7 @@
     "storeScreenshotFixture": "passed",
     "crashlyticsMappingAndNativeSymbols": "packaged-pending-console-verification",
     "crashlyticsReleaseAssignment": "pending",
-    "guestAppLinks": "pending",
+    "guestAppLinks": "passed",
     "authenticatedSessionRestore": "passed",
     "offlineAuthenticatedProfile": "passed",
     "syntheticRoleBooking": "pending",
@@ -54,17 +54,23 @@
     "backgroundFcm": "passed",
     "terminatedProcessFcm": "passed",
     "notificationIconVisualFit": "passed",
-    "logoutColdStartGuestPersistence": "pending",
-    "postLogoutPushSuppression": "pending",
+    "logoutColdStartGuestPersistence": "passed",
+    "postLogoutPushSuppression": "passed",
     "offlineRealtimeRecovery": "pending"
   },
   "controlledFcm": {
     "status": "passed",
     "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081116-20260811T230644Z.json"
   },
+  "logoutLifecycle": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081116-20260811T234112Z.json",
+    "syntheticSessionRestoredAfterProbe": true
+  },
   "storeReadiness": {
     "status": "testing",
-    "evidenceRef": null,
+    "evidenceRef": "docs/evidence/b11/store-links-signing-readiness-2026081116.json",
+    "playDeveloperAccount": "created-fee-paid-identity-verification-pending",
     "publicRoutes": "pending-explicit-production-approval",
     "storeConsole": "pending-identity-verification"
   },

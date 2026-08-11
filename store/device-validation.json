@@ -28,6 +28,15 @@
         "osVersion": "16",
         "evidenceRef": "docs/evidence/b11/android-direct-smoke-2026081116-20260811T224738Z.json"
       },
+      "directAppLinks": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-11T23:30:15.627Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-app-link-diagnostic-2026081116-20260811T233015Z.json"
+      },
       "authenticatedSession": {
         "status": "passed",
         "installMethod": "direct-apk-diagnostic",
@@ -49,6 +58,17 @@
         "terminatedProcess": "passed",
         "notificationIconVisualFit": "passed",
         "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081116-20260811T230644Z.json"
+      },
+      "logoutLifecycle": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-11T23:41:12.220Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "coldStartGuestPersistence": "passed",
+        "postLogoutPushSuppression": "passed",
+        "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081116-20260811T234112Z.json"
       }
     },
     "ios": {
@@ -182,8 +202,8 @@
       "evidenceRef": null
     },
     "storeWarningsLinksAndSigning": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "testing",
+      "evidenceRef": "docs/evidence/b11/store-links-signing-readiness-2026081116.json"
     },
     "stagingCleanupAndHealth": {
       "status": "passed",

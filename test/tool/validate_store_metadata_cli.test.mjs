@@ -100,5 +100,35 @@ test('rejects account readiness containing an email address', () => {
     },
   });
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /must remain sanitized and side-effect free/);
+  assert.match(result.stderr, /must remain sanitized/);
+});
+
+test('rejects hiding the paid Play registration in the account boundary', () => {
+  const result = runWithManifests({
+    mutateAccountReadiness: (readiness) => {
+      readiness.boundaries.purchaseMade = false;
+    },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /purchase history must match/);
+});
+
+test('rejects hiding the accepted Play agreements in the account boundary', () => {
+  const result = runWithManifests({
+    mutateAccountReadiness: (readiness) => {
+      readiness.boundaries.agreementAccepted = false;
+    },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /agreement history must match/);
+});
+
+test('rejects a purchase claim without a paid Store account state', () => {
+  const result = runWithManifests({
+    mutateAccountReadiness: (readiness) => {
+      readiness.googlePlay.registrationFeePaid = false;
+    },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /purchase history must match/);
 });
