@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "installed-launched-app-links-session-restored-authenticated-links-and-background-fcm-centered-icon-passed",
+  "status": "installed-launched-app-links-session-restored-authenticated-links-and-full-fcm-centered-icon-passed",
   "generatedAt": "2026-08-11T11:25:21Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -47,16 +47,16 @@
     "authenticatedSessionRestore": "passed",
     "syntheticRoleBooking": "pending",
     "authenticatedDeepLinks": "passed",
-    "foregroundFcm": "pending",
+    "foregroundFcm": "passed",
     "backgroundFcm": "passed",
-    "terminatedProcessFcm": "pending",
+    "terminatedProcessFcm": "passed",
     "logoutColdStartGuestPersistence": "pending",
     "postLogoutPushSuppression": "pending",
     "offlineRealtimeRecovery": "pending"
   },
   "controlledFcm": {
-    "status": "partial-background-and-centered-icon-visual-passed",
-    "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081107-20260811T113419Z.json"
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081107-20260811T121248Z.json"
   },
   "staging": {
     "serverCommit": "46e56f489d1fba7decdb1e3f5942425b3c0f9f83",
