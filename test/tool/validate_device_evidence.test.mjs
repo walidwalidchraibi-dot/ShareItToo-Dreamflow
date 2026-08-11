@@ -42,6 +42,30 @@ function writeEvidence(root, ref, contents) {
   writeFileSync(target, `${JSON.stringify(contents, null, 2)}\n`);
 }
 
+function copyEvidenceTree(root, ref, visited = new Set()) {
+  if (visited.has(ref)) return;
+  visited.add(ref);
+  const source = resolve(repositoryRoot, ref);
+  const target = resolve(root, ref);
+  mkdirSync(dirname(target), { recursive: true });
+  const contents = readFileSync(source, 'utf8');
+  writeFileSync(target, contents);
+  if (!ref.endsWith('.json')) return;
+
+  const pending = [JSON.parse(contents)];
+  while (pending.length > 0) {
+    const value = pending.pop();
+    if (Array.isArray(value)) {
+      pending.push(...value);
+    } else if (value !== null && typeof value === 'object') {
+      pending.push(...Object.values(value));
+    } else if (typeof value === 'string' &&
+        /^docs\/evidence\/b11\/[A-Za-z0-9._/-]+\.json$/.test(value)) {
+      copyEvidenceTree(root, value, visited);
+    }
+  }
+}
+
 function progressEvidenceRoot() {
   const root = mkdtempSync(resolve(tmpdir(), 'sit-progress-evidence-'));
   cpSync(
@@ -71,6 +95,18 @@ function crashProgressFixture() {
   delete evidence.verifications.consoleObservedEventCount;
   delete evidence.verifications.consoleCustomKeysBoundToCandidate;
   deviceManifest.releaseChecks.crashReleaseMapping = { status: 'testing', evidenceRef: ref };
+  return { root, deviceManifest, ref, evidence };
+}
+
+function storeLinksProgressFixture() {
+  const root = progressEvidenceRoot();
+  const deviceManifest = clone(baseDeviceManifest);
+  const ref = 'docs/evidence/b11/store-links-signing-progress-test.json';
+  const evidence = JSON.parse(readFileSync(
+    resolve(repositoryRoot, 'docs/evidence/b11/store-links-signing-readiness-2026081104.json'),
+    'utf8',
+  ));
+  deviceManifest.releaseChecks.storeWarningsLinksAndSigning = { status: 'testing', evidenceRef: ref };
   return { root, deviceManifest, ref, evidence };
 }
 
@@ -281,12 +317,7 @@ function progressFixture() {
       .map((check) => check.evidenceRef)
       .filter((ref) => ref !== null),
   );
-  for (const ref of refs) {
-    const source = resolve(repositoryRoot, ref);
-    const target = resolve(root, ref);
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, readFileSync(source));
-  }
+  for (const ref of refs) copyEvidenceTree(root, ref);
   return {
     root,
     deviceManifest,
@@ -666,6 +697,32 @@ test('rejects a controlled-event claim without the sanitized staging boundary', 
   assert.throws(
     () => validate({ root, deviceManifest }),
     /sanitized staging event while console assignment remains pending/,
+  );
+});
+
+test('accepts bounded Store links and signing progress without closing Store gates', () => {
+  const { root, deviceManifest, ref, evidence } = storeLinksProgressFixture();
+  writeEvidence(root, ref, evidence);
+  assert.equal(validate({ root, deviceManifest }).state, 'testing');
+});
+
+test('rejects Store links and signing progress for a different upload certificate', () => {
+  const { root, deviceManifest, ref, evidence } = storeLinksProgressFixture();
+  evidence.artifacts.uploadCertificateSha256 = 'f'.repeat(64);
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root, deviceManifest }),
+    /must match the exact Android candidate and upload certificate/,
+  );
+});
+
+test('rejects a premature Store-console or public-route pass claim', () => {
+  const { root, deviceManifest, ref, evidence } = storeLinksProgressFixture();
+  evidence.verifications.playConsoleWarnings = 'passed';
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root, deviceManifest }),
+    /must keep public routes and Store-console checks honestly pending/,
   );
 });
 

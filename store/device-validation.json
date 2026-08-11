@@ -169,8 +169,8 @@
       "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081104.json"
     },
     "storeWarningsLinksAndSigning": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "testing",
+      "evidenceRef": "docs/evidence/b11/store-links-signing-readiness-2026081104.json"
     },
     "stagingCleanupAndHealth": {
       "status": "passed",

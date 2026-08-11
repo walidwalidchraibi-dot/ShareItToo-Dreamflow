@@ -828,6 +828,111 @@ function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
   }
 }
 
+function validateStoreLinksAndSigningProgressEvidence(root, ref, candidate, label) {
+  const evidence = readEvidenceJson(root, ref, label);
+  if (evidence.schemaVersion !== 1 ||
+      evidence.kind !== 'store-links-signing-readiness' ||
+      evidence.status !== 'technical-prechecks-passed-public-routes-and-store-console-pending') {
+    fail(`${label} must be the bounded in-progress Store links and signing evidence.`);
+  }
+  isoTimestamp(evidence.capturedAt, `${label}.capturedAt`, { required: true });
+  assertEvidenceCandidate(evidence, candidate, label);
+  assertEvidenceBoundaries(evidence, label);
+
+  const artifacts = object(evidence.artifacts, `${label}.artifacts`);
+  if (artifacts.aabSha256 !== candidate.android.aabSha256 ||
+      artifacts.uploadCertificateSha256 !== candidate.android.signingCertificateSha256) {
+    fail(`${label}.artifacts must match the exact Android candidate and upload certificate.`);
+  }
+
+  const sources = object(evidence.sources, `${label}.sources`);
+  const candidateRef = evidenceRef(
+    root,
+    sources.candidateEvidenceRef,
+    `${label}.sources.candidateEvidenceRef`,
+    { required: true },
+  );
+  const routeRef = evidenceRef(
+    root,
+    sources.publicRouteReadinessRef,
+    `${label}.sources.publicRouteReadinessRef`,
+    { required: true },
+  );
+  const accountRef = evidenceRef(
+    root,
+    sources.platformAccountReadinessRef,
+    `${label}.sources.platformAccountReadinessRef`,
+    { required: true },
+  );
+  const candidateEvidence = readEvidenceJson(root, candidateRef, `${label}.candidateEvidence`);
+  if (candidateEvidence.kind !== 'android-release-candidate' ||
+      candidateEvidence.candidate?.buildNumber !== candidate.buildNumber ||
+      candidateEvidence.android?.aabSha256 !== candidate.android.aabSha256) {
+    fail(`${label}.candidateEvidence must match the exact Android candidate.`);
+  }
+  const routeEvidence = readEvidenceJson(root, routeRef, `${label}.publicRouteReadiness`);
+  if (routeEvidence.kind !== 'public-store-route-rollout-readiness' ||
+      routeEvidence.status !== 'ready-awaiting-explicit-production-route-approval' ||
+      routeEvidence.deployedState !== 'deployed-config-out-of-date' ||
+      routeEvidence.boundaries?.productionChanged !== false ||
+      routeEvidence.boundaries?.caddyReloaded !== false) {
+    fail(`${label}.publicRouteReadiness must preserve the out-of-date, no-production-change state.`);
+  }
+  const accountEvidence = readEvidenceJson(root, accountRef, `${label}.platformAccountReadiness`);
+  if (accountEvidence.kind !== 'store-platform-account-readiness-observation' ||
+      accountEvidence.status !== 'setup-required' ||
+      accountEvidence.googlePlay?.developerAccountCreated !== false ||
+      accountEvidence.apple?.membershipActive !== false ||
+      accountEvidence.boundaries?.purchaseMade !== false ||
+      accountEvidence.boundaries?.agreementAccepted !== false) {
+    fail(`${label}.platformAccountReadiness must preserve the setup-required Store account state.`);
+  }
+
+  const expectedVerifications = {
+    canonicalUploadCertificate: 'passed',
+    localStoreMetadata: 'passed',
+    publicRouteContract: 'passed',
+    deployedPublicRoutes: 'out-of-date',
+    publicSupportPrivacyDeletionRoutes: 'pending',
+    playConsoleWarnings: 'pending',
+    playAppSigningFingerprint: 'pending',
+    assetLinksWithPlayAppSigning: 'pending',
+    appleSigningAndAssociatedDomains: 'pending',
+  };
+  const verifications = object(evidence.verifications, `${label}.verifications`);
+  if (Object.keys(verifications).length !== Object.keys(expectedVerifications).length ||
+      Object.entries(expectedVerifications).some(([key, value]) => verifications[key] !== value)) {
+    fail(`${label}.verifications must keep public routes and Store-console checks honestly pending.`);
+  }
+
+  const counts = object(evidence.counts, `${label}.counts`);
+  if (counts.draftPublicUrls !== 3 || counts.openStoreGates !== 11) {
+    fail(`${label}.counts must preserve the three draft URLs and eleven open Store gates.`);
+  }
+  const expectedBoundaries = {
+    uploadedToStore: false,
+    caddyReloaded: false,
+    productionChanged: false,
+    publicRoutesApproved: false,
+    storeWarningsReviewed: false,
+    playAppSigningObserved: false,
+    appleSigningTeamAvailable: false,
+    purchaseMade: false,
+    agreementAccepted: false,
+    legalContentApproved: false,
+    containsPersonalAccountData: false,
+    containsSecrets: false,
+    containsRawDeviceIdentifiers: false,
+    containsReviewCredentials: false,
+    syntheticAccountsOnly: true,
+  };
+  const boundaries = object(evidence.boundaries, `${label}.boundaries`);
+  if (Object.keys(boundaries).length !== Object.keys(expectedBoundaries).length ||
+      Object.entries(expectedBoundaries).some(([key, value]) => boundaries[key] !== value)) {
+    fail(`${label}.boundaries must preserve the no-upload, no-production-change, no-purchase state.`);
+  }
+}
+
 function validateApprovalEvidence(root, ref, approvalType, approval, candidate, label) {
   const evidence = readEvidenceJson(root, ref, label);
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'approval' || evidence.status !== 'passed') {
@@ -1064,6 +1169,13 @@ export function validateDeviceEvidence({
       validateReleaseCheckEvidence(root, ref, key, candidate, `releaseChecks.${key}.evidence`);
     } else if (key === 'crashReleaseMapping' && check.status === 'testing') {
       validateCrashMappingProgressEvidence(
+        root,
+        ref,
+        candidate,
+        `releaseChecks.${key}.evidence`,
+      );
+    } else if (key === 'storeWarningsLinksAndSigning' && check.status === 'testing') {
+      validateStoreLinksAndSigningProgressEvidence(
         root,
         ref,
         candidate,
