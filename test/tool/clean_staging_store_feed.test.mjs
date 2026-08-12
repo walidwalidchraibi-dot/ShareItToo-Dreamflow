@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -19,7 +19,11 @@ function writeVault(root, name, { owner, listingId, nested = false }) {
     stripeLivemode: false,
     status: 'synthetic-booking-active',
     ...(nested ? { nested: { booking } } : { syntheticBooking: booking }),
-    accounts: [{ role: 'owner', email: owner, password: 'Aa9-synthetic-password' }],
+    accounts: [{
+      role: 'owner',
+      email: owner,
+      password: `Aa9-${randomBytes(18).toString('base64url')}`,
+    }],
   };
   writeFileSync(vaultFile, `${JSON.stringify(value)}\n`, { mode: 0o600 });
   chmodSync(vaultFile, 0o600);
