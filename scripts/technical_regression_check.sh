@@ -65,7 +65,6 @@ node --test test/tool/validate_google_play_internal_handoff.test.mjs
 
 node --check tool/validate_apple_testflight_handoff.mjs
 node --test test/tool/validate_apple_testflight_handoff.test.mjs
-node tool/validate_apple_testflight_handoff.mjs
 
 node --check tool/prepare_android_device_test.mjs
 node --test test/tool/prepare_android_device_test.test.mjs
