@@ -37,16 +37,31 @@ genutzt werden, ersetzt diese Frist aber nicht. Der Gate ist bewusst von
 Identitäts-, Geräte- und Telefonnummernprüfung getrennt und darf erst durch
 einen späteren, eigenen Testnachweis geschlossen werden.
 
+Der maschinenlesbare Nachweis dafür liegt in
+`store/google-play/closed-testing-readiness.json`. Er kennt vier ehrliche
+Zustände: `not-started`, `running`, `eligible` und
+`production-access-approved`. Ab Testbeginn ist eine bereinigte
+Beobachtungsdatei unter `docs/evidence/b11/` Pflicht. Sie enthält nur
+Zeitpunkte, aggregierte Testerzahl und Freigabestatus – niemals Tester-E-Mails,
+Konto-IDs oder Zugangsdaten. Erst mindestens zwölf durchgehend angemeldete
+Tester, exakt berechnete 14 Tage, gesammelte Engagement-Evidenz und der später
+beobachtete positive Produktionszugang dürfen den Launch-Gate schließen.
+
 Lokale Prüfung:
 
 ```text
 dart run tool/validate_store_metadata.dart
+node tool/validate_google_play_closed_testing.mjs
 node tool/validate_device_evidence.mjs
 ```
 
 Der Standardlauf prüft den ehrlichen Entwurfszustand. Eine spätere
 Store-Automation muss zusätzlich mit `--require-submittable` prüfen und darf
 bei einem offenen Gate keinen Upload starten.
+Der Store-Modus ruft zusätzlich
+`node tool/validate_google_play_closed_testing.mjs --require-production-access`
+auf. Die interne Testspur bleibt davon getrennt und kann vorher genutzt werden,
+ersetzt die Pflicht aber nicht.
 
 `store/privacy-disclosures.json` ist die maschinenlesbare, quell- und
 binärgebundene Grundlage für Google Play Data Safety und Apple App Privacy.

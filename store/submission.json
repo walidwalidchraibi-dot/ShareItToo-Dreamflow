@@ -63,7 +63,8 @@
       "internalReleaseNotes": "store/google-play/de-DE/internal_release_notes.txt",
       "screenshotAltTexts": "store/google-play/de-DE/screenshot_alt_texts.json",
       "consoleEntryWorksheet": "docs/operations/B11_GOOGLE_PLAY_CONSOLE_ENTRY_WORKSHEET_2026-08-12.md",
-      "internalUploadHandoff": "store/google-play/internal-upload-handoff.json"
+      "internalUploadHandoff": "store/google-play/internal-upload-handoff.json",
+      "closedTestingReadiness": "store/google-play/closed-testing-readiness.json"
     },
     "apple": {
       "name": "store/apple/de-DE/name.txt",

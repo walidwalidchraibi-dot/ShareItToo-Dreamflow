@@ -63,6 +63,11 @@ node tool/validate_b11_release_docs.mjs
 node --check tool/validate_google_play_internal_handoff.mjs
 node --test test/tool/validate_google_play_internal_handoff.test.mjs
 
+node --check tool/validate_google_play_closed_testing.mjs
+node --test test/tool/validate_google_play_closed_testing.test.mjs
+node --test test/tool/google_play_closed_testing_wiring.test.mjs
+node tool/validate_google_play_closed_testing.mjs
+
 node --check tool/validate_apple_testflight_handoff.mjs
 node --test test/tool/validate_apple_testflight_handoff.test.mjs
 

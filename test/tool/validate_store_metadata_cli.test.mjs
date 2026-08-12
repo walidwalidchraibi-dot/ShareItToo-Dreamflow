@@ -12,21 +12,30 @@ const baseAccountReadiness = JSON.parse(readFileSync(
   resolve(repositoryRoot, 'store/platform-account-readiness.json'),
   'utf8',
 ));
+const baseClosedTestingReadiness = JSON.parse(readFileSync(
+  resolve(repositoryRoot, 'store/google-play/closed-testing-readiness.json'),
+  'utf8',
+));
 
 function runWithManifests({
   mutateManifest = () => {},
   mutateAccountReadiness = () => {},
+  mutateClosedTestingReadiness = () => {},
 }) {
   const directory = mkdtempSync(join(tmpdir(), 'sit-store-metadata-'));
   try {
     const manifest = structuredClone(baseManifest);
     const accountReadiness = structuredClone(baseAccountReadiness);
+    const closedTestingReadiness = structuredClone(baseClosedTestingReadiness);
     mutateManifest(manifest);
     mutateAccountReadiness(accountReadiness);
+    mutateClosedTestingReadiness(closedTestingReadiness);
     const manifestPath = join(directory, 'submission.json');
     const accountReadinessPath = join(directory, 'platform-account-readiness.json');
+    const closedTestingReadinessPath = join(directory, 'closed-testing-readiness.json');
     writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
     writeFileSync(accountReadinessPath, `${JSON.stringify(accountReadiness, null, 2)}\n`);
+    writeFileSync(closedTestingReadinessPath, `${JSON.stringify(closedTestingReadiness, null, 2)}\n`);
     return spawnSync('dart', [
       'run',
       validator,
@@ -34,6 +43,8 @@ function runWithManifests({
       manifestPath,
       '--account-readiness',
       accountReadinessPath,
+      '--closed-testing-readiness',
+      closedTestingReadinessPath,
     ], {
       cwd: repositoryRoot,
       encoding: 'utf8',
@@ -63,14 +74,24 @@ test('rejects a missing Google Play closed-test launch gate', () => {
   assert.match(result.stderr, /must contain exactly the required Store release gates/);
 });
 
-test('rejects closing the Play production-access gate without dedicated test evidence', () => {
+test('rejects closing the Play production-access gate without approved readiness', () => {
   const result = runWithManifests({
     mutateManifest: (manifest) => {
       manifest.blockingGates.googlePlayClosedTestingRequirement = 'closed';
     },
   });
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /stays open until a dedicated closed-test evidence contract is added/);
+  assert.match(result.stderr, /must match evidenced Play production access/);
+});
+
+test('rejects a missing Google Play closed-test readiness binding', () => {
+  const result = runWithManifests({
+    mutateManifest: (manifest) => {
+      delete manifest.metadataFiles.googlePlay.closedTestingReadiness;
+    },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /closedTestingReadiness must be a non-empty string/);
 });
 
 test('rejects a missing Google Play Console worksheet binding', () => {

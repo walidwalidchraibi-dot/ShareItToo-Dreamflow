@@ -200,6 +200,7 @@ void main(List<String> arguments) {
   var requireSubmittable = false;
   String? manifestPath;
   String? accountReadinessPath;
+  String? closedTestingReadinessPath;
   for (var index = 0; index < arguments.length; index += 1) {
     final value = arguments[index];
     if (value == '--require-submittable') {
@@ -215,6 +216,12 @@ void main(List<String> arguments) {
         _fail('--account-readiness requires a path.');
       }
       accountReadinessPath = arguments[index + 1];
+      index += 1;
+    } else if (value == '--closed-testing-readiness') {
+      if (index + 1 >= arguments.length) {
+        _fail('--closed-testing-readiness requires a path.');
+      }
+      closedTestingReadinessPath = arguments[index + 1];
       index += 1;
     } else {
       _fail('Unknown argument: $value');
@@ -270,6 +277,100 @@ void main(List<String> arguments) {
     _fail(
         'blockingGates must contain exactly the required Store release gates.');
   }
+
+  final closedTestingReadinessBinding =
+      _string(googleFiles, 'closedTestingReadiness');
+  final closedTestingReadinessFile = closedTestingReadinessPath == null
+      ? File('${root.path}/$closedTestingReadinessBinding')
+      : File(closedTestingReadinessPath).absolute;
+  final closedTestingReadiness = _readJsonMapFile(
+    closedTestingReadinessFile,
+    'Google Play closed-test readiness',
+  );
+  _expectExactKeys(
+    closedTestingReadiness,
+    const {
+      'schemaVersion',
+      'status',
+      'productionAccessAllowed',
+      'applicationId',
+      'accountType',
+      'track',
+      'requirements',
+      'window',
+      'testing',
+      'productionAccess',
+      'evidenceRef',
+      'boundaries',
+    },
+    'Google Play closed-test readiness',
+  );
+  if (closedTestingReadiness['schemaVersion'] != 1 ||
+      !const {
+        'not-started',
+        'running',
+        'eligible',
+        'production-access-approved',
+      }.contains(closedTestingReadiness['status']) ||
+      closedTestingReadiness['applicationId'] != 'com.shareittoo.app' ||
+      closedTestingReadiness['accountType'] != 'personal' ||
+      closedTestingReadiness['track'] != 'closed') {
+    _fail(
+        'Google Play closed-test readiness has an invalid identity or state.');
+  }
+  if (jsonEncode(closedTestingReadiness).contains('@')) {
+    _fail(
+        'Google Play closed-test readiness must not contain account addresses.');
+  }
+  final closedTestRequirements = _map(
+    closedTestingReadiness['requirements'],
+    'closedTestingReadiness.requirements',
+  );
+  if (closedTestRequirements['minimumContinuousTesterCount'] != 12 ||
+      closedTestRequirements['minimumConsecutiveDays'] != 14) {
+    _fail(
+        'Google Play closed-test requirements must remain 12 testers for 14 days.');
+  }
+  final closedTestWindow = _map(
+    closedTestingReadiness['window'],
+    'closedTestingReadiness.window',
+  );
+  final closedTestTesting = _map(
+    closedTestingReadiness['testing'],
+    'closedTestingReadiness.testing',
+  );
+  final productionAccess = _map(
+    closedTestingReadiness['productionAccess'],
+    'closedTestingReadiness.productionAccess',
+  );
+  final closedTestBoundaries = _map(
+    closedTestingReadiness['boundaries'],
+    'closedTestingReadiness.boundaries',
+  );
+  for (final key in const {
+    'containsTesterPersonalData',
+    'containsAccountIdentifiers',
+    'containsSecrets',
+    'storeSubmissionChanged',
+  }) {
+    if (closedTestBoundaries[key] != false) {
+      _fail('Google Play closed-test readiness must remain sanitized.');
+    }
+  }
+  final closedTestProductionReady =
+      closedTestingReadiness['status'] == 'production-access-approved' &&
+          closedTestingReadiness['productionAccessAllowed'] == true &&
+          closedTestTesting['continuousQualifiedTesterCount'] is int &&
+          (closedTestTesting['continuousQualifiedTesterCount'] as int) >= 12 &&
+          closedTestTesting['minimumRosterContinuouslyOptedIn'] == true &&
+          closedTestTesting['engagementEvidenceCollected'] == true &&
+          closedTestWindow['startedAt'] is String &&
+          closedTestWindow['eligibleAt'] is String &&
+          closedTestWindow['observedAt'] is String &&
+          productionAccess['applicationSubmitted'] == true &&
+          productionAccess['applicationApproved'] == true &&
+          productionAccess['decisionObservedAt'] is String &&
+          closedTestingReadiness['evidenceRef'] is String;
 
   _expectExactKeys(
     accountReadiness,
@@ -356,7 +457,8 @@ void main(List<String> arguments) {
   }
   for (final key in const ['purchaseMade', 'agreementAccepted']) {
     if (accountBoundaries[key] is! bool) {
-      _fail('Store platform account readiness side-effect flags must be booleans.');
+      _fail(
+          'Store platform account readiness side-effect flags must be booleans.');
     }
   }
   if (jsonEncode(accountReadiness).contains('@')) {
@@ -364,15 +466,18 @@ void main(List<String> arguments) {
         'Store platform account readiness must remain sanitized and contain no account address.');
   }
   final playFeePaid = googlePlayAccount['registrationFeePaid'] == true;
-  final anyPaidMembership = playFeePaid || appleAccount['membershipActive'] == true;
+  final anyPaidMembership =
+      playFeePaid || appleAccount['membershipActive'] == true;
   if ((accountBoundaries['purchaseMade'] == true) != anyPaidMembership) {
     _fail(
         'Store platform account purchase history must match the recorded paid account state.');
   }
-  final anyAgreementAccepted = googlePlayAccount['developerAccountCreated'] == true ||
-      appleAccount['agreementsAccepted'] == true ||
-      firebaseAccount['ownerTermsAccepted'] == true;
-  if ((accountBoundaries['agreementAccepted'] == true) != anyAgreementAccepted) {
+  final anyAgreementAccepted =
+      googlePlayAccount['developerAccountCreated'] == true ||
+          appleAccount['agreementsAccepted'] == true ||
+          firebaseAccount['ownerTermsAccepted'] == true;
+  if ((accountBoundaries['agreementAccepted'] == true) !=
+      anyAgreementAccepted) {
     _fail(
         'Store platform account agreement history must match the recorded account state.');
   }
@@ -397,11 +502,10 @@ void main(List<String> arguments) {
     _fail(
         'googlePlayAccountAndFee must match verified Play account readiness.');
   }
-  // Account verification and the later production-access test are distinct
-  // gates for a newly created personal Google Play developer account.
-  if (gates['googlePlayClosedTestingRequirement'] != 'open') {
+  if ((gates['googlePlayClosedTestingRequirement'] == 'closed') !=
+      closedTestProductionReady) {
     _fail(
-        'googlePlayClosedTestingRequirement stays open until a dedicated closed-test evidence contract is added.');
+        'googlePlayClosedTestingRequirement must match evidenced Play production access.');
   }
   if ((gates['appleAccountXcodeAndSigning'] == 'closed') != appleReady) {
     _fail(
@@ -465,7 +569,8 @@ void main(List<String> arguments) {
     }
     for (final key in ['purchaseMade', 'agreementAccepted']) {
       if (boundaries[key] is! bool) {
-        _fail('Store platform account evidence side-effect flags must be booleans.');
+        _fail(
+            'Store platform account evidence side-effect flags must be booleans.');
       }
     }
     final evidenceGoogle = _map(
@@ -482,8 +587,9 @@ void main(List<String> arguments) {
       _fail(
           'Store platform account evidence purchase history must match its observed paid state.');
     }
-    final evidenceAgreement = evidenceGoogle['developerAccountCreated'] == true ||
-        evidenceApple['agreementsAccepted'] == true;
+    final evidenceAgreement =
+        evidenceGoogle['developerAccountCreated'] == true ||
+            evidenceApple['agreementsAccepted'] == true;
     if ((boundaries['agreementAccepted'] == true) != evidenceAgreement) {
       _fail(
           'Store platform account evidence agreement history must match its observed account state.');

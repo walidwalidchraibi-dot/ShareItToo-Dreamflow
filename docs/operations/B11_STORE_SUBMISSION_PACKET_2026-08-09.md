@@ -357,6 +357,9 @@ offen ist:
 - Screenshots enthalten echte Namen, Adressen, Nachrichten, Gerätekennungen
   oder Zahlungsdaten;
 - reale Android-/iOS-Geräteabnahme des B11-Runbooks ist nicht ausführbar.
+- der verpflichtende geschlossene Google-Play-Test mit mindestens zwölf
+  dauerhaft angemeldeten Testern noch keine 14 aufeinanderfolgenden Tage
+  belegt oder der Produktionszugang noch nicht genehmigt ist.
 
 ## 10. Maschinenlesbare Metadaten und Freigabesperre
 
@@ -375,6 +378,9 @@ Die kanonischen Textdateien und der aktuelle Gate-Status liegen unter
 - höhere Mindest-Store-Buildnummer `2026080903`;
 - harte Ablehnung eines einreichbaren Zustands, solange URL- oder
   Freigabegates offen sind.
+- Bindung des Google-Play-Produktionszugangs an den bereinigten,
+  maschinenlesbaren 12-Tester-/14-Tage-Nachweis in
+  `store/google-play/closed-testing-readiness.json`.
 
 Standardprüfung: `dart run tool/validate_store_metadata.dart`. Eine spätere
 Upload-Automation muss zusätzlich `--require-submittable` verwenden und darf
@@ -385,6 +391,8 @@ zusätzlich den strengen Store-Metadatenmodus und
 `node tool/validate_legal_readiness.mjs --require-approved` sowie
 `node tool/validate_privacy_disclosures.mjs --require-approved` und
 `node tool/validate_retention_deletion_readiness.mjs --require-approved`.
+Zusätzlich verlangt der Store-Modus
+`node tool/validate_google_play_closed_testing.mjs --require-production-access`.
 Der Aufbewahrungs-/Löschvalidator bindet die tatsächlich implementierte
 Kontolöschung an Quellhashes und lässt alle noch ungeklärten Rechtsfristen,
 Purge-/Legal-Hold-Abläufe, Backup-Löschgrenzen und externen
