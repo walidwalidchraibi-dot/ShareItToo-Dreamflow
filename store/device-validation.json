@@ -27,6 +27,63 @@
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
         "evidenceRef": "docs/evidence/b11/android-direct-smoke-2026081201-20260812T114400Z.json"
+      },
+      "directAppLinks": {
+        "status": "passed",
+        "capturedAt": "2026-08-12T11:57:09.470Z",
+        "installMethod": "direct-apk-diagnostic",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-app-link-diagnostic-2026081201-20260812T115709Z.json"
+      },
+      "authenticatedSession": {
+        "status": "passed",
+        "capturedAt": "2026-08-12T12:01:40.730Z",
+        "installMethod": "direct-apk-diagnostic",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081201-20260812T120140Z.json"
+      },
+      "syntheticRoleBooking": {
+        "status": "passed",
+        "capturedAt": "2026-08-12T12:03:09.530Z",
+        "installMethod": "direct-apk-diagnostic",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081201-20260812T120309Z.json"
+      },
+      "authenticatedDeepLinks": {
+        "status": "passed",
+        "capturedAt": "2026-08-12T12:07:28.337Z",
+        "installMethod": "direct-apk-diagnostic",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081201-20260812T120728Z.json"
+      },
+      "logoutLifecycle": {
+        "status": "passed",
+        "capturedAt": "2026-08-12T12:17:22.000Z",
+        "installMethod": "direct-apk-diagnostic",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081201-20260812T121722Z.json"
+      },
+      "offlineRealtime": {
+        "status": "passed",
+        "capturedAt": "2026-08-12T12:19:34.940Z",
+        "installMethod": "direct-apk-diagnostic",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "offlineWindowSeconds": 15,
+        "sameProcessRecovery": "passed",
+        "originalNetworkRestored": "passed",
+        "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081201-20260812T121934Z.json"
       }
     },
     "ios": {
@@ -149,15 +206,15 @@
     },
     "firebaseFcmAndApns": {
       "status": "testing",
-      "evidenceRef": null
+      "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081201-20260812T121614Z.json"
     },
     "binaryPrivacyAndNetwork": {
       "status": "passed",
       "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081201.json"
     },
     "crashReleaseMapping": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "testing",
+      "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081201.json"
     },
     "storeWarningsLinksAndSigning": {
       "status": "open",

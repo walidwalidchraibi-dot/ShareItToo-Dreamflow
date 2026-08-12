@@ -59,7 +59,7 @@ test('repository B11 release documentation matches the current candidate', () =>
   assert.equal(result.buildNumber, deviceManifest.candidate.buildNumber);
   assert.equal(result.documents, 3);
   assert.equal(result.passedCells, 0);
-  assert.equal(result.passedReleaseChecks, 3);
+  assert.equal(result.passedReleaseChecks, 4);
 });
 
 test('rejects a stale build number in a snapshot', () => {
@@ -175,7 +175,7 @@ test('rollover mode accepts an incomplete current candidate above the documented
   assert.equal(result.buildNumber, deviceManifest.candidate.buildNumber);
   assert.equal(result.rolloverBuildNumber, nextBuild);
   assert.equal(result.documentedBuild, deviceManifest.candidate.buildNumber);
-  assert.equal(result.passedReleaseChecks, 3);
+  assert.equal(result.passedReleaseChecks, 4);
 });
 
 test('rollover mode rejects a build older than the documented candidate', () => {

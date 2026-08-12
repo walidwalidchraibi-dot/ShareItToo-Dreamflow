@@ -16,8 +16,8 @@ Verbindlicher Kandidat:
 - App: `ShareItToo`
 - Paket: `com.shareittoo.app`
 - Version: `1.0.0`
-- Build: `2026081116`
-- App-Commit: `03a76e23b0db656b48fc1729b3cd20e6260f2133`
+- Build: `2026081201`
+- App-Commit: `c6ec80002cf664f513afc768c1b643ac0d1d19fb`
 - Kanal: ausschließlich Internal Testing
 - Umgebung: ausschließlich Staging
 - Zahlung: `paymentMode=memory`, `stripeLivemode=false`
@@ -60,7 +60,7 @@ Zahlungsdaten oder Google-Konto-IDs in Git, Drive, Telegram oder Evidenz
 Die App vermittelt die zeitweise Nutzung physischer Gegenstände außerhalb der
 App. Für diese Mietzahlungen wird kein Google Play Billing eingerichtet.
 Digitale Abonnements, Credits, Funktionsfreischaltungen oder werbefreie
-Premiumstufen sind im Kandidaten 2026081116 nicht enthalten.
+Premiumstufen sind im Kandidaten 2026081201 nicht enthalten.
 
 Falls die Kontoregistrierung allgemein nach geplanten Einnahmequellen fragt,
 ist eine mögliche spätere Provision auf die Miete physischer Gegenstände als
@@ -93,7 +93,7 @@ Arbeitswerte:
 | Support-URL | `https://shareittoo.com/support` – noch nicht veröffentlichungsfähig |
 | Datenschutz-URL | `https://shareittoo.com/privacy` – noch nicht veröffentlichungsfähig |
 | öffentliche Kontolöschung | `https://shareittoo.com/account-deletion` – noch nicht veröffentlichungsfähig |
-| Telefon-Screenshots | noch leer; nur bereinigte Aufnahmen von Kandidat 2026081116 zulässig |
+| Telefon-Screenshots | vier bereinigte, lokal validierte Aufnahmen des unmittelbar vorherigen UI-Stands vorhanden; vor Upload nochmals gegen Kandidat 2026081201 prüfen |
 
 Support-, Datenschutz- und Lösch-URL erst speichern beziehungsweise zur
 Prüfung senden, wenn die sichtbaren öffentlichen Seiten inhaltlich freigegeben
@@ -104,7 +104,7 @@ gilt nicht als Nachweis.
 
 ### 5.1 Werbung
 
-- Antwort für Kandidat 2026081116: **Nein, die App enthält keine Werbung.**
+- Antwort für Kandidat 2026081201: **Nein, die App enthält keine Werbung.**
 - Beleg: kein Werbe-SDK, kein Firebase Analytics, kein Advertising Tracking.
 - Eine im Entwicklerprofil genannte mögliche spätere Werbefinanzierung ändert
   die Antwort für diesen konkreten App-Build nicht.
@@ -206,7 +206,7 @@ bestätigt ist. Das Data-Safety-Formular noch nicht absenden.
 
 ## 7. Berechtigungen und SDK-Prüfung nach AAB-Upload
 
-Der zusammengeführte Release-APK von exakt Kandidat 2026081116 wurde bereits
+Der zusammengeführte Release-APK von exakt Kandidat 2026081201 wurde bereits
 vor dem Store-Upload geprüft. Er enthält nur die erwarteten Funktions-,
 Netzwerk- und Firebase-Berechtigungen für Kamera, Bilder, groben/präzisen
 Standort, Benachrichtigungen, Internet/Netzstatus, Wake Lock und FCM. Nicht
@@ -214,7 +214,7 @@ enthalten sind unter anderem SMS-/Anruflisten-/Kontakte-, Mikrofon-,
 Accessibility-Service-, Vollspeicher-, Paketinstallations-,
 Alle-Pakete-Abfrage- oder Overlay-Berechtigungen. Der bereinigte,
 artefaktgebundene Nachweis liegt in
-`docs/evidence/b11/android-release-permissions-2026081116.json`.
+`docs/evidence/b11/android-release-permissions-2026081201.json`.
 
 Diese Vorprüfung nimmt keine Console-Antwort vorweg. Google kann erst nach dem
 AAB-Upload zusätzliche SDK- oder Berechtigungswarnungen anzeigen; diese bleiben
@@ -238,7 +238,7 @@ Nach dem ersten Internal-AAB-Upload:
 1. persönliche Konto-Verifizierung abschließen;
 2. App-Datensatz mit den Angaben aus Abschnitt 3 anlegen;
 3. Store-Haupteintrag und App-Inhalte zunächst als Entwurf ausfüllen;
-4. exakt den gebundenen AAB-Kandidaten 2026081116 hochladen;
+4. exakt den gebundenen AAB-Kandidaten 2026081201 hochladen;
 5. Uploadwarnungen, App-Signing-Fingerprint und Artefaktidentität prüfen;
 6. geschützte Review-Zugangsdaten eintragen;
 7. nur Internal Testing vorbereiten – keine Production-, Open- oder Closed-
@@ -324,7 +324,7 @@ einer dieser Punkte offen ist:
 ## 10. Maschinengeprüfte Upload-Übergabe
 
 Die Datei `store/google-play/internal-upload-handoff.json` bindet die nächste
-Play-Aktion an exakt Build `2026081116`, dessen geprüften AAB-Hash, Upload-
+Play-Aktion an exakt Build `2026081201`, dessen geprüften AAB-Hash, Upload-
 Zertifikat und privaten Archivnamen. Das Prüfwerkzeug
 `tool/validate_google_play_internal_handoff.mjs` bricht ab, wenn sich Datei,
 Hash, Kandidatenidentität oder Dateirechte unterscheiden.

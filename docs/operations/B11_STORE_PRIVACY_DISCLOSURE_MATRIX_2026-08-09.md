@@ -204,8 +204,8 @@ oder bloßes Umschalten eines Store-Gates keine Freigabe erzeugen.
 
 ## 8. Verifikation und Nachweis
 
-Der exakte Android-Kandidat 1.0.0 (2026081116) ist an App-Commit
-`03a76e23b0db656b48fc1729b3cd20e6260f2133` und die kanonisch geprüften AAB-,
+Der exakte Android-Kandidat 1.0.0 (2026081201) ist an App-Commit
+`c6ec80002cf664f513afc768c1b643ac0d1d19fb` und die kanonisch geprüften AAB-,
 APK-, Signatur- und Datenschutzberichte gebunden. Das Release-Manifest
 deaktiviert Backup, Geräteübertragung, Klartextverkehr und Legacy-Speichermodus;
 alte Speicherberechtigungen sind auf die dokumentierten älteren API-Stufen
@@ -229,7 +229,7 @@ geschützte Prüfkonto und seine aktive Buchung wurden danach vollständig
 wiederhergestellt. Store-Installation und die vollständige
 Geräte-/Accessibility-Matrix bleiben offen. Der aktuelle
 maschinenlesbare Datenschutzentwurf liegt in
-`store/privacy-disclosures.json`; er bindet 17 Datentypen, acht Dienste,
+`store/privacy-disclosures.json`; er bindet 18 Datentypen, acht Dienste,
 Quellhashes und den erneuerten Binärscan an denselben Kandidaten. Die
 Original-R8-Zuordnung des exakten AAB wurde erfolgreich zu Crashlytics
 übertragen; die drei nativen Symbolgruppen sind vollständig im AAB und im

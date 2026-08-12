@@ -28,6 +28,11 @@ export function validateGooglePlayAppContentHandoff({
   handoffPath = resolve(repositoryRoot, 'store/google-play/app-content-handoff.json'),
 }) {
   const handoff = object(JSON.parse(readFileSync(handoffPath, 'utf8')), 'handoff');
+  const deviceValidation = object(
+    JSON.parse(readFileSync(resolve(repositoryRoot, 'store/device-validation.json'), 'utf8')),
+    'device validation',
+  );
+  const currentCandidate = object(deviceValidation.candidate, 'device validation candidate');
   if (handoff.schemaVersion !== 1 ||
       handoff.status !== 'seven-console-tasks-saved-public-pages-and-iarc-pending' ||
       handoff.submissionAllowed !== false) {
@@ -42,7 +47,8 @@ export function validateGooglePlayAppContentHandoff({
 
   const candidate = object(handoff.candidate, 'candidate');
   if (candidate.applicationId !== 'com.shareittoo.app' ||
-      candidate.versionName !== '1.0.0' || candidate.buildNumber !== '2026081116' ||
+      candidate.versionName !== currentCandidate.versionName ||
+      candidate.buildNumber !== currentCandidate.buildNumber ||
       candidate.releaseChannel !== 'internal' ||
       candidate.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1') {
     fail('App-content handoff is not bound to the internal Staging candidate.');

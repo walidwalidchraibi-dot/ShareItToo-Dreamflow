@@ -131,12 +131,17 @@ void _validateGooglePlayFeatureGraphic(Directory root, String relativePath) {
 
 void _validateGooglePlayPhoneScreenshot(Directory root, String relativePath) {
   final file = File('${root.path}/$relativePath');
-  if (!file.existsSync()) _fail('Missing Google Play phone screenshot: $relativePath');
+  if (!file.existsSync()) {
+    _fail('Missing Google Play phone screenshot: $relativePath');
+  }
   final bytes = file.readAsBytesSync();
   const signature = <int>[137, 80, 78, 71, 13, 10, 26, 10];
-  if (bytes.length < 33 || bytes.length > 8 * 1024 * 1024 ||
-      !List<int>.generate(8, (index) => bytes[index]).asMap().entries.every(
-          (entry) => entry.value == signature[entry.key]) ||
+  if (bytes.length < 33 ||
+      bytes.length > 8 * 1024 * 1024 ||
+      !List<int>.generate(8, (index) => bytes[index])
+          .asMap()
+          .entries
+          .every((entry) => entry.value == signature[entry.key]) ||
       ascii.decode(bytes.sublist(12, 16)) != 'IHDR') {
     _fail('Google Play phone screenshot must be a PNG no larger than 8 MB.');
   }
@@ -155,7 +160,8 @@ void _validateGooglePlayPhoneScreenshot(Directory root, String relativePath) {
     _fail('Google Play phone screenshot dimensions violate Play requirements.');
   }
   if (bitDepth != 8 || colorType != 2) {
-    _fail('Google Play phone screenshots must be 24-bit RGB PNGs without alpha.');
+    _fail(
+        'Google Play phone screenshots must be 24-bit RGB PNGs without alpha.');
   }
 }
 
@@ -648,19 +654,18 @@ void main(List<String> arguments) {
           'Store platform account evidence agreement history must match its observed account state.');
     }
     if (ref == googlePlayAccount['evidenceRef']) {
-      final playEvidenceMatches =
-          evidenceGoogle['developerAccountCreated'] ==
-                  googlePlayAccount['developerAccountCreated'] &&
-              evidenceGoogle['registrationFeePaid'] ==
-                  googlePlayAccount['registrationFeePaid'] &&
-              evidenceGoogle['identityVerified'] ==
-                  (googlePlayAccount['identityVerification'] == 'verified') &&
-              evidenceGoogle['deviceVerified'] ==
-                  (googlePlayAccount['deviceVerification'] == 'verified') &&
-              evidenceGoogle['phoneVerified'] ==
-                  (googlePlayAccount['phoneVerification'] == 'verified') &&
-              evidenceGoogle['appRecordCreated'] ==
-                  googlePlayAccount['appRecordCreated'];
+      final playEvidenceMatches = evidenceGoogle['developerAccountCreated'] ==
+              googlePlayAccount['developerAccountCreated'] &&
+          evidenceGoogle['registrationFeePaid'] ==
+              googlePlayAccount['registrationFeePaid'] &&
+          evidenceGoogle['identityVerified'] ==
+              (googlePlayAccount['identityVerification'] == 'verified') &&
+          evidenceGoogle['deviceVerified'] ==
+              (googlePlayAccount['deviceVerification'] == 'verified') &&
+          evidenceGoogle['phoneVerified'] ==
+              (googlePlayAccount['phoneVerification'] == 'verified') &&
+          evidenceGoogle['appRecordCreated'] ==
+              googlePlayAccount['appRecordCreated'];
       if (!playEvidenceMatches) {
         _fail(
             'Google Play account readiness must match its sanitized Console evidence.');
@@ -771,10 +776,13 @@ void main(List<String> arguments) {
   _validateGooglePlayFeatureGraphic(
       root, _string(googleAssets, 'featureGraphic'));
   final phoneScreenshots = googleAssets['phoneScreenshots'];
-  if (phoneScreenshots is! List || phoneScreenshots.length != 4 ||
-      phoneScreenshots.any((value) => value is! String ||
+  if (phoneScreenshots is! List ||
+      phoneScreenshots.length != 4 ||
+      phoneScreenshots.any((value) =>
+          value is! String ||
           !value.startsWith('store/assets/google-play/phone-screenshots/'))) {
-    _fail('Google Play phone screenshots must bind exactly four validated local candidates.');
+    _fail(
+        'Google Play phone screenshots must bind exactly four validated local candidates.');
   }
   for (final screenshot in phoneScreenshots.cast<String>()) {
     _validateGooglePlayPhoneScreenshot(root, screenshot);
@@ -815,9 +823,9 @@ void main(List<String> arguments) {
     _rejectPublicCopy('Google screenshot alt text $id', altText);
   }
 
-  for (final required in const [
+  for (final required in [
     'com.shareittoo.app',
-    '2026081116',
+    currentBuild.toString(),
     'Nein, die App enthält keine Werbung.',
     'kein Google Play Billing',
     'keine Store-Einreichung erlaubt',

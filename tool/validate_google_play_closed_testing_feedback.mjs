@@ -58,7 +58,7 @@ function sanitized(value, label = 'closed-test feedback plan') {
   }
 }
 
-export function validateGooglePlayClosedTestingFeedback({ plan, closedTestingReadiness }) {
+export function validateGooglePlayClosedTestingFeedback({ plan, closedTestingReadiness, deviceCandidate = null }) {
   const manifest = object(plan, 'closed-test feedback plan');
   sanitized(manifest);
   exactKeys(manifest, [
@@ -80,9 +80,14 @@ export function validateGooglePlayClosedTestingFeedback({ plan, closedTestingRea
   if (manifest.applicationId !== 'com.shareittoo.app') fail('applicationId must remain com.shareittoo.app.');
   const candidate = object(manifest.candidate, 'candidate');
   exactKeys(candidate, ['versionName', 'buildNumber', 'commit'], 'candidate');
-  if (candidate.versionName !== '1.0.0'
-      || candidate.buildNumber !== '2026081116'
-      || candidate.commit !== '03a76e23b0db656b48fc1729b3cd20e6260f2133') {
+  const expectedCandidate = deviceCandidate ?? {
+    versionName: '1.0.0',
+    buildNumber: '2026081201',
+    commit: 'c6ec80002cf664f513afc768c1b643ac0d1d19fb',
+  };
+  if (candidate.versionName !== expectedCandidate.versionName
+      || candidate.buildNumber !== expectedCandidate.buildNumber
+      || candidate.commit !== expectedCandidate.commit) {
     fail('The feedback plan must remain bound to the B11 release candidate.');
   }
   const rules = object(manifest.rules, 'rules');
@@ -196,7 +201,15 @@ function runCli() {
     resolve(root, 'store/google-play/closed-testing-readiness.json'),
     'utf8',
   ));
-  const result = validateGooglePlayClosedTestingFeedback({ plan, closedTestingReadiness });
+  const deviceCandidate = JSON.parse(readFileSync(
+    resolve(root, 'store/device-validation.json'),
+    'utf8',
+  )).candidate;
+  const result = validateGooglePlayClosedTestingFeedback({
+    plan,
+    closedTestingReadiness,
+    deviceCandidate,
+  });
   process.stdout.write(
     `Google Play closed-test feedback: ${result.state}; scenarios=${result.scenarioCount}; `
     + `feedbackItems=${result.feedbackItemCount}.\n`,

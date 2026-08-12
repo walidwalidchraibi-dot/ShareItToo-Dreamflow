@@ -319,7 +319,7 @@ werden.
 3. App-Zugriff, Anzeigen, Zielgruppe, Inhaltsbewertung, Nutzerinhalte,
    Datenschutz und Data Safety als Entwurf ausfüllen.
 4. Icon 512 × 512, Feature-Grafik 1024 × 500 und bereinigte Screenshots laden.
-5. Exakt den gebundenen Firebase-fähigen AAB-Kandidaten `2026081116` nur in
+5. Exakt den gebundenen Firebase-fähigen AAB-Kandidaten `2026081201` nur in
    Internal Testing laden; Play-App-Signing-Fingerabdruck erfassen und Asset
    Links ergänzen.
 6. Nach interner Abnahme gegebenenfalls Closed Testing starten. Falls ein neu

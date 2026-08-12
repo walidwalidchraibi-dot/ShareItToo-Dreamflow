@@ -21,7 +21,7 @@ async function fixture(mutate = () => {}) {
 
 test('accepts seven saved Play tasks while review, public pages, and IARC remain stopped', () => {
   const result = validateGooglePlayAppContentHandoff({ repositoryRoot });
-  assert.deepEqual(result, { taskCount: 11, buildNumber: '2026081116' });
+  assert.deepEqual(result, { taskCount: 11, buildNumber: '2026081201' });
 });
 
 test('rejects claiming ads for the current binary', async (t) => {

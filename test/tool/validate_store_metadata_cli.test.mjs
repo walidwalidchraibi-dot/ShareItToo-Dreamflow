@@ -54,6 +54,12 @@ function runWithManifests({
   }
 }
 
+test('accepts the current honest fail-closed Store metadata draft', () => {
+  const result = runWithManifests({});
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Store metadata valid/);
+});
+
 test('rejects a missing mandatory Store release gate', () => {
   const result = runWithManifests({
     mutateManifest: (manifest) => {

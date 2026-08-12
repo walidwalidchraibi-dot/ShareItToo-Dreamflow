@@ -361,6 +361,58 @@ export async function transitionSyntheticBookingFixture({
   });
 }
 
+export async function retireSyntheticBookingFixture({
+  vaultFile,
+  fetchImpl = globalThis.fetch,
+  now = new Date(),
+} = {}) {
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
+    fail('The synthetic fixture retirement timestamp is invalid.');
+  }
+  let current = readVault(vaultFile).vault.syntheticBooking?.workflowStatus;
+  if (current === 'requested') {
+    await transitionSyntheticBookingFixture({ vaultFile, status: 'accepted', fetchImpl, now });
+    current = 'accepted';
+  }
+  if (current === 'accepted') {
+    await transitionSyntheticBookingFixture({ vaultFile, status: 'running', fetchImpl, now });
+    current = 'active';
+  }
+  if (current === 'active') {
+    await transitionSyntheticBookingFixture({ vaultFile, status: 'completed', fetchImpl, now });
+    current = 'completed';
+  }
+  const { path, vault, accounts } = readVault(vaultFile);
+  const fixture = vault.syntheticBooking;
+  if (current !== 'completed'
+      || fixture?.workflowStatus !== 'completed'
+      || fixture?.paymentEndpointCalled !== false
+      || fixture?.stripeLivemode !== false) {
+    fail('Only a completed payment-free synthetic fixture can be retired.');
+  }
+  const ownerToken = await login(fetchImpl, accounts.get('owner'));
+  await request(fetchImpl, `/listings/${encodeURIComponent(fixture.listingId)}/status`, {
+    method: 'PATCH',
+    token: ownerToken,
+    body: { status: 'paused' },
+  });
+  fixture.listingStatus = 'paused';
+  fixture.retiredAt = now.toISOString();
+  saveVault(path, vault);
+  return Object.freeze({
+    status: 'synthetic-booking-retired',
+    bookingCompleted: true,
+    listingPaused: true,
+    listingDeleted: false,
+    paymentEndpointCalled: false,
+    stripeLivemode: false,
+    containsSecrets: false,
+    containsEmailAddresses: false,
+    containsTokens: false,
+    containsFixtureIdentifiers: false,
+  });
+}
+
 const roleVisibilityExpectations = Object.freeze({
   requested: Object.freeze({
     actorRole: 'owner',
@@ -648,11 +700,18 @@ export async function sendSyntheticBookingDiagnosticMessage({
   vaultFile,
   senderRole = 'owner',
   diagnosticKind = 'generic',
+  diagnosticRunId = randomBytes(8).toString('hex'),
   fetchImpl = globalThis.fetch,
 } = {}) {
   if (!['owner', 'renter'].includes(senderRole)) fail('The message sender role is invalid.');
   if (!['generic', 'foreground', 'background', 'terminated', 'logout', 'offline'].includes(diagnosticKind)) {
     fail('The message diagnostic kind is invalid.');
+  }
+  if (typeof diagnosticRunId !== 'string'
+      || diagnosticRunId.length < 8
+      || diagnosticRunId.length > 40
+      || !/^[A-Za-z0-9_-]+$/.test(diagnosticRunId)) {
+    fail('The message diagnostic run identifier is invalid.');
   }
   const { vault, accounts } = readVault(vaultFile);
   const fixture = vault.syntheticBooking;
@@ -669,7 +728,9 @@ export async function sendSyntheticBookingDiagnosticMessage({
     `/message-threads/${encodeURIComponent(threadId)}/messages`, {
       method: 'POST',
       token,
-      headers: { 'Idempotency-Key': `${bookingId}-${diagnosticKind}-push-diagnostic-${senderRole}` },
+      headers: {
+        'Idempotency-Key': `${bookingId}-${diagnosticKind}-${diagnosticRunId}-push-diagnostic-${senderRole}`,
+      },
       body: { text: `Kontrollierte SIT Staging-Pushprüfung (${diagnosticKind}).` },
       expected: [200, 201],
     });

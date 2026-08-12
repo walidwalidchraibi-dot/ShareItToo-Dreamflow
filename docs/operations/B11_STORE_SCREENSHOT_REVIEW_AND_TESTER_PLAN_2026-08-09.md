@@ -1,7 +1,7 @@
 # B11 – Screenshot-, Review- und Testerplan
 
 Stand: 12. August 2026
-Status: Kandidat 2026081116 und synthetische Motive vorbereitet; Aufnahme und
+Status: vier lokal validierte Motive des unmittelbar vorherigen UI-Stands vorbereitet; Kandidat 2026081201 vor Upload erneut abgleichen; Aufnahme und
 finale Privatdatenprüfung noch offen
 
 ## 1. Ziel
@@ -15,8 +15,8 @@ App Store Connect, Git, Telegram oder den Masterplan gelangen.
 
 Screenshots und Review-Video werden erst erstellt, wenn:
 
-- der Store-Kandidat exakt Build `2026081116` und App-Commit
-  `03a76e23b0db656b48fc1729b3cd20e6260f2133` entspricht;
+- der aktuelle Android-Store-Kandidat exakt Build `2026081201` und App-Commit
+  `c6ec80002cf664f513afc768c1b643ac0d1d19fb` entspricht;
 - Android/iOS exakt `com.shareittoo.app` verwenden;
 - Firebase, Push und Crashlytics im Artefakt vollständig und sicher
   konfiguriert sind;
@@ -138,7 +138,7 @@ sperrt jede Store-Einreichung, solange die realen Review-Szenarien, die
 geschützten Store-Felder oder `blockingGates.reviewAccounts` offen sind.
 
 Status vom 12. August 2026: Der geschützte synthetische Rollen-Satz wurde auf
-Kandidat 2026081116 erneut geprüft. Beide Rollen bestehen den Passwort-Login
+Kandidat 2026081201 erneut geprüft. Beide Rollen bestehen den Passwort-Login
 ohne OTP, sehen dasselbe aktive Inserat und eine frische akzeptierte
 Testbuchung und können den gemeinsamen Chat lesen. Melden/Blockieren, ein
 vollständiger privater Kontodatenexport und die Kontolöschung sind ebenfalls

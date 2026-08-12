@@ -11,6 +11,7 @@ import {
   createSyntheticBookingFixture,
   prepareSyntheticBookingThread,
   reconcileSyntheticBookingFixture,
+  retireSyntheticBookingFixture,
   runSyntheticRoleBookingLifecycle,
   sendSyntheticBookingDiagnosticMessage,
   transitionSyntheticBookingFixture,
@@ -122,6 +123,58 @@ test('transitions the synthetic booking with the correct roles and no payment en
   }
   assert.equal(calls.some((path) => path.includes('payment')), false);
   assert.equal(JSON.parse(readFileSync(fixture.vaultFile, 'utf8')).status, 'synthetic-booking-completed');
+});
+
+test('retires a temporary fixture by completing its booking and pausing, never deleting, its listing', async () => {
+  const fixture = vaultFixture();
+  const vault = JSON.parse(readFileSync(fixture.vaultFile, 'utf8'));
+  vault.status = 'synthetic-booking-active';
+  vault.syntheticBooking = {
+    schemaVersion: 1,
+    listingId: 'private-listing-id',
+    bookingId: 'private-booking-id',
+    workflowStatus: 'requested',
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+  };
+  writeFileSync(fixture.vaultFile, `${JSON.stringify(vault, null, 2)}\n`, { mode: 0o600 });
+  chmodSync(fixture.vaultFile, 0o600);
+
+  const operations = [];
+  const result = await retireSyntheticBookingFixture({
+    vaultFile: fixture.vaultFile,
+    now: new Date('2026-08-12T12:30:00.000Z'),
+    fetchImpl: async (url, options = {}) => {
+      const path = new URL(url).pathname.replace('/api/v1', '');
+      if (path === '/auth/login') {
+        return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+      }
+      operations.push({ path, method: options.method, body: JSON.parse(options.body) });
+      if (path.endsWith('/transitions')) {
+        const requested = operations.at(-1).body.status;
+        return response(200, {
+          booking: { workflowStatus: { accepted: 'accepted', running: 'active', completed: 'completed' }[requested] },
+        });
+      }
+      if (path.endsWith('/status')) return response(200, { listing: { status: 'paused' } });
+      throw new Error(`Unexpected path ${path}`);
+    },
+  });
+
+  assert.deepEqual(operations.map(({ method, body }) => [method, body]), [
+    ['POST', { status: 'accepted' }],
+    ['POST', { status: 'running' }],
+    ['POST', { status: 'completed' }],
+    ['PATCH', { status: 'paused' }],
+  ]);
+  assert.equal(result.bookingCompleted, true);
+  assert.equal(result.listingPaused, true);
+  assert.equal(result.listingDeleted, false);
+  assert.equal(result.paymentEndpointCalled, false);
+  const stored = JSON.parse(readFileSync(fixture.vaultFile, 'utf8'));
+  assert.equal(stored.syntheticBooking.workflowStatus, 'completed');
+  assert.equal(stored.syntheticBooking.listingStatus, 'paused');
 });
 
 test('runs the complete role-visible lifecycle without returning private fixture data', async () => {
@@ -376,6 +429,7 @@ test('prepares a controlled thread and sends an identifier-free diagnostic messa
   const messageResult = await sendSyntheticBookingDiagnosticMessage({
     ...fixture,
     diagnosticKind: 'foreground',
+    diagnosticRunId: 'repeatable-test-run',
     fetchImpl: async (url) => {
       const path = new URL(url).pathname.replace('/api/v1', '');
       if (path === '/auth/login') return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
@@ -389,6 +443,53 @@ test('prepares a controlled thread and sends an identifier-free diagnostic messa
   assert.equal(messageResult.diagnosticKind, 'foreground');
   assert.equal(messageResult.containsFixtureIdentifiers, false);
   assert.equal(messageResult.paymentEndpointCalled, false);
+});
+
+test('uses a diagnostic-run-specific idempotency key so a later device probe can send again', async () => {
+  const fixture = vaultFixture();
+  const vault = JSON.parse(readFileSync(fixture.vaultFile, 'utf8'));
+  vault.status = 'synthetic-booking-active';
+  vault.syntheticBooking = {
+    schemaVersion: 1,
+    listingId: 'private-listing-id',
+    bookingId: 'private-booking-id',
+    threadId: 'private-thread-id',
+    title: 'Private fixture title',
+    workflowStatus: 'accepted',
+    paymentMode: 'memory',
+    stripeLivemode: false,
+    paymentEndpointCalled: false,
+  };
+  writeFileSync(fixture.vaultFile, `${JSON.stringify(vault, null, 2)}\n`, { mode: 0o600 });
+  chmodSync(fixture.vaultFile, 0o600);
+
+  const keys = [];
+  const fetchImpl = async (url, options = {}) => {
+    const path = new URL(url).pathname.replace('/api/v1', '');
+    if (path === '/auth/login') {
+      return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+    }
+    keys.push(options.headers['Idempotency-Key']);
+    return response(201, { message: { id: `message-${keys.length}` } });
+  };
+
+  await sendSyntheticBookingDiagnosticMessage({
+    ...fixture,
+    diagnosticKind: 'background',
+    diagnosticRunId: 'device-probe-one',
+    fetchImpl,
+  });
+  await sendSyntheticBookingDiagnosticMessage({
+    ...fixture,
+    diagnosticKind: 'background',
+    diagnosticRunId: 'device-probe-two',
+    fetchImpl,
+  });
+
+  assert.equal(keys.length, 2);
+  assert.notEqual(keys[0], keys[1]);
+  assert.match(keys[0], /device-probe-one/);
+  assert.match(keys[1], /device-probe-two/);
 });
 
 test('rejects a production or otherwise different API base before any request', async () => {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "replacement-built-scanned-installed-functional-diagnostics-pending",
+  "status": "replacement-built-scanned-installed-android-functional-diagnostics-passed",
   "generatedAt": "2026-08-12T11:49:18Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -44,17 +44,52 @@
   "exactCandidateDiagnostics": {
     "directInstallAndLaunch": "passed",
     "listingSignalTruthfulness": "passed-bounded-feed-observation",
-    "guestAppLinks": "pending",
-    "authenticatedSessionRestore": "pending",
-    "syntheticRoleBooking": "pending",
-    "authenticatedDeepLinks": "pending",
-    "foregroundFcm": "pending",
-    "backgroundFcm": "pending",
-    "terminatedProcessFcm": "pending",
-    "notificationIconVisualFit": "pending",
-    "logoutColdStartGuestPersistence": "pending",
-    "postLogoutPushSuppression": "pending",
-    "offlineRealtimeRecovery": "pending"
+    "guestAppLinks": "passed",
+    "authenticatedSessionRestore": "passed",
+    "syntheticRoleBooking": "passed",
+    "authenticatedDeepLinks": "passed",
+    "foregroundFcm": "passed",
+    "backgroundFcm": "passed",
+    "terminatedProcessFcm": "passed",
+    "notificationIconVisualFit": "passed",
+    "logoutColdStartGuestPersistence": "passed",
+    "postLogoutPushSuppression": "passed",
+    "offlineRealtimeRecovery": "passed"
+  },
+  "crashlyticsMapping": {
+    "status": "testing",
+    "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081201.json",
+    "originalAabMappingUploaded": true,
+    "nativeSymbolsPackaged": true,
+    "nativeSymbolUploadPassed": true,
+    "controlledEventPending": true,
+    "consoleReleaseAssignmentPending": true
+  },
+  "controlledFcm": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081201-20260812T121614Z.json"
+  },
+  "syntheticRoleBooking": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081201-20260812T120309Z.json",
+    "protectedReviewFixtureUnchanged": true
+  },
+  "authenticatedDeepLinks": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081201-20260812T120728Z.json",
+    "protectedReviewFixtureUnchanged": true,
+    "protectedReviewSessionRestored": true
+  },
+  "logoutLifecycle": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081201-20260812T121722Z.json",
+    "syntheticSessionRestoredAfterProbe": true
+  },
+  "offlineRealtime": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081201-20260812T121934Z.json",
+    "networkRestoredAfterProbe": true,
+    "sameProcessRecovery": true
   },
   "staging": {
     "serverCommit": "f2961cfe97a85c5698d4967ae08808eaa6b25ce8",
@@ -69,7 +104,7 @@
   "boundaries": {
     "uploadedToStore": false,
     "installedOnPhysicalDevice": true,
-    "controlledFcmSentToSyntheticAccount": false,
+    "controlledFcmSentToSyntheticAccount": true,
     "controlledCrashDiagnosticSent": false,
     "productionPushSent": false,
     "productionCrashGenerated": false,

@@ -80,7 +80,11 @@ export function validateGooglePlayScreenshotCandidate({
 
 function main() {
   const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
-  const result = validateGooglePlayScreenshotCandidate({ repositoryRoot });
+  const argumentIndex = process.argv.indexOf('--evidence');
+  const evidencePath = argumentIndex >= 0
+    ? resolve(repositoryRoot, process.argv[argumentIndex + 1] ?? fail('--evidence requires a path.'))
+    : undefined;
+  const result = validateGooglePlayScreenshotCandidate({ repositoryRoot, evidencePath });
   process.stdout.write(`Google Play screenshot candidate: PASS (${result.scene}, ${result.width}x${result.height})\n`);
 }
 
