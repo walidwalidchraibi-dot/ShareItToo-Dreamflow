@@ -527,6 +527,8 @@ void main(List<String> arguments) {
       _readText(root, _string(googleFiles, 'internalReleaseNotes'));
   final googleScreenshotAltTexts =
       _readJsonList(root, _string(googleFiles, 'screenshotAltTexts'));
+  final googleConsoleWorksheet =
+      _readText(root, _string(googleFiles, 'consoleEntryWorksheet'));
   final appleName = _readText(root, _string(appleFiles, 'name'));
   final appleSubtitle = _readText(root, _string(appleFiles, 'subtitle'));
   final applePromo = _readText(root, _string(appleFiles, 'promotionalText'));
@@ -575,6 +577,21 @@ void main(List<String> arguments) {
     }
     _maxRunes('Google screenshot alt text $id', altText, 140);
     _rejectPublicCopy('Google screenshot alt text $id', altText);
+  }
+
+  for (final required in const [
+    'com.shareittoo.app',
+    '2026081116',
+    'Nein, die App enthält keine Werbung.',
+    'kein Google Play Billing',
+    'keine Store-Einreichung erlaubt',
+    'Identität mit amtlichem Lichtbildausweis',
+    'Data Safety',
+    'Internal Testing',
+  ]) {
+    if (!googleConsoleWorksheet.contains(required)) {
+      _fail('Google Play Console worksheet is missing: $required');
+    }
   }
 
   if (googleTitle != appleName || googleTitle != 'ShareItToo') {

@@ -60,7 +60,8 @@
       "shortDescription": "store/google-play/de-DE/short_description.txt",
       "fullDescription": "store/google-play/de-DE/full_description.txt",
       "internalReleaseNotes": "store/google-play/de-DE/internal_release_notes.txt",
-      "screenshotAltTexts": "store/google-play/de-DE/screenshot_alt_texts.json"
+      "screenshotAltTexts": "store/google-play/de-DE/screenshot_alt_texts.json",
+      "consoleEntryWorksheet": "docs/operations/B11_GOOGLE_PLAY_CONSOLE_ENTRY_WORKSHEET_2026-08-12.md"
     },
     "apple": {
       "name": "store/apple/de-DE/name.txt",
@@ -80,6 +81,7 @@
   },
   "sourceDocuments": [
     "docs/operations/B11_STORE_SUBMISSION_PACKET_2026-08-09.md",
+    "docs/operations/B11_GOOGLE_PLAY_CONSOLE_ENTRY_WORKSHEET_2026-08-12.md",
     "docs/operations/B11_STORE_PRIVACY_DISCLOSURE_MATRIX_2026-08-09.md",
     "docs/operations/B11_STORE_SCREENSHOT_REVIEW_AND_TESTER_PLAN_2026-08-09.md",
     "docs/operations/B11_CLOSED_STORE_AND_DEVICE_TEST_RUNBOOK_2026-08-09.md",

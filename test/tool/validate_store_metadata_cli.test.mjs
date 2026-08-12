@@ -53,6 +53,16 @@ test('rejects a missing mandatory Store release gate', () => {
   assert.match(result.stderr, /must contain exactly the required Store release gates/);
 });
 
+test('rejects a missing Google Play Console worksheet binding', () => {
+  const result = runWithManifests({
+    mutateManifest: (manifest) => {
+      delete manifest.metadataFiles.googlePlay.consoleEntryWorksheet;
+    },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /consoleEntryWorksheet must be a non-empty string/);
+});
+
 test('rejects an unrecognized Store release gate', () => {
   const result = runWithManifests({
     mutateManifest: (manifest) => {

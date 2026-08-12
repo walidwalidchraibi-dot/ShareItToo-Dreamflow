@@ -1,7 +1,8 @@
 # B11 – Screenshot-, Review- und Testerplan
 
-Stand: 9. August 2026  
-Status: vorbereitet; Aufnahme erst mit finalem Firebase-fähigem Store-Build
+Stand: 12. August 2026
+Status: Kandidat 2026081116 und synthetische Motive vorbereitet; Aufnahme und
+finale Privatdatenprüfung noch offen
 
 ## 1. Ziel
 
@@ -14,7 +15,8 @@ App Store Connect, Git, Telegram oder den Masterplan gelangen.
 
 Screenshots und Review-Video werden erst erstellt, wenn:
 
-- der Store-Kandidat mindestens Build `2026080903` besitzt;
+- der Store-Kandidat exakt Build `2026081116` und App-Commit
+  `03a76e23b0db656b48fc1729b3cd20e6260f2133` entspricht;
 - Android/iOS exakt `com.shareittoo.app` verwenden;
 - Firebase, Push und Crashlytics im Artefakt vollständig und sicher
   konfiguriert sind;
@@ -135,14 +137,15 @@ Produktionsdaten. `tool/validate_store_review_access.mjs --require-ready`
 sperrt jede Store-Einreichung, solange die realen Review-Szenarien, die
 geschützten Store-Felder oder `blockingGates.reviewAccounts` offen sind.
 
-Status vom 11. August 2026: Ein neuer synthetischer Rollen-Satz wurde über den
-realen Staging-SMTP-Weg bestätigt. Beide Rollen bestehen den Passwort-Login
-ohne OTP, sehen dasselbe aktive Inserat und dieselbe akzeptierte Testbuchung
-und können den gemeinsamen Chat lesen. Melden/Blockieren, ein vollständiger
-privater Kontodatenexport und die Kontolöschung sind ebenfalls technisch
-bestanden. Für den Löschtest wurde ausschließlich ein älteres entbehrliches
-synthetisches Mieterkonto geschlossen; die aktiven Review-Konten blieben
-unverändert. Damit sind acht von zehn Review-Szenarien technisch bestanden.
+Status vom 12. August 2026: Der geschützte synthetische Rollen-Satz wurde auf
+Kandidat 2026081116 erneut geprüft. Beide Rollen bestehen den Passwort-Login
+ohne OTP, sehen dasselbe aktive Inserat und eine frische akzeptierte
+Testbuchung und können den gemeinsamen Chat lesen. Melden/Blockieren, ein
+vollständiger privater Kontodatenexport und die Kontolöschung sind ebenfalls
+technisch bestanden. Für den Löschtest wurde ausschließlich ein älteres
+entbehrliches synthetisches Mieterkonto geschlossen; die aktiven
+Review-Konten blieben unverändert. Damit sind acht von zehn Review-Szenarien
+technisch bestanden.
 Frische Installation, Zweitnetz und die geschützten Store-Felder bleiben
 offen; deshalb gilt weiterhin `readyForStore=false`.
 Der bereinigte Laufzeitnachweis für gleichzeitig aktives SMTP und FCM liegt in
