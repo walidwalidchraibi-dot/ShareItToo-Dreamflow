@@ -711,6 +711,18 @@ test('accepts the honest in-progress B11 evidence state', () => {
   });
 });
 
+test('rejects a restricted permission added to the exact release inventory', () => {
+  const root = progressEvidenceRoot();
+  const ref = 'docs/evidence/b11/android-release-permissions-2026081116.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
+  evidence.analysis.declaredPermissions.push('android.permission.READ_SMS');
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root }),
+    /must preserve the exact expected permissions while keeping Console warnings pending/,
+  );
+});
+
 test('rejects crash-mapping progress evidence for a different AAB', () => {
   const { root, deviceManifest, ref, evidence } = crashProgressFixture();
   evidence.artifacts.aabSha256 = 'f'.repeat(64);

@@ -185,6 +185,20 @@ bestätigt ist. Das Data-Safety-Formular noch nicht absenden.
 
 ## 7. Berechtigungen und SDK-Prüfung nach AAB-Upload
 
+Der zusammengeführte Release-APK von exakt Kandidat 2026081116 wurde bereits
+vor dem Store-Upload geprüft. Er enthält nur die erwarteten Funktions-,
+Netzwerk- und Firebase-Berechtigungen für Kamera, Bilder, groben/präzisen
+Standort, Benachrichtigungen, Internet/Netzstatus, Wake Lock und FCM. Nicht
+enthalten sind unter anderem SMS-/Anruflisten-/Kontakte-, Mikrofon-,
+Accessibility-Service-, Vollspeicher-, Paketinstallations-,
+Alle-Pakete-Abfrage- oder Overlay-Berechtigungen. Der bereinigte,
+artefaktgebundene Nachweis liegt in
+`docs/evidence/b11/android-release-permissions-2026081116.json`.
+
+Diese Vorprüfung nimmt keine Console-Antwort vorweg. Google kann erst nach dem
+AAB-Upload zusätzliche SDK- oder Berechtigungswarnungen anzeigen; diese bleiben
+bis zur sichtbaren Prüfung offen.
+
 Nach dem ersten Internal-AAB-Upload:
 
 1. Play-Console-Warnungen und SDK-Index-Hinweise vollständig lesen;

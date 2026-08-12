@@ -32,6 +32,8 @@
     "cleartextTrafficDisabled": true,
     "analyticsSdkPresent": false,
     "advertisingSdkPresent": false,
+    "permissionInventoryStatus": "passed",
+    "permissionInventoryEvidenceRef": "docs/evidence/b11/android-release-permissions-2026081116.json",
     "disclosedSdks": [
       "Firebase Cloud Messaging",
       "Firebase Crashlytics",

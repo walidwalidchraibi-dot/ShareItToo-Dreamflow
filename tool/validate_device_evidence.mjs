@@ -707,7 +707,76 @@ function validateAndroidLogoutLifecycle(root, diagnostic, candidate) {
   }
 }
 
-function validateLegacyCandidateReleaseEvidence(evidence, candidate, checkId, label) {
+function validateAndroidReleasePermissionInventory(root, ref, candidate, label) {
+  const evidence = readEvidenceJson(root, ref, label);
+  if (evidence.schemaVersion !== 1 ||
+      evidence.kind !== 'android-release-permission-inventory' ||
+      evidence.status !== 'passed-exact-merged-release-apk') {
+    fail(`${label} must be a passed exact merged-release permission inventory.`);
+  }
+  isoTimestamp(evidence.capturedAt, `${label}.capturedAt`, { required: true });
+  assertEvidenceCandidate(evidence, candidate, label);
+  const artifacts = object(evidence.artifacts, `${label}.artifacts`);
+  const expectedAndroid = object(candidate.android, 'candidate.android');
+  if (artifacts.apkSha256 !== expectedAndroid.apkSha256 ||
+      artifacts.aabSha256 !== expectedAndroid.aabSha256 ||
+      artifacts.targetSdkVersion !== 35) {
+    fail(`${label}.artifacts must match the exact candidate and target SDK.`);
+  }
+
+  const analysis = object(evidence.analysis, `${label}.analysis`);
+  const expectedDeclaredPermissions = [
+    'android.permission.ACCESS_COARSE_LOCATION',
+    'android.permission.ACCESS_FINE_LOCATION',
+    'android.permission.ACCESS_NETWORK_STATE',
+    'android.permission.CAMERA',
+    'android.permission.INTERNET',
+    'android.permission.POST_NOTIFICATIONS',
+    'android.permission.READ_EXTERNAL_STORAGE:maxSdkVersion=32',
+    'android.permission.READ_MEDIA_IMAGES',
+    'android.permission.WAKE_LOCK',
+    'android.permission.WRITE_EXTERNAL_STORAGE:maxSdkVersion=28',
+    'com.google.android.c2dm.permission.RECEIVE',
+    'com.shareittoo.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION',
+  ];
+  const expectedAbsent = [
+    'android.permission.BIND_ACCESSIBILITY_SERVICE',
+    'android.permission.MANAGE_EXTERNAL_STORAGE',
+    'android.permission.QUERY_ALL_PACKAGES',
+    'android.permission.READ_CALL_LOG',
+    'android.permission.READ_CONTACTS',
+    'android.permission.READ_SMS',
+    'android.permission.RECORD_AUDIO',
+    'android.permission.REQUEST_INSTALL_PACKAGES',
+    'android.permission.SEND_SMS',
+    'android.permission.SYSTEM_ALERT_WINDOW',
+    'android.permission.WRITE_CALL_LOG',
+    'android.permission.WRITE_CONTACTS',
+  ];
+  if (analysis.source !== 'merged-release-apk' ||
+      JSON.stringify(analysis.declaredPermissions) !== JSON.stringify(expectedDeclaredPermissions) ||
+      JSON.stringify(analysis.restrictedOrUnrequestedPermissionsAbsent) !== JSON.stringify(expectedAbsent) ||
+      !Array.isArray(analysis.unexpectedPermissions) || analysis.unexpectedPermissions.length !== 0 ||
+      analysis.permissionDeclarationFormPreclaim !== false ||
+      analysis.consoleWarningsPendingAfterAabUpload !== true) {
+    fail(`${label}.analysis must preserve the exact expected permissions while keeping Console warnings pending.`);
+  }
+  const expectedBoundaries = {
+    storeUploadPerformed: false,
+    productionChanged: false,
+    containsSecrets: false,
+    containsPersonalAccountData: false,
+    containsRawDeviceIdentifiers: false,
+    containsReviewCredentials: false,
+  };
+  const boundaries = object(evidence.boundaries, `${label}.boundaries`);
+  if (Object.keys(boundaries).length !== Object.keys(expectedBoundaries).length ||
+      Object.entries(expectedBoundaries).some(([key, value]) => boundaries[key] !== value)) {
+    fail(`${label}.boundaries must remain sanitized and must not claim a Store upload.`);
+  }
+}
+
+function validateLegacyCandidateReleaseEvidence(root, evidence, candidate, checkId, label) {
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'android-release-candidate') return false;
   assertEvidenceCandidate(evidence, candidate, label);
   const android = object(evidence.android, `${label}.android`);
@@ -723,6 +792,22 @@ function validateLegacyCandidateReleaseEvidence(evidence, candidate, checkId, la
     if (android.signatureVerified !== true || android.packageIdentityVerified !== true) {
       fail(`${label} does not prove candidate identity and signatures.`);
     }
+    const privacy = object(evidence.privacyAndNetwork, `${label}.privacyAndNetwork`);
+    if (privacy.permissionInventoryStatus !== 'passed') {
+      fail(`${label} must bind a passed merged-release permission inventory.`);
+    }
+    const permissionRef = evidenceRef(
+      root,
+      privacy.permissionInventoryEvidenceRef,
+      `${label}.privacyAndNetwork.permissionInventoryEvidenceRef`,
+      { required: true },
+    );
+    validateAndroidReleasePermissionInventory(
+      root,
+      permissionRef,
+      candidate,
+      `${label}.permissionInventory`,
+    );
     return true;
   }
   if (checkId === 'stagingCleanupAndHealth') {
@@ -743,7 +828,7 @@ function validateLegacyCandidateReleaseEvidence(evidence, candidate, checkId, la
 
 function validateReleaseCheckEvidence(root, ref, checkId, candidate, label) {
   const evidence = readEvidenceJson(root, ref, label);
-  if (validateLegacyCandidateReleaseEvidence(evidence, candidate, checkId, label)) return;
+  if (validateLegacyCandidateReleaseEvidence(root, evidence, candidate, checkId, label)) return;
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'release-check' || evidence.status !== 'passed') {
     fail(`${label} must be a passed release-check evidence document for ${checkId}.`);
   }
