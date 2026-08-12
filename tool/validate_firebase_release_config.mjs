@@ -101,6 +101,16 @@ function validateRepositoryScaffold(root, overrides) {
   ]) {
     requireIncludes(androidManifest, marker, 'android/app/src/main/AndroidManifest.xml');
   }
+  requireIncludes(
+    androidManifest,
+    'android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"',
+    'android/app/src/main/AndroidManifest.xml',
+  );
+  requireIncludes(
+    androidManifest,
+    'android:name="com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE" tools:node="remove"',
+    'android/app/src/main/AndroidManifest.xml',
+  );
 
   const infoPlist = source(root, 'ios/Runner/Info.plist', overrides);
   requireIncludes(infoPlist, '<string>fetch</string>', 'ios/Runner/Info.plist');

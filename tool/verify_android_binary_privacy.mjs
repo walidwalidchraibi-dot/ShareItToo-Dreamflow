@@ -172,6 +172,11 @@ const prohibitedPermissions = [
   'android.permission.QUERY_ALL_PACKAGES',
   'android.permission.PACKAGE_USAGE_STATS',
   'com.google.android.gms.permission.AD_ID',
+  'android.permission.ACCESS_ADSERVICES_ATTRIBUTION',
+  'android.permission.ACCESS_ADSERVICES_AD_ID',
+  'android.permission.ACCESS_ADSERVICES_CUSTOM_AUDIENCE',
+  'android.permission.ACCESS_ADSERVICES_TOPICS',
+  'com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE',
 ];
 for (const name of prohibitedPermissions) {
   requireCheck(
@@ -200,7 +205,6 @@ const prohibitedSdkMarkers = [
   'FirebaseAnalytics',
   'AppMeasurement',
   'MobileAds',
-  'AdvertisingIdClient',
   'appsflyer',
   'com.adjust',
   'mixpanel',

@@ -170,6 +170,24 @@ test('requires the complete fail-closed social provider scaffold', () => {
   );
 });
 
+test('requires Facebook Login to remove the advertising identifier permission', () => {
+  const currentManifest = readFileSync(
+    resolve(repositoryRoot, 'android/app/src/main/AndroidManifest.xml'),
+    'utf8',
+  );
+  assert.throws(
+    () => validate({
+      sourceOverrides: {
+        'android/app/src/main/AndroidManifest.xml': currentManifest.replace(
+          'android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"',
+          'android:name="com.google.android.gms.permission.AD_ID"',
+        ),
+      },
+    }),
+    /AD_ID/,
+  );
+});
+
 test('parses the public Apple Firebase plist without flattening booleans', () => {
   const parsed = parseGoogleServiceInfoPlist(`<?xml version="1.0"?><plist><dict>
     <key>BUNDLE_ID</key><string>com.shareittoo.app</string>
