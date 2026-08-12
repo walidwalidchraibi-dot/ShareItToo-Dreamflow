@@ -10,7 +10,7 @@ const repositoryRoot = new URL('../../', import.meta.url).pathname;
 const canonicalHandoff = JSON.parse(await readFile(
   new URL('../../store/google-play/internal-upload-handoff.json', import.meta.url), 'utf8'));
 const canonicalEvidence = JSON.parse(await readFile(
-  new URL('../../docs/evidence/b11/android-candidate-2026081201.json', import.meta.url), 'utf8'));
+  new URL('../../docs/evidence/b11/android-candidate-2026081202.json', import.meta.url), 'utf8'));
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'sit-play-handoff-'));
@@ -36,14 +36,14 @@ async function fixture() {
   return { root, archiveRoot, handoffPath, evidencePath, artifactPath, handoff };
 }
 
-test('accepts the superseded private artifact while its safer replacement stays pending', async (t) => {
+test('accepts the verified private artifact while upload remains fail closed', async (t) => {
   const data = await fixture();
   t.after(() => rm(data.root, { recursive: true, force: true }));
   const result = validateGooglePlayInternalHandoff({ repositoryRoot, ...data });
-  assert.equal(result.buildNumber, '2026081201');
+  assert.equal(result.buildNumber, '2026081202');
   assert.equal(result.artifactPath, data.artifactPath);
-  assert.equal(result.releaseName, '1.0.0-internal-2026081201');
-  assert.equal(result.status, 'superseded-privacy-rescan-failed-replacement-pending');
+  assert.equal(result.releaseName, '1.0.0-internal-2026081202');
+  assert.equal(result.status, 'verified-artifact-ready-immediate-reverification-pending');
   assert.match(result.releaseNotes, /ausschließlich Staging und Testzahlungen/u);
 });
 

@@ -726,13 +726,27 @@ test('accepts the honest in-progress B11 evidence state', () => {
 
 test('rejects a restricted permission added to the exact release inventory', () => {
   const root = progressEvidenceRoot();
-  const ref = 'docs/evidence/b11/android-release-permissions-2026081201.json';
+  const candidateRef = baseDeviceManifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef;
+  const candidateEvidence = JSON.parse(readFileSync(resolve(root, candidateRef), 'utf8'));
+  const ref = candidateEvidence.privacyAndNetwork.permissionInventoryEvidenceRef;
   const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
   evidence.analysis.declaredPermissions.push('android.permission.READ_SMS');
   writeEvidence(root, ref, evidence);
   assert.throws(
     () => validate({ root }),
     /must preserve the exact expected permissions while keeping Console warnings pending/,
+  );
+});
+
+test('Android FCM progress evidence must match the exact candidate APK', () => {
+  const root = progressEvidenceRoot();
+  const ref = baseDeviceManifest.releaseChecks.firebaseFcmAndApns.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
+  evidence.candidate.apkSha256 = 'f'.repeat(64);
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root }),
+    /must match the exact current Android candidate and Staging boundary/,
   );
 });
 

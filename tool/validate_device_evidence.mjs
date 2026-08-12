@@ -808,6 +808,87 @@ function validateAndroidOfflineRealtime(root, diagnostic, candidate) {
   }
 }
 
+function validateAndroidControlledFcmProgressEvidence(root, ref, candidate, label) {
+  const evidence = readEvidenceJson(root, ref, label);
+  if (evidence.schemaVersion !== 1
+      || evidence.kind !== 'android-controlled-fcm-diagnostic'
+      || evidence.status !== 'passed-bounded-full-fcm-diagnostic') {
+    fail(`${label} must be the passed bounded Android FCM diagnostic while APNs remains pending.`);
+  }
+  isoTimestamp(evidence.capturedAt, `${label}.capturedAt`, { required: true });
+  const evidenceCandidate = object(evidence.candidate, `${label}.candidate`);
+  const expectedAndroid = object(candidate.android, 'candidate.android');
+  if (evidenceCandidate.applicationId !== candidate.applicationId
+      || evidenceCandidate.versionName !== candidate.versionName
+      || evidenceCandidate.buildNumber !== candidate.buildNumber
+      || evidenceCandidate.commit !== candidate.commit
+      || evidenceCandidate.apkSha256 !== expectedAndroid.apkSha256
+      || evidenceCandidate.apiBaseUrl !== candidate.apiBaseUrl
+      || evidenceCandidate.stripeLivemode !== false) {
+    fail(`${label}.candidate must match the exact current Android candidate and Staging boundary.`);
+  }
+  const device = object(evidence.device, `${label}.device`);
+  if (device.platform !== 'android' || device.physical !== true
+      || !Number.isInteger(device.apiLevel) || device.apiLevel <= 0
+      || typeof device.securityPatch !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(device.securityPatch)
+      || device.containsRawDeviceIdentifier !== false) {
+    fail(`${label}.device must identify only a sanitized physical Android device.`);
+  }
+  for (const key of ['manufacturer', 'model', 'osVersion']) {
+    nonEmptyString(device[key], `${label}.device.${key}`);
+  }
+  const tests = object(evidence.tests, `${label}.tests`);
+  if (tests.foregroundPushDelivery?.status !== 'passed'
+      || tests.foregroundPushDelivery?.result !== 'foreground-fcm-banner-visible'
+      || tests.backgroundPushDelivery?.status !== 'passed'
+      || tests.backgroundPushDelivery?.result !== 'android-system-notification-visible'
+      || tests.terminatedProcessPushDelivery?.status !== 'passed'
+      || tests.terminatedProcessPushDelivery?.result !== 'process-absent-before-send-and-android-system-notification-visible-after-send'
+      || tests.notificationIconVisual?.status !== 'passed'
+      || tests.notificationIconVisual?.result !== 'brand-glyph-centered-and-fully-contained-within-system-circle-with-even-visible-safety-margin'
+      || !/^[a-f0-9]{64}$/.test(tests.notificationIconVisual?.privateDiagnosticScreenshotSha256 ?? '')
+      || tests.notificationIconVisual?.privateDiagnosticScreenshotCommitted !== false) {
+    fail(`${label}.tests must prove foreground, background, terminated-process FCM and the contained notification icon.`);
+  }
+  for (const key of ['backgroundPushDelivery', 'terminatedProcessPushDelivery']) {
+    const test = tests[key];
+    if (!Number.isInteger(test.observedNotificationRecordsBefore)
+        || !Number.isInteger(test.observedNotificationRecordsAfter)
+        || test.observedNotificationRecordsAfter <= test.observedNotificationRecordsBefore) {
+      fail(`${label}.tests.${key} must prove that a new system notification appeared.`);
+    }
+  }
+  const expectedBoundaries = {
+    directDiagnosticOnly: true,
+    storeInstallationGateSatisfied: false,
+    fullFcmMatrixPassed: true,
+    productionPushSent: false,
+    paymentEndpointCalled: false,
+    stripeLivemode: false,
+    syntheticAccountsOnly: true,
+    lockCodeUsed: false,
+    accountIdentityRecorded: false,
+    containsPersonalAccountData: false,
+    containsSecrets: false,
+    containsRawDeviceIdentifiers: false,
+    containsReviewCredentials: false,
+  };
+  const boundaries = object(evidence.boundaries, `${label}.boundaries`);
+  if (Object.keys(boundaries).length !== Object.keys(expectedBoundaries).length
+      || Object.entries(expectedBoundaries).some(([key, value]) => boundaries[key] !== value)) {
+    fail(`${label}.boundaries must keep Store, production, payment, identity and secret gates closed.`);
+  }
+  const isolation = object(evidence.isolation, `${label}.isolation`);
+  if (isolation.protectedReviewFixtureUnchanged !== true
+      || isolation.temporaryVaultRemovedAfterProbe !== true
+      || isolation.temporaryBookingCompleted !== true
+      || isolation.temporaryListingPaused !== true
+      || isolation.listingDeleted !== false
+      || isolation.containsReviewCredentials !== false) {
+    fail(`${label}.isolation must prove a retired isolated fixture and an unchanged protected review fixture.`);
+  }
+}
+
 function validateAndroidReleasePermissionInventory(root, ref, candidate, label) {
   const evidence = readEvidenceJson(root, ref, label);
   if (evidence.schemaVersion !== 1 ||
@@ -835,9 +916,12 @@ function validateAndroidReleasePermissionInventory(root, ref, candidate, label) 
     'android.permission.POST_NOTIFICATIONS',
     'android.permission.READ_EXTERNAL_STORAGE:maxSdkVersion=32',
     'android.permission.READ_MEDIA_IMAGES',
+    'android.permission.USE_BIOMETRIC',
+    'android.permission.USE_FINGERPRINT',
     'android.permission.WAKE_LOCK',
     'android.permission.WRITE_EXTERNAL_STORAGE:maxSdkVersion=28',
     'com.google.android.c2dm.permission.RECEIVE',
+    'com.google.android.providers.gsf.permission.READ_GSERVICES',
     'com.shareittoo.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION',
   ];
   const expectedAbsent = [
@@ -1455,6 +1539,13 @@ export function validateDeviceEvidence({
       );
     } else if (key === 'storeWarningsLinksAndSigning' && check.status === 'testing') {
       validateStoreLinksAndSigningProgressEvidence(
+        root,
+        ref,
+        candidate,
+        `releaseChecks.${key}.evidence`,
+      );
+    } else if (key === 'firebaseFcmAndApns' && check.status === 'testing' && ref !== null) {
+      validateAndroidControlledFcmProgressEvidence(
         root,
         ref,
         candidate,

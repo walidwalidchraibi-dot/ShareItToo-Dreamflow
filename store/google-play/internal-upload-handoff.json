@@ -1,27 +1,25 @@
 {
   "schemaVersion": 1,
-  "status": "superseded-privacy-rescan-failed-replacement-pending",
+  "status": "verified-artifact-ready-immediate-reverification-pending",
   "submissionAllowed": false,
   "track": "internal",
-  "replacementBuildNumber": "2026081202",
-  "supersessionEvidenceRef": "docs/evidence/b11/android-candidate-2026081201-superseded-privacy-rescan-20260812.json",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081201",
-    "commit": "c6ec80002cf664f513afc768c1b643ac0d1d19fb",
-    "aabSha256": "d6626c5bff13bcca906f26e4cdcb15adaa704038c4eff31f46de9c71afc67e88",
+    "buildNumber": "2026081202",
+    "commit": "72dd8f13b5d3be0e82392a8b28c31292bdc23b53",
+    "aabSha256": "aaee3f1193e1a16ed29fa686af8017c3f0f244676f6a75b3fae2036efbe6ffc6",
     "uploadCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true
   },
   "artifact": {
-    "archiveDirectoryName": "2026081201-c6ec80002cf664f513afc768c1b643ac0d1d19fb",
-    "fileName": "shareittoo-1.0.0-2026081201-c6ec80002cf664f513afc768c1b643ac0d1d19fb.aab",
+    "archiveDirectoryName": "2026081202-72dd8f13b5d3be0e82392a8b28c31292bdc23b53",
+    "fileName": "shareittoo-1.0.0-2026081202-72dd8f13b5d3be0e82392a8b28c31292bdc23b53.aab",
     "ownerOnlyPermissionsRequired": true
   },
   "releaseDraft": {
-    "name": "1.0.0-internal-2026081201",
+    "name": "1.0.0-internal-2026081202",
     "notesPath": "store/google-play/de-DE/internal_release_notes.txt",
     "language": "de-DE",
     "saveOnly": true,
@@ -53,7 +51,7 @@
     "differentArtifact": true,
     "credentialsInRepository": true
   },
-  "evidenceRef": "docs/evidence/b11/android-candidate-2026081201.json",
+  "evidenceRef": "docs/evidence/b11/android-candidate-2026081202.json",
   "containsSecrets": false,
   "containsReviewCredentials": false
 }

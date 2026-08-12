@@ -51,7 +51,7 @@ test('accepts the honest fail-closed privacy disclosure draft', () => {
   assert.equal(result.approvalAllowed, false);
   assert.equal(result.dataTypeCount, 18);
   assert.equal(result.externalServiceCount, 9);
-  assert.equal(result.binaryReleaseCheck, 'blocked-replacement-pending');
+  assert.equal(result.binaryReleaseCheck, 'passed');
   assert.equal(result.storeGate, 'open');
 });
 
