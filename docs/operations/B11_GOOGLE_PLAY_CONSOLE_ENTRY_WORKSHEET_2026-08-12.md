@@ -329,12 +329,15 @@ Zertifikat und privaten Archivnamen. Das Prüfwerkzeug
 `tool/validate_google_play_internal_handoff.mjs` bricht ab, wenn sich Datei,
 Hash, Kandidatenidentität oder Dateirechte unterscheiden.
 
-Die Übergabe bleibt absichtlich gesperrt: Identitäts-, Geräte- und
-Telefonprüfung sind als `pending-user` erfasst, der App-Datensatz ist noch
-nicht angelegt und `submissionAllowed` bleibt `false`. Nach Abschluss dieser
-persönlichen Prüfungen wird das Artefakt unmittelbar erneut geprüft. Danach
-darf ausschließlich ein Entwurf im Track „Internal testing“ entstehen. Alle
-öffentlichen, Review-, Open- und Closed-Aktionen bleiben harte Stopps.
+Identitäts-, Geräte- und Telefonnummernprüfung sind abgeschlossen, der
+App-Datensatz ist erstellt und die drei rechtlichen Erklärungen wurden mit
+ausdrücklicher Zustimmung bestätigt. Play App Signing ist aktiv; sein
+bereinigter Zertifikat-Fingerprint wurde zusätzlich zum Uploadzertifikat in
+der lokalen `assetlinks.json`-Vorbereitung hinterlegt. `submissionAllowed`
+bleibt dennoch `false`: Vor dem AAB-Upload wird das Artefakt unmittelbar erneut
+geprüft, anschließend darf ausschließlich ein Entwurf im Track „Internal
+testing“ entstehen. Alle öffentlichen, Review-, Open- und Closed-Aktionen
+bleiben harte Stopps.
 
 ## 11. Quellen
 
