@@ -10,8 +10,15 @@ import { hashPassword, signAccessToken } from '../src/security.js';
 
 const baseUrl = (process.env.ACCEPTANCE_BASE_URL || 'http://127.0.0.1:8080/v1')
   .replace(/\/$/, '');
+const acceptancePushTransport = (process.env.ACCEPTANCE_PUSH_TRANSPORT || 'memory')
+  .trim()
+  .toLowerCase();
 const runId = `b7-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`;
 const password = createEphemeralAcceptancePassword();
+
+if (!['memory', 'fcm'].includes(acceptancePushTransport)) {
+  throw new Error('ACCEPTANCE_PUSH_TRANSPORT must be memory or fcm.');
+}
 
 function dateOnly(daysFromNow) {
   return new Date(Date.now() + daysFromNow * 86_400_000).toISOString().slice(0, 10);
@@ -78,6 +85,17 @@ async function waitForOutbox(eventKey, expectedChannels) {
   });
 }
 
+async function insertAcceptancePushDevice(user, platform) {
+  const token = `${runId}-${platform}-acceptance-push-token`;
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  await pool.query(
+    `INSERT INTO push_devices (
+       user_id, session_id, platform, token, token_hash, locale
+     ) VALUES ($1, $2, $3, $4, $5, 'de-DE')`,
+    [user.id, user.sessionId, platform, token, tokenHash],
+  );
+}
+
 async function main() {
   const passwordHash = await hashPassword(password);
   const users = {
@@ -135,15 +153,9 @@ async function main() {
 
   for (const [role, user] of Object.entries(users)) {
     if (role === 'outsider') continue;
-    await api('/auth/devices/push', {
-      method: 'PUT',
-      token: user.token,
-      body: {
-        token: `${runId}-${role}-memory-push-token`,
-        platform: role === 'owner' ? 'android' : 'ios',
-        locale: 'de-DE',
-      },
-    });
+    if (acceptancePushTransport === 'memory') {
+      await insertAcceptancePushDevice(user, role === 'owner' ? 'android' : 'ios');
+    }
   }
 
   const listingImage = await sharp({
@@ -241,8 +253,14 @@ async function main() {
   assert.equal(replayedBooking.value.replayed, true);
 
   const requestedEvent = `booking:${bookingId}:requested:${createKey}`;
-  const requestedDelivery = await waitForOutbox(requestedEvent, ['email', 'in_app', 'push']);
-  assert.ok(requestedDelivery.every((row) => row.status === 'sent' && row.attempt_count === 1));
+  const requestedChannels = ['email', 'in_app', 'push'];
+  const requestedDelivery = await waitForOutbox(requestedEvent, requestedChannels);
+  assert.deepEqual(
+    requestedDelivery.map((row) => `${row.channel}:${row.status}:${row.attempt_count}`),
+    acceptancePushTransport === 'memory'
+      ? ['email:sent:1', 'in_app:sent:1', 'push:sent:1']
+      : ['email:sent:1', 'in_app:sent:1', 'push:suppressed:1'],
+  );
 
   const acceptKey = `${runId}-accept-booking`;
   const accepted = await api(`/bookings/${bookingId}/transitions`, {
@@ -253,8 +271,13 @@ async function main() {
   });
   assert.equal(accepted.value.booking.workflowStatus, 'accepted');
   const acceptedEvent = `booking:${bookingId}:accepted:${acceptKey}:0`;
-  const acceptedDelivery = await waitForOutbox(acceptedEvent, ['email', 'in_app', 'push']);
-  assert.ok(acceptedDelivery.every((row) => row.status === 'sent' && row.attempt_count === 1));
+  const acceptedDelivery = await waitForOutbox(acceptedEvent, requestedChannels);
+  assert.deepEqual(
+    acceptedDelivery.map((row) => `${row.channel}:${row.status}:${row.attempt_count}`),
+    acceptancePushTransport === 'memory'
+      ? ['email:sent:1', 'in_app:sent:1', 'push:sent:1']
+      : ['email:sent:1', 'in_app:sent:1', 'push:suppressed:1'],
+  );
 
   const threadResponse = await api(`/message-threads/booking/${bookingId}`, {
     method: 'POST',
@@ -353,8 +376,14 @@ async function main() {
   });
 
   const messageEvent = `message:${sent.value.message.id}`;
-  const messageDelivery = await waitForOutbox(messageEvent, ['in_app', 'push']);
-  assert.ok(messageDelivery.every((row) => row.status === 'sent' && row.attempt_count === 1));
+  const messageChannels = ['in_app', 'push'];
+  const messageDelivery = await waitForOutbox(messageEvent, messageChannels);
+  assert.deepEqual(
+    messageDelivery.map((row) => `${row.channel}:${row.status}:${row.attempt_count}`),
+    acceptancePushTransport === 'memory'
+      ? ['in_app:sent:1', 'push:sent:1']
+      : ['in_app:sent:1', 'push:suppressed:1'],
+  );
   const messageRows = await pool.query(
     `SELECT count(*)::int AS count FROM messages
      WHERE thread_id = $1 AND client_message_id = $2`,
@@ -402,7 +431,7 @@ async function main() {
     expected: [201],
   });
   const optOutEvent = `message:${optOutMessage.value.message.id}`;
-  const optOutDelivery = await waitForOutbox(optOutEvent, ['in_app', 'push']);
+  const optOutDelivery = await waitForOutbox(optOutEvent, messageChannels);
   assert.deepEqual(
     optOutDelivery.map((row) => `${row.channel}:${row.status}`),
     ['in_app:sent', 'push:suppressed'],
@@ -412,7 +441,7 @@ async function main() {
   assert.match(chatFallback.text, /In der App öffnen/);
   const bookingFallback = await api(`/open/booking/${encodeURIComponent(bookingId)}`);
   assert.match(bookingFallback.text, /In der App öffnen/);
-  const invalidFallback = await api(`/open/payment/${encodeURIComponent(bookingId)}`, {
+  const invalidFallback = await api(`/open/unsupported/${encodeURIComponent(bookingId)}`, {
     expected: [404],
   });
   assert.match(invalidFallback.text, /Link nicht verfügbar/);
@@ -431,13 +460,13 @@ async function main() {
       data: { acceptance: true },
     },
   };
-  await pool.query(
+  if (acceptancePushTransport === 'memory') await pool.query(
     `INSERT INTO notification_outbox (
        event_key, user_id, channel, kind, thread_id, booking_id, payload
      ) VALUES ($1, $2, 'push', 'message_received', $3, $4, $5::jsonb)`,
     [retryEvent, users.renter.id, threadId, bookingId, JSON.stringify(retryPayload)],
   );
-  await waitFor('controlled retry', async () => {
+  if (acceptancePushTransport === 'memory') await waitFor('controlled retry', async () => {
     const row = (await pool.query(
       `SELECT status, attempt_count FROM notification_outbox WHERE event_key = $1`,
       [retryEvent],
@@ -445,26 +474,28 @@ async function main() {
     return row?.status === 'retry' && row.attempt_count === 1 ? row : null;
   });
   retryPayload.push.title = 'Wiederholungsversuch erfolgreich';
-  await pool.query(
+  if (acceptancePushTransport === 'memory') await pool.query(
     `UPDATE notification_outbox
      SET payload = $2::jsonb, status = 'retry', not_before = now()
      WHERE event_key = $1`,
     [retryEvent, JSON.stringify(retryPayload)],
   );
-  const retryResult = await waitFor('controlled retry recovery', async () => {
+  const retryResult = acceptancePushTransport === 'memory' ? await waitFor('controlled retry recovery', async () => {
     const row = (await pool.query(
       `SELECT status, attempt_count FROM notification_outbox WHERE event_key = $1`,
       [retryEvent],
     )).rows[0];
     return row?.status === 'sent' && row.attempt_count === 2 ? row : null;
-  });
-  const retryAttempts = await pool.query(
+  }) : { attempt_count: 0 };
+  const retryAttempts = acceptancePushTransport === 'memory' ? await pool.query(
     `SELECT outcome FROM notification_delivery_attempts AS attempt
      JOIN notification_outbox AS outbox ON outbox.id = attempt.outbox_id
      WHERE outbox.event_key = $1 ORDER BY attempt.attempt_number`,
     [retryEvent],
-  );
-  assert.deepEqual(retryAttempts.rows.map((row) => row.outcome), ['retry', 'sent']);
+  ) : { rows: [] };
+  if (acceptancePushTransport === 'memory') {
+    assert.deepEqual(retryAttempts.rows.map((row) => row.outcome), ['retry', 'sent']);
+  }
 
   await api(`/bookings/${bookingId}/transitions`, {
     method: 'POST',
@@ -552,6 +583,7 @@ async function main() {
     deepLinkFallbacks: 'booking-chat-invalid-expired-passed',
     cleanup: cleanup.rows[0],
     queue: queueHealth,
+    pushTransport: acceptancePushTransport,
   };
   process.stdout.write(`${JSON.stringify(evidence)}\n`);
 }
