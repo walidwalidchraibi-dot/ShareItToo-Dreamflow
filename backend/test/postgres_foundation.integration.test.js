@@ -1872,8 +1872,13 @@ if (!databaseUrl) {
       const thirdLogin = await login(nextPassword);
       assert.equal(thirdLogin.status, 200);
       const deletionSession = await thirdLogin.json();
-      const erasedStorageName = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.png';
+      const erasedStorageName = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa-full.webp';
+      const erasedThumbnailStorageName = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa-thumb.webp';
       await fs.writeFile(path.join(uploadDir, erasedStorageName), Buffer.from('private-profile-image'));
+      await fs.writeFile(
+        path.join(uploadDir, erasedThumbnailStorageName),
+        Buffer.from('private-profile-thumbnail'),
+      );
       await setupPool.query(
         `INSERT INTO listings (id, owner_id, payload, is_active, status)
          VALUES (
@@ -1884,11 +1889,18 @@ if (!databaseUrl) {
       );
       await setupPool.query(
         `INSERT INTO uploads (
-           owner_id, storage_name, mime_type, byte_size, purpose, visibility, listing_id
+           owner_id, storage_name, mime_type, byte_size, purpose, visibility, listing_id,
+           thumbnail_storage_name, thumbnail_mime_type, thumbnail_byte_size
          ) VALUES (
-           'auth-user', $1, 'image/png', $2, 'profile_image', 'public', 'auth-user-listing'
+           'auth-user', $1, 'image/webp', $2, 'profile_image', 'public', 'auth-user-listing',
+           $3, 'image/webp', $4
          )`,
-        [erasedStorageName, Buffer.byteLength('private-profile-image')],
+        [
+          erasedStorageName,
+          Buffer.byteLength('private-profile-image'),
+          erasedThumbnailStorageName,
+          Buffer.byteLength('private-profile-thumbnail'),
+        ],
       );
       await setupPool.query(
         `INSERT INTO notification_preferences (user_id)
@@ -1988,6 +2000,10 @@ if (!databaseUrl) {
         last_error_code: 'account_deleted',
       });
       await assert.rejects(fs.access(path.join(uploadDir, erasedStorageName)), { code: 'ENOENT' });
+      await assert.rejects(
+        fs.access(path.join(uploadDir, erasedThumbnailStorageName)),
+        { code: 'ENOENT' },
+      );
       const erasedListing = await setupPool.query(
         `SELECT is_active, payload FROM listings WHERE id = 'auth-user-listing'`,
       );

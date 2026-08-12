@@ -3,7 +3,7 @@
   "state": "draft",
   "approvalAllowed": false,
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "fc597277cb7a93902326786bcc7f380918c0152449f2a84c9a62bbbe8da294ba"},
+    {"path": "backend/src/app.js", "sha256": "7074140591537ba5e24d98acda05764ee61485e51a2664eb0187e6b831e7cade"},
     {"path": "backend/src/privacy_export.js", "sha256": "78e76bcc4f19ffcde3270fbbd7cea70cb64de57d14664d10eef44dbe222f80c1"},
     {"path": "backend/src/account_actions.js", "sha256": "1d95932d2761e03ac58bab89769caf27da28d9b078efd9a22b555d519c08e766"},
     {"path": "backend/src/config.js", "sha256": "416acc75ff7208408de04157e8d4ec3315ac512a3756a43b7ce62dbd87d922d8"},

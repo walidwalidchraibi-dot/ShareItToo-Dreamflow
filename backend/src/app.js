@@ -782,7 +782,7 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
     `DELETE FROM uploads AS upload
      WHERE upload.owner_id = $1
        AND NOT EXISTS (SELECT 1 FROM report_evidence WHERE upload_id = upload.id)
-     RETURNING storage_name`,
+     RETURNING storage_name, thumbnail_storage_name`,
     [user.id],
   );
   await client.query('DELETE FROM notification_preferences WHERE user_id = $1', [user.id]);
@@ -848,14 +848,17 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
   });
   return {
     deleted: true,
-    erasedUploadStorageNames: erasedUploads.rows.map((row) => row.storage_name),
+    erasedUploadStorageNames: erasedUploads.rows.flatMap((row) => [
+      row.storage_name,
+      row.thumbnail_storage_name,
+    ]).filter(Boolean),
   };
 }
 
 async function removeErasedUploadFiles(storageNames) {
   const failures = [];
   for (const storageName of storageNames) {
-    if (!/^[0-9a-f-]{36}\.[a-z0-9]+$/i.test(storageName)) {
+    if (!/^[0-9a-f-]{36}(?:-(?:full|thumb))?\.[a-z0-9]+$/i.test(storageName)) {
       failures.push({ storageName, code: 'invalid_storage_name' });
       continue;
     }
