@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "kind": "google-play-app-content-progress",
+  "capturedAt": "2026-08-12T13:25:00Z",
+  "status": "seven-of-eleven-saved",
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081116",
+    "releaseChannel": "internal",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
+  },
+  "counts": {
+    "totalTasks": 11,
+    "savedTasks": 7,
+    "openTasks": 4
+  },
+  "savedTasks": [
+    "appAccess",
+    "ads",
+    "targetAudience",
+    "governmentApps",
+    "financialFeatures",
+    "health",
+    "categoryAndContact"
+  ],
+  "openTasks": {
+    "privacyPolicy": "public-privacy-page-not-release-ready",
+    "contentRating": "iarc-terms-owner-acceptance-pending",
+    "dataSafety": "provider-classification-and-retention-decisions-pending",
+    "storeListing": "graphics-upload-and-public-pages-pending"
+  },
+  "storeDraft": {
+    "germanCopySaved": true,
+    "phoneScreenshotsValidatedLocal": 4,
+    "phoneScreenshotsUploaded": false,
+    "appBundleUploaded": false
+  },
+  "boundaries": {
+    "sentForReview": false,
+    "internalRolloutStarted": false,
+    "closedTestingStarted": false,
+    "productionChanged": false,
+    "paymentEndpointCalled": false,
+    "containsSecrets": false,
+    "containsEmailAddresses": false,
+    "containsAccountIdentifiers": false,
+    "containsReviewCredentials": false
+  }
+}

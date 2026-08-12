@@ -98,7 +98,7 @@ export function validateGooglePlayAppContentHandoff({
   if (Object.keys(hardStops).length !== 7) {
     fail('App-content handoff must preserve all seven hard stops.');
   }
-  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 3 ||
+  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 4 ||
       handoff.evidenceRefs.some((ref) => typeof ref !== 'string' ||
         ref.includes('..') || !resolve(repositoryRoot, ref).startsWith(`${resolve(repositoryRoot)}/`))) {
     fail('App-content evidence references are invalid.');

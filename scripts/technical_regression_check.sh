@@ -100,6 +100,8 @@ node --check tool/validate_google_play_screenshot_readiness.mjs
 node --test test/tool/validate_google_play_screenshot_readiness.test.mjs
 node --check tool/validate_google_play_screenshot_candidate.mjs
 node --test test/tool/validate_google_play_screenshot_candidate.test.mjs
+node --check tool/validate_google_play_app_content_progress.mjs
+node --test test/tool/validate_google_play_app_content_progress.test.mjs
 node --check tool/run_staging_synthetic_booking.mjs
 node --test test/tool/run_staging_synthetic_booking.test.mjs
 node --check tool/run_isolated_android_role_booking_diagnostic.mjs
