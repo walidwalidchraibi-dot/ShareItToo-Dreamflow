@@ -29,7 +29,7 @@ export function validateGooglePlayAppContentHandoff({
 }) {
   const handoff = object(JSON.parse(readFileSync(handoffPath, 'utf8')), 'handoff');
   if (handoff.schemaVersion !== 1 ||
-      handoff.status !== 'prepared-owner-approval-and-public-pages-pending' ||
+      handoff.status !== 'seven-console-tasks-saved-public-pages-and-iarc-pending' ||
       handoff.submissionAllowed !== false) {
     fail('App-content handoff must remain prepared and fail-closed.');
   }
@@ -57,19 +57,27 @@ export function validateGooglePlayAppContentHandoff({
   exactKeys(tasks, taskNames, 'tasks');
   if (tasks.privacyPolicy.status !== 'blocked-public-route-approval' ||
       tasks.privacyPolicy.proposedUrl !== 'https://shareittoo.com/privacy' ||
+      tasks.appAccess.status !== 'saved-protected-console-entry' ||
       tasks.appAccess.loginRequired !== true ||
       tasks.appAccess.credentialsInRepository !== false ||
+      tasks.ads.status !== 'saved-current-build-no-ads' ||
       tasks.ads.proposedAnswer !== false ||
+      tasks.contentRating.status !== 'prepared-iarc-terms-acceptance-pending' ||
+      tasks.targetAudience.status !== 'saved-eighteen-and-over' ||
       tasks.targetAudience.minimumAge !== 18 ||
       tasks.targetAudience.designedForChildren !== false ||
       tasks.dataSafety.collectsOrTransmitsUserData !== true ||
       tasks.dataSafety.sellsData !== false ||
       tasks.dataSafety.advertisingTracking !== false ||
+      tasks.governmentApps.status !== 'saved-not-government-app' ||
       tasks.governmentApps.proposedAnswer !== false ||
+      tasks.financialFeatures.status !== 'saved-no-financial-features' ||
       tasks.financialFeatures.proposedAnswer !== 'no-financial-features' ||
       tasks.financialFeatures.physicalGoodsRental !== true ||
       tasks.financialFeatures.digitalGoodsBilling !== false ||
+      tasks.health.status !== 'saved-no-health-features' ||
       tasks.health.proposedAnswer !== false ||
+      tasks.categoryAndContact.status !== 'saved-shopping-and-public-contact' ||
       tasks.categoryAndContact.category !== 'Shopping' ||
       tasks.storeListing.copyAndGraphicsPrepared !== true ||
       tasks.storeListing.phoneScreenshotsValidated !== true ||

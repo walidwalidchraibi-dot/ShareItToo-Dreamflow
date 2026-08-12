@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "prepared-owner-approval-and-public-pages-pending",
+  "status": "seven-console-tasks-saved-public-pages-and-iarc-pending",
   "submissionAllowed": false,
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -15,22 +15,22 @@
       "proposedUrl": "https://shareittoo.com/privacy"
     },
     "appAccess": {
-      "status": "prepared-protected-console-entry-pending",
+      "status": "saved-protected-console-entry",
       "loginRequired": true,
       "credentialsInRepository": false
     },
     "ads": {
-      "status": "prepared-owner-approval-pending",
+      "status": "saved-current-build-no-ads",
       "proposedAnswer": false,
       "basis": "no-ad-sdk-no-advertising-tracking"
     },
     "contentRating": {
-      "status": "visible-questionnaire-required",
+      "status": "prepared-iarc-terms-acceptance-pending",
       "userGeneratedContent": true,
       "directUserCommunication": true
     },
     "targetAudience": {
-      "status": "prepared-owner-approval-pending",
+      "status": "saved-eighteen-and-over",
       "minimumAge": 18,
       "designedForChildren": false
     },
@@ -41,21 +41,21 @@
       "advertisingTracking": false
     },
     "governmentApps": {
-      "status": "prepared-owner-approval-pending",
+      "status": "saved-not-government-app",
       "proposedAnswer": false
     },
     "financialFeatures": {
-      "status": "prepared-owner-approval-pending",
+      "status": "saved-no-financial-features",
       "proposedAnswer": "no-financial-features",
       "physicalGoodsRental": true,
       "digitalGoodsBilling": false
     },
     "health": {
-      "status": "prepared-owner-approval-pending",
+      "status": "saved-no-health-features",
       "proposedAnswer": false
     },
     "categoryAndContact": {
-      "status": "contact-protected-console-entry-pending",
+      "status": "saved-shopping-and-public-contact",
       "category": "Shopping",
       "website": "https://shareittoo.com/"
     },
