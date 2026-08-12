@@ -136,6 +136,36 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['user'] as Map);
   }
 
+  static Future<List<Map<String, dynamic>>> autocompleteAddresses({
+    required String input,
+    String language = 'de',
+    String country = 'de',
+  }) async {
+    final query = Uri(queryParameters: {
+      'input': input,
+      'language': language,
+      'country': country,
+    }).query;
+    final response = await _authorized(
+      method: 'GET',
+      path: '/maps/places/autocomplete?$query',
+    );
+    return _maps(response['suggestions']);
+  }
+
+  static Future<Map<String, dynamic>?> getAddressPlaceDetails({
+    required String placeId,
+    String language = 'de',
+  }) async {
+    final query = Uri(queryParameters: {'language': language}).query;
+    final response = await _authorized(
+      method: 'GET',
+      path: '/maps/places/${Uri.encodeComponent(placeId)}?$query',
+    );
+    final place = response['place'];
+    return place is Map ? Map<String, dynamic>.from(place) : null;
+  }
+
   static Future<Map<String, dynamic>?> getPublicProfile(String userId) async {
     try {
       final response = await BackendHttp.requestJson(

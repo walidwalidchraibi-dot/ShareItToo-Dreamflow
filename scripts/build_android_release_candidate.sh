@@ -63,11 +63,11 @@ for define_name in "${firebase_define_names[@]}"; do
   fi
 done
 
-# Google Maps remains optional for non-submission CI candidates. When a real,
-# restricted client credential is supplied, bind it into both release binaries
-# so the binary privacy scan can verify the enabled integration.
+# A Maps credential belongs only on the backend. Refuse legacy build
+# environments so it cannot accidentally be embedded in a release binary.
 if [[ -n "${GOOGLE_MAPS_API_KEY:-}" ]]; then
-  common_args+=("--dart-define=GOOGLE_MAPS_API_KEY=$GOOGLE_MAPS_API_KEY")
+  echo "ERROR: GOOGLE_MAPS_API_KEY must not be embedded in an app build; configure GOOGLE_MAPS_SERVER_API_KEY only on the backend." >&2
+  exit 1
 fi
 
 if [[ "${SIT_REQUIRE_FIREBASE:-0}" == "1" ]]; then

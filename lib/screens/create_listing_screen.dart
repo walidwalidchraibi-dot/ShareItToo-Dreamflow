@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,10 +11,9 @@ import 'package:lendify/models/category.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/backend_repository.dart';
+import 'package:lendify/services/maps_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/navigation/main_navigation.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/all_categories_overlay.dart';
@@ -22,9 +22,6 @@ import 'package:lendify/openai/openai_config.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
 import 'package:lendify/widgets/selection_controls.dart';
 import 'package:lendify/theme.dart';
-
-// Google Maps Places API key (configure as a build-time environment variable).
-const String kGoogleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
 
 class CreateListingScreen extends StatefulWidget {
   final Item? existing; // when provided -> edit mode
@@ -75,12 +72,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   double? _selectedAddrLng;
   bool get _isEdit => widget.existing != null;
 
-  // Google Places API (Autocomplete)
-  // resolved at runtime via env
-  static const String _gmapsKey = kGoogleMapsApiKey;
+  // Address suggestions are routed through the authenticated SIT backend.
   Timer? _debounce;
   List<_PlaceSuggestion> _addrSuggestions = const [];
-  bool _addrSuggestionsUnavailable = _gmapsKey.isEmpty;
+  bool _addrSuggestionsUnavailable = false;
 
   // AI Price Calculator
   PriceSuggestion? _priceSuggestion;
@@ -572,13 +567,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   void _onAddressQueryChanged(String q) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 220), () async {
-      if (_gmapsKey.isEmpty) {
-        setState(() {
-          _addrSuggestions = const [];
-          _addrSuggestionsUnavailable = true;
-        });
-        return;
-      }
       if (q.trim().isEmpty) {
         setState(() {
           _addrSuggestions = const [];
@@ -1100,7 +1088,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                               _schedulePriceRecalc();
                             },
                             suggestions: _addrSuggestions,
-                            apiKeyConfigured: _gmapsKey.isNotEmpty,
                           ),
                           if (_addrSuggestionsUnavailable)
                             Padding(
@@ -2514,7 +2501,6 @@ class _PlaceDetails {
 class _AddressAutocompleteField extends StatelessWidget {
   final TextEditingController controller;
   final List<_PlaceSuggestion> suggestions;
-  final bool apiKeyConfigured;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<_PlaceDetails> onPlaceChosen;
   const _AddressAutocompleteField({
@@ -2522,7 +2508,6 @@ class _AddressAutocompleteField extends StatelessWidget {
     required this.onQueryChanged,
     required this.suggestions,
     required this.onPlaceChosen,
-    required this.apiKeyConfigured,
   });
   @override
   Widget build(BuildContext context) {
@@ -2612,30 +2597,16 @@ class _AddressAutocompleteField extends StatelessWidget {
   }
 }
 
-// --- Google Places API Calls ---
+// --- Address suggestions via the authenticated SIT backend ---
 Future<List<_PlaceSuggestion>> _fetchAutocomplete(String input) async {
-  if (kGoogleMapsApiKey.isEmpty) return const [];
-  final uri =
-      Uri.https('maps.googleapis.com', '/maps/api/place/autocomplete/json', {
-    'input': input,
-    'types': 'address',
-    'language': 'de',
-    'components': 'country:de',
-    'key': kGoogleMapsApiKey,
-  });
   try {
-    final res = await http.get(uri);
-    if (res.statusCode != 200) throw Exception('gmaps_unavailable');
-    final data = json.decode(utf8.decode(res.bodyBytes));
-    final status = (data['status'] ?? '').toString();
-    if (status != 'OK') {
-      if (status == 'ZERO_RESULTS') return const [];
-      throw Exception('gmaps_unavailable');
-    }
-    final preds = (data['predictions'] as List?) ?? [];
-    return preds
-        .map<_PlaceSuggestion>((p) => _PlaceSuggestion(
-            description: p['description'], placeId: p['place_id']))
+    final suggestions = await MapsService.autocomplete(input);
+    return suggestions
+        .where((entry) => entry.placeId != null)
+        .map((entry) => _PlaceSuggestion(
+              description: entry.description,
+              placeId: entry.placeId!,
+            ))
         .toList();
   } catch (_) {
     // Propagate unavailability so UI can show a friendly fallback message.
@@ -2644,24 +2615,15 @@ Future<List<_PlaceSuggestion>> _fetchAutocomplete(String input) async {
 }
 
 Future<_PlaceDetails?> _fetchPlaceDetails(String placeId) async {
-  if (kGoogleMapsApiKey.isEmpty) return null;
-  final uri = Uri.https('maps.googleapis.com', '/maps/api/place/details/json', {
-    'place_id': placeId,
-    'fields': 'formatted_address,geometry',
-    'language': 'de',
-    'key': kGoogleMapsApiKey,
-  });
   try {
-    final res = await http.get(uri);
-    if (res.statusCode != 200) return null;
-    final data = json.decode(utf8.decode(res.bodyBytes));
-    final r = data['result'];
-    final addr = r['formatted_address'] as String?;
-    final loc = r['geometry']?['location'];
-    final lat = (loc?['lat'] as num?)?.toDouble();
-    final lng = (loc?['lng'] as num?)?.toDouble();
+    final details = await MapsService.placeDetails(placeId);
+    if (details == null) return null;
     return _PlaceDetails(
-        formattedAddress: addr, lat: lat, lng: lng, description: addr ?? '');
+      formattedAddress: details.formattedAddress,
+      lat: details.lat,
+      lng: details.lng,
+      description: details.formattedAddress,
+    );
   } catch (_) {
     return null;
   }

@@ -7,12 +7,14 @@
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
     "buildNumber": "2026081201",
-    "commit": "c6ec80002cf664f513afc768c1b643ac0d1d19fb"
+    "commit": "c6ec80002cf664f513afc768c1b643ac0d1d19fb",
+    "status": "superseded",
+    "replacementBuildNumber": "2026081202"
   },
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "ece6f207b88de10438080742b53c9e4fe2a92b2349cb6cfad2e2efbc43dbc6e2"
+      "sha256": "d0a0a3448ddd26a3314747ae73e45f0ac27dd10cdafc712df5e9535ac662bcd8"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -47,6 +49,10 @@
       "sha256": "85607b768d372b282ff67ae80b28e1b356a08a6ccfe1064f5ea89973135186fa"
     },
     {
+      "path": "backend/src/maps_proxy.js",
+      "sha256": "e3b3ec6db438488910e8638fe498f0d61652250d803e007a513f74eec8f6b8de"
+    },
+    {
       "path": "lib/services/firebase_runtime.dart",
       "sha256": "2ce9ce307ac4c6e76182d0dc6086774e1cbdf1cc549b82ed7664ff279d69d493"
     },
@@ -56,14 +62,15 @@
     },
     {
       "path": "lib/services/maps_service.dart",
-      "sha256": "d8d5272b3d49cf065e7ab287915a727b98c8ad4be1e45021eb8b7bfe74f79310"
+      "sha256": "a8cb474b2849d7e894919ae1056e8158d51c66fbfe8e0b1fab40d1db7fdaf32f"
     }
   ],
   "binaryEvidence": {
     "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081201.json",
-    "binaryScan": "passed",
+    "binaryScan": "failed-extended-runtime-origin-scan",
     "binaryScanReportSha256": "c0700ee375803caafd91b49bfaa66eb5e0bd38ebba1b09877e89919b444171ee",
-    "releaseCheckStatus": "passed"
+    "releaseCheckStatus": "blocked-replacement-pending",
+    "supersessionEvidenceRef": "docs/evidence/b11/android-candidate-2026081201-superseded-privacy-rescan-20260812.json"
   },
   "externalServices": {
     "firstPartyBackend": {
@@ -96,7 +103,8 @@
         "preciseLocation"
       ],
       "clientCredentialEmbedded": true,
-      "applicationRestrictionVerified": false
+      "serverProxied": false,
+      "serverCredentialRestrictionVerified": false
     },
     "stripe": {
       "enabledInCandidate": false,

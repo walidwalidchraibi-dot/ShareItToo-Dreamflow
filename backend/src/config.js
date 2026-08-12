@@ -124,6 +124,11 @@ const publicCompliance = {
   providerAddress: process.env.PUBLIC_LEGAL_PROVIDER_ADDRESS?.trim() ?? '',
   effectiveDate: process.env.PUBLIC_PRIVACY_EFFECTIVE_DATE?.trim() ?? '',
 };
+
+const googleMapsServerApiKey = process.env.GOOGLE_MAPS_SERVER_API_KEY?.trim() ?? '';
+if (googleMapsServerApiKey && !/^AIza[0-9A-Za-z_-]{20,}$/u.test(googleMapsServerApiKey)) {
+  throw new Error('GOOGLE_MAPS_SERVER_API_KEY must be a valid server-side Google API key');
+}
 if (publicComplianceApproved) {
   const requiredComplianceFields = [
     ['PUBLIC_SUPPORT_EMAIL', publicCompliance.supportEmail],
@@ -176,6 +181,10 @@ export const config = Object.freeze({
   failedLoginLockMinutes: 15,
   appPublicUrl: (process.env.APP_PUBLIC_URL ?? 'https://shareittoo.com').replace(/\/$/, ''),
   publicCompliance: Object.freeze(publicCompliance),
+  maps: Object.freeze({
+    enabled: googleMapsServerApiKey !== '',
+    serverApiKey: googleMapsServerApiKey,
+  }),
   mail: Object.freeze({
     transport: (process.env.MAIL_TRANSPORT ?? 'disabled').trim().toLowerCase(),
     host: process.env.SMTP_HOST?.trim() ?? '',

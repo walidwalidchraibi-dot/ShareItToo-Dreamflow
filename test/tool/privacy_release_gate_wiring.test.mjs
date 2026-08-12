@@ -31,23 +31,25 @@ test('technical regression runs syntax, tests, and the honest privacy draft vali
   }
 });
 
-test('signed binary privacy scan inventories enabled Maps and allows dormant endpoint code', () => {
+test('signed binary privacy scan requires the backend Maps proxy and rejects direct client calls', () => {
   const source = readFileSync(resolve(repositoryRoot, 'tool/verify_android_binary_privacy.mjs'), 'utf8');
   assert.match(source, /nominatim\.openstreetmap\.org/);
   assert.match(source, /tile\.openstreetmap\.org/);
   assert.match(source, /maps\.googleapis\.com/);
   assert.match(source, /Google Maps Platform/);
-  assert.match(source, /!googleMapsClientCredentialPresent \|\| googleMapsEndpointPresent/);
+  assert.match(source, /!googleMapsEndpointPresent/);
+  assert.match(source, /googleMapsProxyEndpointPresent/);
   assert.match(source, /codeEndpointPresent: googleMapsEndpointPresent/);
-  assert.match(source, /pending-console-verification/);
+  assert.match(source, /serverCredentialVerification: 'backend-deployment-gate'/);
   assert.match(source, /https:\/\/api\.openai\.com\//);
 });
 
-test('release builder binds an optional restricted Google Maps client credential', () => {
+test('release builder refuses to embed a Google Maps client credential', () => {
   const source = readFileSync(
     resolve(repositoryRoot, 'scripts/build_android_release_candidate.sh'),
     'utf8',
   );
   assert.match(source, /if \[\[ -n "\$\{GOOGLE_MAPS_API_KEY:-\}" \]\]; then/);
-  assert.match(source, /--dart-define=GOOGLE_MAPS_API_KEY=\$GOOGLE_MAPS_API_KEY/);
+  assert.match(source, /must not be embedded in an app build/);
+  assert.doesNotMatch(source, /--dart-define=GOOGLE_MAPS_API_KEY=/);
 });

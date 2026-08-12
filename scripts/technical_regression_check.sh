@@ -3,9 +3,9 @@ set -euo pipefail
 
 # Transitional analyzer baseline for the existing legacy issue backlog.
 # Keep this in sync with the accepted repository baseline until the backlog is reduced.
-# Re-measured on Flutter 3.41.7 / Dart 3.11.5 on 2026-08-12. The current
-# privacy/legal-only change set does not modify Dart application sources.
-ANALYZER_BASELINE=616
+# Re-measured on Flutter 3.41.7 / Dart 3.11.5 on 2026-08-12 after the secure
+# Maps proxy migration removed one legacy client-side finding.
+ANALYZER_BASELINE=615
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$ROOT"
@@ -60,7 +60,11 @@ node tool/validate_device_evidence.mjs
 
 node --check tool/validate_b11_release_docs.mjs
 node --test test/tool/validate_b11_release_docs.test.mjs
-node tool/validate_b11_release_docs.mjs
+if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  node tool/validate_b11_release_docs.mjs --allow-candidate-rollover
+else
+  node tool/validate_b11_release_docs.mjs
+fi
 
 node --check tool/validate_google_play_internal_handoff.mjs
 node --test test/tool/validate_google_play_internal_handoff.test.mjs
@@ -80,6 +84,11 @@ node tool/validate_google_play_production_access_application.mjs
 
 node --check tool/validate_apple_testflight_handoff.mjs
 node --test test/tool/validate_apple_testflight_handoff.test.mjs
+if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  node tool/validate_apple_testflight_handoff.mjs --allow-android-candidate-rollover
+else
+  node tool/validate_apple_testflight_handoff.mjs
+fi
 
 node --check tool/prepare_android_device_test.mjs
 node --test test/tool/prepare_android_device_test.test.mjs

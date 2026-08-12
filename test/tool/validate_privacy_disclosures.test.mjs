@@ -51,7 +51,7 @@ test('accepts the honest fail-closed privacy disclosure draft', () => {
   assert.equal(result.approvalAllowed, false);
   assert.equal(result.dataTypeCount, 18);
   assert.equal(result.externalServiceCount, 8);
-  assert.equal(result.binaryReleaseCheck, 'passed');
+  assert.equal(result.binaryReleaseCheck, 'blocked-replacement-pending');
   assert.equal(result.storeGate, 'open');
 });
 
@@ -127,7 +127,7 @@ test('rejects hiding the Google Maps integration found in the candidate', () => 
   privacyManifest.externalServices.googleMapsPlatform.enabled = false;
   assert.throws(
     () => validate({ privacyManifest }),
-    /must disclose its enabled Google Maps client integration/,
+    /must disclose its Google Maps integration/,
   );
 });
 
@@ -161,7 +161,9 @@ test('accepts a complete internally consistent approved fixture', () => {
 
   privacyManifest.state = 'approved';
   privacyManifest.approvalAllowed = true;
-  privacyManifest.externalServices.googleMapsPlatform.applicationRestrictionVerified = true;
+  privacyManifest.externalServices.googleMapsPlatform.clientCredentialEmbedded = false;
+  privacyManifest.externalServices.googleMapsPlatform.serverProxied = true;
+  privacyManifest.externalServices.googleMapsPlatform.serverCredentialRestrictionVerified = true;
   privacyManifest.binaryEvidence.releaseCheckStatus = 'passed';
   deviceManifest.releaseChecks.binaryPrivacyAndNetwork.status = 'passed';
   submissionManifest.blockingGates.finalBinaryPrivacyScan = 'closed';

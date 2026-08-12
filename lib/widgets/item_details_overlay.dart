@@ -3873,7 +3873,12 @@ class _AddressAutocompleteState extends State<_AddressAutocomplete> {
       if (_options.isNotEmpty) setState(() => _options = const []);
       return;
     }
-    final sugg = await MapsService.autocomplete(q);
+    List<MapsAddressSuggestion> sugg;
+    try {
+      sugg = await MapsService.autocomplete(q);
+    } catch (_) {
+      sugg = const [];
+    }
     if (!mounted) return;
     setState(() => _options = [
           for (final s in sugg)

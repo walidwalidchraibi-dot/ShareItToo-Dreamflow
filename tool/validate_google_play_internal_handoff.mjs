@@ -78,7 +78,10 @@ export function validateGooglePlayInternalHandoff({
   same(handoff.containsSecrets, false, 'containsSecrets');
   same(handoff.containsReviewCredentials, false, 'containsReviewCredentials');
   if (superseded) {
-    same(handoff.replacementBuildNumber, '2026081201', 'replacementBuildNumber');
+    if (!/^\d{10}$/u.test(handoff.replacementBuildNumber ?? '')
+        || BigInt(handoff.replacementBuildNumber) <= BigInt(handoff.candidate?.buildNumber ?? '0')) {
+      fail('replacementBuildNumber must be a newer ten-digit candidate build.');
+    }
     const supersessionPath = resolve(repositoryRoot, handoff.supersessionEvidenceRef ?? '');
     const supersession = object(readJson(supersessionPath, 'supersession evidence'), 'supersession evidence');
     same(supersession.status, 'superseded-privacy-rescan-failed', 'supersession status');

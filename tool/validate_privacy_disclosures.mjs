@@ -15,6 +15,7 @@ const sourcePaths = [
   'backend/src/account_actions.js',
   'backend/src/privacy_export.js',
   'backend/src/security.js',
+  'backend/src/maps_proxy.js',
   'lib/services/firebase_runtime.dart',
   'lib/openai/openai_config.dart',
   'lib/services/maps_service.dart',
@@ -205,7 +206,14 @@ function assertSourceContracts({ root, sourceTexts }) {
   }
 
   const maps = sourceText(root, sourceTexts, 'lib/services/maps_service.dart');
-  if (!maps.includes("Uri.https('maps.googleapis.com'")) fail('Google Maps external service is not inventoried.');
+  const mapsProxy = sourceText(root, sourceTexts, 'backend/src/maps_proxy.js');
+  if (!maps.includes('BackendRepository.autocompleteAddresses')
+      || !mapsProxy.includes("const GOOGLE_PLACES_ORIGIN = 'https://maps.googleapis.com'")) {
+    fail('Google Maps must be inventoried through the authenticated backend proxy.');
+  }
+  for (const directClientMarker of ['maps.googleapis.com', 'GOOGLE_MAPS_API_KEY']) {
+    if (maps.includes(directClientMarker)) fail(`Google Maps client integration is forbidden: ${directClientMarker}`);
+  }
 
   const ai = sourceText(root, sourceTexts, 'lib/openai/openai_config.dart');
   if (!/aiHelpersEnabled\s*=\s*false/.test(ai)) fail('OpenAI helpers must remain disabled in this candidate.');
@@ -343,11 +351,17 @@ export function validatePrivacyDisclosures({
     fail('Firebase Messaging and Crashlytics must remain disclosed as enabled.');
   }
   const maps = object(services.googleMapsPlatform, 'externalServices.googleMapsPlatform');
-  if (maps.enabled !== true || maps.clientCredentialEmbedded !== true) {
-    fail('The signed candidate must disclose its enabled Google Maps client integration.');
+  if (maps.enabled !== true) {
+    fail('The candidate must disclose its Google Maps integration.');
   }
-  if (maps.applicationRestrictionVerified !== false && privacy.state === 'draft') {
-    fail('The draft must not claim Google Maps credential restrictions were verified.');
+  if (!superseded && (maps.clientCredentialEmbedded !== false || maps.serverProxied !== true)) {
+    fail('The signed candidate must disclose the server-proxied Google Maps integration without a client credential.');
+  }
+  if (superseded && maps.clientCredentialEmbedded !== true) {
+    fail('The superseded candidate must retain its truthful embedded Maps credential disclosure.');
+  }
+  if (maps.serverCredentialRestrictionVerified !== false && privacy.state === 'draft') {
+    fail('The draft must not claim Google Maps server credential restrictions were verified.');
   }
   if (services.stripe?.enabledInCandidate !== false || services.stripe?.configuredMode !== 'memory') {
     fail('Stripe must remain disabled in this payment-memory candidate.');
@@ -429,7 +443,7 @@ export function validatePrivacyDisclosures({
     && privacy.approvalAllowed === true
     && allDecisionsClosed
     && formsVerified
-    && maps.applicationRestrictionVerified === true
+    && maps.serverCredentialRestrictionVerified === true
     && binary.releaseCheckStatus === 'passed'
     && storeGate.status === 'closed';
 

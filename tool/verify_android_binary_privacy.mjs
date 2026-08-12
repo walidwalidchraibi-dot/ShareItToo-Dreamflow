@@ -244,14 +244,16 @@ for (const marker of forbiddenRuntimeMarkers) {
 }
 
 const googleMapsEndpointPresent = includesAscii(compiledPayload, 'maps.googleapis.com');
-const googleMapsClientCredentialPresent = includesAsciiPattern(
-  compiledPayload,
-  /AIza[0-9A-Za-z_-]{20,}/,
+const googleMapsProxyEndpointPresent = includesAscii(compiledPayload, '/maps/places/autocomplete');
+requireCheck(
+  !googleMapsEndpointPresent,
+  'direct_google_maps_client_forbidden',
+  'Google Maps web-service endpoints must not be embedded in the app; use the authenticated backend proxy.',
 );
 requireCheck(
-  !googleMapsClientCredentialPresent || googleMapsEndpointPresent,
-  'google_maps_configuration_mismatch',
-  'An embedded Google Maps client credential requires the Google Maps endpoint.',
+  googleMapsProxyEndpointPresent,
+  'google_maps_proxy_missing',
+  'The authenticated backend address-suggestion endpoint is missing from the app.',
 );
 
 const externalServices = {
@@ -264,13 +266,12 @@ const externalServices = {
     disclosure: 'Firebase Crashlytics',
   },
   googleMapsPlatform: {
-    detected: googleMapsEndpointPresent && googleMapsClientCredentialPresent,
+    detected: googleMapsProxyEndpointPresent,
     disclosure: 'Google Maps Platform',
     codeEndpointPresent: googleMapsEndpointPresent,
-    clientCredentialEmbedded: googleMapsClientCredentialPresent,
-    applicationRestrictionVerification: googleMapsClientCredentialPresent
-      ? 'pending-console-verification'
-      : 'not-applicable',
+    backendProxyEndpointPresent: googleMapsProxyEndpointPresent,
+    clientCredentialEmbedded: false,
+    serverCredentialVerification: 'backend-deployment-gate',
   },
   openAiHelpers: {
     detected: includesAscii(compiledPayload, 'api.openai.com'),

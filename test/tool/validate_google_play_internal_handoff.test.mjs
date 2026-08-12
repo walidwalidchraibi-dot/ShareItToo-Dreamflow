@@ -36,14 +36,14 @@ async function fixture() {
   return { root, archiveRoot, handoffPath, evidencePath, artifactPath, handoff };
 }
 
-test('accepts the exact private internal-test artifact after identity verification while remaining user gates stay pending', async (t) => {
+test('accepts the superseded private artifact while its safer replacement stays pending', async (t) => {
   const data = await fixture();
   t.after(() => rm(data.root, { recursive: true, force: true }));
   const result = validateGooglePlayInternalHandoff({ repositoryRoot, ...data });
   assert.equal(result.buildNumber, '2026081201');
   assert.equal(result.artifactPath, data.artifactPath);
   assert.equal(result.releaseName, '1.0.0-internal-2026081201');
-  assert.equal(result.status, 'verified-artifact-ready-immediate-reverification-pending');
+  assert.equal(result.status, 'superseded-privacy-rescan-failed-replacement-pending');
   assert.match(result.releaseNotes, /ausschließlich Staging und Testzahlungen/u);
 });
 

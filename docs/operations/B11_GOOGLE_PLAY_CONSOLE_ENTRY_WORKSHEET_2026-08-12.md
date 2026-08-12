@@ -16,7 +16,7 @@ Verbindlicher Kandidat:
 - App: `ShareItToo`
 - Paket: `com.shareittoo.app`
 - Version: `1.0.0`
-- Build: `2026081201`
+- Ersatz-Build: `2026081202` (Build und erneute Binärprüfung noch ausstehend)
 - App-Commit: `c6ec80002cf664f513afc768c1b643ac0d1d19fb`
 - Kanal: ausschließlich Internal Testing
 - Umgebung: ausschließlich Staging
@@ -60,7 +60,7 @@ Zahlungsdaten oder Google-Konto-IDs in Git, Drive, Telegram oder Evidenz
 Die App vermittelt die zeitweise Nutzung physischer Gegenstände außerhalb der
 App. Für diese Mietzahlungen wird kein Google Play Billing eingerichtet.
 Digitale Abonnements, Credits, Funktionsfreischaltungen oder werbefreie
-Premiumstufen sind im Kandidaten 2026081201 nicht enthalten.
+Premiumstufen sind auch im geplanten Ersatzkandidaten 2026081202 nicht enthalten.
 
 Falls die Kontoregistrierung allgemein nach geplanten Einnahmequellen fragt,
 ist eine mögliche spätere Provision auf die Miete physischer Gegenstände als
@@ -206,15 +206,18 @@ bestätigt ist. Das Data-Safety-Formular noch nicht absenden.
 
 ## 7. Berechtigungen und SDK-Prüfung nach AAB-Upload
 
-Der zusammengeführte Release-APK von exakt Kandidat 2026081201 wurde bereits
-vor dem Store-Upload geprüft. Er enthält nur die erwarteten Funktions-,
+Der Release-APK von Kandidat 2026081201 wurde geprüft, anschließend aber wegen
+eines eingebetteten, nicht an eine Anwendung gebundenen Google-Schlüssels
+gesperrt und nicht hochgeladen. Ersatzkandidat 2026081202 darf erst nach neuer
+Binärprüfung verwendet werden. Er soll nur die erwarteten Funktions-,
 Netzwerk- und Firebase-Berechtigungen für Kamera, Bilder, groben/präzisen
 Standort, Benachrichtigungen, Internet/Netzstatus, Wake Lock und FCM. Nicht
 enthalten sind unter anderem SMS-/Anruflisten-/Kontakte-, Mikrofon-,
 Accessibility-Service-, Vollspeicher-, Paketinstallations-,
 Alle-Pakete-Abfrage- oder Overlay-Berechtigungen. Der bereinigte,
 artefaktgebundene Nachweis liegt in
-`docs/evidence/b11/android-release-permissions-2026081201.json`.
+`docs/evidence/b11/android-release-permissions-2026081201.json`; dieser alte
+Nachweis darf nicht als Freigabe des Ersatzkandidaten verwendet werden.
 
 Diese Vorprüfung nimmt keine Console-Antwort vorweg. Google kann erst nach dem
 AAB-Upload zusätzliche SDK- oder Berechtigungswarnungen anzeigen; diese bleiben
@@ -238,7 +241,7 @@ Nach dem ersten Internal-AAB-Upload:
 1. persönliche Konto-Verifizierung abschließen;
 2. App-Datensatz mit den Angaben aus Abschnitt 3 anlegen;
 3. Store-Haupteintrag und App-Inhalte zunächst als Entwurf ausfüllen;
-4. exakt den gebundenen AAB-Kandidaten 2026081201 hochladen;
+4. ausschließlich den nach neuer Prüfung gebundenen AAB-Ersatzkandidaten 2026081202 hochladen;
 5. Uploadwarnungen, App-Signing-Fingerprint und Artefaktidentität prüfen;
 6. geschützte Review-Zugangsdaten eintragen;
 7. nur Internal Testing vorbereiten – keine Production-, Open- oder Closed-
@@ -323,9 +326,10 @@ einer dieser Punkte offen ist:
 
 ## 10. Maschinengeprüfte Upload-Übergabe
 
-Die Datei `store/google-play/internal-upload-handoff.json` bindet die nächste
-Play-Aktion an exakt Build `2026081201`, dessen geprüften AAB-Hash, Upload-
-Zertifikat und privaten Archivnamen. Das Prüfwerkzeug
+Die Datei `store/google-play/internal-upload-handoff.json` sperrt Build
+`2026081201` und bindet die nächste mögliche Play-Aktion an Ersatz-Build
+`2026081202`. Dessen AAB-Hash, Upload-Zertifikat und privater Archivname müssen
+nach dem Neubau erst eingetragen und erneut geprüft werden. Das Prüfwerkzeug
 `tool/validate_google_play_internal_handoff.mjs` bricht ab, wenn sich Datei,
 Hash, Kandidatenidentität oder Dateirechte unterscheiden.
 

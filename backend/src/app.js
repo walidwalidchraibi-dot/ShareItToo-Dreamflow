@@ -109,6 +109,7 @@ import { publishToAll, publishToUsers } from './realtime.js';
 import { releaseMetadata } from './release.js';
 import { errorPayload, requestContext, safeErrorLog } from './observability.js';
 import { buildAccountExport } from './privacy_export.js';
+import { createMapsProxy, MapsProxyError } from './maps_proxy.js';
 import {
   ListingValidationError,
   listingProjection,
@@ -150,6 +151,8 @@ class HttpError extends Error {
 function asyncRoute(handler) {
   return (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
 }
+
+const mapsProxy = createMapsProxy({ apiKey: config.maps.serverApiKey });
 
 function kickNotificationWorker() {
   void drainNotificationOutbox().catch((error) => {
@@ -943,8 +946,26 @@ export function createApp() {
   const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const exportLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const deletionLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const mapsLimiter = rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const staffElevationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   app.use(generalLimiter);
+
+  app.get('/v1/maps/places/autocomplete', requireAuth, requireActiveAccount, mapsLimiter, asyncRoute(async (req, res) => {
+    const suggestions = await mapsProxy.autocomplete({
+      input: req.query.input,
+      language: req.query.language,
+      country: req.query.country,
+    });
+    res.json({ suggestions });
+  }));
+
+  app.get('/v1/maps/places/:placeId', requireAuth, requireActiveAccount, mapsLimiter, asyncRoute(async (req, res) => {
+    const place = await mapsProxy.placeDetails({
+      placeId: req.params.placeId,
+      language: req.query.language,
+    });
+    res.json({ place });
+  }));
 
   app.get('/health', asyncRoute(async (_req, res) => {
     await pool.query('SELECT 1');
@@ -2988,18 +3009,19 @@ export function createApp() {
     const messageWorkflowError = error instanceof MessageWorkflowError;
     const paymentWorkflowError = error instanceof PaymentDomainError;
     const moderationWorkflowError = error instanceof ModerationDomainError;
+    const mapsProxyError = error instanceof MapsProxyError;
     const status = bookingConflict
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });
