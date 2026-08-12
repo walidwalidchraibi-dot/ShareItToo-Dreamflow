@@ -53,6 +53,26 @@ test('rejects a missing mandatory Store release gate', () => {
   assert.match(result.stderr, /must contain exactly the required Store release gates/);
 });
 
+test('rejects a missing Google Play closed-test launch gate', () => {
+  const result = runWithManifests({
+    mutateManifest: (manifest) => {
+      delete manifest.blockingGates.googlePlayClosedTestingRequirement;
+    },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /must contain exactly the required Store release gates/);
+});
+
+test('rejects closing the Play production-access gate without dedicated test evidence', () => {
+  const result = runWithManifests({
+    mutateManifest: (manifest) => {
+      manifest.blockingGates.googlePlayClosedTestingRequirement = 'closed';
+    },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /stays open until a dedicated closed-test evidence contract is added/);
+});
+
 test('rejects a missing Google Play Console worksheet binding', () => {
   const result = runWithManifests({
     mutateManifest: (manifest) => {

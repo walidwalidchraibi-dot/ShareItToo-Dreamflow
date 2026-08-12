@@ -28,6 +28,15 @@ Nachweis. Bereits erfolgte Gebühr und Vertragsannahme werden ausschließlich
 als bereinigte boolesche Historie festgehalten, damit der reale Kontostand
 nicht wieder fälschlich als nebenwirkungsfrei erscheint.
 
+Für das neu erstellte persönliche Play-Konto ist außerdem ein eigener
+Launch-Gate `googlePlayClosedTestingRequirement` offen. Nach Googles aktuell
+veröffentlichter Regel muss vor dem Antrag auf Produktionszugang ein
+geschlossener Test mit mindestens zwölf dauerhaft angemeldeten Testern über
+mindestens 14 aufeinanderfolgende Tage laufen. Internal Testing kann vorher
+genutzt werden, ersetzt diese Frist aber nicht. Der Gate ist bewusst von
+Identitäts-, Geräte- und Telefonnummernprüfung getrennt und darf erst durch
+einen späteren, eigenen Testnachweis geschlossen werden.
+
 Lokale Prüfung:
 
 ```text

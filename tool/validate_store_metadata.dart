@@ -258,6 +258,7 @@ void main(List<String> arguments) {
     'firebaseTermsAcceptedByOwner',
     'firebaseFcmAndApns',
     'googlePlayAccountAndFee',
+    'googlePlayClosedTestingRequirement',
     'appleAccountXcodeAndSigning',
     'reviewAccounts',
     'realAndroidAndIosDevices',
@@ -395,6 +396,12 @@ void main(List<String> arguments) {
   if ((gates['googlePlayAccountAndFee'] == 'closed') != googlePlayReady) {
     _fail(
         'googlePlayAccountAndFee must match verified Play account readiness.');
+  }
+  // Account verification and the later production-access test are distinct
+  // gates for a newly created personal Google Play developer account.
+  if (gates['googlePlayClosedTestingRequirement'] != 'open') {
+    _fail(
+        'googlePlayClosedTestingRequirement stays open until a dedicated closed-test evidence contract is added.');
   }
   if ((gates['appleAccountXcodeAndSigning'] == 'closed') != appleReady) {
     _fail(

@@ -48,6 +48,7 @@
     "firebaseTermsAcceptedByOwner": "open",
     "firebaseFcmAndApns": "open",
     "googlePlayAccountAndFee": "open",
+    "googlePlayClosedTestingRequirement": "open",
     "appleAccountXcodeAndSigning": "open",
     "reviewAccounts": "open",
     "realAndroidAndIosDevices": "open",

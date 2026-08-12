@@ -226,12 +226,25 @@ Nach dem ersten Internal-AAB-Upload:
 9. erst danach über Closed Testing und die für neue persönliche Konten
    angezeigte Testeranforderung entscheiden.
 
+Für dieses neu erstellte persönliche Konto gilt nach der aktuell
+veröffentlichten Google-Play-Regel: Vor einem Antrag auf Produktionszugang
+müssen mindestens zwölf Tester während mindestens 14 aufeinanderfolgenden
+Tagen durchgehend im geschlossenen Test angemeldet sein. Internal Testing hat
+keine Tester-Mindestzahl und kann sofort für die technische Store-Installation
+verwendet werden, startet diese 14-Tage-Frist aber nicht. Deshalb bleibt der
+separate Launch-Gate `googlePlayClosedTestingRequirement` auch nach der
+Identitätsprüfung offen, bis ein eigener bereinigter Closed-Test-Nachweis
+vorliegt.
+
 ## 9. Harte Stop-Regeln
 
 Kein „Send for review“, Rollout oder öffentliche Freigabe, solange mindestens
 einer dieser Punkte offen ist:
 
 - Identitäts-, Geräte- oder Telefonnummernprüfung;
+- geschlossener Play-Test mit mindestens zwölf dauerhaft angemeldeten Testern
+  über mindestens 14 aufeinanderfolgende Tage und anschließender
+  Produktionszugangsprüfung;
 - öffentliche Datenschutz-, Support- oder Löschseite;
 - Anbieter-/Copyright- und Nutzerinhaltsregeln;
 - finale Data-Safety-/Auftragsverarbeiter-Entscheidung;
