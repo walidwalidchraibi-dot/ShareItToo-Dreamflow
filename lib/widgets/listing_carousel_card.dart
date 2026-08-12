@@ -225,7 +225,7 @@ class _TrustRow extends StatelessWidget {
     final style = baseStyle?.copyWith(
       color: textColor,
       fontWeight: FontWeight.w500,
-      fontSize: (baseStyle?.fontSize ?? 11) * 0.95,
+      fontSize: (baseStyle.fontSize ?? 11) * 0.95,
       letterSpacing: -0.05,
     );
     const iconSize = 12.0;

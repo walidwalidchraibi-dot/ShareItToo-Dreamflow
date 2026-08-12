@@ -5151,7 +5151,7 @@ class _SupportCaseMessageState extends State<_SupportCaseMessage> {
       subCategory: widget.data.subCategory ?? 'Nicht angegeben',
       description: widget.data.description ?? 'Keine Beschreibung vorhanden.',
       counterpart:
-          widget.fallbackCounterparty?.displayName?.trim().isNotEmpty == true
+          widget.fallbackCounterparty?.displayName.trim().isNotEmpty == true
               ? widget.fallbackCounterparty!.displayName!.trim()
               : 'Unbekannt',
       period: 'Nicht angegeben',

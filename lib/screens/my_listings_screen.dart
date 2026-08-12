@@ -285,7 +285,7 @@ class _MyListingsEmptyState extends StatelessWidget {
 
     // Use the same "Neue Anzeige" icon for both empty states, and make it tappable
     // to jump directly into the create-listing flow.
-    final (String title, String? hint) = switch (kind) {
+    final (String title, String hint) = switch (kind) {
       _EmptyKind.listed => (l10n.t('Du hast noch keine Anzeige.'), l10n.t('Tippe auf das Icon, um eine neue Anzeige zu erstellen.')),
       _EmptyKind.savedForLater => (l10n.t('Du hast noch keine Anzeige für später gespeichert.'), l10n.t('Tippe auf das Icon, um eine neue Anzeige zu erstellen.')),
     };
@@ -312,14 +312,12 @@ class _MyListingsEmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.textPrimary(context), height: 1.4),
             ),
-            if (hint != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                hint,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary(context), height: 1.4),
-              ),
-            ],
+            const SizedBox(height: 8),
+            Text(
+              hint,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary(context), height: 1.4),
+            ),
           ],
         ),
       ),

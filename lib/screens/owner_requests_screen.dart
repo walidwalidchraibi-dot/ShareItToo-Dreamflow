@@ -590,7 +590,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: SizedBox(width: 80, height: 80, child: _ThumbnailWithSkeleton(url: booking['image'] as String?)),
+                    child: SizedBox(width: 80, height: 80, child: _ThumbnailWithSkeleton(url: booking['image'])),
                   ),
                   const SizedBox(width: 16),
                   Expanded(

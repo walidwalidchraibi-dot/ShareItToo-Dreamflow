@@ -669,7 +669,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final isCompleted = req.status == 'completed';
     final isHeldForReview = req.needsReview;
     final title = item.title;
-    final location = item.locationText ?? (item.city ?? '');
+    final location = item.locationText;
     // Derive responsibilities robustly from persisted request snapshot; fall back to
     // transient selection and express/address hints for legacy data.
     final bool inferredOwnerDeliversByTransient =

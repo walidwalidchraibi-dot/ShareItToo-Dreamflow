@@ -2287,7 +2287,7 @@ class _ExploreListingCardContent extends StatelessWidget {
                                       color: metaColor,
                                       fontWeight: FontWeight.w500,
                                       fontSize:
-                                          (baseStyle?.fontSize ?? 11) * 0.95,
+                                          (baseStyle.fontSize ?? 11) * 0.95,
                                       letterSpacing: -0.05,
                                     );
 

@@ -136,7 +136,7 @@ class RentalRequest {
         expressRequested: expressRequested ?? this.expressRequested,
         expressStatus: expressStatus ?? this.expressStatus,
         expressFee: expressFee ?? this.expressFee,
-        createdAt: this.createdAt,
+        createdAt: createdAt,
         expressRequestedAt: expressRequestedAt ?? this.expressRequestedAt,
         expressConfirmedAt: expressConfirmedAt ?? this.expressConfirmedAt,
         needsReview: needsReview ?? this.needsReview,

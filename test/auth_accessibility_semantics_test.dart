@@ -1,4 +1,4 @@
-import 'dart:ui' show SemanticsAction, SemanticsFlag;
+import 'dart:ui' show SemanticsAction;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,7 +36,7 @@ void main() {
         final field = find.bySemanticsLabel(label);
         expect(field, findsAtLeastNWidgets(1));
         final node = tester.getSemantics(field.last);
-        expect(node.hasFlag(SemanticsFlag.isTextField), isTrue);
+        expect(node.flagsCollection.isTextField, isTrue);
         expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
         expect(
           node.getSemanticsData().hasAction(SemanticsAction.focus),
@@ -47,7 +47,7 @@ void main() {
       final visibility = find.bySemanticsLabel('Passwort anzeigen');
       expect(visibility, findsAtLeastNWidgets(1));
       expect(
-        tester.getSemantics(visibility.last).hasFlag(SemanticsFlag.isButton),
+        tester.getSemantics(visibility.last).flagsCollection.isButton,
         isTrue,
       );
       semantics.dispose();

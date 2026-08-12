@@ -1301,8 +1301,7 @@ class _FieldShell extends StatelessWidget {
   final Widget child;
   final IconData? trailingIcon;
   const _FieldShell(
-      {Key? key, required this.label, required this.child, this.trailingIcon})
-      : super(key: key);
+      {super.key, required this.label, required this.child, this.trailingIcon});
   static const double _labelWidth =
       82; // ensures first letters align vertically without truncating "Kategorie"
   static const double _iconSlotWidth = 28; // fixed slot for icon alignment
@@ -1364,8 +1363,7 @@ class _FieldShell extends StatelessWidget {
 class _InnerFieldShell extends StatelessWidget {
   final String label;
   final Widget child;
-  const _InnerFieldShell({Key? key, required this.label, required this.child})
-      : super(key: key);
+  const _InnerFieldShell({required this.label, required this.child});
   @override
   Widget build(BuildContext context) {
     return Container(
