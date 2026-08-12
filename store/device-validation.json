@@ -69,6 +69,18 @@
         "coldStartGuestPersistence": "passed",
         "postLogoutPushSuppression": "passed",
         "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081116-20260811T234112Z.json"
+      },
+      "offlineRealtime": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-12T00:09:22.861Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "offlineWindowSeconds": 15,
+        "sameProcessRecovery": "passed",
+        "originalNetworkRestored": "passed",
+        "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081116-20260812T000922Z.json"
       }
     },
     "ios": {

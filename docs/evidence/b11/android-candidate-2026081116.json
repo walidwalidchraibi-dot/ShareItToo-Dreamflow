@@ -58,7 +58,7 @@
     "notificationIconVisualFit": "passed",
     "logoutColdStartGuestPersistence": "passed",
     "postLogoutPushSuppression": "passed",
-    "offlineRealtimeRecovery": "pending"
+    "offlineRealtimeRecovery": "passed"
   },
   "controlledFcm": {
     "status": "passed",
@@ -68,6 +68,12 @@
     "status": "passed",
     "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081116-20260811T234112Z.json",
     "syntheticSessionRestoredAfterProbe": true
+  },
+  "offlineRealtime": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081116-20260812T000922Z.json",
+    "networkRestoredAfterProbe": true,
+    "sameProcessRecovery": true
   },
   "storeReadiness": {
     "status": "testing",

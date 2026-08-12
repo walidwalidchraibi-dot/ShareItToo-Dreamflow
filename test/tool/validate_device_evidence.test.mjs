@@ -188,6 +188,7 @@ function passedFixture() {
   delete deviceManifest.candidate.android.syntheticRoleBooking;
   delete deviceManifest.candidate.android.authenticatedDeepLinks;
   delete deviceManifest.candidate.android.logoutLifecycle;
+  delete deviceManifest.candidate.android.offlineRealtime;
   Object.assign(deviceManifest.candidate.ios, {
     delivery: 'testflight-internal',
     ipaSha256: 'e'.repeat(64),
@@ -290,6 +291,7 @@ function progressFixture() {
   delete deviceManifest.candidate.android.syntheticRoleBooking;
   delete deviceManifest.candidate.android.authenticatedDeepLinks;
   delete deviceManifest.candidate.android.logoutLifecycle;
+  delete deviceManifest.candidate.android.offlineRealtime;
   const diagnosticRef = 'docs/evidence/b11/android-direct-smoke-progress-fixture.json';
   const capturedAt = '2026-08-09T18:00:00+02:00';
   deviceManifest.candidate.android.directDiagnostic = {
@@ -720,6 +722,36 @@ test('rejects a restricted permission added to the exact release inventory', () 
   assert.throws(
     () => validate({ root }),
     /must preserve the exact expected permissions while keeping Console warnings pending/,
+  );
+});
+
+test('accepts the exact bounded offline realtime recovery evidence', () => {
+  assert.equal(validate().state, 'testing');
+});
+
+test('offline realtime recovery rejects a different installed APK', () => {
+  const root = progressEvidenceRoot();
+  const deviceManifest = clone(baseDeviceManifest);
+  const ref = deviceManifest.candidate.android.offlineRealtime.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
+  evidence.installed.apkSha256 = 'f'.repeat(64);
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root, deviceManifest }),
+    /must prove the exact installed candidate APK/,
+  );
+});
+
+test('offline realtime recovery requires a crash-free restored same process', () => {
+  const root = progressEvidenceRoot();
+  const deviceManifest = clone(baseDeviceManifest);
+  const ref = deviceManifest.candidate.android.offlineRealtime.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
+  evidence.diagnostic.processIdentityStable = false;
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root, deviceManifest }),
+    /must prove a crash-free same-process recovery and network restoration/,
   );
 });
 

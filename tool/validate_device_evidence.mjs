@@ -707,6 +707,91 @@ function validateAndroidLogoutLifecycle(root, diagnostic, candidate) {
   }
 }
 
+function validateAndroidOfflineRealtime(root, diagnostic, candidate) {
+  const label = 'candidate.android.offlineRealtime';
+  if (diagnostic.status !== 'passed' || diagnostic.installMethod !== 'direct-apk-diagnostic' ||
+      diagnostic.offlineWindowSeconds !== 15 || diagnostic.sameProcessRecovery !== 'passed' ||
+      diagnostic.originalNetworkRestored !== 'passed') {
+    fail(`${label} must record the passed bounded 15-second same-process recovery.`);
+  }
+  isoTimestamp(diagnostic.capturedAt, `${label}.capturedAt`, { required: true });
+  for (const key of ['manufacturer', 'deviceModel', 'osVersion']) {
+    nonEmptyString(diagnostic[key], `${label}.${key}`);
+  }
+  const ref = evidenceRef(root, diagnostic.evidenceRef, `${label}.evidenceRef`, { required: true });
+  const evidence = readEvidenceJson(root, ref, `${label}.evidence`);
+  if (evidence.schemaVersion !== 1 ||
+      evidence.kind !== 'android-offline-realtime-diagnostic' ||
+      evidence.status !== 'passed-bounded-offline-realtime-diagnostic' ||
+      evidence.capturedAt !== diagnostic.capturedAt) {
+    fail(`${label}.evidence must be the matching passed offline/realtime diagnostic.`);
+  }
+  isoTimestamp(evidence.capturedAt, `${label}.evidence.capturedAt`, { required: true });
+  assertEvidenceCandidate(evidence, candidate, `${label}.evidence`);
+
+  const installed = object(evidence.installed, `${label}.evidence.installed`);
+  const expectedAndroid = object(candidate.android, 'candidate.android');
+  if (installed.packageIdentityVerified !== true ||
+      installed.versionName !== candidate.versionName ||
+      installed.buildNumber !== candidate.buildNumber ||
+      installed.apkSha256 !== expectedAndroid.apkSha256) {
+    fail(`${label}.evidence must prove the exact installed candidate APK.`);
+  }
+  const device = object(evidence.device, `${label}.evidence.device`);
+  if (device.platform !== 'android' || device.physical !== true ||
+      device.manufacturer !== diagnostic.manufacturer ||
+      device.model !== diagnostic.deviceModel ||
+      device.osVersion !== diagnostic.osVersion ||
+      !Number.isInteger(device.apiLevel) || device.apiLevel <= 0 ||
+      typeof device.securityPatch !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(device.securityPatch) ||
+      device.containsRawDeviceIdentifier !== false) {
+    fail(`${label}.evidence.device must match the sanitized physical Android device.`);
+  }
+
+  const expectedTests = {
+    authenticatedChatPreloaded: 'chat-visible-before-offline-window',
+    messageHiddenWhileOffline: 'new-message-absent-during-15-second-offline-window',
+    sameProcessRealtimeRecovery: 'new-message-visible-after-network-restoration',
+    originalNetworkRestored: 'wifi-and-mobile-data-restored-to-original-state',
+  };
+  const tests = object(evidence.tests, `${label}.evidence.tests`);
+  if (Object.keys(tests).length !== Object.keys(expectedTests).length ||
+      Object.entries(expectedTests).some(([key, expected]) =>
+        tests[key]?.status !== 'passed' || tests[key]?.result !== expected)) {
+    fail(`${label}.evidence.tests must prove the four bounded offline/realtime checks.`);
+  }
+  const observation = object(evidence.diagnostic, `${label}.evidence.diagnostic`);
+  if (observation.offlineWindowSeconds !== 15 || observation.appProcessSurvived !== true ||
+      observation.processIdentityStable !== true || observation.appForegroundAfterRecovery !== true ||
+      observation.packageCrashBufferEntries !== 0 || observation.networkRestored !== true) {
+    fail(`${label}.evidence.diagnostic must prove a crash-free same-process recovery and network restoration.`);
+  }
+  const expectedBoundaries = {
+    syntheticAccountsOnly: true,
+    directDiagnosticOnly: true,
+    storeInstallationGateSatisfied: false,
+    fullDeviceMatrixPassed: false,
+    wifiOnlyDiagnostic: true,
+    hotspotPassed: false,
+    manualTalkBackTraversalPassed: false,
+    iosTestFlightPassed: false,
+    paymentEndpointCalled: false,
+    stripeLivemode: false,
+    messageSent: true,
+    lockCodeUsed: false,
+    accountIdentityRecorded: false,
+    containsPersonalAccountData: false,
+    containsSecrets: false,
+    containsRawDeviceIdentifiers: false,
+    containsReviewCredentials: false,
+  };
+  const boundaries = object(evidence.boundaries, `${label}.evidence.boundaries`);
+  if (Object.keys(boundaries).length !== Object.keys(expectedBoundaries).length ||
+      Object.entries(expectedBoundaries).some(([key, value]) => boundaries[key] !== value)) {
+    fail(`${label}.evidence must keep Store, matrix, hotspot, TalkBack, iOS, payment, identity, and secret gates open.`);
+  }
+}
+
 function validateAndroidReleasePermissionInventory(root, ref, candidate, label) {
   const evidence = readEvidenceJson(root, ref, label);
   if (evidence.schemaVersion !== 1 ||
@@ -1230,6 +1315,13 @@ export function validateDeviceEvidence({
     validateAndroidLogoutLifecycle(
       root,
       object(android.logoutLifecycle, 'candidate.android.logoutLifecycle'),
+      candidate,
+    );
+  }
+  if (android.offlineRealtime !== undefined) {
+    validateAndroidOfflineRealtime(
+      root,
+      object(android.offlineRealtime, 'candidate.android.offlineRealtime'),
       candidate,
     );
   }

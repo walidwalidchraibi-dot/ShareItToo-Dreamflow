@@ -220,8 +220,10 @@ Staging-FCM ist auf dem physischen Pixel 7 Pro unter Android 16 im Vordergrund,
 im Hintergrund und bei zuvor beendetem App-Prozess bestanden. Ebenso bestanden
 sind die angemeldete Kaltstartsitzung ohne Internet, die direkte
 Gast-App-Link-Diagnose sowie Abmeldung, Gastzustand nach Kaltstart und
-Push-Unterdrückung nach Abmeldung. Authentifizierte Deep-Links,
-Offline-Realtime-Recovery, Store-Installation und die vollständige
+Push-Unterdrückung nach Abmeldung. Auch die kontrollierte
+Offline-/Realtime-Wiederherstellung desselben laufenden Chat-Prozesses ist nach
+15 Sekunden ohne Netz und anschließender Wiederherstellung bestanden.
+Authentifizierte Deep-Links, Store-Installation und die vollständige
 Geräte-/Accessibility-Matrix bleiben offen. Der aktuelle
 maschinenlesbare Datenschutzentwurf liegt in
 `store/privacy-disclosures.json`; er bindet 17 Datentypen, acht Dienste,
