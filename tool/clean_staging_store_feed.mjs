@@ -179,6 +179,17 @@ function replacementDefinition(title) {
   return storeScreenshotListings.find((entry) => entry.imageName === imageName);
 }
 
+function neutralMetadata(listing, definition) {
+  return {
+    ...listing,
+    description: definition.description,
+    categoryId: definition.categoryId,
+    subcategory: definition.subcategory,
+    tags: [...definition.tags],
+    condition: definition.condition,
+  };
+}
+
 function verifiedReplacementBytes(definition) {
   const bytes = readFileSync(resolve(syntheticAssetRoot, definition.imageName));
   if (bytes.length < 10_000 ||
@@ -273,7 +284,9 @@ export async function cleanStagingStoreFeed({
         const definition = replacementDefinition(listing.title);
         const photoUrl = await uploadReplacement(fetchImpl, session.token, definition);
         await request(fetchImpl, `/listings/${encodeURIComponent(listing.id)}`, {
-          method: 'PUT', token: session.token, body: { ...listing, photos: [photoUrl] },
+          method: 'PUT',
+          token: session.token,
+          body: { ...neutralMetadata(listing, definition), photos: [photoUrl] },
         });
         mutations.push({ kind: 'photo', token: session.token, listing });
         replacedPhotos += 1;

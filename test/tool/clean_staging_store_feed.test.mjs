@@ -50,6 +50,8 @@ function initialState() {
         id: `sit-store-preview-v1-${name}`, title: `Curated ${name}`, status: 'active', isActive: true,
       })),
       { id: 'protected-one', title: 'SIT Rollenprüfung one', status: 'active', isActive: true,
+        description: 'Isoliertes Staging-Inserat für die Rollenprüfung.',
+        categoryId: 'other',
         photos: ['https://staging.shareittoo.com/uploads/logo'] },
       { id: 'old-one', title: 'SIT Rollenprüfung old one', status: 'active', isActive: true },
     ]],
@@ -141,6 +143,11 @@ test('cleans every synthetic owner while preserving recursively referenced accep
   });
   assert.equal([...state.values()].flat().filter((entry) => entry.status === 'paused').length, 2);
   assert.equal([...state.values()].flat().some((entry) => /^SIT Rollenprüfung\b/u.test(entry.title) && entry.status === 'active'), false);
+  const neutralized = state.get('one@example.invalid').find(({ id }) => id === 'protected-one');
+  assert.equal(neutralized.description,
+    'Kompakte Systemkamera mit Objektiv, Akku, Ladegerät und gepolsterter Tragetasche.');
+  assert.equal(neutralized.categoryId, 'electronics');
+  assert.deepEqual(neutralized.tags, ['kamera', 'foto']);
   assert.equal(state.get('two@example.invalid').find(({ id }) => id === 'protected-two').photos[0],
     'https://staging.shareittoo.com/uploads/genuine');
   assert.equal(calls.some(({ method }) => method === 'DELETE'), false);
