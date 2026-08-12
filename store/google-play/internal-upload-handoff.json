@@ -21,7 +21,7 @@
   "preUploadGates": {
     "personalIdentityVerification": "verified",
     "deviceVerification": "verified",
-    "phoneVerification": "pending-user",
+    "phoneVerification": "verified",
     "playAppRecordCreated": false,
     "immediateArtifactReverification": false
   },

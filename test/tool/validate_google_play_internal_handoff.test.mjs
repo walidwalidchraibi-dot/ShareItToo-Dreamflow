@@ -70,6 +70,15 @@ test('rejects a regression to pending device verification', async (t) => {
     /deviceVerification/);
 });
 
+test('rejects a regression to pending phone verification', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  data.handoff.preUploadGates.phoneVerification = 'pending-user';
+  await writeFile(data.handoffPath, JSON.stringify(data.handoff));
+  assert.throws(() => validateGooglePlayInternalHandoff({ repositoryRoot, ...data }),
+    /phoneVerification/);
+});
+
 test('rejects premature submission permission', async (t) => {
   const data = await fixture();
   t.after(() => rm(data.root, { recursive: true, force: true }));

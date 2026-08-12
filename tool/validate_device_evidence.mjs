@@ -1166,8 +1166,8 @@ function validateStoreLinksAndSigningProgressEvidence(root, ref, candidate, labe
   }
 
   const counts = object(evidence.counts, `${label}.counts`);
-  if (counts.draftPublicUrls !== 3 || counts.openStoreGates !== 9) {
-    fail(`${label}.counts must preserve the three draft URLs and nine open Store gates.`);
+  if (counts.draftPublicUrls !== 3 || counts.openStoreGates !== 8) {
+    fail(`${label}.counts must preserve the three draft URLs and eight open Store gates.`);
   }
   const expectedBoundaries = {
     uploadedToStore: false,

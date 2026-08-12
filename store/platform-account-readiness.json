@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "state": "setup-required",
   "googlePlay": {
-    "status": "identity-and-device-verified-phone-pending",
+    "status": "account-verifications-complete-app-record-pending",
     "accountType": "personal",
     "developerAccountCreated": true,
     "registrationFeePaid": true,
