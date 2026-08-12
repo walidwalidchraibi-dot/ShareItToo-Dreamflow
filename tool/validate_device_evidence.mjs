@@ -958,6 +958,8 @@ function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
   const evidence = readEvidenceJson(root, ref, label);
   const mappingUploadedEventPending =
     evidence.status === 'mapping-and-native-symbols-uploaded-controlled-event-pending';
+  const mappingUploadedNativePackagedEventPending =
+    evidence.status === 'mapping-uploaded-native-symbols-packaged-controlled-event-pending';
   const mappingUploadedConsoleObservedEventPending =
     evidence.status ===
       'mapping-and-native-symbols-uploaded-console-release-observed-controlled-event-pending';
@@ -966,6 +968,7 @@ function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
   if (evidence.schemaVersion !== 1 ||
       evidence.kind !== 'android-crash-release-mapping' ||
       (!mappingUploadedEventPending &&
+       !mappingUploadedNativePackagedEventPending &&
        !mappingUploadedConsoleObservedEventPending &&
        !controlledEventSentConsolePending)) {
     fail(`${label} must be the bounded in-progress Android crash mapping evidence.`);
@@ -1016,12 +1019,17 @@ function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
   if (verifications.uploadBuildResult !== 'successful') {
     fail(`${label}.verifications.uploadBuildResult must be successful.`);
   }
-  if (mappingUploadedEventPending) {
+  if (mappingUploadedEventPending || mappingUploadedNativePackagedEventPending) {
     if (verifications.consoleReleaseAssignment !== 'pending' ||
         verifications.controlledSanitizedCrashEvent !== 'pending' ||
         evidence.boundaries.productionCrashGenerated !== false ||
         evidence.boundaries.controlledStagingEventGenerated !== false) {
       fail(`${label} must preserve the honest pending controlled-event boundary.`);
+    }
+    if (mappingUploadedNativePackagedEventPending &&
+        (verifications.nativeSymbolsPackagedForAllBundledAbis !== 'passed' ||
+         verifications.nativeSymbolUploadToCrashlytics !== 'pending')) {
+      fail(`${label} must distinguish packaged native symbols from a completed Crashlytics native-symbol upload.`);
     }
   } else if (mappingUploadedConsoleObservedEventPending) {
     const expectedVersion = `${candidate.versionName} (${candidate.buildNumber})`;

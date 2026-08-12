@@ -90,7 +90,7 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081116-20260811T230644Z.json` |
 | Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081116-20260811T234112Z.json` |
 | Android-Offline-/Realtime-Wiederherstellung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-offline-realtime-2026081116-20260812T000922Z.json` |
-| Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
+| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081116.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081116.json` |
 | Staging-Servercommit | `f2961cfe97a85c5698d4967ae08808eaa6b25ce8` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 3/7 |

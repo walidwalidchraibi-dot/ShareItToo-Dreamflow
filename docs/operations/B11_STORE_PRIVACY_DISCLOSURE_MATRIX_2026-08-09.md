@@ -230,9 +230,12 @@ wiederhergestellt. Store-Installation und die vollständige
 Geräte-/Accessibility-Matrix bleiben offen. Der aktuelle
 maschinenlesbare Datenschutzentwurf liegt in
 `store/privacy-disclosures.json`; er bindet 17 Datentypen, acht Dienste,
-Quellhashes und den erneuerten Binärscan an denselben Kandidaten. Die exakte
-Crashlytics-Konsolenzuordnung und ein bereinigtes Testereignis sind für diesen
-Kandidaten noch nicht final nachgewiesen. Die bereinigten
+Quellhashes und den erneuerten Binärscan an denselben Kandidaten. Die
+Original-R8-Zuordnung des exakten AAB wurde erfolgreich zu Crashlytics
+übertragen; die drei nativen Symbolgruppen sind vollständig im AAB und im
+privaten Release-Archiv gebunden. Ihr gesonderter Crashlytics-Upload, die exakte
+Konsolenzuordnung und ein bereinigtes Testereignis sind für diesen Kandidaten
+noch nicht final nachgewiesen. Die bereinigten
 Kandidatennachweise liegen unter `docs/evidence/b11/`.
 
 Der ergänzende Aufbewahrungs-/Löschentwurf liegt in

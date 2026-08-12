@@ -228,8 +228,8 @@
       "evidenceRef": null
     },
     "crashReleaseMapping": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "testing",
+      "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081116.json"
     },
     "storeWarningsLinksAndSigning": {
       "status": "testing",

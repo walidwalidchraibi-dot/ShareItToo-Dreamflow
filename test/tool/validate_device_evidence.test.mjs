@@ -786,6 +786,18 @@ test('accepts the earlier mapping-uploaded event-pending progress stage', () => 
   assert.equal(validate({ root, deviceManifest }).state, 'testing');
 });
 
+test('accepts mapping upload while keeping packaged native-symbol upload pending', () => {
+  const { root, deviceManifest, ref, evidence } = crashProgressFixture();
+  evidence.status = 'mapping-uploaded-native-symbols-packaged-controlled-event-pending';
+  evidence.verifications.controlledSanitizedCrashEvent = 'pending';
+  evidence.verifications.nativeSymbolsPackagedForAllBundledAbis = 'passed';
+  evidence.verifications.nativeSymbolUploadToCrashlytics = 'pending';
+  delete evidence.verifications.deviceDiagnosticUi;
+  evidence.boundaries.controlledStagingEventGenerated = false;
+  writeEvidence(root, ref, evidence);
+  assert.equal(validate({ root, deviceManifest }).state, 'testing');
+});
+
 test('rejects a controlled-event claim without the sanitized staging boundary', () => {
   const { root, deviceManifest, ref, evidence } = crashProgressFixture();
   evidence.boundaries.eventContainsAccountData = true;
