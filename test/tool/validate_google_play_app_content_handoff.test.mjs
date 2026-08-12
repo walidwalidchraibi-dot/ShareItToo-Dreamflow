@@ -19,9 +19,18 @@ async function fixture(mutate = () => {}) {
   return { root, handoffPath };
 }
 
-test('accepts seven saved Play tasks while review, public pages, and IARC remain stopped', () => {
+test('accepts seven saved Play tasks while five declarations remain stopped', () => {
   const result = validateGooglePlayAppContentHandoff({ repositoryRoot });
-  assert.deepEqual(result, { taskCount: 11, buildNumber: '2026081202' });
+  assert.deepEqual(result, { taskCount: 12, buildNumber: '2026081202' });
+});
+
+test('rejects claiming Advertising ID use for the current binary', async (t) => {
+  const data = await fixture((handoff) => {
+    handoff.tasks.advertisingId.proposedAnswer = true;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+    /product truth/);
 });
 
 test('rejects claiming ads for the current binary', async (t) => {

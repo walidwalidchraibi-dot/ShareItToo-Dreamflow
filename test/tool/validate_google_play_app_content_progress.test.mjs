@@ -19,10 +19,20 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts seven saved and four fail-closed Play tasks', () => {
+test('accepts seven saved and five fail-closed Play tasks', () => {
   assert.deepEqual(validateGooglePlayAppContentProgress({ repositoryRoot }), {
-    status: 'seven-of-eleven-saved-data-safety-step-two-observed', savedTasks: 7, openTasks: 4,
+    status: 'seven-of-twelve-saved-five-open', totalTasks: 12,
+    savedTasks: 7, openTasks: 5,
   });
+});
+
+test('rejects claiming Advertising ID use for the exact candidate', async (t) => {
+  const data = await fixture((evidence) => {
+    evidence.advertisingIdDraft.usesAdvertisingId = true;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
+    /Advertising ID draft/);
 });
 
 test('rejects claiming OAuth account creation before provider activation', async (t) => {

@@ -122,6 +122,19 @@ gilt nicht als Nachweis.
 Englischer Review-Text ist im Abschnitt „App-Zugriff für Google Review“ von
 `docs/operations/B11_STORE_SUBMISSION_PACKET_2026-08-09.md` vorbereitet.
 
+### 5.3 Advertising ID
+
+- Google Play zeigt eine zusätzliche verpflichtende Erklärung an: **„Does
+  your app use advertising ID?“**
+- Arbeitsantwort für Kandidat 2026081202: **Nein.**
+- Der signierte Build mit Ziel-Android 35 enthält weder
+  `com.google.android.gms.permission.AD_ID` noch
+  `android.permission.ACCESS_ADSERVICES_AD_ID`, kein Werbe-, Analytics- oder
+  Attributions-SDK und keine Facebook-Werbe-ID-Erfassung.
+- Die Antwort ist vorbereitet, aber noch nicht in der Console gespeichert.
+  Nachweis:
+  `docs/evidence/b11/google-play-advertising-id-declaration-20260812.json`.
+
 ### 5.3 Zielgruppe und Kinder
 
 - Zielgruppe: ausschließlich Erwachsene/18+.

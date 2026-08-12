@@ -13,7 +13,7 @@ export function validateGooglePlayAppContentProgress({
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'google-play-app-content-progress' ||
-      evidence.status !== 'seven-of-eleven-saved-data-safety-step-two-observed') {
+      evidence.status !== 'seven-of-twelve-saved-five-open') {
     fail('Play app-content progress state is invalid.');
   }
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
@@ -23,13 +23,13 @@ export function validateGooglePlayAppContentProgress({
       evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1') {
     fail('Play app-content progress is not bound to the internal candidate.');
   }
-  if (evidence.counts?.totalTasks !== 11 || evidence.counts?.savedTasks !== 7 ||
-      evidence.counts?.openTasks !== 4 || !Array.isArray(evidence.savedTasks) ||
+  if (evidence.counts?.totalTasks !== 12 || evidence.counts?.savedTasks !== 7 ||
+      evidence.counts?.openTasks !== 5 || !Array.isArray(evidence.savedTasks) ||
       evidence.savedTasks.join(',') !==
         'appAccess,ads,targetAudience,governmentApps,financialFeatures,health,categoryAndContact') {
     fail('Play app-content task counts or saved tasks are incomplete.');
   }
-  const expectedOpen = ['privacyPolicy', 'contentRating', 'dataSafety', 'storeListing'];
+  const expectedOpen = ['privacyPolicy', 'contentRating', 'dataSafety', 'storeListing', 'advertisingId'];
   if (Object.keys(evidence.openTasks ?? {}).join(',') !== expectedOpen.join(',') ||
       Object.values(evidence.openTasks).some((value) => typeof value !== 'string' || !value.includes('pending') && !value.includes('not-release-ready'))) {
     fail('Play app-content open tasks are not fail-closed.');
@@ -87,13 +87,36 @@ export function validateGooglePlayAppContentProgress({
       JSON.stringify(dataTypesEvidence).includes('@')) {
     fail('Play data-safety data-type preparation is invalid or unsafe.');
   }
-  return { status: evidence.status, savedTasks: evidence.counts.savedTasks, openTasks: evidence.counts.openTasks };
+  const advertisingId = evidence.advertisingIdDraft ?? {};
+  if (advertisingId.usesAdvertisingId !== false ||
+      advertisingId.answerSaved !== false ||
+      advertisingId.evidenceRef !==
+        'docs/evidence/b11/google-play-advertising-id-declaration-20260812.json') {
+    fail('Play Advertising ID draft state is invalid.');
+  }
+  const advertisingEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
+    advertisingId.evidenceRef), 'utf8'));
+  if (advertisingEvidence.kind !==
+        'google-play-advertising-id-declaration-preparation' ||
+      advertisingEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
+      advertisingEvidence.preparedAnswer !== false ||
+      Object.values(advertisingEvidence.basis ?? {}).some((value) => value !== false) ||
+      Object.values(advertisingEvidence.boundaries ?? {}).some((value) => value !== false) ||
+      JSON.stringify(advertisingEvidence).includes('@')) {
+    fail('Play Advertising ID evidence is invalid or unsafe.');
+  }
+  return {
+    status: evidence.status,
+    totalTasks: evidence.counts.totalTasks,
+    savedTasks: evidence.counts.savedTasks,
+    openTasks: evidence.counts.openTasks,
+  };
 }
 
 function main() {
   const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
   const result = validateGooglePlayAppContentProgress({ repositoryRoot });
-  process.stdout.write(`Google Play app-content progress: PASS (${result.savedTasks}/11 saved, ${result.openTasks} open)\n`);
+  process.stdout.write(`Google Play app-content progress: PASS (${result.savedTasks}/${result.totalTasks} saved, ${result.openTasks} open)\n`);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

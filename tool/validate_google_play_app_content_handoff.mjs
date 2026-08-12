@@ -34,7 +34,7 @@ export function validateGooglePlayAppContentHandoff({
   );
   const currentCandidate = object(deviceValidation.candidate, 'device validation candidate');
   if (handoff.schemaVersion !== 1 ||
-      handoff.status !== 'seven-console-tasks-saved-public-pages-and-iarc-pending' ||
+      handoff.status !== 'seven-of-twelve-saved-five-open' ||
       handoff.submissionAllowed !== false) {
     fail('App-content handoff must remain prepared and fail-closed.');
   }
@@ -57,7 +57,7 @@ export function validateGooglePlayAppContentHandoff({
   const tasks = object(handoff.tasks, 'tasks');
   const taskNames = [
     'privacyPolicy', 'appAccess', 'ads', 'contentRating', 'targetAudience',
-    'dataSafety', 'governmentApps', 'financialFeatures', 'health',
+    'dataSafety', 'advertisingId', 'governmentApps', 'financialFeatures', 'health',
     'categoryAndContact', 'storeListing',
   ];
   exactKeys(tasks, taskNames, 'tasks');
@@ -88,6 +88,11 @@ export function validateGooglePlayAppContentHandoff({
         'docs/evidence/b11/google-play-data-safety-step2-20260812.json' ||
       tasks.dataSafety.sellsData !== false ||
       tasks.dataSafety.advertisingTracking !== false ||
+      tasks.advertisingId.status !==
+        'visible-console-declaration-answer-no-prepared-save-pending' ||
+      tasks.advertisingId.proposedAnswer !== false ||
+      tasks.advertisingId.evidenceRef !==
+        'docs/evidence/b11/google-play-advertising-id-declaration-20260812.json' ||
       tasks.governmentApps.status !== 'saved-not-government-app' ||
       tasks.governmentApps.proposedAnswer !== false ||
       tasks.financialFeatures.status !== 'saved-no-financial-features' ||
@@ -117,7 +122,7 @@ export function validateGooglePlayAppContentHandoff({
   if (Object.keys(hardStops).length !== 7) {
     fail('App-content handoff must preserve all seven hard stops.');
   }
-  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 6 ||
+  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 7 ||
       handoff.evidenceRefs.some((ref) => typeof ref !== 'string' ||
         ref.includes('..') || !resolve(repositoryRoot, ref).startsWith(`${resolve(repositoryRoot)}/`))) {
     fail('App-content evidence references are invalid.');
