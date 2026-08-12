@@ -1,10 +1,21 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { prepareGooglePlayClosedTestingObservation } from '../../tool/prepare_google_play_closed_testing_observation.mjs';
+import {
+  prepareGooglePlayClosedTestingObservation,
+  writeGooglePlayClosedTestingObservation,
+} from '../../tool/prepare_google_play_closed_testing_observation.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const base = JSON.parse(readFileSync(resolve(root, 'store/google-play/closed-testing-readiness.json'), 'utf8'));
@@ -88,4 +99,34 @@ test('prepares approved production access only after an eligible observation', (
   });
   assert.equal(result.readiness.status, 'production-access-approved');
   assert.equal(result.readiness.productionAccessAllowed, true);
+});
+
+test('writes repository-readable evidence once and replaces only the readiness snapshot', () => {
+  const temporaryRoot = mkdtempSync(resolve(tmpdir(), 'sit-play-observation-'));
+  try {
+    mkdirSync(resolve(temporaryRoot, 'store/google-play'), { recursive: true });
+    writeFileSync(
+      resolve(temporaryRoot, 'store/google-play/closed-testing-readiness.json'),
+      `${JSON.stringify(base, null, 2)}\n`,
+    );
+    const result = prepare();
+    writeGooglePlayClosedTestingObservation({ root: temporaryRoot, result });
+
+    const evidencePath = resolve(temporaryRoot, result.evidenceRef);
+    assert.deepEqual(JSON.parse(readFileSync(evidencePath, 'utf8')), result.evidence);
+    assert.deepEqual(
+      JSON.parse(readFileSync(
+        resolve(temporaryRoot, 'store/google-play/closed-testing-readiness.json'),
+        'utf8',
+      )),
+      result.readiness,
+    );
+    assert.equal(statSync(evidencePath).mode & 0o777, 0o644);
+    assert.throws(
+      () => writeGooglePlayClosedTestingObservation({ root: temporaryRoot, result }),
+      /EEXIST/,
+    );
+  } finally {
+    rmSync(temporaryRoot, { recursive: true, force: true });
+  }
 });

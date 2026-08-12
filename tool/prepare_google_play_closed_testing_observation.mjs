@@ -1,6 +1,15 @@
 #!/usr/bin/env node
 
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import {
+  chmodSync,
+  linkSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -149,11 +158,31 @@ function parseArguments(values) {
   return options;
 }
 
-function atomicJson(path, value) {
+function atomicJson(path, value, { replace }) {
   mkdirSync(dirname(path), { recursive: true });
-  const temporary = resolve(dirname(path), `.${basename(path)}.tmp`);
-  writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
-  renameSync(temporary, path);
+  const temporary = resolve(dirname(path), `.${basename(path)}.${randomUUID()}.tmp`);
+  writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, {
+    flag: 'wx',
+    mode: 0o644,
+  });
+  chmodSync(temporary, 0o644);
+  try {
+    if (replace) renameSync(temporary, path);
+    else linkSync(temporary, path);
+  } finally {
+    try {
+      unlinkSync(temporary);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+  }
+}
+
+export function writeGooglePlayClosedTestingObservation({ root, result }) {
+  atomicJson(resolve(root, result.evidenceRef), result.evidence, { replace: false });
+  atomicJson(resolve(root, 'store/google-play/closed-testing-readiness.json'), result.readiness, {
+    replace: true,
+  });
 }
 
 function runCli() {
@@ -170,8 +199,7 @@ function runCli() {
     );
     return;
   }
-  atomicJson(resolve(root, result.evidenceRef), result.evidence);
-  atomicJson(readinessPath, result.readiness);
+  writeGooglePlayClosedTestingObservation({ root, result });
   process.stdout.write(
     `Recorded sanitized Google Play observation: status=${result.readiness.status}; evidence=${result.evidenceRef}.\n`,
   );
