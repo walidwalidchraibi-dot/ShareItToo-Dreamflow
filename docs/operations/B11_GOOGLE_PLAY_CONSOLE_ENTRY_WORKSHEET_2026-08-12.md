@@ -242,7 +242,22 @@ einer dieser Punkte offen ist:
 - Crashlytics-Zuordnung für exakt den hochgeladenen Kandidaten;
 - technisches und produktseitiges Go.
 
-## 10. Quellen
+## 10. Maschinengeprüfte Upload-Übergabe
+
+Die Datei `store/google-play/internal-upload-handoff.json` bindet die nächste
+Play-Aktion an exakt Build `2026081116`, dessen geprüften AAB-Hash, Upload-
+Zertifikat und privaten Archivnamen. Das Prüfwerkzeug
+`tool/validate_google_play_internal_handoff.mjs` bricht ab, wenn sich Datei,
+Hash, Kandidatenidentität oder Dateirechte unterscheiden.
+
+Die Übergabe bleibt absichtlich gesperrt: Identitäts-, Geräte- und
+Telefonprüfung sind als `pending-user` erfasst, der App-Datensatz ist noch
+nicht angelegt und `submissionAllowed` bleibt `false`. Nach Abschluss dieser
+persönlichen Prüfungen wird das Artefakt unmittelbar erneut geprüft. Danach
+darf ausschließlich ein Entwurf im Track „Internal testing“ entstehen. Alle
+öffentlichen, Review-, Open- und Closed-Aktionen bleiben harte Stopps.
+
+## 11. Quellen
 
 - Google Play: App erstellen und einrichten –
   <https://support.google.com/googleplay/android-developer/answer/9859152?hl=en-EN>

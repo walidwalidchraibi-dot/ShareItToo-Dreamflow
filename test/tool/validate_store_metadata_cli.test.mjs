@@ -63,6 +63,16 @@ test('rejects a missing Google Play Console worksheet binding', () => {
   assert.match(result.stderr, /consoleEntryWorksheet must be a non-empty string/);
 });
 
+test('rejects a missing Google Play internal upload handoff binding', () => {
+  const result = runWithManifests({
+    mutateManifest: (manifest) => {
+      delete manifest.metadataFiles.googlePlay.internalUploadHandoff;
+    },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /internalUploadHandoff must be a non-empty string/);
+});
+
 test('rejects an unrecognized Store release gate', () => {
   const result = runWithManifests({
     mutateManifest: (manifest) => {

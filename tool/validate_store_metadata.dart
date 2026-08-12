@@ -529,6 +529,12 @@ void main(List<String> arguments) {
       _readJsonList(root, _string(googleFiles, 'screenshotAltTexts'));
   final googleConsoleWorksheet =
       _readText(root, _string(googleFiles, 'consoleEntryWorksheet'));
+  final googleInternalUploadHandoffPath =
+      _string(googleFiles, 'internalUploadHandoff');
+  final googleInternalUploadHandoff = _readJsonMapFile(
+    File('${root.path}/$googleInternalUploadHandoffPath'),
+    'Google Play internal upload handoff',
+  );
   final appleName = _readText(root, _string(appleFiles, 'name'));
   final appleSubtitle = _readText(root, _string(appleFiles, 'subtitle'));
   final applePromo = _readText(root, _string(appleFiles, 'promotionalText'));
@@ -592,6 +598,20 @@ void main(List<String> arguments) {
     if (!googleConsoleWorksheet.contains(required)) {
       _fail('Google Play Console worksheet is missing: $required');
     }
+  }
+
+  final handoffCandidate = _map(googleInternalUploadHandoff['candidate'],
+      'Google Play handoff candidate');
+  if (googleInternalUploadHandoff['status'] !=
+          'verified-artifact-ready-account-gates-pending' ||
+      googleInternalUploadHandoff['submissionAllowed'] != false ||
+      googleInternalUploadHandoff['track'] != 'internal' ||
+      handoffCandidate['applicationId'] != identity['applicationId'] ||
+      handoffCandidate['versionName'] != identity['versionName'] ||
+      handoffCandidate['buildNumber'] != currentBuild.toString() ||
+      handoffCandidate['apiBaseUrl'] != identity['apiBaseUrl']) {
+    _fail(
+        'Google Play internal upload handoff must remain bound and fail-closed.');
   }
 
   if (googleTitle != appleName || googleTitle != 'ShareItToo') {

@@ -25,6 +25,7 @@ node --check tool/diagnose_store_review_safety_actions.mjs
 node --check tool/diagnose_store_review_disposable_deletion.mjs
 node --check tool/validate_store_review_access.mjs
 node --check tool/validate_b11_release_docs.mjs
+node --check tool/validate_google_play_internal_handoff.mjs
 node --check tool/prepare_android_device_test.mjs
 node --check tool/diagnose_android_app_links.mjs
 node --check tool/diagnose_android_authenticated_session.mjs

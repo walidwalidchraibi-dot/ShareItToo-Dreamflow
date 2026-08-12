@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "status": "verified-artifact-ready-account-gates-pending",
+  "submissionAllowed": false,
+  "track": "internal",
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081116",
+    "commit": "03a76e23b0db656b48fc1729b3cd20e6260f2133",
+    "aabSha256": "4da9336aeabc86c28bb5fe49fb96ba5bdb5329fb5af60ecfa0b73e513f0db204",
+    "uploadCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
+    "firebaseConfigured": true
+  },
+  "artifact": {
+    "archiveDirectoryName": "2026081116-03a76e23b0db656b48fc1729b3cd20e6260f2133",
+    "fileName": "shareittoo-1.0.0-2026081116-03a76e23b0db656b48fc1729b3cd20e6260f2133.aab",
+    "ownerOnlyPermissionsRequired": true
+  },
+  "preUploadGates": {
+    "personalIdentityVerification": "pending-user",
+    "deviceVerification": "pending-user",
+    "phoneVerification": "pending-user",
+    "playAppRecordCreated": false,
+    "immediateArtifactReverification": false
+  },
+  "postUploadChecks": {
+    "uploadedArtifactHashRecorded": "pending",
+    "playAppSigningFingerprintRecorded": "pending",
+    "uploadWarningsReviewed": "pending",
+    "crashlyticsCandidateAssignmentVerified": "pending",
+    "internalStoreInstallCompleted": "pending"
+  },
+  "hardStops": {
+    "productionRelease": true,
+    "openTestingRelease": true,
+    "closedTestingRelease": true,
+    "sendForReview": true,
+    "publicRollout": true,
+    "differentArtifact": true,
+    "credentialsInRepository": true
+  },
+  "evidenceRef": "docs/evidence/b11/android-candidate-2026081116.json",
+  "containsSecrets": false,
+  "containsReviewCredentials": false
+}
