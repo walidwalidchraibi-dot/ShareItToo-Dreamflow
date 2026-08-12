@@ -106,6 +106,23 @@ export function validateGooglePlayInternalHandoff({
   if (!realpathSync(artifactPath).startsWith(`${archiveReal}/`)) fail('The bound AAB left the private archive.');
   same(sha256File(artifactPath), candidate.aabSha256, 'archived AAB SHA-256');
 
+  const releaseDraft = object(handoff.releaseDraft, 'releaseDraft');
+  same(releaseDraft.name, `1.0.0-internal-${candidate.buildNumber}`, 'releaseDraft.name');
+  same(releaseDraft.notesPath, 'store/google-play/de-DE/internal_release_notes.txt',
+    'releaseDraft.notesPath');
+  same(releaseDraft.language, 'de-DE', 'releaseDraft.language');
+  same(releaseDraft.saveOnly, true, 'releaseDraft.saveOnly');
+  same(releaseDraft.rolloutAllowed, false, 'releaseDraft.rolloutAllowed');
+  const notesPath = resolve(repositoryRoot, releaseDraft.notesPath);
+  if (!notesPath.startsWith(`${realpathSync(repositoryRoot)}/`)) {
+    fail('Release notes left the repository.');
+  }
+  const notes = readFileSync(notesPath, 'utf8').trim();
+  if (!notes.startsWith('Erster interner ShareItToo-Test:') ||
+      !notes.includes('ausschließlich Staging und Testzahlungen')) {
+    fail('Release notes must describe the bounded internal Staging build.');
+  }
+
   const preUpload = object(handoff.preUploadGates, 'preUploadGates');
   same(preUpload.personalIdentityVerification, 'verified', 'personalIdentityVerification');
   same(preUpload.deviceVerification, 'verified', 'deviceVerification');
@@ -132,7 +149,13 @@ export function validateGooglePlayInternalHandoff({
   const hardStops = object(handoff.hardStops, 'hardStops');
   for (const key of expectedHardStops) same(hardStops[key], true, `hardStops.${key}`);
 
-  return { artifactPath, aabSha256: candidate.aabSha256, buildNumber: candidate.buildNumber };
+  return {
+    artifactPath,
+    aabSha256: candidate.aabSha256,
+    buildNumber: candidate.buildNumber,
+    releaseName: releaseDraft.name,
+    releaseNotes: notes,
+  };
 }
 
 function runCli() {

@@ -42,6 +42,8 @@ test('accepts the exact private internal-test artifact after identity verificati
   const result = validateGooglePlayInternalHandoff({ repositoryRoot, ...data });
   assert.equal(result.buildNumber, '2026081116');
   assert.equal(result.artifactPath, data.artifactPath);
+  assert.equal(result.releaseName, '1.0.0-internal-2026081116');
+  assert.match(result.releaseNotes, /ausschließlich Staging und Testzahlungen/u);
 });
 
 test('rejects different AAB bytes', async (t) => {
@@ -104,6 +106,15 @@ test('rejects premature submission permission', async (t) => {
   await writeFile(data.handoffPath, JSON.stringify(data.handoff));
   assert.throws(() => validateGooglePlayInternalHandoff({ repositoryRoot, ...data }),
     /submissionAllowed/);
+});
+
+test('rejects an internal draft that permits rollout', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  data.handoff.releaseDraft.rolloutAllowed = true;
+  await writeFile(data.handoffPath, JSON.stringify(data.handoff));
+  assert.throws(() => validateGooglePlayInternalHandoff({ repositoryRoot, ...data }),
+    /releaseDraft.rolloutAllowed/);
 });
 
 test('rejects credential-shaped fields', async (t) => {

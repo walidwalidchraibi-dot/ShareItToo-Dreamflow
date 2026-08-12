@@ -18,6 +18,13 @@
     "fileName": "shareittoo-1.0.0-2026081116-03a76e23b0db656b48fc1729b3cd20e6260f2133.aab",
     "ownerOnlyPermissionsRequired": true
   },
+  "releaseDraft": {
+    "name": "1.0.0-internal-2026081116",
+    "notesPath": "store/google-play/de-DE/internal_release_notes.txt",
+    "language": "de-DE",
+    "saveOnly": true,
+    "rolloutAllowed": false
+  },
   "preUploadGates": {
     "personalIdentityVerification": "verified",
     "deviceVerification": "verified",
