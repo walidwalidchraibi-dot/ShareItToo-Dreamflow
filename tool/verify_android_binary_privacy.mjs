@@ -232,6 +232,7 @@ const forbiddenRuntimeMarkers = [
   'https://shareittoo.app/u/',
   'http://127.0.0.1:8123/',
   'https://api.openai.com/',
+  'nominatim.openstreetmap.org',
 ];
 for (const marker of forbiddenRuntimeMarkers) {
   requireCheck(

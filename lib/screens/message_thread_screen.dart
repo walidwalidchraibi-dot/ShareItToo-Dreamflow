@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,7 +17,6 @@ import 'package:lendify/models/message.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
-import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/messages_settings_service.dart';
@@ -2569,51 +2567,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     return 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address.trim())}';
   }
 
-  Future<_LocationShareData> _resolveAddressPreviewData(String address) async {
+  _LocationShareData _resolveAddressPreviewData(String address) {
     final me = _currentUser;
     final sharerName = (me?.displayName ?? 'Jemand').trim();
     final label = sharerName.isNotEmpty
         ? '$sharerName hat eine Adresse geteilt'
         : 'Adresse geteilt';
     final mapsUrl = _mapsSearchUrlForAddress(address);
-    try {
-      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
-        'q': address.trim(),
-        'format': 'jsonv2',
-        'limit': '1',
-      });
-      final response = await http.get(
-        uri,
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'ShareItToo/1.0 (address-share-preview)',
-          'Referer': Uri.parse(BackendConfig.apiBaseUrl)
-              .replace(path: '/', query: null, fragment: null)
-              .toString(),
-        },
-      );
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final decoded = jsonDecode(response.body);
-        if (decoded is List && decoded.isNotEmpty && decoded.first is Map) {
-          final first = Map<String, dynamic>.from(decoded.first as Map);
-          final lat = (first['lat']?.toString() ?? '').trim();
-          final lon = (first['lon']?.toString() ?? '').trim();
-          if (double.tryParse(lat) != null && double.tryParse(lon) != null) {
-            return _LocationShareData(
-              label: label,
-              latitude: lat,
-              longitude: lon,
-              mapsUrl: mapsUrl,
-              shareKind: 'address',
-              addressText: address.trim(),
-              sharedByName: sharerName,
-            );
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('[MessageThreadScreen] address geocoding failed: $e');
-    }
     return _LocationShareData(
       label: label,
       latitude: '',
@@ -2849,7 +2809,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                         onPressed: _isPlausibleSharedAddress(address)
                             ? () async {
                                 Navigator.of(sheetContext).pop();
-                                final data = await _resolveAddressPreviewData(
+                                final data = _resolveAddressPreviewData(
                                   address,
                                 );
                                 if (!mounted) return;
