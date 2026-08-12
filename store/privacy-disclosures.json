@@ -44,7 +44,7 @@
     },
     {
       "path": "lib/openai/openai_config.dart",
-      "sha256": "68237c956a680f685c5b62416d6657ffa52da3b9a4976eec4018c0e76c783cc7"
+      "sha256": "774a9a4916bba722b35f06fc2193e13c87df5e57bc111d348e94104b7400ce01"
     },
     {
       "path": "lib/services/maps_service.dart",

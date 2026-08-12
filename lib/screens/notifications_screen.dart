@@ -1131,9 +1131,9 @@ class _NotificationCard extends StatelessWidget {
     if (diff.inHours < 24) return 'vor ${diff.inHours} Std.';
     if (diff.inDays < 7) return 'vor ${diff.inDays} Tg.';
     final weeks = (diff.inDays / 7).floor();
-    if (weeks < 5) return 'vor ${weeks} W.';
+    if (weeks < 5) return 'vor $weeks W.';
     final months = (diff.inDays / 30).floor();
-    return 'vor ${months} Mon.';
+    return 'vor $months Mon.';
   }
 }
 

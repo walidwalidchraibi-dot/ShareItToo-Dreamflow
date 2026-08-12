@@ -1914,7 +1914,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       debugPrint('[KEYBOARD_DEBUG] screen.height: $screenHeight');
       debugPrint('[KEYBOARD_DEBUG] viewPadding.bottom: $viewPadding');
       debugPrint('[KEYBOARD_DEBUG] inputFocused: ${_inputFocus.hasFocus}');
-      debugPrint('[KEYBOARD_DEBUG] isWeb: ${kIsWeb}');
+      debugPrint('[KEYBOARD_DEBUG] isWeb: $kIsWeb');
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final opened = insets > 0 && _lastViewInsetBottom == 0;
@@ -2557,9 +2557,9 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       final last = others.last.timestamp;
       final mins = DateTime.now().difference(last).inMinutes;
       if (mins < 10) return 'Antwortzeit: aktiv';
-      if (mins < 60) return 'Antwortzeit: ~${mins} min';
+      if (mins < 60) return 'Antwortzeit: ~$mins min';
       final h = (mins / 60).round();
-      return 'Antwortzeit: ~${h} h';
+      return 'Antwortzeit: ~$h h';
     } catch (_) {
       return 'Antwortzeit: < 1h';
     }

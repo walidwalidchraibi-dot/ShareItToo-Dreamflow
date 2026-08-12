@@ -526,7 +526,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         },
       ],
     };
-    final profileKey = ValueKey('profile-${userForDisplay.id}-${_myListingsCount}-${userForDisplay.avgRating.toStringAsFixed(2)}-${userForDisplay.reviewCount}');
+    final profileKey = ValueKey('profile-${userForDisplay.id}-$_myListingsCount-${userForDisplay.avgRating.toStringAsFixed(2)}-${userForDisplay.reviewCount}');
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,

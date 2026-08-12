@@ -571,7 +571,7 @@ Gib NUR ein JSON-Objekt zurück:
 
 Aufgabe:
 - Der Nutzer beschreibt einen Artikel (z.B. "Gitarre", "Auto", "DJ Controller", "Anhänger", "GoPro").
-- Du sollst aus einer vorgegebenen Liste an Kategorien die 1 bis ${maxResults} passendsten Kategorien auswählen.
+- Du sollst aus einer vorgegebenen Liste an Kategorien die 1 bis $maxResults passendsten Kategorien auswählen.
 
 REGELN:
 1) Du MUSST die Kategorien EXAKT so schreiben wie in der Liste (keine neuen Kategorien erfinden).

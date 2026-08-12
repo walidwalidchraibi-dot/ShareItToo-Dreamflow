@@ -1015,7 +1015,7 @@ class _AddressSection extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            hasEstimate ? '$feeLabel: ${fee.toStringAsFixed(2)} €' : '${feeLabel}: noch nicht berechnet',
+            hasEstimate ? '$feeLabel: ${fee.toStringAsFixed(2)} €' : '$feeLabel: noch nicht berechnet',
             style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary(context), fontWeight: FontWeight.w700),
           ),
           if (overMax) ...[

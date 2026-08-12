@@ -1289,7 +1289,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     : 'Du holst den Artikel selbst ab.';
               } else {
                 return eff == 'pending'
-                    ? 'Wenn ${_listerName} deine Anfrage annimmt, bringt er dir den Artikel vorbei.'
+                    ? 'Wenn $_listerName deine Anfrage annimmt, bringt er dir den Artikel vorbei.'
                     : 'Der Vermieter bringt dir den Artikel.';
               }
             }
@@ -2286,7 +2286,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               }
               // Lieferung gewählt: In Ausstehend klarstellen, dass erst nach Annahme geliefert wird
               return isPending
-                  ? 'Wenn ${_listerName} deine Anfrage annimmt, bringt er dir den Artikel vorbei.'
+                  ? 'Wenn $_listerName deine Anfrage annimmt, bringt er dir den Artikel vorbei.'
                   : 'Der Vermieter bringt dir den Artikel.';
             }
             return null;

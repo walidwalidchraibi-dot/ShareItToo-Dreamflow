@@ -56,7 +56,7 @@ class LocalArtifactStorageService {
 
     final registry = await _registry();
     final sourceFingerprint = '${file.path}|${file.name}|${isReturn ? 'return' : 'handover'}';
-    final artifactKey = 'photo:${bookingId}:${_stableHash(sourceFingerprint)}';
+    final artifactKey = 'photo:$bookingId:${_stableHash(sourceFingerprint)}';
     if (registry.containsKey(artifactKey)) {
       return const LocalArtifactSaveResult(attempted: false, success: true, skipped: true, duplicate: true);
     }

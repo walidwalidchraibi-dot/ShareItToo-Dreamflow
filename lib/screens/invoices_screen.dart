@@ -349,7 +349,7 @@ class _InvoiceCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${invoice.booking.itemTitle} – ${_typeLabel}', style: theme.textTheme.titleMedium),
+              Text('${invoice.booking.itemTitle} – $_typeLabel', style: theme.textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(
                 '${_formatDate(invoice.date)}\nBuchung: ${invoice.bookingId}',

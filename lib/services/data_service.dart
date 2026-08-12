@@ -4262,7 +4262,7 @@ class DataService {
           orElse: () => categories.first,
         );
 
-    String gh(int i) => 'u${i}3${i}h${i}';
+    String gh(int i) => 'u${i}3${i}h$i';
 
     List<Item> items = [
       // 1) E-Bike with delivery at dropoff up to 10km
