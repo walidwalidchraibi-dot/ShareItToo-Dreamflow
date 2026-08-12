@@ -836,13 +836,19 @@ void main(List<String> arguments) {
     googleInternalUploadHandoff['preUploadGates'],
     'Google Play handoff pre-upload gates',
   );
-  if (googleInternalUploadHandoff['status'] !=
-          'verified-artifact-ready-immediate-reverification-pending' ||
+  final handoffSuperseded = googleInternalUploadHandoff['status'] ==
+      'superseded-privacy-rescan-failed-replacement-pending';
+  if ((!handoffSuperseded &&
+          googleInternalUploadHandoff['status'] !=
+              'verified-artifact-ready-immediate-reverification-pending') ||
       googleInternalUploadHandoff['submissionAllowed'] != false ||
       googleInternalUploadHandoff['track'] != 'internal' ||
       handoffCandidate['applicationId'] != identity['applicationId'] ||
       handoffCandidate['versionName'] != identity['versionName'] ||
-      handoffCandidate['buildNumber'] != currentBuild.toString() ||
+      (handoffSuperseded
+          ? googleInternalUploadHandoff['replacementBuildNumber'] !=
+              currentBuild.toString()
+          : handoffCandidate['buildNumber'] != currentBuild.toString()) ||
       handoffCandidate['apiBaseUrl'] != identity['apiBaseUrl'] ||
       handoffPreUploadGates['personalIdentityVerification'] != 'verified' ||
       handoffPreUploadGates['deviceVerification'] != 'verified' ||
@@ -898,7 +904,8 @@ void main(List<String> arguments) {
       appleTestFlightHandoff['distribution'] != 'testflight-internal' ||
       appleHandoffCandidate['bundleId'] != identity['bundleId'] ||
       appleHandoffCandidate['versionName'] != identity['versionName'] ||
-      appleHandoffCandidate['buildNumber'] != currentBuild.toString() ||
+      (!handoffSuperseded &&
+          appleHandoffCandidate['buildNumber'] != currentBuild.toString()) ||
       appleHandoffCandidate['apiBaseUrl'] != identity['apiBaseUrl']) {
     _fail('Apple TestFlight handoff must remain bound and fail-closed.');
   }

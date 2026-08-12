@@ -179,11 +179,11 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
             'Einige App-Funktionen werden durch technische Dienstleister unterstützt:',
         bullets: [
           'Google Maps Platform für Adressvorschläge sowie Standort- und Entfernungsfunktionen',
-          'Firebase Cloud Messaging für Push‑Benachrichtigungen',
-          'Firebase Crashlytics für Absturz- und technische Diagnosedaten',
+          'Firebase Cloud Messaging für Push‑Benachrichtigungen und technische Installationskennungen',
+          'Firebase Crashlytics für Absturz-, Geräte-, Diagnose- und App-Sitzungsdaten',
         ],
         note:
-            'Werbe-SDKs und Analyse zu Werbezwecken sind im aktuellen App-Kandidaten nicht aktiviert.',
+            'Werbe-IDs, Werbeprofile, Werbe-SDKs und Analyse zu Werbezwecken sind im aktuellen App-Kandidaten nicht aktiviert.',
       ),
       const _PrivacySectionData(
         icon: Icons.file_download_outlined,

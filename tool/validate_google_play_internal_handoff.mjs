@@ -68,11 +68,24 @@ export function validateGooglePlayInternalHandoff({
   assertNoCredentials(handoff);
 
   same(handoff.schemaVersion, 1, 'schemaVersion');
-  same(handoff.status, 'verified-artifact-ready-immediate-reverification-pending', 'status');
+  const superseded = handoff.status === 'superseded-privacy-rescan-failed-replacement-pending';
+  if (!superseded && handoff.status !== 'verified-artifact-ready-immediate-reverification-pending') {
+    fail('status must describe either the verified artifact or its fail-closed supersession.');
+  }
   same(handoff.submissionAllowed, false, 'submissionAllowed');
   same(handoff.track, 'internal', 'track');
   same(handoff.containsSecrets, false, 'containsSecrets');
   same(handoff.containsReviewCredentials, false, 'containsReviewCredentials');
+  if (superseded) {
+    same(handoff.replacementBuildNumber, '2026081201', 'replacementBuildNumber');
+    const supersessionPath = resolve(repositoryRoot, handoff.supersessionEvidenceRef ?? '');
+    const supersession = object(readJson(supersessionPath, 'supersession evidence'), 'supersession evidence');
+    same(supersession.status, 'superseded-privacy-rescan-failed', 'supersession status');
+    same(supersession.remediation?.replacementBuildNumber, handoff.replacementBuildNumber,
+      'supersession replacement build number');
+    same(supersession.boundaries?.uploadedToStore, false, 'supersession uploadedToStore');
+    same(supersession.boundaries?.submissionAllowed, false, 'supersession submissionAllowed');
+  }
 
   const candidate = object(handoff.candidate, 'candidate');
   const evidenceCandidate = object(evidence.candidate, 'candidate evidence.candidate');
@@ -155,6 +168,7 @@ export function validateGooglePlayInternalHandoff({
     buildNumber: candidate.buildNumber,
     releaseName: releaseDraft.name,
     releaseNotes: notes,
+    status: handoff.status,
   };
 }
 

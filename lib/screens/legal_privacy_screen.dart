@@ -71,8 +71,8 @@ class LegalPrivacyScreen extends StatelessWidget {
             SizedBox(height: 10),
             LegalBullets(items: [
               'Google Maps Platform für Adressvorschläge sowie Standort- und Entfernungsfunktionen',
-              'Firebase Cloud Messaging für Push‑Benachrichtigungen',
-              'Firebase Crashlytics für Absturz- und technische Diagnosedaten',
+              'Firebase Cloud Messaging für Push‑Benachrichtigungen; dabei wird eine technische Installationskennung verarbeitet',
+              'Firebase Crashlytics für Absturz-, Geräte-, Diagnose- und App-Sitzungsdaten; es wird keine Werbe-ID verwendet und kein Nutzerprofil für Werbung erstellt',
             ]),
             SizedBox(height: 10),
             LegalParagraph(

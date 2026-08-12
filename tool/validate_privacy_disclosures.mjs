@@ -36,6 +36,7 @@ const dataTypeIds = [
   'deviceOrOtherIds',
   'crashData',
   'otherDiagnostics',
+  'appInteractions',
 ];
 
 const decisionKeys = [
@@ -64,6 +65,7 @@ const purposeValues = new Set([
   'developerCommunications',
   'fraudPreventionSecurityCompliance',
   'personalization',
+  'analytics',
 ]);
 
 const forbiddenSensitiveKeys = /^(password|secret|token|apiKey|privateKey|serviceAccount|credential|reviewAccount|email)$/i;
@@ -208,6 +210,8 @@ function assertSourceContracts({ root, sourceTexts }) {
       'Google Maps Platform',
       'Firebase Cloud Messaging',
       'Firebase Crashlytics',
+      'technische Installationskennung',
+      'App-Sitzungsdaten',
     ]) {
       if (!source.includes(marker)) fail(`The ${label} is missing the truthful disclosure marker: ${marker}.`);
     }
@@ -233,6 +237,10 @@ export function validatePrivacyDisclosures({
   if (typeof privacy.approvalAllowed !== 'boolean') fail('approvalAllowed must be boolean.');
 
   const candidate = object(privacy.candidate, 'candidate');
+  const superseded = candidate.status === 'superseded';
+  if (superseded && !/^\d{10}$/.test(candidate.replacementBuildNumber ?? '')) {
+    fail('A superseded candidate must name its replacement build number.');
+  }
   const deviceCandidate = object(device.candidate, 'store/device-validation.json candidate');
   for (const key of ['applicationId', 'bundleId', 'versionName', 'buildNumber', 'commit']) {
     if (candidate[key] !== deviceCandidate[key]) fail(`candidate.${key} must match store/device-validation.json.`);
@@ -264,18 +272,40 @@ export function validatePrivacyDisclosures({
   if (binary.candidateEvidenceRef !== expectedCandidateEvidenceRef) {
     fail('binaryEvidence must reference the current sanitized Android candidate evidence.');
   }
-  if (binary.binaryScan !== 'passed') fail('The bound Android binary privacy scan must pass.');
+  if (!superseded && binary.binaryScan !== 'passed') fail('The bound Android binary privacy scan must pass.');
   assertSha256(binary.binaryScanReportSha256, 'binaryEvidence.binaryScanReportSha256');
   const candidateEvidence = evidenceJson(root, evidenceTexts, binary.candidateEvidenceRef);
   if (candidateEvidence.candidate?.commit !== candidate.commit || candidateEvidence.candidate?.buildNumber !== candidate.buildNumber) {
     fail('Binary evidence must be bound to the same candidate.');
   }
-  if (candidateEvidence.privacyAndNetwork?.binaryScan !== 'passed'
-      || candidateEvidence.privacyAndNetwork?.binaryScanReportSha256 !== binary.binaryScanReportSha256) {
-    fail('Binary evidence scan status and report hash must match the privacy manifest.');
-  }
-  if (binary.releaseCheckStatus !== device.releaseChecks?.binaryPrivacyAndNetwork?.status) {
-    fail('binaryEvidence.releaseCheckStatus must match the device release check.');
+  if (superseded) {
+    if (binary.binaryScan !== 'failed-extended-runtime-origin-scan'
+        || binary.releaseCheckStatus !== 'blocked-replacement-pending') {
+      fail('A superseded candidate must remain blocked by the extended privacy rescan.');
+    }
+    const supersessionRef = nonEmptyString(
+      binary.supersessionEvidenceRef,
+      'binaryEvidence.supersessionEvidenceRef',
+    );
+    if (supersessionRef !== `docs/evidence/b11/android-candidate-${candidate.buildNumber}-superseded-privacy-rescan-20260812.json`) {
+      fail('Supersession evidence must bind the exact old candidate.');
+    }
+    const supersessionEvidence = evidenceJson(root, evidenceTexts, supersessionRef);
+    if (supersessionEvidence.status !== 'superseded-privacy-rescan-failed'
+        || supersessionEvidence.extendedPrivacyRescan?.status !== 'failed'
+        || supersessionEvidence.remediation?.replacementBuildNumber !== candidate.replacementBuildNumber
+        || supersessionEvidence.boundaries?.uploadedToStore !== false
+        || supersessionEvidence.boundaries?.submissionAllowed !== false) {
+      fail('Supersession evidence is incomplete or no longer fail closed.');
+    }
+  } else {
+    if (candidateEvidence.privacyAndNetwork?.binaryScan !== 'passed'
+        || candidateEvidence.privacyAndNetwork?.binaryScanReportSha256 !== binary.binaryScanReportSha256) {
+      fail('Binary evidence scan status and report hash must match the privacy manifest.');
+    }
+    if (binary.releaseCheckStatus !== device.releaseChecks?.binaryPrivacyAndNetwork?.status) {
+      fail('binaryEvidence.releaseCheckStatus must match the device release check.');
+    }
   }
 
   const services = object(privacy.externalServices, 'externalServices');
@@ -325,6 +355,15 @@ export function validatePrivacyDisclosures({
   }
   if (privacy.dataTypes.find((item) => item.id === 'paymentInfo')?.collected !== false) {
     fail('The payment-memory candidate must not claim collection of user payment credentials.');
+  }
+  const deviceId = privacy.dataTypes.find((item) => item.id === 'deviceOrOtherIds');
+  if (deviceId?.collected !== true || deviceId.optional !== false) {
+    fail('Firebase Installations requires non-optional device or installation ID disclosure.');
+  }
+  const interactions = privacy.dataTypes.find((item) => item.id === 'appInteractions');
+  if (interactions?.collected !== true || interactions.optional !== false
+      || interactions.linkedToUser !== false || !interactions.purposes.includes('analytics')) {
+    fail('Firebase Sessions requires non-optional, non-linked app interaction disclosure for analytics.');
   }
 
   const decisions = object(privacy.requiredDecisions, 'requiredDecisions');

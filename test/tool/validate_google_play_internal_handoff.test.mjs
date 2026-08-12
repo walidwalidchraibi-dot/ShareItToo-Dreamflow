@@ -43,6 +43,7 @@ test('accepts the exact private internal-test artifact after identity verificati
   assert.equal(result.buildNumber, '2026081116');
   assert.equal(result.artifactPath, data.artifactPath);
   assert.equal(result.releaseName, '1.0.0-internal-2026081116');
+  assert.equal(result.status, 'superseded-privacy-rescan-failed-replacement-pending');
   assert.match(result.releaseNotes, /ausschließlich Staging und Testzahlungen/u);
 });
 

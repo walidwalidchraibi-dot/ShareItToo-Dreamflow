@@ -7,12 +7,14 @@
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
     "buildNumber": "2026081116",
-    "commit": "03a76e23b0db656b48fc1729b3cd20e6260f2133"
+    "commit": "03a76e23b0db656b48fc1729b3cd20e6260f2133",
+    "status": "superseded",
+    "replacementBuildNumber": "2026081201"
   },
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "c27f6f636e691efbd7d34d55882388f3c163e0ee905f5e2513f788fd763f91bd"
+      "sha256": "ece6f207b88de10438080742b53c9e4fe2a92b2349cb6cfad2e2efbc43dbc6e2"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -24,11 +26,11 @@
     },
     {
       "path": "lib/screens/legal_privacy_screen.dart",
-      "sha256": "d421b05ed8e4598c14068976fcd1cf505554ee7aaa7c9925f714bf658629ec12"
+      "sha256": "179fb1cc6a56b4c560e30e85075f6e595182b6b82b97a1ce61bf265a3140f0a9"
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "d5b7170e1acab0624585df69f6d5db1fa4a55961b85e363b6a6484d3d3dd0a6c"
+      "sha256": "0f64ea701cc47795f3752fdb4b66372cd3b879689ad2c230f1fc5e5923637b3a"
     },
     {
       "path": "backend/src/privacy_export.js",
@@ -53,9 +55,10 @@
   ],
   "binaryEvidence": {
     "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081116.json",
-    "binaryScan": "passed",
+    "binaryScan": "failed-extended-runtime-origin-scan",
     "binaryScanReportSha256": "58d23739940630afdeea93455f6137fb5c64fdf46640e0922798f8d8e315a3c0",
-    "releaseCheckStatus": "testing"
+    "releaseCheckStatus": "blocked-replacement-pending",
+    "supersessionEvidenceRef": "docs/evidence/b11/android-candidate-2026081116-superseded-privacy-rescan-20260812.json"
   },
   "externalServices": {
     "firstPartyBackend": {
@@ -75,7 +78,8 @@
       "dataTypes": [
         "deviceOrOtherIds",
         "crashData",
-        "otherDiagnostics"
+        "otherDiagnostics",
+        "appInteractions"
       ]
     },
     "googleMapsPlatform": {
@@ -259,10 +263,10 @@
       "google": "Device or other IDs / Device or other IDs",
       "apple": "Identifiers / Device ID",
       "collected": true,
-      "optional": true,
+      "optional": false,
       "linkedToUser": true,
       "tracking": false,
-      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
+      "purposes": ["appFunctionality"]
     },
     {
       "id": "crashData",
@@ -272,7 +276,7 @@
       "optional": false,
       "linkedToUser": false,
       "tracking": false,
-      "purposes": ["fraudPreventionSecurityCompliance"]
+      "purposes": ["analytics"]
     },
     {
       "id": "otherDiagnostics",
@@ -282,7 +286,17 @@
       "optional": false,
       "linkedToUser": false,
       "tracking": false,
-      "purposes": ["fraudPreventionSecurityCompliance"]
+      "purposes": ["analytics"]
+    },
+    {
+      "id": "appInteractions",
+      "google": "App activity / App interactions",
+      "apple": "Usage Data / Product Interaction",
+      "collected": true,
+      "optional": false,
+      "linkedToUser": false,
+      "tracking": false,
+      "purposes": ["analytics"]
     }
   ],
   "requiredDecisions": {

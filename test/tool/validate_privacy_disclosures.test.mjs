@@ -49,9 +49,9 @@ test('accepts the honest fail-closed privacy disclosure draft', () => {
   const result = validate();
   assert.equal(result.state, 'draft');
   assert.equal(result.approvalAllowed, false);
-  assert.equal(result.dataTypeCount, 17);
+  assert.equal(result.dataTypeCount, 18);
   assert.equal(result.externalServiceCount, 8);
-  assert.equal(result.binaryReleaseCheck, 'testing');
+  assert.equal(result.binaryReleaseCheck, 'blocked-replacement-pending');
   assert.equal(result.storeGate, 'open');
 });
 
@@ -77,6 +77,24 @@ test('rejects omitting precise location while fine-location flows exist', () => 
   assert.throws(
     () => validate({ privacyManifest }),
     /require preciseLocation disclosure/,
+  );
+});
+
+test('rejects treating the automatic Firebase installation ID as optional', () => {
+  const privacyManifest = clone(basePrivacyManifest);
+  privacyManifest.dataTypes.find((item) => item.id === 'deviceOrOtherIds').optional = true;
+  assert.throws(
+    () => validate({ privacyManifest }),
+    /requires non-optional device or installation ID disclosure/,
+  );
+});
+
+test('rejects omitting automatic Firebase session interactions', () => {
+  const privacyManifest = clone(basePrivacyManifest);
+  privacyManifest.dataTypes.find((item) => item.id === 'appInteractions').collected = false;
+  assert.throws(
+    () => validate({ privacyManifest }),
+    /requires non-optional, non-linked app interaction disclosure/,
   );
 });
 
@@ -123,6 +141,11 @@ test('accepts a complete internally consistent approved fixture', () => {
   const privacyManifest = clone(basePrivacyManifest);
   const submissionManifest = clone(baseSubmissionManifest);
   const deviceManifest = clone(baseDeviceManifest);
+
+  delete privacyManifest.candidate.status;
+  delete privacyManifest.candidate.replacementBuildNumber;
+  privacyManifest.binaryEvidence.binaryScan = 'passed';
+  delete privacyManifest.binaryEvidence.supersessionEvidenceRef;
 
   privacyManifest.state = 'approved';
   privacyManifest.approvalAllowed = true;

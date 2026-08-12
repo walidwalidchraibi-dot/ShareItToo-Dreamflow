@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "verified-artifact-ready-immediate-reverification-pending",
+  "status": "superseded-privacy-rescan-failed-replacement-pending",
   "submissionAllowed": false,
   "track": "internal",
   "candidate": {
@@ -52,6 +52,8 @@
     "credentialsInRepository": true
   },
   "evidenceRef": "docs/evidence/b11/android-candidate-2026081116.json",
+  "supersessionEvidenceRef": "docs/evidence/b11/android-candidate-2026081116-superseded-privacy-rescan-20260812.json",
+  "replacementBuildNumber": "2026081201",
   "containsSecrets": false,
   "containsReviewCredentials": false
 }
