@@ -29,6 +29,16 @@ const decisionKeys = [
   'legalHoldProcess',
 ];
 
+const providerEvidencePath = 'docs/evidence/b11/privacy-provider-retention-sources-20260812.json';
+
+const requiredOfficialSources = [
+  ['Firebase Cloud Messaging', 'https://firebase.google.com/support/privacy/', 'within 180 days'],
+  ['Firebase Crashlytics', 'https://firebase.google.com/support/privacy/', 'retained for 90 days'],
+  ['Google Maps Platform', 'https://developers.google.com/maps/security/compliance/security-compliance', 'no single fixed retention period'],
+  ['Google Play', 'https://support.google.com/googleplay/android-developer/answer/10787469?hl=en', 'Data safety form'],
+  ['Google Play', 'https://support.google.com/googleplay/android-developer/answer/13327111?hl=en', 'public web resource'],
+];
+
 function fail(message) {
   throw new Error(message);
 }
@@ -94,11 +104,45 @@ function assertSourceContracts(root, sourceTexts) {
   if (!privacy.includes('Löschung')) fail('In-app privacy information must disclose deletion.');
 }
 
+function assertProviderEvidence(root, evidenceTexts) {
+  let evidence;
+  try {
+    evidence = JSON.parse(text(root, evidenceTexts, providerEvidencePath));
+  } catch (error) {
+    fail(`Provider-retention evidence must be valid JSON: ${error.message}`);
+  }
+  assertNoSensitiveData(evidence, 'provider-retention evidence');
+  if (evidence.schemaVersion !== 1
+      || evidence.kind !== 'privacy-provider-retention-source-review'
+      || evidence.status !== 'official-sources-reviewed-owner-and-legal-approval-open') {
+    fail('Provider-retention evidence must remain an official-source review with owner and legal approval open.');
+  }
+  if (!Array.isArray(evidence.sources)) fail('Provider-retention evidence must contain official sources.');
+  for (const [provider, url, marker] of requiredOfficialSources) {
+    const source = evidence.sources.find((entry) => entry?.provider === provider && entry?.url === url);
+    if (!source || typeof source.officialFact !== 'string' || !source.officialFact.includes(marker)) {
+      fail(`Provider-retention evidence is missing the official ${provider} source contract: ${marker}.`);
+    }
+  }
+  const boundaries = object(evidence.boundaries, 'provider-retention evidence.boundaries');
+  if (boundaries.officialDocumentationReviewed !== true
+      || boundaries.providerContractAcceptedByOwner !== false
+      || boundaries.legalApproval !== false
+      || boundaries.storeFormSubmitted !== false
+      || boundaries.publicRoutesChanged !== false
+      || boundaries.productionChanged !== false
+      || boundaries.containsSecrets !== false
+      || boundaries.containsAccountData !== false) {
+    fail('Provider-retention evidence must preserve the reviewed-but-unapproved release boundary.');
+  }
+}
+
 export function validateRetentionDeletionReadiness({
   root,
   retentionManifest,
   privacyManifest,
   sourceTexts = {},
+  evidenceTexts = {},
   requireApproved = false,
 }) {
   const retention = object(retentionManifest, 'store/retention-deletion-readiness.json');
@@ -123,6 +167,7 @@ export function validateRetentionDeletionReadiness({
     if (sha256(text(root, sourceTexts, path)) !== sourceMap.get(path)) fail(`sourceInventory hash is stale: ${path}.`);
   }
   assertSourceContracts(root, sourceTexts);
+  assertProviderEvidence(root, evidenceTexts);
 
   const controls = object(retention.implementedControls, 'implementedControls');
   if (controls.accountErasure?.status !== 'implemented-integration-covered'
@@ -156,17 +201,32 @@ export function validateRetentionDeletionReadiness({
 
   const processors = object(retention.externalProcessors, 'externalProcessors');
   for (const processor of ['firebaseCloudMessaging', 'firebaseCrashlytics', 'googleMapsPlatform']) {
-    if (typeof processors[processor]?.retentionOwnerVerified !== 'boolean'
-        || typeof processors[processor]?.deletionProcedureVerified !== 'boolean') {
-      fail(`${processor} verification fields must be boolean.`);
+    const processorState = object(processors[processor], `externalProcessors.${processor}`);
+    exactKeys(processorState, [
+      'retentionOwnerVerified',
+      'deletionProcedureVerified',
+      'officialDocumentationReviewed',
+      'officialEvidenceRef',
+      'ownerEvidenceRef',
+    ], `externalProcessors.${processor}`);
+    if (typeof processorState.retentionOwnerVerified !== 'boolean'
+        || typeof processorState.deletionProcedureVerified !== 'boolean'
+        || processorState.officialDocumentationReviewed !== true
+        || processorState.officialEvidenceRef !== providerEvidencePath) {
+      fail(`${processor} must keep boolean verification flags and reference the reviewed official-source evidence.`);
     }
-    const verified = processors[processor].retentionOwnerVerified
-      && processors[processor].deletionProcedureVerified;
-    if (decisions.externalProcessorRetention.status === 'open' && verified) {
-      fail(`${processor} must remain unverified until owner evidence exists.`);
+    const verified = processorState.retentionOwnerVerified
+      && processorState.deletionProcedureVerified;
+    if (decisions.externalProcessorRetention.status === 'open'
+        && (verified || processorState.ownerEvidenceRef !== null)) {
+      fail(`${processor} must remain unverified and without owner evidence while the owner decision is open.`);
     }
-    if (decisions.externalProcessorRetention.status === 'closed' && !verified) {
-      fail(`${processor} must be verified when external processor retention is closed.`);
+    if (decisions.externalProcessorRetention.status === 'closed'
+        && (!verified
+          || typeof processorState.ownerEvidenceRef !== 'string'
+          || !processorState.ownerEvidenceRef.startsWith('docs/evidence/b11/')
+          || processorState.ownerEvidenceRef === providerEvidencePath)) {
+      fail(`${processor} requires separate owner evidence when external processor retention is closed.`);
     }
   }
   if (retention.storeGate?.privacyDecision !== 'retentionAndDeletionSchedule'

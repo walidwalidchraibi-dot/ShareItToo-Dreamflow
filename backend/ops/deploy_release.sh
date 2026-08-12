@@ -5,6 +5,7 @@ task_backend_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 task_environment="${1:-}"
 task_commit="${2:-}"
 task_enable_staging_fcm="${ENABLE_STAGING_FCM:-0}"
+task_node_binary="${NODE_BINARY:-node}"
 
 if [[ "$task_environment" != staging && "$task_environment" != production ]]; then
   echo "Usage: $0 <staging|production> <40-character-commit>" >&2
@@ -54,7 +55,7 @@ else
   if [[ "$task_enable_staging_fcm" == 1 ]]; then
     FIREBASE_PROJECT_ID="${FIREBASE_PROJECT_ID:-}" \
     FIREBASE_SERVICE_ACCOUNT_HOST_FILE="${FIREBASE_SERVICE_ACCOUNT_HOST_FILE:-}" \
-      node "$task_backend_root/ops/validate_fcm_staging_secret.mjs"
+      "$task_node_binary" "$task_backend_root/ops/validate_fcm_staging_secret.mjs"
     task_compose_args+=(-f "$task_backend_root/compose.staging.fcm.yml")
     task_fcm_enabled=true
   fi

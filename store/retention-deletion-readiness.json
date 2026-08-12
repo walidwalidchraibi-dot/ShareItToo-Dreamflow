@@ -5,7 +5,7 @@
   "sourceInventory": [
     {"path": "backend/src/app.js", "sha256": "65c7d2b78cc891f193f3cf52af80e3c269b8f59b0899b3b7f3183a62b91c3d5c"},
     {"path": "backend/src/privacy_export.js", "sha256": "9d2812fe72ad3639a04956412ca02ac1165937d90b2b5b7e736098deded74877"},
-    {"path": "backend/src/account_actions.js", "sha256": "76f06a08d76c5b98afc77bff991c1ad949451414fb21f62ceee797e11ce45ffb"},
+    {"path": "backend/src/account_actions.js", "sha256": "46d219dff67340a577a079ae043cc767f88eba31785dbdcb8183bab39a69ff83"},
     {"path": "backend/src/config.js", "sha256": "8eaaf66fd60788068277fd41a2fbbe5fe3087a609072db8b82af1cf83fde24aa"},
     {"path": "backend/sql/schema.sql", "sha256": "8534006cf23be1a3376bc4ea2952a2d0317028aa4c3c8a70f0cba5072ff969a6"},
     {"path": "backend/sql/migrations/006_b7_communications.up.sql", "sha256": "f1452d85f736cc013c33747ec6de71a9d139a1b6f993eb39f591171cc2a1dd83"},
@@ -46,15 +46,24 @@
   "externalProcessors": {
     "firebaseCloudMessaging": {
       "retentionOwnerVerified": false,
-      "deletionProcedureVerified": false
+      "deletionProcedureVerified": false,
+      "officialDocumentationReviewed": true,
+      "officialEvidenceRef": "docs/evidence/b11/privacy-provider-retention-sources-20260812.json",
+      "ownerEvidenceRef": null
     },
     "firebaseCrashlytics": {
       "retentionOwnerVerified": false,
-      "deletionProcedureVerified": false
+      "deletionProcedureVerified": false,
+      "officialDocumentationReviewed": true,
+      "officialEvidenceRef": "docs/evidence/b11/privacy-provider-retention-sources-20260812.json",
+      "ownerEvidenceRef": null
     },
     "googleMapsPlatform": {
       "retentionOwnerVerified": false,
-      "deletionProcedureVerified": false
+      "deletionProcedureVerified": false,
+      "officialDocumentationReviewed": true,
+      "officialEvidenceRef": "docs/evidence/b11/privacy-provider-retention-sources-20260812.json",
+      "ownerEvidenceRef": null
     }
   },
   "requiredDecisions": {

@@ -13,8 +13,8 @@ const basePrivacy = JSON.parse(readFileSync(resolve(root, 'store/privacy-disclos
 const clone = (value) => structuredClone(value);
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 
-function validate({ retentionManifest = clone(baseRetention), privacyManifest = clone(basePrivacy), sourceTexts = {}, requireApproved = false } = {}) {
-  return validateRetentionDeletionReadiness({ root, retentionManifest, privacyManifest, sourceTexts, requireApproved });
+function validate({ retentionManifest = clone(baseRetention), privacyManifest = clone(basePrivacy), sourceTexts = {}, evidenceTexts = {}, requireApproved = false } = {}) {
+  return validateRetentionDeletionReadiness({ root, retentionManifest, privacyManifest, sourceTexts, evidenceTexts, requireApproved });
 }
 
 test('accepts the honest fail-closed retention draft', () => {
@@ -55,6 +55,44 @@ test('rejects account data in the retention manifest', () => {
   assert.throws(() => validate({ retentionManifest }), /must not contain an email address/);
 });
 
+test('rejects a provider evidence reference whose official facts are incomplete', () => {
+  const path = 'docs/evidence/b11/privacy-provider-retention-sources-20260812.json';
+  const changed = readFileSync(resolve(root, path), 'utf8').replace('within 180 days', 'after an unspecified period');
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: changed } }),
+    /Firebase Cloud Messaging source contract: within 180 days/,
+  );
+});
+
+test('rejects provider evidence that prematurely claims owner approval', () => {
+  const path = 'docs/evidence/b11/privacy-provider-retention-sources-20260812.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.boundaries.providerContractAcceptedByOwner = true;
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /reviewed-but-unapproved release boundary/,
+  );
+});
+
+test('rejects owner verification without a separate owner evidence reference', () => {
+  const retentionManifest = clone(baseRetention);
+  const privacyManifest = clone(basePrivacy);
+  privacyManifest.requiredDecisions.retentionAndDeletionSchedule.status = 'closed';
+  const externalDecision = retentionManifest.requiredDecisions.externalProcessorRetention;
+  externalDecision.status = 'closed';
+  externalDecision.value = 'approved-external-retention';
+  externalDecision.evidenceRef = 'docs/evidence/b11/retention-external-owner.json';
+  for (const processor of Object.values(retentionManifest.externalProcessors)) {
+    processor.retentionOwnerVerified = true;
+    processor.deletionProcedureVerified = true;
+  }
+  retentionManifest.storeGate.status = 'closed';
+  assert.throws(
+    () => validate({ retentionManifest, privacyManifest }),
+    /requires separate owner evidence/,
+  );
+});
+
 test('accepts a fully evidence-backed approved fixture', () => {
   const retentionManifest = clone(baseRetention);
   const privacyManifest = clone(basePrivacy);
@@ -71,6 +109,7 @@ test('accepts a fully evidence-backed approved fixture', () => {
   for (const processor of Object.values(retentionManifest.externalProcessors)) {
     processor.retentionOwnerVerified = true;
     processor.deletionProcedureVerified = true;
+    processor.ownerEvidenceRef = 'docs/evidence/b11/retention-external-owner.json';
   }
   assert.equal(validate({ retentionManifest, privacyManifest, requireApproved: true }).state, 'approved');
 });

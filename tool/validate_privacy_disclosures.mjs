@@ -12,6 +12,7 @@ const sourcePaths = [
   'ios/Runner/PrivacyInfo.xcprivacy',
   'lib/screens/legal_privacy_screen.dart',
   'lib/screens/privacy_info_screen.dart',
+  'backend/src/account_actions.js',
   'backend/src/privacy_export.js',
   'backend/src/security.js',
   'lib/services/firebase_runtime.dart',
@@ -226,6 +227,22 @@ function assertSourceContracts({ root, sourceTexts }) {
       'App-Sitzungsdaten',
     ]) {
       if (!source.includes(marker)) fail(`The ${label} is missing the truthful disclosure marker: ${marker}.`);
+    }
+  }
+
+  const publicPrivacy = sourceText(root, sourceTexts, 'backend/src/account_actions.js');
+  for (const marker of [
+    'Google Maps Platform',
+    'Firebase Cloud Messaging',
+    'Firebase Crashlytics',
+    'bis zu 180 Tagen',
+    '90 Tage',
+    'keine dauerhafte Hintergrund- oder Live-Ortung',
+    'keine aktivierte Echtgeld-Zahlungsübertragung an Stripe',
+    'https://shareittoo.com/account-deletion',
+  ]) {
+    if (!publicPrivacy.includes(marker)) {
+      fail(`Public privacy draft is missing the evidenced disclosure marker: ${marker}.`);
     }
   }
 }

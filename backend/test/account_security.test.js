@@ -130,3 +130,28 @@ test('public compliance pages stay visibly fail-closed before legal approval', (
   assert.match(deletion, /data-sit-public-page="account-deletion"/);
   assert.match(deletion, /data-sit-compliance-status="operational"/);
 });
+
+test('approved public privacy copy covers the evidenced current data flows and deletion limits', () => {
+  const privacy = accountActions.publicPrivacyPage({
+    compliance: {
+      approved: true,
+      providerName: 'Example Provider',
+      providerAddress: 'Example Address',
+      privacyEmail: 'privacy-contact.invalid',
+      effectiveDate: '2026-08-12',
+    },
+  });
+
+  assert.match(privacy, /data-sit-compliance-status="approved"/);
+  assert.match(privacy, /Example Provider/);
+  assert.match(privacy, /Google Maps Platform/);
+  assert.match(privacy, /Firebase Cloud Messaging/);
+  assert.match(privacy, /Firebase Crashlytics/);
+  assert.match(privacy, /bis zu 180 Tagen/);
+  assert.match(privacy, /90 Tage/);
+  assert.match(privacy, /keine dauerhafte Hintergrund- oder Live-Ortung/);
+  assert.match(privacy, /keine aktivierte Echtgeld-Zahlungsübertragung an Stripe/);
+  assert.match(privacy, /innerhalb von 14 Tagen/);
+  assert.match(privacy, /shareittoo\.com\/account-deletion/);
+  assert.doesNotMatch(privacy, /OpenAI/);
+});

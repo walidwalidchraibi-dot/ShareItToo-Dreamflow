@@ -42,6 +42,7 @@ test('production rejects the staging FCM flag before invoking Docker', async (t)
       PATH: `${fixture.root}:${process.env.PATH}`,
       DOCKER_CAPTURE: fixture.capture,
       MOCK_COMMIT: commit,
+      NODE_BINARY: process.execPath,
       ENABLE_STAGING_FCM: '1',
     },
   });
@@ -63,6 +64,7 @@ test('staging FCM validates the secret before Compose can run', async (t) => {
       PATH: `${fixture.root}:${process.env.PATH}`,
       DOCKER_CAPTURE: fixture.capture,
       MOCK_COMMIT: commit,
+      NODE_BINARY: process.execPath,
       ENABLE_STAGING_FCM: '1',
       FIREBASE_PROJECT_ID: 'shareittoo-staging',
       FIREBASE_SERVICE_ACCOUNT_HOST_FILE: join(fixture.root, 'missing.json'),

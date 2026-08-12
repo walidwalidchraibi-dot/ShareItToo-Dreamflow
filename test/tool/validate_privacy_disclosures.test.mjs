@@ -110,6 +110,18 @@ test('rejects privacy copy that hides the precise on-demand location flow', () =
   );
 });
 
+test('rejects a public privacy draft that hides the current Firebase retention boundary', () => {
+  const path = 'backend/src/account_actions.js';
+  const privacyManifest = clone(basePrivacyManifest);
+  const changed = readFileSync(resolve(repositoryRoot, path), 'utf8')
+    .replace('bis zu 180 Tagen', 'nach einiger Zeit');
+  privacyManifest.sourceInventory.find((entry) => entry.path === path).sha256 = sha256(changed);
+  assert.throws(
+    () => validate({ privacyManifest, sourceTexts: { [path]: changed } }),
+    /Public privacy draft is missing the evidenced disclosure marker: bis zu 180 Tagen/,
+  );
+});
+
 test('rejects hiding the Google Maps integration found in the candidate', () => {
   const privacyManifest = clone(basePrivacyManifest);
   privacyManifest.externalServices.googleMapsPlatform.enabled = false;

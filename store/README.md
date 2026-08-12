@@ -90,7 +90,7 @@ ersetzt die Pflicht aber nicht.
 
 `store/privacy-disclosures.json` ist die maschinenlesbare, quell- und
 binärgebundene Grundlage für Google Play Data Safety und Apple App Privacy.
-Sie inventarisiert aktuell 17 Datentypen und acht Dienste bzw. technische
+Sie inventarisiert aktuell 18 Datentypen und acht Dienste bzw. technische
 Empfänger. Der signierte Android-Kandidat enthält neben Firebase Cloud
 Messaging und Crashlytics auch die aktivierte Google-Maps-Platform-Anbindung.
 Präziser Standort bleibt deshalb konservativ deklariert; die
@@ -127,8 +127,13 @@ Der Entwurf dokumentiert außerdem ehrlich: Es gibt noch keinen allgemeinen
 Kategorien-Purge, keinen belegten Legal-Hold-Ablauf, keine automatische
 Bereinigung abgelaufener Datenbankzeilen und keine kontospezifische Löschung
 aus bereits erzeugten Backups. Die beobachtete Backup-Rotation beträgt 14
-Tage; Firebase- und Maps-Aufbewahrung/Löschung ist noch nicht durch den
-Eigentümer bestätigt. Prüfung:
+Tage. Die veröffentlichten Firebase-/Maps-Angaben wurden anhand der offiziellen
+Quellen in
+`docs/evidence/b11/privacy-provider-retention-sources-20260812.json` geprüft;
+Vertragseinstellungen, tatsächliche Löschverfahren und Rechtsfreigabe sind
+weiterhin nicht durch den Eigentümer bestätigt. Das getrennte
+Entscheidungsblatt liegt in
+`docs/operations/B11_LEGAL_PRIVACY_OWNER_DECISION_PACKET_2026-08-12.md`. Prüfung:
 
 ```text
 node tool/validate_retention_deletion_readiness.mjs

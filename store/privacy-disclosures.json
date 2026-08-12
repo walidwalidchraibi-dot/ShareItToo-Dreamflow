@@ -35,6 +35,10 @@
       "sha256": "0f64ea701cc47795f3752fdb4b66372cd3b879689ad2c230f1fc5e5923637b3a"
     },
     {
+      "path": "backend/src/account_actions.js",
+      "sha256": "46d219dff67340a577a079ae043cc767f88eba31785dbdcb8183bab39a69ff83"
+    },
+    {
       "path": "backend/src/privacy_export.js",
       "sha256": "9d2812fe72ad3639a04956412ca02ac1165937d90b2b5b7e736098deded74877"
     },

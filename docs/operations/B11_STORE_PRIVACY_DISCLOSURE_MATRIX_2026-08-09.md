@@ -193,9 +193,15 @@ Technisch erhalten bleiben nur die ausgewiesenen pseudonymen Buchungs-,
 Finanz-, Zustell- und Auditnachweise. Deren konkrete Rechtsfristen sind noch
 nicht festgelegt. Ebenfalls offen bleiben der allgemeine Kategorien-Purge,
 abgelaufene Datenbankzeilen, Legal Hold, kontospezifische Löschung aus bereits
-erzeugten Backups sowie die verifizierte Aufbewahrung/Löschung bei Firebase und
-Google Maps. Die vorhandene Backup-Rotation löscht betriebliche Sicherungen
-nach 14 Tagen; das ist keine bereits freigegebene Rechtsfrist.
+erzeugten Backups sowie die durch den Betreiber bestätigte Aufbewahrung/Löschung
+bei Firebase und Google Maps. Die offiziellen Anbieterinformationen wurden
+inzwischen in
+`docs/evidence/b11/privacy-provider-retention-sources-20260812.json` geprüft;
+Vertragseinstellungen, Löschverfahren und Rechtsfreigabe bleiben offen. Die
+vorhandene Backup-Rotation löscht betriebliche Sicherungen nach 14 Tagen; das
+ist keine bereits freigegebene Rechtsfrist. Das zugehörige, bewusst noch nicht
+freigegebene Entscheidungsblatt ist
+`docs/operations/B11_LEGAL_PRIVACY_OWNER_DECISION_PACKET_2026-08-12.md`.
 
 Der Validator akzeptiert diesen ehrlichen Entwurf, verweigert jedoch
 `--require-approved`, solange die neun Eigentümer-/Rechtsentscheidungen und
@@ -243,7 +249,10 @@ Kandidatennachweise liegen unter `docs/evidence/b11/`.
 
 Der ergänzende Aufbewahrungs-/Löschentwurf liegt in
 `store/retention-deletion-readiness.json`. Er ist fail-closed, enthält keine
-Kontodaten oder Zugangsdaten und wird im Release-Preflight immer geprüft.
+Kontodaten oder Zugangsdaten, prüft die offiziellen Anbieterquellen inhaltlich
+und wird im Release-Preflight immer geprüft. Die erweiterte öffentliche
+Datenschutzfassung ist technisch vorbereitet, bleibt aber vor Anbieter-,
+Aufbewahrungs- und Rechtsfreigabe weiter gesperrt.
 
 Dies ist noch nicht der abschließende plattformübergreifende Store-Nachweis:
 Ein IPA liegt nicht vor, Xcode und Apple-Developer-Zugang fehlen, die gezählte
