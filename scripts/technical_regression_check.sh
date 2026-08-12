@@ -94,6 +94,10 @@ node --check tool/provision_staging_test_accounts.mjs
 node --test test/tool/provision_staging_test_accounts.test.mjs
 node --check tool/prepare_store_screenshot_fixture.mjs
 node --test test/tool/prepare_store_screenshot_fixture.test.mjs
+node --check tool/clean_staging_store_feed.mjs
+node --test test/tool/clean_staging_store_feed.test.mjs
+node --check tool/validate_google_play_screenshot_readiness.mjs
+node --test test/tool/validate_google_play_screenshot_readiness.test.mjs
 node --check tool/run_staging_synthetic_booking.mjs
 node --test test/tool/run_staging_synthetic_booking.test.mjs
 node --check tool/run_isolated_android_role_booking_diagnostic.mjs
