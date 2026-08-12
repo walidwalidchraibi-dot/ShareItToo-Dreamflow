@@ -45,7 +45,7 @@
     "directInstallAndLaunch": "passed",
     "listingSignalTruthfulness": "passed",
     "storeScreenshotFixture": "passed",
-    "crashlyticsMappingAndNativeSymbols": "mapping-uploaded-native-symbols-packaged-console-verification-pending",
+    "crashlyticsMappingAndNativeSymbols": "mapping-and-native-symbols-uploaded-console-verification-pending",
     "crashlyticsReleaseAssignment": "pending",
     "guestAppLinks": "passed",
     "authenticatedSessionRestore": "passed",
@@ -91,7 +91,8 @@
     "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081116.json",
     "originalAabMappingUploaded": true,
     "nativeSymbolsPackaged": true,
-    "nativeSymbolUploadPending": true,
+    "nativeSymbolUploadPending": false,
+    "nativeSymbolUploadPassed": true,
     "controlledEventPending": true,
     "consoleReleaseAssignmentPending": true
   },
