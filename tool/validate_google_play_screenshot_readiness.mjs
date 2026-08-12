@@ -15,8 +15,8 @@ export function validateGooglePlayScreenshotReadiness({
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   if (evidence.schemaVersion !== 1 ||
       evidence.kind !== 'google-play-feed-screenshot-readiness' ||
-      evidence.status !== 'blocked-legacy-technical-listings-visible') {
-    fail('Feed screenshot readiness must preserve the observed blocked state.');
+      evidence.status !== 'passed-feed-clean-two-local-candidates-not-uploaded') {
+    fail('Feed screenshot readiness must preserve the verified local candidate state.');
   }
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
       evidence.candidate?.versionName !== '1.0.0' ||
@@ -31,19 +31,33 @@ export function validateGooglePlayScreenshotReadiness({
       evidence.fixture?.curatedListingCount !== 4 ||
       evidence.fixture?.createdDuringObservation !== 0 ||
       evidence.feedObservation?.curatedListingVisible !== true ||
-      evidence.feedObservation?.legacyTechnicalListingsVisible !== true ||
-      evidence.feedObservation?.storeScreenshotAccepted !== false) {
-    fail('Feed screenshot observation is incomplete or prematurely accepted.');
+      evidence.feedObservation?.legacyTechnicalListingsVisible !== false ||
+      evidence.feedObservation?.placeholderImagesVisible !== false ||
+      evidence.feedObservation?.technicalFixtureCopyVisible !== false ||
+      evidence.feedObservation?.protectedActiveBookings !== 6 ||
+      evidence.feedObservation?.protectedPublicListingsObserved !== 6 ||
+      evidence.feedObservation?.storeScreenshotAccepted !== true ||
+      evidence.feedObservation?.validatedLocalCandidates !== 2) {
+    fail('Feed screenshot observation is incomplete or contradicts the verified cleanup.');
   }
-  if (evidence.requiredRemediation?.deletionAuthorized !== false ||
-      evidence.requiredRemediation?.productionChangeAuthorized !== false) {
+  if (evidence.completedRemediation?.method !==
+        'pause-unreferenced-and-neutralize-protected-staging-listings' ||
+      evidence.completedRemediation?.deletionPerformed !== false ||
+      evidence.completedRemediation?.protectedBookingsPreserved !== true ||
+      evidence.completedRemediation?.deletionAuthorized !== false ||
+      evidence.completedRemediation?.productionChangeAuthorized !== false) {
     fail('Screenshot remediation must not claim destructive or production authority.');
   }
+  if (!Array.isArray(evidence.candidateEvidenceRefs) || evidence.candidateEvidenceRefs.length !== 2) {
+    fail('Screenshot readiness must bind both validated local candidates.');
+  }
+  for (const ref of evidence.candidateEvidenceRefs) readFileSync(resolve(repositoryRoot, ref));
   const boundaries = evidence.boundaries ?? {};
-  if (Object.keys(boundaries).length !== 9 ||
-      Object.values(boundaries).some((value) => value !== false) ||
+  if (Object.keys(boundaries).length !== 9 || boundaries.screenshotUploaded !== false ||
+      boundaries.listingDeleted !== false || boundaries.listingPaused !== true ||
+      Object.entries(boundaries).some(([key, value]) => key !== 'listingPaused' && value !== false) ||
       JSON.stringify(evidence).includes('@')) {
-    fail('Screenshot readiness must remain sanitized and side-effect free.');
+    fail('Screenshot readiness must remain sanitized and report only the bounded Staging pause.');
   }
   return { status: evidence.status, curatedListingCount: evidence.fixture.curatedListingCount };
 }

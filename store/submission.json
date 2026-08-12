@@ -84,7 +84,10 @@
     "googlePlay": {
       "storeIcon": "store/assets/google-play/icon-512.png",
       "featureGraphic": "store/assets/google-play/feature-graphic-1024x500.png",
-      "phoneScreenshots": []
+      "phoneScreenshots": [
+        "store/assets/google-play/phone-screenshots/01-feed.png",
+        "store/assets/google-play/phone-screenshots/02-camera-detail.png"
+      ]
     }
   },
   "sourceDocuments": [

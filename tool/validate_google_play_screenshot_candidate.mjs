@@ -19,7 +19,7 @@ function pngDimensions(bytes) {
 export function validateGooglePlayScreenshotCandidate({
   repositoryRoot,
   evidencePath = resolve(repositoryRoot,
-    'docs/evidence/b11/google-play-screenshot-candidate-listing-detail-20260812.json'),
+    'docs/evidence/b11/google-play-screenshot-candidate-feed-20260812.json'),
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'google-play-screenshot-candidate' ||
@@ -32,9 +32,9 @@ export function validateGooglePlayScreenshotCandidate({
     fail('Screenshot candidate is not bound to the exact internal build.');
   }
   const scene = evidence.scene ?? {};
-  if (scene.id !== 'listing-detail' || scene.locale !== 'de-DE' ||
+  if (!['feed', 'listing-detail'].includes(scene.id) || scene.locale !== 'de-DE' ||
       scene.syntheticContent !== true || scene.format !== 'png' ||
-      scene.storeFile !== 'store/assets/google-play/phone-screenshots/01-camera-detail.png') {
+      !/^store\/assets\/google-play\/phone-screenshots\/0[12]-[a-z-]+\.png$/u.test(scene.storeFile)) {
     fail('Screenshot candidate scene metadata is invalid.');
   }
   const path = resolve(repositoryRoot, scene.storeFile);
@@ -46,6 +46,15 @@ export function validateGooglePlayScreenshotCandidate({
       bytes.length !== scene.byteSize ||
       createHash('sha256').update(bytes).digest('hex') !== scene.sha256) {
     fail('Screenshot dimensions, size, or digest no longer match the evidence.');
+  }
+  if (scene.id === 'feed') {
+    const cleanup = evidence.feedCleanup ?? {};
+    if (cleanup.protectedActiveBookings !== 6 || cleanup.protectedPublicListingsObserved !== 6 ||
+        cleanup.placeholderImagesRemaining !== 0 || cleanup.technicalCopyRemaining !== 0 ||
+        cleanup.publicTechnicalTitlesRemaining !== 0 || cleanup.listingDeleted !== false ||
+        scene.width !== 1080 || scene.height !== 1920) {
+      fail('Feed screenshot cleanup or recommended dimensions are incomplete.');
+    }
   }
   const validation = evidence.validation ?? {};
   if (Object.keys(validation).length !== 8 ||

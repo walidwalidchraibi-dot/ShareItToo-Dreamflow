@@ -19,22 +19,22 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts the honest blocked feed observation', () => {
+test('accepts the verified clean feed with two local candidates', () => {
   assert.deepEqual(validateGooglePlayScreenshotReadiness({ repositoryRoot }), {
-    status: 'blocked-legacy-technical-listings-visible',
+    status: 'passed-feed-clean-two-local-candidates-not-uploaded',
     curatedListingCount: 4,
   });
 });
 
-test('rejects accepting a screenshot while technical fixtures remain visible', async (t) => {
-  const data = await fixture((evidence) => { evidence.feedObservation.storeScreenshotAccepted = true; });
+test('rejects claiming a clean feed while technical fixtures remain visible', async (t) => {
+  const data = await fixture((evidence) => { evidence.feedObservation.legacyTechnicalListingsVisible = true; });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayScreenshotReadiness({ repositoryRoot, ...data }),
-    /prematurely accepted/);
+    /contradicts/);
 });
 
 test('rejects claiming deletion authority', async (t) => {
-  const data = await fixture((evidence) => { evidence.requiredRemediation.deletionAuthorized = true; });
+  const data = await fixture((evidence) => { evidence.completedRemediation.deletionAuthorized = true; });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayScreenshotReadiness({ repositoryRoot, ...data }),
     /destructive or production authority/);

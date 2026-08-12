@@ -72,9 +72,12 @@ export function validateGooglePlayAppContentHandoff({
       tasks.health.proposedAnswer !== false ||
       tasks.categoryAndContact.category !== 'Shopping' ||
       tasks.storeListing.copyAndGraphicsPrepared !== true ||
-      tasks.storeListing.phoneScreenshotsValidated !== false ||
+      tasks.storeListing.phoneScreenshotsValidated !== true ||
+      tasks.storeListing.validatedPhoneScreenshotCount !== 2 ||
+      tasks.storeListing.recommendedPhoneScreenshotTarget !== 4 ||
+      tasks.storeListing.uploadedToPlayConsole !== false ||
       tasks.storeListing.status !==
-        'phone-feed-screenshot-blocked-and-public-pages-pending' ||
+        'two-phone-screenshots-validated-local-and-public-pages-pending' ||
       tasks.storeListing.screenshotReadinessRef !==
         'docs/evidence/b11/google-play-feed-screenshot-readiness-20260812.json') {
     fail('One or more prepared Play answers no longer match the bounded product truth.');

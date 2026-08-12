@@ -8,7 +8,7 @@ import { validateGooglePlayScreenshotCandidate } from '../../tool/validate_googl
 
 const repositoryRoot = new URL('../../', import.meta.url).pathname;
 const canonical = JSON.parse(await readFile(new URL(
-  '../../docs/evidence/b11/google-play-screenshot-candidate-listing-detail-20260812.json', import.meta.url), 'utf8'));
+  '../../docs/evidence/b11/google-play-screenshot-candidate-feed-20260812.json', import.meta.url), 'utf8'));
 
 async function fixture(mutate) {
   const root = await mkdtemp(join(tmpdir(), 'sit-screenshot-candidate-'));
@@ -19,8 +19,18 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts the exact visually inspected local listing-detail candidate', () => {
+test('accepts the exact visually inspected local feed candidate', () => {
   assert.deepEqual(validateGooglePlayScreenshotCandidate({ repositoryRoot }), {
+    status: 'validated-local-not-uploaded', scene: 'feed', width: 1080, height: 1920,
+  });
+});
+
+test('accepts the exact visually inspected local listing-detail candidate', () => {
+  assert.deepEqual(validateGooglePlayScreenshotCandidate({
+    repositoryRoot,
+    evidencePath: new URL(
+      '../../docs/evidence/b11/google-play-screenshot-candidate-listing-detail-20260812.json', import.meta.url).pathname,
+  }), {
     status: 'validated-local-not-uploaded', scene: 'listing-detail', width: 1440, height: 1920,
   });
 });

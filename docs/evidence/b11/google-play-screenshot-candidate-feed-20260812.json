@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "google-play-screenshot-candidate",
   "status": "validated-local-not-uploaded",
-  "capturedAt": "2026-08-12T09:31:39Z",
+  "capturedAt": "2026-08-12T09:40:00Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
@@ -11,15 +11,15 @@
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
   },
   "scene": {
-    "id": "listing-detail",
+    "id": "feed",
     "locale": "de-DE",
     "syntheticContent": true,
-    "storeFile": "store/assets/google-play/phone-screenshots/02-camera-detail.png",
-    "width": 1440,
+    "storeFile": "store/assets/google-play/phone-screenshots/01-feed.png",
+    "width": 1080,
     "height": 1920,
     "format": "png",
-    "byteSize": 1915453,
-    "sha256": "9ddcc94abcb6052eb0712799587728cc6736873d1e4eb58980a4290365796b44"
+    "byteSize": 1763812,
+    "sha256": "2bbc97dee6d737c07c7ebf766cfec6d9f66e848b7bedde6eb39375ee7e565409"
   },
   "validation": {
     "exactInstalledCandidateObserved": true,
@@ -30,6 +30,14 @@
     "technicalFixtureCopyVisible": false,
     "unapprovedProtectionClaimVisible": false,
     "visualInspectionPassed": true
+  },
+  "feedCleanup": {
+    "protectedActiveBookings": 6,
+    "protectedPublicListingsObserved": 6,
+    "placeholderImagesRemaining": 0,
+    "technicalCopyRemaining": 0,
+    "publicTechnicalTitlesRemaining": 0,
+    "listingDeleted": false
   },
   "boundaries": {
     "screenshotUploaded": false,

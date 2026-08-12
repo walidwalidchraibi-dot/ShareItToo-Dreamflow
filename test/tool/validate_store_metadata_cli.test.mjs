@@ -144,6 +144,16 @@ test('rejects a missing Google Play app-content handoff binding', () => {
   assert.match(result.stderr, /appContentHandoff must be a non-empty string/);
 });
 
+test('rejects an unvalidated Google Play phone screenshot path', () => {
+  const result = runWithManifests({
+    mutateManifest: (manifest) => {
+      manifest.assets.googlePlay.phoneScreenshots[0] = 'store/assets/google-play/icon-512.png';
+    },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /exactly two validated local candidates/);
+});
+
 test('rejects a missing Apple TestFlight handoff binding', () => {
   const result = runWithManifests({
     mutateManifest: (manifest) => {

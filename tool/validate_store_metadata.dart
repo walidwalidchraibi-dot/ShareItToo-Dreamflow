@@ -129,6 +129,31 @@ void _validateGooglePlayFeatureGraphic(Directory root, String relativePath) {
   }
 }
 
+void _validateGooglePlayPhoneScreenshot(Directory root, String relativePath) {
+  final file = File('${root.path}/$relativePath');
+  if (!file.existsSync()) _fail('Missing Google Play phone screenshot: $relativePath');
+  final bytes = file.readAsBytesSync();
+  const signature = <int>[137, 80, 78, 71, 13, 10, 26, 10];
+  if (bytes.length < 33 || bytes.length > 8 * 1024 * 1024 ||
+      !List<int>.generate(8, (index) => bytes[index]).asMap().entries.every(
+          (entry) => entry.value == signature[entry.key]) ||
+      ascii.decode(bytes.sublist(12, 16)) != 'IHDR') {
+    _fail('Google Play phone screenshot must be a PNG no larger than 8 MB.');
+  }
+  int uint32(int offset) =>
+      (bytes[offset] << 24) |
+      (bytes[offset + 1] << 16) |
+      (bytes[offset + 2] << 8) |
+      bytes[offset + 3];
+  final width = uint32(16);
+  final height = uint32(20);
+  final longer = width > height ? width : height;
+  final shorter = width < height ? width : height;
+  if (shorter < 320 || longer > 3840 || longer > shorter * 2) {
+    _fail('Google Play phone screenshot dimensions violate Play requirements.');
+  }
+}
+
 Map<String, dynamic> _map(Object? value, String field) {
   if (value is! Map) _fail('$field must be an object.');
   return value.cast<String, dynamic>();
@@ -741,8 +766,13 @@ void main(List<String> arguments) {
   _validateGooglePlayFeatureGraphic(
       root, _string(googleAssets, 'featureGraphic'));
   final phoneScreenshots = googleAssets['phoneScreenshots'];
-  if (phoneScreenshots is! List || phoneScreenshots.isNotEmpty) {
-    _fail('Google Play phone screenshots must remain empty until validated.');
+  if (phoneScreenshots is! List || phoneScreenshots.length != 2 ||
+      phoneScreenshots.any((value) => value is! String ||
+          !value.startsWith('store/assets/google-play/phone-screenshots/'))) {
+    _fail('Google Play phone screenshots must bind exactly two validated local candidates.');
+  }
+  for (final screenshot in phoneScreenshots.cast<String>()) {
+    _validateGooglePlayPhoneScreenshot(root, screenshot);
   }
 
   _maxRunes('Google title', googleTitle, 30);
