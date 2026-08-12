@@ -51,7 +51,7 @@
     "authenticatedSessionRestore": "passed",
     "offlineAuthenticatedProfile": "passed",
     "syntheticRoleBooking": "passed",
-    "authenticatedDeepLinks": "pending",
+    "authenticatedDeepLinks": "passed",
     "foregroundFcm": "passed",
     "backgroundFcm": "passed",
     "terminatedProcessFcm": "passed",
@@ -68,6 +68,12 @@
     "status": "passed",
     "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081116-20260812T001823Z.json",
     "protectedReviewFixtureUnchanged": true
+  },
+  "authenticatedDeepLinks": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081116-20260812T002954Z.json",
+    "protectedReviewFixtureUnchanged": true,
+    "protectedReviewSessionRestored": true
   },
   "logoutLifecycle": {
     "status": "passed",

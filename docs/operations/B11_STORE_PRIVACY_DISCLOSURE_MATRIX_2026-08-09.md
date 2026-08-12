@@ -223,7 +223,10 @@ Gast-App-Link-Diagnose sowie Abmeldung, Gastzustand nach Kaltstart und
 Push-Unterdrückung nach Abmeldung. Auch die kontrollierte
 Offline-/Realtime-Wiederherstellung desselben laufenden Chat-Prozesses ist nach
 15 Sekunden ohne Netz und anschließender Wiederherstellung bestanden.
-Authentifizierte Deep-Links, Store-Installation und die vollständige
+Die authentifizierten Links zu Angebot, abgeschlossener Buchung und gemeinsamem
+Chat sind in einer isolierten Zwei-Rollen-Prüfung ebenfalls bestanden; das
+geschützte Prüfkonto und seine aktive Buchung wurden danach vollständig
+wiederhergestellt. Store-Installation und die vollständige
 Geräte-/Accessibility-Matrix bleiben offen. Der aktuelle
 maschinenlesbare Datenschutzentwurf liegt in
 `store/privacy-disclosures.json`; er bindet 17 Datentypen, acht Dienste,

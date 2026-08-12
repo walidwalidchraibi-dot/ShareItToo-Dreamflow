@@ -29,6 +29,7 @@ node --check tool/prepare_android_device_test.mjs
 node --check tool/diagnose_android_app_links.mjs
 node --check tool/diagnose_android_authenticated_session.mjs
 node --check tool/diagnose_android_authenticated_links.mjs
+node --check tool/run_isolated_android_authenticated_links_diagnostic.mjs
 node --check tool/diagnose_android_offline_realtime.mjs
 node --check tool/run_staging_synthetic_booking.mjs
 node --check tool/prepare_store_screenshot_fixture.mjs

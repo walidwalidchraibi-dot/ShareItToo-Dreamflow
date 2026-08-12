@@ -625,6 +625,12 @@ function authenticatedDeepLinksFixture() {
       containsRawDeviceIdentifiers: false,
       containsReviewCredentials: false,
     },
+    isolation: {
+      protectedReviewFixtureUnchanged: true,
+      protectedReviewSessionRestored: true,
+      temporaryVaultRemovedAfterProbe: true,
+      containsReviewCredentials: false,
+    },
   });
   return fixture;
 }
@@ -1154,6 +1160,18 @@ test('authenticated deep-link evidence cannot claim push, hotspot, payment, or a
   assert.throws(
     () => validate(fixture),
     /must prove only the three identity-free Staging links while keeping store, matrix, hotspot, push, TalkBack, iOS, payment, and message gates open/,
+  );
+});
+
+test('authenticated deep-link evidence must restore the protected review fixture', () => {
+  const fixture = authenticatedDeepLinksFixture();
+  const ref = fixture.deviceManifest.candidate.android.authenticatedDeepLinks.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.isolation.protectedReviewSessionRestored = false;
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must preserve and restore the protected review fixture through an isolated temporary vault/,
   );
 });
 

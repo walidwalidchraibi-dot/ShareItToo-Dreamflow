@@ -1,0 +1,121 @@
+import assert from 'node:assert/strict';
+import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
+import test from 'node:test';
+
+import { runIsolatedAndroidAuthenticatedLinksDiagnostic } from '../../tool/run_isolated_android_authenticated_links_diagnostic.mjs';
+
+function fixture() {
+  const root = mkdtempSync(resolve(tmpdir(), 'sit-protected-authenticated-links-'));
+  const vaultFile = resolve(root, 'accounts.json');
+  writeFileSync(vaultFile, `${JSON.stringify({
+    schemaVersion: 1,
+    kind: 'sit-staging-synthetic-account-vault',
+    apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+    stripeLivemode: false,
+    status: 'synthetic-booking-active',
+    runId: 'private-review-run',
+    accounts: [
+      { role: 'owner', email: 'owner@example.invalid', password: 'private-owner-password' },
+      { role: 'renter', email: 'renter@example.invalid', password: 'private-renter-password' },
+    ],
+    syntheticBooking: {
+      workflowStatus: 'active',
+      paymentMode: 'memory',
+      stripeLivemode: false,
+      paymentEndpointCalled: false,
+    },
+  }, null, 2)}\n`, { mode: 0o600 });
+  chmodSync(vaultFile, 0o600);
+  return vaultFile;
+}
+
+const passedEvidence = {
+  status: 'passed-bounded-authenticated-deep-link-diagnostic',
+  boundaries: {
+    authenticatedDeepLinksPassed: true,
+    containsSecrets: false,
+    containsReviewCredentials: false,
+  },
+};
+
+test('isolates completed deep-link fixture and restores the protected review session', async () => {
+  const vaultFile = fixture();
+  const before = readFileSync(vaultFile, 'utf8');
+  const calls = [];
+  const result = await runIsolatedAndroidAuthenticatedLinksDiagnostic({
+    vaultFile,
+    lifecycleRunner: async (isolatedVaultFile) => {
+      const isolated = JSON.parse(readFileSync(isolatedVaultFile, 'utf8'));
+      assert.equal(isolated.syntheticBooking, undefined);
+      writeFileSync(isolatedVaultFile, `${JSON.stringify({
+        ...isolated,
+        status: 'synthetic-booking-completed',
+        syntheticBooking: {
+          workflowStatus: 'completed',
+          paymentMode: 'memory',
+          stripeLivemode: false,
+          paymentEndpointCalled: false,
+        },
+      }, null, 2)}\n`, { mode: 0o600 });
+      return {
+        status: 'passed-bounded-synthetic-role-booking-lifecycle',
+        paymentEndpointCalled: false,
+        stripeLivemode: false,
+      };
+    },
+    threadRunner: async (isolatedVaultFile) => {
+      const isolated = JSON.parse(readFileSync(isolatedVaultFile, 'utf8'));
+      isolated.syntheticBooking.threadId = 'private-thread-id';
+      writeFileSync(isolatedVaultFile, `${JSON.stringify(isolated, null, 2)}\n`, { mode: 0o600 });
+      return {
+        status: 'synthetic-booking-thread-ready',
+        workflowStatus: 'completed',
+        paymentEndpointCalled: false,
+        stripeLivemode: false,
+      };
+    },
+    ensureGuestRunner: async () => { calls.push('guest'); return true; },
+    restoreSessionRunner: async (account) => { calls.push(`restore-${account.role}`); return true; },
+    deepLinkRunner: async (isolatedVaultFile) => {
+      const isolated = JSON.parse(readFileSync(isolatedVaultFile, 'utf8'));
+      assert.equal(isolated.syntheticBooking.workflowStatus, 'completed');
+      calls.push('links');
+      return passedEvidence;
+    },
+  });
+
+  assert.deepEqual(calls, ['guest', 'restore-owner', 'links', 'guest', 'restore-owner']);
+  assert.equal(result.isolation.protectedReviewFixtureUnchanged, true);
+  assert.equal(result.isolation.protectedReviewSessionRestored, true);
+  assert.equal(readFileSync(vaultFile, 'utf8'), before);
+});
+
+test('restores the protected session after a failed isolated deep-link probe', async () => {
+  const vaultFile = fixture();
+  const before = readFileSync(vaultFile, 'utf8');
+  let restoreCount = 0;
+  await assert.rejects(
+    runIsolatedAndroidAuthenticatedLinksDiagnostic({
+      vaultFile,
+      lifecycleRunner: async () => ({
+        status: 'passed-bounded-synthetic-role-booking-lifecycle',
+        paymentEndpointCalled: false,
+        stripeLivemode: false,
+      }),
+      threadRunner: async () => ({
+        status: 'synthetic-booking-thread-ready',
+        workflowStatus: 'completed',
+        paymentEndpointCalled: false,
+        stripeLivemode: false,
+      }),
+      ensureGuestRunner: async () => true,
+      restoreSessionRunner: async () => { restoreCount += 1; return true; },
+      deepLinkRunner: async () => { throw new Error('private diagnostic failure'); },
+    }),
+    /private diagnostic failure/,
+  );
+  assert.equal(restoreCount, 2);
+  assert.equal(readFileSync(vaultFile, 'utf8'), before);
+});

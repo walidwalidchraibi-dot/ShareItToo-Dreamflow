@@ -69,6 +69,8 @@ node --check tool/diagnose_android_authenticated_session.mjs
 node --test test/tool/diagnose_android_authenticated_session.test.mjs
 node --check tool/diagnose_android_authenticated_links.mjs
 node --test test/tool/diagnose_android_authenticated_links.test.mjs
+node --check tool/run_isolated_android_authenticated_links_diagnostic.mjs
+node --test test/tool/run_isolated_android_authenticated_links_diagnostic.test.mjs
 node --check tool/provision_staging_test_accounts.mjs
 node --test test/tool/provision_staging_test_accounts.test.mjs
 node --check tool/prepare_store_screenshot_fixture.mjs

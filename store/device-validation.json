@@ -56,6 +56,15 @@
         "osVersion": "16",
         "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081116-20260812T001823Z.json"
       },
+      "authenticatedDeepLinks": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-12T00:29:54.956Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081116-20260812T002954Z.json"
+      },
       "controlledFcm": {
         "status": "passed",
         "capturedAt": "2026-08-11T23:06:44.841Z",

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import {
   chmodSync,
@@ -58,7 +58,8 @@ export async function runIsolatedAndroidRoleBookingDiagnostic({
   const isolatedVault = structuredClone(vault);
   delete isolatedVault.syntheticBooking;
   isolatedVault.status = 'fixture-verified-ready-for-login';
-  isolatedVault.runId = `${nonEmptyString(vault.runId, 'runId')}-isolated-role-booking`;
+  nonEmptyString(vault.runId, 'runId');
+  isolatedVault.runId = `role-booking-${randomBytes(8).toString('hex')}`;
   writeFileSync(isolatedVaultFile, `${JSON.stringify(isolatedVault, null, 2)}\n`, { mode: 0o600 });
   chmodSync(isolatedVaultFile, 0o600);
 
@@ -128,4 +129,3 @@ if (typeof process !== 'undefined' && process.argv?.[1] &&
     process.exitCode = 1;
   }
 }
-

@@ -613,6 +613,14 @@ function validateAndroidAuthenticatedDeepLinks(root, diagnostic, candidate) {
       || Object.entries(expectedBoundaries).some(([key, value]) => boundaries[key] !== value)) {
     fail(`${label}.evidence must prove only the three identity-free Staging links while keeping store, matrix, hotspot, push, TalkBack, iOS, payment, and message gates open.`);
   }
+  const isolation = object(evidence.isolation, `${label}.evidence.isolation`);
+  if (Object.keys(isolation).length !== 4
+      || isolation.protectedReviewFixtureUnchanged !== true
+      || isolation.protectedReviewSessionRestored !== true
+      || isolation.temporaryVaultRemovedAfterProbe !== true
+      || isolation.containsReviewCredentials !== false) {
+    fail(`${label}.evidence must preserve and restore the protected review fixture through an isolated temporary vault.`);
+  }
 }
 
 function validateAndroidLogoutLifecycle(root, diagnostic, candidate) {
