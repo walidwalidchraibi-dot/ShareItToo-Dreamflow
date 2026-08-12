@@ -109,7 +109,9 @@ Releaseprüfung `crashReleaseMapping` für diesen früheren Build nachweislich a
 eingebettete R8-Zuordnung, die Mapping-ID und alle drei nativen Symbolgruppen
 hashgebunden; die Originalzuordnung wurde erfolgreich zu Crashlytics geladen.
 Die nativen Symbole sind vollständig paketiert und stimmen bytegenau mit dem
-AAB überein, ihr separater Crashlytics-Upload bleibt jedoch offen. Der
+AAB überein. Aus den ungekürzten Bibliotheken wurden 22 gültige Breakpad-
+Module erzeugt und erfolgreich zu Crashlytics übertragen; der lokale
+Upload-Zwischenspeicher war anschließend vollständig geleert. Der
 kontrollierte Diagnoseweg war in diesem exakten Kandidaten absichtlich nicht
 einkompiliert. Deshalb wurde kein abweichender Binärstand unter derselben
 Buildidentität verwendet. Der bereinigte Laufzeitbefund und seine sichtbare

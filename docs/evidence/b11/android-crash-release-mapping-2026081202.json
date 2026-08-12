@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "android-crash-release-mapping",
-  "status": "mapping-uploaded-native-symbols-packaged-controlled-event-pending",
-  "capturedAt": "2026-08-12T21:23:11Z",
+  "status": "mapping-and-native-symbols-uploaded-controlled-event-pending",
+  "capturedAt": "2026-08-12T22:43:14Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
@@ -43,7 +43,10 @@
     "nativeSymbolsPresentForAllBundledAbis": "passed",
     "nativeSymbolsMatchStandaloneArchive": "passed",
     "nativeSymbolsPackagedForAllBundledAbis": "passed",
-    "nativeSymbolUploadToCrashlytics": "pending",
+    "nativeSymbolGeneration": "passed",
+    "nativeSymbolUploadToCrashlytics": "passed",
+    "nativeSymbolUploadBuildResult": "successful",
+    "nativeSymbolCacheDrainedAfterUpload": "passed",
     "originalAabMappingUploadedToCrashlytics": "passed",
     "uploadBuildResult": "successful",
     "controlledSanitizedCrashEvent": "pending",

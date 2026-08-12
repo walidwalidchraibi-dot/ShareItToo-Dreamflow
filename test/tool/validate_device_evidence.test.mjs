@@ -91,6 +91,11 @@ function crashProgressFixture() {
     deviceManifest.candidate.android.signingCertificateSha256;
   evidence.status = 'mapping-symbols-and-controlled-event-sent-console-pending';
   evidence.verifications.consoleReleaseAssignment = 'pending';
+  evidence.verifications.nativeSymbolsPackagedForAllBundledAbis = 'passed';
+  evidence.verifications.nativeSymbolGeneration = 'passed';
+  evidence.verifications.nativeSymbolUploadToCrashlytics = 'passed';
+  evidence.verifications.nativeSymbolUploadBuildResult = 'successful';
+  evidence.verifications.nativeSymbolCacheDrainedAfterUpload = 'passed';
   delete evidence.verifications.consoleObservedVersion;
   delete evidence.verifications.consoleObservedEventCount;
   delete evidence.verifications.consoleCustomKeysBoundToCandidate;
@@ -772,6 +777,20 @@ test('accepts the earlier mapping-uploaded event-pending progress stage', () => 
   evidence.boundaries.controlledStagingEventGenerated = false;
   writeEvidence(root, ref, evidence);
   assert.equal(validate({ root, deviceManifest }).state, 'testing');
+});
+
+test('rejects a completed native-symbol upload claim without cache-drain proof', () => {
+  const { root, deviceManifest, ref, evidence } = crashProgressFixture();
+  evidence.status = 'mapping-and-native-symbols-uploaded-controlled-event-pending';
+  evidence.verifications.controlledSanitizedCrashEvent = 'pending';
+  evidence.verifications.nativeSymbolCacheDrainedAfterUpload = 'pending';
+  delete evidence.verifications.deviceDiagnosticUi;
+  evidence.boundaries.controlledStagingEventGenerated = false;
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root, deviceManifest }),
+    /must prove the completed Crashlytics native-symbol upload and drained local cache/,
+  );
 });
 
 test('accepts mapping upload while keeping packaged native-symbol upload pending', () => {

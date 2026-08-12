@@ -1115,6 +1115,14 @@ function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
          verifications.nativeSymbolUploadToCrashlytics !== 'pending')) {
       fail(`${label} must distinguish packaged native symbols from a completed Crashlytics native-symbol upload.`);
     }
+    if (mappingUploadedEventPending &&
+        (verifications.nativeSymbolsPackagedForAllBundledAbis !== 'passed' ||
+         verifications.nativeSymbolGeneration !== 'passed' ||
+         verifications.nativeSymbolUploadToCrashlytics !== 'passed' ||
+         verifications.nativeSymbolUploadBuildResult !== 'successful' ||
+         verifications.nativeSymbolCacheDrainedAfterUpload !== 'passed')) {
+      fail(`${label} must prove the completed Crashlytics native-symbol upload and drained local cache.`);
+    }
     if (evidence.consoleObservation !== undefined) {
       const observation = object(evidence.consoleObservation, `${label}.consoleObservation`);
       isoTimestamp(observation.capturedAt, `${label}.consoleObservation.capturedAt`, { required: true });
