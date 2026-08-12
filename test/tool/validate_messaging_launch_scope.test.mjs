@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const threadScreen = readFileSync(resolve(root, 'lib/screens/message_thread_screen.dart'), 'utf8');
 const backend = readFileSync(resolve(root, 'backend/src/app.js'), 'utf8');
+const messageWorkflow = readFileSync(resolve(root, 'backend/src/message_workflow.js'), 'utf8');
 const technicalRegression = readFileSync(
   resolve(root, 'scripts/technical_regression_check.sh'),
   'utf8',
@@ -17,7 +18,10 @@ test('launch chat keeps text, image and location flows', () => {
   assert.match(threadScreen, /ImageSource\.camera/);
   assert.match(threadScreen, /ImageSource\.gallery/);
   assert.match(threadScreen, /_sendLocationShareData/);
+  assert.match(threadScreen, /class _PrivateChatImage/);
+  assert.match(threadScreen, /Geschütztes Chatfoto öffnen/);
   assert.match(backend, /'message_attachment'/);
+  assert.match(messageWorkflow, /thumbnailStorageName: row\.thumbnail_storage_name/);
 });
 
 test('launch chat accepts only server-sanitized images and no free documents or videos', () => {

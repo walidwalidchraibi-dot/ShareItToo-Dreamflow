@@ -6,6 +6,7 @@ Status: bewusst vereinfacht und technisch abgesichert.
 
 - Textnachrichten mit serverseitiger Teilnehmer- und Sperrprüfung;
 - Fotos aus Kamera oder Galerie;
+- private Fotovorschau im Chat mit antippbarer Vollbildansicht;
 - Standortfreigabe im Buchungskontext;
 - verpflichtende Foto-Nachweise bei Übergabe und Rückgabe;
 - Push-Benachrichtigungen ohne Nachrichteninhalt in Serverprotokollen;

@@ -293,7 +293,8 @@ async function validatedAttachments(client, { actorId, threadId, raw }) {
   if (ids.length !== raw.length) throw new MessageWorkflowError(400, 'invalid_message_attachments');
   if (!ids.length) return [];
   const result = await client.query(
-    `SELECT id::text, storage_name, mime_type, byte_size
+    `SELECT id::text, storage_name, thumbnail_storage_name, mime_type, byte_size,
+            image_width, image_height
      FROM uploads
      WHERE owner_id = $1 AND thread_id = $2
        AND purpose = 'message_attachment' AND visibility = 'private'
@@ -306,8 +307,11 @@ async function validatedAttachments(client, { actorId, threadId, raw }) {
   return result.rows.map((row) => ({
     id: row.id,
     storageName: row.storage_name,
+    thumbnailStorageName: row.thumbnail_storage_name,
     mimeType: row.mime_type,
     byteSize: row.byte_size,
+    width: row.image_width,
+    height: row.image_height,
   }));
 }
 

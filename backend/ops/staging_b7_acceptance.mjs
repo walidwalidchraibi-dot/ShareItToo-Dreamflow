@@ -297,6 +297,11 @@ async function main() {
   const sent = await sendMessage();
   assert.equal(sent.response.status, 201);
   assert.equal(sent.value.message.attachments.length, 1);
+  assert.equal(sent.value.message.attachments[0].storageName, attachment.storageName);
+  assert.equal(
+    sent.value.message.attachments[0].thumbnailStorageName,
+    attachment.thumbnailUrl.split('/').pop(),
+  );
   const replayed = await sendMessage();
   assert.equal(replayed.response.status, 200);
   assert.equal(replayed.value.message.id, sent.value.message.id);
@@ -315,6 +320,11 @@ async function main() {
     token: users.owner.token,
   });
   assert.equal(participantAttachment.response.headers.get('cache-control'), 'private, no-store');
+  const participantThumbnail = await api(
+    `/uploads/${encodeURIComponent(sent.value.message.attachments[0].thumbnailStorageName)}`,
+    { token: users.owner.token },
+  );
+  assert.equal(participantThumbnail.response.headers.get('cache-control'), 'private, no-store');
 
   await api(`/messages/${sent.value.message.id}/reports`, {
     method: 'POST',

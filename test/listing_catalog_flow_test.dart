@@ -138,4 +138,25 @@ void main() {
       isFalse,
     );
   });
+
+  test('private chat image URLs accept only canonical sanitized image names',
+      () {
+    expect(
+      BackendConfig.managedMessageImageUrl(
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa-thumb.webp',
+      ),
+      'https://shareittoo.com/api/v1/uploads/'
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa-thumb.webp',
+    );
+    expect(
+      BackendConfig.managedMessageImageUrl('../private-document.pdf'),
+      isNull,
+    );
+    expect(
+      BackendConfig.managedMessageImageUrl(
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa-full.pdf',
+      ),
+      isNull,
+    );
+  });
 }

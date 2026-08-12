@@ -16,6 +16,7 @@ import 'package:lendify/models/message.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/messages_settings_service.dart';
@@ -1480,7 +1481,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     }
   }
 
-  Future<void> _pickFile() async {
+  Future<void> _pickGalleryPhoto() async {
     final t = _thread;
     if (t == null) return;
     if (t.id == _translationDemoThreadId) {
@@ -1515,12 +1516,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       await _load();
       _scrollToBottom(animate: true);
     } catch (e) {
-      debugPrint('[MessageThreadScreen] _pickFile failed: $e');
+      debugPrint('[MessageThreadScreen] _pickGalleryPhoto failed: $e');
       if (mounted) {
         AppPopup.toast(
           context,
           icon: Icons.error_outline,
-          title: 'Anhang nicht verfügbar',
+          title: 'Foto nicht verfügbar',
         );
       }
     }
@@ -2338,7 +2339,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
                     explanationText: _actionExplanation(st),
                     onShareLocation: _shareLocation,
                     onSendPhoto: _pickCamera,
-                    onPickFile: _pickFile,
+                    onPickFile: _pickGalleryPhoto,
                     onChangeTime: _changeTime,
                     onProposeHandoverTime: _proposeHandoverTime,
                     onProposeReturnTime: _proposeReturnTime,
@@ -4739,6 +4740,98 @@ class _AnimatedMessageEntry extends StatelessWidget {
   }
 }
 
+class _PrivateChatImage extends StatelessWidget {
+  final Map<String, dynamic> attachment;
+  final bool me;
+  final double maxWidth;
+
+  const _PrivateChatImage({
+    required this.attachment,
+    required this.me,
+    required this.maxWidth,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final storageName = attachment['storageName']?.toString();
+    final thumbnailStorageName = attachment['thumbnailStorageName']?.toString();
+    final fullUrl = BackendConfig.managedMessageImageUrl(storageName);
+    final thumbnailUrl = BackendConfig.managedMessageImageUrl(
+          thumbnailStorageName,
+        ) ??
+        fullUrl;
+    if (fullUrl == null || thumbnailUrl == null) {
+      return const SizedBox.shrink();
+    }
+
+    final width = (attachment['width'] as num?)?.toDouble() ?? 4;
+    final height = (attachment['height'] as num?)?.toDouble() ?? 3;
+    final aspectRatio = width > 0 && height > 0
+        ? (width / height).clamp(0.7, 1.8).toDouble()
+        : 4 / 3;
+    final previewHeight = (maxWidth / aspectRatio).clamp(120.0, 240.0);
+
+    return Semantics(
+      button: true,
+      label: 'Geschütztes Chatfoto öffnen',
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 7),
+        child: Material(
+          color: me
+              ? Colors.white.withValues(alpha: 0.13)
+              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            key: ValueKey('private-chat-image-$storageName'),
+            onTap: () => _openFullImage(context, fullUrl),
+            child: AppImage(
+              url: thumbnailUrl,
+              width: maxWidth,
+              height: previewHeight,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openFullImage(BuildContext context, String fullUrl) {
+    return showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.88),
+      builder: (dialogContext) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: InteractiveViewer(
+                  minScale: 0.8,
+                  maxScale: 5,
+                  child: Center(
+                    child: AppImage(url: fullUrl, fit: BoxFit.contain),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton.filled(
+                  tooltip: 'Schließen',
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ChatBubble extends StatelessWidget {
   final String text;
   final List<Map<String, dynamic>> attachments;
@@ -4773,6 +4866,14 @@ class _ChatBubble extends StatelessWidget {
         translatedText != null && translatedText!.trim().isNotEmpty;
     final showPlaceholderLabel =
         !hasTranslation && translationPlaceholder && translationLabel != null;
+    final imageAttachments = attachments
+        .where((attachment) =>
+            (attachment['mimeType']?.toString() ?? '').startsWith('image/') &&
+            BackendConfig.managedMessageImageUrl(
+                  attachment['storageName']?.toString(),
+                ) !=
+                null)
+        .toList(growable: false);
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 3),
       padding: const EdgeInsets.fromLTRB(12, 9, 10, 7),
@@ -4792,42 +4893,12 @@ class _ChatBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (attachments.isNotEmpty) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
-              margin: const EdgeInsets.only(bottom: 7),
-              decoration: BoxDecoration(
-                color: me
-                    ? Colors.white.withValues(alpha: 0.13)
-                    : cs.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.image_outlined,
-                    size: 18,
-                    color: me ? Colors.white : cs.primary,
-                  ),
-                  const SizedBox(width: 7),
-                  Flexible(
-                    child: Text(
-                      attachments.length == 1
-                          ? 'Geschützter Foto-Anhang'
-                          : '${attachments.length} geschützte Foto-Anhänge',
-                      style: TextStyle(
-                        color: me ? Colors.white : const Color(0xFF0F172A),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          for (final attachment in imageAttachments)
+            _PrivateChatImage(
+              attachment: attachment,
+              me: me,
+              maxWidth: maxWidth - 24,
             ),
-          ],
           if (hasTranslation) ...[
             if (translationLabel != null)
               Padding(
@@ -7287,7 +7358,7 @@ class _GlassInputBarState extends State<_GlassInputBar>
                       ),
                       const SizedBox(width: 8),
                       _GlassIconButton(
-                        icon: Icons.attach_file_rounded,
+                        icon: Icons.photo_library_outlined,
                         onTap: widget.onPickFile,
                         iconSize: _iconSize,
                       ),
@@ -7400,7 +7471,7 @@ class _GlassInputBarState extends State<_GlassInputBar>
                             ),
                             const SizedBox(width: 6),
                             _InlineFocusedIcon(
-                              icon: Icons.attach_file_rounded,
+                              icon: Icons.photo_library_outlined,
                               onTap: () {
                                 _focusInput();
                                 widget.onPickFile();

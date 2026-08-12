@@ -20,6 +20,28 @@ class BackendConfig {
   }
 
   static bool isManagedListingImageUrl(String value) {
+    return _isManagedUploadImageUrl(value, allowThumbnail: false);
+  }
+
+  static bool isManagedImageUrl(String value) {
+    return _isManagedUploadImageUrl(value, allowThumbnail: true);
+  }
+
+  static String? managedMessageImageUrl(String? storageName) {
+    final value = (storageName ?? '').trim();
+    if (!RegExp(
+      r'^[0-9a-f-]{36}-(?:full|thumb)\.(?:webp|jpe?g|png)$',
+      caseSensitive: false,
+    ).hasMatch(value)) {
+      return null;
+    }
+    return uri('/uploads/${Uri.encodeComponent(value)}').toString();
+  }
+
+  static bool _isManagedUploadImageUrl(
+    String value, {
+    required bool allowThumbnail,
+  }) {
     try {
       final candidate = Uri.parse(value);
       final base = Uri.parse(apiBaseUrl);
@@ -35,8 +57,9 @@ class BackendConfig {
       }
       final storageName =
           Uri.decodeComponent(candidate.path.substring(prefix.length));
+      final variant = allowThumbnail ? r'(?:full|thumb)' : 'full';
       return RegExp(
-        r'^[0-9a-f-]{36}-full\.(?:webp|jpe?g|png)$',
+        '^[0-9a-f-]{36}-$variant\\.(?:webp|jpe?g|png)\$',
         caseSensitive: false,
       ).hasMatch(storageName);
     } catch (_) {

@@ -43,7 +43,7 @@ class AppImage extends StatelessWidget {
       return const ColoredBox(color: Color(0x14000000));
     }
     if (src.startsWith('http')) {
-      if (BackendConfig.isManagedListingImageUrl(src)) {
+      if (BackendConfig.isManagedImageUrl(src)) {
         return _ManagedNetworkImage(url: src, fit: fit);
       }
       return Image.network(
