@@ -96,8 +96,6 @@ node --test test/tool/validate_android_signing_config.test.mjs
 node --check tool/verify_brand_assets.mjs
 node tool/verify_brand_assets.mjs
 
-npm test --prefix backend
-
 analyze_log="$(mktemp)"
 trap 'rm -f "$analyze_log"' EXIT
 

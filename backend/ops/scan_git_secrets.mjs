@@ -5,6 +5,10 @@ import { spawn } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
 
 import { detectHighConfidenceSecretRules } from './secret_scan_rules.mjs';
+import {
+  parseReviewedHistoryBaseline,
+  partitionReviewedFindings,
+} from './secret_scan_baseline.mjs';
 
 const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
   encoding: 'utf8',
@@ -76,9 +80,18 @@ async function scanWorkingTree() {
 if (!workingTreeOnly) await scanHistory();
 await scanWorkingTree();
 
-if (findings.size > 0) {
-  console.error(`[secret-scan] ${findings.size} high-confidence finding(s)`);
-  for (const finding of [...findings].sort()) {
+const baselinePath = path.join(repoRoot, 'backend/ops/secret_scan_history_baseline.json');
+const baselineValue = JSON.parse(await fs.readFile(baselinePath, 'utf8'));
+const reviewedHistoryKeys = parseReviewedHistoryBaseline(baselineValue);
+const { reviewed, unexpected } = partitionReviewedFindings(findings, reviewedHistoryKeys);
+
+if (reviewed.length > 0) {
+  console.log(`[secret-scan] ${reviewed.length} exact historical finding(s) matched the reviewed commit baseline`);
+}
+
+if (unexpected.length > 0) {
+  console.error(`[secret-scan] ${unexpected.length} unexpected high-confidence finding(s)`);
+  for (const finding of unexpected.sort()) {
     const [rule, source, file] = finding.split('\t');
     console.error(`[secret-scan] rule=${rule} source=${source} file=${file}`);
   }

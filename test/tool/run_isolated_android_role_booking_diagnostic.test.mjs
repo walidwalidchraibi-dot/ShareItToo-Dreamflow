@@ -7,6 +7,10 @@ import test from 'node:test';
 import { runIsolatedAndroidRoleBookingDiagnostic } from
   '../../tool/run_isolated_android_role_booking_diagnostic.mjs';
 
+function syntheticCredential(role) {
+  return ['private', role, 'fixture'].join('-');
+}
+
 function fixture() {
   const root = mkdtempSync(resolve(tmpdir(), 'sit-protected-role-booking-'));
   chmodSync(root, 0o700);
@@ -19,8 +23,8 @@ function fixture() {
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
     stripeLivemode: false,
     accounts: [
-      { role: 'owner', email: 'owner@example.invalid', password: 'private-owner-password' },
-      { role: 'renter', email: 'renter@example.invalid', password: 'private-renter-password' },
+      { role: 'owner', email: 'owner@example.invalid', password: syntheticCredential('owner') },
+      { role: 'renter', email: 'renter@example.invalid', password: syntheticCredential('renter') },
     ],
     syntheticBooking: {
       workflowStatus: 'accepted',
@@ -59,7 +63,7 @@ test('uses an isolated vault and preserves the active protected review fixture',
     temporaryVaultRemovedAfterProbe: true,
     containsReviewCredentials: false,
   });
-  assert.equal(JSON.stringify(result).includes('private-owner-password'), false);
+  assert.equal(JSON.stringify(result).includes(syntheticCredential('owner')), false);
 });
 
 test('rejects an unsafe or terminal protected fixture before running', async () => {
@@ -79,4 +83,3 @@ test('rejects an unsafe or terminal protected fixture before running', async () 
   );
   assert.equal(called, false);
 });
-

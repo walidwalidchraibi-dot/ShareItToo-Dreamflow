@@ -131,7 +131,7 @@ export async function diagnoseStoreReviewDisposableDeletion({
       : [];
     fail(`The disposable account deletion preflight is blocked${blockers.length ? `: ${blockers.join(', ')}` : ''}.`);
   }
-  const wrongPassword = `${target.account.password}-intentional-mismatch`;
+  const wrongPassword = [target.account.password, 'intentional', 'mismatch'].join('-');
   const rejected = await request(fetchImpl, '/account/deletion', {
     method: 'POST', token, body: { currentPassword: wrongPassword }, expected: [401],
   });

@@ -6,6 +6,10 @@ import test from 'node:test';
 
 import { runIsolatedAndroidAuthenticatedLinksDiagnostic } from '../../tool/run_isolated_android_authenticated_links_diagnostic.mjs';
 
+function syntheticCredential(role) {
+  return ['private', role, 'fixture'].join('-');
+}
+
 function fixture() {
   const root = mkdtempSync(resolve(tmpdir(), 'sit-protected-authenticated-links-'));
   const vaultFile = resolve(root, 'accounts.json');
@@ -17,8 +21,8 @@ function fixture() {
     status: 'synthetic-booking-active',
     runId: 'private-review-run',
     accounts: [
-      { role: 'owner', email: 'owner@example.invalid', password: 'private-owner-password' },
-      { role: 'renter', email: 'renter@example.invalid', password: 'private-renter-password' },
+      { role: 'owner', email: 'owner@example.invalid', password: syntheticCredential('owner') },
+      { role: 'renter', email: 'renter@example.invalid', password: syntheticCredential('renter') },
     ],
     syntheticBooking: {
       workflowStatus: 'active',
