@@ -81,6 +81,36 @@ test('rejects Firebase analytics activation', () => {
   }), /Analytics and ads/);
 });
 
+test('rejects a Runner privacy manifest that enables tracking', async () => {
+  const privacyManifest = await readFile(
+    new URL('../../ios/Runner/PrivacyInfo.xcprivacy', import.meta.url), 'utf8');
+  assert.throws(() => validateAppleTestFlightHandoff({
+    root,
+    sourceOverrides: {
+      ...configuredSources,
+      'ios/Runner/PrivacyInfo.xcprivacy': privacyManifest.replace(
+        '<key>NSPrivacyTracking</key>\n\t<false/>',
+        '<key>NSPrivacyTracking</key>\n\t<true/>',
+      ),
+    },
+  }), /Runner privacy manifest/);
+});
+
+test('rejects a privacy manifest that is not bound to Runner resources', async () => {
+  const project = await readFile(
+    new URL('../../ios/Runner.xcodeproj/project.pbxproj', import.meta.url), 'utf8');
+  assert.throws(() => validateAppleTestFlightHandoff({
+    root,
+    sourceOverrides: {
+      ...configuredSources,
+      'ios/Runner.xcodeproj/project.pbxproj': project.replace(
+        /\s*A11F1EBB5E00000000000002 \/\* PrivacyInfo\.xcprivacy in Resources \*\/,[\r\n]+/u,
+        '\n',
+      ),
+    },
+  }), /bound once to Runner resources/);
+});
+
 test('rejects credential-shaped fields', () => {
   const handoff = structuredClone(canonical);
   handoff.applePassword = 'forbidden';

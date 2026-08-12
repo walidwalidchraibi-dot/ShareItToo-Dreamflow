@@ -92,11 +92,18 @@ Nach vollständiger Xcode-Installation:
 
 ## 7. Privacy Manifest und Export Compliance
 
-Im Runner-Ziel existiert noch kein eigenes `PrivacyInfo.xcprivacy`. Mehrere
-Plugins liefern eigene Manifest-Dateien, aber erst das vollständige Xcode-
-Archiv und der zusammengeführte Privacy Report zeigen die endgültige Lage.
-Vor TestFlight werden deshalb ein gültiges Runner-Manifest, alle Drittanbieter-
-Manifeste und der Archivbericht geprüft.
+Ein eigenes `ios/Runner/PrivacyInfo.xcprivacy` ist jetzt im Runner-Ziel als
+Ressource eingebunden und statisch validiert. Es erklärt die im technischen
+Datenschutzinventar bereits konservativ erfassten Datentypen, setzt Tracking
+auf `false`, enthält keine Tracking-Domains und erfindet keine Nutzung einer
+Required-Reason-API durch den App-eigenen Runner-Code. Die eingebundenen
+Plugins bleiben für ihre jeweiligen Manifeste selbst verantwortlich.
+
+Diese Vorbereitung schließt noch keinen Store-Gate: Erst das vollständige
+Xcode-Archiv und der zusammengeführte Privacy Report zeigen alle tatsächlich
+eingebundenen Drittanbieter-Manifeste und Required-Reason-APIs. Vor TestFlight
+werden Runner-Manifest, Plugin-Manifeste und Archivbericht deshalb erneut
+gegeneinander geprüft.
 
 `ITSAppUsesNonExemptEncryption` wird nicht geraten. Nach dem vollständigen
 Archiv wird geprüft, ob die App und alle eingebundenen Bibliotheken nur

@@ -25,6 +25,9 @@
     "releaseApnsEnvironment": "production",
     "firebaseBundleMatches": true,
     "usageDescriptionsPresent": true,
+    "runnerPrivacyManifestPresent": true,
+    "runnerPrivacyManifestTracking": false,
+    "runnerPrivacyManifestBoundToTarget": true,
     "crashlyticsSymbolUploadPhasePresent": true
   },
   "accountGates": {
@@ -41,7 +44,7 @@
     "fullXcodeInstalled": false,
     "xcodeLicenseAccepted": false,
     "iosDependenciesResolved": false,
-    "runnerPrivacyManifestPresent": false,
+    "runnerPrivacyManifestValidated": true,
     "archiveBuilt": false,
     "archivePrivacyReportReviewed": false,
     "exportComplianceDecisionConfirmed": false,

@@ -51,6 +51,10 @@ function plistScalar(xml, key) {
   return match?.[1] ?? null;
 }
 
+function privacyDataType(xml, type) {
+  return xml.includes(`<string>${type}</string>`);
+}
+
 export function validateAppleTestFlightHandoff({ root, handoffOverride, sourceOverrides = {} }) {
   const handoff = object(handoffOverride ?? JSON.parse(source(
     root, 'store/apple/testflight-handoff.json', sourceOverrides)), 'handoff');
@@ -100,6 +104,49 @@ export function validateAppleTestFlightHandoff({ root, handoffOverride, sourceOv
   }
   includes(project, 'scripts/upload_ios_crashlytics_symbols.sh', 'Xcode project');
 
+  const privacyManifest = source(root, 'ios/Runner/PrivacyInfo.xcprivacy', sourceOverrides);
+  includes(privacyManifest, '<key>NSPrivacyTracking</key>\n\t<false/>', 'Runner privacy manifest');
+  includes(privacyManifest, '<key>NSPrivacyTrackingDomains</key>\n\t<array/>', 'Runner privacy manifest');
+  includes(privacyManifest, '<key>NSPrivacyAccessedAPITypes</key>\n\t<array/>', 'Runner privacy manifest');
+  for (const type of [
+    'NSPrivacyCollectedDataTypeName',
+    'NSPrivacyCollectedDataTypeEmailAddress',
+    'NSPrivacyCollectedDataTypePhoneNumber',
+    'NSPrivacyCollectedDataTypePhysicalAddress',
+    'NSPrivacyCollectedDataTypeUserID',
+    'NSPrivacyCollectedDataTypeCoarseLocation',
+    'NSPrivacyCollectedDataTypePreciseLocation',
+    'NSPrivacyCollectedDataTypePhotosorVideos',
+    'NSPrivacyCollectedDataTypeEmailsOrTextMessages',
+    'NSPrivacyCollectedDataTypeOtherUserContent',
+    'NSPrivacyCollectedDataTypePurchaseHistory',
+    'NSPrivacyCollectedDataTypeOtherFinancialInfo',
+    'NSPrivacyCollectedDataTypeDeviceID',
+    'NSPrivacyCollectedDataTypeCrashData',
+    'NSPrivacyCollectedDataTypeOtherDiagnosticData',
+  ]) {
+    if (!privacyDataType(privacyManifest, type)) fail(`Runner privacy manifest is missing ${type}.`);
+  }
+  if (count(project, 'PrivacyInfo.xcprivacy in Resources') !== 2 ||
+      count(project, '/* PrivacyInfo.xcprivacy */') !== 3) {
+    fail('Runner privacy manifest must be referenced once and bound once to Runner resources.');
+  }
+  same(
+    handoff.verifiedStaticConfiguration.runnerPrivacyManifestPresent,
+    true,
+    'verifiedStaticConfiguration.runnerPrivacyManifestPresent',
+  );
+  same(
+    handoff.verifiedStaticConfiguration.runnerPrivacyManifestTracking,
+    false,
+    'verifiedStaticConfiguration.runnerPrivacyManifestTracking',
+  );
+  same(
+    handoff.verifiedStaticConfiguration.runnerPrivacyManifestBoundToTarget,
+    true,
+    'verifiedStaticConfiguration.runnerPrivacyManifestBoundToTarget',
+  );
+
   const firebaseRelativePath = 'ios/Runner/GoogleService-Info.plist';
   const firebasePath = resolve(root, firebaseRelativePath);
   const firebaseOverridePresent = Object.hasOwn(sourceOverrides, firebaseRelativePath);
@@ -130,9 +177,8 @@ export function validateAppleTestFlightHandoff({ root, handoffOverride, sourceOv
   ]) same(accountGates[key], false, `accountGates.${key}`);
 
   const tooling = object(handoff.toolingGates, 'toolingGates');
-  for (const [key, value] of Object.entries(tooling)) same(value, false, `toolingGates.${key}`);
-  if (existsSync(resolve(root, 'ios/Runner/PrivacyInfo.xcprivacy'))) {
-    fail('Handoff must be updated before accepting a newly added Runner privacy manifest.');
+  for (const [key, value] of Object.entries(tooling)) {
+    same(value, key === 'runnerPrivacyManifestValidated', `toolingGates.${key}`);
   }
   for (const [key, value] of Object.entries(object(handoff.postUploadChecks, 'postUploadChecks'))) {
     same(value, 'pending', `postUploadChecks.${key}`);
