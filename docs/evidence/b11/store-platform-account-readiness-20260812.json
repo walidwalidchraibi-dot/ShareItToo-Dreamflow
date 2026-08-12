@@ -2,15 +2,15 @@
   "schemaVersion": 1,
   "kind": "store-platform-account-readiness-observation",
   "status": "setup-required",
-  "capturedAt": "2026-08-11T23:25:53Z",
+  "capturedAt": "2026-08-12T06:50:25Z",
   "googlePlay": {
     "source": "signed-in-console-ui",
-    "observation": "developer-account-created-fee-paid-identity-verification-pending",
+    "observation": "developer-account-created-fee-paid-identity-and-device-verified-phone-pending",
     "accountType": "personal",
     "accountTypeSelected": true,
     "developerAccountCreated": true,
     "registrationFeePaid": true,
-    "identityVerified": false,
+    "identityVerified": true,
     "appRecordCreated": false
   },
   "apple": {

@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "state": "setup-required",
   "googlePlay": {
-    "status": "identity-verification-pending",
+    "status": "identity-and-device-verified-phone-pending",
     "accountType": "personal",
     "developerAccountCreated": true,
     "registrationFeePaid": true,
-    "identityVerification": "pending",
+    "identityVerification": "verified",
     "appRecordCreated": false,
     "evidenceRef": "docs/evidence/b11/store-platform-account-readiness-20260812.json"
   },

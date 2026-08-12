@@ -7,8 +7,6 @@ import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const expectedPendingUserGates = [
-  'personalIdentityVerification',
-  'deviceVerification',
   'phoneVerification',
 ];
 
@@ -113,6 +111,8 @@ export function validateGooglePlayInternalHandoff({
   same(sha256File(artifactPath), candidate.aabSha256, 'archived AAB SHA-256');
 
   const preUpload = object(handoff.preUploadGates, 'preUploadGates');
+  same(preUpload.personalIdentityVerification, 'verified', 'personalIdentityVerification');
+  same(preUpload.deviceVerification, 'verified', 'deviceVerification');
   for (const gate of expectedPendingUserGates) same(preUpload[gate], 'pending-user', gate);
   same(preUpload.playAppRecordCreated, false, 'playAppRecordCreated');
   same(preUpload.immediateArtifactReverification, false, 'immediateArtifactReverification');

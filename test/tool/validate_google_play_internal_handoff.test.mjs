@@ -36,7 +36,7 @@ async function fixture() {
   return { root, archiveRoot, handoffPath, evidencePath, artifactPath, handoff };
 }
 
-test('accepts the exact private internal-test artifact while user gates remain pending', async (t) => {
+test('accepts the exact private internal-test artifact after identity verification while remaining user gates stay pending', async (t) => {
   const data = await fixture();
   t.after(() => rm(data.root, { recursive: true, force: true }));
   const result = validateGooglePlayInternalHandoff({ repositoryRoot, ...data });
@@ -52,13 +52,22 @@ test('rejects different AAB bytes', async (t) => {
     /archived AAB SHA-256/);
 });
 
-test('rejects premature identity completion', async (t) => {
+test('rejects a regression to pending identity verification', async (t) => {
   const data = await fixture();
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  data.handoff.preUploadGates.personalIdentityVerification = 'passed';
+  data.handoff.preUploadGates.personalIdentityVerification = 'pending-user';
   await writeFile(data.handoffPath, JSON.stringify(data.handoff));
   assert.throws(() => validateGooglePlayInternalHandoff({ repositoryRoot, ...data }),
     /personalIdentityVerification/);
+});
+
+test('rejects a regression to pending device verification', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  data.handoff.preUploadGates.deviceVerification = 'pending-user';
+  await writeFile(data.handoffPath, JSON.stringify(data.handoff));
+  assert.throws(() => validateGooglePlayInternalHandoff({ repositoryRoot, ...data }),
+    /deviceVerification/);
 });
 
 test('rejects premature submission permission', async (t) => {

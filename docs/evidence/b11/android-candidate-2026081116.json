@@ -101,9 +101,9 @@
   "storeReadiness": {
     "status": "testing",
     "evidenceRef": "docs/evidence/b11/store-links-signing-readiness-2026081116.json",
-    "playDeveloperAccount": "created-fee-paid-identity-verification-pending",
+    "playDeveloperAccount": "created-fee-paid-identity-and-device-verified-phone-pending",
     "publicRoutes": "pending-explicit-production-approval",
-    "storeConsole": "pending-identity-verification"
+    "storeConsole": "pending-phone-and-app-record"
   },
   "staging": {
     "serverCommit": "f2961cfe97a85c5698d4967ae08808eaa6b25ce8",

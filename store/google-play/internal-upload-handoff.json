@@ -19,8 +19,8 @@
     "ownerOnlyPermissionsRequired": true
   },
   "preUploadGates": {
-    "personalIdentityVerification": "pending-user",
-    "deviceVerification": "pending-user",
+    "personalIdentityVerification": "verified",
+    "deviceVerification": "verified",
     "phoneVerification": "pending-user",
     "playAppRecordCreated": false,
     "immediateArtifactReverification": false

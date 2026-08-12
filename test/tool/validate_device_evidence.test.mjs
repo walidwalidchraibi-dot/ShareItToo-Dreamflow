@@ -103,7 +103,7 @@ function storeLinksProgressFixture() {
   const deviceManifest = clone(baseDeviceManifest);
   const ref = 'docs/evidence/b11/store-links-signing-progress-test.json';
   const evidence = JSON.parse(readFileSync(
-    resolve(repositoryRoot, 'docs/evidence/b11/store-links-signing-readiness-2026081104.json'),
+    resolve(repositoryRoot, 'docs/evidence/b11/store-links-signing-readiness-2026081116.json'),
     'utf8',
   ));
   evidence.candidate = evidenceCandidate(deviceManifest.candidate);
