@@ -45,6 +45,15 @@ test('rejects enabling review submission', async (t) => {
     /hardStops.sendForReview/);
 });
 
+test('rejects claiming OAuth support before the providers are available', async (t) => {
+  const data = await fixture((handoff) => {
+    handoff.tasks.dataSafety.oauthPreparedButUnavailable = false;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+    /product truth/);
+});
+
 test('rejects credential or account data', async (t) => {
   const data = await fixture((handoff) => { handoff.account = 'private@example.test'; });
   t.after(() => rm(data.root, { recursive: true, force: true }));

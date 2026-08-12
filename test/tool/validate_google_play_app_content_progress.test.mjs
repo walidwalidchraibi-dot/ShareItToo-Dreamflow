@@ -21,8 +21,17 @@ async function fixture(mutate) {
 
 test('accepts seven saved and four fail-closed Play tasks', () => {
   assert.deepEqual(validateGooglePlayAppContentProgress({ repositoryRoot }), {
-    status: 'seven-of-eleven-saved', savedTasks: 7, openTasks: 4,
+    status: 'seven-of-eleven-saved-data-safety-step-two-observed', savedTasks: 7, openTasks: 4,
   });
+});
+
+test('rejects claiming OAuth account creation before provider activation', async (t) => {
+  const data = await fixture((evidence) => {
+    evidence.dataSafetyDraft.oauthPreparedButUnavailable = false;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
+    /data-safety partial draft/);
 });
 
 test('rejects claiming an AAB upload', async (t) => {

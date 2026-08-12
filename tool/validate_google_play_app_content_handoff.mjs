@@ -73,6 +73,16 @@ export function validateGooglePlayAppContentHandoff({
       tasks.targetAudience.minimumAge !== 18 ||
       tasks.targetAudience.designedForChildren !== false ||
       tasks.dataSafety.collectsOrTransmitsUserData !== true ||
+      tasks.dataSafety.status !==
+        'step-two-observed-public-deletion-route-and-provider-classification-pending' ||
+      tasks.dataSafety.accountCreationMethod !== 'username-and-password' ||
+      tasks.dataSafety.oauthPreparedButUnavailable !== true ||
+      tasks.dataSafety.deleteAccountUrlSaved !== false ||
+      tasks.dataSafety.preparedDeleteAccountUrl !==
+        'https://shareittoo.com/account-deletion' ||
+      tasks.dataSafety.preparedPartialDataDeletionAnswer !== false ||
+      tasks.dataSafety.stepTwoEvidenceRef !==
+        'docs/evidence/b11/google-play-data-safety-step2-20260812.json' ||
       tasks.dataSafety.sellsData !== false ||
       tasks.dataSafety.advertisingTracking !== false ||
       tasks.governmentApps.status !== 'saved-not-government-app' ||
@@ -104,7 +114,7 @@ export function validateGooglePlayAppContentHandoff({
   if (Object.keys(hardStops).length !== 7) {
     fail('App-content handoff must preserve all seven hard stops.');
   }
-  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 4 ||
+  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 5 ||
       handoff.evidenceRefs.some((ref) => typeof ref !== 'string' ||
         ref.includes('..') || !resolve(repositoryRoot, ref).startsWith(`${resolve(repositoryRoot)}/`))) {
     fail('App-content evidence references are invalid.');

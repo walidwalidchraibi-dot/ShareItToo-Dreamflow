@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "kind": "google-play-app-content-progress",
-  "capturedAt": "2026-08-12T10:59:38Z",
-  "status": "seven-of-eleven-saved",
+  "capturedAt": "2026-08-12T21:48:11Z",
+  "status": "seven-of-eleven-saved-data-safety-step-two-observed",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081116",
+    "buildNumber": "2026081202",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
   },
@@ -27,7 +27,7 @@
   "openTasks": {
     "privacyPolicy": "public-privacy-page-not-release-ready",
     "contentRating": "iarc-terms-owner-acceptance-pending",
-    "dataSafety": "partial-draft-saved-public-deletion-provider-classification-and-retention-pending",
+    "dataSafety": "step-two-observed-public-deletion-provider-classification-and-retention-pending",
     "storeListing": "graphics-upload-and-public-pages-pending"
   },
   "storeDraft": {
@@ -40,10 +40,13 @@
     "collectsOrSharesRequiredData": true,
     "encryptedInTransit": true,
     "accountCreationMethod": "username-and-password",
+    "oauthPreparedButUnavailable": true,
     "deleteAccountUrlSaved": false,
     "partialDataDeletionAnswerSaved": false,
+    "preparedPartialDataDeletionAnswer": false,
     "dataTypesSaved": false,
-    "submitted": false
+    "submitted": false,
+    "stepTwoEvidenceRef": "docs/evidence/b11/google-play-data-safety-step2-20260812.json"
   },
   "boundaries": {
     "sentForReview": false,

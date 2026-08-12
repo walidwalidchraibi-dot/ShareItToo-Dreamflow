@@ -16,29 +16,26 @@ Verbindlicher Kandidat:
 - App: `ShareItToo`
 - Paket: `com.shareittoo.app`
 - Version: `1.0.0`
-- Ersatz-Build: `2026081202` (Build und erneute Binärprüfung noch ausstehend)
-- App-Commit: `c6ec80002cf664f513afc768c1b643ac0d1d19fb`
+- Build: `2026081202` (gebaut, archiviert und erneut binär geprüft)
+- App-Commit: `72dd8f13b5d3be0e82392a8b28c31292bdc23b53`
 - Kanal: ausschließlich Internal Testing
 - Umgebung: ausschließlich Staging
 - Zahlung: `paymentMode=memory`, `stripeLivemode=false`
-- Freigabezustand: `testing/hold`, keine Store-Einreichung erlaubt
+- Freigabezustand: AAB für einen bestätigten Internal-Upload bereit; weiterhin
+  keine Store-Einreichung erlaubt und keine Review-, Closed-, Open- oder
+  Production-Freigabe zulässig
 
-## 2. Persönliches Entwicklerkonto – vor App-Erstellung
+## 2. Persönliches Entwicklerkonto und App-Datensatz
 
-Bereits erledigt:
+Erledigt:
 
 - persönliches Google-Play-Entwicklerkonto `ShareItToo` erstellt;
 - erforderliche Konto-Verträge bewusst angenommen;
-- einmalige Registrierungsgebühr bezahlt.
-
-Offen und nur durch Walid abschließbar:
-
-1. Identität mit amtlichem Lichtbildausweis und gegebenenfalls gültigem
-   Adressnachweis verifizieren;
-2. geforderten Zugriff auf ein echtes Android-Gerät bestätigen;
-3. Kontakttelefonnummer per Einmalcode bestätigen;
-4. sichtbare Personen-/Adressdaten vor Bestätigung gegen die echten Dokumente
-   prüfen.
+- einmalige Registrierungsgebühr bezahlt;
+- Identität mit amtlichem Lichtbildausweis, Android-Gerät und Telefonnummer
+  verifiziert;
+- App-Datensatz `ShareItToo` für `com.shareittoo.app` erstellt;
+- Play App Signing aktiviert und beide Zertifikate kontrolliert erfasst.
 
 Keine Ausweisbilder, Telefonnummern, Einmalcodes, E-Mail-Adressen,
 Zahlungsdaten oder Google-Konto-IDs in Git, Drive, Telegram oder Evidenz
@@ -93,7 +90,7 @@ Arbeitswerte:
 | Support-URL | `https://shareittoo.com/support` – noch nicht veröffentlichungsfähig |
 | Datenschutz-URL | `https://shareittoo.com/privacy` – noch nicht veröffentlichungsfähig |
 | öffentliche Kontolöschung | `https://shareittoo.com/account-deletion` – noch nicht veröffentlichungsfähig |
-| Telefon-Screenshots | vier bereinigte, lokal validierte Aufnahmen des unmittelbar vorherigen UI-Stands vorhanden; vor Upload nochmals gegen Kandidat 2026081201 prüfen |
+| Telefon-Screenshots | vier bereinigte, lokal validierte Aufnahmen vorhanden; vor Console-Upload nochmals visuell gegen Kandidat 2026081202 prüfen |
 
 Support-, Datenschutz- und Lösch-URL erst speichern beziehungsweise zur
 Prüfung senden, wenn die sichtbaren öffentlichen Seiten inhaltlich freigegeben
@@ -104,7 +101,7 @@ gilt nicht als Nachweis.
 
 ### 5.1 Werbung
 
-- Antwort für Kandidat 2026081201: **Nein, die App enthält keine Werbung.**
+- Antwort für Kandidat 2026081202: **Nein, die App enthält keine Werbung.**
 - Beleg: kein Werbe-SDK, kein Firebase Analytics, kein Advertising Tracking.
 - Eine im Entwicklerprofil genannte mögliche spätere Werbefinanzierung ändert
   die Antwort für diesen konkreten App-Build nicht.
@@ -181,6 +178,8 @@ Globale Arbeitsantworten:
 | Sammelt oder überträgt die App Nutzerdaten? | ja |
 | Daten bei Übertragung verschlüsselt? | ja, HTTPS/TLS; finalen Upload erneut prüfen |
 | Nutzer kann Löschung beantragen? | technisch ja; öffentliche Produktionsseite noch offen |
+| Kontoerstellung | Benutzername/E-Mail und Passwort; OAuth noch nicht angeben, weil Google/Apple/Facebook extern nicht aktiviert und nicht auf Geräten abgenommen sind |
+| Teillöschung ohne Kontolöschung | nein; einzelne Produktaktionen beweisen keine vollständige Löschung aller zugehörigen Nutzerdaten |
 | Datenverkauf oder Werbetracking? | nein |
 | „Data shared“ | offen, bis Service-Provider-/Auftragsverarbeiter-Einordnung je Empfänger bestätigt ist |
 | Alle Daten optional? | nein; Konto-/Sicherheitsdaten sind erforderlich, viele Featuredaten optional |
@@ -202,22 +201,24 @@ Vollständige Karten- oder Bankdaten werden im Kandidaten nicht von
 ShareItToo erhoben. Stripe-Liveverarbeitung ist deaktiviert. „Shared“ darf
 erst final beantwortet werden, wenn die konkrete Service-Provider-Einordnung
 für Hosting, Mail, Firebase/Google Maps und den späteren Zahlungsdienst
-bestätigt ist. Das Data-Safety-Formular noch nicht absenden.
+bestätigt ist. Der gespeicherte Console-Stand und die vorbereiteten, noch nicht
+gespeicherten Antworten sind kandidatengenau in
+`docs/evidence/b11/google-play-data-safety-step2-20260812.json` festgehalten.
+Das Data-Safety-Formular noch nicht absenden.
 
 ## 7. Berechtigungen und SDK-Prüfung nach AAB-Upload
 
 Der Release-APK von Kandidat 2026081201 wurde geprüft, anschließend aber wegen
 eines eingebetteten, nicht an eine Anwendung gebundenen Google-Schlüssels
-gesperrt und nicht hochgeladen. Ersatzkandidat 2026081202 darf erst nach neuer
-Binärprüfung verwendet werden. Er soll nur die erwarteten Funktions-,
+gesperrt und nicht hochgeladen. Ersatzkandidat 2026081202 wurde anschließend
+neu gebaut, archiviert und binär geprüft. Er enthält nur die erwarteten Funktions-,
 Netzwerk- und Firebase-Berechtigungen für Kamera, Bilder, groben/präzisen
 Standort, Benachrichtigungen, Internet/Netzstatus, Wake Lock und FCM. Nicht
 enthalten sind unter anderem SMS-/Anruflisten-/Kontakte-, Mikrofon-,
 Accessibility-Service-, Vollspeicher-, Paketinstallations-,
 Alle-Pakete-Abfrage- oder Overlay-Berechtigungen. Der bereinigte,
 artefaktgebundene Nachweis liegt in
-`docs/evidence/b11/android-release-permissions-2026081201.json`; dieser alte
-Nachweis darf nicht als Freigabe des Ersatzkandidaten verwendet werden.
+`docs/evidence/b11/android-release-permissions-2026081202.json`.
 
 Diese Vorprüfung nimmt keine Console-Antwort vorweg. Google kann erst nach dem
 AAB-Upload zusätzliche SDK- oder Berechtigungswarnungen anzeigen; diese bleiben
@@ -238,16 +239,15 @@ Nach dem ersten Internal-AAB-Upload:
 
 ## 8. Internal Testing – Freigabereihenfolge
 
-1. persönliche Konto-Verifizierung abschließen;
-2. App-Datensatz mit den Angaben aus Abschnitt 3 anlegen;
-3. Store-Haupteintrag und App-Inhalte zunächst als Entwurf ausfüllen;
-4. ausschließlich den nach neuer Prüfung gebundenen AAB-Ersatzkandidaten 2026081202 hochladen;
-5. Uploadwarnungen, App-Signing-Fingerprint und Artefaktidentität prüfen;
-6. geschützte Review-Zugangsdaten eintragen;
-7. nur Internal Testing vorbereiten – keine Production-, Open- oder Closed-
+1. ausschließlich den gebundenen AAB-Kandidaten 2026081202 nach unmittelbarer
+   Hash-Prüfung hochladen;
+2. Store-Haupteintrag und App-Inhalte weiter als Entwurf vervollständigen;
+3. Uploadwarnungen, App-Signing-Fingerprint und Artefaktidentität prüfen;
+4. geschützte Review-Zugangsdaten eintragen;
+5. nur Internal Testing vorbereiten – keine Production-, Open- oder Closed-
    Veröffentlichung;
-8. aus Play installieren und dieselbe Kandidaten-/Gerätematrix wiederholen;
-9. erst danach über Closed Testing und die für neue persönliche Konten
+6. aus Play installieren und dieselbe Kandidaten-/Gerätematrix wiederholen;
+7. erst danach über Closed Testing und die für neue persönliche Konten
    angezeigte Testeranforderung entscheiden.
 
 Für dieses neu erstellte persönliche Konto gilt nach der aktuell
@@ -310,7 +310,6 @@ Antrag ab.
 Kein „Send for review“, Rollout oder öffentliche Freigabe, solange mindestens
 einer dieser Punkte offen ist:
 
-- Identitäts-, Geräte- oder Telefonnummernprüfung;
 - geschlossener Play-Test mit mindestens zwölf dauerhaft angemeldeten Testern
   über mindestens 14 aufeinanderfolgende Tage und anschließender
   Produktionszugangsprüfung;
@@ -326,10 +325,9 @@ einer dieser Punkte offen ist:
 
 ## 10. Maschinengeprüfte Upload-Übergabe
 
-Die Datei `store/google-play/internal-upload-handoff.json` sperrt Build
-`2026081201` und bindet die nächste mögliche Play-Aktion an Ersatz-Build
-`2026081202`. Dessen AAB-Hash, Upload-Zertifikat und privater Archivname müssen
-nach dem Neubau erst eingetragen und erneut geprüft werden. Das Prüfwerkzeug
+Die Datei `store/google-play/internal-upload-handoff.json` bindet die nächste
+mögliche Play-Aktion ausschließlich an Build `2026081202`. AAB-Hash,
+Upload-Zertifikat und privater Archivname sind eingetragen und geprüft. Das Prüfwerkzeug
 `tool/validate_google_play_internal_handoff.mjs` bricht ab, wenn sich Datei,
 Hash, Kandidatenidentität oder Dateirechte unterscheiden.
 

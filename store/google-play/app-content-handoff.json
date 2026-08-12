@@ -35,13 +35,17 @@
       "designedForChildren": false
     },
     "dataSafety": {
-      "status": "partial-console-draft-saved-public-deletion-route-and-provider-classification-pending",
+      "status": "step-two-observed-public-deletion-route-and-provider-classification-pending",
       "collectsOrTransmitsUserData": true,
       "encryptedInTransit": true,
       "accountCreationMethod": "username-and-password",
+      "oauthPreparedButUnavailable": true,
       "deleteAccountUrlSaved": false,
+      "preparedDeleteAccountUrl": "https://shareittoo.com/account-deletion",
+      "preparedPartialDataDeletionAnswer": false,
       "sellsData": false,
-      "advertisingTracking": false
+      "advertisingTracking": false,
+      "stepTwoEvidenceRef": "docs/evidence/b11/google-play-data-safety-step2-20260812.json"
     },
     "governmentApps": {
       "status": "saved-not-government-app",
@@ -85,7 +89,8 @@
     "docs/operations/B11_GOOGLE_PLAY_CONSOLE_ENTRY_WORKSHEET_2026-08-12.md",
     "store/privacy-disclosures.json",
     "docs/evidence/b11/android-release-permissions-2026081202.json",
-    "docs/evidence/b11/google-play-app-content-progress-20260812.json"
+    "docs/evidence/b11/google-play-app-content-progress-20260812.json",
+    "docs/evidence/b11/google-play-data-safety-step2-20260812.json"
   ],
   "containsSecrets": false,
   "containsAccountAddresses": false,

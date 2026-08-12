@@ -13,10 +13,12 @@ export function validateGooglePlayAppContentProgress({
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'google-play-app-content-progress' ||
-      evidence.status !== 'seven-of-eleven-saved') fail('Play app-content progress state is invalid.');
+      evidence.status !== 'seven-of-eleven-saved-data-safety-step-two-observed') {
+    fail('Play app-content progress state is invalid.');
+  }
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
       evidence.candidate?.versionName !== '1.0.0' ||
-      evidence.candidate?.buildNumber !== '2026081116' ||
+      evidence.candidate?.buildNumber !== '2026081202' ||
       evidence.candidate?.releaseChannel !== 'internal' ||
       evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1') {
     fail('Play app-content progress is not bound to the internal candidate.');
@@ -41,8 +43,13 @@ export function validateGooglePlayAppContentProgress({
   const dataSafety = evidence.dataSafetyDraft ?? {};
   if (dataSafety.collectsOrSharesRequiredData !== true || dataSafety.encryptedInTransit !== true ||
       dataSafety.accountCreationMethod !== 'username-and-password' ||
+      dataSafety.oauthPreparedButUnavailable !== true ||
       dataSafety.deleteAccountUrlSaved !== false ||
-      dataSafety.partialDataDeletionAnswerSaved !== false || dataSafety.dataTypesSaved !== false ||
+      dataSafety.partialDataDeletionAnswerSaved !== false ||
+      dataSafety.preparedPartialDataDeletionAnswer !== false ||
+      dataSafety.stepTwoEvidenceRef !==
+        'docs/evidence/b11/google-play-data-safety-step2-20260812.json' ||
+      dataSafety.dataTypesSaved !== false ||
       dataSafety.submitted !== false) {
     fail('Play data-safety partial draft state is invalid.');
   }
@@ -50,6 +57,18 @@ export function validateGooglePlayAppContentProgress({
   if (Object.keys(boundaries).length !== 9 || Object.values(boundaries).some((value) => value !== false) ||
       JSON.stringify(evidence).includes('@')) {
     fail('Play app-content progress boundaries are unsafe or unsanitized.');
+  }
+  const stepTwoEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
+    dataSafety.stepTwoEvidenceRef), 'utf8'));
+  if (stepTwoEvidence.kind !== 'google-play-data-safety-step-2-observation' ||
+      stepTwoEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
+      stepTwoEvidence.observedSavedAnswers?.accountCreationMethods?.join(',') !==
+        'username-and-password' ||
+      stepTwoEvidence.preparedUnsavedAnswers?.oauthAccountCreation !== false ||
+      stepTwoEvidence.preparedUnsavedAnswers?.partialDataDeletion !== false ||
+      Object.values(stepTwoEvidence.boundaries ?? {}).some((value) => value !== false) ||
+      JSON.stringify(stepTwoEvidence).includes('@')) {
+    fail('Play data-safety step-two observation is invalid or unsafe.');
   }
   return { status: evidence.status, savedTasks: evidence.counts.savedTasks, openTasks: evidence.counts.openTasks };
 }
