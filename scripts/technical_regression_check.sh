@@ -38,6 +38,7 @@ node tool/validate_legal_readiness.mjs
 
 node --check tool/validate_privacy_disclosures.mjs
 node --test test/tool/validate_privacy_disclosures.test.mjs
+node --test test/tool/validate_messaging_launch_scope.test.mjs
 node tool/validate_privacy_disclosures.mjs
 
 node --check tool/validate_retention_deletion_readiness.mjs
