@@ -1,6 +1,5 @@
 import 'dart:ui' show ImageFilter;
 
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart';
 import 'package:lendify/models/sit_credit_transaction.dart';
 import 'package:lendify/services/sit_credit_service.dart';

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
@@ -18,7 +17,6 @@ import 'package:lendify/widgets/review_prompt_sheet.dart';
 import 'package:lendify/screens/owner_requests_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/screens/support_flow_screen.dart';

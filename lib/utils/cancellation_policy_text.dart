@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 /// Centralized strings for the unified cancellation policy used across the app.
 /// Keep this as the single source of truth so all info cards stay consistent.
 class CancellationPolicyText {

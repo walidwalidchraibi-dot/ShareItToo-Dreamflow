@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/foundation.dart' as f;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show RenderBox;
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:share_plus/share_plus.dart';

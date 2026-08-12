@@ -1,5 +1,4 @@
 import 'dart:ui' show ImageFilter;
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart';
 import 'package:lendify/models/invoice.dart';
 import 'package:lendify/services/invoice_pdf_service.dart';

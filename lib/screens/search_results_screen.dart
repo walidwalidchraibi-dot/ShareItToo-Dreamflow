@@ -5,7 +5,6 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/filters_overlay.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
-import 'package:lendify/widgets/scroll_edge_indicators.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';

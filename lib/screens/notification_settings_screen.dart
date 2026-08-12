@@ -1,6 +1,5 @@
 import 'dart:ui' show ImageFilter;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/services/notification_preferences_service.dart';

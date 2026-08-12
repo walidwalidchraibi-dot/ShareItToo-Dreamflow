@@ -5,7 +5,6 @@ import 'package:lendify/models/invoice.dart';
 import 'package:lendify/screens/create_listing_screen.dart';
 import 'package:lendify/screens/invoice_detail_screen.dart';
 import 'package:lendify/services/invoices_service.dart';
-import 'package:lendify/theme.dart';
 import 'package:provider/provider.dart';
 
 class InvoicesScreen extends StatefulWidget {

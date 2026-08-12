@@ -1,6 +1,5 @@
 import 'dart:ui' show ImageFilter;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lendify/screens/booking_detail_screen.dart';
 import 'package:lendify/screens/help_center_screen.dart';

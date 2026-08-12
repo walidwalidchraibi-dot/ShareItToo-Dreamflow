@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lendify/models/category.dart' as app_category;
 import 'package:lendify/models/item.dart';
@@ -9,7 +8,6 @@ import 'package:lendify/models/user.dart' as app_user;
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/widgets/modern_range_picker_sheet.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
-import 'package:lendify/screens/see_all_screen.dart';
 import 'package:lendify/screens/search_results_screen.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/all_categories_overlay.dart';

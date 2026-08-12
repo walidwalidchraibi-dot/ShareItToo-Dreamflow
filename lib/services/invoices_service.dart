@@ -1,9 +1,7 @@
-import 'dart:math';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:lendify/models/invoice.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
-import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
 
 /// Generates invoice/receipt documents dynamically from real booking data.

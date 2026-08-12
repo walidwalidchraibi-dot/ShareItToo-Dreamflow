@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:lendify/models/category.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/widgets/selection_controls.dart';

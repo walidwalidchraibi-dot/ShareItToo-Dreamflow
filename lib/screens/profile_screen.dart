@@ -1,16 +1,13 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/models/user.dart';
-import 'package:lendify/screens/own_profile_screen.dart';
 import 'package:lendify/screens/my_listings_screen.dart';
 import 'package:lendify/screens/owner_requests_screen.dart';
 import 'package:lendify/screens/placeholder_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
-import 'package:lendify/screens/edit_profile_screen.dart';
 import 'package:lendify/screens/account_settings_screen.dart';
 import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/screens/help_center_screen.dart';
@@ -20,7 +17,6 @@ import 'package:lendify/widgets/profile_header_card.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/app_popup.dart';
-import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/box_chat_icon.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/widgets/profile_logged_out_banner.dart';

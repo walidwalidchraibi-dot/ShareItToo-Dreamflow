@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter/foundation.dart';
 
 /// Renders an SVG icon but removes likely background/frame <rect> elements
 /// (e.g., full-canvas rectangles from exported screenshots) at runtime.

@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 /// Wishlist model used for local persistence.
 ///
 /// id: unique identifier

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,12 +12,10 @@ import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/navigation/main_navigation.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/app_image.dart';
-import 'package:lendify/utils/category_label.dart';
 import 'package:lendify/widgets/all_categories_overlay.dart';
 import 'package:lendify/services/ai_price_calculator_service.dart';
 import 'package:lendify/openai/openai_config.dart';

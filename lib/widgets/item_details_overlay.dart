@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/foundation.dart' as f;
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lendify/models/item.dart';
@@ -10,7 +9,6 @@ import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/app_link_service.dart';
 import 'package:lendify/models/category.dart';
-import 'package:lendify/screens/placeholder_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';

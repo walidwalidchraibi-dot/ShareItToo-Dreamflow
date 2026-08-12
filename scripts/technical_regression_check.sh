@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Transitional analyzer baseline for the existing legacy issue backlog.
 # Keep this in sync with the accepted repository baseline until the backlog is reduced.
-ANALYZER_BASELINE=696
+ANALYZER_BASELINE=643
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$ROOT"
