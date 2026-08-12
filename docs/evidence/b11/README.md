@@ -90,7 +90,7 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081202-20260812T203436Z.json` |
 | Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081202-20260812T203621Z.json` |
 | Android-Offline-/Realtime-Wiederherstellung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-offline-realtime-2026081202-20260812T203820Z.json` |
-| Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
+| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081202.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081202.json` |
 | Staging-Servercommit | `72dd8f13b5d3be0e82392a8b28c31292bdc23b53` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
@@ -105,11 +105,13 @@ R8-Zuordnung und alle nativen Android-Symbole per SHA-256 an Build 2026081029.
 kontrollierte Diagnoseereignis und seine sichtbare Zuordnung zur exakten
 Version und Buildnummer in der Firebase-Konsole. Deshalb steht die
 Releaseprüfung `crashReleaseMapping` für diesen früheren Build nachweislich auf
-`passed`. Für den aktuellen Build `2026081113` sind die im exakten AAB
+`passed`. Für den aktuellen Build `2026081202` sind die im exakten AAB
 eingebettete R8-Zuordnung, die Mapping-ID und alle drei nativen Symbolgruppen
 hashgebunden; die Originalzuordnung wurde erfolgreich zu Crashlytics geladen.
-Der kontrollierte Diagnoseweg war in diesem exakten Kandidaten absichtlich
-nicht einkompiliert. Deshalb wurde kein abweichender Binärstand unter derselben
+Die nativen Symbole sind vollständig paketiert und stimmen bytegenau mit dem
+AAB überein, ihr separater Crashlytics-Upload bleibt jedoch offen. Der
+kontrollierte Diagnoseweg war in diesem exakten Kandidaten absichtlich nicht
+einkompiliert. Deshalb wurde kein abweichender Binärstand unter derselben
 Buildidentität verwendet. Der bereinigte Laufzeitbefund und seine sichtbare
 Zuordnung in der Firebase-Konsole bleiben kandidatenspezifisch offen, daher
 steht die Releaseprüfung weiterhin ehrlich auf `testing`.
