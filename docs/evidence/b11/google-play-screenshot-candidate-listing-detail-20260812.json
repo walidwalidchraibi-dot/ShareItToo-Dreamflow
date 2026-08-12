@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "google-play-screenshot-candidate",
+  "status": "validated-local-not-uploaded",
+  "capturedAt": "2026-08-12T09:31:39Z",
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081116",
+    "releaseChannel": "internal",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
+  },
+  "scene": {
+    "id": "listing-detail",
+    "locale": "de-DE",
+    "syntheticContent": true,
+    "storeFile": "store/assets/google-play/phone-screenshots/01-camera-detail.png",
+    "width": 1440,
+    "height": 1920,
+    "format": "png",
+    "byteSize": 1915453,
+    "sha256": "9ddcc94abcb6052eb0712799587728cc6736873d1e4eb58980a4290365796b44"
+  },
+  "validation": {
+    "exactInstalledCandidateObserved": true,
+    "curatedSyntheticListing": true,
+    "personalDataVisible": false,
+    "deviceStatusBarVisible": false,
+    "testCredentialVisible": false,
+    "technicalFixtureCopyVisible": false,
+    "unapprovedProtectionClaimVisible": false,
+    "visualInspectionPassed": true
+  },
+  "boundaries": {
+    "screenshotUploaded": false,
+    "playConsoleChanged": false,
+    "publicStoreChanged": false,
+    "productionChanged": false,
+    "paymentEndpointCalled": false,
+    "containsSecrets": false,
+    "containsEmailAddresses": false,
+    "containsAccountIdentifiers": false,
+    "containsRawDeviceIdentifiers": false
+  }
+}

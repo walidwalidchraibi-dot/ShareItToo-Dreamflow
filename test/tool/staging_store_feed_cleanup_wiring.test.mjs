@@ -10,6 +10,8 @@ test('technical regression covers reversible Staging feed cleanup and screenshot
     'node --test test/tool/clean_staging_store_feed.test.mjs',
     'node --check tool/validate_google_play_screenshot_readiness.mjs',
     'node --test test/tool/validate_google_play_screenshot_readiness.test.mjs',
+    'node --check tool/validate_google_play_screenshot_candidate.mjs',
+    'node --test test/tool/validate_google_play_screenshot_candidate.test.mjs',
   ]) {
     assert.ok(script.includes(command), `technical regression is missing: ${command}`);
   }
