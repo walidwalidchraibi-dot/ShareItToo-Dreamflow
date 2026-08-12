@@ -63,6 +63,13 @@ for define_name in "${firebase_define_names[@]}"; do
   fi
 done
 
+# Google Maps remains optional for non-submission CI candidates. When a real,
+# restricted client credential is supplied, bind it into both release binaries
+# so the binary privacy scan can verify the enabled integration.
+if [[ -n "${GOOGLE_MAPS_API_KEY:-}" ]]; then
+  common_args+=("--dart-define=GOOGLE_MAPS_API_KEY=$GOOGLE_MAPS_API_KEY")
+fi
+
 if [[ "${SIT_REQUIRE_FIREBASE:-0}" == "1" ]]; then
   node tool/validate_firebase_release_config.mjs --require-configured --platform android
 fi

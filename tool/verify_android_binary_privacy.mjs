@@ -247,9 +247,9 @@ const googleMapsClientCredentialPresent = includesAsciiPattern(
   /AIza[0-9A-Za-z_-]{20,}/,
 );
 requireCheck(
-  googleMapsEndpointPresent === googleMapsClientCredentialPresent,
+  !googleMapsClientCredentialPresent || googleMapsEndpointPresent,
   'google_maps_configuration_mismatch',
-  'Google Maps endpoint and client credential must either both be present or both be absent.',
+  'An embedded Google Maps client credential requires the Google Maps endpoint.',
 );
 
 const externalServices = {
@@ -264,6 +264,7 @@ const externalServices = {
   googleMapsPlatform: {
     detected: googleMapsEndpointPresent && googleMapsClientCredentialPresent,
     disclosure: 'Google Maps Platform',
+    codeEndpointPresent: googleMapsEndpointPresent,
     clientCredentialEmbedded: googleMapsClientCredentialPresent,
     applicationRestrictionVerification: googleMapsClientCredentialPresent
       ? 'pending-console-verification'

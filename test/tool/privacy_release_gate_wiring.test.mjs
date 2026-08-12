@@ -31,10 +31,21 @@ test('technical regression runs syntax, tests, and the honest privacy draft vali
   }
 });
 
-test('signed binary privacy scan inventories Maps and forbids a direct OpenAI endpoint', () => {
+test('signed binary privacy scan inventories enabled Maps and allows dormant endpoint code', () => {
   const source = readFileSync(resolve(repositoryRoot, 'tool/verify_android_binary_privacy.mjs'), 'utf8');
   assert.match(source, /maps\.googleapis\.com/);
   assert.match(source, /Google Maps Platform/);
+  assert.match(source, /!googleMapsClientCredentialPresent \|\| googleMapsEndpointPresent/);
+  assert.match(source, /codeEndpointPresent: googleMapsEndpointPresent/);
   assert.match(source, /pending-console-verification/);
   assert.match(source, /https:\/\/api\.openai\.com\//);
+});
+
+test('release builder binds an optional restricted Google Maps client credential', () => {
+  const source = readFileSync(
+    resolve(repositoryRoot, 'scripts/build_android_release_candidate.sh'),
+    'utf8',
+  );
+  assert.match(source, /if \[\[ -n "\$\{GOOGLE_MAPS_API_KEY:-\}" \]\]; then/);
+  assert.match(source, /--dart-define=GOOGLE_MAPS_API_KEY=\$GOOGLE_MAPS_API_KEY/);
 });
