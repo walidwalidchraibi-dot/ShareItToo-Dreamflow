@@ -118,8 +118,16 @@ export function validateGooglePlayInternalHandoff({
   same(preUpload.playAppRecordCreated, true, 'playAppRecordCreated');
   same(preUpload.immediateArtifactReverification, false, 'immediateArtifactReverification');
 
-  for (const [key, value] of Object.entries(object(handoff.postUploadChecks, 'postUploadChecks'))) {
-    same(value, 'pending', `postUploadChecks.${key}`);
+  const expectedPostUploadChecks = {
+    uploadedArtifactHashRecorded: 'pending',
+    playAppSigningFingerprintRecorded: 'passed-pre-upload-console',
+    uploadWarningsReviewed: 'pending',
+    crashlyticsCandidateAssignmentVerified: 'pending',
+    internalStoreInstallCompleted: 'pending',
+  };
+  const postUploadChecks = object(handoff.postUploadChecks, 'postUploadChecks');
+  for (const [key, value] of Object.entries(expectedPostUploadChecks)) {
+    same(postUploadChecks[key], value, `postUploadChecks.${key}`);
   }
   const hardStops = object(handoff.hardStops, 'hardStops');
   for (const key of expectedHardStops) same(hardStops[key], true, `hardStops.${key}`);

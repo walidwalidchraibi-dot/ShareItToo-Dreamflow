@@ -7,6 +7,10 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const caddyPath = path.join(root, 'backend', 'ops', 'Caddyfile');
+const uploadCertificateSha256 =
+  '09:8F:48:5E:57:16:15:58:E9:11:FC:3C:74:28:45:92:55:84:DB:31:C4:74:CD:BA:08:DD:A0:2F:EB:01:29:A4';
+const playAppSigningCertificateSha256 =
+  '36:48:8A:BF:86:C5:1D:A0:7A:B2:25:8F:31:B0:0E:2F:1B:A8:A3:6D:07:61:07:B9:F0:06:37:6A:DE:80:B9:56';
 const routeSpecs = [
   {
     id: 'support',
@@ -81,11 +85,19 @@ export function validateCanonicalCaddy(caddyfile) {
       !/handle_path\s+\/api\/\*/u.test(staging)) {
     fail('Existing API routing must remain present in both site blocks.');
   }
+  const assetLinksSnippet = /\(shareittoo_android_assetlinks\)\s*\{([\s\S]*?)\n\}/u
+    .exec(caddyfile)?.[1] ?? '';
+  for (const fingerprint of [uploadCertificateSha256, playAppSigningCertificateSha256]) {
+    if (!assetLinksSnippet.includes(fingerprint)) {
+      fail(`Android asset links are missing certificate fingerprint: ${fingerprint}`);
+    }
+  }
   return {
     productionRoutes: routeSpecs.map((spec) => spec.id),
     stagingRoutes: routeSpecs.map((spec) => spec.id),
     appShellFallbackAfterRoutes: true,
     apiRoutingPreserved: true,
+    androidAssetLinksCertificates: 2,
   };
 }
 

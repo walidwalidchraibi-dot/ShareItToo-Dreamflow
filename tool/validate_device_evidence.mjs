@@ -1075,7 +1075,7 @@ function validateStoreLinksAndSigningProgressEvidence(root, ref, candidate, labe
   const evidence = readEvidenceJson(root, ref, label);
   if (evidence.schemaVersion !== 1 ||
       evidence.kind !== 'store-links-signing-readiness' ||
-      evidence.status !== 'technical-prechecks-passed-public-routes-and-store-console-pending') {
+      evidence.status !== 'play-signing-observed-assetlinks-prepared-upload-and-public-routes-pending') {
     fail(`${label} must be the bounded in-progress Store links and signing evidence.`);
   }
   isoTimestamp(evidence.capturedAt, `${label}.capturedAt`, { required: true });
@@ -1084,8 +1084,10 @@ function validateStoreLinksAndSigningProgressEvidence(root, ref, candidate, labe
 
   const artifacts = object(evidence.artifacts, `${label}.artifacts`);
   if (artifacts.aabSha256 !== candidate.android.aabSha256 ||
-      artifacts.uploadCertificateSha256 !== candidate.android.signingCertificateSha256) {
-    fail(`${label}.artifacts must match the exact Android candidate and upload certificate.`);
+      artifacts.uploadCertificateSha256 !== candidate.android.signingCertificateSha256 ||
+      artifacts.playAppSigningCertificateSha256 !==
+        '36488abf86c51da07ab2258f31b00e2f1ba8a36d076107b9f006376ade80b956') {
+    fail(`${label}.artifacts must match the exact Android candidate plus upload and Play signing certificates.`);
   }
 
   const sources = object(evidence.sources, `${label}.sources`);
@@ -1165,8 +1167,8 @@ function validateStoreLinksAndSigningProgressEvidence(root, ref, candidate, labe
     deployedPublicRoutes: 'out-of-date',
     publicSupportPrivacyDeletionRoutes: 'pending',
     playConsoleWarnings: 'pending',
-    playAppSigningFingerprint: 'pending',
-    assetLinksWithPlayAppSigning: 'pending',
+    playAppSigningFingerprint: 'passed',
+    assetLinksWithPlayAppSigning: 'prepared-local-not-deployed',
     appleSigningAndAssociatedDomains: 'pending',
   };
   const verifications = object(evidence.verifications, `${label}.verifications`);
@@ -1185,7 +1187,7 @@ function validateStoreLinksAndSigningProgressEvidence(root, ref, candidate, labe
     productionChanged: false,
     publicRoutesApproved: false,
     storeWarningsReviewed: false,
-    playAppSigningObserved: false,
+    playAppSigningObserved: true,
     appleSigningTeamAvailable: false,
     purchaseMade: accountEvidence.boundaries.purchaseMade,
     agreementAccepted: accountEvidence.boundaries.agreementAccepted,

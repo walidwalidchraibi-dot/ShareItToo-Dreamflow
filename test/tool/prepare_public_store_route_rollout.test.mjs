@@ -24,7 +24,13 @@ test('canonical Caddyfile preserves API routing and places all public routes bef
     stagingRoutes: ['support', 'privacy', 'account-deletion'],
     appShellFallbackAfterRoutes: true,
     apiRoutingPreserved: true,
+    androidAssetLinksCertificates: 2,
   });
+});
+
+test('canonical asset links include both the upload and Play App Signing certificates', () => {
+  assert.match(caddyfile, /09:8F:48:5E:57:16:15:58:E9:11:FC:3C:74:28:45:92:55:84:DB:31:C4:74:CD:BA:08:DD:A0:2F:EB:01:29:A4/u);
+  assert.match(caddyfile, /36:48:8A:BF:86:C5:1D:A0:7A:B2:25:8F:31:B0:0E:2F:1B:A8:A3:6D:07:61:07:B9:F0:06:37:6A:DE:80:B9:56/u);
 });
 
 test('site extraction stops at the matching outer brace', () => {

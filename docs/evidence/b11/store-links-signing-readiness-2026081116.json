@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "store-links-signing-readiness",
-  "status": "technical-prechecks-passed-public-routes-and-store-console-pending",
-  "capturedAt": "2026-08-12T07:25:00Z",
+  "status": "play-signing-observed-assetlinks-prepared-upload-and-public-routes-pending",
+  "capturedAt": "2026-08-12T08:21:15Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
@@ -17,7 +17,8 @@
   },
   "artifacts": {
     "aabSha256": "4da9336aeabc86c28bb5fe49fb96ba5bdb5329fb5af60ecfa0b73e513f0db204",
-    "uploadCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
+    "uploadCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
+    "playAppSigningCertificateSha256": "36488abf86c51da07ab2258f31b00e2f1ba8a36d076107b9f006376ade80b956"
   },
   "sources": {
     "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081116.json",
@@ -31,8 +32,8 @@
     "deployedPublicRoutes": "out-of-date",
     "publicSupportPrivacyDeletionRoutes": "pending",
     "playConsoleWarnings": "pending",
-    "playAppSigningFingerprint": "pending",
-    "assetLinksWithPlayAppSigning": "pending",
+    "playAppSigningFingerprint": "passed",
+    "assetLinksWithPlayAppSigning": "prepared-local-not-deployed",
     "appleSigningAndAssociatedDomains": "pending"
   },
   "counts": {
@@ -45,7 +46,7 @@
     "productionChanged": false,
     "publicRoutesApproved": false,
     "storeWarningsReviewed": false,
-    "playAppSigningObserved": false,
+    "playAppSigningObserved": true,
     "appleSigningTeamAvailable": false,
     "purchaseMade": true,
     "agreementAccepted": true,

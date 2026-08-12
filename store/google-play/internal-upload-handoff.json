@@ -30,7 +30,7 @@
   },
   "postUploadChecks": {
     "uploadedArtifactHashRecorded": "pending",
-    "playAppSigningFingerprintRecorded": "pending",
+    "playAppSigningFingerprintRecorded": "passed-pre-upload-console",
     "uploadWarningsReviewed": "pending",
     "crashlyticsCandidateAssignmentVerified": "pending",
     "internalStoreInstallCompleted": "pending"

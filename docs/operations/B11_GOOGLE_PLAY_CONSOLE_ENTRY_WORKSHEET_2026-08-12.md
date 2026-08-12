@@ -229,7 +229,7 @@ Nach dem ersten Internal-AAB-Upload:
 4. keine SMS-, Anruflisten-, Accessibility-Service- oder anderen nicht
    implementierten Sonderberechtigungen beanspruchen;
 5. Play-App-Signing-Zertifikat bereinigt erfassen und zusätzlich zum
-   Uploadzertifikat in `assetlinks.json` vorbereiten;
+   Uploadzertifikat in `assetlinks.json` vorbereiten – am 12.08.2026 erledigt;
 6. vor jeder öffentlichen Route, DNS-/Serveränderung oder Einreichung erneut
    Backup, Inhaltsprüfung, kontrollierten Reload und Rollback planen.
 

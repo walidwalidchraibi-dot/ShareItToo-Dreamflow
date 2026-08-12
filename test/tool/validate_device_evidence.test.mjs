@@ -881,7 +881,7 @@ test('rejects Store links and signing progress for a different upload certificat
   writeEvidence(root, ref, evidence);
   assert.throws(
     () => validate({ root, deviceManifest }),
-    /must match the exact Android candidate and upload certificate/,
+    /must match the exact Android candidate plus upload and Play signing certificates/,
   );
 });
 

@@ -3,7 +3,7 @@
   "kind": "public-store-route-rollout-readiness",
   "capturedAt": "2026-08-11",
   "status": "ready-awaiting-explicit-production-route-approval",
-  "localCaddySha256": "a880acf8d9eb9d2e1d2b1753884f341c10dd78a1935fb4fe8fb5c71c31ec4caa",
+  "localCaddySha256": "521f3beed1e29a2af866a7e2ffe847efda55f2d1d0f43153045dbb5d74c0493e",
   "canonical": {
     "productionRoutes": [
       "support",
@@ -16,7 +16,8 @@
       "account-deletion"
     ],
     "appShellFallbackAfterRoutes": true,
-    "apiRoutingPreserved": true
+    "apiRoutingPreserved": true,
+    "androidAssetLinksCertificates": 2
   },
   "deployedState": "deployed-config-out-of-date",
   "checks": [
@@ -43,7 +44,7 @@
     }
   ],
   "validation": {
-    "canonicalRouteContractTests": "6/6 passed",
+    "canonicalRouteContractTests": "7/7 passed",
     "liveDraftVerifier": "failed closed: support returned HTTP 200 instead of 503",
     "containerizedCaddyValidation": "not run: Docker and a local Caddy binary are unavailable on this Mac",
     "productionChangeRequiredForCompletion": true
