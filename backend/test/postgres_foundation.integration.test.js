@@ -2124,7 +2124,7 @@ if (!databaseUrl) {
         provider: 'facebook',
         subject: 'firebase-facebook-existing',
         firebaseUserId: 'firebase-user-facebook-existing',
-        email: 'auth-user@example.com',
+        email: 'social-google@example.com',
         emailVerified: false,
         displayName: 'Facebook Existing',
       });
