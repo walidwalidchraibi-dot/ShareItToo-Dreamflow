@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "google-play-app-content-progress",
-  "capturedAt": "2026-08-12T13:25:00Z",
+  "capturedAt": "2026-08-12T10:59:38Z",
   "status": "seven-of-eleven-saved",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -27,7 +27,7 @@
   "openTasks": {
     "privacyPolicy": "public-privacy-page-not-release-ready",
     "contentRating": "iarc-terms-owner-acceptance-pending",
-    "dataSafety": "provider-classification-and-retention-decisions-pending",
+    "dataSafety": "partial-draft-saved-public-deletion-provider-classification-and-retention-pending",
     "storeListing": "graphics-upload-and-public-pages-pending"
   },
   "storeDraft": {
@@ -35,6 +35,15 @@
     "phoneScreenshotsValidatedLocal": 4,
     "phoneScreenshotsUploaded": false,
     "appBundleUploaded": false
+  },
+  "dataSafetyDraft": {
+    "collectsOrSharesRequiredData": true,
+    "encryptedInTransit": true,
+    "accountCreationMethod": "username-and-password",
+    "deleteAccountUrlSaved": false,
+    "partialDataDeletionAnswerSaved": false,
+    "dataTypesSaved": false,
+    "submitted": false
   },
   "boundaries": {
     "sentForReview": false,

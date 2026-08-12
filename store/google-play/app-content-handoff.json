@@ -35,8 +35,11 @@
       "designedForChildren": false
     },
     "dataSafety": {
-      "status": "provider-classification-and-public-deletion-route-pending",
+      "status": "partial-console-draft-saved-public-deletion-route-and-provider-classification-pending",
       "collectsOrTransmitsUserData": true,
+      "encryptedInTransit": true,
+      "accountCreationMethod": "username-and-password",
+      "deleteAccountUrlSaved": false,
       "sellsData": false,
       "advertisingTracking": false
     },

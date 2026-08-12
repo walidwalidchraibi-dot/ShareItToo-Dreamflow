@@ -38,6 +38,14 @@ export function validateGooglePlayAppContentProgress({
       evidence.storeDraft?.appBundleUploaded !== false) {
     fail('Play store draft state is invalid.');
   }
+  const dataSafety = evidence.dataSafetyDraft ?? {};
+  if (dataSafety.collectsOrSharesRequiredData !== true || dataSafety.encryptedInTransit !== true ||
+      dataSafety.accountCreationMethod !== 'username-and-password' ||
+      dataSafety.deleteAccountUrlSaved !== false ||
+      dataSafety.partialDataDeletionAnswerSaved !== false || dataSafety.dataTypesSaved !== false ||
+      dataSafety.submitted !== false) {
+    fail('Play data-safety partial draft state is invalid.');
+  }
   const boundaries = evidence.boundaries ?? {};
   if (Object.keys(boundaries).length !== 9 || Object.values(boundaries).some((value) => value !== false) ||
       JSON.stringify(evidence).includes('@')) {
