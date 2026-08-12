@@ -6,10 +6,8 @@
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081116",
-    "commit": "03a76e23b0db656b48fc1729b3cd20e6260f2133",
-    "status": "superseded",
-    "replacementBuildNumber": "2026081201"
+    "buildNumber": "2026081201",
+    "commit": "c6ec80002cf664f513afc768c1b643ac0d1d19fb"
   },
   "sourceInventory": [
     {
@@ -58,11 +56,10 @@
     }
   ],
   "binaryEvidence": {
-    "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081116.json",
-    "binaryScan": "failed-extended-runtime-origin-scan",
-    "binaryScanReportSha256": "58d23739940630afdeea93455f6137fb5c64fdf46640e0922798f8d8e315a3c0",
-    "releaseCheckStatus": "blocked-replacement-pending",
-    "supersessionEvidenceRef": "docs/evidence/b11/android-candidate-2026081116-superseded-privacy-rescan-20260812.json"
+    "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081201.json",
+    "binaryScan": "passed",
+    "binaryScanReportSha256": "c0700ee375803caafd91b49bfaa66eb5e0bd38ebba1b09877e89919b444171ee",
+    "releaseCheckStatus": "passed"
   },
   "externalServices": {
     "firstPartyBackend": {

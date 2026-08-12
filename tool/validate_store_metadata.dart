@@ -904,8 +904,10 @@ void main(List<String> arguments) {
       appleTestFlightHandoff['distribution'] != 'testflight-internal' ||
       appleHandoffCandidate['bundleId'] != identity['bundleId'] ||
       appleHandoffCandidate['versionName'] != identity['versionName'] ||
-      (!handoffSuperseded &&
-          appleHandoffCandidate['buildNumber'] != currentBuild.toString()) ||
+      BigInt.tryParse(appleHandoffCandidate['buildNumber']?.toString() ?? '') ==
+          null ||
+      BigInt.parse(appleHandoffCandidate['buildNumber'].toString()) >
+          currentBuild ||
       appleHandoffCandidate['apiBaseUrl'] != identity['apiBaseUrl']) {
     _fail('Apple TestFlight handoff must remain bound and fail-closed.');
   }

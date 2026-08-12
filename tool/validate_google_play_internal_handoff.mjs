@@ -61,10 +61,11 @@ export function validateGooglePlayInternalHandoff({
   repositoryRoot,
   archiveRoot = resolve(homedir(), 'Library', 'Application Support', 'ShareItToo', 'release', 'android'),
   handoffPath = resolve(repositoryRoot, 'store', 'google-play', 'internal-upload-handoff.json'),
-  evidencePath = resolve(repositoryRoot, 'docs', 'evidence', 'b11', 'android-candidate-2026081116.json'),
+  evidencePath = null,
 }) {
   const handoff = object(readJson(handoffPath, 'Google Play handoff'), 'handoff');
-  const evidence = object(readJson(evidencePath, 'candidate evidence'), 'candidate evidence');
+  const resolvedEvidencePath = evidencePath ?? resolve(repositoryRoot, handoff.evidenceRef ?? '');
+  const evidence = object(readJson(resolvedEvidencePath, 'candidate evidence'), 'candidate evidence');
   assertNoCredentials(handoff);
 
   same(handoff.schemaVersion, 1, 'schemaVersion');
