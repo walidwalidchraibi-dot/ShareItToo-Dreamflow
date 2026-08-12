@@ -17,6 +17,7 @@ const sourcePaths = [
   'backend/src/security.js',
   'backend/src/maps_proxy.js',
   'lib/services/firebase_runtime.dart',
+  'lib/services/auth_service.dart',
   'lib/openai/openai_config.dart',
   'lib/services/maps_service.dart',
 ];
@@ -55,6 +56,7 @@ const serviceKeys = [
   'firstPartyBackend',
   'firebaseCloudMessaging',
   'firebaseCrashlytics',
+  'firebaseAuthentication',
   'googleMapsPlatform',
   'stripe',
   'openAiHelpers',
@@ -156,7 +158,16 @@ function assertApproval(value, label) {
 
 function assertSourceContracts({ root, sourceTexts }) {
   const pubspec = sourceText(root, sourceTexts, 'pubspec.yaml');
-  for (const dependency of ['firebase_messaging:', 'firebase_crashlytics:', 'geolocator:', 'image_picker:', 'file_picker:']) {
+  for (const dependency of [
+    'firebase_messaging:',
+    'firebase_crashlytics:',
+    'firebase_auth:',
+    'google_sign_in:',
+    'flutter_facebook_auth:',
+    'geolocator:',
+    'image_picker:',
+    'file_picker:',
+  ]) {
     if (!pubspec.includes(dependency)) fail(`pubspec.yaml is missing ${dependency}`);
   }
   for (const forbidden of ['firebase_analytics:', 'firebase_performance:', 'google_mobile_ads:']) {
@@ -204,6 +215,15 @@ function assertSourceContracts({ root, sourceTexts }) {
   for (const marker of ['FirebaseMessaging', 'FirebaseCrashlytics']) {
     if (!firebase.includes(marker)) fail(`Firebase runtime is missing ${marker}.`);
   }
+  const auth = sourceText(root, sourceTexts, 'lib/services/auth_service.dart');
+  for (const marker of [
+    'GoogleAuthProvider',
+    'AppleAuthProvider',
+    'FacebookAuthProvider',
+    "path: '/auth/social'",
+  ]) {
+    if (!auth.includes(marker)) fail(`Social authentication is missing ${marker}.`);
+  }
 
   const maps = sourceText(root, sourceTexts, 'lib/services/maps_service.dart');
   const mapsProxy = sourceText(root, sourceTexts, 'backend/src/maps_proxy.js');
@@ -231,6 +251,8 @@ function assertSourceContracts({ root, sourceTexts }) {
       'Google Maps Platform',
       'Firebase Cloud Messaging',
       'Firebase Crashlytics',
+      'Firebase Authentication',
+      'Google, Apple oder Facebook',
       'technische Installationskennung',
       'App-Sitzungsdaten',
     ]) {
@@ -243,6 +265,7 @@ function assertSourceContracts({ root, sourceTexts }) {
     'Google Maps Platform',
     'Firebase Cloud Messaging',
     'Firebase Crashlytics',
+    'Anmeldung mit Google, Apple oder Facebook',
     'bis zu 180 Tagen',
     '90 Tage',
     'keine dauerhafte Hintergrund- oder Live-Ortung',
@@ -349,6 +372,12 @@ export function validatePrivacyDisclosures({
   assertExactKeys(services, serviceKeys, 'externalServices');
   if (services.firebaseCloudMessaging?.enabled !== true || services.firebaseCrashlytics?.enabled !== true) {
     fail('Firebase Messaging and Crashlytics must remain disclosed as enabled.');
+  }
+  const socialAuth = object(services.firebaseAuthentication, 'externalServices.firebaseAuthentication');
+  if (socialAuth.enabled !== true
+      || !Array.isArray(socialAuth.providers)
+      || socialAuth.providers.join(',') !== 'google,apple,facebook') {
+    fail('Firebase Authentication must disclose Google, Apple, and Facebook.');
   }
   const maps = object(services.googleMapsPlatform, 'externalServices.googleMapsPlatform');
   if (maps.enabled !== true) {

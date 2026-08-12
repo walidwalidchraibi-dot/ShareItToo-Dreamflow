@@ -18,7 +18,8 @@ Maßgebliche technische Grundlage:
 - Nachrichten, Anhänge, Bilder, Bewertungen, Meldungen und Streitfälle;
 - Push-Registrierungen, Benachrichtigungseinstellungen und -historie;
 - Audit-, IP-, User-Agent- und Sicherheitsinformationen;
-- Firebase Cloud Messaging, Crashlytics und die Google-Maps-Platform-
+- Firebase Authentication für Google-, Apple- und Facebook-Anmeldung,
+  Firebase Cloud Messaging, Crashlytics und die Google-Maps-Platform-
   Webservices im Release-Build;
 - kein Firebase Analytics, kein Werbe-SDK und kein ATT-Tracking;
 - lokaler App-Zustand in SharedPreferences;
@@ -54,7 +55,7 @@ werden kann.
 | Produktdaten | Google-Play-Datentyp | Apple-Datentyp | Erhebung | Verknüpft | Zweck | Typische Empfänger/Prüfung |
 |---|---|---|---|---|---|---|
 | Anzeigename/Profilname | Personal info: Name | Contact Info: Name | erforderlich fürs sichtbare Profil | ja | App-Funktion, Kontoverwaltung, Sicherheit/Moderation | ShareItToo-Backend/Hosting |
-| E-Mail | Personal info: Email address | Contact Info: Email Address | erforderlich | ja | Anmeldung, Verifizierung, Kontoverwaltung, Transaktionskommunikation, Sicherheit | Backend, Transaktionsmail-Dienst; Verträge final prüfen |
+| E-Mail | Personal info: Email address | Contact Info: Email Address | erforderlich | ja | Anmeldung, Verifizierung, Kontoverwaltung, Transaktionskommunikation, Sicherheit | Backend, Firebase Authentication und gewählter Google-/Apple-/Facebook-Anbieter, Transaktionsmail-Dienst; Verträge final prüfen |
 | Telefonnummer | Personal info: Phone number | Contact Info: Phone Number | optional, solange kein verifizierter Pflichtflow aktiviert ist | ja | Kontakt/Übergabe, Kontoverwaltung, Sicherheit | Backend; finalen Releaseflow bestätigen |
 | Profilbild und Profilbeschreibung | Photos and videos / Other user-generated content | Photos or Videos / Other User Content | optional | ja | Profil und Vertrauen | Backend/Objektspeicher |
 | Stadt, Inserat-/Übergabe-/Abholadresse | Personal info: Address plus Location | Contact Info: Physical Address plus Location | erforderlich für gewählten Inserat-/Buchungsflow | ja | Suche, Distanz, Buchung, Übergabe | Backend; öffentliche Ausgabe nur abgerundet, genaue Adresse rollen-/zeitgebunden prüfen |
@@ -68,6 +69,7 @@ werden kann.
 | Buchungszeitraum, Status, Beträge, Gebühren, Kaution, Refund/Payout-Status | Purchase history | Purchases: Purchase History | erforderlich für Buchung | ja | Buchungs- und Zahlungsabwicklung, Belege, Sicherheit/Compliance | Backend; später Stripe als Zahlungsdienstleister |
 | Kartennummer, Bankkonto, vollständige Zahlungsmethode | Financial info: Payment info | Financial Info: Payment Info | **nicht durch ShareItToo erheben**, sofern Stripe-hosted Eingabe und kein Entwicklerzugriff | nicht anwendbar | Zahlungsabwicklung beim Provider | vor Stripe-Aktivierung durch Netzwerk-/SDK-Test bestätigen; sonst Matrix ändern |
 | Konto-ID | User IDs | Identifiers: User ID | erforderlich | ja | Konto, Berechtigung, Buchung, Support, Sicherheit | Backend |
+| Externe Anbieterkennung | User IDs | Identifiers: User ID | optional bei Social Login | ja | Anmeldung, Kontoverknüpfung, Betrugsprävention | Firebase Authentication und ausdrücklich gewählter Google-/Apple-/Facebook-Anbieter; keine Provider-Zugriffstoken im SIT-Backend |
 | FCM-/APNs-Token und Firebase Installation ID | Device or other IDs | Identifiers: Device ID | optional nach Push-Einwilligung, technisch für Push erforderlich | ja zur Installation und serverseitig zum Konto | Benachrichtigungen, Sicherheit | Firebase/Google, Apple Push, Backend |
 | IP-Adresse, User-Agent, Sitzungs-/Gerätelabel | Device or other IDs / Other data depending on Play form | Identifiers: Device ID oder Diagnostics entsprechend finaler Verwendung | automatisch bei Konto-/API-Nutzung | ja zur Sitzung/Konto | Authentifizierung, Betrugsprävention, Sicherheit, Betrieb | Backend/Hosting; keine Werbenutzung |
 | App-/Sicherheits-Auditereignisse | App activity: App interactions / Other actions | Usage Data: Other Usage Data | automatisch bei sicherheits- oder geschäftsrelevanten Aktionen | ja | Sicherheit, Compliance, Support, Fehleranalyse | Backend; keine allgemeine Marketinganalyse |

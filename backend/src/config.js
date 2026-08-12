@@ -54,12 +54,15 @@ if (pushTransport === 'webhook') {
 }
 const firebaseProjectId = process.env.FIREBASE_PROJECT_ID?.trim() ?? '';
 const firebaseServiceAccountFile = process.env.FIREBASE_SERVICE_ACCOUNT_FILE?.trim() ?? '';
-if (pushTransport === 'fcm') {
+const firebaseAuthEnabled = (process.env.FIREBASE_AUTH_ENABLED ?? 'false')
+  .trim()
+  .toLowerCase() === 'true';
+if (pushTransport === 'fcm' || firebaseAuthEnabled) {
   if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(firebaseProjectId)) {
-    throw new Error('FIREBASE_PROJECT_ID must be configured for FCM transport');
+    throw new Error('FIREBASE_PROJECT_ID must be configured for Firebase services');
   }
   if (!firebaseServiceAccountFile) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_FILE must be configured for FCM transport');
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_FILE must be configured for Firebase services');
   }
   const resolvedServiceAccountFile = path.resolve(firebaseServiceAccountFile);
   let serviceAccountFileIsReadable = false;
@@ -209,6 +212,14 @@ export const config = Object.freeze({
     firebaseServiceAccountFile: firebaseServiceAccountFile
       ? path.resolve(firebaseServiceAccountFile)
       : '',
+  }),
+  socialAuth: Object.freeze({
+    enabled: firebaseAuthEnabled,
+    firebaseProjectId,
+    firebaseServiceAccountFile: firebaseServiceAccountFile
+      ? path.resolve(firebaseServiceAccountFile)
+      : '',
+    allowedProviders: Object.freeze(['google', 'apple', 'facebook']),
   }),
   payments: Object.freeze({
     transport: paymentTransport,

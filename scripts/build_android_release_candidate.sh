@@ -32,6 +32,13 @@ common_args=(
   "--dart-define=SIT_BUNDLE_ID=com.shareittoo.app"
 )
 
+if [[ -n "${SIT_FACEBOOK_APP_ID:-}" ]]; then
+  export SIT_FACEBOOK_APP_ID
+fi
+if [[ -n "${SIT_FACEBOOK_CLIENT_TOKEN:-}" ]]; then
+  export SIT_FACEBOOK_CLIENT_TOKEN
+fi
+
 if [[ "${SIT_ENABLE_STAGING_CRASH_DIAGNOSTIC:-0}" == "1" ]]; then
   diagnostic_run_id="${SIT_STAGING_CRASH_DIAGNOSTIC_RUN_ID:-}"
   if [[ "$API_BASE_URL" != "https://staging.shareittoo.com/api/v1" ||

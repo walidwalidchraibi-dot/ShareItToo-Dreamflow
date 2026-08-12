@@ -88,6 +88,13 @@ const requireCheck = (condition, code, message) => {
 };
 const manifestBooleanIsFalse = (name) =>
   new RegExp(`A: android:${name}[^\\n]*\\(type 0x12\\)0x0`).test(manifest);
+const manifestMetadataBooleanIsFalse = (name) => {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(
+    `A: android:name[^\\n]*="${escaped}"[\\s\\S]{0,320}`
+      + 'A: android:value[^\\n]*\\(type 0x12\\)0x0',
+  ).test(manifest);
+};
 
 requireCheck(
   badging.includes(
@@ -178,6 +185,7 @@ const requiredFirebaseRegistrars = [
   'FirebaseMessagingRegistrar',
   'CrashlyticsRegistrar',
   'FirebaseInstallationsRegistrar',
+  'FirebaseAuthRegistrar',
 ];
 for (const registrar of requiredFirebaseRegistrars) {
   requireCheck(
@@ -193,7 +201,6 @@ const prohibitedSdkMarkers = [
   'AppMeasurement',
   'MobileAds',
   'AdvertisingIdClient',
-  'facebook.appevents',
   'appsflyer',
   'com.adjust',
   'mixpanel',
@@ -245,6 +252,18 @@ for (const marker of forbiddenRuntimeMarkers) {
 
 const googleMapsEndpointPresent = includesAscii(compiledPayload, 'maps.googleapis.com');
 const googleMapsProxyEndpointPresent = includesAscii(compiledPayload, '/maps/places/autocomplete');
+const facebookLoginPresent = manifest.includes('com.facebook.FacebookActivity');
+const firebaseAuthPresent = manifest.includes('FirebaseAuthRegistrar');
+requireCheck(
+  !facebookLoginPresent || manifestMetadataBooleanIsFalse('com.facebook.sdk.AutoLogAppEventsEnabled'),
+  'facebook_auto_events_enabled',
+  'Facebook automatic app events must be explicitly disabled in the signed manifest.',
+);
+requireCheck(
+  !facebookLoginPresent || manifestMetadataBooleanIsFalse('com.facebook.sdk.AdvertiserIDCollectionEnabled'),
+  'facebook_advertiser_id_enabled',
+  'Facebook advertiser ID collection must be explicitly disabled in the signed manifest.',
+);
 requireCheck(
   !googleMapsEndpointPresent,
   'direct_google_maps_client_forbidden',
@@ -265,6 +284,17 @@ const externalServices = {
     detected: manifest.includes('CrashlyticsRegistrar'),
     disclosure: 'Firebase Crashlytics',
   },
+  firebaseAuthentication: {
+    detected: firebaseAuthPresent,
+    disclosure: 'Firebase Authentication',
+    providers: ['Google', 'Apple', 'Facebook'],
+  },
+  facebookLogin: {
+    detected: facebookLoginPresent,
+    disclosure: 'Facebook Login',
+    automaticAppEvents: false,
+    advertiserIdCollection: false,
+  },
   googleMapsPlatform: {
     detected: googleMapsProxyEndpointPresent,
     disclosure: 'Google Maps Platform',
@@ -282,6 +312,8 @@ const externalServices = {
 const disclosedSdks = [
   'Firebase Cloud Messaging',
   'Firebase Crashlytics',
+  ...(externalServices.firebaseAuthentication.detected ? ['Firebase Authentication'] : []),
+  ...(externalServices.facebookLogin.detected ? ['Facebook Login'] : []),
   ...(externalServices.googleMapsPlatform.detected ? ['Google Maps Platform'] : []),
 ];
 

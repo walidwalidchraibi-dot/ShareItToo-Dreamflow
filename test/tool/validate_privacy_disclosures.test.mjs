@@ -50,7 +50,7 @@ test('accepts the honest fail-closed privacy disclosure draft', () => {
   assert.equal(result.state, 'draft');
   assert.equal(result.approvalAllowed, false);
   assert.equal(result.dataTypeCount, 18);
-  assert.equal(result.externalServiceCount, 8);
+  assert.equal(result.externalServiceCount, 9);
   assert.equal(result.binaryReleaseCheck, 'blocked-replacement-pending');
   assert.equal(result.storeGate, 'open');
 });
@@ -128,6 +128,15 @@ test('rejects hiding the Google Maps integration found in the candidate', () => 
   assert.throws(
     () => validate({ privacyManifest }),
     /must disclose its Google Maps integration/,
+  );
+});
+
+test('rejects hiding any implemented social authentication provider', () => {
+  const privacyManifest = clone(basePrivacyManifest);
+  privacyManifest.externalServices.firebaseAuthentication.providers = ['google', 'apple'];
+  assert.throws(
+    () => validate({ privacyManifest }),
+    /must disclose Google, Apple, and Facebook/,
   );
 });
 

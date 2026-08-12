@@ -7,9 +7,9 @@ import 'package:lendify/screens/legal_privacy_screen.dart';
 import 'package:lendify/screens/legal_terms_screen.dart';
 import 'package:lendify/screens/login_screen.dart';
 import 'package:lendify/services/auth_service.dart';
-import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
+import 'package:lendify/services/firebase_runtime.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/utils/registration_input_policy.dart';
 import 'package:lendify/widgets/app_popup.dart';
@@ -249,14 +249,92 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _socialRegister(AuthSocialProvider provider) async {
     if (_busy || !mounted) return;
-    final providerLabel =
-        provider == AuthSocialProvider.google ? 'Google' : 'Apple';
-    await AppPopup.toast(
-      context,
-      icon: Icons.info_outline,
-      title: '$providerLabel-Anmeldung noch nicht verfügbar',
-      message: 'Bitte nutze aktuell die Registrierung per E-Mail.',
-    );
+    final providerLabel = switch (provider) {
+      AuthSocialProvider.google => 'Google',
+      AuthSocialProvider.apple => 'Apple',
+      AuthSocialProvider.facebook => 'Facebook',
+    };
+    if (!_minimumAgeConfirmed || !_termsAccepted || !_privacyAccepted) {
+      await AppPopup.toast(
+        context,
+        icon: Icons.gavel_outlined,
+        title: 'Bitte bestätige: 18 Jahre oder älter, AGB und Datenschutz.',
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final result = await AuthService.signInWithSocialProvider(
+        provider,
+        termsAccepted: _termsAccepted,
+        privacyAccepted: _privacyAccepted,
+        minimumAgeConfirmed: _minimumAgeConfirmed,
+      );
+      if (!mounted) return;
+      if (!result.ok) {
+        if (result.failure == AuthFailure.socialCancelled) return;
+        final message = switch (result.failure) {
+          AuthFailure.socialEmailRequired =>
+            '$providerLabel hat keine E-Mail-Adresse übermittelt. Bitte gib sie dort frei oder nutze eine andere Anmeldung.',
+          AuthFailure.socialEmailVerificationRequired =>
+            'Die von $providerLabel übermittelte E-Mail ist noch nicht bestätigt.',
+          AuthFailure.socialProviderAlreadyLinked =>
+            'Dieses SIT-Konto ist bereits mit einem anderen $providerLabel-Konto verbunden.',
+          AuthFailure.socialAccountLinkRequiresReauthentication =>
+            'Diese E-Mail gehört bereits zu einem SIT-Konto. Melde dich einmal wie bisher an, bevor du $providerLabel verbindest.',
+          AuthFailure.accountNotActive =>
+            'Dieses SIT-Konto ist derzeit nicht aktiv.',
+          AuthFailure.providerUnavailable =>
+            '$providerLabel ist noch nicht freigeschaltet. Bitte nutze vorübergehend E-Mail.',
+          _ =>
+            'Die $providerLabel-Registrierung ist gerade nicht erreichbar. Bitte versuche es erneut.',
+        };
+        await AppPopup.toast(
+          context,
+          icon: Icons.error_outline,
+          title: message,
+        );
+        return;
+      }
+      if (result.session == null) {
+        final pendingEmail = result.pendingEmail ?? '';
+        await AppPopup.toast(
+          context,
+          icon: Icons.mark_email_read_outlined,
+          title: 'Bestätigungs-E-Mail gesendet',
+          message:
+              'Bestätige einmal deine E-Mail und melde dich danach erneut mit $providerLabel an.',
+        );
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => LoginScreen(
+              returnTabIndex: widget.returnTabIndex,
+              initialEmail: pendingEmail,
+              verificationPending: true,
+            ),
+          ),
+        );
+        return;
+      }
+      final email = result.session?.email ?? '';
+      await DataService.syncCurrentUserForSessionEmail(email);
+      await FirebaseRuntime.syncPushRegistration();
+      if (!mounted) return;
+      await context
+          .read<DeveloperPreviewController>()
+          .setState(DeveloperUserState.loggedIn);
+      if (!mounted) return;
+      final targetIndex = widget.returnTabIndex;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => MainNavigation(initialIndex: targetIndex ?? 0),
+        ),
+        (route) => false,
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -608,35 +686,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                         'Ich akzeptiere die Datenschutzbestimmungen.',
                                                       ),
                                                     ),
-                                                    if (!BackendConfig
-                                                        .enabled) ...[
-                                                      const SizedBox(
-                                                          height: 10),
-                                                      const SocialAuthOrDivider(),
-                                                      const SizedBox(
-                                                          height: 10),
-                                                      SocialAuthButton(
-                                                          brand: SocialAuthBrand
-                                                              .google,
-                                                          label:
-                                                              'Mit Google registrieren',
-                                                          onTap: _busy
-                                                              ? null
-                                                              : () => _socialRegister(
-                                                                  AuthSocialProvider
-                                                                      .google)),
-                                                      const SizedBox(height: 8),
-                                                      SocialAuthButton(
-                                                          brand: SocialAuthBrand
-                                                              .apple,
-                                                          label:
-                                                              'Mit Apple registrieren',
-                                                          onTap: _busy
-                                                              ? null
-                                                              : () => _socialRegister(
-                                                                  AuthSocialProvider
-                                                                      .apple)),
-                                                    ],
+                                                    const SizedBox(height: 10),
+                                                    const SocialAuthOrDivider(),
+                                                    const SizedBox(height: 10),
+                                                    SocialAuthButton(
+                                                        brand: SocialAuthBrand
+                                                            .google,
+                                                        label:
+                                                            'Mit Google registrieren',
+                                                        onTap: _busy
+                                                            ? null
+                                                            : () => _socialRegister(
+                                                                AuthSocialProvider
+                                                                    .google)),
+                                                    const SizedBox(height: 8),
+                                                    SocialAuthButton(
+                                                        brand: SocialAuthBrand
+                                                            .apple,
+                                                        label:
+                                                            'Mit Apple registrieren',
+                                                        onTap: _busy
+                                                            ? null
+                                                            : () => _socialRegister(
+                                                                AuthSocialProvider
+                                                                    .apple)),
+                                                    const SizedBox(height: 8),
+                                                    SocialAuthButton(
+                                                        brand: SocialAuthBrand
+                                                            .facebook,
+                                                        label:
+                                                            'Mit Facebook registrieren',
+                                                        onTap: _busy
+                                                            ? null
+                                                            : () => _socialRegister(
+                                                                AuthSocialProvider
+                                                                    .facebook)),
                                                   ]),
                                             ),
                                           ),

@@ -43,7 +43,7 @@ export async function buildAccountExport(client, userId) {
               created_at, last_seen_at, revoked_at, revoked_reason
        FROM auth_sessions WHERE user_id = $1 ORDER BY created_at`, userId),
     rows(client,
-      `SELECT provider, provider_subject, email_at_link, email_verified,
+      `SELECT provider, provider_subject, firebase_user_id, email_at_link, email_verified,
               created_at, last_login_at
        FROM auth_identities WHERE user_id = $1 ORDER BY created_at`, userId),
     rows(client,

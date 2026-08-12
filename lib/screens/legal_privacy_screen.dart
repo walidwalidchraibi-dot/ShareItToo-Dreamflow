@@ -73,10 +73,11 @@ class LegalPrivacyScreen extends StatelessWidget {
               'Google Maps Platform für Adressvorschläge sowie Standort- und Entfernungsfunktionen',
               'Firebase Cloud Messaging für Push‑Benachrichtigungen; dabei wird eine technische Installationskennung verarbeitet',
               'Firebase Crashlytics für Absturz-, Geräte-, Diagnose- und App-Sitzungsdaten; es wird keine Werbe-ID verwendet und kein Nutzerprofil für Werbung erstellt',
+              'Firebase Authentication für die freiwillige Anmeldung über Google, Apple oder Facebook; dabei werden Anbieterkennung, E-Mail, E-Mail-Bestätigungsstatus und gegebenenfalls der Anzeigename verarbeitet',
             ]),
             SizedBox(height: 10),
             LegalParagraph(
-                'Analyse zu Werbezwecken und Werbe-SDKs sind im aktuellen Kandidaten nicht aktiviert. Eine finale rechtliche Einordnung der technischen Empfänger ist vor der Veröffentlichung noch freizugeben.'),
+                'Analyse zu Werbezwecken und Werbe-SDKs sind im aktuellen Kandidaten nicht aktiviert. Die Facebook-Anmeldekomponente dient ausschließlich der ausdrücklich gewählten Anmeldung; automatische Facebook-App-Events und Werbetracking werden nicht verwendet. Eine finale rechtliche Einordnung der technischen Empfänger ist vor der Veröffentlichung noch freizugeben.'),
           ],
         ),
         LegalSectionCard(

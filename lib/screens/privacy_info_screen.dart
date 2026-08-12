@@ -181,9 +181,10 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           'Google Maps Platform für Adressvorschläge sowie Standort- und Entfernungsfunktionen',
           'Firebase Cloud Messaging für Push‑Benachrichtigungen und technische Installationskennungen',
           'Firebase Crashlytics für Absturz-, Geräte-, Diagnose- und App-Sitzungsdaten',
+          'Firebase Authentication für eine freiwillige Anmeldung mit Google, Apple oder Facebook und die dafür erforderlichen Identitätsdaten',
         ],
         note:
-            'Werbe-IDs, Werbeprofile, Werbe-SDKs und Analyse zu Werbezwecken sind im aktuellen App-Kandidaten nicht aktiviert.',
+            'Werbe-IDs, Werbeprofile, Werbetracking und Analyse zu Werbezwecken sind im aktuellen App-Kandidaten nicht aktiviert. Facebook wird nur nach ausdrücklichem Antippen der Facebook-Anmeldung verwendet.',
       ),
       const _PrivacySectionData(
         icon: Icons.file_download_outlined,

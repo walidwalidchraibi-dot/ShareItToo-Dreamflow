@@ -111,6 +111,10 @@ import { errorPayload, requestContext, safeErrorLog } from './observability.js';
 import { buildAccountExport } from './privacy_export.js';
 import { createMapsProxy, MapsProxyError } from './maps_proxy.js';
 import {
+  SocialAuthError,
+  verifyFirebaseSocialToken,
+} from './firebase_social_auth.js';
+import {
   ListingValidationError,
   listingProjection,
   normalizeListingPayload,
@@ -908,7 +912,7 @@ async function listThreads(client, userId) {
   return threads;
 }
 
-export function createApp() {
+export function createApp({ verifySocialToken = verifyFirebaseSocialToken } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
@@ -942,6 +946,7 @@ export function createApp() {
   const generalLimiter = rateLimit({ windowMs: 60_000, limit: 240, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const registrationLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const loginLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
+  const socialAuthLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 12, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const refreshLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const exportLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
@@ -1067,6 +1072,204 @@ export function createApp() {
       }
     }
     res.status(202).json({ accepted: true });
+  }));
+
+  app.post('/v1/auth/social', socialAuthLimiter, asyncRoute(async (req, res) => {
+    let identity;
+    try {
+      identity = await verifySocialToken(req.body?.idToken);
+    } catch (error) {
+      if (error instanceof SocialAuthError) {
+        throw new HttpError(error.status, error.code);
+      }
+      throw error;
+    }
+    await reconcileExpiredAccountSuspension(identity.email);
+    const consentsAccepted = req.body?.termsAccepted === true
+      && req.body?.privacyAccepted === true
+      && req.body?.minimumAgeConfirmed === true;
+    const outcome = await inTransaction(async (client) => {
+      await client.query(
+        'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+        [`social:${identity.provider}:${identity.subject}`],
+      );
+      let user;
+      let linkedExistingAccount = false;
+      let createdAccount = false;
+      const linked = await client.query(
+        `SELECT account.*
+         FROM auth_identities AS identity
+         JOIN users AS account ON account.id = identity.user_id
+         WHERE identity.provider = $1 AND identity.provider_subject = $2
+         FOR UPDATE OF identity, account`,
+        [identity.provider, identity.subject],
+      );
+      if (linked.rowCount) {
+        user = linked.rows[0];
+      } else {
+        const existing = await client.query(
+          'SELECT * FROM users WHERE email = $1 FOR UPDATE',
+          [identity.email],
+        );
+        user = existing.rows[0];
+        if (user) {
+          if (!identity.emailVerified) {
+            throw new HttpError(409, 'social_account_link_requires_reauthentication');
+          }
+          linkedExistingAccount = true;
+          const existingProvider = await client.query(
+            'SELECT provider_subject FROM auth_identities WHERE user_id = $1 AND provider = $2',
+            [user.id, identity.provider],
+          );
+          if (existingProvider.rowCount) {
+            throw new HttpError(409, 'social_provider_already_linked');
+          }
+        } else {
+          if (!consentsAccepted) {
+            throw new HttpError(400, 'social_registration_consents_required');
+          }
+          const userId = crypto.randomUUID();
+          const profile = {
+            ...defaultProfile({ email: identity.email }),
+            ...(identity.displayName ? { displayName: identity.displayName } : {}),
+            emailVerified: identity.emailVerified,
+          };
+          const created = await client.query(
+            `INSERT INTO users (
+               id, email, password_hash, profile, email_verified_at,
+               terms_accepted_at, privacy_accepted_at, minimum_age_confirmed_at
+             ) VALUES (
+               $1, $2, NULL, $3::jsonb,
+               CASE WHEN $4::boolean THEN now() ELSE NULL END,
+               now(), now(), now()
+             )
+             RETURNING *`,
+            [userId, identity.email, JSON.stringify(profile), identity.emailVerified],
+          );
+          user = created.rows[0];
+          createdAccount = true;
+          await writeAudit(client, {
+            actor: { id: user.id, role: user.role ?? 'user' },
+            action: 'account.registered',
+            resourceType: 'user',
+            resourceId: user.id,
+            requestId: req.requestId,
+            metadata: { method: 'federated', provider: identity.provider },
+          });
+        }
+        if (!createdAccount && (
+          !user.terms_accepted_at
+          || !user.privacy_accepted_at
+          || !user.minimum_age_confirmed_at
+        )) {
+          if (!consentsAccepted) {
+            throw new HttpError(400, 'social_registration_consents_required');
+          }
+          const consented = await client.query(
+            `UPDATE users
+             SET terms_accepted_at = COALESCE(terms_accepted_at, now()),
+                 privacy_accepted_at = COALESCE(privacy_accepted_at, now()),
+                 minimum_age_confirmed_at = COALESCE(minimum_age_confirmed_at, now())
+             WHERE id = $1 RETURNING *`,
+            [user.id],
+          );
+          user = consented.rows[0];
+        }
+        await client.query(
+          `INSERT INTO auth_identities (
+             user_id, provider, provider_subject, firebase_user_id, email_at_link,
+             email_verified, last_login_at
+           ) VALUES ($1, $2, $3, $4, $5, $6, now())`,
+          [
+            user.id,
+            identity.provider,
+            identity.subject,
+            identity.firebaseUserId,
+            identity.email,
+            identity.emailVerified,
+          ],
+        );
+      }
+      if (user.deactivated_at || user.account_status !== 'active') {
+        throw new HttpError(403, 'account_not_active');
+      }
+      if (!user.terms_accepted_at
+          || !user.privacy_accepted_at
+          || !user.minimum_age_confirmed_at) {
+        if (!consentsAccepted) {
+          throw new HttpError(400, 'social_registration_consents_required');
+        }
+        const consented = await client.query(
+          `UPDATE users
+           SET terms_accepted_at = COALESCE(terms_accepted_at, now()),
+               privacy_accepted_at = COALESCE(privacy_accepted_at, now()),
+               minimum_age_confirmed_at = COALESCE(minimum_age_confirmed_at, now())
+           WHERE id = $1 RETURNING *`,
+          [user.id],
+        );
+        user = consented.rows[0];
+      }
+      if (!user.email_verified_at
+          && identity.emailVerified
+          && user.email === identity.email) {
+        const verified = await client.query(
+          `UPDATE users
+           SET email_verified_at = now(),
+               profile = jsonb_set(profile, '{emailVerified}', 'true'::jsonb, true)
+           WHERE id = $1 RETURNING *`,
+          [user.id],
+        );
+        user = verified.rows[0];
+      }
+      await client.query(
+        `UPDATE auth_identities
+         SET firebase_user_id = $3,
+             email_at_link = $4,
+             email_verified = email_verified OR $5,
+             last_login_at = now()
+         WHERE provider = $1 AND provider_subject = $2`,
+        [
+          identity.provider,
+          identity.subject,
+          identity.firebaseUserId,
+          identity.email,
+          identity.emailVerified,
+        ],
+      );
+      if (!user.email_verified_at) {
+        return { verificationUser: user, session: null };
+      }
+      const issued = await issueSession(client, user, {
+        userAgent: req.get('user-agent'),
+        ipAddress: requestIp(req),
+      });
+      await writeAudit(client, {
+        actor: { id: user.id, role: user.role ?? 'user' },
+        action: 'auth.social_login',
+        resourceType: 'auth_session',
+        resourceId: issued.sessionId,
+        requestId: req.requestId,
+        metadata: {
+          provider: identity.provider,
+          createdAccount,
+          linkedExistingAccount,
+        },
+      });
+      return { verificationUser: null, session: issued };
+    });
+    if (outcome.verificationUser) {
+      try {
+        await createAndSendVerification(outcome.verificationUser);
+      } catch (error) {
+        console.error('[auth] social verification delivery failed', error?.code ?? error?.message ?? error);
+      }
+      return res.status(202).json({
+        accepted: true,
+        verificationEmailSent: true,
+        email: outcome.verificationUser.email,
+      });
+    }
+    return res.json(outcome.session);
   }));
 
   app.get('/v1/payments/connect/return', (req, res) => sendHtml(res, 200, resultPage({

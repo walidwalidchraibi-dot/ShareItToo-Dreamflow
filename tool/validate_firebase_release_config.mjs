@@ -58,7 +58,14 @@ export function parseGoogleServiceInfoPlist(contents) {
 
 function validateRepositoryScaffold(root, overrides) {
   const pubspec = source(root, 'pubspec.yaml', overrides);
-  for (const dependency of ['firebase_core:', 'firebase_messaging:', 'firebase_crashlytics:']) {
+  for (const dependency of [
+    'firebase_core:',
+    'firebase_messaging:',
+    'firebase_crashlytics:',
+    'firebase_auth:',
+    'google_sign_in:',
+    'flutter_facebook_auth:',
+  ]) {
     requireIncludes(pubspec, dependency, 'pubspec.yaml');
   }
   for (const forbidden of ['firebase_analytics:', 'firebase_performance:', 'google_mobile_ads:']) {
@@ -82,10 +89,32 @@ function validateRepositoryScaffold(root, overrides) {
   requireIncludes(androidBuild, 'pluginManager.apply("com.google.gms.google-services")', 'android/app/build.gradle');
   requireIncludes(androidBuild, 'pluginManager.apply("com.google.firebase.crashlytics")', 'android/app/build.gradle');
   requireIncludes(androidBuild, `applicationId = "${bundleId}"`, 'android/app/build.gradle');
+  requireIncludes(androidBuild, 'manifestPlaceholders.facebookAppId', 'android/app/build.gradle');
+  requireIncludes(androidBuild, 'manifestPlaceholders.facebookClientToken', 'android/app/build.gradle');
+
+  const androidManifest = source(root, 'android/app/src/main/AndroidManifest.xml', overrides);
+  for (const marker of [
+    'com.facebook.sdk.ApplicationId',
+    'com.facebook.sdk.ClientToken',
+    'com.facebook.sdk.AutoLogAppEventsEnabled',
+    'com.facebook.sdk.AdvertiserIDCollectionEnabled',
+  ]) {
+    requireIncludes(androidManifest, marker, 'android/app/src/main/AndroidManifest.xml');
+  }
 
   const infoPlist = source(root, 'ios/Runner/Info.plist', overrides);
   requireIncludes(infoPlist, '<string>fetch</string>', 'ios/Runner/Info.plist');
   requireIncludes(infoPlist, '<string>remote-notification</string>', 'ios/Runner/Info.plist');
+  for (const marker of [
+    '<key>FacebookAppID</key>',
+    '<key>FacebookClientToken</key>',
+    '<key>FacebookAutoLogAppEventsEnabled</key>',
+    '<key>FacebookAdvertiserIDCollectionEnabled</key>',
+    '<string>fb$(SIT_FACEBOOK_APP_ID)</string>',
+    '<string>$(SIT_GOOGLE_REVERSED_CLIENT_ID)</string>',
+  ]) {
+    requireIncludes(infoPlist, marker, 'ios/Runner/Info.plist');
+  }
   if (/<key>FirebaseAppDelegateProxyEnabled<\/key>\s*<false\s*\/>/.test(infoPlist)) {
     fail('Firebase method swizzling must remain enabled for Apple FCM token handling.');
   }
@@ -93,6 +122,7 @@ function validateRepositoryScaffold(root, overrides) {
   const entitlements = source(root, 'ios/Runner/Runner.entitlements', overrides);
   requireIncludes(entitlements, '<key>aps-environment</key>', 'ios/Runner/Runner.entitlements');
   requireIncludes(entitlements, '<string>$(APS_ENVIRONMENT)</string>', 'ios/Runner/Runner.entitlements');
+  requireIncludes(entitlements, '<key>com.apple.developer.applesignin</key>', 'ios/Runner/Runner.entitlements');
 
   const xcodeProject = source(root, 'ios/Runner.xcodeproj/project.pbxproj', overrides);
   requireIncludes(xcodeProject, 'com.apple.Push', 'ios/Runner.xcodeproj/project.pbxproj');
@@ -185,6 +215,15 @@ function validateIosConfig(config, values) {
   }
   const apiKey = validateApiKey(values.SIT_FIREBASE_IOS_API_KEY, 'SIT_FIREBASE_IOS_API_KEY');
   if (config.API_KEY !== apiKey) fail('Apple Firebase API key does not match GoogleService-Info.plist.');
+  if (config.IS_SIGNIN_ENABLED !== true) {
+    fail('Apple Firebase configuration must have Google Sign-In enabled.');
+  }
+  if (!/^\d+-[0-9a-z]+\.apps\.googleusercontent\.com$/i.test(config.CLIENT_ID ?? '')) {
+    fail('Apple Firebase configuration is missing a valid Google OAuth client ID.');
+  }
+  if (config.REVERSED_CLIENT_ID !== `com.googleusercontent.apps.${config.CLIENT_ID.replace('.apps.googleusercontent.com', '')}`) {
+    fail('Apple Firebase reversed Google OAuth client ID is invalid.');
+  }
   if (config.IS_ANALYTICS_ENABLED === true || config.IS_ADS_ENABLED === true) {
     fail('Firebase Analytics and advertising must remain disabled for ShareItToo.');
   }

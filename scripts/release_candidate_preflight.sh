@@ -70,6 +70,13 @@ else
   node tool/validate_apple_testflight_handoff.mjs
 fi
 if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
+  [[ "${SIT_FACEBOOK_APP_ID:-}" =~ ^[1-9][0-9]{5,24}$ ]] || \
+    fail "Store submission requires the real public Meta App ID."
+  [[ -n "${SIT_FACEBOOK_CLIENT_TOKEN:-}" && \
+     "${SIT_FACEBOOK_CLIENT_TOKEN}" != "not-configured" ]] || \
+    fail "Store submission requires the real public Meta Client Token."
+  [[ "${SIT_GOOGLE_REVERSED_CLIENT_ID:-}" =~ ^com\.googleusercontent\.apps\.[0-9]+-[0-9A-Za-z_-]+$ ]] || \
+    fail "Store submission requires the real Apple Google Sign-In URL scheme."
   node tool/validate_firebase_release_config.mjs --require-configured --platform all
   node tool/validate_device_evidence.mjs --require-passed
   node tool/validate_legal_readiness.mjs --require-approved

@@ -44,6 +44,18 @@ void main() {
         );
       }
 
+      for (final label in [
+        'Mit Google anmelden',
+        'Mit Apple anmelden',
+        'Mit Facebook anmelden',
+      ]) {
+        final button = find.text(label);
+        expect(button, findsOneWidget);
+        final node = tester.getSemantics(button);
+        expect(node.flagsCollection.isButton, isTrue);
+        expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+      }
+
       final visibility = find.bySemanticsLabel('Passwort anzeigen');
       expect(visibility, findsAtLeastNWidgets(1));
       expect(

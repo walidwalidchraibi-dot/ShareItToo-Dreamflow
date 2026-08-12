@@ -50,6 +50,7 @@ if (!databaseUrl) {
         '006_b7_communications.up.sql',
         '007_b8_payments_and_ledger.up.sql',
         '008_b9_moderation_and_reviews.up.sql',
+        '009_social_auth_providers.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -289,7 +290,19 @@ if (!databaseUrl) {
          WHERE id IN ('admin', 'support')`,
         [await hashPassword(adminPassword), await hashPassword(supportPassword)],
       );
-      server = http.createServer(createApp());
+      const socialClaims = new Map();
+      server = http.createServer(createApp({
+        verifySocialToken: async (token) => {
+          const identity = socialClaims.get(token);
+          if (!identity) {
+            const error = new Error('invalid_social_token');
+            error.status = 401;
+            error.code = 'invalid_social_token';
+            throw error;
+          }
+          return identity;
+        },
+      }));
       await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
       const baseUrl = `http://127.0.0.1:${server.address().port}`;
       const tokenFor = (id) => signAccessToken(
@@ -2048,6 +2061,129 @@ if (!databaseUrl) {
       });
       assert.equal(unverifiedLogin.status, 403);
       assert.equal((await unverifiedLogin.json()).error, 'email_verification_required');
+
+      const socialRequest = (token, consents = false, forwardedFor = '203.0.113.80') =>
+        fetch(`${baseUrl}/v1/auth/social`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Forwarded-For': forwardedFor,
+            'User-Agent': 'SIT social auth integration test',
+          },
+          body: JSON.stringify({
+            idToken: token,
+            termsAccepted: consents,
+            privacyAccepted: consents,
+            minimumAgeConfirmed: consents,
+          }),
+        });
+      socialClaims.set('google-new', {
+        provider: 'google',
+        subject: 'firebase-google-new',
+        firebaseUserId: 'firebase-user-google-new',
+        email: 'social-google@example.com',
+        emailVerified: true,
+        displayName: 'Google Member',
+      });
+      const socialMissingConsents = await socialRequest('google-new');
+      assert.equal(socialMissingConsents.status, 400);
+      assert.equal(
+        (await socialMissingConsents.json()).error,
+        'social_registration_consents_required',
+      );
+      const socialRegistration = await socialRequest(
+        'google-new',
+        true,
+        '203.0.113.81',
+      );
+      assert.equal(socialRegistration.status, 200);
+      const socialSession = await socialRegistration.json();
+      assert.equal(socialSession.user.email, 'social-google@example.com');
+      assert.equal(socialSession.user.emailVerified, true);
+      assert.match(socialSession.sessionId, /^[0-9a-f-]{36}$/);
+      const socialIdentity = await setupPool.query(
+        `SELECT provider, provider_subject, firebase_user_id, email_verified
+         FROM auth_identities WHERE user_id = $1`,
+        [socialSession.user.id],
+      );
+      assert.deepEqual(socialIdentity.rows, [{
+        provider: 'google',
+        provider_subject: 'firebase-google-new',
+        firebase_user_id: 'firebase-user-google-new',
+        email_verified: true,
+      }]);
+      const repeatSocialLogin = await socialRequest(
+        'google-new',
+        false,
+        '203.0.113.82',
+      );
+      assert.equal(repeatSocialLogin.status, 200);
+      assert.equal((await repeatSocialLogin.json()).user.id, socialSession.user.id);
+
+      socialClaims.set('facebook-existing', {
+        provider: 'facebook',
+        subject: 'firebase-facebook-existing',
+        firebaseUserId: 'firebase-user-facebook-existing',
+        email: 'auth-user@example.com',
+        emailVerified: false,
+        displayName: 'Facebook Existing',
+      });
+      const unsafeFacebookLink = await socialRequest(
+        'facebook-existing',
+        true,
+        '203.0.113.83',
+      );
+      assert.equal(unsafeFacebookLink.status, 409);
+      assert.equal(
+        (await unsafeFacebookLink.json()).error,
+        'social_account_link_requires_reauthentication',
+      );
+
+      socialClaims.set('facebook-new', {
+        provider: 'facebook',
+        subject: 'firebase-facebook-new',
+        firebaseUserId: 'firebase-user-facebook-new',
+        email: 'social-facebook@example.com',
+        emailVerified: false,
+        displayName: 'Facebook Member',
+      });
+      const facebookRegistration = await socialRequest(
+        'facebook-new',
+        true,
+        '203.0.113.84',
+      );
+      assert.equal(facebookRegistration.status, 202);
+      assert.deepEqual(await facebookRegistration.json(), {
+        accepted: true,
+        verificationEmailSent: true,
+        email: 'social-facebook@example.com',
+      });
+      const facebookAccount = await setupPool.query(
+        `SELECT account.id, account.email_verified_at, identity.email_verified
+         FROM users AS account
+         JOIN auth_identities AS identity ON identity.user_id = account.id
+         WHERE account.email = 'social-facebook@example.com'`,
+      );
+      assert.equal(facebookAccount.rowCount, 1);
+      assert.equal(facebookAccount.rows[0].email_verified_at, null);
+      assert.equal(facebookAccount.rows[0].email_verified, false);
+      await setupPool.query(
+        `UPDATE users
+         SET email_verified_at = now(),
+             profile = jsonb_set(profile, '{emailVerified}', 'true'::jsonb, true)
+         WHERE id = $1`,
+        [facebookAccount.rows[0].id],
+      );
+      const verifiedFacebookLogin = await socialRequest(
+        'facebook-new',
+        false,
+        '203.0.113.85',
+      );
+      assert.equal(verifiedFacebookLogin.status, 200);
+      assert.equal(
+        (await verifiedFacebookLogin.json()).user.id,
+        facebookAccount.rows[0].id,
+      );
 
       const limitedAttempts = [];
       for (let attempt = 0; attempt < 9; attempt += 1) {

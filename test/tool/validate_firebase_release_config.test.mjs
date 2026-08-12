@@ -42,8 +42,11 @@ const iosConfig = {
   PROJECT_ID: environment.SIT_FIREBASE_PROJECT_ID,
   STORAGE_BUCKET: environment.SIT_FIREBASE_STORAGE_BUCKET,
   GOOGLE_APP_ID: environment.SIT_FIREBASE_IOS_APP_ID,
+  CLIENT_ID: '123456789012-iosclient.apps.googleusercontent.com',
+  REVERSED_CLIENT_ID: 'com.googleusercontent.apps.123456789012-iosclient',
   IS_ADS_ENABLED: false,
   IS_ANALYTICS_ENABLED: false,
+  IS_SIGNIN_ENABLED: true,
 };
 
 function validate(options = {}) {
@@ -122,6 +125,31 @@ test('rejects Firebase Analytics or advertising activation', () => {
   assert.throws(
     () => validate({ environment, iosConfig: { ...iosConfig, IS_ANALYTICS_ENABLED: true } }),
     /Analytics and advertising must remain disabled/,
+  );
+});
+
+test('rejects an Apple Firebase file before Google Sign-In is enabled', () => {
+  assert.throws(
+    () => validate({ environment, iosConfig: { ...iosConfig, IS_SIGNIN_ENABLED: false } }),
+    /Google Sign-In enabled/,
+  );
+});
+
+test('requires the complete fail-closed social provider scaffold', () => {
+  const currentManifest = readFileSync(
+    resolve(repositoryRoot, 'android/app/src/main/AndroidManifest.xml'),
+    'utf8',
+  );
+  assert.throws(
+    () => validate({
+      sourceOverrides: {
+        'android/app/src/main/AndroidManifest.xml': currentManifest.replace(
+          'com.facebook.sdk.AdvertiserIDCollectionEnabled',
+          'removed.facebook.advertiser.id.setting',
+        ),
+      },
+    }),
+    /AdvertiserIDCollectionEnabled/,
   );
 });
 

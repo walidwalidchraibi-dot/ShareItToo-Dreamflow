@@ -43,6 +43,9 @@ test('signed binary privacy scan requires the backend Maps proxy and rejects dir
   assert.match(source, /serverCredentialVerification: 'backend-deployment-gate'/);
   assert.match(source, /googleMapsServerCredentialApiAndIpRestrictions/);
   assert.match(source, /https:\/\/api\.openai\.com\//);
+  assert.match(source, /FirebaseAuthRegistrar/);
+  assert.match(source, /Facebook automatic app events must be explicitly disabled/);
+  assert.match(source, /Facebook advertiser ID collection must be explicitly disabled/);
 });
 
 test('release builder refuses to embed a Google Maps client credential', () => {
@@ -53,4 +56,13 @@ test('release builder refuses to embed a Google Maps client credential', () => {
   assert.match(source, /if \[\[ -n "\$\{GOOGLE_MAPS_API_KEY:-\}" \]\]; then/);
   assert.match(source, /must not be embedded in an app build/);
   assert.doesNotMatch(source, /--dart-define=GOOGLE_MAPS_API_KEY=/);
+});
+
+test('Store preflight refuses placeholder Meta login configuration', () => {
+  const source = readFileSync(
+    resolve(repositoryRoot, 'scripts/release_candidate_preflight.sh'),
+    'utf8',
+  );
+  assert.match(source, /Store submission requires the real public Meta App ID/);
+  assert.match(source, /Store submission requires the real public Meta Client Token/);
 });

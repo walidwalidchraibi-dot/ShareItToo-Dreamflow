@@ -14,15 +14,15 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "d0a0a3448ddd26a3314747ae73e45f0ac27dd10cdafc712df5e9535ac662bcd8"
+      "sha256": "cbfe80d3be388ac28a4ce56d172397148d238450699c6c16beca83548a51aa5d"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
-      "sha256": "a0de4eb8703260927284d2403e412cdd33c23223ab24f25049cea2b684e67fc3"
+      "sha256": "7e948b7f1d0d1ef62a98ffc9566172843b764e3da0ca25758dcf7f3bbc4ee025"
     },
     {
       "path": "ios/Runner/Info.plist",
-      "sha256": "6b91b6265bc8882ed260c5ce8905e868da25281d2269d822528e2b75f19cbc47"
+      "sha256": "791e3511de5c014a0535620dea7392cc124b34d7e4b62d4140006ff75a534c56"
     },
     {
       "path": "ios/Runner/PrivacyInfo.xcprivacy",
@@ -30,19 +30,19 @@
     },
     {
       "path": "lib/screens/legal_privacy_screen.dart",
-      "sha256": "179fb1cc6a56b4c560e30e85075f6e595182b6b82b97a1ce61bf265a3140f0a9"
+      "sha256": "304524ffa08ae93c3a0f3eba1bd9628188466ddfc736debe76aa7d95d5930d08"
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "0f64ea701cc47795f3752fdb4b66372cd3b879689ad2c230f1fc5e5923637b3a"
+      "sha256": "4f1fec8328dfd9994481ea7fece2f201b0e40c2a3958515144c69abe83c92bfd"
     },
     {
       "path": "backend/src/account_actions.js",
-      "sha256": "46d219dff67340a577a079ae043cc767f88eba31785dbdcb8183bab39a69ff83"
+      "sha256": "1d95932d2761e03ac58bab89769caf27da28d9b078efd9a22b555d519c08e766"
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "9d2812fe72ad3639a04956412ca02ac1165937d90b2b5b7e736098deded74877"
+      "sha256": "78e76bcc4f19ffcde3270fbbd7cea70cb64de57d14664d10eef44dbe222f80c1"
     },
     {
       "path": "backend/src/security.js",
@@ -55,6 +55,10 @@
     {
       "path": "lib/services/firebase_runtime.dart",
       "sha256": "2ce9ce307ac4c6e76182d0dc6086774e1cbdf1cc549b82ed7664ff279d69d493"
+    },
+    {
+      "path": "lib/services/auth_service.dart",
+      "sha256": "c75ea6de6cce29d82f819280e6d45d39a6ba0d60d0f18f9f462e1676bb89b89e"
     },
     {
       "path": "lib/openai/openai_config.dart",
@@ -93,6 +97,12 @@
         "otherDiagnostics",
         "appInteractions"
       ]
+    },
+    "firebaseAuthentication": {
+      "enabled": true,
+      "role": "processor-and-federated-identity-broker-review-required",
+      "providers": ["google", "apple", "facebook"],
+      "dataTypes": ["name", "emailAddress", "userId"]
     },
     "googleMapsPlatform": {
       "enabled": true,

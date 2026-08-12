@@ -1,11 +1,16 @@
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'backend_config.dart';
 import 'backend_http.dart';
 import 'backend_realtime_service.dart';
+import 'firebase_runtime.dart';
 
 /// Authentication facade.
 ///
@@ -25,6 +30,7 @@ class AuthService {
   static Future<String?>? _refreshInFlight;
   static int _sessionGeneration = 0;
   static bool _sessionClearing = false;
+  static Future<void>? _googleInitialization;
 
   static Future<void> ensureSeeded() async {
     if (BackendConfig.enabled) return;
@@ -414,12 +420,149 @@ class AuthService {
   }
 
   static Future<AuthResult> signInWithSocialProvider(
+    AuthSocialProvider provider, {
+    bool termsAccepted = false,
+    bool privacyAccepted = false,
+    bool minimumAgeConfirmed = false,
+  }) async {
+    if (!BackendConfig.enabled) {
+      return const AuthResult.failure(AuthFailure.providerUnavailable);
+    }
+    try {
+      final idToken = await _firebaseSocialIdToken(provider);
+      final response = await BackendHttp.requestJson(
+        method: 'POST',
+        path: '/auth/social',
+        body: {
+          'idToken': idToken,
+          'termsAccepted': termsAccepted,
+          'privacyAccepted': privacyAccepted,
+          'minimumAgeConfirmed': minimumAgeConfirmed,
+        },
+      );
+      if (response['accepted'] == true &&
+          response['verificationEmailSent'] == true) {
+        return AuthResult.success(
+          verificationEmailSent: true,
+          pendingEmail: response['email']?.toString().trim().toLowerCase(),
+        );
+      }
+      return AuthResult.success(session: await _saveRemoteSession(response));
+    } on _SocialSignInCancelled {
+      return const AuthResult.failure(AuthFailure.socialCancelled);
+    } on _SocialProviderUnavailable catch (error) {
+      debugPrint('[AuthService] ${provider.name} unavailable: ${error.cause}');
+      return const AuthResult.failure(AuthFailure.providerUnavailable);
+    } on BackendException catch (error) {
+      final failure = switch (error.code) {
+        'social_registration_consents_required' => AuthFailure.consentRequired,
+        'social_email_required' => AuthFailure.socialEmailRequired,
+        'social_email_verification_required' =>
+          AuthFailure.socialEmailVerificationRequired,
+        'social_provider_already_linked' =>
+          AuthFailure.socialProviderAlreadyLinked,
+        'social_account_link_requires_reauthentication' =>
+          AuthFailure.socialAccountLinkRequiresReauthentication,
+        'unsupported_social_provider' ||
+        'social_auth_unavailable' =>
+          AuthFailure.providerUnavailable,
+        'account_not_active' => AuthFailure.accountNotActive,
+        _ => AuthFailure.network,
+      };
+      debugPrint('[AuthService] social exchange failed: ${error.code}');
+      return AuthResult.failure(failure);
+    } catch (error) {
+      debugPrint('[AuthService] social sign-in failed: $error');
+      return const AuthResult.failure(AuthFailure.network);
+    } finally {
+      try {
+        if (Firebase.apps.isNotEmpty) await FirebaseAuth.instance.signOut();
+      } catch (_) {}
+      try {
+        switch (provider) {
+          case AuthSocialProvider.google:
+            await GoogleSignIn.instance.signOut();
+          case AuthSocialProvider.facebook:
+            await FacebookAuth.instance.logOut();
+          case AuthSocialProvider.apple:
+            break;
+        }
+      } catch (_) {
+        // The ShareItToo session is already authoritative. Provider cleanup
+        // is best effort so an SDK logout problem cannot undo a safe login.
+      }
+    }
+  }
+
+  static Future<String> _firebaseSocialIdToken(
     AuthSocialProvider provider,
   ) async {
-    debugPrint(
-      '[AuthService] signInWithSocialProvider unavailable for ${provider.name}',
-    );
-    return const AuthResult.failure(AuthFailure.notImplemented);
+    await FirebaseRuntime.ensureFirebaseApp();
+    if (Firebase.apps.isEmpty) throw const _SocialProviderUnavailable();
+    try {
+      UserCredential credential;
+      switch (provider) {
+        case AuthSocialProvider.google:
+          _googleInitialization ??= GoogleSignIn.instance.initialize();
+          await _googleInitialization;
+          final account = await GoogleSignIn.instance.authenticate();
+          final providerCredential = GoogleAuthProvider.credential(
+            idToken: account.authentication.idToken,
+          );
+          credential = await FirebaseAuth.instance.signInWithCredential(
+            providerCredential,
+          );
+        case AuthSocialProvider.apple:
+          final appleProvider = AppleAuthProvider()
+            ..addScope('email')
+            ..addScope('name');
+          credential = await FirebaseAuth.instance.signInWithProvider(
+            appleProvider,
+          );
+        case AuthSocialProvider.facebook:
+          final login = await FacebookAuth.instance.login(
+            permissions: const ['email', 'public_profile'],
+          );
+          if (login.status == LoginStatus.cancelled) {
+            throw const _SocialSignInCancelled();
+          }
+          final facebookToken = login.accessToken;
+          if (login.status != LoginStatus.success || facebookToken == null) {
+            throw _SocialProviderUnavailable(login.message);
+          }
+          final providerCredential = switch (facebookToken) {
+            LimitedToken() => OAuthProvider('facebook.com').credential(
+                idToken: facebookToken.tokenString,
+                rawNonce: facebookToken.nonce,
+                signInMethod: 'facebook.com',
+              ),
+            _ => FacebookAuthProvider.credential(facebookToken.tokenString),
+          };
+          credential = await FirebaseAuth.instance.signInWithCredential(
+            providerCredential,
+          );
+      }
+      final token = await credential.user?.getIdToken(true);
+      if (token == null || token.isEmpty) {
+        throw const _SocialProviderUnavailable();
+      }
+      return token;
+    } on GoogleSignInException catch (error) {
+      if (error.code == GoogleSignInExceptionCode.canceled ||
+          error.code == GoogleSignInExceptionCode.interrupted) {
+        throw const _SocialSignInCancelled();
+      }
+      throw _SocialProviderUnavailable(error);
+    } on FirebaseAuthException catch (error) {
+      if (error.code == 'web-context-cancelled' ||
+          error.code == 'canceled' ||
+          error.code == 'popup-closed-by-user') {
+        throw const _SocialSignInCancelled();
+      }
+      throw _SocialProviderUnavailable(error);
+    } on UnsupportedError catch (error) {
+      throw _SocialProviderUnavailable(error);
+    }
   }
 
   static Future<AuthSession> _saveRemoteSession(
@@ -505,7 +648,16 @@ class _DiscardedRefreshResult implements Exception {
   const _DiscardedRefreshResult();
 }
 
-enum AuthSocialProvider { google, apple }
+enum AuthSocialProvider { google, apple, facebook }
+
+class _SocialSignInCancelled implements Exception {
+  const _SocialSignInCancelled();
+}
+
+class _SocialProviderUnavailable implements Exception {
+  final Object? cause;
+  const _SocialProviderUnavailable([this.cause]);
+}
 
 class AuthSession {
   final String? userId;
@@ -536,6 +688,13 @@ enum AuthFailure {
   network,
   emailInUse,
   notImplemented,
+  socialCancelled,
+  providerUnavailable,
+  socialEmailRequired,
+  socialEmailVerificationRequired,
+  socialProviderAlreadyLinked,
+  socialAccountLinkRequiresReauthentication,
+  accountNotActive,
 }
 
 class AuthResult {
@@ -543,12 +702,17 @@ class AuthResult {
   final AuthFailure? failure;
   final AuthSession? session;
   final bool verificationEmailSent;
+  final String? pendingEmail;
 
-  const AuthResult.success({this.session, this.verificationEmailSent = false})
-      : ok = true,
+  const AuthResult.success({
+    this.session,
+    this.verificationEmailSent = false,
+    this.pendingEmail,
+  })  : ok = true,
         failure = null;
   const AuthResult.failure(this.failure)
       : ok = false,
         session = null,
-        verificationEmailSent = false;
+        verificationEmailSent = false,
+        pendingEmail = null;
 }

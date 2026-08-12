@@ -52,6 +52,17 @@
 	</array>
 	<key>FlutterDeepLinkingEnabled</key>
 	<true/>
+	<!-- Real public Meta values are supplied in the release configuration. -->
+	<key>FacebookAppID</key>
+	<string>$(SIT_FACEBOOK_APP_ID)</string>
+	<key>FacebookClientToken</key>
+	<string>$(SIT_FACEBOOK_CLIENT_TOKEN)</string>
+	<key>FacebookDisplayName</key>
+	<string>ShareItToo</string>
+	<key>FacebookAutoLogAppEventsEnabled</key>
+	<false/>
+	<key>FacebookAdvertiserIDCollectionEnabled</key>
+	<false/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -60,6 +71,22 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>shareittoo</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.shareittoo.app.facebook</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb$(SIT_FACEBOOK_APP_ID)</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.shareittoo.app.google</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>$(SIT_GOOGLE_REVERSED_CLIENT_ID)</string>
 			</array>
 		</dict>
 	</array>

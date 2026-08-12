@@ -6,7 +6,6 @@ import 'package:lendify/navigation/main_navigation.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/screens/register_screen.dart';
 import 'package:lendify/services/auth_service.dart';
-import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/firebase_runtime.dart';
@@ -240,14 +239,73 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _socialSignIn(AuthSocialProvider provider) async {
     if (_busy || !mounted) return;
-    final providerLabel =
-        provider == AuthSocialProvider.google ? 'Google' : 'Apple';
-    await AppPopup.toast(
-      context,
-      icon: Icons.info_outline,
-      title: '$providerLabel-Anmeldung noch nicht verfügbar',
-      message: 'Bitte nutze aktuell die Anmeldung per E-Mail.',
-    );
+    final providerLabel = switch (provider) {
+      AuthSocialProvider.google => 'Google',
+      AuthSocialProvider.apple => 'Apple',
+      AuthSocialProvider.facebook => 'Facebook',
+    };
+    setState(() => _busy = true);
+    try {
+      final result = await AuthService.signInWithSocialProvider(provider);
+      if (!mounted) return;
+      if (!result.ok) {
+        if (result.failure == AuthFailure.socialCancelled) return;
+        final message = switch (result.failure) {
+          AuthFailure.consentRequired =>
+            'Für dein erstes SIT-Konto bestätigst du bitte noch Alter, AGB und Datenschutz.',
+          AuthFailure.socialEmailRequired =>
+            '$providerLabel hat keine E-Mail-Adresse übermittelt. Bitte gib sie dort frei oder nutze eine andere Anmeldung.',
+          AuthFailure.socialEmailVerificationRequired =>
+            'Die von $providerLabel übermittelte E-Mail ist noch nicht bestätigt.',
+          AuthFailure.socialProviderAlreadyLinked =>
+            'Dieses SIT-Konto ist bereits mit einem anderen $providerLabel-Konto verbunden.',
+          AuthFailure.socialAccountLinkRequiresReauthentication =>
+            'Diese E-Mail gehört bereits zu einem SIT-Konto. Melde dich einmal wie bisher an, bevor du $providerLabel verbindest.',
+          AuthFailure.accountNotActive =>
+            'Dieses SIT-Konto ist derzeit nicht aktiv.',
+          AuthFailure.providerUnavailable =>
+            '$providerLabel ist noch nicht freigeschaltet. Bitte nutze vorübergehend E-Mail.',
+          _ =>
+            'Die $providerLabel-Anmeldung ist gerade nicht erreichbar. Bitte versuche es erneut.',
+        };
+        await AppPopup.toast(
+          context,
+          icon: Icons.error_outline,
+          title: message,
+        );
+        if (result.failure == AuthFailure.consentRequired && mounted) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => RegisterScreen(
+                returnTabIndex: widget.returnTabIndex,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+      if (result.session == null) {
+        await AppPopup.toast(
+          context,
+          icon: Icons.mark_email_read_outlined,
+          title: 'Bestätigungs-E-Mail gesendet',
+          message:
+              'Bestätige einmal deine E-Mail und melde dich danach erneut mit $providerLabel an.',
+        );
+        return;
+      }
+      final email = result.session?.email ?? '';
+      await DataService.syncCurrentUserForSessionEmail(email);
+      unawaited(FirebaseRuntime.syncPushRegistration());
+      if (!mounted) return;
+      await context
+          .read<DeveloperPreviewController>()
+          .setState(DeveloperUserState.loggedIn);
+      if (!mounted) return;
+      _goHome(replace: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -435,31 +493,37 @@ class _LoginScreenState extends State<LoginScreen> {
                                                   icon: Icons.login,
                                                   onTap:
                                                       _busy ? null : _submit),
-                                              if (!BackendConfig.enabled) ...[
-                                                const SizedBox(height: 14),
-                                                const SocialAuthOrDivider(),
-                                                const SizedBox(height: 12),
-                                                SocialAuthButton(
-                                                    brand:
-                                                        SocialAuthBrand.google,
-                                                    label:
-                                                        'Mit Google anmelden',
-                                                    onTap: _busy
-                                                        ? null
-                                                        : () => _socialSignIn(
-                                                            AuthSocialProvider
-                                                                .google)),
-                                                const SizedBox(height: 10),
-                                                SocialAuthButton(
-                                                    brand:
-                                                        SocialAuthBrand.apple,
-                                                    label: 'Mit Apple anmelden',
-                                                    onTap: _busy
-                                                        ? null
-                                                        : () => _socialSignIn(
-                                                            AuthSocialProvider
-                                                                .apple)),
-                                              ],
+                                              const SizedBox(height: 14),
+                                              const SocialAuthOrDivider(),
+                                              const SizedBox(height: 12),
+                                              SocialAuthButton(
+                                                  brand: SocialAuthBrand.google,
+                                                  label: 'Mit Google anmelden',
+                                                  onTap: _busy
+                                                      ? null
+                                                      : () => _socialSignIn(
+                                                          AuthSocialProvider
+                                                              .google)),
+                                              const SizedBox(height: 10),
+                                              SocialAuthButton(
+                                                  brand: SocialAuthBrand.apple,
+                                                  label: 'Mit Apple anmelden',
+                                                  onTap: _busy
+                                                      ? null
+                                                      : () => _socialSignIn(
+                                                          AuthSocialProvider
+                                                              .apple)),
+                                              const SizedBox(height: 10),
+                                              SocialAuthButton(
+                                                  brand:
+                                                      SocialAuthBrand.facebook,
+                                                  label:
+                                                      'Mit Facebook anmelden',
+                                                  onTap: _busy
+                                                      ? null
+                                                      : () => _socialSignIn(
+                                                          AuthSocialProvider
+                                                              .facebook)),
                                               const SizedBox(height: 14),
                                               Row(
                                                   mainAxisAlignment:
