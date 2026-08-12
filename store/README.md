@@ -46,6 +46,12 @@ Zeitpunkte, aggregierte Testerzahl und Freigabestatus – niemals Tester-E-Mails
 Konto-IDs oder Zugangsdaten. Erst mindestens zwölf durchgehend angemeldete
 Tester, exakt berechnete 14 Tage, gesammelte Engagement-Evidenz und der später
 beobachtete positive Produktionszugang dürfen den Launch-Gate schließen.
+Ein qualifizierender Start wird erst ab zwölf gleichzeitig durchgehend
+angemeldeten Testern akzeptiert. Für spätere Console-Beobachtungen erzeugt
+`tool/prepare_google_play_closed_testing_observation.mjs` standardmäßig nur
+eine Vorschau. Schreiben ist erst mit der ausdrücklichen Option
+`--confirm-console-observation` möglich; die erzeugte Evidenz bleibt
+aggregiert und datensparsam.
 
 Lokale Prüfung:
 

@@ -257,6 +257,23 @@ separate Launch-Gate `googlePlayClosedTestingRequirement` auch nach der
 Identitätsprüfung offen, bis ein eigener bereinigter Closed-Test-Nachweis
 vorliegt.
 
+Die qualifizierende Uhr startet erst bei einer bestätigten aggregierten
+Console-Beobachtung von mindestens zwölf gleichzeitig durchgehend angemeldeten
+Testern. Ein Bestand von elf oder weniger wird nicht als Beginn gespeichert.
+Der sichere Vorschau-Lauf lautet:
+
+```text
+node tool/prepare_google_play_closed_testing_observation.mjs \
+  --observed-at <UTC-CONSOLE-ZEITPUNKT> \
+  --continuous-testers <ANZAHL>
+```
+
+Ohne `--confirm-console-observation` ändert das Werkzeug keine Datei. Erst nach
+manueller Prüfung der aggregierten Console-Werte darf derselbe Lauf mit dieser
+Bestätigung den bereinigten Nachweis und den readiness-Stand schreiben.
+Testerlisten, E-Mail-Adressen, Konto-IDs, Roh-Screenshots und Zugangsdaten sind
+ausdrücklich verboten.
+
 ## 9. Harte Stop-Regeln
 
 Kein „Send for review“, Rollout oder öffentliche Freigabe, solange mindestens

@@ -211,9 +211,10 @@ export function validateGooglePlayClosedTesting({
     for (const field of Object.keys(evidenceBoundaries)) same(evidenceBoundaries[field], false, `evidence.boundaries.${field}`);
 
     if (manifest.status === 'running') {
-      if (observedAt >= eligibleAt) fail('A running test must not claim an observation after eligibility.');
-      same(testing.minimumRosterContinuouslyOptedIn, false, 'minimumRosterContinuouslyOptedIn');
-      same(testing.engagementEvidenceCollected, false, 'engagementEvidenceCollected');
+      if (testing.continuousQualifiedTesterCount < requirements.minimumContinuousTesterCount) {
+        fail('A qualifying 14-day window cannot start below 12 continuously opted-in testers.');
+      }
+      same(testing.minimumRosterContinuouslyOptedIn, true, 'minimumRosterContinuouslyOptedIn');
       same(productionAccess.applicationSubmitted, false, 'applicationSubmitted');
       same(productionAccess.applicationApproved, false, 'applicationApproved');
       same(productionAccess.decisionObservedAt, null, 'decisionObservedAt');
@@ -230,6 +231,7 @@ export function validateGooglePlayClosedTesting({
         same(productionAccess.decisionObservedAt, null, 'decisionObservedAt');
         same(manifest.productionAccessAllowed, false, 'productionAccessAllowed');
       } else {
+        same(testing.engagementEvidenceCollected, true, 'engagementEvidenceCollected');
         same(productionAccess.applicationSubmitted, true, 'applicationSubmitted');
         same(productionAccess.applicationApproved, true, 'applicationApproved');
         const decisionAt = instant(productionAccess.decisionObservedAt, 'productionAccess.decisionObservedAt');

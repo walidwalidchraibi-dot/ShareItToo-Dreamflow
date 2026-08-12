@@ -65,6 +65,8 @@ node --test test/tool/validate_google_play_internal_handoff.test.mjs
 
 node --check tool/validate_google_play_closed_testing.mjs
 node --test test/tool/validate_google_play_closed_testing.test.mjs
+node --check tool/prepare_google_play_closed_testing_observation.mjs
+node --test test/tool/prepare_google_play_closed_testing_observation.test.mjs
 node --test test/tool/google_play_closed_testing_wiring.test.mjs
 node tool/validate_google_play_closed_testing.mjs
 

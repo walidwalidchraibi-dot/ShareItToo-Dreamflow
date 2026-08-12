@@ -194,6 +194,14 @@ geplant. Diese Gruppe wird erst eingeladen, wenn Datenschutzseiten,
 Nutzerinhaltsregeln und der B11-Build stabil sind. Ein Organisationskonto oder
 abweichende Console-Anforderungen werden nicht vorweggenommen.
 
+Die Frist beginnt im Nachweis erst, wenn mindestens zwölf gleichzeitig
+durchgehend angemeldete Tester als aggregierter Console-Wert bestätigt wurden.
+Während des Testfensters wird der Stand regelmäßig und mindestens bei Start,
+Zwischenkontrolle, Ablauf der 14 Tage sowie Produktionszugangsentscheidung
+bereinigt beobachtet. Die Repository-Evidenz enthält nur Anzahl, Zeitfenster,
+Engagement- und Freigabestatus; die eigentliche Testerzuordnung bleibt
+ausschließlich im geschützten Google-Konto.
+
 ## 8. Review-Ablauf
 
 1. Reviewer-Anmeldedaten aus dem geschützten Store-Feld testen.

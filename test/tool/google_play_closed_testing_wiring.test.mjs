@@ -26,10 +26,19 @@ test('technical regression checks the closed-testing contract and its tests', ()
   for (const command of [
     'node --check tool/validate_google_play_closed_testing.mjs',
     'node --test test/tool/validate_google_play_closed_testing.test.mjs',
+    'node --check tool/prepare_google_play_closed_testing_observation.mjs',
+    'node --test test/tool/prepare_google_play_closed_testing_observation.test.mjs',
     'node tool/validate_google_play_closed_testing.mjs',
   ]) {
     assert.ok(source.includes(command), `technical regression is missing: ${command}`);
   }
+});
+
+test('release preflight syntax-checks the observation preparer', () => {
+  assert.match(
+    read('scripts/release_candidate_preflight.sh'),
+    /node --check tool\/prepare_google_play_closed_testing_observation\.mjs/,
+  );
 });
 
 test('Store metadata binds the dedicated closed-testing readiness document', () => {

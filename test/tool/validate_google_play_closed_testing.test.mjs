@@ -32,7 +32,8 @@ function runningFixture() {
   readiness.window.startedAt = '2026-08-12T12:00:00Z';
   readiness.window.eligibleAt = '2026-08-26T12:00:00Z';
   readiness.window.observedAt = '2026-08-15T12:00:00Z';
-  readiness.testing.continuousQualifiedTesterCount = 7;
+  readiness.testing.continuousQualifiedTesterCount = 12;
+  readiness.testing.minimumRosterContinuouslyOptedIn = true;
   readiness.evidenceRef = 'docs/evidence/b11/google-play-closed-test-observation.json';
   return { readiness, evidence: observation(readiness) };
 }
@@ -84,6 +85,17 @@ test('rejects a shortened closed-test window', () => {
   assert.throws(
     () => validateGooglePlayClosedTesting({ root, ...fixture }),
     /exactly 14 consecutive days/,
+  );
+});
+
+test('rejects starting the qualifying window with only eleven testers', () => {
+  const fixture = runningFixture();
+  fixture.readiness.testing.continuousQualifiedTesterCount = 11;
+  fixture.readiness.testing.minimumRosterContinuouslyOptedIn = false;
+  fixture.evidence = observation(fixture.readiness);
+  assert.throws(
+    () => validateGooglePlayClosedTesting({ root, ...fixture }),
+    /cannot start below 12 continuously opted-in testers/,
   );
 });
 

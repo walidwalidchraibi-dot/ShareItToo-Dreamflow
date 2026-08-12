@@ -1,0 +1,91 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+
+import { prepareGooglePlayClosedTestingObservation } from '../../tool/prepare_google_play_closed_testing_observation.mjs';
+
+const root = fileURLToPath(new URL('../../', import.meta.url));
+const base = JSON.parse(readFileSync(resolve(root, 'store/google-play/closed-testing-readiness.json'), 'utf8'));
+
+function prepare(overrides = {}) {
+  return prepareGooglePlayClosedTestingObservation({
+    root,
+    currentReadiness: structuredClone(base),
+    observedAt: '2026-08-12T12:00:00Z',
+    continuousTesterCount: 12,
+    ...overrides,
+  });
+}
+
+test('prepares the first qualifying observation with an exact 14-day window', () => {
+  const result = prepare();
+  assert.equal(result.readiness.status, 'running');
+  assert.equal(result.readiness.window.startedAt, '2026-08-12T12:00:00Z');
+  assert.equal(result.readiness.window.eligibleAt, '2026-08-26T12:00:00Z');
+  assert.equal(result.readiness.productionAccessAllowed, false);
+  assert.match(result.evidenceRef, /^docs\/evidence\/b11\/google-play-closed-test-observation-/);
+});
+
+test('refuses to start the qualifying window below twelve testers', () => {
+  assert.throws(() => prepare({ continuousTesterCount: 11 }), /requires at least 12/);
+});
+
+test('does not mark eligibility at day fourteen without engagement evidence', () => {
+  const first = prepare();
+  const result = prepareGooglePlayClosedTestingObservation({
+    root,
+    currentReadiness: first.readiness,
+    observedAt: '2026-08-26T12:00:00Z',
+    continuousTesterCount: 12,
+  });
+  assert.equal(result.readiness.status, 'running');
+});
+
+test('marks eligibility only after the full window and engagement evidence', () => {
+  const first = prepare();
+  const result = prepareGooglePlayClosedTestingObservation({
+    root,
+    currentReadiness: first.readiness,
+    observedAt: '2026-08-26T12:00:00Z',
+    continuousTesterCount: 12,
+    engagementEvidenceCollected: true,
+  });
+  assert.equal(result.readiness.status, 'eligible');
+  assert.equal(result.readiness.productionAccessAllowed, false);
+});
+
+test('refuses a production approval before eligibility', () => {
+  assert.throws(
+    () => prepare({
+      applicationSubmitted: true,
+      applicationApproved: true,
+      decisionObservedAt: '2026-08-12T11:59:00Z',
+    }),
+    /cannot be approved before the full eligibility window/,
+  );
+});
+
+test('prepares approved production access only after an eligible observation', () => {
+  const first = prepare();
+  const eligible = prepareGooglePlayClosedTestingObservation({
+    root,
+    currentReadiness: first.readiness,
+    observedAt: '2026-08-26T12:00:00Z',
+    continuousTesterCount: 12,
+    engagementEvidenceCollected: true,
+  });
+  const result = prepareGooglePlayClosedTestingObservation({
+    root,
+    currentReadiness: eligible.readiness,
+    observedAt: '2026-08-29T12:00:00Z',
+    continuousTesterCount: 12,
+    engagementEvidenceCollected: true,
+    applicationSubmitted: true,
+    applicationApproved: true,
+    decisionObservedAt: '2026-08-29T11:00:00Z',
+  });
+  assert.equal(result.readiness.status, 'production-access-approved');
+  assert.equal(result.readiness.productionAccessAllowed, true);
+});
