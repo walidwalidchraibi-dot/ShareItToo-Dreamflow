@@ -94,6 +94,23 @@ test('accepts a matching Android-only build configuration', () => {
   assert.equal(summary.iosConfigured, false);
 });
 
+test('Android-only mode ignores incomplete Apple configuration', () => {
+  const summary = validate({
+    requireConfigured: true,
+    platform: 'android',
+    environment: {
+      ...environment,
+      SIT_FIREBASE_IOS_APP_ID: '',
+      SIT_FIREBASE_IOS_API_KEY: '',
+    },
+    androidConfig,
+    iosConfig: { ...iosConfig, IS_SIGNIN_ENABLED: false },
+  });
+  assert.equal(summary.state, 'partial');
+  assert.equal(summary.androidConfigured, true);
+  assert.equal(summary.iosConfigured, false);
+});
+
 test('accepts matching Android and Apple release configuration', () => {
   const summary = validate({
     requireConfigured: true,

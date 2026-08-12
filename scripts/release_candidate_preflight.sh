@@ -63,7 +63,10 @@ if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
 else
   node tool/validate_b11_release_docs.mjs
 fi
-node tool/validate_firebase_release_config.mjs
+firebase_validation_platform="${SIT_FIREBASE_VALIDATION_PLATFORM:-all}"
+[[ "$firebase_validation_platform" =~ ^(android|ios|all)$ ]] || \
+  fail "SIT_FIREBASE_VALIDATION_PLATFORM must be android, ios, or all."
+node tool/validate_firebase_release_config.mjs --platform "$firebase_validation_platform"
 if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
   node tool/validate_apple_testflight_handoff.mjs --allow-android-candidate-rollover
 else

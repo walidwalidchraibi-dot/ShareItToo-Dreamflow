@@ -18,7 +18,7 @@ version="$(awk '/^version:/ {print $2; exit}' pubspec.yaml)"
 build_name="${version%%+*}"
 build_number="${version##*+}"
 
-bash scripts/release_candidate_preflight.sh
+SIT_FIREBASE_VALIDATION_PLATFORM=android bash scripts/release_candidate_preflight.sh
 
 common_args=(
   --release

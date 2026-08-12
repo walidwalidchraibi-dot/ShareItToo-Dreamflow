@@ -248,12 +248,16 @@ export function validateFirebaseReleaseConfig({
 
   const androidPath = resolve(root, 'android/app/google-services.json');
   const iosPath = resolve(root, 'ios/Runner/GoogleService-Info.plist');
-  const resolvedAndroid = androidConfig === undefined
-    ? (existsSync(androidPath) ? JSON.parse(readFileSync(androidPath, 'utf8')) : null)
-    : androidConfig;
-  const resolvedIos = iosConfig === undefined
-    ? (existsSync(iosPath) ? parseGoogleServiceInfoPlist(readFileSync(iosPath, 'utf8')) : null)
-    : iosConfig;
+  const resolvedAndroid = platform === 'ios'
+    ? null
+    : androidConfig === undefined
+      ? (existsSync(androidPath) ? JSON.parse(readFileSync(androidPath, 'utf8')) : null)
+      : androidConfig;
+  const resolvedIos = platform === 'android'
+    ? null
+    : iosConfig === undefined
+      ? (existsSync(iosPath) ? parseGoogleServiceInfoPlist(readFileSync(iosPath, 'utf8')) : null)
+      : iosConfig;
   const values = environmentValues(environment);
   const anyEnvironmentValue = Object.values(values).some(Boolean);
   const androidPresent = resolvedAndroid !== null;
