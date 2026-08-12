@@ -9,11 +9,16 @@ function fail(message) {
   throw new Error(message);
 }
 
-function pngDimensions(bytes) {
+function pngMetadata(bytes) {
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
   if (bytes.length < 33 || !bytes.subarray(0, 8).equals(signature) ||
       bytes.subarray(12, 16).toString('ascii') !== 'IHDR') fail('Screenshot is not a valid PNG.');
-  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+  return {
+    width: bytes.readUInt32BE(16),
+    height: bytes.readUInt32BE(20),
+    bitDepth: bytes[24],
+    colorType: bytes[25],
+  };
 }
 
 export function validateGooglePlayScreenshotCandidate({
@@ -32,20 +37,21 @@ export function validateGooglePlayScreenshotCandidate({
     fail('Screenshot candidate is not bound to the exact internal build.');
   }
   const scene = evidence.scene ?? {};
-  if (!['feed', 'listing-detail'].includes(scene.id) || scene.locale !== 'de-DE' ||
+  if (!['feed', 'listing-detail', 'search', 'create-listing'].includes(scene.id) || scene.locale !== 'de-DE' ||
       scene.syntheticContent !== true || scene.format !== 'png' ||
-      !/^store\/assets\/google-play\/phone-screenshots\/0[12]-[a-z-]+\.png$/u.test(scene.storeFile)) {
+      !/^store\/assets\/google-play\/phone-screenshots\/0[1-4]-[a-z-]+\.png$/u.test(scene.storeFile)) {
     fail('Screenshot candidate scene metadata is invalid.');
   }
   const path = resolve(repositoryRoot, scene.storeFile);
   if (!path.startsWith(`${resolve(repositoryRoot)}/`)) fail('Screenshot path escapes the repository.');
   const bytes = readFileSync(path);
-  const dimensions = pngDimensions(bytes);
-  if (dimensions.width !== scene.width || dimensions.height !== scene.height ||
+  const metadata = pngMetadata(bytes);
+  if (metadata.width !== scene.width || metadata.height !== scene.height ||
       scene.width < 320 || scene.height < 320 || scene.height > scene.width * 2 ||
+      metadata.bitDepth !== 8 || metadata.colorType !== 2 ||
       bytes.length !== scene.byteSize ||
       createHash('sha256').update(bytes).digest('hex') !== scene.sha256) {
-    fail('Screenshot dimensions, size, or digest no longer match the evidence.');
+    fail('Screenshot dimensions, 24-bit RGB format, size, or digest no longer match the evidence.');
   }
   if (scene.id === 'feed') {
     const cleanup = evidence.feedCleanup ?? {};

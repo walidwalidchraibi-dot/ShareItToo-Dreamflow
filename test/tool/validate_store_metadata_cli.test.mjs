@@ -151,7 +151,7 @@ test('rejects an unvalidated Google Play phone screenshot path', () => {
     },
   });
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /exactly two validated local candidates/);
+  assert.match(result.stderr, /exactly four validated local candidates/);
 });
 
 test('rejects a missing Apple TestFlight handoff binding', () => {

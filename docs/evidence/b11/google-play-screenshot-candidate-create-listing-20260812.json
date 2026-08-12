@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "google-play-screenshot-candidate",
   "status": "validated-local-not-uploaded",
-  "capturedAt": "2026-08-12T09:40:00Z",
+  "capturedAt": "2026-08-12T12:31:00Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
@@ -11,15 +11,15 @@
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
   },
   "scene": {
-    "id": "feed",
+    "id": "create-listing",
     "locale": "de-DE",
     "syntheticContent": true,
-    "storeFile": "store/assets/google-play/phone-screenshots/01-feed.png",
+    "storeFile": "store/assets/google-play/phone-screenshots/04-create-listing.png",
     "width": 1080,
     "height": 1920,
     "format": "png",
-    "byteSize": 1367719,
-    "sha256": "55e6eaf314ba0aba0a93088d172474de53ba065d01f1ed42f67539749cad94a8"
+    "byteSize": 83985,
+    "sha256": "b8d011dc9a466e4c8e316eec54cb557350b7e7ccf15bc4d136d6e0ca1e7ca479"
   },
   "validation": {
     "exactInstalledCandidateObserved": true,
@@ -30,14 +30,6 @@
     "technicalFixtureCopyVisible": false,
     "unapprovedProtectionClaimVisible": false,
     "visualInspectionPassed": true
-  },
-  "feedCleanup": {
-    "protectedActiveBookings": 6,
-    "protectedPublicListingsObserved": 6,
-    "placeholderImagesRemaining": 0,
-    "technicalCopyRemaining": 0,
-    "publicTechnicalTitlesRemaining": 0,
-    "listingDeleted": false
   },
   "boundaries": {
     "screenshotUploaded": false,

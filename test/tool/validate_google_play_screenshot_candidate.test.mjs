@@ -35,6 +35,18 @@ test('accepts the exact visually inspected local listing-detail candidate', () =
   });
 });
 
+for (const [scene, file] of [
+  ['search', 'google-play-screenshot-candidate-search-20260812.json'],
+  ['create-listing', 'google-play-screenshot-candidate-create-listing-20260812.json'],
+]) {
+  test(`accepts the exact visually inspected local ${scene} candidate`, () => {
+    assert.equal(validateGooglePlayScreenshotCandidate({
+      repositoryRoot,
+      evidencePath: new URL(`../../docs/evidence/b11/${file}`, import.meta.url).pathname,
+    }).scene, scene);
+  });
+}
+
 test('rejects a screenshot digest mismatch', async (t) => {
   const data = await fixture((evidence) => { evidence.scene.sha256 = '0'.repeat(64); });
   t.after(() => rm(data.root, { recursive: true, force: true }));

@@ -15,7 +15,7 @@ export function validateGooglePlayScreenshotReadiness({
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   if (evidence.schemaVersion !== 1 ||
       evidence.kind !== 'google-play-feed-screenshot-readiness' ||
-      evidence.status !== 'passed-feed-clean-two-local-candidates-not-uploaded') {
+      evidence.status !== 'passed-feed-clean-four-local-candidates-not-uploaded') {
     fail('Feed screenshot readiness must preserve the verified local candidate state.');
   }
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
@@ -37,7 +37,7 @@ export function validateGooglePlayScreenshotReadiness({
       evidence.feedObservation?.protectedActiveBookings !== 6 ||
       evidence.feedObservation?.protectedPublicListingsObserved !== 6 ||
       evidence.feedObservation?.storeScreenshotAccepted !== true ||
-      evidence.feedObservation?.validatedLocalCandidates !== 2) {
+      evidence.feedObservation?.validatedLocalCandidates !== 4) {
     fail('Feed screenshot observation is incomplete or contradicts the verified cleanup.');
   }
   if (evidence.completedRemediation?.method !==
@@ -48,8 +48,8 @@ export function validateGooglePlayScreenshotReadiness({
       evidence.completedRemediation?.productionChangeAuthorized !== false) {
     fail('Screenshot remediation must not claim destructive or production authority.');
   }
-  if (!Array.isArray(evidence.candidateEvidenceRefs) || evidence.candidateEvidenceRefs.length !== 2) {
-    fail('Screenshot readiness must bind both validated local candidates.');
+  if (!Array.isArray(evidence.candidateEvidenceRefs) || evidence.candidateEvidenceRefs.length !== 4) {
+    fail('Screenshot readiness must bind all four validated local candidates.');
   }
   for (const ref of evidence.candidateEvidenceRefs) readFileSync(resolve(repositoryRoot, ref));
   const boundaries = evidence.boundaries ?? {};

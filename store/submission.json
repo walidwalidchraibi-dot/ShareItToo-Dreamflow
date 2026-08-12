@@ -86,7 +86,9 @@
       "featureGraphic": "store/assets/google-play/feature-graphic-1024x500.png",
       "phoneScreenshots": [
         "store/assets/google-play/phone-screenshots/01-feed.png",
-        "store/assets/google-play/phone-screenshots/02-camera-detail.png"
+        "store/assets/google-play/phone-screenshots/02-camera-detail.png",
+        "store/assets/google-play/phone-screenshots/03-search.png",
+        "store/assets/google-play/phone-screenshots/04-create-listing.png"
       ]
     }
   },

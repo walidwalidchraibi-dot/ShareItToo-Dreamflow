@@ -18,8 +18,8 @@
     "width": 1440,
     "height": 1920,
     "format": "png",
-    "byteSize": 1915453,
-    "sha256": "9ddcc94abcb6052eb0712799587728cc6736873d1e4eb58980a4290365796b44"
+    "byteSize": 1545353,
+    "sha256": "532ee69b4e4e9b56e31d54641d342b5cfe0b3fb431491d06d167fd4aa9f1db0a"
   },
   "validation": {
     "exactInstalledCandidateObserved": true,

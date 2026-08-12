@@ -147,10 +147,15 @@ void _validateGooglePlayPhoneScreenshot(Directory root, String relativePath) {
       bytes[offset + 3];
   final width = uint32(16);
   final height = uint32(20);
+  final bitDepth = bytes[24];
+  final colorType = bytes[25];
   final longer = width > height ? width : height;
   final shorter = width < height ? width : height;
   if (shorter < 320 || longer > 3840 || longer > shorter * 2) {
     _fail('Google Play phone screenshot dimensions violate Play requirements.');
+  }
+  if (bitDepth != 8 || colorType != 2) {
+    _fail('Google Play phone screenshots must be 24-bit RGB PNGs without alpha.');
   }
 }
 
@@ -766,10 +771,10 @@ void main(List<String> arguments) {
   _validateGooglePlayFeatureGraphic(
       root, _string(googleAssets, 'featureGraphic'));
   final phoneScreenshots = googleAssets['phoneScreenshots'];
-  if (phoneScreenshots is! List || phoneScreenshots.length != 2 ||
+  if (phoneScreenshots is! List || phoneScreenshots.length != 4 ||
       phoneScreenshots.any((value) => value is! String ||
           !value.startsWith('store/assets/google-play/phone-screenshots/'))) {
-    _fail('Google Play phone screenshots must bind exactly two validated local candidates.');
+    _fail('Google Play phone screenshots must bind exactly four validated local candidates.');
   }
   for (final screenshot in phoneScreenshots.cast<String>()) {
     _validateGooglePlayPhoneScreenshot(root, screenshot);

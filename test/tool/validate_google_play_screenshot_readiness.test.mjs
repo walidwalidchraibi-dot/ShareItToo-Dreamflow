@@ -19,9 +19,9 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts the verified clean feed with two local candidates', () => {
+test('accepts the verified clean feed with four local candidates', () => {
   assert.deepEqual(validateGooglePlayScreenshotReadiness({ repositoryRoot }), {
-    status: 'passed-feed-clean-two-local-candidates-not-uploaded',
+    status: 'passed-feed-clean-four-local-candidates-not-uploaded',
     curatedListingCount: 4,
   });
 });
