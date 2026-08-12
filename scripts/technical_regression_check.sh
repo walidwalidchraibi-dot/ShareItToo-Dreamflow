@@ -61,6 +61,7 @@ node tool/validate_device_evidence.mjs
 
 node --check tool/validate_b11_release_docs.mjs
 node --test test/tool/validate_b11_release_docs.test.mjs
+node --test test/tool/ci_candidate_rollover_wiring.test.mjs
 if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
   node tool/validate_b11_release_docs.mjs --allow-candidate-rollover
 else

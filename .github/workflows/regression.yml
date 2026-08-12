@@ -117,6 +117,8 @@ jobs:
         run: flutter pub get
 
       - name: Run regression script
+        env:
+          SIT_ALLOW_CANDIDATE_ROLLOVER: '1'
         run: bash scripts/technical_regression_check.sh
 
       - name: Build a signed, commit-bound Android release candidate
