@@ -22,6 +22,9 @@
     "personalIdentityVerification": "verified",
     "deviceVerification": "verified",
     "phoneVerification": "verified",
+    "developerProgramPoliciesDeclaration": "pending-owner-approval",
+    "playAppSigningTerms": "pending-owner-approval",
+    "usExportLawsDeclaration": "pending-owner-approval",
     "playAppRecordCreated": false,
     "immediateArtifactReverification": false
   },

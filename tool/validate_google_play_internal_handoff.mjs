@@ -110,6 +110,10 @@ export function validateGooglePlayInternalHandoff({
   same(preUpload.personalIdentityVerification, 'verified', 'personalIdentityVerification');
   same(preUpload.deviceVerification, 'verified', 'deviceVerification');
   same(preUpload.phoneVerification, 'verified', 'phoneVerification');
+  same(preUpload.developerProgramPoliciesDeclaration, 'pending-owner-approval',
+    'developerProgramPoliciesDeclaration');
+  same(preUpload.playAppSigningTerms, 'pending-owner-approval', 'playAppSigningTerms');
+  same(preUpload.usExportLawsDeclaration, 'pending-owner-approval', 'usExportLawsDeclaration');
   same(preUpload.playAppRecordCreated, false, 'playAppRecordCreated');
   same(preUpload.immediateArtifactReverification, false, 'immediateArtifactReverification');
 

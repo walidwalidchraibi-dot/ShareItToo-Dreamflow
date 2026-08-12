@@ -79,6 +79,15 @@ test('rejects a regression to pending phone verification', async (t) => {
     /phoneVerification/);
 });
 
+test('rejects an unrecorded Play App Signing approval', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  data.handoff.preUploadGates.playAppSigningTerms = 'accepted';
+  await writeFile(data.handoffPath, JSON.stringify(data.handoff));
+  assert.throws(() => validateGooglePlayInternalHandoff({ repositoryRoot, ...data }),
+    /playAppSigningTerms/);
+});
+
 test('rejects premature submission permission', async (t) => {
   const data = await fixture();
   t.after(() => rm(data.root, { recursive: true, force: true }));
