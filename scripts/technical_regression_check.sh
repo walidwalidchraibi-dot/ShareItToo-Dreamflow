@@ -75,6 +75,8 @@ node --check tool/prepare_store_screenshot_fixture.mjs
 node --test test/tool/prepare_store_screenshot_fixture.test.mjs
 node --check tool/run_staging_synthetic_booking.mjs
 node --test test/tool/run_staging_synthetic_booking.test.mjs
+node --check tool/run_isolated_android_role_booking_diagnostic.mjs
+node --test test/tool/run_isolated_android_role_booking_diagnostic.test.mjs
 
 node --check tool/validate_firebase_release_config.mjs
 node --test test/tool/validate_firebase_release_config.test.mjs

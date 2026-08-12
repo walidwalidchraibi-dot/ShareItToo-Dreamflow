@@ -1,0 +1,82 @@
+import assert from 'node:assert/strict';
+import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
+import test from 'node:test';
+
+import { runIsolatedAndroidRoleBookingDiagnostic } from
+  '../../tool/run_isolated_android_role_booking_diagnostic.mjs';
+
+function fixture() {
+  const root = mkdtempSync(resolve(tmpdir(), 'sit-protected-role-booking-'));
+  chmodSync(root, 0o700);
+  const vaultFile = resolve(root, 'accounts.json');
+  writeFileSync(vaultFile, `${JSON.stringify({
+    schemaVersion: 1,
+    kind: 'sit-staging-synthetic-account-vault',
+    runId: 'protected-review-fixture',
+    status: 'synthetic-booking-active',
+    apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
+    stripeLivemode: false,
+    accounts: [
+      { role: 'owner', email: 'owner@example.invalid', password: 'private-owner-password' },
+      { role: 'renter', email: 'renter@example.invalid', password: 'private-renter-password' },
+    ],
+    syntheticBooking: {
+      workflowStatus: 'accepted',
+      paymentMode: 'memory',
+      stripeLivemode: false,
+      paymentEndpointCalled: false,
+    },
+  }, null, 2)}\n`, { mode: 0o600 });
+  chmodSync(vaultFile, 0o600);
+  return vaultFile;
+}
+
+test('uses an isolated vault and preserves the active protected review fixture', async () => {
+  const vaultFile = fixture();
+  const before = readFileSync(vaultFile, 'utf8');
+  let observedIsolatedVault = null;
+  const result = await runIsolatedAndroidRoleBookingDiagnostic({
+    vaultFile,
+    runner: async (isolatedVaultFile) => {
+      observedIsolatedVault = JSON.parse(readFileSync(isolatedVaultFile, 'utf8'));
+      writeFileSync(isolatedVaultFile, `${JSON.stringify({ consumed: true })}\n`, { mode: 0o600 });
+      return {
+        schemaVersion: 1,
+        kind: 'android-synthetic-role-booking-diagnostic',
+        status: 'passed-bounded-synthetic-role-booking-diagnostic',
+        boundaries: { containsSecrets: false },
+      };
+    },
+  });
+
+  assert.equal(observedIsolatedVault.syntheticBooking, undefined);
+  assert.equal(observedIsolatedVault.accounts.length, 2);
+  assert.equal(readFileSync(vaultFile, 'utf8'), before);
+  assert.deepEqual(result.isolation, {
+    protectedReviewFixtureUnchanged: true,
+    temporaryVaultRemovedAfterProbe: true,
+    containsReviewCredentials: false,
+  });
+  assert.equal(JSON.stringify(result).includes('private-owner-password'), false);
+});
+
+test('rejects an unsafe or terminal protected fixture before running', async () => {
+  const vaultFile = fixture();
+  const vault = JSON.parse(readFileSync(vaultFile, 'utf8'));
+  vault.syntheticBooking.workflowStatus = 'completed';
+  writeFileSync(vaultFile, `${JSON.stringify(vault, null, 2)}\n`, { mode: 0o600 });
+  let called = false;
+  await assert.rejects(
+    runIsolatedAndroidRoleBookingDiagnostic({
+      vaultFile,
+      runner: async () => {
+        called = true;
+      },
+    }),
+    /must remain active and payment-free/,
+  );
+  assert.equal(called, false);
+});
+

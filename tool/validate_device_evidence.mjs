@@ -503,6 +503,14 @@ function validateAndroidSyntheticRoleBooking(root, diagnostic, candidate) {
     }
   }
 
+  const isolation = object(evidence.isolation, `${label}.evidence.isolation`);
+  if (isolation.protectedReviewFixtureUnchanged !== true ||
+      isolation.temporaryVaultRemovedAfterProbe !== true ||
+      isolation.containsReviewCredentials !== false ||
+      Object.keys(isolation).length !== 3) {
+    fail(`${label}.evidence must preserve the active protected review fixture through an isolated temporary vault.`);
+  }
+
   const boundaries = object(evidence.boundaries, `${label}.evidence.boundaries`);
   if (boundaries.directDiagnosticOnly !== true ||
       boundaries.storeInstallationGateSatisfied !== false ||

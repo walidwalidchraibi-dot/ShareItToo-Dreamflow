@@ -537,6 +537,11 @@ function syntheticRoleBookingFixture() {
       renterRunningVisibility: { status: 'passed', result: 'active-visible-to-renter' },
       renterCompletedVisibility: { status: 'passed', result: 'completed-visible-to-renter' },
     },
+    isolation: {
+      protectedReviewFixtureUnchanged: true,
+      temporaryVaultRemovedAfterProbe: true,
+      containsReviewCredentials: false,
+    },
     boundaries: {
       ...safeBoundaries(),
       directDiagnosticOnly: true,
@@ -1103,6 +1108,18 @@ test('synthetic-role booking evidence cannot claim payment, hotspot, or the full
   assert.throws(
     () => validate(fixture),
     /must keep store, matrix, hotspot, link, push, TalkBack, iOS, payment, identity, and lock-code gates open/,
+  );
+});
+
+test('synthetic-role booking evidence must preserve the active review fixture', () => {
+  const fixture = syntheticRoleBookingFixture();
+  const ref = fixture.deviceManifest.candidate.android.syntheticRoleBooking.evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, ref), 'utf8'));
+  evidence.isolation.protectedReviewFixtureUnchanged = false;
+  writeEvidence(fixture.root, ref, evidence);
+  assert.throws(
+    () => validate(fixture),
+    /must preserve the active protected review fixture through an isolated temporary vault/,
   );
 });
 
