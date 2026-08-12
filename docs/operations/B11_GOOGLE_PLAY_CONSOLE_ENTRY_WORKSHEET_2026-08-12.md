@@ -192,7 +192,8 @@ einzeln belegt. Dazu gehören insbesondere:
 - Name, E-Mail, optionale Telefonnummer und Adresse;
 - User-ID;
 - grober und optional präziser Standort;
-- Fotos, Dateien, Nachrichten und sonstige Nutzerinhalte;
+- Fotos, Nachrichten und sonstige Nutzerinhalte; keine freien Dokument-,
+  Video- oder Audio-Uploads im Kandidaten 2026081202;
 - Buchungs-/Kaufhistorie und sonstige Finanzinformationen;
 - Push-/Installationskennungen;
 - Crashdaten und sonstige Diagnostik.
@@ -205,6 +206,12 @@ bestätigt ist. Der gespeicherte Console-Stand und die vorbereiteten, noch nicht
 gespeicherten Antworten sind kandidatengenau in
 `docs/evidence/b11/google-play-data-safety-step2-20260812.json` festgehalten.
 Das Data-Safety-Formular noch nicht absenden.
+
+Für Schritt 3 sind 16 tatsächlich erhobene Datentypen als direkte
+Auswahlliste vorbereitet. `Files and docs`, Videos, Audio und
+Zahlungsinformationen bleiben für diesen Kandidaten ungewählt. Die
+maschinengeprüfte Liste liegt in
+`docs/evidence/b11/google-play-data-safety-datatypes-20260812.json`.
 
 ## 7. Berechtigungen und SDK-Prüfung nach AAB-Upload
 

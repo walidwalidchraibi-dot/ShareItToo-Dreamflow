@@ -65,6 +65,26 @@
     {
       "path": "lib/services/maps_service.dart",
       "sha256": "a8cb474b2849d7e894919ae1056e8158d51c66fbfe8e0b1fab40d1db7fdaf32f"
+    },
+    {
+      "path": "backend/src/app.js",
+      "sha256": "7074140591537ba5e24d98acda05764ee61485e51a2664eb0187e6b831e7cade"
+    },
+    {
+      "path": "lib/screens/create_listing_screen.dart",
+      "sha256": "31caf19e2f98349ebc056ac90e71ddeb3fd076c5507d6240adeff6779734cf61"
+    },
+    {
+      "path": "lib/screens/message_thread_screen.dart",
+      "sha256": "d6c03f73a2a88502f9133ceeecf0f17aa287d1304748612f2cf3148ba991326a"
+    },
+    {
+      "path": "lib/widgets/return_handover_stepper_sheet.dart",
+      "sha256": "44760376375b632bf41b6a12e261773ed47154b567a21e9feb9ce801d3454651"
+    },
+    {
+      "path": "lib/screens/report_user_screen.dart",
+      "sha256": "0451df1b18e75662a76988cc9ef816073273651731b855e43e06cbe4db722760"
     }
   ],
   "binaryEvidence": {
@@ -212,16 +232,6 @@
       "id": "photos",
       "google": "Photos and videos / Photos",
       "apple": "User Content / Photos or Videos",
-      "collected": true,
-      "optional": true,
-      "linkedToUser": true,
-      "tracking": false,
-      "purposes": ["appFunctionality", "fraudPreventionSecurityCompliance"]
-    },
-    {
-      "id": "filesAndDocuments",
-      "google": "Files and docs / Files and docs",
-      "apple": "User Content / Other User Content",
       "collected": true,
       "optional": true,
       "linkedToUser": true,

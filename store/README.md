@@ -90,8 +90,11 @@ ersetzt die Pflicht aber nicht.
 
 `store/privacy-disclosures.json` ist die maschinenlesbare, quell- und
 binärgebundene Grundlage für Google Play Data Safety und Apple App Privacy.
-Sie inventarisiert aktuell 18 Datentypen und acht Dienste bzw. technische
-Empfänger. Der signierte Android-Kandidat enthält neben Firebase Cloud
+Sie bewertet aktuell 17 Datentypen (davon 16 tatsächlich erhoben) und neun
+Dienste bzw. technische Empfänger. Freie Dateien/Dokumente werden nicht
+deklariert: Alle Launch-Uploads sind technisch auf JPEG, PNG und WebP begrenzt;
+lokal erzeugte PDFs verlassen das Gerät nur auf ausdrücklichen Download.
+Der signierte Android-Kandidat enthält neben Firebase Cloud
 Messaging und Crashlytics auch die aktivierte Google-Maps-Platform-Anbindung.
 Präziser Standort bleibt deshalb konservativ deklariert; die
 Anwendungs-/API-Beschränkung des eingebetteten Maps-Client-Schlüssels ist ein

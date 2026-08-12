@@ -45,6 +45,8 @@
     "partialDataDeletionAnswerSaved": false,
     "preparedPartialDataDeletionAnswer": false,
     "dataTypesSaved": false,
+    "dataTypesPrepared": 16,
+    "dataTypesEvidenceRef": "docs/evidence/b11/google-play-data-safety-datatypes-20260812.json",
     "submitted": false,
     "stepTwoEvidenceRef": "docs/evidence/b11/google-play-data-safety-step2-20260812.json"
   },

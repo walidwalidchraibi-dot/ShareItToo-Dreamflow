@@ -81,6 +81,9 @@ export function validateGooglePlayAppContentHandoff({
       tasks.dataSafety.preparedDeleteAccountUrl !==
         'https://shareittoo.com/account-deletion' ||
       tasks.dataSafety.preparedPartialDataDeletionAnswer !== false ||
+      tasks.dataSafety.dataTypesPrepared !== 16 ||
+      tasks.dataSafety.dataTypesEvidenceRef !==
+        'docs/evidence/b11/google-play-data-safety-datatypes-20260812.json' ||
       tasks.dataSafety.stepTwoEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-step2-20260812.json' ||
       tasks.dataSafety.sellsData !== false ||
@@ -114,7 +117,7 @@ export function validateGooglePlayAppContentHandoff({
   if (Object.keys(hardStops).length !== 7) {
     fail('App-content handoff must preserve all seven hard stops.');
   }
-  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 5 ||
+  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 6 ||
       handoff.evidenceRefs.some((ref) => typeof ref !== 'string' ||
         ref.includes('..') || !resolve(repositoryRoot, ref).startsWith(`${resolve(repositoryRoot)}/`))) {
     fail('App-content evidence references are invalid.');

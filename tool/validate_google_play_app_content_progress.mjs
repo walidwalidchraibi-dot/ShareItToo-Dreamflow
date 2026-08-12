@@ -49,6 +49,9 @@ export function validateGooglePlayAppContentProgress({
       dataSafety.preparedPartialDataDeletionAnswer !== false ||
       dataSafety.stepTwoEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-step2-20260812.json' ||
+      dataSafety.dataTypesPrepared !== 16 ||
+      dataSafety.dataTypesEvidenceRef !==
+        'docs/evidence/b11/google-play-data-safety-datatypes-20260812.json' ||
       dataSafety.dataTypesSaved !== false ||
       dataSafety.submitted !== false) {
     fail('Play data-safety partial draft state is invalid.');
@@ -69,6 +72,20 @@ export function validateGooglePlayAppContentProgress({
       Object.values(stepTwoEvidence.boundaries ?? {}).some((value) => value !== false) ||
       JSON.stringify(stepTwoEvidence).includes('@')) {
     fail('Play data-safety step-two observation is invalid or unsafe.');
+  }
+  const dataTypesEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
+    dataSafety.dataTypesEvidenceRef), 'utf8'));
+  if (dataTypesEvidence.kind !== 'google-play-data-safety-data-types-preparation' ||
+      dataTypesEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
+      dataTypesEvidence.selectionCounts?.evaluated !== 17 ||
+      dataTypesEvidence.selectionCounts?.select !== 16 ||
+      dataTypesEvidence.selectionCounts?.doNotSelect !== 1 ||
+      dataTypesEvidence.select?.includes('Files and docs / Files and docs') ||
+      dataTypesEvidence.doNotSelect?.[0]?.dataType !==
+        'Financial info / User payment info' ||
+      Object.values(dataTypesEvidence.boundaries ?? {}).some((value) => value !== false) ||
+      JSON.stringify(dataTypesEvidence).includes('@')) {
+    fail('Play data-safety data-type preparation is invalid or unsafe.');
   }
   return { status: evidence.status, savedTasks: evidence.counts.savedTasks, openTasks: evidence.counts.openTasks };
 }

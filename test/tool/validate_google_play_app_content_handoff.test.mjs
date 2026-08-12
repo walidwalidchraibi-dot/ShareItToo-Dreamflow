@@ -54,6 +54,15 @@ test('rejects claiming OAuth support before the providers are available', async 
     /product truth/);
 });
 
+test('rejects a Data safety type count that includes free documents', async (t) => {
+  const data = await fixture((handoff) => {
+    handoff.tasks.dataSafety.dataTypesPrepared = 17;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+    /product truth/);
+});
+
 test('rejects credential or account data', async (t) => {
   const data = await fixture((handoff) => { handoff.account = 'private@example.test'; });
   t.after(() => rm(data.root, { recursive: true, force: true }));

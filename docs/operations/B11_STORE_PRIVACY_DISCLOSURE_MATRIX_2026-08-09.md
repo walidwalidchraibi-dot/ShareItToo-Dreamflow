@@ -15,7 +15,7 @@ Maßgebliche technische Grundlage:
 
 - Konto, Profil, Sitzungen, Identitäten, Buchungen und Zahlungsereignisse;
 - Inserate, Verfügbarkeit, Preise, Kautionen und Standorte;
-- Nachrichten, Anhänge, Bilder, Bewertungen, Meldungen und Streitfälle;
+- Nachrichten, Bildanhänge, Bewertungen, Meldungen und Streitfälle;
 - Push-Registrierungen, Benachrichtigungseinstellungen und -historie;
 - Audit-, IP-, User-Agent- und Sicherheitsinformationen;
 - Firebase Authentication für Google-, Apple- und Facebook-Anmeldung,
@@ -64,7 +64,6 @@ werden kann.
 | Inserattext, Titel, Beschreibung, Preis, Kaution, Verfügbarkeit | Other user-generated content | Other User Content | erforderlich für Vermieterfunktion | ja | Marktplatz, Suche, Buchung | Backend/Hosting |
 | Inserat-, Chat-, Melde- und Übergabebilder/-videos | Photos and videos | Photos or Videos | optional je Upload, für einzelne Nachweisflows funktional erforderlich | ja | Inserat, Kommunikation, Übergabe, Support, Moderation | Backend/Objektspeicher; Metadatenbereinigung prüfen |
 | Chatnachrichten | Messages | Emails or Text Messages | erforderlich für Chatfunktion | ja | Buchungsabstimmung, Support, Sicherheit/Moderation | Backend/Hosting |
-| Datei-Anhänge | Files and docs | Other User Content | optional | ja | Kommunikation, Support, Streitfallnachweis | Backend/Objektspeicher; erlaubte Dateitypen prüfen |
 | Bewertungen, Meldungen, Blockierungen, Support-/Streitfalltexte | Other user-generated content | Customer Support / Other User Content | optional oder ereignisbezogen | ja | Vertrauen, Support, Missbrauchsbekämpfung | Backend, berechtigte Support-/Adminrollen |
 | Buchungszeitraum, Status, Beträge, Gebühren, Kaution, Refund/Payout-Status | Purchase history | Purchases: Purchase History | erforderlich für Buchung | ja | Buchungs- und Zahlungsabwicklung, Belege, Sicherheit/Compliance | Backend; später Stripe als Zahlungsdienstleister |
 | Kartennummer, Bankkonto, vollständige Zahlungsmethode | Financial info: Payment info | Financial Info: Payment Info | **nicht durch ShareItToo erheben**, sofern Stripe-hosted Eingabe und kein Entwicklerzugriff | nicht anwendbar | Zahlungsabwicklung beim Provider | vor Stripe-Aktivierung durch Netzwerk-/SDK-Test bestätigen; sonst Matrix ändern |
@@ -106,6 +105,13 @@ geprüft:
    Produktmarketinganalyse.
 7. **Deletion:** ja, aber erst absenden, wenn In-App-Löschung und öffentliche
    Produktions-Löschseite aus dem finalen Store-Build nachgewiesen sind.
+
+Nicht auswählen: **Files and docs**. Alle serverseitigen Uploads des Kandidaten
+2026081202 akzeptieren ausschließlich JPEG, PNG oder WebP; Chat, Inserate,
+Meldungen sowie Übergabe/Rückgabe bieten nur Bildauswahl. Lokal erzeugte
+Rechnungs-PDFs werden auf Nutzerwunsch heruntergeladen, aber nicht von der App
+erhoben oder an ShareItToo übertragen. Video- und Audio-Uploads sind ebenfalls
+nicht Teil dieses Kandidaten.
 
 Google verlangt die Data-Safety-Erklärung auch für Closed/Open/Production;
 ein ausschließlich interner Track ist ausgenommen. ShareItToo bereitet die
@@ -237,7 +243,8 @@ geschützte Prüfkonto und seine aktive Buchung wurden danach vollständig
 wiederhergestellt. Store-Installation und die vollständige
 Geräte-/Accessibility-Matrix bleiben offen. Der aktuelle
 maschinenlesbare Datenschutzentwurf liegt in
-`store/privacy-disclosures.json`; er bindet 18 Datentypen, acht Dienste,
+`store/privacy-disclosures.json`; er bindet 17 bewertete Datentypen (16 davon
+tatsächlich erhoben), neun Dienste,
 Quellhashes und den erneuerten Binärscan an denselben Kandidaten. Die
 Original-R8-Zuordnung des exakten AAB wurde erfolgreich zu Crashlytics
 übertragen; die drei nativen Symbolgruppen sind vollständig im AAB und im

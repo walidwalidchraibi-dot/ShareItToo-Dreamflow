@@ -46,6 +46,15 @@ test('rejects claiming the partial Data safety draft was submitted', async (t) =
   assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }), /data-safety partial draft/);
 });
 
+test('rejects preparing free documents for the image-only candidate', async (t) => {
+  const data = await fixture((evidence) => {
+    evidence.dataSafetyDraft.dataTypesPrepared = 17;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
+    /data-safety partial draft/);
+});
+
 test('rejects an email address or review credential in evidence', async (t) => {
   const data = await fixture((evidence) => { evidence.note = 'private@example.invalid'; });
   t.after(() => rm(data.root, { recursive: true, force: true }));

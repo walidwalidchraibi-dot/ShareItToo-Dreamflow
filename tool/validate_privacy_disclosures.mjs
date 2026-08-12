@@ -20,6 +20,11 @@ const sourcePaths = [
   'lib/services/auth_service.dart',
   'lib/openai/openai_config.dart',
   'lib/services/maps_service.dart',
+  'backend/src/app.js',
+  'lib/screens/create_listing_screen.dart',
+  'lib/screens/message_thread_screen.dart',
+  'lib/widgets/return_handover_stepper_sheet.dart',
+  'lib/screens/report_user_screen.dart',
 ];
 
 const dataTypeIds = [
@@ -31,7 +36,6 @@ const dataTypeIds = [
   'approximateLocation',
   'preciseLocation',
   'photos',
-  'filesAndDocuments',
   'inAppMessages',
   'otherUserContent',
   'purchaseHistory',
@@ -237,6 +241,24 @@ function assertSourceContracts({ root, sourceTexts }) {
 
   const ai = sourceText(root, sourceTexts, 'lib/openai/openai_config.dart');
   if (!/aiHelpersEnabled\s*=\s*false/.test(ai)) fail('OpenAI helpers must remain disabled in this candidate.');
+
+  const backendApp = sourceText(root, sourceTexts, 'backend/src/app.js');
+  for (const marker of [
+    "new Set(['image/jpeg', 'image/png', 'image/webp'])",
+    "throw new HttpError(415, 'unsupported_image_type')",
+  ]) {
+    if (!backendApp.includes(marker)) fail(`Backend image-only upload boundary is missing ${marker}.`);
+  }
+  const listingUpload = sourceText(root, sourceTexts, 'lib/screens/create_listing_screen.dart');
+  const chatUpload = sourceText(root, sourceTexts, 'lib/screens/message_thread_screen.dart');
+  const handoverUpload = sourceText(root, sourceTexts, 'lib/widgets/return_handover_stepper_sheet.dart');
+  const reportUpload = sourceText(root, sourceTexts, 'lib/screens/report_user_screen.dart');
+  if (!listingUpload.includes('type: FileType.image')
+      || !chatUpload.includes("allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp']")
+      || !handoverUpload.includes('type: FileType.image')
+      || !reportUpload.includes('ImagePicker().pickImage')) {
+    fail('All launch upload surfaces must remain image-only.');
+  }
 
   const legalPrivacy = sourceText(root, sourceTexts, 'lib/screens/legal_privacy_screen.dart');
   const privacyInfo = sourceText(root, sourceTexts, 'lib/screens/privacy_info_screen.dart');

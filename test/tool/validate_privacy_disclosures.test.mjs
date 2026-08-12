@@ -49,7 +49,7 @@ test('accepts the honest fail-closed privacy disclosure draft', () => {
   const result = validate();
   assert.equal(result.state, 'draft');
   assert.equal(result.approvalAllowed, false);
-  assert.equal(result.dataTypeCount, 18);
+  assert.equal(result.dataTypeCount, 17);
   assert.equal(result.externalServiceCount, 9);
   assert.equal(result.binaryReleaseCheck, 'passed');
   assert.equal(result.storeGate, 'open');
@@ -95,6 +95,19 @@ test('rejects omitting automatic Firebase session interactions', () => {
   assert.throws(
     () => validate({ privacyManifest }),
     /requires non-optional, non-linked app interaction disclosure/,
+  );
+});
+
+test('rejects enabling non-image uploads without a new privacy classification', () => {
+  const path = 'backend/src/app.js';
+  const privacyManifest = clone(basePrivacyManifest);
+  const changed = readFileSync(resolve(repositoryRoot, path), 'utf8')
+    .replace("new Set(['image/jpeg', 'image/png', 'image/webp'])",
+      "new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])");
+  privacyManifest.sourceInventory.find((entry) => entry.path === path).sha256 = sha256(changed);
+  assert.throws(
+    () => validate({ privacyManifest, sourceTexts: { [path]: changed } }),
+    /image-only upload boundary/,
   );
 });
 
