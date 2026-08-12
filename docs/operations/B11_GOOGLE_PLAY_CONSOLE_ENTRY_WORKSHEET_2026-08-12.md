@@ -62,6 +62,15 @@ App. Für diese Mietzahlungen wird kein Google Play Billing eingerichtet.
 Digitale Abonnements, Credits, Funktionsfreischaltungen oder werbefreie
 Premiumstufen sind im Kandidaten 2026081116 nicht enthalten.
 
+Falls die Kontoregistrierung allgemein nach geplanten Einnahmequellen fragt,
+ist eine mögliche spätere Provision auf die Miete physischer Gegenstände als
+anderer Geschäftsumsatz plausibel. Sie macht die konkrete Miete aber nicht zu
+einem In-App-Kauf im Sinne digitaler Play-Produkte. „Ads“, „Subscriptions“ und
+digitale „In-App purchases“ dürfen für den aktuellen Kandidaten nicht als
+vorhandene App-Funktionen übernommen werden: Der signierte Build enthält weder
+Werbe-SDK noch digitale Abonnements oder digitale Kaufprodukte. Erst ein
+späterer, tatsächlich implementierter Build würde diese Antworten ändern.
+
 ## 4. Store-Haupteintrag
 
 Vorbereitete Dateien:
@@ -146,6 +155,18 @@ Englischer Review-Text ist im Abschnitt „App-Zugriff für Google Review“ von
 | Bank, Kredit, Anlage, Krypto oder anderes Finanzprodukt | nein |
 | Kauf/Miete physischer Gegenstände | ja |
 | In-App-Purchases digitaler Güter im aktuellen Kandidaten | nein |
+
+### 5.6 Finanzfunktionen
+
+Auch Apps ohne Finanzfunktion müssen das sichtbare Google-Play-Formular
+beantworten. Der aktuelle Kandidat bietet weder Banking, Kredite,
+Geldtransfer, Wallet, Krypto, Anlage, Versicherung noch „Buy now, pay later“.
+Die reine Vermittlung und spätere Bezahlung einer Miete physischer Gegenstände
+ist nach dem derzeit belegten Funktionsumfang keine solche Finanzfunktion.
+Arbeitsantwort deshalb: **„Meine App bietet keine Finanzfunktionen.“** Vor dem
+Speichern jede dann sichtbare Definition erneut gegen den tatsächlichen Build
+prüfen; eine spätere Wallet-, Kredit-, Versicherungs- oder eigene
+Zahlungsfunktion würde eine neue Bewertung erzwingen.
 
 Den IARC-Inhaltsfragebogen nicht pauschal vorwegnehmen. Jede sichtbare Frage
 gegen die tatsächlichen Inserat-, Chat- und Nutzerinhaltsfunktionen beantworten
