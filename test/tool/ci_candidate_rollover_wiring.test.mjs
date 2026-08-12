@@ -10,6 +10,10 @@ const androidBuild = readFileSync(
   new URL('../../scripts/build_android_release_candidate.sh', import.meta.url),
   'utf8',
 );
+const wrapperProperties = readFileSync(
+  new URL('../../android/gradle/wrapper/gradle-wrapper.properties', import.meta.url),
+  'utf8',
+);
 
 test('CI validates the documented incomplete Android candidate as a safe rollover', () => {
   assert.match(
@@ -27,4 +31,23 @@ test('Android packaging scopes Firebase validation to Android', () => {
     androidBuild,
     /SIT_FIREBASE_VALIDATION_PLATFORM=android bash scripts\/release_candidate_preflight\.sh/,
   );
+});
+
+test('CI provisions and caches the checksum-verified Gradle wrapper before Flutter builds', () => {
+  assert.match(workflow, /uses: gradle\/actions\/setup-gradle@v6/);
+  assert.match(workflow, /cache-provider: basic/);
+  assert.match(
+    workflow,
+    /name: Provision the verified Gradle wrapper[\s\S]*?for attempt in 1 2 3; do[\s\S]*?\.\/android\/gradlew --version/,
+  );
+  assert.match(
+    wrapperProperties,
+    /^distributionUrl=https\\:\/\/downloads\.gradle\.org\/distributions\/gradle-8\.12-bin\.zip$/m,
+  );
+  assert.match(
+    wrapperProperties,
+    /^distributionSha256Sum=7a00d51fb93147819aab76024feece20b6b84e420694101f276be952e08bef03$/m,
+  );
+  assert.match(wrapperProperties, /^networkTimeout=60000$/m);
+  assert.match(wrapperProperties, /^validateDistributionUrl=true$/m);
 });

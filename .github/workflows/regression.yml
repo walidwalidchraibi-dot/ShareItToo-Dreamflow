@@ -108,6 +108,11 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up verified Gradle cache
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.41.7
@@ -115,6 +120,18 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Provision the verified Gradle wrapper
+        run: |
+          for attempt in 1 2 3; do
+            if ./android/gradlew --version; then
+              exit 0
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              sleep "$((attempt * 5))"
+            fi
+          done
+          exit 1
 
       - name: Run regression script
         env:
