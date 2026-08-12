@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import test from 'node:test';
 
-import { buildFcmMessageForTest } from '../src/push_sender.js';
+process.env.DATABASE_URL ??= 'postgres://localhost/fixture';
+process.env.JWT_SECRET ??= crypto.randomBytes(48).toString('base64url');
+process.env.PUSH_TRANSPORT = 'disabled';
+
+const { buildFcmMessageForTest } = await import('../src/push_sender.js');
 
 test('FCM messages preserve safe navigation context with string-only data', () => {
   const message = buildFcmMessageForTest(
