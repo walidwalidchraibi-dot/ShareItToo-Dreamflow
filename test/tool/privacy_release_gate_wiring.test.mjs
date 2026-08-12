@@ -34,6 +34,7 @@ test('technical regression runs syntax, tests, and the honest privacy draft vali
 test('signed binary privacy scan inventories enabled Maps and allows dormant endpoint code', () => {
   const source = readFileSync(resolve(repositoryRoot, 'tool/verify_android_binary_privacy.mjs'), 'utf8');
   assert.match(source, /nominatim\.openstreetmap\.org/);
+  assert.match(source, /tile\.openstreetmap\.org/);
   assert.match(source, /maps\.googleapis\.com/);
   assert.match(source, /Google Maps Platform/);
   assert.match(source, /!googleMapsClientCredentialPresent \|\| googleMapsEndpointPresent/);

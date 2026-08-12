@@ -233,6 +233,7 @@ const forbiddenRuntimeMarkers = [
   'http://127.0.0.1:8123/',
   'https://api.openai.com/',
   'nominatim.openstreetmap.org',
+  'tile.openstreetmap.org',
 ];
 for (const marker of forbiddenRuntimeMarkers) {
   requireCheck(

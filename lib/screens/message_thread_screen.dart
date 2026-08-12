@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
-import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -7951,36 +7950,6 @@ class _LocationShareData {
 
   double? get latitudeValue => double.tryParse(latitude);
   double? get longitudeValue => double.tryParse(longitude);
-
-  int get mapZoom => 15;
-
-  int? get tileX {
-    final lat = latitudeValue;
-    final lng = longitudeValue;
-    if (lat == null || lng == null) return null;
-    final n = 1 << mapZoom;
-    return ((lng + 180.0) / 360.0 * n).floor();
-  }
-
-  int? get tileY {
-    final lat = latitudeValue;
-    final lng = longitudeValue;
-    if (lat == null || lng == null) return null;
-    final n = 1 << mapZoom;
-    final latRad = lat * math.pi / 180.0;
-    final y =
-        (1.0 - math.log(math.tan(latRad) + 1 / math.cos(latRad)) / math.pi) /
-            2.0 *
-            n;
-    return y.floor();
-  }
-
-  String get tilePreviewUrl {
-    final x = tileX;
-    final y = tileY;
-    if (x == null || y == null) return '';
-    return 'https://tile.openstreetmap.org/$mapZoom/$x/$y.png';
-  }
 }
 
 _LocationShareData? _parseLocationShareMessage(String raw) {
@@ -8313,17 +8282,8 @@ class _LocationShareMessage extends StatelessWidget {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        if (data.tilePreviewUrl.isNotEmpty) ...[
-                          Image.network(
-                            data.tilePreviewUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const _LocationMapFallback(),
-                            loadingBuilder: (context, child, progress) {
-                              if (progress == null) return child;
-                              return const _LocationMapFallback(loading: true);
-                            },
-                          ),
+                        if (data.hasCoordinates) ...[
+                          const _LocationMapFallback(),
                           const Center(
                             child: IgnorePointer(child: _LocationPreviewPin()),
                           ),
