@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "kind": "google-play-feed-screenshot-readiness",
+  "status": "blocked-legacy-technical-listings-visible",
+  "capturedAt": "2026-08-12T08:50:00Z",
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081116",
+    "releaseChannel": "internal",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
+  },
+  "device": {
+    "platform": "android",
+    "modelClass": "Pixel 7 Pro",
+    "physicalResolution": "1440x3120",
+    "installedCandidateVerified": true,
+    "syntheticScreenshotSessionReady": true
+  },
+  "fixture": {
+    "status": "ready-reused",
+    "curatedListingCount": 4,
+    "createdDuringObservation": 0,
+    "containsPersonalData": false
+  },
+  "feedObservation": {
+    "curatedListingVisible": true,
+    "legacyTechnicalListingsVisible": true,
+    "storeScreenshotAccepted": false,
+    "reason": "technical-fixture-names-remain-visible-in-global-staging-feed"
+  },
+  "requiredRemediation": {
+    "preferred": "add-a-store-preview-feed-filter-bound-to-curated-synthetic-listings",
+    "alternative": "safely-pause-legacy-technical-listings-after-dependency-audit",
+    "deletionAuthorized": false,
+    "productionChangeAuthorized": false
+  },
+  "boundaries": {
+    "screenshotUploaded": false,
+    "listingDeleted": false,
+    "listingPaused": false,
+    "productionChanged": false,
+    "paymentEndpointCalled": false,
+    "containsSecrets": false,
+    "containsEmailAddresses": false,
+    "containsAccountIdentifiers": false,
+    "containsRawDeviceIdentifiers": false
+  }
+}
