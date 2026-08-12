@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 import sharp from 'sharp';
 
@@ -13,11 +15,16 @@ const baseUrl = (process.env.ACCEPTANCE_BASE_URL || 'http://127.0.0.1:8080/v1')
 const acceptancePushTransport = (process.env.ACCEPTANCE_PUSH_TRANSPORT || 'memory')
   .trim()
   .toLowerCase();
+const acceptanceUploadDir = (process.env.ACCEPTANCE_UPLOAD_DIR || '').trim() || null;
+const acceptanceClientIp = (process.env.ACCEPTANCE_CLIENT_IP || '').trim() || null;
 const runId = `b7-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`;
 const password = createEphemeralAcceptancePassword();
 
 if (!['memory', 'fcm'].includes(acceptancePushTransport)) {
   throw new Error('ACCEPTANCE_PUSH_TRANSPORT must be memory or fcm.');
+}
+if (acceptanceClientIp && !/^198\.51\.100\.(?:[1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-4])$/.test(acceptanceClientIp)) {
+  throw new Error('ACCEPTANCE_CLIENT_IP must use the reserved 198.51.100.0/24 documentation range.');
 }
 
 function dateOnly(daysFromNow) {
@@ -34,6 +41,7 @@ async function api(path, {
   const response = await fetch(`${baseUrl}${path}`, {
     method,
     headers: {
+      ...(acceptanceClientIp ? { 'X-Forwarded-For': acceptanceClientIp } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(body !== undefined && !(body instanceof FormData)
         ? { 'Content-Type': 'application/json' }
@@ -349,12 +357,13 @@ async function main() {
   );
   assert.equal(participantThumbnail.response.headers.get('cache-control'), 'private, no-store');
 
-  await api(`/messages/${sent.value.message.id}/reports`, {
+  const reported = await api(`/messages/${sent.value.message.id}/reports`, {
     method: 'POST',
     token: users.owner.token,
     body: { reasonCode: 'staging_acceptance', details: 'B7 Meldeweg geprüft.' },
     expected: [201],
   });
+  assert.equal(reported.value.report.status, 'open');
   await api(`/user-blocks/${users.renter.id}`, {
     method: 'PUT',
     token: users.owner.token,
@@ -524,6 +533,32 @@ async function main() {
     return row.pending === 0 ? row : null;
   }, { timeoutMs: 30_000 });
 
+  const attachmentStorageNames = [
+    attachment.storageName,
+    sent.value.message.attachments[0].thumbnailStorageName,
+  ];
+  if (acceptanceUploadDir) {
+    for (const storageName of attachmentStorageNames) {
+      assert.equal(existsSync(resolve(acceptanceUploadDir, storageName)), true);
+    }
+  }
+
+  const blockedDeletion = await api('/account/deletion-preflight', { token: users.owner.token });
+  assert.equal(blockedDeletion.value.canDelete, false);
+  assert.deepEqual(
+    blockedDeletion.value.blockers.map((blocker) => `${blocker.id}:${blocker.count}`),
+    ['open_reports:1'],
+  );
+  const closedSyntheticReport = await pool.query(
+    `UPDATE reports
+     SET status = 'closed', closed_at = now(),
+         resolution = '{"outcome":"synthetic_acceptance_completed"}'::jsonb
+     WHERE id = $1 AND reporter_id = $2 AND status = 'open'
+     RETURNING id`,
+    [reported.value.report.id, users.owner.id],
+  );
+  assert.equal(closedSyntheticReport.rowCount, 1);
+
   for (const user of [users.outsider, users.renter, users.owner]) {
     const preflight = await api('/account/deletion-preflight', { token: user.token });
     assert.equal(preflight.value.canDelete, true);
@@ -543,6 +578,17 @@ async function main() {
     [Object.values(users).map((user) => user.id)],
   );
   assert.deepEqual(cleanup.rows[0], { closed_users: 3, active_users: 0 });
+  const erasedUploads = await pool.query(
+    `SELECT count(*)::int AS count FROM uploads
+     WHERE storage_name = ANY($1::text[]) OR thumbnail_storage_name = ANY($1::text[])`,
+    [attachmentStorageNames],
+  );
+  assert.equal(erasedUploads.rows[0].count, 0);
+  if (acceptanceUploadDir) {
+    for (const storageName of attachmentStorageNames) {
+      assert.equal(existsSync(resolve(acceptanceUploadDir, storageName)), false);
+    }
+  }
   const catalog = await api(`/listings?q=${encodeURIComponent(runId)}`);
   assert.deepEqual(catalog.value.listings, []);
   const queueHealth = (await pool.query(
@@ -580,6 +626,8 @@ async function main() {
     privateAttachment: 'participant-only',
     outsiderAccess: 'denied',
     reportAndBlock: 'passed',
+    deletionBlockedByOpenReport: 'passed',
+    generatedImageErasure: acceptanceUploadDir ? 'database-and-filesystem-passed' : 'database-passed',
     deepLinkFallbacks: 'booking-chat-invalid-expired-passed',
     cleanup: cleanup.rows[0],
     queue: queueHealth,

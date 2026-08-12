@@ -49,6 +49,33 @@ adds `compose.staging.fcm.yml`, mounts the file read-only without creating a
 missing host path, and records `stagingFcm=true` in the release evidence. The
 same flag is rejected for production.
 
+## B7 messaging and account-erasure acceptance
+
+`staging_b7_acceptance.mjs` creates three isolated staging accounts and proves
+the complete booking/chat boundary: idempotent text and private image
+messaging, participant-only original and thumbnail access, outsider denial,
+report/block/unblock, notification preferences and deep-link fallbacks. It
+also proves that an open moderation report blocks deletion before closing only
+its own synthetic report and deleting the isolated accounts through the public
+account API.
+
+For the strongest image-erasure proof, mount the staging upload volume
+read-only into the acceptance runner and set `ACCEPTANCE_UPLOAD_DIR`. The test
+then requires both the generated full-size image and thumbnail to exist before
+deletion and to disappear from both PostgreSQL and the upload filesystem after
+deletion. `ACCEPTANCE_CLIENT_IP`, when used, must be a unique address from the
+reserved `198.51.100.0/24` documentation range so repeated isolated runs do not
+share the sensitive-action rate-limit counter. It does not weaken or bypass
+the limiter.
+
+```sh
+ACCEPTANCE_BASE_URL=http://shareittoo-staging-api:8080/v1 \
+ACCEPTANCE_PUSH_TRANSPORT=fcm \
+ACCEPTANCE_UPLOAD_DIR=/data/uploads \
+ACCEPTANCE_CLIENT_IP=198.51.100.249 \
+  node ops/staging_b7_acceptance.mjs
+```
+
 ## Backups and restore proof
 
 `backup.sh` writes a PostgreSQL custom-format dump, an upload archive and a
