@@ -100,15 +100,23 @@ export function validateAppleTestFlightHandoff({ root, handoffOverride, sourceOv
   }
   includes(project, 'scripts/upload_ios_crashlytics_symbols.sh', 'Xcode project');
 
-  const firebase = source(root, 'ios/Runner/GoogleService-Info.plist', sourceOverrides);
-  if (!Object.hasOwn(sourceOverrides, 'ios/Runner/GoogleService-Info.plist') &&
-      !readFileSync(resolve(root, '.gitignore'), 'utf8').includes('/ios/Runner/GoogleService-Info.plist')) {
+  const firebaseRelativePath = 'ios/Runner/GoogleService-Info.plist';
+  const firebasePath = resolve(root, firebaseRelativePath);
+  const firebaseOverridePresent = Object.hasOwn(sourceOverrides, firebaseRelativePath);
+  const firebaseOverridden = typeof sourceOverrides[firebaseRelativePath] === 'string';
+  const firebasePresent = firebaseOverridden ||
+    (!firebaseOverridePresent && existsSync(firebasePath));
+  const gitignore = source(root, '.gitignore', sourceOverrides);
+  if (!gitignore.includes('/ios/Runner/GoogleService-Info.plist')) {
     fail('Apple Firebase configuration must remain outside version control.');
   }
-  same(plistScalar(firebase, 'BUNDLE_ID'), candidate.bundleId, 'Firebase BUNDLE_ID');
-  if (!/<key>IS_ANALYTICS_ENABLED<\/key>\s*<false\s*\/>/.test(firebase) ||
-      !/<key>IS_ADS_ENABLED<\/key>\s*<false\s*\/>/.test(firebase)) {
-    fail('Apple Firebase Analytics and ads must remain disabled.');
+  if (firebasePresent) {
+    const firebase = source(root, firebaseRelativePath, sourceOverrides);
+    same(plistScalar(firebase, 'BUNDLE_ID'), candidate.bundleId, 'Firebase BUNDLE_ID');
+    if (!/<key>IS_ANALYTICS_ENABLED<\/key>\s*<false\s*\/>/.test(firebase) ||
+        !/<key>IS_ADS_ENABLED<\/key>\s*<false\s*\/>/.test(firebase)) {
+      fail('Apple Firebase Analytics and ads must remain disabled.');
+    }
   }
 
   const accountGates = object(handoff.accountGates, 'accountGates');

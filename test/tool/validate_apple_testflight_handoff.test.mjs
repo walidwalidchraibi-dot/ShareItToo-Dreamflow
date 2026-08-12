@@ -22,6 +22,27 @@ test('accepts the truthful static Apple handoff with account and tooling gates o
   assert.deepEqual(result, { bundleId: 'com.shareittoo.app', buildNumber: '2026081116' });
 });
 
+test('accepts CI without copying the intentionally private Apple Firebase file into Git', () => {
+  const result = validateAppleTestFlightHandoff({
+    root,
+    sourceOverrides: {
+      'ios/Runner/GoogleService-Info.plist': null,
+    },
+  });
+  assert.deepEqual(result, { bundleId: 'com.shareittoo.app', buildNumber: '2026081116' });
+});
+
+test('still requires the private Apple Firebase path to remain ignored', async () => {
+  const gitignore = await readFile(new URL('../../.gitignore', import.meta.url), 'utf8');
+  assert.throws(() => validateAppleTestFlightHandoff({
+    root,
+    sourceOverrides: {
+      ...configuredSources,
+      '.gitignore': gitignore.replace('/ios/Runner/GoogleService-Info.plist', ''),
+    },
+  }), /outside version control/);
+});
+
 test('rejects a premature Apple membership or upload claim', () => {
   const handoff = structuredClone(canonical);
   handoff.accountGates.developerProgramMembership = 'passed';
