@@ -159,6 +159,10 @@ test('rejects closing the Play account gate before account setup and fee evidenc
     mutateManifest: (manifest) => {
       manifest.blockingGates.googlePlayAccountAndFee = 'closed';
     },
+    mutateAccountReadiness: (readiness) => {
+      readiness.googlePlay.status = 'account-verifications-complete-app-record-pending';
+      readiness.googlePlay.appRecordCreated = false;
+    },
   });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /must match verified Play account readiness/);
@@ -254,12 +258,12 @@ test('rejects a purchase claim without a paid Store account state', () => {
   assert.match(result.stderr, /purchase history must match/);
 });
 
-test('rejects Play verification state that is not bound to Console evidence', () => {
+test('rejects a Play verification regression while the account gate is closed', () => {
   const result = runWithManifests({
     mutateAccountReadiness: (readiness) => {
       readiness.googlePlay.deviceVerification = 'pending';
     },
   });
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /must match its sanitized Console evidence/);
+  assert.match(result.stderr, /must match verified Play account readiness/);
 });

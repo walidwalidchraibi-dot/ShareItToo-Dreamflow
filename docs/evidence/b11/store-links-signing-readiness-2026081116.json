@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "store-links-signing-readiness",
   "status": "technical-prechecks-passed-public-routes-and-store-console-pending",
-  "capturedAt": "2026-08-12T06:50:25Z",
+  "capturedAt": "2026-08-12T07:25:00Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
@@ -37,7 +37,7 @@
   },
   "counts": {
     "draftPublicUrls": 3,
-    "openStoreGates": 8
+    "openStoreGates": 7
   },
   "boundaries": {
     "uploadedToStore": false,

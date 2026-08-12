@@ -68,7 +68,7 @@ export function validateGooglePlayInternalHandoff({
   assertNoCredentials(handoff);
 
   same(handoff.schemaVersion, 1, 'schemaVersion');
-  same(handoff.status, 'verified-artifact-ready-account-gates-pending', 'status');
+  same(handoff.status, 'verified-artifact-ready-immediate-reverification-pending', 'status');
   same(handoff.submissionAllowed, false, 'submissionAllowed');
   same(handoff.track, 'internal', 'track');
   same(handoff.containsSecrets, false, 'containsSecrets');
@@ -110,11 +110,12 @@ export function validateGooglePlayInternalHandoff({
   same(preUpload.personalIdentityVerification, 'verified', 'personalIdentityVerification');
   same(preUpload.deviceVerification, 'verified', 'deviceVerification');
   same(preUpload.phoneVerification, 'verified', 'phoneVerification');
-  same(preUpload.developerProgramPoliciesDeclaration, 'pending-owner-approval',
+  same(preUpload.developerProgramPoliciesDeclaration, 'accepted-with-owner-approval',
     'developerProgramPoliciesDeclaration');
-  same(preUpload.playAppSigningTerms, 'pending-owner-approval', 'playAppSigningTerms');
-  same(preUpload.usExportLawsDeclaration, 'pending-owner-approval', 'usExportLawsDeclaration');
-  same(preUpload.playAppRecordCreated, false, 'playAppRecordCreated');
+  same(preUpload.playAppSigningTerms, 'accepted-with-owner-approval', 'playAppSigningTerms');
+  same(preUpload.usExportLawsDeclaration, 'accepted-with-owner-approval',
+    'usExportLawsDeclaration');
+  same(preUpload.playAppRecordCreated, true, 'playAppRecordCreated');
   same(preUpload.immediateArtifactReverification, false, 'immediateArtifactReverification');
 
   for (const [key, value] of Object.entries(object(handoff.postUploadChecks, 'postUploadChecks'))) {

@@ -792,14 +792,29 @@ void main(List<String> arguments) {
 
   final handoffCandidate = _map(googleInternalUploadHandoff['candidate'],
       'Google Play handoff candidate');
+  final handoffPreUploadGates = _map(
+    googleInternalUploadHandoff['preUploadGates'],
+    'Google Play handoff pre-upload gates',
+  );
   if (googleInternalUploadHandoff['status'] !=
-          'verified-artifact-ready-account-gates-pending' ||
+          'verified-artifact-ready-immediate-reverification-pending' ||
       googleInternalUploadHandoff['submissionAllowed'] != false ||
       googleInternalUploadHandoff['track'] != 'internal' ||
       handoffCandidate['applicationId'] != identity['applicationId'] ||
       handoffCandidate['versionName'] != identity['versionName'] ||
       handoffCandidate['buildNumber'] != currentBuild.toString() ||
-      handoffCandidate['apiBaseUrl'] != identity['apiBaseUrl']) {
+      handoffCandidate['apiBaseUrl'] != identity['apiBaseUrl'] ||
+      handoffPreUploadGates['personalIdentityVerification'] != 'verified' ||
+      handoffPreUploadGates['deviceVerification'] != 'verified' ||
+      handoffPreUploadGates['phoneVerification'] != 'verified' ||
+      handoffPreUploadGates['developerProgramPoliciesDeclaration'] !=
+          'accepted-with-owner-approval' ||
+      handoffPreUploadGates['playAppSigningTerms'] !=
+          'accepted-with-owner-approval' ||
+      handoffPreUploadGates['usExportLawsDeclaration'] !=
+          'accepted-with-owner-approval' ||
+      handoffPreUploadGates['playAppRecordCreated'] != true ||
+      handoffPreUploadGates['immediateArtifactReverification'] != false) {
     _fail(
         'Google Play internal upload handoff must remain bound and fail-closed.');
   }

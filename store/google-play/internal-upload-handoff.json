@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "verified-artifact-ready-account-gates-pending",
+  "status": "verified-artifact-ready-immediate-reverification-pending",
   "submissionAllowed": false,
   "track": "internal",
   "candidate": {
@@ -22,10 +22,10 @@
     "personalIdentityVerification": "verified",
     "deviceVerification": "verified",
     "phoneVerification": "verified",
-    "developerProgramPoliciesDeclaration": "pending-owner-approval",
-    "playAppSigningTerms": "pending-owner-approval",
-    "usExportLawsDeclaration": "pending-owner-approval",
-    "playAppRecordCreated": false,
+    "developerProgramPoliciesDeclaration": "accepted-with-owner-approval",
+    "playAppSigningTerms": "accepted-with-owner-approval",
+    "usExportLawsDeclaration": "accepted-with-owner-approval",
+    "playAppRecordCreated": true,
     "immediateArtifactReverification": false
   },
   "postUploadChecks": {

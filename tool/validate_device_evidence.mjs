@@ -1141,10 +1141,20 @@ function validateStoreLinksAndSigningProgressEvidence(root, ref, candidate, labe
     accountEvidence.googlePlay?.appRecordCreated === false &&
     accountEvidence.boundaries?.purchaseMade === true &&
     accountEvidence.boundaries?.agreementAccepted === true;
+  const playAccountReady =
+    accountEvidence.googlePlay?.developerAccountCreated === true &&
+    accountEvidence.googlePlay?.registrationFeePaid === true &&
+    accountEvidence.googlePlay?.identityVerified === true &&
+    accountEvidence.googlePlay?.deviceVerified === true &&
+    accountEvidence.googlePlay?.phoneVerified === true &&
+    accountEvidence.googlePlay?.appRecordCreated === true &&
+    accountEvidence.boundaries?.purchaseMade === true &&
+    accountEvidence.boundaries?.agreementAccepted === true;
   if (accountEvidence.kind !== 'store-platform-account-readiness-observation' ||
       accountEvidence.status !== 'setup-required' ||
       accountEvidence.apple?.membershipActive !== false ||
-      (!playBeforeSignup && !playIdentityPending && !playIdentityVerifiedChecksPending)) {
+      (!playBeforeSignup && !playIdentityPending && !playIdentityVerifiedChecksPending &&
+       !playAccountReady)) {
     fail(`${label}.platformAccountReadiness must preserve a truthful, sanitized setup-required Store account state.`);
   }
 
@@ -1166,8 +1176,8 @@ function validateStoreLinksAndSigningProgressEvidence(root, ref, candidate, labe
   }
 
   const counts = object(evidence.counts, `${label}.counts`);
-  if (counts.draftPublicUrls !== 3 || counts.openStoreGates !== 8) {
-    fail(`${label}.counts must preserve the three draft URLs and eight open Store gates.`);
+  if (counts.draftPublicUrls !== 3 || counts.openStoreGates !== 7) {
+    fail(`${label}.counts must preserve the three draft URLs and seven open Store gates.`);
   }
   const expectedBoundaries = {
     uploadedToStore: false,
