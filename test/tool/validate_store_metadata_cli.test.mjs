@@ -164,6 +164,36 @@ test('rejects closing the Play account gate before account setup and fee evidenc
   assert.match(result.stderr, /must match verified Play account readiness/);
 });
 
+test('rejects closing the Play account gate without device verification', () => {
+  const result = runWithManifests({
+    mutateManifest: (manifest) => {
+      manifest.blockingGates.googlePlayAccountAndFee = 'closed';
+    },
+    mutateAccountReadiness: (readiness) => {
+      readiness.googlePlay.status = 'ready';
+      readiness.googlePlay.appRecordCreated = true;
+      readiness.googlePlay.deviceVerification = 'pending';
+    },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /must match verified Play account readiness/);
+});
+
+test('rejects closing the Play account gate without phone verification', () => {
+  const result = runWithManifests({
+    mutateManifest: (manifest) => {
+      manifest.blockingGates.googlePlayAccountAndFee = 'closed';
+    },
+    mutateAccountReadiness: (readiness) => {
+      readiness.googlePlay.status = 'ready';
+      readiness.googlePlay.appRecordCreated = true;
+      readiness.googlePlay.phoneVerification = 'pending';
+    },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /must match verified Play account readiness/);
+});
+
 test('rejects closing the Apple account gate before membership and signing evidence', () => {
   const result = runWithManifests({
     mutateManifest: (manifest) => {

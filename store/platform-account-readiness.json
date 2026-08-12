@@ -7,6 +7,8 @@
     "developerAccountCreated": true,
     "registrationFeePaid": true,
     "identityVerification": "verified",
+    "deviceVerification": "verified",
+    "phoneVerification": "verified",
     "appRecordCreated": false,
     "evidenceRef": "docs/evidence/b11/store-platform-account-readiness-20260812.json"
   },

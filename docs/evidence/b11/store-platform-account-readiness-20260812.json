@@ -11,6 +11,8 @@
     "developerAccountCreated": true,
     "registrationFeePaid": true,
     "identityVerified": true,
+    "deviceVerified": true,
+    "phoneVerified": true,
     "appRecordCreated": false
   },
   "apple": {

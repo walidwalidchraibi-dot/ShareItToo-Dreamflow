@@ -422,6 +422,8 @@ void main(List<String> arguments) {
       'developerAccountCreated',
       'registrationFeePaid',
       'identityVerification',
+      'deviceVerification',
+      'phoneVerification',
       'appRecordCreated',
       'evidenceRef',
     },
@@ -502,6 +504,8 @@ void main(List<String> arguments) {
       googlePlayAccount['developerAccountCreated'] == true &&
       googlePlayAccount['registrationFeePaid'] == true &&
       googlePlayAccount['identityVerification'] == 'verified' &&
+      googlePlayAccount['deviceVerification'] == 'verified' &&
+      googlePlayAccount['phoneVerification'] == 'verified' &&
       googlePlayAccount['appRecordCreated'] == true;
   final appleReady = appleAccount['status'] == 'ready' &&
       appleAccount['developerAccountCreated'] == true &&
