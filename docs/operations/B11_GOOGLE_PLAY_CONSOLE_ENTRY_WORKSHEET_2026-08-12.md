@@ -178,9 +178,15 @@ Speichern jede dann sichtbare Definition erneut gegen den tatsächlichen Build
 prüfen; eine spätere Wallet-, Kredit-, Versicherungs- oder eigene
 Zahlungsfunktion würde eine neue Bewertung erzwingen.
 
-Den IARC-Inhaltsfragebogen nicht pauschal vorwegnehmen. Jede sichtbare Frage
-gegen die tatsächlichen Inserat-, Chat- und Nutzerinhaltsfunktionen beantworten
-und die erzeugte Einstufung vor dem Speichern prüfen.
+Der unvollständige IARC-Fragebogen wurde lesend geprüft. Sachlich vorbereitet
+ist **„Alle anderen App-Typen“**, weil Miete/Shopping der Hauptzweck ist und
+nicht soziale Vernetzung oder Gaming. Nutzerinhalte, private direkte
+Kommunikation und Fotoaustausch sind wahrheitsgemäß vorhanden; freie
+Dokumente, Video und Audio nicht. Schritt 1 verlangt jedoch eine geschützte
+Kontaktadresse, die an IARC und Bewertungsstellen weitergegeben werden kann,
+sowie die Zustimmung zu den IARC-Nutzungsbedingungen. Beides bleibt bis zur
+ausdrücklichen Eigentümerbestätigung unberührt. Nachweis:
+`docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json`.
 
 ## 6. Data Safety – technischer Entwurf
 

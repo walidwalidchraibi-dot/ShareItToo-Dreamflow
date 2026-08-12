@@ -33,6 +33,15 @@ test('rejects claiming Advertising ID use for the current binary', async (t) => 
     /product truth/);
 });
 
+test('rejects selecting a social-network category for the rental marketplace', async (t) => {
+  const data = await fixture((handoff) => {
+    handoff.tasks.contentRating.category = 'social-or-communication';
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+    /product truth/);
+});
+
 test('rejects claiming ads for the current binary', async (t) => {
   const data = await fixture((handoff) => { handoff.tasks.ads.proposedAnswer = true; });
   t.after(() => rm(data.root, { recursive: true, force: true }));

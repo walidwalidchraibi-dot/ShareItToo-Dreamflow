@@ -35,6 +35,15 @@ test('rejects claiming Advertising ID use for the exact candidate', async (t) =>
     /Advertising ID draft/);
 });
 
+test('rejects premature IARC terms acceptance', async (t) => {
+  const data = await fixture((evidence) => {
+    evidence.contentRatingDraft.iarcTermsAccepted = true;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
+    /IARC content-rating draft/);
+});
+
 test('rejects claiming OAuth account creation before provider activation', async (t) => {
   const data = await fixture((evidence) => {
     evidence.dataSafetyDraft.oauthPreparedButUnavailable = false;

@@ -68,7 +68,15 @@ export function validateGooglePlayAppContentHandoff({
       tasks.appAccess.credentialsInRepository !== false ||
       tasks.ads.status !== 'saved-current-build-no-ads' ||
       tasks.ads.proposedAnswer !== false ||
-      tasks.contentRating.status !== 'prepared-iarc-terms-acceptance-pending' ||
+      tasks.contentRating.status !==
+        'iarc-category-and-interaction-truth-prepared-contact-and-owner-terms-pending' ||
+      tasks.contentRating.category !== 'all-other-app-types' ||
+      tasks.contentRating.userGeneratedContent !== true ||
+      tasks.contentRating.directUserCommunication !== true ||
+      tasks.contentRating.protectedContactAddressEntered !== false ||
+      tasks.contentRating.iarcTermsAccepted !== false ||
+      tasks.contentRating.evidenceRef !==
+        'docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json' ||
       tasks.targetAudience.status !== 'saved-eighteen-and-over' ||
       tasks.targetAudience.minimumAge !== 18 ||
       tasks.targetAudience.designedForChildren !== false ||
@@ -122,7 +130,7 @@ export function validateGooglePlayAppContentHandoff({
   if (Object.keys(hardStops).length !== 7) {
     fail('App-content handoff must preserve all seven hard stops.');
   }
-  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 7 ||
+  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 8 ||
       handoff.evidenceRefs.some((ref) => typeof ref !== 'string' ||
         ref.includes('..') || !resolve(repositoryRoot, ref).startsWith(`${resolve(repositoryRoot)}/`))) {
     fail('App-content evidence references are invalid.');

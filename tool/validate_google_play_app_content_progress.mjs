@@ -105,6 +105,30 @@ export function validateGooglePlayAppContentProgress({
       JSON.stringify(advertisingEvidence).includes('@')) {
     fail('Play Advertising ID evidence is invalid or unsafe.');
   }
+  const contentRating = evidence.contentRatingDraft ?? {};
+  if (contentRating.questionnaireInProgress !== true ||
+      contentRating.category !== 'all-other-app-types' ||
+      contentRating.userGeneratedContent !== true ||
+      contentRating.directUserCommunication !== true ||
+      contentRating.protectedContactAddressEntered !== false ||
+      contentRating.iarcTermsAccepted !== false ||
+      contentRating.submitted !== false ||
+      contentRating.evidenceRef !==
+        'docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json') {
+    fail('Play IARC content-rating draft state is invalid.');
+  }
+  const iarcEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
+    contentRating.evidenceRef), 'utf8'));
+  if (iarcEvidence.kind !== 'google-play-iarc-content-rating-preparation' ||
+      iarcEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
+      iarcEvidence.preparedTruth?.category !== 'all-other-app-types' ||
+      iarcEvidence.preparedTruth?.userGeneratedContent !== true ||
+      iarcEvidence.preparedTruth?.directUserCommunication !== true ||
+      Object.values(iarcEvidence.blockingGates ?? {}).some((value) => value !== false) ||
+      Object.values(iarcEvidence.boundaries ?? {}).some((value) => value !== false) ||
+      JSON.stringify(iarcEvidence).includes('@')) {
+    fail('Play IARC content-rating evidence is invalid or unsafe.');
+  }
   return {
     status: evidence.status,
     totalTasks: evidence.counts.totalTasks,

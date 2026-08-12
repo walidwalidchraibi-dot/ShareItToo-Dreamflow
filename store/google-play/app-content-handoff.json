@@ -25,9 +25,13 @@
       "basis": "no-ad-sdk-no-advertising-tracking"
     },
     "contentRating": {
-      "status": "prepared-iarc-terms-acceptance-pending",
+      "status": "iarc-category-and-interaction-truth-prepared-contact-and-owner-terms-pending",
+      "category": "all-other-app-types",
       "userGeneratedContent": true,
-      "directUserCommunication": true
+      "directUserCommunication": true,
+      "protectedContactAddressEntered": false,
+      "iarcTermsAccepted": false,
+      "evidenceRef": "docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json"
     },
     "targetAudience": {
       "status": "saved-eighteen-and-over",
@@ -99,7 +103,8 @@
     "docs/evidence/b11/google-play-app-content-progress-20260812.json",
     "docs/evidence/b11/google-play-data-safety-step2-20260812.json",
     "docs/evidence/b11/google-play-data-safety-datatypes-20260812.json",
-    "docs/evidence/b11/google-play-advertising-id-declaration-20260812.json"
+    "docs/evidence/b11/google-play-advertising-id-declaration-20260812.json",
+    "docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json"
   ],
   "containsSecrets": false,
   "containsAccountAddresses": false,

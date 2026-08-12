@@ -26,7 +26,7 @@
   ],
   "openTasks": {
     "privacyPolicy": "public-privacy-page-not-release-ready",
-    "contentRating": "iarc-terms-owner-acceptance-pending",
+    "contentRating": "iarc-category-and-interaction-truth-prepared-contact-and-owner-terms-pending",
     "dataSafety": "step-two-observed-public-deletion-provider-classification-and-retention-pending",
     "storeListing": "graphics-upload-and-public-pages-pending",
     "advertisingId": "visible-console-declaration-answer-no-prepared-save-pending"
@@ -55,6 +55,16 @@
     "usesAdvertisingId": false,
     "answerSaved": false,
     "evidenceRef": "docs/evidence/b11/google-play-advertising-id-declaration-20260812.json"
+  },
+  "contentRatingDraft": {
+    "questionnaireInProgress": true,
+    "category": "all-other-app-types",
+    "userGeneratedContent": true,
+    "directUserCommunication": true,
+    "protectedContactAddressEntered": false,
+    "iarcTermsAccepted": false,
+    "submitted": false,
+    "evidenceRef": "docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json"
   },
   "boundaries": {
     "sentForReview": false,
