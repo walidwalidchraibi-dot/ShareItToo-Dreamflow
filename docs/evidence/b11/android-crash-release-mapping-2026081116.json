@@ -57,6 +57,15 @@
     "source": "exact-candidate-aot-inspection",
     "reason": "The bounded staging crash diagnostic was not compiled into this release candidate, so no event was generated from a different binary under the same build identity."
   },
+  "consoleObservation": {
+    "capturedAt": "2026-08-12T01:01:00Z",
+    "source": "firebase-console-read-only",
+    "observedLatestRelease": "1.0.0 (2026081104)",
+    "latestReleaseMatchesExactCandidate": false,
+    "issueCountsUsedAsCandidateProof": false,
+    "settingsChanged": false,
+    "eventGenerated": false
+  },
   "boundaries": {
     "uploadedToStore": false,
     "productionCrashGenerated": false,

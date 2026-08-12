@@ -234,8 +234,10 @@ Quellhashes und den erneuerten Binärscan an denselben Kandidaten. Die
 Original-R8-Zuordnung des exakten AAB wurde erfolgreich zu Crashlytics
 übertragen; die drei nativen Symbolgruppen sind vollständig im AAB und im
 privaten Release-Archiv gebunden und wurden als erzeugte Breakpad-Symbole
-erfolgreich zu Crashlytics übertragen. Die exakte Konsolenzuordnung und ein
-bereinigtes Testereignis sind für diesen Kandidaten
+erfolgreich zu Crashlytics übertragen. Die lesende Konsolenprüfung zeigt als
+neuesten Release weiterhin einen älteren Build; Ausgabezahlen wurden nicht als
+Kandidatennachweis verwendet. Die exakte Konsolenzuordnung und ein bereinigtes
+Testereignis sind für diesen Kandidaten
 noch nicht final nachgewiesen. Die bereinigten
 Kandidatennachweise liegen unter `docs/evidence/b11/`.
 

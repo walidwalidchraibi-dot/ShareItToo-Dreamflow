@@ -94,7 +94,9 @@
     "nativeSymbolUploadPending": false,
     "nativeSymbolUploadPassed": true,
     "controlledEventPending": true,
-    "consoleReleaseAssignmentPending": true
+    "consoleReleaseAssignmentPending": true,
+    "consoleLatestReleaseMatchesCandidate": false,
+    "consoleObservationReadOnly": true
   },
   "storeReadiness": {
     "status": "testing",

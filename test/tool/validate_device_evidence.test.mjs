@@ -798,6 +798,47 @@ test('accepts mapping upload while keeping packaged native-symbol upload pending
   assert.equal(validate({ root, deviceManifest }).state, 'testing');
 });
 
+test('accepts a read-only nonmatching Crashlytics release observation as pending evidence', () => {
+  const { root, deviceManifest, ref, evidence } = crashProgressFixture();
+  evidence.status = 'mapping-and-native-symbols-uploaded-controlled-event-pending';
+  evidence.verifications.controlledSanitizedCrashEvent = 'pending';
+  delete evidence.verifications.deviceDiagnosticUi;
+  evidence.boundaries.controlledStagingEventGenerated = false;
+  evidence.consoleObservation = {
+    capturedAt: '2026-08-12T01:01:00Z',
+    source: 'firebase-console-read-only',
+    observedLatestRelease: '1.0.0 (2026081104)',
+    latestReleaseMatchesExactCandidate: false,
+    issueCountsUsedAsCandidateProof: false,
+    settingsChanged: false,
+    eventGenerated: false,
+  };
+  writeEvidence(root, ref, evidence);
+  assert.equal(validate({ root, deviceManifest }).state, 'testing');
+});
+
+test('rejects a matching release mislabeled as a pending nonmatching observation', () => {
+  const { root, deviceManifest, ref, evidence } = crashProgressFixture();
+  evidence.status = 'mapping-and-native-symbols-uploaded-controlled-event-pending';
+  evidence.verifications.controlledSanitizedCrashEvent = 'pending';
+  delete evidence.verifications.deviceDiagnosticUi;
+  evidence.boundaries.controlledStagingEventGenerated = false;
+  evidence.consoleObservation = {
+    capturedAt: '2026-08-12T01:01:00Z',
+    source: 'firebase-console-read-only',
+    observedLatestRelease: `${deviceManifest.candidate.versionName} (${deviceManifest.candidate.buildNumber})`,
+    latestReleaseMatchesExactCandidate: false,
+    issueCountsUsedAsCandidateProof: false,
+    settingsChanged: false,
+    eventGenerated: false,
+  };
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root, deviceManifest }),
+    /must record only an honest read-only nonmatching Console observation while the exact release remains pending/,
+  );
+});
+
 test('rejects a controlled-event claim without the sanitized staging boundary', () => {
   const { root, deviceManifest, ref, evidence } = crashProgressFixture();
   evidence.boundaries.eventContainsAccountData = true;

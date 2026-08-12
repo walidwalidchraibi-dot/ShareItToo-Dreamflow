@@ -1031,6 +1031,22 @@ function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
          verifications.nativeSymbolUploadToCrashlytics !== 'pending')) {
       fail(`${label} must distinguish packaged native symbols from a completed Crashlytics native-symbol upload.`);
     }
+    if (evidence.consoleObservation !== undefined) {
+      const observation = object(evidence.consoleObservation, `${label}.consoleObservation`);
+      isoTimestamp(observation.capturedAt, `${label}.consoleObservation.capturedAt`, { required: true });
+      const observedLatestRelease = nonEmptyString(
+        observation.observedLatestRelease,
+        `${label}.consoleObservation.observedLatestRelease`,
+      );
+      if (observation.source !== 'firebase-console-read-only' ||
+          observation.latestReleaseMatchesExactCandidate !== false ||
+          observedLatestRelease === `${candidate.versionName} (${candidate.buildNumber})` ||
+          observation.issueCountsUsedAsCandidateProof !== false ||
+          observation.settingsChanged !== false ||
+          observation.eventGenerated !== false) {
+        fail(`${label} must record only an honest read-only nonmatching Console observation while the exact release remains pending.`);
+      }
+    }
   } else if (mappingUploadedConsoleObservedEventPending) {
     const expectedVersion = `${candidate.versionName} (${candidate.buildNumber})`;
     const observation = object(evidence.consoleObservation, `${label}.consoleObservation`);
