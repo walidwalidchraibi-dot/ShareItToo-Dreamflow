@@ -280,6 +280,13 @@ void main(List<String> arguments) {
 
   final closedTestingReadinessBinding =
       _string(googleFiles, 'closedTestingReadiness');
+  final productionAccessApplicationBinding =
+      _string(googleFiles, 'productionAccessApplication');
+  if (productionAccessApplicationBinding !=
+      'store/google-play/production-access-application.json') {
+    _fail(
+        'Google Play productionAccessApplication must bind the canonical draft.');
+  }
   final closedTestingReadinessFile = closedTestingReadinessPath == null
       ? File('${root.path}/$closedTestingReadinessBinding')
       : File(closedTestingReadinessPath).absolute;
@@ -648,6 +655,25 @@ void main(List<String> arguments) {
     File('${root.path}/$googleInternalUploadHandoffPath'),
     'Google Play internal upload handoff',
   );
+  final googleProductionAccessApplication = _readJsonMapFile(
+    File('${root.path}/$productionAccessApplicationBinding'),
+    'Google Play production-access application',
+  );
+  if (googleProductionAccessApplication['schemaVersion'] != 1 ||
+      googleProductionAccessApplication['applicationId'] !=
+          'com.shareittoo.app' ||
+      !const {
+        'draft-before-closed-test',
+        'ready-to-apply',
+        'submitted',
+        'production-access-approved',
+      }.contains(googleProductionAccessApplication['state'])) {
+    _fail('Google Play production-access application is invalid.');
+  }
+  if (jsonEncode(googleProductionAccessApplication).contains('@')) {
+    _fail(
+        'Google Play production-access application must not contain account addresses.');
+  }
   final appleName = _readText(root, _string(appleFiles, 'name'));
   final appleSubtitle = _readText(root, _string(appleFiles, 'subtitle'));
   final applePromo = _readText(root, _string(appleFiles, 'promotionalText'));

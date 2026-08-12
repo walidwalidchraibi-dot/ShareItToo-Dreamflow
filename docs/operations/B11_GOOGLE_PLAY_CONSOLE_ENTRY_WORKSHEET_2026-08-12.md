@@ -274,6 +274,34 @@ Bestätigung den bereinigten Nachweis und den readiness-Stand schreiben.
 Testerlisten, E-Mail-Adressen, Konto-IDs, Roh-Screenshots und Zugangsdaten sind
 ausdrücklich verboten.
 
+### 8.1 Antrag auf Produktionszugang – vorbereitete Wahrheitsgrenze
+
+Google fragt nach erfülltem Closed Test in drei Bereichen: Durchführung des
+geschlossenen Tests, App und Produktionsreife. Der maschinenlesbare Entwurf
+liegt in `store/google-play/production-access-application.json`.
+
+Bereits belegbar vorbereitet sind nur:
+
+- Zielgruppe: Erwachsene ab 18 Jahren, die physische Gegenstände lokal mieten
+  oder anbieten möchten;
+- Nutzen: lokale Suche, Inserate, Verfügbarkeit, Buchung, Chat sowie geführte
+  Übergabe und Rückgabe in einem gemeinsamen Ablauf.
+
+Erst nach dem realen Test dürfen ergänzt werden:
+
+- die tatsächlich in der Console gewählte Schwierigkeit der Testergewinnung;
+- reale, aggregierte Nutzung der Funktionen und Abweichungen vom erwarteten
+  Produktivverhalten;
+- tatsächliche Feedbackkanäle und zusammengefasste Feedbackthemen;
+- die vom Eigentümer gewählte Console-Spanne der erwarteten Installationen im
+  ersten Jahr;
+- wirklich umgesetzte Änderungen aus dem Test;
+- die belegte Entscheidung, warum der Kandidat produktionsreif ist.
+
+Bis diese Antworten belegt sind, bleibt der Entwurf
+`draft-before-closed-test`. Weder das Werkzeug noch der Entwurf senden einen
+Antrag ab.
+
 ## 9. Harte Stop-Regeln
 
 Kein „Send for review“, Rollout oder öffentliche Freigabe, solange mindestens

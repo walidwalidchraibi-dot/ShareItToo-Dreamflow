@@ -53,11 +53,22 @@ eine Vorschau. Schreiben ist erst mit der ausdrücklichen Option
 `--confirm-console-observation` möglich; die erzeugte Evidenz bleibt
 aggregiert und datensparsam.
 
+Die späteren Antworten für den Antrag auf Produktionszugang werden separat in
+`store/google-play/production-access-application.json` vorbereitet. Vor dem
+realen Closed Test enthält diese Datei nur die bereits belegbare Zielgruppe
+und den Produktnutzen. Tester-Rekrutierung, Nutzung, Feedback, daraus
+abgeleitete Änderungen, Installationsprognose und Freigabeentscheidung bleiben
+ausdrücklich offen. Der Validator akzeptiert `ready-to-apply` erst nach einem
+evidenzierten `eligible`-Stand und `production-access-approved` erst nach der
+beobachteten positiven Console-Entscheidung. Persönliche Tester- oder
+Kontodaten und erfundene Testergebnisse sind in jeder Phase verboten.
+
 Lokale Prüfung:
 
 ```text
 dart run tool/validate_store_metadata.dart
 node tool/validate_google_play_closed_testing.mjs
+node tool/validate_google_play_production_access_application.mjs
 node tool/validate_device_evidence.mjs
 ```
 

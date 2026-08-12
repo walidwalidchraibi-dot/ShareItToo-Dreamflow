@@ -29,6 +29,9 @@ test('technical regression checks the closed-testing contract and its tests', ()
     'node --check tool/prepare_google_play_closed_testing_observation.mjs',
     'node --test test/tool/prepare_google_play_closed_testing_observation.test.mjs',
     'node tool/validate_google_play_closed_testing.mjs',
+    'node --check tool/validate_google_play_production_access_application.mjs',
+    'node --test test/tool/validate_google_play_production_access_application.test.mjs',
+    'node tool/validate_google_play_production_access_application.mjs',
   ]) {
     assert.ok(source.includes(command), `technical regression is missing: ${command}`);
   }
@@ -41,6 +44,16 @@ test('release preflight syntax-checks the observation preparer', () => {
   );
 });
 
+test('release preflight requires an approved production-access application in Store mode', () => {
+  const source = read('scripts/release_candidate_preflight.sh');
+  assert.match(source, /node --check tool\/validate_google_play_production_access_application\.mjs/);
+  assert.match(source, /node tool\/validate_google_play_production_access_application\.mjs\n/);
+  assert.match(
+    source,
+    /if \[\[ "\$\{SIT_REQUIRE_STORE_SUBMISSION:-0\}" == "1" \]\]; then[\s\S]*node tool\/validate_google_play_production_access_application\.mjs --require-approved/,
+  );
+});
+
 test('Store metadata binds the dedicated closed-testing readiness document', () => {
   const manifest = JSON.parse(read('store/submission.json'));
   assert.equal(
@@ -48,6 +61,10 @@ test('Store metadata binds the dedicated closed-testing readiness document', () 
     'store/google-play/closed-testing-readiness.json',
   );
   assert.equal(manifest.blockingGates.googlePlayClosedTestingRequirement, 'open');
+  assert.equal(
+    manifest.metadataFiles.googlePlay.productionAccessApplication,
+    'store/google-play/production-access-application.json',
+  );
 });
 
 test('closed-test evidence cannot follow a linked file outside the evidence directory', () => {
