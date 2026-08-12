@@ -63,11 +63,19 @@ evidenzierten `eligible`-Stand und `production-access-approved` erst nach der
 beobachteten positiven Console-Entscheidung. Persönliche Tester- oder
 Kontodaten und erfundene Testergebnisse sind in jeder Phase verboten.
 
+`store/google-play/closed-testing-feedback-plan.json` bindet den späteren Test
+an neun echte Nutzungsszenarien und fünf Kontrollpunkte. Im Repository landen
+nur aggregierte Anzahlen, bereinigte Themen, umgesetzte Änderungen und ein
+bereinigter Evidenzverweis. Testerlisten und einzelne Rückmeldungen bleiben im
+geschützten Feedbackkanal. Vor dem realen Test erzwingt der Validator überall
+Null- beziehungsweise Leerwerte und verhindert damit erfundene Aktivität.
+
 Lokale Prüfung:
 
 ```text
 dart run tool/validate_store_metadata.dart
 node tool/validate_google_play_closed_testing.mjs
+node tool/validate_google_play_closed_testing_feedback.mjs
 node tool/validate_google_play_production_access_application.mjs
 node tool/validate_device_evidence.mjs
 ```

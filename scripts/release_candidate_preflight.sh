@@ -28,6 +28,7 @@ node --check tool/validate_b11_release_docs.mjs
 node --check tool/validate_google_play_internal_handoff.mjs
 node --check tool/validate_google_play_closed_testing.mjs
 node --check tool/prepare_google_play_closed_testing_observation.mjs
+node --check tool/validate_google_play_closed_testing_feedback.mjs
 node --check tool/validate_google_play_production_access_application.mjs
 node --check tool/validate_apple_testflight_handoff.mjs
 node --check tool/prepare_android_device_test.mjs
@@ -48,6 +49,7 @@ node tool/validate_privacy_disclosures.mjs
 node tool/validate_retention_deletion_readiness.mjs
 node tool/validate_store_review_access.mjs
 node tool/validate_google_play_closed_testing.mjs
+node tool/validate_google_play_closed_testing_feedback.mjs
 node tool/validate_google_play_production_access_application.mjs
 if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
   [[ "${SIT_RELEASE_CHANNEL:-internal}" == "internal" ]] || \

@@ -282,6 +282,13 @@ void main(List<String> arguments) {
       _string(googleFiles, 'closedTestingReadiness');
   final productionAccessApplicationBinding =
       _string(googleFiles, 'productionAccessApplication');
+  final closedTestingFeedbackPlanBinding =
+      _string(googleFiles, 'closedTestingFeedbackPlan');
+  if (closedTestingFeedbackPlanBinding !=
+      'store/google-play/closed-testing-feedback-plan.json') {
+    _fail(
+        'Google Play closedTestingFeedbackPlan must bind the canonical plan.');
+  }
   if (productionAccessApplicationBinding !=
       'store/google-play/production-access-application.json') {
     _fail(
@@ -659,6 +666,21 @@ void main(List<String> arguments) {
     File('${root.path}/$productionAccessApplicationBinding'),
     'Google Play production-access application',
   );
+  final googleClosedTestingFeedbackPlan = _readJsonMapFile(
+    File('${root.path}/$closedTestingFeedbackPlanBinding'),
+    'Google Play closed-testing feedback plan',
+  );
+  if (googleClosedTestingFeedbackPlan['schemaVersion'] != 1 ||
+      googleClosedTestingFeedbackPlan['applicationId'] !=
+          'com.shareittoo.app' ||
+      !const {'planned', 'collecting', 'summarized'}
+          .contains(googleClosedTestingFeedbackPlan['state'])) {
+    _fail('Google Play closed-testing feedback plan is invalid.');
+  }
+  if (jsonEncode(googleClosedTestingFeedbackPlan).contains('@')) {
+    _fail(
+        'Google Play closed-testing feedback plan must not contain account addresses.');
+  }
   if (googleProductionAccessApplication['schemaVersion'] != 1 ||
       googleProductionAccessApplication['applicationId'] !=
           'com.shareittoo.app' ||

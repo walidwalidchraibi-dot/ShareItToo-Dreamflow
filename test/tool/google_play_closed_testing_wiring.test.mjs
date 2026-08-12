@@ -29,6 +29,9 @@ test('technical regression checks the closed-testing contract and its tests', ()
     'node --check tool/prepare_google_play_closed_testing_observation.mjs',
     'node --test test/tool/prepare_google_play_closed_testing_observation.test.mjs',
     'node tool/validate_google_play_closed_testing.mjs',
+    'node --check tool/validate_google_play_closed_testing_feedback.mjs',
+    'node --test test/tool/validate_google_play_closed_testing_feedback.test.mjs',
+    'node tool/validate_google_play_closed_testing_feedback.mjs',
     'node --check tool/validate_google_play_production_access_application.mjs',
     'node --test test/tool/validate_google_play_production_access_application.test.mjs',
     'node tool/validate_google_play_production_access_application.mjs',
@@ -64,6 +67,10 @@ test('Store metadata binds the dedicated closed-testing readiness document', () 
   assert.equal(
     manifest.metadataFiles.googlePlay.productionAccessApplication,
     'store/google-play/production-access-application.json',
+  );
+  assert.equal(
+    manifest.metadataFiles.googlePlay.closedTestingFeedbackPlan,
+    'store/google-play/closed-testing-feedback-plan.json',
   );
 });
 

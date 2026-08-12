@@ -202,6 +202,19 @@ bereinigt beobachtet. Die Repository-Evidenz enthält nur Anzahl, Zeitfenster,
 Engagement- und Freigabestatus; die eigentliche Testerzuordnung bleibt
 ausschließlich im geschützten Google-Konto.
 
+Der maschinenlesbare Feedbackplan liegt in
+`store/google-play/closed-testing-feedback-plan.json`. Er verteilt die reale
+Nutzung auf Installation/Sitzung, Feed/Suche, Inserate, Buchung, Chat/Push,
+Offline-Wiederkehr, Übergabe/Rückgabe/Storno, Melden/Blockieren/Bewertung sowie
+Barrierefreiheit/Export/Löschung. Kontrollpunkte sind qualifizierender Start,
+frühe Nutzung, Halbzeit, späte Nutzung und Eligibility-Beobachtung.
+
+Einzelne Rückmeldungen und die Testerzuordnung bleiben im geschützten Kanal.
+In das Repository dürfen nur aggregierte Anzahlen, bereinigte Themen,
+tatsächlich umgesetzte Änderungen und ein bereinigter Evidenzverweis gelangen.
+Solange der Closed Test nicht real begonnen hat, erzwingt der Validator den
+Zustand `planned` mit vollständig leeren Ergebnisfeldern.
+
 ## 8. Review-Ablauf
 
 1. Reviewer-Anmeldedaten aus dem geschützten Store-Feld testen.

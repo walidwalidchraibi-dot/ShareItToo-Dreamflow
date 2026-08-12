@@ -69,6 +69,9 @@ node --check tool/prepare_google_play_closed_testing_observation.mjs
 node --test test/tool/prepare_google_play_closed_testing_observation.test.mjs
 node --test test/tool/google_play_closed_testing_wiring.test.mjs
 node tool/validate_google_play_closed_testing.mjs
+node --check tool/validate_google_play_closed_testing_feedback.mjs
+node --test test/tool/validate_google_play_closed_testing_feedback.test.mjs
+node tool/validate_google_play_closed_testing_feedback.mjs
 node --check tool/validate_google_play_production_access_application.mjs
 node --test test/tool/validate_google_play_production_access_application.test.mjs
 node tool/validate_google_play_production_access_application.mjs
