@@ -26,6 +26,7 @@ node --check tool/diagnose_store_review_disposable_deletion.mjs
 node --check tool/validate_store_review_access.mjs
 node --check tool/validate_b11_release_docs.mjs
 node --check tool/validate_google_play_internal_handoff.mjs
+node --check tool/validate_apple_testflight_handoff.mjs
 node --check tool/prepare_android_device_test.mjs
 node --check tool/diagnose_android_app_links.mjs
 node --check tool/diagnose_android_authenticated_session.mjs
@@ -56,6 +57,7 @@ else
   node tool/validate_b11_release_docs.mjs
 fi
 node tool/validate_firebase_release_config.mjs
+node tool/validate_apple_testflight_handoff.mjs
 if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
   node tool/validate_firebase_release_config.mjs --require-configured --platform all
   node tool/validate_device_evidence.mjs --require-passed

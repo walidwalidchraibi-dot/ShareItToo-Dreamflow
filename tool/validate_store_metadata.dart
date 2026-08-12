@@ -542,6 +542,12 @@ void main(List<String> arguments) {
   final appleKeywords = _readText(root, _string(appleFiles, 'keywords'));
   final appleReviewNotes =
       _readText(root, _string(appleFiles, 'reviewNotesTemplate'));
+  final appleTestFlightHandoff = _readJsonMapFile(
+    File('${root.path}/${_string(appleFiles, 'testFlightHandoff')}'),
+    'Apple TestFlight handoff',
+  );
+  final appleDeveloperWorksheet =
+      _readText(root, _string(appleFiles, 'developerWorksheet'));
   _validateGooglePlayIcon(root, _string(googleAssets, 'storeIcon'));
   _validateGooglePlayFeatureGraphic(
       root, _string(googleAssets, 'featureGraphic'));
@@ -643,6 +649,31 @@ void main(List<String> arguments) {
       !appleReviewNotes.toLowerCase().contains('no ads') ||
       !appleReviewNotes.toLowerCase().contains('no credentials')) {
     _fail('Apple review notes omit a required B11 truth boundary.');
+  }
+
+  final appleHandoffCandidate =
+      _map(appleTestFlightHandoff['candidate'], 'Apple TestFlight candidate');
+  if (appleTestFlightHandoff['status'] !=
+          'static-config-ready-tooling-and-account-gates-pending' ||
+      appleTestFlightHandoff['submissionAllowed'] != false ||
+      appleTestFlightHandoff['distribution'] != 'testflight-internal' ||
+      appleHandoffCandidate['bundleId'] != identity['bundleId'] ||
+      appleHandoffCandidate['versionName'] != identity['versionName'] ||
+      appleHandoffCandidate['buildNumber'] != currentBuild.toString() ||
+      appleHandoffCandidate['apiBaseUrl'] != identity['apiBaseUrl']) {
+    _fail('Apple TestFlight handoff must remain bound and fail-closed.');
+  }
+  for (final required in const [
+    'com.shareittoo.app',
+    '2026081116',
+    'TestFlight',
+    'Privacy Manifest',
+    'Export Compliance',
+    'keine Apple-Zahlung',
+  ]) {
+    if (!appleDeveloperWorksheet.contains(required)) {
+      _fail('Apple Developer worksheet is missing: $required');
+    }
   }
 
   final sourceDocuments = manifest['sourceDocuments'];

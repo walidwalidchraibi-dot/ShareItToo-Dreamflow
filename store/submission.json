@@ -70,7 +70,9 @@
       "promotionalText": "store/apple/de-DE/promotional_text.txt",
       "description": "store/apple/de-DE/description.txt",
       "keywords": "store/apple/de-DE/keywords.txt",
-      "reviewNotesTemplate": "store/apple/review_notes_template_en.txt"
+      "reviewNotesTemplate": "store/apple/review_notes_template_en.txt",
+      "testFlightHandoff": "store/apple/testflight-handoff.json",
+      "developerWorksheet": "docs/operations/B11_APPLE_DEVELOPER_AND_TESTFLIGHT_WORKSHEET_2026-08-12.md"
     }
   },
   "assets": {
@@ -83,6 +85,7 @@
   "sourceDocuments": [
     "docs/operations/B11_STORE_SUBMISSION_PACKET_2026-08-09.md",
     "docs/operations/B11_GOOGLE_PLAY_CONSOLE_ENTRY_WORKSHEET_2026-08-12.md",
+    "docs/operations/B11_APPLE_DEVELOPER_AND_TESTFLIGHT_WORKSHEET_2026-08-12.md",
     "docs/operations/B11_STORE_PRIVACY_DISCLOSURE_MATRIX_2026-08-09.md",
     "docs/operations/B11_STORE_SCREENSHOT_REVIEW_AND_TESTER_PLAN_2026-08-09.md",
     "docs/operations/B11_CLOSED_STORE_AND_DEVICE_TEST_RUNBOOK_2026-08-09.md",
