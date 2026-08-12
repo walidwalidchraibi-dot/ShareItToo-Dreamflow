@@ -612,6 +612,25 @@ void main(List<String> arguments) {
       _fail(
           'Store platform account evidence agreement history must match its observed account state.');
     }
+    if (ref == googlePlayAccount['evidenceRef']) {
+      final playEvidenceMatches =
+          evidenceGoogle['developerAccountCreated'] ==
+                  googlePlayAccount['developerAccountCreated'] &&
+              evidenceGoogle['registrationFeePaid'] ==
+                  googlePlayAccount['registrationFeePaid'] &&
+              evidenceGoogle['identityVerified'] ==
+                  (googlePlayAccount['identityVerification'] == 'verified') &&
+              evidenceGoogle['deviceVerified'] ==
+                  (googlePlayAccount['deviceVerification'] == 'verified') &&
+              evidenceGoogle['phoneVerified'] ==
+                  (googlePlayAccount['phoneVerification'] == 'verified') &&
+              evidenceGoogle['appRecordCreated'] ==
+                  googlePlayAccount['appRecordCreated'];
+      if (!playEvidenceMatches) {
+        _fail(
+            'Google Play account readiness must match its sanitized Console evidence.');
+      }
+    }
   }
 
   const expectedId = 'com.shareittoo.app';

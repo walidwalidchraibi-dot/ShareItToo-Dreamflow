@@ -253,3 +253,13 @@ test('rejects a purchase claim without a paid Store account state', () => {
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /purchase history must match/);
 });
+
+test('rejects Play verification state that is not bound to Console evidence', () => {
+  const result = runWithManifests({
+    mutateAccountReadiness: (readiness) => {
+      readiness.googlePlay.deviceVerification = 'pending';
+    },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /must match its sanitized Console evidence/);
+});
