@@ -64,7 +64,11 @@ else
   node tool/validate_b11_release_docs.mjs
 fi
 node tool/validate_firebase_release_config.mjs
-node tool/validate_apple_testflight_handoff.mjs
+if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  node tool/validate_apple_testflight_handoff.mjs --allow-android-candidate-rollover
+else
+  node tool/validate_apple_testflight_handoff.mjs
+fi
 if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
   node tool/validate_firebase_release_config.mjs --require-configured --platform all
   node tool/validate_device_evidence.mjs --require-passed

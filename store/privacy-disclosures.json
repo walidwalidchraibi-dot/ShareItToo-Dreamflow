@@ -25,6 +25,10 @@
       "sha256": "6b91b6265bc8882ed260c5ce8905e868da25281d2269d822528e2b75f19cbc47"
     },
     {
+      "path": "ios/Runner/PrivacyInfo.xcprivacy",
+      "sha256": "ede3f59c748f3b218f235e5240d8b37b0bab6ffbf3644a4819b7c4d45c44053e"
+    },
+    {
       "path": "lib/screens/legal_privacy_screen.dart",
       "sha256": "179fb1cc6a56b4c560e30e85075f6e595182b6b82b97a1ce61bf265a3140f0a9"
     },

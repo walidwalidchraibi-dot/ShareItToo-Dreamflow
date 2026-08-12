@@ -15,6 +15,7 @@ const firebasePlist = `<?xml version="1.0"?><plist><dict>
 </dict></plist>`;
 const configuredSources = {
   'ios/Runner/GoogleService-Info.plist': firebasePlist,
+  'pubspec.yaml': 'version: 1.0.0+2026081116\n',
 };
 
 test('accepts the truthful static Apple handoff with account and tooling gates open', () => {
@@ -27,7 +28,20 @@ test('accepts CI without copying the intentionally private Apple Firebase file i
     root,
     sourceOverrides: {
       'ios/Runner/GoogleService-Info.plist': null,
+      'pubspec.yaml': 'version: 1.0.0+2026081116\n',
     },
+  });
+  assert.deepEqual(result, { bundleId: 'com.shareittoo.app', buildNumber: '2026081116' });
+});
+
+test('accepts a newer Android-only build while the unchanged Apple handoff stays pending', () => {
+  const result = validateAppleTestFlightHandoff({
+    root,
+    sourceOverrides: {
+      ...configuredSources,
+      'pubspec.yaml': 'version: 1.0.0+2026081201\n',
+    },
+    allowAndroidCandidateRollover: true,
   });
   assert.deepEqual(result, { bundleId: 'com.shareittoo.app', buildNumber: '2026081116' });
 });
@@ -73,6 +87,7 @@ test('rejects Firebase analytics activation', () => {
   assert.throws(() => validateAppleTestFlightHandoff({
     root,
     sourceOverrides: {
+      ...configuredSources,
       'ios/Runner/GoogleService-Info.plist': firebasePlist.replace(
         '<key>IS_ANALYTICS_ENABLED</key><false/>',
         '<key>IS_ANALYTICS_ENABLED</key><true/>',

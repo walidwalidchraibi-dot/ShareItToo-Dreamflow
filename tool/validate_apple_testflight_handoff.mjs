@@ -55,7 +55,12 @@ function privacyDataType(xml, type) {
   return xml.includes(`<string>${type}</string>`);
 }
 
-export function validateAppleTestFlightHandoff({ root, handoffOverride, sourceOverrides = {} }) {
+export function validateAppleTestFlightHandoff({
+  root,
+  handoffOverride,
+  sourceOverrides = {},
+  allowAndroidCandidateRollover = false,
+}) {
   const handoff = object(handoffOverride ?? JSON.parse(source(
     root, 'store/apple/testflight-handoff.json', sourceOverrides)), 'handoff');
   noCredentials(handoff);
@@ -76,7 +81,16 @@ export function validateAppleTestFlightHandoff({ root, handoffOverride, sourceOv
   same(candidate.advertisingEnabled, false, 'candidate.advertisingEnabled');
 
   const pubspec = source(root, 'pubspec.yaml', sourceOverrides);
-  includes(pubspec, `version: ${candidate.versionName}+${candidate.buildNumber}`, 'pubspec.yaml');
+  if (allowAndroidCandidateRollover) {
+    const currentVersion = /^version:\s+([^+\s]+)\+(\d{10})$/mu.exec(pubspec);
+    if (currentVersion?.[1] !== candidate.versionName ||
+        Number(currentVersion?.[2]) <= Number(candidate.buildNumber) ||
+        handoff.submissionAllowed !== false) {
+      fail('Android-only rollover must keep the unchanged Apple handoff safely pending.');
+    }
+  } else {
+    includes(pubspec, `version: ${candidate.versionName}+${candidate.buildNumber}`, 'pubspec.yaml');
+  }
   const infoPlist = source(root, 'ios/Runner/Info.plist', sourceOverrides);
   for (const value of [
     '<string>ShareItToo</string>',
@@ -124,6 +138,7 @@ export function validateAppleTestFlightHandoff({ root, handoffOverride, sourceOv
     'NSPrivacyCollectedDataTypeDeviceID',
     'NSPrivacyCollectedDataTypeCrashData',
     'NSPrivacyCollectedDataTypeOtherDiagnosticData',
+    'NSPrivacyCollectedDataTypeProductInteraction',
   ]) {
     if (!privacyDataType(privacyManifest, type)) fail(`Runner privacy manifest is missing ${type}.`);
   }
@@ -195,8 +210,15 @@ export function validateAppleTestFlightHandoff({ root, handoffOverride, sourceOv
 }
 
 function runCli() {
+  const args = process.argv.slice(2);
+  if (args.some((arg) => arg !== '--allow-android-candidate-rollover')) {
+    fail(`Unknown argument: ${args.find((arg) => arg !== '--allow-android-candidate-rollover')}`);
+  }
   const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
-  const result = validateAppleTestFlightHandoff({ root });
+  const result = validateAppleTestFlightHandoff({
+    root,
+    allowAndroidCandidateRollover: args.includes('--allow-android-candidate-rollover'),
+  });
   process.stdout.write(`Apple TestFlight handoff: PASS (build ${result.buildNumber}, account/tooling pending)\n`);
 }
 

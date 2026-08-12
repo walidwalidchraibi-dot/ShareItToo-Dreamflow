@@ -9,6 +9,7 @@ const sourcePaths = [
   'pubspec.yaml',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
+  'ios/Runner/PrivacyInfo.xcprivacy',
   'lib/screens/legal_privacy_screen.dart',
   'lib/screens/privacy_info_screen.dart',
   'backend/src/privacy_export.js',
@@ -179,6 +180,17 @@ function assertSourceContracts({ root, sourceTexts }) {
     'remote-notification',
   ]) {
     if (!ios.includes(usage)) fail(`iOS disclosure inventory is missing ${usage}.`);
+  }
+
+  const applePrivacy = sourceText(root, sourceTexts, 'ios/Runner/PrivacyInfo.xcprivacy');
+  for (const marker of [
+    'NSPrivacyCollectedDataTypeDeviceID',
+    'NSPrivacyCollectedDataTypeCrashData',
+    'NSPrivacyCollectedDataTypeOtherDiagnosticData',
+    'NSPrivacyCollectedDataTypeProductInteraction',
+    'NSPrivacyCollectedDataTypePurposeAnalytics',
+  ]) {
+    if (!applePrivacy.includes(marker)) fail(`Apple privacy manifest is missing ${marker}.`);
   }
 
   const exportSource = sourceText(root, sourceTexts, 'backend/src/privacy_export.js');
