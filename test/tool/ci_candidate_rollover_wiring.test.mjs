@@ -12,4 +12,8 @@ test('CI validates the documented incomplete Android candidate as a safe rollove
     workflow,
     /name: Run regression script[\s\S]*?SIT_ALLOW_CANDIDATE_ROLLOVER: '1'[\s\S]*?bash scripts\/technical_regression_check\.sh/,
   );
+  assert.match(
+    workflow,
+    /name: Build a signed, commit-bound Android release candidate[\s\S]*?SIT_ALLOW_CANDIDATE_ROLLOVER: '1'[\s\S]*?bash scripts\/build_android_release_candidate\.sh/,
+  );
 });

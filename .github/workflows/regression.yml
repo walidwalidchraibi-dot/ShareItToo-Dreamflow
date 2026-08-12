@@ -125,6 +125,7 @@ jobs:
         env:
           SIT_API_BASE_URL: https://staging.shareittoo.com/api/v1
           SIT_RELEASE_CHANNEL: internal
+          SIT_ALLOW_CANDIDATE_ROLLOVER: '1'
         run: |
           keytool -genkeypair -v \
             -keystore "$RUNNER_TEMP/shareittoo-ci-upload.jks" \
