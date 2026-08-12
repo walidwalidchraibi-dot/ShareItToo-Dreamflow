@@ -41,6 +41,7 @@ test('signed binary privacy scan requires the backend Maps proxy and rejects dir
   assert.match(source, /googleMapsProxyEndpointPresent/);
   assert.match(source, /codeEndpointPresent: googleMapsEndpointPresent/);
   assert.match(source, /serverCredentialVerification: 'backend-deployment-gate'/);
+  assert.match(source, /googleMapsServerCredentialApiAndIpRestrictions/);
   assert.match(source, /https:\/\/api\.openai\.com\//);
 });
 

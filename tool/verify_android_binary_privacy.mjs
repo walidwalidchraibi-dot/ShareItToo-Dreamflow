@@ -316,7 +316,7 @@ const report = {
   disclosedSdks,
   externalServices,
   requiredConsoleVerifications: externalServices.googleMapsPlatform.detected
-    ? ['googleMapsClientCredentialApplicationAndApiRestrictions']
+    ? ['googleMapsServerCredentialApiAndIpRestrictions']
     : [],
   prohibitedSdkMarkersChecked: prohibitedSdkMarkers,
   forbiddenRuntimeMarkersChecked: forbiddenRuntimeMarkers,
