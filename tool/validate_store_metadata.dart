@@ -284,6 +284,11 @@ void main(List<String> arguments) {
       _string(googleFiles, 'productionAccessApplication');
   final closedTestingFeedbackPlanBinding =
       _string(googleFiles, 'closedTestingFeedbackPlan');
+  final appContentHandoffBinding = _string(googleFiles, 'appContentHandoff');
+  if (appContentHandoffBinding !=
+      'store/google-play/app-content-handoff.json') {
+    _fail('Google Play appContentHandoff must bind the canonical handoff.');
+  }
   if (closedTestingFeedbackPlanBinding !=
       'store/google-play/closed-testing-feedback-plan.json') {
     _fail(

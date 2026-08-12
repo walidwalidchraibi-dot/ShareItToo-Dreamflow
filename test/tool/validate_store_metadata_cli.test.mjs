@@ -134,6 +134,16 @@ test('rejects a missing Google Play internal upload handoff binding', () => {
   assert.match(result.stderr, /internalUploadHandoff must be a non-empty string/);
 });
 
+test('rejects a missing Google Play app-content handoff binding', () => {
+  const result = runWithManifests({
+    mutateManifest: (manifest) => {
+      delete manifest.metadataFiles.googlePlay.appContentHandoff;
+    },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /appContentHandoff must be a non-empty string/);
+});
+
 test('rejects a missing Apple TestFlight handoff binding', () => {
   const result = runWithManifests({
     mutateManifest: (manifest) => {

@@ -1,0 +1,108 @@
+#!/usr/bin/env node
+
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+function fail(message) {
+  throw new Error(message);
+}
+
+function object(value, label) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    fail(`${label} must be an object.`);
+  }
+  return value;
+}
+
+function exactKeys(value, expected, label) {
+  const keys = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  if (JSON.stringify(keys) !== JSON.stringify(wanted)) {
+    fail(`${label} must contain exactly the approved keys.`);
+  }
+}
+
+export function validateGooglePlayAppContentHandoff({
+  repositoryRoot,
+  handoffPath = resolve(repositoryRoot, 'store/google-play/app-content-handoff.json'),
+}) {
+  const handoff = object(JSON.parse(readFileSync(handoffPath, 'utf8')), 'handoff');
+  if (handoff.schemaVersion !== 1 ||
+      handoff.status !== 'prepared-owner-approval-and-public-pages-pending' ||
+      handoff.submissionAllowed !== false) {
+    fail('App-content handoff must remain prepared and fail-closed.');
+  }
+  const encoded = JSON.stringify(handoff);
+  if (encoded.includes('@') || handoff.containsSecrets !== false ||
+      handoff.containsAccountAddresses !== false ||
+      handoff.containsReviewCredentials !== false) {
+    fail('App-content handoff must remain sanitized.');
+  }
+
+  const candidate = object(handoff.candidate, 'candidate');
+  if (candidate.applicationId !== 'com.shareittoo.app' ||
+      candidate.versionName !== '1.0.0' || candidate.buildNumber !== '2026081116' ||
+      candidate.releaseChannel !== 'internal' ||
+      candidate.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1') {
+    fail('App-content handoff is not bound to the internal Staging candidate.');
+  }
+
+  const tasks = object(handoff.tasks, 'tasks');
+  const taskNames = [
+    'privacyPolicy', 'appAccess', 'ads', 'contentRating', 'targetAudience',
+    'dataSafety', 'governmentApps', 'financialFeatures', 'health',
+    'categoryAndContact', 'storeListing',
+  ];
+  exactKeys(tasks, taskNames, 'tasks');
+  if (tasks.privacyPolicy.status !== 'blocked-public-route-approval' ||
+      tasks.privacyPolicy.proposedUrl !== 'https://shareittoo.com/privacy' ||
+      tasks.appAccess.loginRequired !== true ||
+      tasks.appAccess.credentialsInRepository !== false ||
+      tasks.ads.proposedAnswer !== false ||
+      tasks.targetAudience.minimumAge !== 18 ||
+      tasks.targetAudience.designedForChildren !== false ||
+      tasks.dataSafety.collectsOrTransmitsUserData !== true ||
+      tasks.dataSafety.sellsData !== false ||
+      tasks.dataSafety.advertisingTracking !== false ||
+      tasks.governmentApps.proposedAnswer !== false ||
+      tasks.financialFeatures.proposedAnswer !== 'no-financial-features' ||
+      tasks.financialFeatures.physicalGoodsRental !== true ||
+      tasks.financialFeatures.digitalGoodsBilling !== false ||
+      tasks.health.proposedAnswer !== false ||
+      tasks.categoryAndContact.category !== 'Shopping' ||
+      tasks.storeListing.copyAndGraphicsPrepared !== true ||
+      tasks.storeListing.phoneScreenshotsValidated !== false) {
+    fail('One or more prepared Play answers no longer match the bounded product truth.');
+  }
+
+  const hardStops = object(handoff.hardStops, 'hardStops');
+  for (const [key, value] of Object.entries(hardStops)) {
+    if (value !== true) fail(`hardStops.${key} must remain enabled.`);
+  }
+  if (Object.keys(hardStops).length !== 7) {
+    fail('App-content handoff must preserve all seven hard stops.');
+  }
+  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 3 ||
+      handoff.evidenceRefs.some((ref) => typeof ref !== 'string' ||
+        ref.includes('..') || !resolve(repositoryRoot, ref).startsWith(`${resolve(repositoryRoot)}/`))) {
+    fail('App-content evidence references are invalid.');
+  }
+  for (const ref of handoff.evidenceRefs) readFileSync(resolve(repositoryRoot, ref));
+  return { taskCount: taskNames.length, buildNumber: candidate.buildNumber };
+}
+
+function runCli() {
+  const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
+  const result = validateGooglePlayAppContentHandoff({ repositoryRoot });
+  process.stdout.write(`Google Play app-content handoff: PASS (${result.taskCount} tasks, build ${result.buildNumber})\n`);
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  try {
+    runCli();
+  } catch (error) {
+    process.stderr.write(`${error?.message ?? 'Google Play app-content handoff failed.'}\n`);
+    process.exitCode = 1;
+  }
+}

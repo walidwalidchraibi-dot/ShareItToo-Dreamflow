@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "status": "prepared-owner-approval-and-public-pages-pending",
+  "submissionAllowed": false,
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081116",
+    "releaseChannel": "internal",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
+  },
+  "tasks": {
+    "privacyPolicy": {
+      "status": "blocked-public-route-approval",
+      "proposedUrl": "https://shareittoo.com/privacy"
+    },
+    "appAccess": {
+      "status": "prepared-protected-console-entry-pending",
+      "loginRequired": true,
+      "credentialsInRepository": false
+    },
+    "ads": {
+      "status": "prepared-owner-approval-pending",
+      "proposedAnswer": false,
+      "basis": "no-ad-sdk-no-advertising-tracking"
+    },
+    "contentRating": {
+      "status": "visible-questionnaire-required",
+      "userGeneratedContent": true,
+      "directUserCommunication": true
+    },
+    "targetAudience": {
+      "status": "prepared-owner-approval-pending",
+      "minimumAge": 18,
+      "designedForChildren": false
+    },
+    "dataSafety": {
+      "status": "provider-classification-and-public-deletion-route-pending",
+      "collectsOrTransmitsUserData": true,
+      "sellsData": false,
+      "advertisingTracking": false
+    },
+    "governmentApps": {
+      "status": "prepared-owner-approval-pending",
+      "proposedAnswer": false
+    },
+    "financialFeatures": {
+      "status": "prepared-owner-approval-pending",
+      "proposedAnswer": "no-financial-features",
+      "physicalGoodsRental": true,
+      "digitalGoodsBilling": false
+    },
+    "health": {
+      "status": "prepared-owner-approval-pending",
+      "proposedAnswer": false
+    },
+    "categoryAndContact": {
+      "status": "contact-protected-console-entry-pending",
+      "category": "Shopping",
+      "website": "https://shareittoo.com/"
+    },
+    "storeListing": {
+      "status": "phone-screenshots-and-public-pages-pending",
+      "copyAndGraphicsPrepared": true,
+      "phoneScreenshotsValidated": false
+    }
+  },
+  "hardStops": {
+    "saveLegalDeclarationsWithoutOwnerApproval": true,
+    "storeCredentialsOutsideProtectedFields": true,
+    "submitDataSafetyBeforeProviderClassification": true,
+    "useUnapprovedPublicPages": true,
+    "sendForReview": true,
+    "productionRelease": true,
+    "publicRollout": true
+  },
+  "evidenceRefs": [
+    "docs/operations/B11_GOOGLE_PLAY_CONSOLE_ENTRY_WORKSHEET_2026-08-12.md",
+    "store/privacy-disclosures.json",
+    "docs/evidence/b11/android-release-permissions-2026081116.json"
+  ],
+  "containsSecrets": false,
+  "containsAccountAddresses": false,
+  "containsReviewCredentials": false
+}

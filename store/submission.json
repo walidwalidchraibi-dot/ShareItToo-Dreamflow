@@ -64,6 +64,7 @@
       "screenshotAltTexts": "store/google-play/de-DE/screenshot_alt_texts.json",
       "consoleEntryWorksheet": "docs/operations/B11_GOOGLE_PLAY_CONSOLE_ENTRY_WORKSHEET_2026-08-12.md",
       "internalUploadHandoff": "store/google-play/internal-upload-handoff.json",
+      "appContentHandoff": "store/google-play/app-content-handoff.json",
       "closedTestingReadiness": "store/google-play/closed-testing-readiness.json",
       "closedTestingFeedbackPlan": "store/google-play/closed-testing-feedback-plan.json",
       "productionAccessApplication": "store/google-play/production-access-application.json"
