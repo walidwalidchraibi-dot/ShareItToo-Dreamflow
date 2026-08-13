@@ -13,7 +13,7 @@ export function validateGooglePlayAppContentProgress({
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'google-play-app-content-progress' ||
-      evidence.status !== 'seven-of-twelve-saved-five-open') {
+      evidence.status !== 'eight-of-twelve-saved-four-open') {
     fail('Play app-content progress state is invalid.');
   }
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
@@ -23,19 +23,19 @@ export function validateGooglePlayAppContentProgress({
       evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1') {
     fail('Play app-content progress is not bound to the internal candidate.');
   }
-  if (evidence.counts?.totalTasks !== 12 || evidence.counts?.savedTasks !== 7 ||
-      evidence.counts?.openTasks !== 5 || !Array.isArray(evidence.savedTasks) ||
+  if (evidence.counts?.totalTasks !== 12 || evidence.counts?.savedTasks !== 8 ||
+      evidence.counts?.openTasks !== 4 || !Array.isArray(evidence.savedTasks) ||
       evidence.savedTasks.join(',') !==
-        'appAccess,ads,targetAudience,governmentApps,financialFeatures,health,categoryAndContact') {
+        'appAccess,ads,targetAudience,governmentApps,financialFeatures,health,categoryAndContact,advertisingId') {
     fail('Play app-content task counts or saved tasks are incomplete.');
   }
-  const expectedOpen = ['privacyPolicy', 'contentRating', 'dataSafety', 'storeListing', 'advertisingId'];
+  const expectedOpen = ['privacyPolicy', 'contentRating', 'dataSafety', 'storeListing'];
   if (Object.keys(evidence.openTasks ?? {}).join(',') !== expectedOpen.join(',') ||
       Object.values(evidence.openTasks).some((value) => typeof value !== 'string' || !value.includes('pending') && !value.includes('not-release-ready'))) {
     fail('Play app-content open tasks are not fail-closed.');
   }
   if (evidence.storeDraft?.germanCopySaved !== true ||
-      evidence.storeDraft?.phoneScreenshotsValidatedLocal !== 4 ||
+      evidence.storeDraft?.phoneScreenshotsValidatedLocal !== 0 ||
       evidence.storeDraft?.phoneScreenshotsUploaded !== false ||
       evidence.storeDraft?.appBundleUploaded !== false) {
     fail('Play store draft state is invalid.');
@@ -89,7 +89,7 @@ export function validateGooglePlayAppContentProgress({
   }
   const advertisingId = evidence.advertisingIdDraft ?? {};
   if (advertisingId.usesAdvertisingId !== false ||
-      advertisingId.answerSaved !== false ||
+      advertisingId.answerSaved !== true ||
       advertisingId.evidenceRef !==
         'docs/evidence/b11/google-play-advertising-id-declaration-20260812.json') {
     fail('Play Advertising ID draft state is invalid.');
@@ -97,11 +97,15 @@ export function validateGooglePlayAppContentProgress({
   const advertisingEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
     advertisingId.evidenceRef), 'utf8'));
   if (advertisingEvidence.kind !==
-        'google-play-advertising-id-declaration-preparation' ||
+        'google-play-advertising-id-declaration-observation' ||
+      advertisingEvidence.status !== 'console-declaration-saved-answer-no' ||
       advertisingEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
       advertisingEvidence.preparedAnswer !== false ||
       Object.values(advertisingEvidence.basis ?? {}).some((value) => value !== false) ||
-      Object.values(advertisingEvidence.boundaries ?? {}).some((value) => value !== false) ||
+      advertisingEvidence.boundaries?.consoleAnswerChanged !== true ||
+      advertisingEvidence.boundaries?.draftSaved !== true ||
+      Object.entries(advertisingEvidence.boundaries ?? {}).some(([key, value]) =>
+        !['consoleAnswerChanged', 'draftSaved'].includes(key) && value !== false) ||
       JSON.stringify(advertisingEvidence).includes('@')) {
     fail('Play Advertising ID evidence is invalid or unsafe.');
   }

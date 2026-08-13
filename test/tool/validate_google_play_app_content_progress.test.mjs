@@ -19,10 +19,10 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts seven saved and five fail-closed Play tasks', () => {
+test('accepts eight saved and four fail-closed Play work areas', () => {
   assert.deepEqual(validateGooglePlayAppContentProgress({ repositoryRoot }), {
-    status: 'seven-of-twelve-saved-five-open', totalTasks: 12,
-    savedTasks: 7, openTasks: 5,
+    status: 'eight-of-twelve-saved-four-open', totalTasks: 12,
+    savedTasks: 8, openTasks: 4,
   });
 });
 
