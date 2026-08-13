@@ -385,6 +385,7 @@ function appLinkFixture() {
       packageIdentityVerified: true,
       versionName: deviceManifest.candidate.versionName,
       buildNumber: deviceManifest.candidate.buildNumber,
+      delivery: 'direct-apk',
       apkSha256: deviceManifest.candidate.android.apkSha256,
     },
     device: {
@@ -411,6 +412,25 @@ function appLinkFixture() {
       lockCodeUsed: false,
     },
   });
+  return fixture;
+}
+
+function playSyntheticRoleBookingFixture() {
+  const fixture = syntheticRoleBookingFixture();
+  const diagnostic = fixture.deviceManifest.candidate.android.syntheticRoleBooking;
+  diagnostic.installMethod = 'google-play-split';
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, diagnostic.evidenceRef), 'utf8'));
+  evidence.installed = {
+    packageIdentityVerified: true,
+    versionName: fixture.deviceManifest.candidate.versionName,
+    buildNumber: fixture.deviceManifest.candidate.buildNumber,
+    delivery: 'google-play-split',
+    installerPackageName: 'com.android.vending',
+    splitCount: 4,
+  };
+  evidence.boundaries.directDiagnosticOnly = false;
+  evidence.boundaries.storeInstallationGateSatisfied = true;
+  writeEvidence(fixture.root, diagnostic.evidenceRef, evidence);
   return fixture;
 }
 
@@ -766,6 +786,13 @@ test('Android FCM progress evidence must match the exact candidate APK', () => {
     firebaseConfigured: deviceManifest.candidate.firebaseConfigured,
     paymentMode: deviceManifest.candidate.paymentMode,
     stripeLivemode: deviceManifest.candidate.stripeLivemode,
+    apkSha256: deviceManifest.candidate.android.apkSha256,
+  };
+  previousManifest.installed = {
+    applicationId: deviceManifest.candidate.applicationId,
+    versionName: deviceManifest.candidate.versionName,
+    buildNumber: deviceManifest.candidate.buildNumber,
+    delivery: 'direct-apk',
     apkSha256: deviceManifest.candidate.android.apkSha256,
   };
   writeEvidence(root, ref, previousManifest);
@@ -1229,6 +1256,13 @@ test('accepts exact, bounded synthetic-role booking evidence without closing the
   assert.equal(summary.matrixPassed, 0);
 });
 
+test('accepts the exact Google Play split for bounded synthetic-role booking evidence', () => {
+  const fixture = playSyntheticRoleBookingFixture();
+  const summary = validate(fixture);
+  assert.equal(summary.state, 'testing');
+  assert.equal(summary.matrixPassed, 0);
+});
+
 test('synthetic-role booking evidence rejects a different candidate APK', () => {
   const fixture = syntheticRoleBookingFixture();
   const ref = fixture.deviceManifest.candidate.android.syntheticRoleBooking.evidenceRef;
@@ -1237,7 +1271,7 @@ test('synthetic-role booking evidence rejects a different candidate APK', () => 
   writeEvidence(fixture.root, ref, evidence);
   assert.throws(
     () => validate(fixture),
-    /must prove the exact installed candidate APK and package identity/,
+    /must prove the exact directly installed candidate APK/,
   );
 });
 
@@ -1251,7 +1285,7 @@ test('synthetic-role booking evidence cannot claim payment, hotspot, or the full
   writeEvidence(fixture.root, ref, evidence);
   assert.throws(
     () => validate(fixture),
-    /must keep store, matrix, hotspot, link, push, TalkBack, iOS, payment, identity, and lock-code gates open/,
+    /must truthfully record installation provenance while keeping matrix, hotspot, link, push, TalkBack, iOS, payment, identity, and lock-code gates open/,
   );
 });
 

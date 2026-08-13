@@ -112,6 +112,9 @@ fi
 
 node --check tool/prepare_android_device_test.mjs
 node --test test/tool/prepare_android_device_test.test.mjs
+node --check tool/diagnose_android_controlled_fcm.mjs
+node --test test/tool/diagnose_android_controlled_fcm.test.mjs
+node --check tool/restore_android_synthetic_session.mjs
 
 node --check tool/diagnose_android_app_links.mjs
 node --test test/tool/diagnose_android_app_links.test.mjs
@@ -154,6 +157,8 @@ node --check tool/run_staging_synthetic_booking.mjs
 node --test test/tool/run_staging_synthetic_booking.test.mjs
 node --check tool/run_isolated_android_role_booking_diagnostic.mjs
 node --test test/tool/run_isolated_android_role_booking_diagnostic.test.mjs
+node --check tool/diagnose_android_synthetic_role_booking.mjs
+node --test test/tool/diagnose_android_synthetic_role_booking.test.mjs
 
 node --check tool/validate_firebase_release_config.mjs
 node --test test/tool/validate_firebase_release_config.test.mjs

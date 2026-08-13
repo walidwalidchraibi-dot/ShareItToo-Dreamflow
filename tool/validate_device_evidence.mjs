@@ -430,8 +430,9 @@ function validateAndroidAuthenticatedSession(root, diagnostic, candidate) {
 
 function validateAndroidSyntheticRoleBooking(root, diagnostic, candidate) {
   const label = 'candidate.android.syntheticRoleBooking';
-  if (diagnostic.status !== 'passed' || diagnostic.installMethod !== 'direct-apk-diagnostic') {
-    fail(`${label} must record a passed direct-apk-diagnostic.`);
+  if (diagnostic.status !== 'passed'
+      || !['direct-apk-diagnostic', 'google-play-split'].includes(diagnostic.installMethod)) {
+    fail(`${label} must record a passed supported Android installation diagnostic.`);
   }
   isoTimestamp(diagnostic.capturedAt, `${label}.capturedAt`, { required: true });
   for (const key of ['manufacturer', 'deviceModel', 'osVersion']) {
@@ -455,9 +456,23 @@ function validateAndroidSyntheticRoleBooking(root, diagnostic, candidate) {
   const expectedAndroid = object(candidate.android, 'candidate.android');
   if (installed.packageIdentityVerified !== true ||
       installed.versionName !== candidate.versionName ||
-      installed.buildNumber !== candidate.buildNumber ||
-      installed.apkSha256 !== expectedAndroid.apkSha256) {
-    fail(`${label}.evidence must prove the exact installed candidate APK and package identity.`);
+      installed.buildNumber !== candidate.buildNumber) {
+    fail(`${label}.evidence must prove the exact installed candidate version and package identity.`);
+  }
+  const directInstall = installed.delivery === undefined || installed.delivery === 'direct-apk';
+  const playInstall = installed.delivery === 'google-play-split';
+  if (directInstall) {
+    if (installed.apkSha256 !== expectedAndroid.apkSha256
+        || diagnostic.installMethod !== 'direct-apk-diagnostic') {
+      fail(`${label}.evidence must prove the exact directly installed candidate APK.`);
+    }
+  } else if (!playInstall
+      || diagnostic.installMethod !== 'google-play-split'
+      || installed.installerPackageName !== 'com.android.vending'
+      || !Number.isInteger(installed.splitCount)
+      || installed.splitCount < 2
+      || installed.apkSha256 !== undefined) {
+    fail(`${label}.evidence must prove an exact-version Google Play split installation.`);
   }
   const device = object(evidence.device, `${label}.evidence.device`);
   if (device.platform !== 'android' || device.physical !== true ||
@@ -512,8 +527,8 @@ function validateAndroidSyntheticRoleBooking(root, diagnostic, candidate) {
   }
 
   const boundaries = object(evidence.boundaries, `${label}.evidence.boundaries`);
-  if (boundaries.directDiagnosticOnly !== true ||
-      boundaries.storeInstallationGateSatisfied !== false ||
+  if (boundaries.directDiagnosticOnly !== directInstall ||
+      boundaries.storeInstallationGateSatisfied !== playInstall ||
       boundaries.fullDeviceMatrixPassed !== false ||
       boundaries.wifiOnlyDiagnostic !== true ||
       boundaries.hotspotPassed !== false ||
@@ -526,7 +541,7 @@ function validateAndroidSyntheticRoleBooking(root, diagnostic, candidate) {
       boundaries.lockCodeUsed !== false ||
       boundaries.accountIdentityRecorded !== false ||
       boundaries.containsPersonalAccountData !== false) {
-    fail(`${label}.evidence must keep store, matrix, hotspot, link, push, TalkBack, iOS, payment, identity, and lock-code gates open.`);
+    fail(`${label}.evidence must truthfully record installation provenance while keeping matrix, hotspot, link, push, TalkBack, iOS, payment, identity, and lock-code gates open.`);
   }
 }
 
@@ -837,6 +852,24 @@ function validateAndroidControlledFcmProgressEvidence(root, ref, candidate, labe
   for (const key of ['manufacturer', 'model', 'osVersion']) {
     nonEmptyString(device[key], `${label}.device.${key}`);
   }
+  const installed = object(evidence.installed, `${label}.installed`);
+  if (installed.applicationId !== candidate.applicationId
+      || installed.versionName !== candidate.versionName
+      || installed.buildNumber !== candidate.buildNumber
+      || !['direct-apk', 'google-play-split'].includes(installed.delivery)) {
+    fail(`${label}.installed must match the exact installed Android candidate.`);
+  }
+  if (installed.delivery === 'direct-apk') {
+    if (installed.apkSha256 !== expectedAndroid.apkSha256
+        || installed.installerPackageName !== undefined
+        || installed.splitCount !== undefined) {
+      fail(`${label}.installed must prove the exact direct APK without a Store installer claim.`);
+    }
+  } else if (installed.installerPackageName !== 'com.android.vending'
+      || !Number.isInteger(installed.splitCount) || installed.splitCount < 2
+      || installed.apkSha256 !== undefined) {
+    fail(`${label}.installed must prove a Google Play delivered split installation.`);
+  }
   const tests = object(evidence.tests, `${label}.tests`);
   if (tests.foregroundPushDelivery?.status !== 'passed'
       || tests.foregroundPushDelivery?.result !== 'foreground-fcm-banner-visible'
@@ -859,8 +892,8 @@ function validateAndroidControlledFcmProgressEvidence(root, ref, candidate, labe
     }
   }
   const expectedBoundaries = {
-    directDiagnosticOnly: true,
-    storeInstallationGateSatisfied: false,
+    directDiagnosticOnly: installed.delivery === 'direct-apk',
+    storeInstallationGateSatisfied: installed.delivery === 'google-play-split',
     fullFcmMatrixPassed: true,
     productionPushSent: false,
     paymentEndpointCalled: false,

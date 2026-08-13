@@ -51,23 +51,17 @@ function parseInstalledPackage(output) {
   return { versionName, buildNumber };
 }
 
+function sha256Bytes(value) {
+  return createHash('sha256').update(value).digest('hex');
+}
+
 function verifyInstalledCandidate(commandRunner, adbPath, device, candidate, archive) {
   const packagePaths = adb(commandRunner, adbPath, device, ['shell', 'pm', 'path', applicationId])
     .split(/\r?\n/)
     .map((line) => line.replace(/^package:/, '').trim())
     .filter(Boolean);
-  if (packagePaths.length !== 1 || !packagePaths[0].startsWith('/data/app/')) {
+  if (packagePaths.length === 0 || packagePaths.some((value) => !value.startsWith('/data/app/'))) {
     fail('Installed ShareItToo package path is missing or ambiguous.');
-  }
-  const installedSha256 = createHash('sha256').update(adb(
-    commandRunner,
-    adbPath,
-    device,
-    ['exec-out', 'cat', packagePaths[0]],
-    { binary: true },
-  )).digest('hex');
-  if (installedSha256 !== archive.apkSha256 || installedSha256 !== candidate.android.apkSha256) {
-    fail('Installed ShareItToo APK does not match the verified candidate.');
   }
   const installed = parseInstalledPackage(
     adb(commandRunner, adbPath, device, ['shell', 'dumpsys', 'package', applicationId]),
@@ -75,7 +69,40 @@ function verifyInstalledCandidate(commandRunner, adbPath, device, candidate, arc
   if (installed.versionName !== candidate.versionName || installed.buildNumber !== candidate.buildNumber) {
     fail('Installed ShareItToo version does not match the verified candidate.');
   }
-  return { ...installed, apkSha256: installedSha256 };
+
+  if (packagePaths.length === 1) {
+    const installedSha256 = sha256Bytes(adb(
+      commandRunner,
+      adbPath,
+      device,
+      ['exec-out', 'cat', packagePaths[0]],
+      { binary: true },
+    ));
+    if (installedSha256 !== archive.apkSha256 || installedSha256 !== candidate.android.apkSha256) {
+      fail('Installed ShareItToo APK does not match the verified candidate.');
+    }
+    return { ...installed, delivery: 'direct-apk', apkSha256: installedSha256 };
+  }
+
+  const basePackages = packagePaths.filter((value) => value.endsWith('/base.apk'));
+  const splitPackagesValid = packagePaths.every((value) => (
+    value.endsWith('/base.apk') || /\/split_[^/]+\.apk$/u.test(value)
+  ));
+  if (basePackages.length !== 1 || !splitPackagesValid) {
+    fail('Installed ShareItToo Play package split set is missing or ambiguous.');
+  }
+  const installerOutput = adb(commandRunner, adbPath, device, [
+    'shell', 'pm', 'list', 'packages', '-i', applicationId,
+  ]);
+  if (!/\binstaller=com\.android\.vending\b/u.test(installerOutput)) {
+    fail('Installed ShareItToo split package was not delivered by Google Play.');
+  }
+  return {
+    ...installed,
+    delivery: 'google-play-split',
+    installerPackageName: 'com.android.vending',
+    splitCount: packagePaths.length,
+  };
 }
 
 function assertDeviceAlreadyUnlocked(commandRunner, adbPath, device) {
@@ -207,9 +234,22 @@ export async function diagnoseAndroidControlledFcm({
         versionName: candidate.versionName,
         buildNumber: candidate.buildNumber,
         commit: candidate.commit,
-        apkSha256: installed.apkSha256,
+        apkSha256: candidate.android.apkSha256,
         apiBaseUrl: candidate.apiBaseUrl,
         stripeLivemode: candidate.stripeLivemode,
+      },
+      installed: {
+        applicationId,
+        versionName: installed.versionName,
+        buildNumber: installed.buildNumber,
+        delivery: installed.delivery,
+        ...(installed.apkSha256 === undefined ? {} : { apkSha256: installed.apkSha256 }),
+        ...(installed.installerPackageName === undefined
+          ? {}
+          : {
+              installerPackageName: installed.installerPackageName,
+              splitCount: installed.splitCount,
+            }),
       },
       device: deviceSummary,
       tests: {
@@ -237,8 +277,8 @@ export async function diagnoseAndroidControlledFcm({
         },
       },
       boundaries: {
-        directDiagnosticOnly: true,
-        storeInstallationGateSatisfied: false,
+        directDiagnosticOnly: installed.delivery === 'direct-apk',
+        storeInstallationGateSatisfied: installed.delivery === 'google-play-split',
         fullFcmMatrixPassed: false,
         productionPushSent: false,
         paymentEndpointCalled: false,

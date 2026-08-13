@@ -45,6 +45,15 @@
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
         "evidenceRef": "docs/evidence/b11/android-play-authenticated-deep-links-2026081303-20260813T230155Z.json"
+      },
+      "syntheticRoleBooking": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-13T23:41:10.831Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-play-synthetic-role-booking-2026081303-20260813T234110Z.json"
       }
     },
     "ios": {
