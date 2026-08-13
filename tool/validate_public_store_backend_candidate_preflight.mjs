@@ -24,6 +24,17 @@ export function validatePublicStoreBackendCandidatePreflight(evidence) {
       evidence.candidate?.deploymentEnvironment !== 'production') {
     fail('The candidate is not bound to an exact production-mode commit.');
   }
+  const commit = evidence.candidate.commit;
+  const expectedImage = `ghcr.io/walidwalidchraibi-dot/shareittoo-api:${commit}`;
+  const expectedVersion = `0.1.0-${commit.slice(0, 12)}`;
+  const imageId = evidence.candidate?.imageId ?? '';
+  const expectedDigest = `ghcr.io/walidwalidchraibi-dot/shareittoo-api@${imageId}`;
+  if (evidence.candidate?.image !== expectedImage ||
+      evidence.candidate?.version !== expectedVersion ||
+      !/^sha256:[0-9a-f]{64}$/u.test(imageId) ||
+      evidence.candidate?.repositoryDigest !== expectedDigest) {
+    fail('The image tag, immutable digest, or version is not bound to the exact commit.');
+  }
   const runtime = evidence.isolatedRuntime;
   for (const field of [
     'freshEphemeralPostgres',
@@ -55,6 +66,13 @@ export function validatePublicStoreBackendCandidatePreflight(evidence) {
       evidence.liveStateAfterPreflight?.stagingApi !== 'healthy-unchanged') {
     fail('The live environments were not proven healthy and unchanged.');
   }
+  if (evidence.liveStateAfterPreflight?.temporaryContainersRemaining !== 0 ||
+      evidence.liveStateAfterPreflight?.temporaryNetworksRemaining !== 0 ||
+      !/^[0-9a-f]{64}$/u.test(
+        evidence.liveStateAfterPreflight?.deployedCaddySha256 ?? '',
+      )) {
+    fail('Temporary-resource cleanup or unchanged Caddy evidence is incomplete.');
+  }
   if (evidence.gates?.compatibleProductionBackendCandidateReady !== true) {
     fail('The compatible candidate result is missing.');
   }
@@ -85,7 +103,8 @@ export function validatePublicStoreBackendCandidatePreflight(evidence) {
   }
   return {
     status: evidence.status,
-    commit: evidence.candidate.commit,
+    commit,
+    imageDigest: evidence.candidate.repositoryDigest,
     routesVerified: true,
     liveEnvironmentsUnchanged: true,
     productionDeploymentApproved: false,

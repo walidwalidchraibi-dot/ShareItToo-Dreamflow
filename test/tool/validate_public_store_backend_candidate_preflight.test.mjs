@@ -17,7 +17,8 @@ const preflightScript = fs.readFileSync(path.join(root, 'backend', 'ops',
 test('saved production-mode backend preflight proves compatibility without deployment', () => {
   assert.deepEqual(validatePublicStoreBackendCandidatePreflight(evidence), {
     status: 'passed-production-mode-isolated-awaiting-production-approval',
-    commit: '2726e4c957028c24bdf2050899286c51163221e9',
+    commit: 'f952e2a6c3bdd7cf900eee385a6d3f1110fa39dc',
+    imageDigest: 'ghcr.io/walidwalidchraibi-dot/shareittoo-api@sha256:05a71da806804d1b283fae96a883f90fa49084877346139b63e34494d0b7c608',
     routesVerified: true,
     liveEnvironmentsUnchanged: true,
     productionDeploymentApproved: false,
@@ -51,5 +52,23 @@ test('live or staged data reuse invalidates the preflight', () => {
   assert.throws(
     () => validatePublicStoreBackendCandidatePreflight(changed),
     /Data isolation must remain false/u,
+  );
+});
+
+test('a stale image identity cannot masquerade as the exact commit candidate', () => {
+  const changed = structuredClone(evidence);
+  changed.candidate.image = 'ghcr.io/walidwalidchraibi-dot/shareittoo-api:stale';
+  assert.throws(
+    () => validatePublicStoreBackendCandidatePreflight(changed),
+    /not bound to the exact commit/u,
+  );
+});
+
+test('leftover temporary resources invalidate the isolated preflight', () => {
+  const changed = structuredClone(evidence);
+  changed.liveStateAfterPreflight.temporaryNetworksRemaining = 1;
+  assert.throws(
+    () => validatePublicStoreBackendCandidatePreflight(changed),
+    /cleanup or unchanged Caddy evidence is incomplete/u,
   );
 });

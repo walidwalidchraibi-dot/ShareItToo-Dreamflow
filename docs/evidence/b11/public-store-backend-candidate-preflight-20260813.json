@@ -1,20 +1,21 @@
 {
   "schemaVersion": 1,
   "kind": "public-store-backend-candidate-preflight",
-  "capturedAt": "2026-08-13",
+  "capturedAt": "2026-08-13T09:15:11Z",
   "status": "passed-production-mode-isolated-awaiting-production-approval",
   "candidate": {
-    "commit": "2726e4c957028c24bdf2050899286c51163221e9",
-    "image": "ghcr.io/walidwalidchraibi-dot/shareittoo-api:2726e4c957028c24bdf2050899286c51163221e9",
-    "imageId": "sha256:1fde705c449a26503ba133e81a5a9d8bc268e66da20c4ed00a6a89d181613341",
-    "version": "0.1.0-2726e4c95702",
+    "commit": "f952e2a6c3bdd7cf900eee385a6d3f1110fa39dc",
+    "image": "ghcr.io/walidwalidchraibi-dot/shareittoo-api:f952e2a6c3bdd7cf900eee385a6d3f1110fa39dc",
+    "imageId": "sha256:05a71da806804d1b283fae96a883f90fa49084877346139b63e34494d0b7c608",
+    "repositoryDigest": "ghcr.io/walidwalidchraibi-dot/shareittoo-api@sha256:05a71da806804d1b283fae96a883f90fa49084877346139b63e34494d0b7c608",
+    "version": "0.1.0-f952e2a6c3bd",
     "deploymentEnvironment": "production"
   },
   "isolatedRuntime": {
     "freshEphemeralPostgres": true,
     "productionDataMounted": false,
     "stagingDataMounted": false,
-    "schemaMigrationsApplied": 9,
+    "schemaMigrationsApplied": 10,
     "readiness": "passed",
     "versionIdentity": "passed-exact-commit",
     "routes": {
@@ -29,8 +30,13 @@
     "temporaryResourcesRemoved": true
   },
   "liveStateAfterPreflight": {
+    "verifiedAt": "2026-08-13T09:15:11Z",
     "productionApi": "healthy-unchanged",
     "stagingApi": "healthy-unchanged",
+    "productionContainerImage": "backend-api",
+    "stagingContainerImage": "shareittoo-api:72dd8f13b5d3be0e82392a8b28c31292bdc23b53",
+    "temporaryContainersRemaining": 0,
+    "temporaryNetworksRemaining": 0,
     "deployedCaddySha256": "4aea918ebb07f3bd52c17342172b24bb3a7df3c17dc4be0afe749de940f5d44d"
   },
   "gates": {
