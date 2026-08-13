@@ -64,7 +64,27 @@ test('accepts the exact private artifact while explicit upload approval remains 
   assert.equal(result.artifactPath, data.artifactPath);
   assert.equal(result.releaseName, '1.0.0-internal-2026081302');
   assert.equal(result.status, 'verified-artifact-ready-immediate-reverification-pending');
+  assert.equal(result.artifactVerified, true);
   assert.match(result.releaseNotes, /ausschließlich Staging und Testzahlungen/u);
+});
+
+test('CI can validate repository metadata while the owner-only archive is unavailable', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  const unavailableArchive = join(data.root, 'not-mounted-private-archive');
+  assert.throws(() => validateGooglePlayInternalHandoff({
+    repositoryRoot,
+    ...data,
+    archiveRoot: unavailableArchive,
+  }), /private release archive/);
+  const result = validateGooglePlayInternalHandoff({
+    repositoryRoot,
+    ...data,
+    archiveRoot: unavailableArchive,
+    allowMissingPrivateArtifact: true,
+  });
+  assert.equal(result.artifactVerified, false);
+  assert.equal(result.buildNumber, '2026081302');
 });
 
 test('rejects different AAB bytes', async (t) => {

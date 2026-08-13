@@ -79,7 +79,11 @@ fi
 
 node --check tool/validate_google_play_internal_handoff.mjs
 node --test test/tool/validate_google_play_internal_handoff.test.mjs
-node tool/validate_google_play_internal_handoff.mjs
+if [[ "${CI:-false}" == "true" ]]; then
+  node tool/validate_google_play_internal_handoff.mjs --ci-metadata-only
+else
+  node tool/validate_google_play_internal_handoff.mjs
+fi
 node --test test/tool/upload_exact_crashlytics_mapping_wiring.test.mjs
 node --check tool/validate_google_play_app_content_handoff.mjs
 node --test test/tool/validate_google_play_app_content_handoff.test.mjs

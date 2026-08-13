@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createHash } from 'node:crypto';
-import { lstatSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -69,6 +69,7 @@ export function validateGooglePlayInternalHandoff({
   evidencePath = null,
   liveReadinessPath = null,
   shortDescriptionPath = null,
+  allowMissingPrivateArtifact = false,
 }) {
   const handoff = object(readJson(handoffPath, 'Google Play handoff'), 'handoff');
   const resolvedEvidencePath = evidencePath ?? resolve(repositoryRoot, handoff.evidenceRef ?? '');
@@ -125,17 +126,20 @@ export function validateGooglePlayInternalHandoff({
   }
   same(artifact.ownerOnlyPermissionsRequired, true, 'ownerOnlyPermissionsRequired');
   const artifactPath = resolve(archiveRoot, artifact.archiveDirectoryName, artifact.fileName);
-  const archiveReal = realpathSync(archiveRoot);
-  let metadata;
-  try {
-    metadata = lstatSync(artifactPath);
-  } catch {
-    fail('The bound AAB is unavailable in the private release archive.');
+  let artifactVerified = false;
+  if (!existsSync(archiveRoot) || !existsSync(artifactPath)) {
+    if (!allowMissingPrivateArtifact) {
+      fail('The bound AAB is unavailable in the private release archive.');
+    }
+  } else {
+    const archiveReal = realpathSync(archiveRoot);
+    const metadata = lstatSync(artifactPath);
+    if (!metadata.isFile() || metadata.isSymbolicLink()) fail('The bound AAB must be a normal file.');
+    if ((metadata.mode & 0o077) !== 0) fail('The bound AAB must have owner-only permissions.');
+    if (!realpathSync(artifactPath).startsWith(`${archiveReal}/`)) fail('The bound AAB left the private archive.');
+    same(sha256File(artifactPath), candidate.aabSha256, 'archived AAB SHA-256');
+    artifactVerified = true;
   }
-  if (!metadata.isFile() || metadata.isSymbolicLink()) fail('The bound AAB must be a normal file.');
-  if ((metadata.mode & 0o077) !== 0) fail('The bound AAB must have owner-only permissions.');
-  if (!realpathSync(artifactPath).startsWith(`${archiveReal}/`)) fail('The bound AAB left the private archive.');
-  same(sha256File(artifactPath), candidate.aabSha256, 'archived AAB SHA-256');
 
   const releaseDraft = object(handoff.releaseDraft, 'releaseDraft');
   same(releaseDraft.name, `1.0.0-internal-${candidate.buildNumber}`, 'releaseDraft.name');
@@ -380,13 +384,27 @@ export function validateGooglePlayInternalHandoff({
     releaseName: releaseDraft.name,
     releaseNotes: notes,
     status: handoff.status,
+    artifactVerified,
   };
 }
 
 function runCli() {
   const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
-  const result = validateGooglePlayInternalHandoff({ repositoryRoot });
-  process.stdout.write(`Google Play internal handoff: PASS (build ${result.buildNumber})\n`);
+  const ciMetadataOnly = process.argv.slice(2).includes('--ci-metadata-only');
+  if (process.argv.slice(2).some((value) => value !== '--ci-metadata-only')) {
+    fail('Unknown Google Play internal handoff argument.');
+  }
+  if (ciMetadataOnly && process.env.CI !== 'true') {
+    fail('--ci-metadata-only is restricted to the isolated CI environment.');
+  }
+  const result = validateGooglePlayInternalHandoff({
+    repositoryRoot,
+    allowMissingPrivateArtifact: ciMetadataOnly,
+  });
+  process.stdout.write(
+    `Google Play internal handoff: PASS (build ${result.buildNumber}; `
+      + `privateArtifact=${result.artifactVerified ? 'verified' : 'CI-unavailable-metadata-validated'})\n`,
+  );
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
