@@ -723,7 +723,7 @@ test('accepts the honest in-progress B11 evidence state', () => {
     goNoGo: 'hold',
     matrixPassed: 0,
     matrixTotal: 4,
-    releaseChecksPassed: 4,
+    releaseChecksPassed: 5,
     releaseChecksTotal: 7,
     minimumBuild: '2026080903',
   });
@@ -905,7 +905,7 @@ test('rejects a premature Store-console or public-route pass claim', () => {
 test('strict mode rejects the in-progress evidence state', () => {
   assert.throws(
     () => validate({ requirePassed: true }),
-    /remains testing: matrix=0\/4, releaseChecks=4\/7/,
+    /remains testing: matrix=0\/4, releaseChecks=5\/7/,
   );
 });
 

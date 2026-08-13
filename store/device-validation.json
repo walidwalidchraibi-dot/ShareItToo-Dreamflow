@@ -15,7 +15,7 @@
     "paymentMode": "memory",
     "stripeLivemode": false,
     "android": {
-      "delivery": "pending",
+      "delivery": "play-internal",
       "aabSha256": "e9c2927b1ab57d82c15a9d5525c4b9ed8386b2b27be24dd067ed8794b0a6fa97",
       "apkSha256": "2a9f7e1e4ba0f43cd99f03e20635113e2b0aae2c8a18cc4b9394ebcd2b516e38",
       "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
@@ -100,13 +100,13 @@
       "network": "wifi",
       "role": "owner",
       "deviceType": "physical",
-      "deviceModel": null,
-      "osVersion": null,
-      "storeInstall": "pending",
+      "deviceModel": "Google Pixel 7 Pro",
+      "osVersion": "16",
+      "storeInstall": "play-internal",
       "screenReader": "talkback",
-      "status": "open",
+      "status": "testing",
       "tests": {
-        "installAndFirstStart": "open",
+        "installAndFirstStart": "passed",
         "authenticationAndSession": "open",
         "listingAndBooking": "open",
         "chatAndDeepLink": "open",
@@ -217,8 +217,8 @@
       "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081302.json"
     },
     "storeWarningsLinksAndSigning": {
-      "status": "testing",
-      "evidenceRef": "docs/evidence/b11/store-links-signing-readiness-2026081302.json"
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/android-play-store-links-signing-2026081302-20260813.json"
     },
     "stagingCleanupAndHealth": {
       "status": "passed",
