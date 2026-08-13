@@ -11,12 +11,16 @@ const canonicalHandoff = JSON.parse(await readFile(
   new URL('../../store/google-play/internal-upload-handoff.json', import.meta.url), 'utf8'));
 const canonicalEvidence = JSON.parse(await readFile(
   new URL('../../docs/evidence/b11/android-candidate-2026081202.json', import.meta.url), 'utf8'));
+const canonicalLiveReadiness = JSON.parse(await readFile(
+  new URL('../../docs/evidence/b11/google-play-pre-upload-live-readiness-20260813.json', import.meta.url),
+  'utf8'));
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'sit-play-handoff-'));
   const archiveRoot = join(root, 'archive');
   const handoffPath = join(root, 'handoff.json');
   const evidencePath = join(root, 'evidence.json');
+  const liveReadinessPath = join(root, 'live-readiness.json');
   const artifactPath = join(
     archiveRoot,
     canonicalHandoff.artifact.archiveDirectoryName,
@@ -27,13 +31,25 @@ async function fixture() {
   const hash = createHash('sha256').update(bytes).digest('hex');
   const handoff = structuredClone(canonicalHandoff);
   const evidence = structuredClone(canonicalEvidence);
+  const liveReadiness = structuredClone(canonicalLiveReadiness);
   handoff.candidate.aabSha256 = hash;
   evidence.android.aabSha256 = hash;
+  liveReadiness.candidate.aabSha256 = hash;
   await mkdir(dirname(artifactPath), { recursive: true });
   await writeFile(artifactPath, bytes, { mode: 0o600 });
   await writeFile(handoffPath, JSON.stringify(handoff));
   await writeFile(evidencePath, JSON.stringify(evidence));
-  return { root, archiveRoot, handoffPath, evidencePath, artifactPath, handoff };
+  await writeFile(liveReadinessPath, JSON.stringify(liveReadiness));
+  return {
+    root,
+    archiveRoot,
+    handoffPath,
+    evidencePath,
+    liveReadinessPath,
+    artifactPath,
+    handoff,
+    liveReadiness,
+  };
 }
 
 test('accepts the verified private artifact while upload remains fail closed', async (t) => {
@@ -125,4 +141,40 @@ test('rejects credential-shaped fields', async (t) => {
   await writeFile(data.handoffPath, JSON.stringify(data.handoff));
   assert.throws(() => validateGooglePlayInternalHandoff({ repositoryRoot, ...data }),
     /forbidden credential-shaped field/);
+});
+
+test('rejects a different observed Play app signing certificate', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  const live = structuredClone(data.liveReadiness);
+  live.candidate.playAppSigningCertificateSha256 = 'f'.repeat(64);
+  await writeFile(data.liveReadinessPath, JSON.stringify(live));
+  assert.throws(() => validateGooglePlayInternalHandoff({
+    repositoryRoot,
+    ...data,
+  }), /playAppSigningCertificateSha256/);
+});
+
+test('rejects a premature upload permission in the live Console gate', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  const live = structuredClone(data.liveReadiness);
+  live.decisionGate.submissionAllowed = true;
+  await writeFile(data.liveReadinessPath, JSON.stringify(live));
+  assert.throws(() => validateGooglePlayInternalHandoff({
+    repositoryRoot,
+    ...data,
+  }), /decisionGate.submissionAllowed/);
+});
+
+test('rejects tester email addresses in the live Console evidence', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  const live = structuredClone(data.liveReadiness);
+  live.googlePlayConsole.internalTesting.testerEmail = 'tester@example.invalid';
+  await writeFile(data.liveReadinessPath, JSON.stringify(live));
+  assert.throws(() => validateGooglePlayInternalHandoff({
+    repositoryRoot,
+    ...data,
+  }), /must not contain email addresses/);
 });

@@ -51,6 +51,7 @@
     "differentArtifact": true,
     "credentialsInRepository": true
   },
+  "preUploadLiveReadinessEvidenceRef": "docs/evidence/b11/google-play-pre-upload-live-readiness-20260813.json",
   "evidenceRef": "docs/evidence/b11/android-candidate-2026081202.json",
   "containsSecrets": false,
   "containsReviewCredentials": false
