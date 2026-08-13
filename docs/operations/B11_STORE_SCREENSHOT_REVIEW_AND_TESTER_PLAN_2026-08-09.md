@@ -42,7 +42,7 @@ lesbar sein.
 |---|---|---|---|
 | 1 | Feed/Entdecken | „Dinge in deiner Nähe entdecken“ | vielfältige synthetische Inserate, keine 0-km-Falschaussage, Standort nur grob |
 | 2 | Suche und Filter | „Finden, was du gerade brauchst“ | echte Filter-/Suchfunktion, keine fremden Marken oder geschützten Produktbilder |
-| 3 | Inseratdetail | „Preis, Kaution und Verfügbarkeit auf einen Blick“ | Beträge konsistent, Adresse geschützt, Bilder lizenziert/synthetisch |
+| 3 | Inseratdetail | „Preis und Verfügbarkeit auf einen Blick“ | Beträge konsistent, keine Kautions- oder Schutzangabe, Adresse geschützt, Bilder lizenziert/synthetisch |
 | 4 | Inserat erstellen | „Eigene Dinge einfach anbieten“ | Medien-, Preis-, Verfügbarkeits- und Übergabefelder sichtbar |
 | 5 | Buchungsanfrage | „Zeitraum wählen und Anfrage senden“ | Testmodus, keine echte Karte oder persönliche Adresse |
 | 6 | Buchungsstatus/Chat | „Buchung gemeinsam abstimmen“ | nur synthetischer neutraler Chat, keine Pushvorschau mit privatem Inhalt |

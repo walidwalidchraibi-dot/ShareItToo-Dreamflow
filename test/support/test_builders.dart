@@ -44,7 +44,6 @@ Item buildTestItem({
       currency: 'EUR',
       priceUnit: 'day',
       priceRaw: pricePerDay,
-      deposit: 50,
       autoApplyDiscounts: false,
       longRentalDiscounts: const [],
       photos: const ['https://example.com/item.png'],

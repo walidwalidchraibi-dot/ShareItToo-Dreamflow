@@ -840,7 +840,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     ((widget.booking['requestId'] as String?) ?? '').isNotEmpty)
                   const SitMenuOption(
                     icon: Icons.lock_outline,
-                    label: 'Zahlung & Kaution',
+                    label: 'Zahlung',
                     value: 'payment',
                   ),
                 const SitMenuOption(
@@ -3436,9 +3436,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       status: 'active',
       endedAt: null,
       timesLent: 0,
-      deposit: totalPaid > 100
-          ? math.min(200.0, totalPaid * 0.25)
-          : (totalPaid > 0 ? 50.0 : 0.0),
     );
 
     // Carry through transport selections so the stepper can show the
@@ -3631,7 +3628,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       status: 'active',
       endedAt: null,
       timesLent: 0,
-      deposit: null,
     );
 
     // Carry through transport selections so the stepper can show the

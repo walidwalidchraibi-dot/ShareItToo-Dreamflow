@@ -3,7 +3,6 @@ import test from 'node:test';
 
 import {
   captureLedger,
-  depositConsent,
   paymentAmounts,
   paymentStatusForProvider,
   refundLedger,
@@ -31,7 +30,7 @@ test('payment amounts are copied from the authoritative booking quote', () => {
     ownerPayoutMinor: 1000,
     platformFeeMinor: 190,
     rentalSubtotalMinor: 900,
-    securityDepositMinor: 5000,
+    securityDepositMinor: 0,
     currency: 'EUR',
   });
   assert.throws(() => paymentAmounts({
@@ -67,14 +66,6 @@ test('provider events map to authoritative payment states', () => {
   assert.equal(paymentStatusForProvider('checkout.session.expired', {}), 'cancelled');
   assert.equal(paymentStatusForProvider('payment_intent.amount_capturable_updated', {}), 'authorized');
   assert.equal(paymentStatusForProvider('unrelated.event', {}), null);
-});
-
-test('deposit consent is explicit, versioned and capped by the booking', () => {
-  const consent = depositConsent({ consentAccepted: true, consentVersion: 'deposit-v2026-08' }, 5000, 'EUR');
-  assert.equal(consent.maximumAmountMinor, 5000);
-  assert.equal(consent.currency, 'EUR');
-  assert.throws(() => depositConsent({ consentAccepted: false, consentVersion: 'deposit-v2026-08' }, 5000, 'EUR'), /deposit_consent_required/);
-  assert.throws(() => depositConsent({ consentAccepted: true, consentVersion: 'draft' }, 5000, 'EUR'), /deposit_consent_required/);
 });
 
 test('request hashes are stable across object key order', () => {

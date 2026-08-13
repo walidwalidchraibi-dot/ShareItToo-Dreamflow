@@ -35,7 +35,7 @@ export function validateGooglePlayAppContentProgress({
     fail('Play app-content open tasks are not fail-closed.');
   }
   if (evidence.storeDraft?.germanCopySaved !== true ||
-      evidence.storeDraft?.phoneScreenshotsValidatedLocal !== 4 ||
+      evidence.storeDraft?.phoneScreenshotsValidatedLocal !== 0 ||
       evidence.storeDraft?.phoneScreenshotsUploaded !== false ||
       evidence.storeDraft?.appBundleUploaded !== false) {
     fail('Play store draft state is invalid.');

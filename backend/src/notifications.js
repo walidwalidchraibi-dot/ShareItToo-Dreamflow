@@ -280,11 +280,6 @@ export async function enqueueFinancialNotification(client, {
       body: (title) => `Die Zahlung für „${title}“ benötigt deine Aufmerksamkeit.`,
       ctaLabel: 'Zahlung fortsetzen',
     },
-    deposit_charged: {
-      title: 'Kautionsbelastung erfasst',
-      body: (title) => `Für „${title}“ wurde eine begrenzte Kautionsbelastung im Klärungsfall erfasst.`,
-      ctaLabel: 'Klärungsfall ansehen',
-    },
   };
   const definition = definitions[kind];
   if (!definition) return 0;
@@ -313,7 +308,7 @@ export async function enqueueFinancialNotification(client, {
     userId,
     kind,
     bookingId,
-    channels: ['payment_failed', 'deposit_charged'].includes(kind)
+    channels: kind === 'payment_failed'
       ? ['in_app', 'push']
       : ['in_app', 'email', 'push'],
     payload: {

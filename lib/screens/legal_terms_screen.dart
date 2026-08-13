@@ -41,7 +41,7 @@ class LegalTermsScreen extends StatelessWidget {
             LegalBullets(items: [
               'Artikel müssen rechtmäßig sein und dürfen nicht gegen Community‑Regeln verstoßen.',
               'Beschreibungen sollen Zustand, Lieferumfang und Besonderheiten transparent darstellen.',
-              'Preise, Kaution (falls vorgesehen) und Verfügbarkeit müssen klar angegeben sein.',
+              'Preise und Verfügbarkeit müssen klar angegeben sein.',
             ]),
           ],
         ),

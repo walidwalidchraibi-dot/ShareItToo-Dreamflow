@@ -35,7 +35,7 @@ const requiredApprovalKeys = [
   'copyrightOwner',
   'legalReview',
   'userContentModerationPolicy',
-  'cancellationRefundDepositConsistency',
+  'cancellationRefundNoDepositConsistency',
 ];
 
 const forbiddenSensitiveKeys = /^(password|secret|token|apiKey|privateKey|serviceAccount|credential|reviewAccount)$/i;

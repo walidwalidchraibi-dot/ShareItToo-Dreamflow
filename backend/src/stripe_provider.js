@@ -194,49 +194,6 @@ export class StripeProvider {
     });
   }
 
-  async createDepositSetupCheckout({
-    mandateId,
-    bookingId,
-    customerId,
-    successUrl,
-    cancelUrl,
-    expiresAt,
-    idempotencyKey,
-  }) {
-    if (this.mode === 'memory') {
-      const id = memoryId('cs_memory_setup');
-      const setupIntent = memoryId('seti_memory');
-      const result = {
-        id,
-        object: 'checkout.session',
-        url: `${successUrl}${successUrl.includes('?') ? '&' : '?'}session_id=${encodeURIComponent(id)}&memory=1`,
-        setup_intent: setupIntent,
-        customer: customerId,
-        expires_at: expiresAt,
-        livemode: false,
-      };
-      this.memory.set(id, { ...result, mandateId, bookingId });
-      return result;
-    }
-    return this.request('/checkout/sessions', {
-      idempotencyKey,
-      params: {
-        mode: 'setup',
-        customer: customerId,
-        payment_method_types: ['card'],
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        expires_at: expiresAt,
-        client_reference_id: bookingId,
-        setup_intent_data: {
-          usage: 'off_session',
-          metadata: { sit_booking_id: bookingId, sit_mandate_id: mandateId },
-        },
-        metadata: { sit_booking_id: bookingId, sit_mandate_id: mandateId },
-      },
-    });
-  }
-
   async createRefund({ chargeId, amountMinor, reverseTransfer, refundPlatformFee, idempotencyKey, metadata }) {
     if (this.mode === 'memory') {
       return {
@@ -303,38 +260,4 @@ export class StripeProvider {
     });
   }
 
-  async createOffSessionDepositCharge({
-    customerId,
-    paymentMethodId,
-    amountMinor,
-    currency,
-    bookingId,
-    mandateId,
-    idempotencyKey,
-  }) {
-    if (this.mode === 'memory') {
-      return {
-        id: memoryId('pi_memory_deposit'),
-        status: 'succeeded',
-        latest_charge: memoryId('ch_memory_deposit'),
-        amount: amountMinor,
-        currency: currency.toLowerCase(),
-        customer: customerId,
-        payment_method: paymentMethodId,
-        livemode: false,
-      };
-    }
-    return this.request('/payment_intents', {
-      idempotencyKey,
-      params: {
-        amount: amountMinor,
-        currency: currency.toLowerCase(),
-        customer: customerId,
-        payment_method: paymentMethodId,
-        off_session: true,
-        confirm: true,
-        metadata: { sit_booking_id: bookingId, sit_mandate_id: mandateId, purpose: 'security_deposit_claim' },
-      },
-    });
-  }
 }

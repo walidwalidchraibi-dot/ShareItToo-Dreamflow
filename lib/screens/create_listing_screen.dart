@@ -457,7 +457,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         currency: 'EUR',
         priceUnit: _priceUnit,
         priceRaw: raw,
-        deposit: null,
         photos: photos,
         locationText: locationText,
         lat: pos.$1,
@@ -478,7 +477,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         maxDeliveryKmAtDropoff: _maxDistanceKm,
         maxPickupKmAtReturn: _maxDistanceKm,
         cancellationPolicy: 'unified',
-        protectionModel: 'standard',
         availabilityMode: 'calendar',
         autoApplyDiscounts: _autoApplyDiscounts,
         longRentalDiscounts: ([
@@ -512,7 +510,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       currency: ex.currency,
       priceUnit: _priceUnit,
       priceRaw: raw,
-      deposit: null,
       photos: photos,
       locationText: locationText,
       lat: pos.$1,
@@ -535,7 +532,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       maxDeliveryKmAtDropoff: _maxDistanceKm,
       maxPickupKmAtReturn: _maxDistanceKm,
       cancellationPolicy: 'unified',
-      protectionModel: ex.protectionModel,
       availabilityMode: ex.availabilityMode,
       autoApplyDiscounts: _autoApplyDiscounts,
       longRentalDiscounts: ([

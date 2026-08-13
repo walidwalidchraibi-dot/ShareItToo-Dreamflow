@@ -7,7 +7,6 @@ const listingConditions = new Set([
   'worn',
   'used',
 ]);
-const protectionModels = new Set(['standard', 'deposit', 'none']);
 
 export class ListingValidationError extends Error {
   constructor(code, details = undefined) {
@@ -68,7 +67,6 @@ export function normalizeListingPayload(raw, {
   const pricePerDay = finiteNumber(raw.pricePerDay);
   const priceUnit = ['day', 'week'].includes(raw.priceUnit) ? raw.priceUnit : 'day';
   const priceRaw = finiteNumber(raw.priceRaw) ?? pricePerDay;
-  const deposit = finiteNumber(raw.deposit);
   const locationText = text(raw.locationText, 500);
   const city = text(raw.city, 120);
   const country = text(raw.country, 120);
@@ -89,10 +87,6 @@ export function normalizeListingPayload(raw, {
   if (handoverRadiusKm !== null && (handoverRadiusKm < 0 || handoverRadiusKm > 500)) {
     throw new ListingValidationError('invalid_handover_radius');
   }
-  const requestedProtection = text(raw.protectionModel, 30);
-  const protectionModel = protectionModels.has(requestedProtection)
-    ? requestedProtection
-    : 'standard';
   const photos = Array.isArray(raw.photos)
     ? [...new Set(raw.photos.slice(0, 12).map((photo) => text(photo, 4000)).filter(Boolean))]
     : [];
@@ -109,9 +103,6 @@ export function normalizeListingPayload(raw, {
   }
   if (priceRaw === null || priceRaw <= 0 || priceRaw > 7_000_000) {
     throw new ListingValidationError('invalid_listing_price');
-  }
-  if (deposit !== null && (deposit < 0 || deposit > 1_000_000)) {
-    throw new ListingValidationError('invalid_listing_deposit');
   }
   if (!locationText || !city || !country) throw new ListingValidationError('listing_location_required');
   if (latitude === null || latitude < -90 || latitude > 90
@@ -141,7 +132,8 @@ export function normalizeListingPayload(raw, {
     currency: currency(raw.currency),
     priceUnit,
     priceRaw: Math.round(priceRaw * 100) / 100,
-    deposit: deposit === null ? null : Math.round(deposit * 100) / 100,
+    // Kept on the wire for old clients, but the launch product has no deposit.
+    deposit: null,
     autoApplyDiscounts: raw.autoApplyDiscounts === true,
     longRentalDiscounts: normalizedDiscounts(raw.longRentalDiscounts),
     photos,
@@ -169,7 +161,8 @@ export function normalizeListingPayload(raw, {
     cancellationPolicy: ['flexible', 'moderate', 'strict', 'unified'].includes(raw.cancellationPolicy)
       ? raw.cancellationPolicy
       : 'unified',
-    protectionModel,
+    // Kept on the wire for old clients, but no protection product is offered.
+    protectionModel: 'none',
     availabilityMode: 'calendar',
   };
 }

@@ -40,7 +40,7 @@ erDiagram
 | Bereich | Verbindliche Felder |
 |---|---|
 | Nutzer | Rolle und Kontostatus |
-| Inserat | Währung, Tagespreis in Cent, Kaution in Cent |
+| Inserat | Währung und Tagespreis in Cent; Kaution technisch neutral (`NULL`) |
 | Buchung | Besitzer, Mieter, Status, Start, Ende, Währung, Beträge, Version |
 | Geldfluss | Betrag in kleinster Währungseinheit, Währung, Status, Idempotenzschlüssel |
 | Verfügbarkeit | Zeitzone, Wochentag, lokale Zeiten sowie konkrete Sperrzeiträume |

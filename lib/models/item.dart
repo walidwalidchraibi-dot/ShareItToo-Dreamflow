@@ -12,7 +12,6 @@ class Item {
   // Display helpers: what the owner originally chose and entered
   final String priceUnit; // 'day' | 'week'
   final double priceRaw; // original value typed in that unit
-  final double? deposit;
   // Long‑term discount configuration
   final bool autoApplyDiscounts;
   final List<LongRentalDiscount> longRentalDiscounts;
@@ -49,8 +48,6 @@ class Item {
   final double? maxPickupKmAtReturn;
   // Cancellation policy selected by the lister: 'flexible' | 'moderate' | 'strict'
   final String cancellationPolicy;
-  // Launch protection is a product-level policy; owners cannot bypass it.
-  final String protectionModel;
   final String availabilityMode;
   final bool approximateLocation;
 
@@ -66,7 +63,6 @@ class Item {
     required this.currency,
     this.priceUnit = 'day',
     double? priceRaw,
-    this.deposit,
     this.autoApplyDiscounts = false,
     this.longRentalDiscounts = const <LongRentalDiscount>[],
     required this.photos,
@@ -91,7 +87,6 @@ class Item {
     this.maxDeliveryKmAtDropoff,
     this.maxPickupKmAtReturn,
     this.cancellationPolicy = 'flexible',
-    this.protectionModel = 'standard',
     this.availabilityMode = 'calendar',
     this.approximateLocation = false,
   }) : priceRaw = priceRaw ?? pricePerDay;
@@ -132,7 +127,6 @@ class Item {
       currency: json['currency'] ?? 'EUR',
       priceUnit: unit,
       priceRaw: raw,
-      deposit: (json['deposit'] as num?)?.toDouble(),
       autoApplyDiscounts: autoDisc,
       longRentalDiscounts: tiers,
       photos: List<String>.from(json['photos'] ?? []),
@@ -160,7 +154,6 @@ class Item {
           (json['maxDeliveryKmAtDropoff'] as num?)?.toDouble(),
       maxPickupKmAtReturn: (json['maxPickupKmAtReturn'] as num?)?.toDouble(),
       cancellationPolicy: (json['cancellationPolicy'] as String?) ?? 'flexible',
-      protectionModel: (json['protectionModel'] as String?) ?? 'standard',
       availabilityMode: (json['availabilityMode'] as String?) ?? 'calendar',
       approximateLocation: json['approximateLocation'] == true,
     );
@@ -178,7 +171,6 @@ class Item {
         'currency': currency,
         'priceUnit': priceUnit,
         'priceRaw': priceRaw,
-        'deposit': deposit,
         'autoApplyDiscounts': autoApplyDiscounts,
         'longRentalDiscounts':
             longRentalDiscounts.map((e) => e.toJson()).toList(),
@@ -204,7 +196,6 @@ class Item {
         'maxDeliveryKmAtDropoff': maxDeliveryKmAtDropoff,
         'maxPickupKmAtReturn': maxPickupKmAtReturn,
         'cancellationPolicy': cancellationPolicy,
-        'protectionModel': protectionModel,
         'availabilityMode': availabilityMode,
         'approximateLocation': approximateLocation,
       };

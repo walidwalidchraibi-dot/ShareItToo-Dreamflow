@@ -274,5 +274,5 @@ freigegeben werden.
 | Reale APNs/FCM und physische Geräte | externe Plattformdaten und Store-IDs | offen bis B11 |
 
 B7 ist damit als technischer Hauptbaustein bestanden. Der nächste
-Hauptbaustein ist B8: Zahlungen, Kaution, Auszahlungen und finanzielle
+Hauptbaustein ist B8: Zahlungen, Auszahlungen und finanzielle
 Ledger-Integrität.

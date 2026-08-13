@@ -170,7 +170,7 @@ async function main() {
       priceRaw: 20,
       priceUnit: 'day',
       currency: 'EUR',
-      deposit: 60,
+      deposit: null,
       photos: [listingUpload.url],
       locationText: 'Staging Testadresse 8',
       city: 'Berlin',
@@ -181,14 +181,15 @@ async function main() {
       condition: 'good',
       minDays: 1,
       maxDays: 14,
-      protectionModel: 'standard',
+      protectionModel: 'none',
       status: 'active',
       isActive: true,
     },
     expected: [201],
   })).value.listing;
   assert.equal(listing.ownerId, users.owner.id);
-  assert.equal(listing.deposit, 60);
+  assert.equal(listing.deposit, null);
+  assert.equal(listing.protectionModel, 'none');
 
   await api(`/listings/${listingId}/availability`, {
     method: 'PUT',
@@ -223,7 +224,7 @@ async function main() {
     expected: [201],
   });
   assert.equal(created.value.booking.workflowStatus, 'requested');
-  assert.equal(created.value.booking.quote.securityDepositMinor, 6000);
+  assert.equal(created.value.booking.quote.securityDepositMinor, 0);
 
   const accepted = await api(`/bookings/${bookingId}/transitions`, {
     method: 'POST',
@@ -237,7 +238,7 @@ async function main() {
     method: 'POST',
     token: users.renter.token,
     headers: { 'Idempotency-Key': `${runId}-checkout` },
-    body: { depositConsent: false },
+    body: {},
     expected: [200, 201],
   });
   const checkout = await checkoutRequest();
@@ -275,7 +276,7 @@ async function main() {
   assert.equal(paid.value.bookingStatus, 'confirmed');
   assert.equal(paid.value.payment.status, 'captured');
   assert.equal(paid.value.payment.capturedMinor, paid.value.payment.amountMinor);
-  assert.equal(paid.value.depositConsentVersion, config.payments.depositConsentVersion);
+  assert.equal(Object.hasOwn(paid.value, 'depositConsentVersion'), false);
 
   const captured = (await pool.query(
     `SELECT provider_payment_id, provider_charge_id FROM payments WHERE id = $1`,
@@ -331,60 +332,14 @@ async function main() {
     [bookingId],
   );
 
-  const depositSetup = await api(`/bookings/${bookingId}/deposit/setup`, {
+  const disabledDepositRoute = await api(`/bookings/${bookingId}/deposit/setup`, {
     method: 'POST',
     token: users.renter.token,
-    headers: { 'Idempotency-Key': `${runId}-deposit-setup` },
-    body: {
-      consentAccepted: true,
-      consentVersion: config.payments.depositConsentVersion,
-    },
-    expected: [201],
-  });
-  assert.equal(depositSetup.value.mandate.maximumAmountMinor, 6000);
-  const mandateId = depositSetup.value.mandate.id;
-  await api(`/deposit-mandates/${mandateId}/simulate`, {
-    method: 'POST',
-    token: users.renter.token,
+    headers: { 'Idempotency-Key': `${runId}-deposit-disabled` },
     body: {},
+    expected: [404],
   });
-  const mandateState = await api(`/bookings/${bookingId}/payment`, { token: users.renter.token });
-  assert.equal(mandateState.value.deposit.status, 'active');
-
-  const localDispute = await pool.query(
-    `INSERT INTO disputes (
-       booking_id, opened_by, status, reason_code, summary
-     ) VALUES ($1, $2, 'investigating', 'documented_damage_probe', $3)
-     RETURNING id`,
-    [bookingId, users.renter.id, `B8 isolated staging acceptance ${runId}`],
-  );
-  await pool.query(
-    `UPDATE bookings SET workflow_status = 'disputed', disputed_at = now(),
-         workflow_revision = workflow_revision + 1
-     WHERE id = $1`,
-    [bookingId],
-  );
-  const depositCharge = await api(`/deposit-mandates/${mandateId}/charges`, {
-    method: 'POST',
-    token: users.admin.token,
-    headers: { ...adminStepUpHeaders, 'Idempotency-Key': `${runId}-deposit-charge` },
-    body: {
-      disputeId: localDispute.rows[0].id,
-      amountMinor: 1000,
-      reason: 'Dokumentierter Schaden im isolierten B8-Staging-Test',
-    },
-    expected: [201],
-  });
-  assert.equal(depositCharge.value.charge.status, 'succeeded');
-  await pool.query(
-    `UPDATE disputes SET status = 'closed', resolved_at = now() WHERE id = $1`,
-    [localDispute.rows[0].id],
-  );
-  await pool.query(
-    `UPDATE bookings SET workflow_status = 'confirmed', workflow_revision = workflow_revision + 1
-     WHERE id = $1`,
-    [bookingId],
-  );
+  assert.equal(disabledDepositRoute.response.status, 404);
 
   const active = await api(`/bookings/${bookingId}/transitions`, {
     method: 'POST',
@@ -554,11 +509,7 @@ async function main() {
     requiresAction: requiresAction.value.status,
     providerDuplicateSuppressed: duplicateSuccess.value.duplicate,
     chargebackLedger: chargebackLedger.rows.map((row) => row.transaction_type).sort(),
-    deposit: {
-      mandateStatus: mandateState.value.deposit.status,
-      maximumAmountMinor: depositSetup.value.mandate.maximumAmountMinor,
-      chargedAmountMinor: depositCharge.value.charge.amountMinor,
-    },
+    deposit: { enabled: false, securityDepositMinor: 0 },
     payout: {
       blockedWhileLost: blockedPayout.value.error,
       paidAmountMinor: payout.value.payout.amountMinor,

@@ -209,6 +209,10 @@ void _rejectPublicCopy(String label, String value) {
     '100% sicher',
     'garantiert sicher',
     'vollständig versichert',
+    'kaution',
+    'standardschutz',
+    'schutzpaket',
+    'versicherung',
     'marktführer',
     'zertifiziert sicher',
     'airbnb',
@@ -852,11 +856,14 @@ void main(List<String> arguments) {
     }
   }
 
-  final handoffSuperseded = googleInternalUploadHandoff['status'] ==
-      'superseded-privacy-rescan-failed-replacement-pending';
+  final handoffSuperseded = const {
+    'superseded-privacy-rescan-failed-replacement-pending',
+    'superseded-product-truth-failed-replacement-pending',
+  }.contains(googleInternalUploadHandoff['status']);
   final candidateBuildMatches = handoffSuperseded
-      ? googleInternalUploadHandoff['replacementBuildNumber'] ==
-          currentBuild.toString()
+      ? allowCandidateRollover &&
+          googleInternalUploadHandoff['replacementBuildNumber'] ==
+              currentBuild.toString()
       : allowCandidateRollover
           ? handoffBuild <= currentBuild
           : handoffBuild == currentBuild;

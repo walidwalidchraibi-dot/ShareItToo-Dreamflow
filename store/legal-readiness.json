@@ -18,7 +18,7 @@
     "terms": {
       "status": "draft",
       "sourceFile": "lib/screens/legal_terms_screen.dart",
-      "currentContentSha256": "649298685252e04d15be8d24ef234ba5b5bf87291a66b2be87053254e13e795c",
+      "currentContentSha256": "da601b59621d7fdb616d559f7a6b761e5f0361cfc40f529a52cb5695829d41ea",
       "approvedContentSha256": null,
       "publicUrl": null,
       "approvalEvidenceRef": null
@@ -65,7 +65,7 @@
       "status": "open",
       "evidenceRef": null
     },
-    "cancellationRefundDepositConsistency": {
+    "cancellationRefundNoDepositConsistency": {
       "status": "open",
       "evidenceRef": null
     }

@@ -242,6 +242,5 @@ export const config = Object.freeze({
     connectCountry,
     pilotUserIds: Object.freeze(paymentPilotUserIds),
     payoutHoldHours: Math.min(24 * 30, Math.max(0, Number.parseInt(process.env.PAYOUT_HOLD_HOURS ?? '48', 10))),
-    depositConsentVersion: process.env.DEPOSIT_CONSENT_VERSION?.trim() || 'deposit-v2026-08',
   }),
 });

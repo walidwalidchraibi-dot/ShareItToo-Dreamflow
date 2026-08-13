@@ -13,7 +13,7 @@ darin bestätigte E.164-Nummer exakt der angeforderten Nummer entspricht.
 
 Der bestehende, vollständig geprüfte Google-Play-Kandidat `2026081202` bleibt
 unverändert. Die Implementierung ist an den noch nicht einreichbaren
-Nachfolger `2026081301` gebunden. Es wurde weder ein AAB hochgeladen noch eine
+Nachfolger `2026081302` gebunden. Es wurde weder ein AAB hochgeladen noch eine
 Firebase-Option aktiviert oder eine SMS versendet.
 
 ## Ablauf

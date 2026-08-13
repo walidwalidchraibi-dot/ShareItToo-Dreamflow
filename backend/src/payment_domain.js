@@ -44,11 +44,10 @@ export function paymentAmounts(booking) {
   const amountMinor = Number(booking.quoted_total_minor);
   const ownerPayoutMinor = Number(booking.owner_payout_minor);
   const rentalSubtotalMinor = Number(booking.rental_subtotal_minor);
-  const securityDepositMinor = Number(booking.security_deposit_minor ?? 0);
-  const integers = [amountMinor, ownerPayoutMinor, rentalSubtotalMinor, securityDepositMinor];
+  const integers = [amountMinor, ownerPayoutMinor, rentalSubtotalMinor];
   if (!integers.every(Number.isSafeInteger) || amountMinor <= 0
       || ownerPayoutMinor < 0 || ownerPayoutMinor > amountMinor
-      || rentalSubtotalMinor < 0 || securityDepositMinor < 0) {
+      || rentalSubtotalMinor < 0) {
     throw new PaymentDomainError(409, 'invalid_booking_payment_amounts');
   }
   return Object.freeze({
@@ -56,7 +55,7 @@ export function paymentAmounts(booking) {
     ownerPayoutMinor,
     platformFeeMinor: amountMinor - ownerPayoutMinor,
     rentalSubtotalMinor,
-    securityDepositMinor,
+    securityDepositMinor: 0,
     currency: normalizePaymentCurrency(booking.currency),
   });
 }
@@ -156,21 +155,4 @@ export function safeProviderObjectId(value, prefix) {
     throw new PaymentDomainError(400, 'invalid_provider_object_id');
   }
   return id;
-}
-
-export function depositConsent(raw, maximumAmountMinor, currency) {
-  const accepted = raw?.consentAccepted === true;
-  const version = typeof raw?.consentVersion === 'string' ? raw.consentVersion.trim() : '';
-  if (!accepted || !/^deposit-v\d{4}-\d{2}$/.test(version)) {
-    throw new PaymentDomainError(400, 'deposit_consent_required');
-  }
-  if (!Number.isSafeInteger(maximumAmountMinor) || maximumAmountMinor < 0) {
-    throw new PaymentDomainError(409, 'invalid_security_deposit');
-  }
-  return Object.freeze({
-    consentVersion: version,
-    maximumAmountMinor,
-    currency: normalizePaymentCurrency(currency),
-    consentedAt: new Date(),
-  });
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "google-play-pre-upload-live-readiness",
-  "status": "ready-awaiting-explicit-internal-upload-approval",
+  "status": "superseded-product-truth-failed-replacement-pending",
   "capturedAt": "2026-08-13T09:49:49Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -59,7 +59,7 @@
       "appIconUploaded": false,
       "featureGraphicUploaded": false,
       "phoneScreenshotsUploaded": 0,
-      "validatedLocalPhoneScreenshots": 4,
+      "validatedLocalPhoneScreenshots": 0,
       "savedInThisObservation": false
     },
     "appSigning": {
@@ -90,6 +90,7 @@
     "rolloutAllowed": false,
     "testerInvitationsAllowed": false
   },
+  "supersessionEvidenceRef": "docs/evidence/b11/android-candidate-2026081202-product-truth-supersession-20260813.json",
   "sources": {
     "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081202.json",
     "signingReadinessEvidenceRef": "docs/evidence/b11/store-links-signing-readiness-2026081202.json",

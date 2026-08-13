@@ -78,7 +78,7 @@ Text liegt unter der Grenze von 80 Zeichen.
 >
 > Entdecken und anbieten
 > • Durchsuche lokale Inserate und filtere passende Gegenstände.
-> • Erstelle eigene Inserate mit Bildern, Preis, Kaution, Verfügbarkeit und
+> • Erstelle eigene Inserate mit Bildern, Preis, Verfügbarkeit und
 >   Übergabeinformationen.
 > • Teile nur so viele Standortinformationen, wie für Suche und Übergabe nötig
 >   sind.

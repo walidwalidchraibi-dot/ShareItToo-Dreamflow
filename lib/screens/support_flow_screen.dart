@@ -308,7 +308,7 @@ class _SupportFlowScreenState extends State<SupportFlowScreen> {
       label: 'Problem mit Zahlung',
       subcategories: [
         'Preis stimmt nicht',
-        'Kaution / Sicherheitsbetrag unklar',
+        'Gesamtbetrag unklar',
         'Zahlung wurde doppelt angezeigt',
         'Rückerstattung unklar',
         'Auszahlung unklar',

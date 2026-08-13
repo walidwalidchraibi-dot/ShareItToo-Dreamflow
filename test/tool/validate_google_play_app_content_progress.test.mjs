@@ -77,9 +77,9 @@ test('rejects claiming an AAB upload', async (t) => {
   assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }), /draft state/);
 });
 
-test('rejects losing the four exact-candidate local screenshots', async (t) => {
+test('rejects claiming replacement screenshots before recapture', async (t) => {
   const data = await fixture((evidence) => {
-    evidence.storeDraft.phoneScreenshotsValidatedLocal = 0;
+    evidence.storeDraft.phoneScreenshotsValidatedLocal = 4;
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }), /draft state/);

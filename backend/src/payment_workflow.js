@@ -4,7 +4,6 @@ import { config } from './config.js';
 import { inTransaction, pool } from './db.js';
 import {
   captureLedger,
-  depositConsent,
   PaymentDomainError,
   paymentAmounts,
   paymentIdempotencyKey,
@@ -88,7 +87,6 @@ function shapePayment(row) {
     transferredMinor: Number(row.transferred_minor),
     platformFeeMinor: Number(row.platform_fee_minor),
     ownerPayoutMinor: Number(row.owner_payout_minor),
-    securityDepositMinor: Number(row.security_deposit_minor),
     currency: row.currency,
     failureCode: row.failure_code,
     checkoutExpiresAt: row.checkout_expires_at ? new Date(row.checkout_expires_at).toISOString() : null,
@@ -267,11 +265,11 @@ async function ensureCustomer(actor, key) {
   return result.rows[0];
 }
 
-export async function createPaymentCheckout({ actor, bookingId, raw, key: rawKey }) {
+export async function createPaymentCheckout({ actor, bookingId, key: rawKey }) {
   ensurePaymentsEnabled(actor.id);
   const key = paymentIdempotencyKey(rawKey, 'payment.checkout');
   const checkoutExpiresAt = new Date(Date.now() + 45 * 60_000);
-  const request = { bookingId, depositConsent: raw?.depositConsent === true };
+  const request = { bookingId };
   const prepared = await inTransaction(async (client) => {
     const command = await beginCommand(client, {
       key, actorId: actor.id, type: 'payment.checkout', request, bookingId,
@@ -423,115 +421,6 @@ export async function createPaymentCheckout({ actor, bookingId, raw, key: rawKey
   return response;
 }
 
-export async function createDepositSetup({ actor, bookingId, raw, key: rawKey }) {
-  ensurePaymentsEnabled(actor.id);
-  const key = paymentIdempotencyKey(rawKey, 'deposit.setup');
-  const setupCheckoutExpiresAt = new Date(Date.now() + 45 * 60_000);
-  const prepared = await inTransaction(async (client) => {
-    const bookingResult = await client.query(
-      `SELECT booking.*, payment.id AS payment_id
-       FROM bookings AS booking
-       LEFT JOIN LATERAL (
-         SELECT id FROM payments WHERE booking_id = booking.id AND status IN ('captured', 'partially_refunded')
-         ORDER BY created_at DESC LIMIT 1
-       ) AS payment ON true
-       WHERE booking.id = $1 FOR UPDATE OF booking`,
-      [bookingId],
-    );
-    if (!bookingResult.rowCount) throw new PaymentDomainError(404, 'booking_not_found');
-    const booking = bookingResult.rows[0];
-    if (booking.renter_id !== actor.id) throw new PaymentDomainError(403, 'deposit_forbidden');
-    if (!booking.payment_id || !['confirmed', 'active'].includes(booking.workflow_status)) {
-      throw new PaymentDomainError(409, 'booking_not_ready_for_deposit_setup');
-    }
-    const consent = depositConsent(raw, Number(booking.security_deposit_minor ?? 0), booking.currency);
-    if (consent.maximumAmountMinor === 0) throw new PaymentDomainError(409, 'deposit_not_required');
-    if (consent.consentVersion !== config.payments.depositConsentVersion) {
-      throw new PaymentDomainError(409, 'deposit_consent_version_outdated');
-    }
-    const command = await beginCommand(client, {
-      key, actorId: actor.id, type: 'deposit.setup',
-      request: { bookingId, consentVersion: consent.consentVersion },
-      bookingId, paymentId: booking.payment_id,
-    });
-    if (command.completed_at) return { replay: command.response_payload };
-    const existing = await client.query('SELECT * FROM deposit_mandates WHERE booking_id = $1 FOR UPDATE', [bookingId]);
-    if (existing.rows[0]?.status === 'active') throw new PaymentDomainError(409, 'deposit_mandate_already_active');
-    if (existing.rows[0]?.status === 'requires_action'
-        && existing.rows[0]?.setup_command_key !== key
-        && new Date(existing.rows[0]?.setup_checkout_expires_at ?? 0).getTime() > Date.now()) {
-      throw new PaymentDomainError(409, 'deposit_setup_in_progress');
-    }
-    const mandate = existing.rowCount
-      ? (await client.query(
-        `UPDATE deposit_mandates SET status = 'created', setup_command_key = $2,
-             setup_checkout_expires_at = $3, consent_version = $4, consented_at = $5,
-             maximum_amount_minor = $6, currency = $7
-         WHERE id = $1 RETURNING *`,
-        [
-          existing.rows[0].id, key, setupCheckoutExpiresAt, consent.consentVersion,
-          consent.consentedAt, consent.maximumAmountMinor, consent.currency,
-        ],
-      )).rows[0]
-      : (await client.query(
-        `INSERT INTO deposit_mandates (
-           booking_id, renter_id, payment_id, status, maximum_amount_minor,
-           currency, consent_version, consented_at, expires_at,
-           setup_command_key, setup_checkout_expires_at, livemode
-         ) VALUES ($1, $2, $3, 'created', $4, $5, $6, $7, $8, $9, $10, $11)
-         RETURNING *`,
-        [
-          bookingId, actor.id, booking.payment_id, consent.maximumAmountMinor,
-          consent.currency, consent.consentVersion, consent.consentedAt,
-          new Date(new Date(booking.ends_at).getTime() + 30 * 86_400_000),
-          key, setupCheckoutExpiresAt, config.payments.livemode,
-        ],
-      )).rows[0];
-    return { booking, mandate };
-  });
-  if (prepared.replay) return { ...prepared.replay, replayed: true };
-  const customer = await ensureCustomer(actor, key);
-  const successUrl = `${config.publicBaseUrl}/open/payment/${encodeURIComponent(bookingId)}?result=deposit_saved&session_id={CHECKOUT_SESSION_ID}`;
-  const cancelUrl = `${config.publicBaseUrl}/open/payment/${encodeURIComponent(bookingId)}?result=deposit_cancelled`;
-  const session = await stripeProvider.createDepositSetupCheckout({
-    mandateId: prepared.mandate.id,
-    bookingId,
-    customerId: customer.provider_customer_id,
-    successUrl,
-    cancelUrl,
-    expiresAt: Math.floor(setupCheckoutExpiresAt.getTime() / 1000),
-    idempotencyKey: `${key}:setup`,
-  });
-  const response = {
-    mandate: {
-      id: prepared.mandate.id,
-      bookingId,
-      status: 'requires_action',
-      maximumAmountMinor: Number(prepared.mandate.maximum_amount_minor),
-      currency: prepared.mandate.currency,
-      consentVersion: prepared.mandate.consent_version,
-    },
-    checkoutUrl: session.url,
-    providerMode: config.payments.transport,
-    replayed: false,
-  };
-  await inTransaction(async (client) => {
-    await client.query(
-      `UPDATE deposit_mandates
-       SET status = 'requires_action', provider_checkout_session_id = $2,
-           provider_setup_intent_id = COALESCE($3, provider_setup_intent_id),
-           provider_customer_id = $4, setup_checkout_expires_at = $5
-       WHERE id = $1`,
-      [
-        prepared.mandate.id, session.id, providerId(session.setup_intent),
-        customer.provider_customer_id, providerInstant(session.expires_at) ?? setupCheckoutExpiresAt,
-      ],
-    );
-    await completeCommand(client, key, prepared.booking.payment_id, response);
-  });
-  return response;
-}
-
 export async function getBookingPayment({ actor, bookingId }) {
   ensurePaymentsEnabled(actor.id);
   const result = await pool.query(
@@ -539,17 +428,13 @@ export async function getBookingPayment({ actor, bookingId }) {
             booking.quoted_total_minor AS booking_total_minor,
             booking.rental_subtotal_minor AS booking_rental_subtotal_minor,
             booking.owner_payout_minor AS booking_owner_payout_minor,
-            booking.security_deposit_minor AS booking_security_deposit_minor,
             booking.currency AS booking_currency,
-            mandate.id AS mandate_id, mandate.status AS mandate_status,
-            mandate.maximum_amount_minor, mandate.charged_amount_minor,
             payout.id AS payout_id, payout.status AS payout_status,
             payout.available_at, payout.paid_at
      FROM bookings AS booking
      LEFT JOIN LATERAL (
        SELECT * FROM payments WHERE booking_id = booking.id ORDER BY created_at DESC LIMIT 1
      ) AS payment ON true
-     LEFT JOIN deposit_mandates AS mandate ON mandate.booking_id = booking.id
      LEFT JOIN LATERAL (
        SELECT * FROM payouts WHERE booking_id = booking.id ORDER BY created_at DESC LIMIT 1
      ) AS payout ON true
@@ -569,19 +454,9 @@ export async function getBookingPayment({ actor, bookingId }) {
       rentalSubtotalMinor: Number(row.booking_rental_subtotal_minor),
       platformFeeMinor: Number(row.booking_total_minor) - Number(row.booking_owner_payout_minor),
       ownerPayoutMinor: Number(row.booking_owner_payout_minor),
-      securityDepositMinor: Number(row.booking_security_deposit_minor),
       currency: row.booking_currency,
     },
-    depositConsentVersion: config.payments.depositConsentVersion,
     payment: row.id ? shapePayment(row) : null,
-    deposit: row.mandate_id ? {
-      id: row.mandate_id,
-      status: row.mandate_status,
-      maximumAmountMinor: Number(row.maximum_amount_minor),
-      chargedAmountMinor: Number(row.charged_amount_minor),
-      consentVersion: row.consent_version,
-      expiresAt: row.expires_at ? new Date(row.expires_at).toISOString() : null,
-    } : null,
     payout: row.payout_id ? {
       id: row.payout_id,
       status: row.payout_status,
@@ -694,26 +569,8 @@ async function processProviderEvent(client, event) {
     );
     return 'processed';
   }
-  if (event.type === 'setup_intent.succeeded') {
-    const mandateId = text(object.metadata?.sit_mandate_id, 80);
-    const result = await client.query(
-      `UPDATE deposit_mandates SET status = 'active', provider_setup_intent_id = $2,
-           provider_customer_id = COALESCE($3, provider_customer_id),
-           provider_payment_method_id = $4
-       WHERE id::text = $1 RETURNING booking_id`,
-      [mandateId, object.id, providerId(object.customer), providerId(object.payment_method)],
-    );
-    return result.rowCount ? 'processed' : 'ignored';
-  }
-  if (event.type === 'checkout.session.expired' && object.metadata?.sit_mandate_id) {
-    const result = await client.query(
-      `UPDATE deposit_mandates SET status = 'expired'
-       WHERE id::text = $1 AND status IN ('created', 'requires_action')
-       RETURNING booking_id`,
-      [text(object.metadata.sit_mandate_id, 80)],
-    );
-    return result.rowCount ? 'processed' : 'ignored';
-  }
+  // A delayed webhook from the retired deposit flow must never revive it.
+  if (object.metadata?.sit_mandate_id) return 'ignored';
   const mappedStatus = paymentStatusForProvider(event.type, object);
   if (mappedStatus) {
     const paymentId = text(object.metadata?.sit_payment_id, 80);
@@ -955,152 +812,6 @@ export async function simulatePaymentEvent({ actor, paymentId, scenario, duplica
   };
   const applied = await applyProviderEvent(event);
   return { eventId, scenario, ...applied };
-}
-
-export async function simulateDepositSetup({ actor, mandateId }) {
-  if (config.payments.transport !== 'memory') throw new PaymentDomainError(404, 'simulation_not_available');
-  const result = await pool.query(
-    `SELECT mandate.*, booking.owner_id FROM deposit_mandates AS mandate
-     JOIN bookings AS booking ON booking.id = mandate.booking_id WHERE mandate.id::text = $1`,
-    [mandateId],
-  );
-  if (!result.rowCount) throw new PaymentDomainError(404, 'deposit_mandate_not_found');
-  const mandate = result.rows[0];
-  if (![mandate.renter_id, mandate.owner_id].includes(actor.id) && actor.role !== 'admin') {
-    throw new PaymentDomainError(403, 'deposit_forbidden');
-  }
-  const event = {
-    id: `evt_memory_${crypto.randomBytes(12).toString('hex')}`,
-    type: 'setup_intent.succeeded', object: 'event', livemode: false,
-    created: Math.floor(Date.now() / 1000),
-    data: { object: {
-      id: mandate.provider_setup_intent_id || `seti_memory_${crypto.randomBytes(8).toString('hex')}`,
-      object: 'setup_intent', status: 'succeeded',
-      customer: mandate.provider_customer_id,
-      payment_method: `pm_memory_deposit_${mandate.id.replaceAll('-', '').slice(0, 16)}`,
-      metadata: { sit_mandate_id: mandate.id, sit_booking_id: mandate.booking_id },
-    } },
-  };
-  return applyProviderEvent(event);
-}
-
-export async function chargeDeposit({ actor, mandateId, amountMinor, disputeId, reason, key: rawKey }) {
-  ensurePaymentsEnabled(actor.id);
-  if (actor.role !== 'admin') throw new PaymentDomainError(403, 'deposit_charge_requires_admin');
-  const key = paymentIdempotencyKey(rawKey, 'deposit.charge');
-  const amount = Number(amountMinor);
-  if (!Number.isSafeInteger(amount) || amount <= 0) throw new PaymentDomainError(400, 'invalid_deposit_charge_amount');
-  const normalizedReason = text(reason, 2000);
-  if (normalizedReason.length < 3) throw new PaymentDomainError(400, 'deposit_charge_reason_required');
-  const prepared = await inTransaction(async (client) => {
-    const result = await client.query(
-      `SELECT mandate.*, booking.owner_id, booking.workflow_status,
-              dispute.id AS dispute_id, dispute.status AS dispute_status
-       FROM deposit_mandates AS mandate
-       JOIN bookings AS booking ON booking.id = mandate.booking_id
-       JOIN disputes AS dispute ON dispute.id::text = $2 AND dispute.booking_id = mandate.booking_id
-       WHERE mandate.id::text = $1 FOR UPDATE OF mandate, booking, dispute`,
-      [mandateId, disputeId],
-    );
-    if (!result.rowCount) throw new PaymentDomainError(404, 'deposit_mandate_or_dispute_not_found');
-    const mandate = result.rows[0];
-    if (mandate.status !== 'active' || mandate.workflow_status !== 'disputed'
-        || !['open', 'investigating', 'waiting_for_user'].includes(mandate.dispute_status)) {
-      throw new PaymentDomainError(409, 'deposit_charge_not_allowed');
-    }
-    const activeCharge = await client.query(
-      `SELECT idempotency_key FROM deposit_charges
-       WHERE mandate_id = $1 AND status IN ('created', 'requires_action')
-       ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
-      [mandateId],
-    );
-    if (activeCharge.rowCount && activeCharge.rows[0].idempotency_key !== key) {
-      throw new PaymentDomainError(409, 'deposit_charge_in_progress');
-    }
-    const remaining = Number(mandate.maximum_amount_minor) - Number(mandate.charged_amount_minor);
-    if (amount > remaining) throw new PaymentDomainError(409, 'deposit_charge_exceeds_consent', { remainingMinor: remaining });
-    const command = await beginCommand(client, {
-      key, actorId: actor.id, type: 'deposit.charge',
-      request: { mandateId, disputeId, amountMinor: amount, reason: normalizedReason },
-      bookingId: mandate.booking_id, paymentId: mandate.payment_id,
-    });
-    if (command.completed_at) return { replay: command.response_payload };
-    const existingCharge = await client.query(
-      'SELECT * FROM deposit_charges WHERE idempotency_key = $1',
-      [key],
-    );
-    const charge = existingCharge.rowCount ? existingCharge : await client.query(
-      `INSERT INTO deposit_charges (
-         mandate_id, booking_id, dispute_id, idempotency_key, status,
-         amount_minor, currency, reason, livemode
-       ) VALUES ($1, $2, $3, $4, 'created', $5, $6, $7, $8)
-       RETURNING *`,
-      [mandateId, mandate.booking_id, disputeId, key, amount, mandate.currency, normalizedReason, config.payments.livemode],
-    );
-    return { mandate, charge: charge.rows[0] };
-  });
-  if (prepared.replay) return { ...prepared.replay, replayed: true };
-  const providerCharge = await stripeProvider.createOffSessionDepositCharge({
-    customerId: prepared.mandate.provider_customer_id,
-    paymentMethodId: prepared.mandate.provider_payment_method_id,
-    amountMinor: amount,
-    currency: prepared.mandate.currency,
-    bookingId: prepared.mandate.booking_id,
-    mandateId,
-    idempotencyKey: `${key}:charge`,
-  });
-  const succeeded = providerCharge.status === 'succeeded';
-  const needsAction = providerCharge.status === 'requires_action';
-  const status = succeeded ? 'succeeded' : (needsAction ? 'requires_action' : 'failed');
-  return inTransaction(async (client) => {
-    await client.query(
-      `UPDATE deposit_charges SET status = $2, provider_payment_intent_id = $3,
-           provider_charge_id = $4, failure_code = $5,
-           succeeded_at = CASE WHEN $2 = 'succeeded' THEN now() ELSE NULL END
-       WHERE id = $1`,
-      [
-        prepared.charge.id, status, providerCharge.id, providerId(providerCharge.latest_charge),
-        status === 'failed' ? text(providerCharge.last_payment_error?.code, 120) || 'deposit_charge_failed' : null,
-      ],
-    );
-    if (succeeded) {
-      await client.query(
-        'UPDATE deposit_mandates SET charged_amount_minor = charged_amount_minor + $2 WHERE id = $1',
-        [mandateId, amount],
-      );
-      await insertLedger(client, {
-        key: `${key}:ledger`, bookingId: prepared.mandate.booking_id,
-        paymentId: prepared.mandate.payment_id, type: 'deposit_charged',
-        currency: prepared.mandate.currency,
-        providerReference: providerId(providerCharge.latest_charge) ?? providerCharge.id,
-        metadata: { mandateId, disputeId },
-        entries: [
-          { accountCode: 'stripe_clearing', accountOwnerId: null, debitMinor: amount, creditMinor: 0 },
-          { accountCode: 'deposit_hold', accountOwnerId: prepared.mandate.owner_id, debitMinor: 0, creditMinor: amount },
-        ],
-      });
-      await enqueueFinancialNotification(client, {
-        bookingId: prepared.mandate.booking_id,
-        eventKey: `deposit-charge:${prepared.charge.id}:succeeded`, kind: 'deposit_charged',
-        recipientRole: 'renter', amountMinor: amount, currency: prepared.mandate.currency,
-      });
-    }
-    const response = {
-      charge: {
-        id: prepared.charge.id, status, amountMinor: amount,
-        currency: prepared.mandate.currency,
-      },
-      requiresAction: needsAction,
-      replayed: false,
-    };
-    await completeCommand(client, key, prepared.mandate.payment_id, response);
-    await audit(client, {
-      actorId: actor.id, actorRole: actor.role, action: 'deposit.charge_attempted',
-      resourceType: 'deposit_charge', resourceId: prepared.charge.id,
-      metadata: { mandateId, disputeId, amountMinor: amount, status },
-    });
-    return response;
-  });
 }
 
 export async function refundPayment({ actor = null, paymentId, amountMinor = null, reason = 'booking_cancelled', key: rawKey }) {

@@ -71,9 +71,57 @@ if (!databaseUrl) {
         '008_b9_moderation_and_reviews.up.sql',
         '009_social_auth_providers.up.sql',
         '010_phone_verification.up.sql',
+        '011_launch_without_deposit_or_protection.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
+      const launchTruthConstraints = await setupPool.query(
+        `SELECT conname, convalidated
+         FROM pg_constraint
+         WHERE conname = ANY($1::text[])
+         ORDER BY conname`,
+        [[
+          'bookings_launch_no_deposit_check',
+          'deposit_charges_launch_disabled_check',
+          'deposit_mandates_launch_disabled_check',
+          'listings_launch_no_deposit_check',
+          'listings_launch_no_protection_check',
+          'payments_launch_no_deposit_check',
+        ]],
+      );
+      assert.deepEqual(launchTruthConstraints.rows, [
+        { conname: 'bookings_launch_no_deposit_check', convalidated: true },
+        { conname: 'deposit_charges_launch_disabled_check', convalidated: true },
+        { conname: 'deposit_mandates_launch_disabled_check', convalidated: true },
+        { conname: 'listings_launch_no_deposit_check', convalidated: true },
+        { conname: 'listings_launch_no_protection_check', convalidated: true },
+        { conname: 'payments_launch_no_deposit_check', convalidated: true },
+      ]);
+      const launchTruthTriggers = await setupPool.query(
+        `SELECT trigger.tgname, trigger.tgenabled
+         FROM pg_trigger AS trigger
+         WHERE trigger.tgname = ANY($1::text[])
+           AND NOT trigger.tgisinternal
+         ORDER BY trigger.tgname`,
+        [[
+          'deposit_charges_launch_insert_block',
+          'deposit_charges_launch_update_block',
+          'deposit_mandates_launch_insert_block',
+          'deposit_mandates_launch_update_block',
+          'ledger_entries_launch_deposit_insert_block',
+          'ledger_transactions_launch_deposit_insert_block',
+          'payment_commands_launch_deposit_insert_block',
+        ]],
+      );
+      assert.deepEqual(launchTruthTriggers.rows, [
+        { tgname: 'deposit_charges_launch_insert_block', tgenabled: 'O' },
+        { tgname: 'deposit_charges_launch_update_block', tgenabled: 'O' },
+        { tgname: 'deposit_mandates_launch_insert_block', tgenabled: 'O' },
+        { tgname: 'deposit_mandates_launch_update_block', tgenabled: 'O' },
+        { tgname: 'ledger_entries_launch_deposit_insert_block', tgenabled: 'O' },
+        { tgname: 'ledger_transactions_launch_deposit_insert_block', tgenabled: 'O' },
+        { tgname: 'payment_commands_launch_deposit_insert_block', tgenabled: 'O' },
+      ]);
 
       await setupPool.query('TRUNCATE users CASCADE');
       await setupPool.query(
@@ -87,6 +135,33 @@ if (!databaseUrl) {
            ('support', 'support@example.com', '{}'::jsonb, 'support', 'active'),
            ('suspended', 'suspended@example.com', '{}'::jsonb, 'user', 'suspended')`,
       );
+      for (const statement of [
+        `INSERT INTO deposit_mandates (
+           booking_id, renter_id, status, maximum_amount_minor,
+           currency, consent_version, consented_at
+         ) VALUES ('retired-booking', 'renter-a', 'failed', 0, 'EUR', 'retired', now())`,
+        `INSERT INTO deposit_charges (
+           mandate_id, booking_id, dispute_id, idempotency_key,
+           status, amount_minor, currency, reason
+         ) VALUES (
+           gen_random_uuid(), 'retired-booking', gen_random_uuid(),
+           'retired-deposit-charge', 'failed', 1, 'EUR', 'retired'
+         )`,
+        `INSERT INTO payment_commands (
+           idempotency_key, actor_id, command_type, request_hash
+         ) VALUES ('retired-deposit-command', 'renter-a', 'deposit.setup', $1)`,
+        `INSERT INTO ledger_transactions (
+           idempotency_key, transaction_type, currency
+         ) VALUES ('retired-deposit-ledger', 'deposit_charged', 'EUR')`,
+        `INSERT INTO ledger_entries (
+           transaction_id, account_code, debit_minor, credit_minor
+         ) VALUES (gen_random_uuid(), 'deposit_hold', 1, 0)`,
+      ]) {
+        await assert.rejects(
+          setupPool.query(statement, statement.includes('$1') ? ['a'.repeat(64)] : []),
+          (error) => error?.code === '23514',
+        );
+      }
       await setupPool.query(
         `UPDATE users SET phone_e164 = '+4915212345678' WHERE id = 'owner'`,
       );
@@ -157,12 +232,38 @@ if (!databaseUrl) {
            latitude, longitude, min_days, max_days, protection_model
          ) VALUES (
            'listing-1', 'owner',
-           '{"id":"listing-1","ownerId":"owner","title":"Camera","description":"Camera for integration tests","categoryId":"cat3","subcategory":"Kameras","tags":["camera"],"pricePerDay":15,"priceRaw":15,"priceUnit":"day","currency":"EUR","deposit":null,"photos":["https://shareittoo.com/api/v1/uploads/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb-full.webp"],"locationText":"Owner exact address","lat":52.5201,"lng":13.4051,"geohash":"private","condition":"good","minDays":1,"maxDays":30,"createdAt":"2026-08-08T20:00:00.000Z","isActive":true,"verificationStatus":"pending","city":"Berlin","country":"Deutschland","status":"active","timesLent":0,"protectionModel":"standard"}'::jsonb,
+           '{"id":"listing-1","ownerId":"owner","title":"Camera","description":"Camera for integration tests","categoryId":"cat3","subcategory":"Kameras","tags":["camera"],"pricePerDay":15,"priceRaw":15,"priceUnit":"day","currency":"EUR","deposit":null,"photos":["https://shareittoo.com/api/v1/uploads/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb-full.webp"],"locationText":"Owner exact address","lat":52.5201,"lng":13.4051,"geohash":"private","condition":"good","minDays":1,"maxDays":30,"createdAt":"2026-08-08T20:00:00.000Z","isActive":true,"verificationStatus":"pending","city":"Berlin","country":"Deutschland","status":"active","timesLent":0,"protectionModel":"none"}'::jsonb,
            true, 1, 1, 'active', 'EUR', 1500,
            'Camera', 'Camera for integration tests', 'cat3', 'good',
            'Owner exact address', 'Berlin', 'Deutschland', 52.5201, 13.4051,
-           1, 30, 'standard'
+           1, 30, 'none'
          )`,
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE listings
+           SET security_deposit_minor = 1000,
+               protection_model = 'standard'
+           WHERE id = 'listing-1'`,
+        ),
+        (error) => error?.code === '23514'
+          && ['listings_launch_no_deposit_check', 'listings_launch_no_protection_check']
+            .includes(error?.constraint),
+      );
+      await assert.rejects(
+        setupPool.query(
+          `UPDATE listings
+           SET payload = jsonb_set(
+             jsonb_set(payload, '{deposit}', '1000'::jsonb, true),
+             '{protectionModel}',
+             '"standard"'::jsonb,
+             true
+           )
+           WHERE id = 'listing-1'`,
+        ),
+        (error) => error?.code === '23514'
+          && ['listings_launch_no_deposit_check', 'listings_launch_no_protection_check']
+            .includes(error?.constraint),
       );
       await setupPool.query(
         `INSERT INTO uploads (
@@ -787,7 +888,7 @@ if (!databaseUrl) {
         priceRaw: 18,
         priceUnit: 'day',
         currency: 'EUR',
-        deposit: 60,
+        deposit: null,
         photos: [listingUpload.url],
         locationText: 'Exact owner address 12',
         city: 'Berlin',
@@ -799,7 +900,7 @@ if (!databaseUrl) {
         minDays: 1,
         maxDays: 14,
         handoverRadiusKm: 15,
-        protectionModel: 'standard',
+        protectionModel: 'none',
         status: 'active',
         isActive: true,
       };
@@ -1177,13 +1278,15 @@ if (!databaseUrl) {
       const b8ListingUpdate = await fetch(`${baseUrl}/v1/listings/listing-1`, {
         method: 'PUT',
         headers: ownerHeaders,
-        body: JSON.stringify({ ...b8ListingPayload, deposit: 60 }),
+        body: JSON.stringify({ ...b8ListingPayload, deposit: 60, protectionModel: 'standard' }),
       });
       assert.equal(b8ListingUpdate.status, 200);
-      assert.equal((await b8ListingUpdate.json()).listing.deposit, 60);
+      const neutralizedListing = (await b8ListingUpdate.json()).listing;
+      assert.equal(neutralizedListing.deposit, null);
+      assert.equal(neutralizedListing.protectionModel, 'none');
       assert.equal((await setupPool.query(
         `SELECT security_deposit_minor FROM listings WHERE id = 'listing-1'`,
-      )).rows[0].security_deposit_minor, '6000');
+      )).rows[0].security_deposit_minor, null);
       const b8Create = await fetch(`${baseUrl}/v1/bookings`, {
         method: 'POST',
         headers: { ...renterAHeaders, 'Idempotency-Key': 'b8-create-payment-booking' },
@@ -1193,7 +1296,7 @@ if (!databaseUrl) {
         }),
       });
       assert.equal(b8Create.status, 201);
-      assert.equal((await b8Create.json()).booking.quote.securityDepositMinor, 6000);
+      assert.equal((await b8Create.json()).booking.quote.securityDepositMinor, 0);
       const b8Accept = await fetch(`${baseUrl}/v1/bookings/b8-payment-flow/transitions`, {
         method: 'POST',
         headers: { ...ownerHeaders, 'Idempotency-Key': 'b8-accept-payment-booking' },
@@ -1204,7 +1307,7 @@ if (!databaseUrl) {
       const b8CheckoutRequest = () => fetch(`${baseUrl}/v1/bookings/b8-payment-flow/payment/checkout`, {
         method: 'POST',
         headers: { ...renterAHeaders, 'Idempotency-Key': 'b8-checkout-payment-booking' },
-        body: JSON.stringify({ depositConsent: false }),
+        body: '{}',
       });
       const b8Checkout = await b8CheckoutRequest();
       assert.equal(b8Checkout.status, 201);
@@ -1276,10 +1379,9 @@ if (!databaseUrl) {
         rentalSubtotalMinor: 3000,
         platformFeeMinor: 300,
         ownerPayoutMinor: 3000,
-        securityDepositMinor: 6000,
         currency: 'EUR',
       });
-      assert.equal(b8Paid.depositConsentVersion, 'deposit-v2026-08');
+      assert.equal(Object.hasOwn(b8Paid, 'depositConsentVersion'), false);
       assert.equal(b8Paid.payment.status, 'captured');
       assert.equal(b8Paid.payment.capturedMinor, 3300);
 
@@ -1331,52 +1433,12 @@ if (!databaseUrl) {
          WHERE id = 'b8-payment-flow'`,
       );
 
-      const setupDeposit = await fetch(`${baseUrl}/v1/bookings/b8-payment-flow/deposit/setup`, {
+      const disabledDeposit = await fetch(`${baseUrl}/v1/bookings/b8-payment-flow/deposit/setup`, {
         method: 'POST',
         headers: { ...renterAHeaders, 'Idempotency-Key': 'b8-deposit-setup-booking' },
-        body: JSON.stringify({ consentAccepted: true, consentVersion: 'deposit-v2026-08' }),
+        body: '{}',
       });
-      assert.equal(setupDeposit.status, 201);
-      const depositPayload = await setupDeposit.json();
-      assert.equal(depositPayload.mandate.maximumAmountMinor, 6000);
-      const simulateDeposit = await fetch(`${baseUrl}/v1/deposit-mandates/${depositPayload.mandate.id}/simulate`, {
-        method: 'POST', headers: renterAHeaders,
-      });
-      assert.equal(simulateDeposit.status, 200);
-      assert.equal((await fetch(`${baseUrl}/v1/bookings/b8-payment-flow/payment`, { headers: renterAHeaders }).then((response) => response.json())).deposit.status, 'active');
-
-      const depositDispute = await setupPool.query(
-        `INSERT INTO disputes (
-           booking_id, opened_by, status, reason_code, summary
-         ) VALUES (
-           'b8-payment-flow', 'renter-a', 'investigating',
-           'documented_damage_probe', 'B8 integration deposit charge evidence'
-         ) RETURNING id`,
-      );
-      await setupPool.query(
-        `UPDATE bookings SET workflow_status = 'disputed', disputed_at = now(),
-             workflow_revision = workflow_revision + 1
-         WHERE id = 'b8-payment-flow'`,
-      );
-      const depositCharge = await fetch(`${baseUrl}/v1/deposit-mandates/${depositPayload.mandate.id}/charges`, {
-        method: 'POST',
-        headers: { ...adminHeaders, 'Idempotency-Key': 'b8-charge-deposit-dispute' },
-        body: JSON.stringify({
-          disputeId: depositDispute.rows[0].id,
-          amountMinor: 1000,
-          reason: 'Dokumentierter Schaden im kontrollierten Integrationstest',
-        }),
-      });
-      assert.equal(depositCharge.status, 201);
-      assert.equal((await depositCharge.json()).charge.status, 'succeeded');
-      await setupPool.query(
-        `UPDATE disputes SET status = 'closed', resolved_at = now() WHERE id = $1`,
-        [depositDispute.rows[0].id],
-      );
-      await setupPool.query(
-        `UPDATE bookings SET workflow_status = 'confirmed', workflow_revision = workflow_revision + 1
-         WHERE id = 'b8-payment-flow'`,
-      );
+      assert.equal(disabledDeposit.status, 404);
 
       const b8Activate = await fetch(`${baseUrl}/v1/bookings/b8-payment-flow/transitions`, {
         method: 'POST',

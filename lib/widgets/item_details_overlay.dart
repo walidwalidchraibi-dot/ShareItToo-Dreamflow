@@ -1273,11 +1273,9 @@ class _ItemMetaSection extends StatelessWidget {
             value: ConditionLabels.label(item.condition)),
         if (item.minDays != null || item.maxDays != null)
           _TableLine(label: l10n.t('Mietdauer'), value: _duration(item)),
-        _TableLine(
-          label: 'Schutzmodell',
-          value: item.protectionModel == 'standard'
-              ? 'ShareItToo Standardschutz'
-              : item.protectionModel,
+        const _TableLine(
+          label: 'Buchungsablauf',
+          value: 'Geführte Übergabe und Rückgabe',
         ),
         _TableLine(label: l10n.t('Verliehen'), value: '${item.timesLent}×'),
         _TableLine(

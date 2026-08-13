@@ -2,7 +2,7 @@ Teile mehr, kaufe weniger: Mit ShareItToo kannst du Gegenstände in deiner Nähe
 
 Entdecken und anbieten
 • Durchsuche lokale Inserate und filtere passende Gegenstände.
-• Erstelle eigene Inserate mit Bildern, Preis, Kaution, Verfügbarkeit und Übergabeinformationen.
+• Erstelle eigene Inserate mit Bildern, Preis, Verfügbarkeit und Übergabeinformationen.
 • Teile nur so viele Standortinformationen, wie für Suche und Übergabe nötig sind.
 
 Buchungen gemeinsam abwickeln

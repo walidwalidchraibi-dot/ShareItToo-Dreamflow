@@ -42,7 +42,6 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081202-20260812T203621Z.json` |
 | Android-Offline-/Realtime-Wiederherstellung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-offline-realtime-2026081202-20260812T203820Z.json` |
 | Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081202.json` |
-| Play-Live-Vorprüfung | `ready-awaiting-explicit-internal-upload-approval`; Signierung stimmt, interner Kanal inaktiv mit 0 Bundles, geschlossener Test 0/12; `docs/evidence/b11/google-play-pre-upload-live-readiness-20260813.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081202.json` |
 | Staging-Servercommit | `72dd8f13b5d3be0e82392a8b28c31292bdc23b53` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
@@ -234,14 +233,14 @@ als Store-Installation.
 ### Inserat, Suche und Buchung
 
 1. Vermieter erstellt ein synthetisches Inserat mit mindestens einem
-   Testbild, Preis, Kaution, Standorttext und Verfügbarkeit.
+   Testbild, Preis, Standorttext und Verfügbarkeit.
 2. Mieter findet es über Feed und Suche, öffnet Details und sendet eine
    Buchungsanfrage.
 3. Vermieter nimmt an; beide Geräte zeigen denselben autoritativen Status.
 4. Wiederholtes Tippen, Netzwechsel und erneutes Öffnen dürfen keine doppelte
    Anfrage oder Transition erzeugen.
-5. Zahlung bleibt im freigegebenen Testtransport. Betrag, Plattformanteil,
-   Kautionslimit und Beleg müssen mit dem Backendzustand übereinstimmen.
+5. Zahlung bleibt im freigegebenen Testtransport. Betrag, Plattformanteil und
+   Beleg müssen mit dem Backendzustand übereinstimmen; Kaution muss `0` sein.
 
 ### Chat, Push und Offline-Wiederkehr
 

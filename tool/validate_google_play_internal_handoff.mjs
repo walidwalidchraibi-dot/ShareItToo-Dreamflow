@@ -76,7 +76,11 @@ export function validateGooglePlayInternalHandoff({
   assertNoCredentials(handoff);
 
   same(handoff.schemaVersion, 1, 'schemaVersion');
-  const superseded = handoff.status === 'superseded-privacy-rescan-failed-replacement-pending';
+  const supersededStatuses = new Set([
+    'superseded-privacy-rescan-failed-replacement-pending',
+    'superseded-product-truth-failed-replacement-pending',
+  ]);
+  const superseded = supersededStatuses.has(handoff.status);
   if (!superseded && handoff.status !== 'verified-artifact-ready-immediate-reverification-pending') {
     fail('status must describe either the verified artifact or its fail-closed supersession.');
   }
@@ -91,7 +95,10 @@ export function validateGooglePlayInternalHandoff({
     }
     const supersessionPath = resolve(repositoryRoot, handoff.supersessionEvidenceRef ?? '');
     const supersession = object(readJson(supersessionPath, 'supersession evidence'), 'supersession evidence');
-    same(supersession.status, 'superseded-privacy-rescan-failed', 'supersession status');
+    const expectedSupersessionStatus = handoff.status.startsWith('superseded-product-truth')
+      ? 'superseded-product-truth-failed'
+      : 'superseded-privacy-rescan-failed';
+    same(supersession.status, expectedSupersessionStatus, 'supersession status');
     same(supersession.remediation?.replacementBuildNumber, handoff.replacementBuildNumber,
       'supersession replacement build number');
     same(supersession.boundaries?.uploadedToStore, false, 'supersession uploadedToStore');
@@ -189,7 +196,7 @@ export function validateGooglePlayInternalHandoff({
   same(live.kind, 'google-play-pre-upload-live-readiness', 'pre-upload live readiness.kind');
   same(
     live.status,
-    'ready-awaiting-explicit-internal-upload-approval',
+    superseded ? handoff.status : 'ready-awaiting-explicit-internal-upload-approval',
     'pre-upload live readiness.status',
   );
   if (typeof live.capturedAt !== 'string' ||
@@ -285,7 +292,7 @@ export function validateGooglePlayInternalHandoff({
     appIconUploaded: false,
     featureGraphicUploaded: false,
     phoneScreenshotsUploaded: 0,
-    validatedLocalPhoneScreenshots: 4,
+    validatedLocalPhoneScreenshots: superseded ? 0 : 4,
     savedInThisObservation: false,
   };
   for (const [key, value] of Object.entries(expectedListing)) {

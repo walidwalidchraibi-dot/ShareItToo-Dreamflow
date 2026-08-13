@@ -246,6 +246,42 @@ void main() {
     expect(security, contains('!BackendConfig.enabled && !kReleaseMode'));
   });
 
+  test(
+      'listing details do not claim an unapproved ShareItToo protection product',
+      () async {
+    final details =
+        await File('lib/widgets/item_details_overlay.dart').readAsString();
+
+    expect(details, isNot(contains('ShareItToo Standardschutz')));
+    expect(details, contains("label: 'Buchungsablauf'"));
+    expect(details, contains("value: 'Geführte Übergabe und Rückgabe'"));
+  });
+
+  test('launch app does not expose deposit or protection flows', () async {
+    final sources = <String>[
+      await File('lib/screens/payment_checkout_screen.dart').readAsString(),
+      await File('lib/screens/booking_detail_screen.dart').readAsString(),
+      await File('lib/screens/create_listing_screen.dart').readAsString(),
+      await File('lib/screens/help_center_screen.dart').readAsString(),
+      await File('lib/screens/legal_terms_screen.dart').readAsString(),
+      await File('lib/screens/payment_methods_screen.dart').readAsString(),
+    ].join('\n');
+    expect(sources.toLowerCase(), isNot(contains('kaution')));
+    expect(sources, isNot(contains('protectionModel:')));
+    expect(sources, isNot(contains('createDepositSetup')));
+    expect(sources.toLowerCase(), isNot(contains('securitydeposit')));
+  });
+
+  test('launch item model cannot reintroduce deposit or protection fields',
+      () async {
+    final itemModel = await File('lib/models/item.dart').readAsString();
+
+    expect(itemModel, isNot(contains('final double? deposit')));
+    expect(itemModel, isNot(contains('final String protectionModel')));
+    expect(itemModel, isNot(contains("'deposit':")));
+    expect(itemModel, isNot(contains("'protectionModel':")));
+  });
+
   test('guest notification entry is gated and its header control is named',
       () async {
     final profile =

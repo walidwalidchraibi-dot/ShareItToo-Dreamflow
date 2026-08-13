@@ -1,4 +1,4 @@
-# B8 – Stripe-Zahlungen, Kaution, Auszahlungen und Ledger
+# B8 – Stripe-Zahlungen, Auszahlungen und Ledger
 
 Stand: 9. August 2026  
 Technischer Status: Staging bestanden  
@@ -8,7 +8,7 @@ Produktionsstatus: unverändert; Stripe-Livebetrieb nicht freigegeben
 
 B8 ersetzt lokale oder vom Client behauptete Zahlungszustände durch einen
 serverautoritativen Zahlungsablauf. Buchungsbestätigung, Erstattung,
-Auszahlung, Kautionsbelastung und Chargeback-Folgen werden ausschließlich aus
+Auszahlung und Chargeback-Folgen werden ausschließlich aus
 verifizierten Serverereignissen und in Datenbanktransaktionen abgeleitet.
 
 Die technische Staging-Abnahme ist vollständig bestanden. Der reale Stripe-
@@ -27,10 +27,11 @@ außerhalb des Repositorys eingerichtet wurden.
   zurück.
 - Die Plattformgebühr und der Vermieteranteil werden aus dem unveränderlichen
   serverseitigen Buchungsangebot berechnet.
-- Die Kaution ist kein stiller Zusatzbetrag zur Mietzahlung. Sie nutzt einen
-  getrennten Setup-Checkout, eine versionierte ausdrückliche Zustimmung und
-  einen festen Höchstbetrag. Eine spätere Belastung ist nur durch einen Admin
-  und nur für einen aktiven dokumentierten Streitfall möglich.
+- Die Vorwärtsmigration `011_launch_without_deposit_or_protection.up.sql`
+  neutralisiert die frühere Kautionsspur auf `0`/`NULL`, setzt das frühere
+  Schutzmodell auf `none` und sperrt neue Mandate, Belastungen, Kommandos und
+  Ledger-Buchungen durch Datenbank-Trigger. Die alten Tabellen bleiben
+  ausschließlich aus Schema- und Audit-Kompatibilitätsgründen erhalten.
 - Webhook-Ereignisse werden vor Verarbeitung signaturgeprüft, dauerhaft
   gespeichert, anhand ihres Payload-Hashes geschützt und idempotent
   verarbeitet.
@@ -54,16 +55,13 @@ Die neuen Hauptendpunkte sind:
 - `GET /v1/payments/connect/status`
 - `POST /v1/bookings/:id/payment/checkout`
 - `GET /v1/bookings/:id/payment`
-- `POST /v1/bookings/:id/deposit/setup`
-- `POST /v1/deposit-mandates/:id/charges`
 - `POST /v1/payments/:id/refunds`
 - `POST /v1/payments/:id/payout-release`
 - `POST /v1/payments/webhook`
 - `GET /v1/open/payment/:bookingId`
 
-Die Simulationsendpunkte für Zahlungen und Kautions-Setup existieren nur beim
-Memory-Transport in Test und Staging. Stripe- oder deaktivierter Transport
-geben sie nicht frei.
+Der Simulationsendpunkt für Zahlungen existiert nur beim Memory-Transport in
+Test und Staging. Kautionsendpunkte sind im Launch nicht registriert.
 
 ## Zustände und Schutzregeln
 
@@ -89,13 +87,12 @@ Teil- und Vollerstattungen nach Auszahlung kehren den zugehörigen
 Vermieteranteil exakt und kumulativ um. Eine zweite Auszahlung desselben
 Anteils wird unterdrückt.
 
-### Kaution
+### Keine Kaution und kein Schutzprodukt
 
-Der Zustimmungstext trägt die Version `deposit-v2026-08`. Mandat,
-Höchstbetrag, Währung, Zeitpunkt und Provider-Referenzen werden gespeichert.
-Eine Off-Session-Belastung verlangt Adminrolle, aktiven Streitfall,
-Idempotenzschlüssel, Begründung und einen Betrag innerhalb des noch
-verfügbaren Höchstbetrags.
+Neue und aktualisierte Inserate werden auf `deposit=null` und
+`protectionModel=none` normalisiert. Jedes Buchungsangebot und jede Zahlung
+trägt `securityDepositMinor=0`. Alte Mandate werden widerrufen und können über
+keinen öffentlichen API-Endpunkt aktiviert oder belastet werden.
 
 ### Chargebacks
 
@@ -110,11 +107,11 @@ Migration `007_b8_payments_and_ledger.up.sql` ergänzt unter anderem:
 
 - Connect-Konten und Stripe-Kunden;
 - Payment Commands, Versuche und Provider-Ereignisse;
-- Kautionsmandate und Kautionsbelastungen;
+- historische Mandats- und Belastungstabellen zur Audit-Kompatibilität;
 - vollständige Payment-, Refund-, Payout- und Dispute-Providerreferenzen;
 - Ledger-Transaktionen und Ledger-Einträge;
 - partielle Unique-Indizes gegen parallele Checkout-, Refund-, Payout- und
-  Kautionsaktionen;
+  konkurrierende Zahlungsaktionen;
 - Append-only- und Balance-Trigger.
 
 Repository- und Staging-Prüfsumme der Migration:
@@ -170,13 +167,12 @@ anschließend geschlossenen Konten:
 
 - Connect-Onboarding und Auszahlungsbereitschaft im Memory-Transport;
 - autoritatives Angebot: 4.000 Cent Miete, 400 Cent Plattformgebühr,
-  4.400 Cent Zahlbetrag und 6.000 Cent Kautionsobergrenze;
+  4.400 Cent Zahlbetrag und keine Kaution;
 - idempotente Checkout-Wiederholung;
 - `requires_action`, erfolgreichen Providerabschluss und Unterdrückung eines
   doppelten Provider-Ereignisses;
 - Buchungsbestätigung ausschließlich nach Providerabschluss;
-- versionierte Kautionszustimmung und kontrollierte Belastung von 1.000 Cent
-  in einem dokumentierten Streitfall;
+- deaktivierte Kautionsendpunkte und ein serverseitiger Kautionswert von `0`;
 - Chargeback-Mittelentzug und -Wiedereinsetzung;
 - blockierte Auszahlung bei `lost` und erfolgreiche Auszahlung von 4.000 Cent
   bei `won`;
@@ -225,7 +221,7 @@ Vor einem echten Stripe-Test oder Livepilot müssen außerhalb des Codes
 verbindlich festgelegt und eingerichtet werden:
 
 - Vertragspartei und aktiviertes Stripe-Connect-Plattformkonto;
-- Plattformgebühr, Kautions-/Schutzregeln, Auszahlungsfrist,
+- Plattformgebühr, klare Regel „keine Kaution/kein Schutz“, Auszahlungsfrist,
   Storno-/Erstattungsregeln und Pilotwährung;
 - serverseitiger Stripe-Testschlüssel und Webhook-Secret;
 - 3DS-, Ablehnungs-, Webhook-, Refund-, Payout- und Dispute-Proben im Stripe-

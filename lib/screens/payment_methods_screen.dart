@@ -51,7 +51,7 @@ class PaymentMethodsScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 10),
                   Text('1. Der Vermieter nimmt deine Buchungsanfrage an.'),
-                  Text('2. Du öffnest in der Buchung „Zahlung & Kaution“.'),
+                  Text('2. Du öffnest in der Buchung „Zahlung“.'),
                   Text('3. Du prüfst Betrag und Gebühr.'),
                   Text(
                       '4. Die Eingabe der Zahlungsdaten erfolgt ausschließlich bei Stripe.'),

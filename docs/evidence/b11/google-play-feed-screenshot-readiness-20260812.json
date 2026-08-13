@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "google-play-feed-screenshot-readiness",
-  "status": "four-exact-candidate-local-images-validated-not-uploaded",
+  "status": "superseded-product-truth-failed-recapture-required",
   "capturedAt": "2026-08-13T05:57:06.605Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -12,6 +12,8 @@
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
   },
+  "replacementBuildNumber": "2026081302",
+  "supersessionEvidenceRef": "docs/evidence/b11/android-candidate-2026081202-product-truth-supersession-20260813.json",
   "device": {
     "platform": "android",
     "modelClass": "Pixel 7 Pro",
@@ -32,8 +34,8 @@
     "technicalFixtureCopyVisible": false,
     "protectedActiveBookings": 6,
     "protectedPublicListingsObserved": 6,
-    "storeScreenshotAccepted": true,
-    "validatedLocalCandidates": 4
+    "storeScreenshotAccepted": false,
+    "validatedLocalCandidates": 0
   },
   "completedRemediation": {
     "method": "pause-unreferenced-and-neutralize-protected-staging-listings",

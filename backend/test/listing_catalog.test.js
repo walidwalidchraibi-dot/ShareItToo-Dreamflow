@@ -33,9 +33,20 @@ test('listing normalization enforces a complete active catalogue item', () => {
   assert.equal(listing.ownerId, 'owner');
   assert.equal(listing.minDays, 1);
   assert.equal(listing.maxDays, 30);
-  assert.equal(listing.protectionModel, 'standard');
+  assert.equal(listing.deposit, null);
+  assert.equal(listing.protectionModel, 'none');
   assert.equal(listing.availabilityMode, 'calendar');
   assert.equal(listing.isActive, true);
+});
+
+test('legacy deposit and protection input is neutralized for the launch product', () => {
+  const listing = normalizeListingPayload({
+    ...validListing,
+    deposit: 500,
+    protectionModel: 'standard',
+  }, { id: 'listing-1', ownerId: 'owner' });
+  assert.equal(listing.deposit, null);
+  assert.equal(listing.protectionModel, 'none');
 });
 
 test('active listings require an image while drafts may remain private without one', () => {

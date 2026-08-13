@@ -180,7 +180,6 @@ function normalizedDiscountTiers(value) {
 export function quoteRental({
   days,
   pricePerDayMinor,
-  securityDepositMinor = 0,
   minimumDays = 1,
   maximumDays = 365,
   autoApplyDiscounts = false,
@@ -226,7 +225,7 @@ export function quoteRental({
     expressPlatformFeeMinor: expressPlatformMinor,
     totalMinor,
     ownerPayoutMinor,
-    securityDepositMinor: safeExtra(securityDepositMinor),
+    securityDepositMinor: 0,
   });
 }
 

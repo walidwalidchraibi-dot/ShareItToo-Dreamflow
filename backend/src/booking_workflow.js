@@ -135,7 +135,7 @@ function bookingPayload(row) {
       expressFeeMinor: Number(row.express_fee_minor),
       totalMinor: Number(row.quoted_total_minor),
       ownerPayoutMinor: Number(row.owner_payout_minor),
-      securityDepositMinor: Number(row.security_deposit_minor ?? 0),
+      securityDepositMinor: 0,
     },
   };
 }
@@ -278,7 +278,7 @@ function quoteForListing(candidate, dates, listing) {
   const quote = quoteRental({
     days: dates.days,
     pricePerDayMinor: Number(listing.price_per_day_minor),
-    securityDepositMinor: Number(listing.security_deposit_minor ?? 0),
+    securityDepositMinor: 0,
     minimumDays,
     maximumDays,
     autoApplyDiscounts: payload.autoApplyDiscounts === true,

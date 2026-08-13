@@ -61,7 +61,6 @@ test('server quote is deterministic in minor units and matches launch fee rules'
   const quote = quoteRental({
     days: 5,
     pricePerDayMinor: 1_500,
-    securityDepositMinor: 2_000,
     minimumDays: 1,
     maximumDays: 30,
     autoApplyDiscounts: true,
@@ -89,7 +88,7 @@ test('server quote is deterministic in minor units and matches launch fee rules'
     expressPlatformFeeMinor: 0,
     totalMinor: 7_320,
     ownerPayoutMinor: 6_720,
-    securityDepositMinor: 2_000,
+    securityDepositMinor: 0,
   });
   assert.equal(platformFeeMinor(0), 0);
   assert.equal(platformFeeMinor(1_000), 100);

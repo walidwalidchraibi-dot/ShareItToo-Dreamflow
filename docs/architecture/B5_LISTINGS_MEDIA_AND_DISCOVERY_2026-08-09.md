@@ -23,10 +23,10 @@ Ein aktives Inserat benötigt:
 - Titel und aussagekräftige Beschreibung;
 - Kategorie, optional Unterkategorie und Suchbegriffe;
 - Zustand aus einer kontrollierten Werteliste;
-- positiven Tagespreis, Währung und optional eine Kaution;
+- positiven Tagespreis und Währung; eine Kaution wird nicht angeboten;
 - genauen internen Standort mit Stadt, Land und Koordinaten;
 - Mindest- und Höchstdauer;
-- Übergaberadius und das einheitliche Schutzmodell;
+- Übergaberadius; ein Schutz- oder Versicherungsmodell wird nicht angeboten;
 - mindestens ein geprüftes, dem Anbieter gehörendes Inseratbild;
 - Status `active`.
 
@@ -123,7 +123,7 @@ gegen tatsächlich gebundene, freigegebene Upload-Datensätze gefiltert.
   fällt im produktiven Modus nicht auf Demoangebote zurück.
 - Veröffentlichen ist ohne echtes Bild nicht mehr möglich.
 - Inseratdetails kennzeichnen den Standort ausdrücklich als ungefähr und
-  zeigen das einheitliche Schutzmodell.
+  zeigen den geführten Übergabe- und Rückgabeablauf.
 - Externe Zufallsbilder und automatisch erzeugte Demo-Buchungen wurden aus
   normalen Laufzeitpfaden entfernt.
 - Lokale QA-Fixtures existieren nur hinter dem expliziten Debug-Parameter

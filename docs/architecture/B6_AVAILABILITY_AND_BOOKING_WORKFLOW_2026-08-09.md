@@ -56,7 +56,7 @@ ganzzahligen Minor Units. Das Preis-Snapshot enthält:
 - optionale Liefer- und Abholgebühr anhand serverseitig berechneter Distanz;
 - Gesamtbetrag des Mieters;
 - Auszahlung des Anbieters;
-- Kaution und Preisversionsnummer.
+- Kaution stets `0` und Preisversionsnummer; eine Kaution wird im Launch nicht angeboten.
 
 Der Client sendet nur Auswahl, Zeitraum und gegebenenfalls Übergabeorte. Er
 kann weder Endpreis noch Eigentümerauszahlung überschreiben. Eine Änderung des

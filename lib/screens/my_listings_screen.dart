@@ -81,7 +81,6 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
           currency: e.currency,
           priceUnit: e.priceUnit,
           priceRaw: e.priceRaw,
-          deposit: e.deposit,
           photos: e.photos,
           locationText: e.locationText,
           lat: e.lat,
@@ -208,7 +207,9 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
                                 switch (v) {
                                   case 'publish':
                                     await _changeStatus(it, 'active');
-                                    if (mounted) AppPopup.toast(context, icon: Icons.check_circle, title: 'Anzeige veröffentlicht');
+                                    if (mounted) {
+                                      AppPopup.toast(context, icon: Icons.check_circle, title: 'Anzeige veröffentlicht');
+                                    }
                                     break;
                                   case 'edit':
                                     final res = await Navigator.of(context).push(
@@ -236,7 +237,9 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
                                   case 'delete':
                                     await DataService.deleteItemById(it.id);
                                     await _load();
-                                    if (mounted) AppPopup.toast(context, icon: Icons.delete_outline, title: 'Entwurf gelöscht');
+                                    if (mounted) {
+                                      AppPopup.toast(context, icon: Icons.delete_outline, title: 'Entwurf gelöscht');
+                                    }
                                     break;
                                 }
                               } else {

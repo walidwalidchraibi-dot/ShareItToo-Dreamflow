@@ -14,7 +14,7 @@ dort länger als für die unmittelbare Anfrage benötigt gespeichert wird.
 Maßgebliche technische Grundlage:
 
 - Konto, Profil, Sitzungen, Identitäten, Buchungen und Zahlungsereignisse;
-- Inserate, Verfügbarkeit, Preise, Kautionen und Standorte;
+- Inserate, Verfügbarkeit, Preise und Standorte; keine Kaution;
 - Nachrichten, Bildanhänge, Bewertungen, Meldungen und Streitfälle;
 - Push-Registrierungen, Benachrichtigungseinstellungen und -historie;
 - Audit-, IP-, User-Agent- und Sicherheitsinformationen;
@@ -61,11 +61,11 @@ werden kann.
 | Stadt, Inserat-/Übergabe-/Abholadresse | Personal info: Address plus Location | Contact Info: Physical Address plus Location | erforderlich für gewählten Inserat-/Buchungsflow | ja | Suche, Distanz, Buchung, Übergabe | Backend; öffentliche Ausgabe nur abgerundet, genaue Adresse rollen-/zeitgebunden prüfen |
 | Gerätestandort grob | Location: Approximate location | Coarse Location | optional/funktionsbezogen | ja | lokale Suche, Vorschläge | Backend, nur wenn abgeleiteter Wert übertragen/gespeichert wird |
 | Gerätestandort präzise | Location: Precise location | Precise Location | optional/funktionsbezogen | ja | optionale Standortfreigabe, Übergabe-/Rückgabeprüfung | Backend; Laufzeitdialog, Speicherform und Löschung real prüfen |
-| Inserattext, Titel, Beschreibung, Preis, Kaution, Verfügbarkeit | Other user-generated content | Other User Content | erforderlich für Vermieterfunktion | ja | Marktplatz, Suche, Buchung | Backend/Hosting |
+| Inserattext, Titel, Beschreibung, Preis, Verfügbarkeit | Other user-generated content | Other User Content | erforderlich für Vermieterfunktion | ja | Marktplatz, Suche, Buchung | Backend/Hosting |
 | Inserat-, Chat-, Melde- und Übergabebilder/-videos | Photos and videos | Photos or Videos | optional je Upload, für einzelne Nachweisflows funktional erforderlich | ja | Inserat, Kommunikation, Übergabe, Support, Moderation | Backend/Objektspeicher; Metadatenbereinigung prüfen |
 | Chatnachrichten | Messages | Emails or Text Messages | erforderlich für Chatfunktion | ja | Buchungsabstimmung, Support, Sicherheit/Moderation | Backend/Hosting |
 | Bewertungen, Meldungen, Blockierungen, Support-/Streitfalltexte | Other user-generated content | Customer Support / Other User Content | optional oder ereignisbezogen | ja | Vertrauen, Support, Missbrauchsbekämpfung | Backend, berechtigte Support-/Adminrollen |
-| Buchungszeitraum, Status, Beträge, Gebühren, Kaution, Refund/Payout-Status | Purchase history | Purchases: Purchase History | erforderlich für Buchung | ja | Buchungs- und Zahlungsabwicklung, Belege, Sicherheit/Compliance | Backend; später Stripe als Zahlungsdienstleister |
+| Buchungszeitraum, Status, Beträge, Gebühren, Refund/Payout-Status | Purchase history | Purchases: Purchase History | erforderlich für Buchung | ja | Buchungs- und Zahlungsabwicklung, Belege, Sicherheit/Compliance | Backend; später Stripe als Zahlungsdienstleister |
 | Kartennummer, Bankkonto, vollständige Zahlungsmethode | Financial info: Payment info | Financial Info: Payment Info | **nicht durch ShareItToo erheben**, sofern Stripe-hosted Eingabe und kein Entwicklerzugriff | nicht anwendbar | Zahlungsabwicklung beim Provider | vor Stripe-Aktivierung durch Netzwerk-/SDK-Test bestätigen; sonst Matrix ändern |
 | Konto-ID | User IDs | Identifiers: User ID | erforderlich | ja | Konto, Berechtigung, Buchung, Support, Sicherheit | Backend |
 | Externe Anbieterkennung | User IDs | Identifiers: User ID | optional bei Social Login | ja | Anmeldung, Kontoverknüpfung, Betrugsprävention | Firebase Authentication und ausdrücklich gewählter Google-/Apple-/Facebook-Anbieter; keine Provider-Zugriffstoken im SIT-Backend |
@@ -177,8 +177,8 @@ Matrix vor dem nächsten Build vollständig neu zu bewerten.
 2. Support- und Datenschutzkontakt festlegen und Zustellung testen.
 3. Auftragsverarbeiter, Standorte, Drittlandtransfermechanismen und
    Lösch-/Aufbewahrungsfristen je Datengruppe final dokumentieren.
-4. Finale AGB, Datenschutzerklärung, Storno-/Refund-/Kautionslogik und
-   Nutzerinhaltsregeln veröffentlichen.
+4. Finale AGB, Datenschutzerklärung, Storno-/Refundlogik, die verbindliche
+   Regel „keine Kaution/kein Schutz“ und Nutzerinhaltsregeln veröffentlichen.
 5. Einwilligungs-/Rechtsgrundlage für optionale Standort-, Medien-, Push- und
    Crash-Diagnostik festlegen; Laufzeittexte angleichen.
 6. Produktions-Löschseite mit verständlichem Umfang und Identitätsprüfung

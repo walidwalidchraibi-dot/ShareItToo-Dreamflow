@@ -19,9 +19,9 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts four visually approved images from the exact installed candidate', () => {
+test('accepts the fail-closed supersession while replacement capture is pending', () => {
   assert.deepEqual(validateGooglePlayScreenshotReadiness({ repositoryRoot }), {
-    status: 'four-exact-candidate-local-images-validated-not-uploaded',
+    status: 'superseded-product-truth-failed-recapture-required',
     curatedListingCount: 4,
   });
 });

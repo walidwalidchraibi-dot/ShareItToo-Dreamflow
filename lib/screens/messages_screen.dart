@@ -494,7 +494,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
         Message(
           id: 'mock_msg_u2',
           senderId: me.id,
-          text: 'Ja, passt! Ich bringe Helm und Kaution mit.',
+          text: 'Ja, passt! Ich bringe meinen Ausweis mit.',
           timestamp: now.subtract(const Duration(hours: 1, minutes: 55)),
           isRead: true,
         ),

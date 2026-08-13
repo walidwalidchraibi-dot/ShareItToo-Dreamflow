@@ -693,7 +693,6 @@ class DataService {
       currency: item.currency,
       priceUnit: item.priceUnit,
       priceRaw: item.priceRaw,
-      deposit: item.deposit,
       autoApplyDiscounts: item.autoApplyDiscounts,
       longRentalDiscounts: item.longRentalDiscounts,
       photos: item.photos,
@@ -1425,7 +1424,6 @@ class DataService {
           currency: ownerTemplate.currency,
           priceUnit: ownerTemplate.priceUnit,
           priceRaw: ownerTemplate.priceRaw,
-          deposit: ownerTemplate.deposit,
           autoApplyDiscounts: ownerTemplate.autoApplyDiscounts,
           longRentalDiscounts: ownerTemplate.longRentalDiscounts,
           photos: ownerTemplate.photos,
@@ -1506,7 +1504,6 @@ class DataService {
               currency: (sharedOwnerTemplate ?? acceptedItem).currency,
               priceUnit: (sharedOwnerTemplate ?? acceptedItem).priceUnit,
               priceRaw: (sharedOwnerTemplate ?? acceptedItem).priceRaw,
-              deposit: (sharedOwnerTemplate ?? acceptedItem).deposit,
               autoApplyDiscounts:
                   (sharedOwnerTemplate ?? acceptedItem).autoApplyDiscounts,
               longRentalDiscounts:
@@ -4191,7 +4188,6 @@ class DataService {
         currency: 'EUR',
         priceUnit: 'day',
         priceRaw: basePrice.toDouble(),
-        deposit: null,
         photos: photosFor(cat.slug, i, cat.id),
         locationText: '${city.$1}-${[
           'Mitte',
@@ -4278,7 +4274,6 @@ class DataService {
         currency: 'EUR',
         priceUnit: 'day',
         priceRaw: 19.0,
-        deposit: null,
         photos: const [
           'https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=800&h=800&fit=crop',
         ],
@@ -4314,7 +4309,6 @@ class DataService {
         currency: 'EUR',
         priceUnit: 'day',
         priceRaw: 45.0,
-        deposit: null,
         photos: const [
           'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&h=800&fit=crop',
         ],
@@ -4350,7 +4344,6 @@ class DataService {
         currency: 'EUR',
         priceUnit: 'day',
         priceRaw: 18.0,
-        deposit: null,
         photos: const [
           'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=800&fit=crop',
         ],
@@ -4382,7 +4375,6 @@ class DataService {
         currency: 'EUR',
         priceUnit: 'day',
         priceRaw: 12.0,
-        deposit: null,
         photos: const [
           'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&h=800&fit=crop',
         ],
@@ -4419,7 +4411,6 @@ class DataService {
         currency: 'EUR',
         priceUnit: 'day',
         priceRaw: 10.0,
-        deposit: null,
         photos: const [
           'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&h=800&fit=crop',
         ],

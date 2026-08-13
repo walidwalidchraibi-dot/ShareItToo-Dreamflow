@@ -136,7 +136,6 @@ void main() {
             condition: 'good',
             pricePerDay: 10,
             currency: 'EUR',
-            deposit: 0,
             locationText: 'Berlin',
             lat: 0,
             lng: 0,

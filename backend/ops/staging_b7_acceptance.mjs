@@ -209,7 +209,7 @@ async function main() {
       condition: 'good',
       minDays: 1,
       maxDays: 14,
-      protectionModel: 'standard',
+      protectionModel: 'none',
       status: 'active',
       isActive: true,
     },

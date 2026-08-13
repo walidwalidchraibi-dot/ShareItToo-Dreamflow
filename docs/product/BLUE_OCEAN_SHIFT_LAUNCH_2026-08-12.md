@@ -11,8 +11,8 @@ Ausleihen zu einem geführten Mietvorgang:
 > Übergabe und Rückgabe.
 
 „Sicher“ darf in App und Marketing nur zusammen mit den tatsächlich
-implementierten Kontrollen erklärt werden. SIT verspricht keine Garantie oder
-Versicherung, solange diese nicht rechtlich und operativ freigegeben ist.
+implementierten Kontrollen erklärt werden. SIT bietet zum Launch ausdrücklich
+weder Kaution noch Schutz- oder Versicherungsprodukt an.
 
 ## Gegen welche Alternativen SIT wirklich antritt
 
@@ -53,7 +53,7 @@ ausgeschlossen.
 2. SIT erzeugt einen bearbeitbaren Inseratsentwurf und eine begründete
    Preisspanne.
 3. Der Gegenstand erscheint mit echter Verfügbarkeit in der lokalen Suche.
-4. Der Mieter sieht Gesamtpreis, Kaution und Gebühren vor seiner Zusage.
+4. Der Mieter sieht Gesamtpreis und Gebühren vor seiner Zusage.
 5. Zahlung und Buchungsstatus werden serverseitig bestätigt.
 6. SIT führt beide Rollen durch QR-/Code-Übergabe und Zustandsfotos.
 7. SIT führt beide Rollen durch QR-/Code-Rückgabe und Zustandsfotos.
@@ -70,7 +70,7 @@ geschieht. Freie Nebenwege dürfen den Hauptablauf nicht umgehen.
 - Dokument-, Video- und Audio-Uploads im Launch-Chat;
 - externe Zahlungsabsprachen als vorgesehener Produktweg;
 - doppelte Formulare und wiederholte Bestätigungen ohne Sicherheitsnutzen;
-- unklare Versicherungs- oder Identitätsversprechen;
+- Kautions-, Schutz- oder Versicherungsversprechen;
 - Startkategorien ohne operativ beherrschbares Risiko.
 
 ### Reduzieren
@@ -83,7 +83,7 @@ geschieht. Freie Nebenwege dürfen den Hauptablauf nicht umgehen.
 
 ### Erhöhen
 
-- Transparenz von Gesamtpreis, Kaution, Gebühr und Rückerstattung;
+- Transparenz von Gesamtpreis, Gebühr und Rückerstattung;
 - Qualität und Aktualität lokaler Verfügbarkeit;
 - Sichtbarkeit der Vertrauenskette;
 - Geschwindigkeit von Foto zu veröffentlichungsfähigem Inserat;
@@ -97,7 +97,7 @@ geschieht. Freie Nebenwege dürfen den Hauptablauf nicht umgehen.
 - verpflichtende, private Zustandsfotos;
 - sichtbare Statuskette: verifiziert, bezahlt, übergeben, zurückgegeben;
 - lokale Suche „in meiner Nähe und im Zeitraum verfügbar“;
-- später nur nach Freigabe: Schutzpaket oder Versicherungspartner.
+- dokumentierte Übergabe und Rückgabe ohne behauptete Absicherung.
 
 ## Launchumfang
 
@@ -108,7 +108,7 @@ Erforderlich:
 - Inserat mit Fotos, Standort, Verfügbarkeit und KI-Preisorientierung;
 - lokale Suche und passende Zeitfilter;
 - Textchat, private Fotos und Standortfreigabe;
-- transparente Preis-, Kautions- und Gebührenübersicht;
+- transparente Preis- und Gebührenübersicht;
 - sichere Kartenzahlung; verfügbare Apple-/Google-Wallets über Stripe;
 - geführte Übergabe und Rückgabe mit Fotos und QR/Code;
 - Push, Bewertung und einfacher Klärungsweg.

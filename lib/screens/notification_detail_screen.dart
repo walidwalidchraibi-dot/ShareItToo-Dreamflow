@@ -299,7 +299,7 @@ class _NotificationDetailModel {
       return _NotificationDetailModel(
         title: title.isNotEmpty ? title : 'Zahlungsmethode benötigt',
         subline: 'Damit du reibungslos buchen und bezahlen kannst.',
-        explanation: 'Für Buchungen und Kautionen braucht SIT eine gültige Zahlungsmethode. Du kannst jederzeit eine Methode hinzufügen oder wechseln.',
+        explanation: 'Für bezahlte Buchungen braucht SIT eine gültige Zahlungsmethode. Du kannst jederzeit eine Methode hinzufügen oder wechseln.',
         bullets: const [
           'Füge eine Zahlungsmethode hinzu, um Anfragen schneller abschließen zu können.',
           'Bei abgelaufenen Karten: aktualisiere die Daten, bevor du buchst.',

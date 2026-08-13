@@ -74,7 +74,7 @@ Benötigt werden:
 
 - Entscheidung zur Altersgrenze und dazu, wer wirksam Mietverträge schließen darf;
 - Festlegung, ob ShareItToo ausschließlich vermittelt oder in einzelnen Abläufen selbst Vertragspartner wird;
-- konsistente Regeln für Gebühren, Kaution, Stornierung, Erstattung, Schäden und Streitfälle;
+- konsistente Regeln für Gebühren, keine Kaution/kein Schutz, Stornierung, Erstattung, Schäden und Streitfälle;
 - erneute Freigabe, sobald Echtgeld-Zahlungen, Abonnements oder Werbung technisch aktiviert werden.
 
 ## Offizielle Quellen des technischen Reviews

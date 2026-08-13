@@ -104,7 +104,6 @@ Item _item({required String id, required String ownerId}) => Item.fromJson({
       'currency': 'EUR',
       'priceUnit': 'day',
       'priceRaw': 12,
-      'deposit': 0,
       'autoApplyDiscounts': false,
       'longRentalDiscounts': <Map<String, dynamic>>[],
       'photos': <String>[],

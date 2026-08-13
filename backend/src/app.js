@@ -69,15 +69,12 @@ import {
 } from './notifications.js';
 import {
   createConnectOnboarding,
-  chargeDeposit,
-  createDepositSetup,
   createPaymentCheckout,
   getBookingPayment,
   getConnectStatus,
   paymentHealth,
   refundPayment,
   releasePayout,
-  simulateDepositSetup,
   simulatePaymentEvent,
   verifyAndApplyWebhook,
 } from './payment_workflow.js';
@@ -292,7 +289,7 @@ function listingFinancials(payload) {
   return {
     currency: normalizeCurrency(payload.currency),
     pricePerDayMinor: amountToMinor(payload.pricePerDay),
-    securityDepositMinor: amountToMinor(payload.deposit),
+    securityDepositMinor: null,
   };
 }
 
@@ -1321,20 +1318,9 @@ export function createApp({
     const result = await createPaymentCheckout({
       actor: req.actor,
       bookingId: safeText(req.params.id, 120),
-      raw: req.body,
       key: req.get('Idempotency-Key'),
     });
     kickNotificationWorker();
-    res.status(result.replayed ? 200 : 201).json(result);
-  }));
-
-  app.post('/v1/bookings/:id/deposit/setup', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
-    const result = await createDepositSetup({
-      actor: req.actor,
-      bookingId: safeText(req.params.id, 120),
-      raw: req.body,
-      key: req.get('Idempotency-Key'),
-    });
     res.status(result.replayed ? 200 : 201).json(result);
   }));
 
@@ -1347,23 +1333,6 @@ export function createApp({
     });
     kickNotificationWorker();
     res.json(result);
-  }));
-
-  app.post('/v1/deposit-mandates/:id/simulate', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
-    res.json(await simulateDepositSetup({ actor: req.actor, mandateId: safeText(req.params.id, 80) }));
-  }));
-
-  app.post('/v1/deposit-mandates/:id/charges', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
-    const result = await chargeDeposit({
-      actor: req.actor,
-      mandateId: safeText(req.params.id, 80),
-      amountMinor: req.body?.amountMinor,
-      disputeId: safeText(req.body?.disputeId, 80),
-      reason: req.body?.reason,
-      key: req.get('Idempotency-Key'),
-    });
-    kickNotificationWorker();
-    res.status(result.replayed ? 200 : 201).json(result);
   }));
 
   app.post('/v1/payments/:id/refunds', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
@@ -2521,7 +2490,7 @@ export function createApp({
           }
           const itemId = safeText(candidate.itemId, 120);
           const listingResult = await client.query(
-            `SELECT owner_id, currency, security_deposit_minor
+            `SELECT owner_id, currency
              FROM listings
              WHERE id = $1 AND catalog_version = 1 AND is_active = true`,
             [itemId],
@@ -2554,7 +2523,7 @@ export function createApp({
               payload.end,
               normalizeCurrency(listingResult.rows[0].currency),
               amountToMinor(payload.quotedTotalRenter),
-              listingResult.rows[0].security_deposit_minor,
+              0,
               payload.createdAt,
             ],
           );

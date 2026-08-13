@@ -389,28 +389,11 @@ class BackendRepository {
   static Future<Map<String, dynamic>> createBookingCheckout({
     required String bookingId,
     required String idempotencyKey,
-    bool depositConsent = false,
   }) async {
     return _authorized(
       method: 'POST',
       path: '/bookings/${Uri.encodeComponent(bookingId)}/payment/checkout',
-      body: {'depositConsent': depositConsent},
-      additionalHeaders: {'Idempotency-Key': idempotencyKey},
-    );
-  }
-
-  static Future<Map<String, dynamic>> createDepositSetup({
-    required String bookingId,
-    required String consentVersion,
-    required String idempotencyKey,
-  }) async {
-    return _authorized(
-      method: 'POST',
-      path: '/bookings/${Uri.encodeComponent(bookingId)}/deposit/setup',
-      body: {
-        'consentAccepted': true,
-        'consentVersion': consentVersion,
-      },
+      body: const {},
       additionalHeaders: {'Idempotency-Key': idempotencyKey},
     );
   }

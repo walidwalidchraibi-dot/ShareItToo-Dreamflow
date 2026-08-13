@@ -184,7 +184,6 @@ class _ListingsTabState extends State<_ListingsTab> {
       tags: it.tags,
       pricePerDay: it.pricePerDay,
       currency: it.currency,
-      deposit: it.deposit,
       photos: it.photos,
       locationText: it.locationText,
       lat: it.lat,

@@ -16,12 +16,9 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
     with WidgetsBindingObserver {
   late final String _checkoutKey =
       'checkout_${widget.bookingId}_${DateTime.now().microsecondsSinceEpoch}';
-  late final String _depositKey =
-      'deposit_${widget.bookingId}_${DateTime.now().microsecondsSinceEpoch}';
   Map<String, dynamic>? _state;
   bool _loading = true;
   bool _working = false;
-  bool _depositConsent = false;
   String? _error;
 
   @override
@@ -98,41 +95,6 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
     }
   }
 
-  Future<void> _openDepositSetup() async {
-    if (!_depositConsent) return;
-    setState(() {
-      _working = true;
-      _error = null;
-    });
-    try {
-      final response = await BackendRepository.createDepositSetup(
-        bookingId: widget.bookingId,
-        consentVersion:
-            _state?['depositConsentVersion']?.toString() ?? 'deposit-v2026-08',
-        idempotencyKey: _depositKey,
-      );
-      final rawUrl = response['checkoutUrl']?.toString() ?? '';
-      final uri = Uri.tryParse(rawUrl);
-      if (uri == null ||
-          !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        throw const BackendException(503, 'checkout_open_failed');
-      }
-    } on BackendException catch (error) {
-      if (mounted) {
-        setState(() => _error = _message(error.code));
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() =>
-            _error = 'Die Kautionsabsicherung konnte nicht geöffnet werden.');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _working = false);
-      }
-    }
-  }
-
   String _message(String code) => switch (code) {
         'booking_not_ready_for_payment' =>
           'Die Buchung muss zuerst vom Vermieter angenommen werden.',
@@ -141,8 +103,6 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
         'payments_disabled' =>
           'Zahlungen sind für dieses Konto noch nicht freigeschaltet.',
         'booking_already_paid' => 'Diese Buchung wurde bereits bezahlt.',
-        'deposit_consent_version_outdated' =>
-          'Die Kautionsbedingungen wurden aktualisiert. Bitte öffne diese Seite erneut.',
         _ => 'Die Zahlungsaktion konnte gerade nicht abgeschlossen werden.',
       };
 
@@ -156,14 +116,10 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
     final payment = _state?['payment'] as Map?;
     final quote = _state?['quote'] as Map?;
     final amounts = payment ?? quote;
-    final deposit = _state?['deposit'] as Map?;
     final currency = amounts?['currency']?.toString() ?? 'EUR';
     final paymentStatus = payment?['status']?.toString();
     final captured = const {'captured', 'partially_refunded', 'refunded'}
         .contains(paymentStatus);
-    final depositMinor =
-        (amounts?['securityDepositMinor'] as num?)?.toInt() ?? 0;
-    final depositActive = deposit?['status'] == 'active';
 
     return Scaffold(
       appBar: AppBar(
@@ -232,54 +188,6 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
                       ),
                     ),
                   ),
-                  if (captured && depositMinor > 0) ...[
-                    const SizedBox(height: 14),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Kautionsabsicherung',
-                                style: Theme.of(context).textTheme.titleLarge),
-                            const SizedBox(height: 8),
-                            Text(
-                              depositActive
-                                  ? 'Die Zahlungsmethode für eine mögliche Kaution ist sicher bei Stripe hinterlegt.'
-                                  : 'Maximal ${_money(depositMinor, currency)} dürfen nur bei einem dokumentierten Schaden und nach dem ShareItToo-Klärungsprozess belastet werden.',
-                            ),
-                            if (!depositActive) ...[
-                              const SizedBox(height: 12),
-                              CheckboxListTile(
-                                value: _depositConsent,
-                                contentPadding: EdgeInsets.zero,
-                                controlAffinity:
-                                    ListTileControlAffinity.leading,
-                                title: const Text(
-                                    'Ich stimme dieser begrenzten Kautionsabsicherung ausdrücklich zu.'),
-                                onChanged: _working
-                                    ? null
-                                    : (value) => setState(
-                                        () => _depositConsent = value == true),
-                              ),
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  onPressed: _working || !_depositConsent
-                                      ? null
-                                      : _openDepositSetup,
-                                  icon:
-                                      const Icon(Icons.verified_user_outlined),
-                                  label:
-                                      const Text('Kaution sicher hinterlegen'),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
                   if (_error != null) ...[
                     const SizedBox(height: 14),
                     Card(

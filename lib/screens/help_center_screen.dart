@@ -239,7 +239,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                 'Lege Standort und Verfügbarkeit fest.',
               ],
               tips: [
-                'Achte auf einen realistischen Preis und klare Regeln (Abholung, Kaution).'
+                'Achte auf einen realistischen Preis und klare Regeln für Abholung und Rückgabe.'
               ],
             ),
           ),
@@ -261,12 +261,12 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           _HelpArticle(
             id: 'preis-festlegen',
             title: 'Preis festlegen',
-            short: 'Preis/Tag und ggf. Kaution sinnvoll wählen.',
+            short: 'Einen fairen Tagespreis sinnvoll festlegen.',
             body: _HelpBody(
               intro: 'Ein fairer Preis sorgt für wiederkehrende Buchungen.',
               steps: [
                 'Vergleiche ähnliche Artikel (Marktpreise).',
-                'Setze bei wertvollen Artikeln eine Kaution an.',
+                'Berücksichtige Zustand und lokalen Vergleichspreis.',
                 'Biete Rabatte für längere Mietdauern an.'
               ],
               tips: ['Zu hohe Preise erhöhen Stornos und lange Liegezeiten.'],
@@ -458,7 +458,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   'ShareItToo speichert keine vollständigen Karten- oder Kontodaten auf deinem Gerät. Der verbindliche Betrag wird vom Server berechnet und bei Stripe bezahlt.',
               steps: [
                 'Öffne eine vom Vermieter angenommene Buchung.',
-                'Wähle „Zahlung & Kaution“.',
+                'Wähle „Zahlung“.',
                 'Prüfe Betrag und Gebühr und öffne den sicheren Stripe-Checkout.'
               ],
               tips: [
@@ -523,7 +523,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             short: 'Alle Nachweise an einem Ort herunterladen.',
             body: _HelpBody(
               intro:
-                  'Rechnungen helfen bei Garantie, Versicherung oder Steuer.',
+                  'Rechnungen helfen bei Garantiefragen oder für die Steuer.',
               steps: [
                 'Gehe zu „Kontoeinstellungen“ → „Rechnungen & Belege“.',
                 'Wähle Zeitraum und lade PDF herunter.'
