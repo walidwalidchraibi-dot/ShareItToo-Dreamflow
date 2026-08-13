@@ -185,11 +185,13 @@ export function validateGooglePlayAppContentProgress({
   const internalReleaseEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
     evidence.storeDraft.internalReleaseEvidenceRef), 'utf8'));
   if (internalReleaseEvidence.kind !== 'google-play-internal-release-active' ||
-      internalReleaseEvidence.status !== 'available-to-internal-testers' ||
+      internalReleaseEvidence.status !== 'available-and-store-install-verified' ||
       internalReleaseEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
       internalReleaseEvidence.release?.track !== 'internal' ||
       internalReleaseEvidence.release?.statusObserved !== 'available-to-internal-testers' ||
       internalReleaseEvidence.validation?.errorCount !== 0 ||
+      internalReleaseEvidence.postReleaseChecks?.playStoreInstallCompleted !== true ||
+      internalReleaseEvidence.postReleaseChecks?.installerPackage !== 'com.android.vending' ||
       internalReleaseEvidence.boundaries?.productionChanged !== false ||
       JSON.stringify(internalReleaseEvidence).includes('@')) {
     fail('Play internal-release evidence is invalid or unsafe.');

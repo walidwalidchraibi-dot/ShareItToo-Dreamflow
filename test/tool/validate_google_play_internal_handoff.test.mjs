@@ -65,14 +65,14 @@ async function fixture() {
   };
 }
 
-test('accepts the active exact internal release while store install remains pending', async (t) => {
+test('accepts the active exact internal release after verified Play Store install', async (t) => {
   const data = await fixture();
   t.after(() => rm(data.root, { recursive: true, force: true }));
   const result = validateGooglePlayInternalHandoff({ repositoryRoot, ...data });
   assert.equal(result.buildNumber, '2026081302');
   assert.equal(result.artifactPath, data.artifactPath);
   assert.equal(result.releaseName, '1.0.0-internal-2026081302');
-  assert.equal(result.status, 'internal-release-active-store-install-pending');
+  assert.equal(result.status, 'internal-release-active-store-install-verified');
   assert.equal(result.artifactVerified, true);
   assert.match(result.releaseNotes, /ausschließlich Staging und Testzahlungen/u);
 });

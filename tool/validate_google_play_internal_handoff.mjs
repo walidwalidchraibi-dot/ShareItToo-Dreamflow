@@ -83,7 +83,13 @@ export function validateGooglePlayInternalHandoff({
     'superseded-product-truth-failed-replacement-pending',
   ]);
   const superseded = supersededStatuses.has(handoff.status);
-  const internalActive = handoff.status === 'internal-release-active-store-install-pending';
+  const internalActiveStatuses = new Set([
+    'internal-release-active-store-install-pending',
+    'internal-release-active-store-install-verified',
+  ]);
+  const internalActive = internalActiveStatuses.has(handoff.status);
+  const storeInstallVerified =
+    handoff.status === 'internal-release-active-store-install-verified';
   if (!superseded && !internalActive &&
       handoff.status !== 'verified-artifact-ready-immediate-reverification-pending') {
     fail('status must describe either the verified artifact or its fail-closed supersession.');
@@ -181,7 +187,8 @@ export function validateGooglePlayInternalHandoff({
     uploadWarningsReviewed: internalActive ?
       'passed-only-missing-testers-warning-resolved' : 'pending',
     crashlyticsCandidateAssignmentVerified: 'pending',
-    internalStoreInstallCompleted: 'pending',
+    internalStoreInstallCompleted: storeInstallVerified ?
+      'passed-google-play-installer' : 'pending',
   };
   const postUploadChecks = object(handoff.postUploadChecks, 'postUploadChecks');
   for (const [key, value] of Object.entries(expectedPostUploadChecks)) {
@@ -199,7 +206,8 @@ export function validateGooglePlayInternalHandoff({
     assertNoCredentials(internalEvidence, 'internal release evidence');
     same(internalEvidence.kind, 'google-play-internal-release-active',
       'internal release evidence.kind');
-    same(internalEvidence.status, 'available-to-internal-testers',
+    same(internalEvidence.status, storeInstallVerified ?
+      'available-and-store-install-verified' : 'available-to-internal-testers',
       'internal release evidence.status');
     same(internalEvidence.candidate?.buildNumber, candidate.buildNumber,
       'internal release evidence.candidate.buildNumber');
@@ -215,6 +223,29 @@ export function validateGooglePlayInternalHandoff({
       'internal release evidence.testers.emailListCreated');
     same(internalEvidence.testers?.joinLinkAvailable, true,
       'internal release evidence.testers.joinLinkAvailable');
+    same(internalEvidence.postReleaseChecks?.playStoreInstallCompleted,
+      storeInstallVerified,
+      'internal release evidence.postReleaseChecks.playStoreInstallCompleted');
+    same(internalEvidence.postReleaseChecks?.installedVersionVerified,
+      storeInstallVerified,
+      'internal release evidence.postReleaseChecks.installedVersionVerified');
+    if (storeInstallVerified) {
+      same(internalEvidence.postReleaseChecks?.installedVersionName,
+        candidate.versionName,
+        'internal release evidence.postReleaseChecks.installedVersionName');
+      same(internalEvidence.postReleaseChecks?.installedBuildNumber,
+        candidate.buildNumber,
+        'internal release evidence.postReleaseChecks.installedBuildNumber');
+      same(internalEvidence.postReleaseChecks?.installerPackage,
+        'com.android.vending',
+        'internal release evidence.postReleaseChecks.installerPackage');
+      same(internalEvidence.postReleaseChecks?.coldLaunchCompleted, true,
+        'internal release evidence.postReleaseChecks.coldLaunchCompleted');
+      same(internalEvidence.postReleaseChecks?.coldLaunchCrashObserved, false,
+        'internal release evidence.postReleaseChecks.coldLaunchCrashObserved');
+      same(internalEvidence.postReleaseChecks?.stagingFeedLoaded, true,
+        'internal release evidence.postReleaseChecks.stagingFeedLoaded');
+    }
     same(internalEvidence.boundaries?.internalReleaseActivated, true,
       'internal release evidence.boundaries.internalReleaseActivated');
     for (const key of [

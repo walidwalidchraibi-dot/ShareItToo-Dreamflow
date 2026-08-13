@@ -881,8 +881,10 @@ void main(List<String> arguments) {
           requireSubmittable)) {
     _fail('Candidate rollover is restricted to a fail-closed Store draft.');
   }
-  final handoffInternalActive = googleInternalUploadHandoff['status'] ==
-      'internal-release-active-store-install-pending';
+  final handoffInternalActive = const {
+    'internal-release-active-store-install-pending',
+    'internal-release-active-store-install-verified',
+  }.contains(googleInternalUploadHandoff['status']);
   if ((!handoffSuperseded && !handoffInternalActive &&
           googleInternalUploadHandoff['status'] !=
               'verified-artifact-ready-immediate-reverification-pending') ||
