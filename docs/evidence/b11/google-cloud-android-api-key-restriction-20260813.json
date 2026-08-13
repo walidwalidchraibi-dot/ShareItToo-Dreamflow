@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "kind": "google-cloud-android-api-key-restriction",
+  "capturedAt": "2026-08-13T00:00:00Z",
+  "status": "saved-runtime-regression-pending",
+  "project": "shareittoo-staging",
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081202",
+    "commit": "72dd8f13b5d3be0e82392a8b28c31292bdc23b53",
+    "apkSha256": "4445ff773ae728ef0959b4063e9f687ab86777ca9847d2a3605766de55afafec"
+  },
+  "savedRestriction": {
+    "keyClass": "firebase-auto-created-android-key",
+    "applicationRestriction": "android-applications",
+    "packageName": "com.shareittoo.app",
+    "certificateSha1ReadDirectlyFromExactCandidateApk": true,
+    "certificateSha1StoredInEvidence": false,
+    "apiRestrictionPreserved": true,
+    "selectedApiCountObserved": 25
+  },
+  "verification": {
+    "consoleSaveCompleted": true,
+    "credentialsOverviewShowsAndroidApplicationRestriction": true,
+    "postPropagationCandidateRuntimeRegression": "pending-device-reconnect"
+  },
+  "remainingSeparateGates": {
+    "googleMapsServerCredentialRestriction": "open",
+    "googlePlayAppSigningCertificateAddition": "pending-first-play-bundle",
+    "iosKeyRestriction": "not-changed",
+    "browserKeyRestriction": "not-changed"
+  },
+  "boundaries": {
+    "credentialValueViewed": false,
+    "credentialValueStored": false,
+    "credentialRotated": false,
+    "apiSelectionChanged": false,
+    "productionChanged": false,
+    "paymentEndpointCalled": false,
+    "containsSecrets": false,
+    "containsEmailAddresses": false,
+    "containsAccountIdentifiers": false,
+    "containsRawDeviceIdentifiers": false
+  }
+}

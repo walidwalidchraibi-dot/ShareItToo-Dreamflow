@@ -113,6 +113,9 @@ node --check tool/validate_google_play_screenshot_readiness.mjs
 node --test test/tool/validate_google_play_screenshot_readiness.test.mjs
 node --check tool/validate_google_play_screenshot_candidate.mjs
 node --test test/tool/validate_google_play_screenshot_candidate.test.mjs
+node --check tool/validate_google_cloud_android_key_restriction.mjs
+node --test test/tool/validate_google_cloud_android_key_restriction.test.mjs
+node tool/validate_google_cloud_android_key_restriction.mjs
 node --check tool/validate_google_play_app_content_progress.mjs
 node --test test/tool/validate_google_play_app_content_progress.test.mjs
 node --check tool/run_staging_synthetic_booking.mjs
