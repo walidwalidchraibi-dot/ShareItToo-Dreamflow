@@ -345,8 +345,11 @@ function progressFixture() {
     },
   });
   const refs = new Set(
-    Object.values(deviceManifest.releaseChecks)
-      .map((check) => check.evidenceRef)
+    [
+      ...Object.values(deviceManifest.releaseChecks),
+      ...deviceManifest.deviceMatrix,
+    ]
+      .map((entry) => entry.evidenceRef)
       .filter((ref) => ref !== null),
   );
   for (const ref of refs) copyEvidenceTree(root, ref);
