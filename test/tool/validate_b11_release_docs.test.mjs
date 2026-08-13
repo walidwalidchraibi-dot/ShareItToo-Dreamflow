@@ -56,10 +56,12 @@ function validateStrict(overrides = {}) {
 
 test('repository B11 release documentation matches the current candidate', () => {
   const result = validateStrict();
+  const expectedPassedReleaseChecks = Object.values(deviceManifest.releaseChecks)
+    .filter((check) => check.status === 'passed').length;
   assert.equal(result.buildNumber, deviceManifest.candidate.buildNumber);
   assert.equal(result.documents, 3);
   assert.equal(result.passedCells, 0);
-  assert.equal(result.passedReleaseChecks, 4);
+  assert.equal(result.passedReleaseChecks, expectedPassedReleaseChecks);
 });
 
 test('rejects a stale build number in a snapshot', () => {
@@ -171,11 +173,13 @@ test('rejects pubspec drift from the documented candidate', () => {
 
 test('rollover mode accepts an incomplete current candidate above the documented baseline', () => {
   const nextBuild = (BigInt(deviceManifest.candidate.buildNumber) + 1n).toString();
+  const expectedPassedReleaseChecks = Object.values(deviceManifest.releaseChecks)
+    .filter((check) => check.status === 'passed').length;
   const result = validate({ pubspecText: `version: 1.0.0+${nextBuild}\n` });
   assert.equal(result.buildNumber, deviceManifest.candidate.buildNumber);
   assert.equal(result.rolloverBuildNumber, nextBuild);
   assert.equal(result.documentedBuild, deviceManifest.candidate.buildNumber);
-  assert.equal(result.passedReleaseChecks, 4);
+  assert.equal(result.passedReleaseChecks, expectedPassedReleaseChecks);
 });
 
 test('rollover mode rejects a build older than the documented candidate', () => {

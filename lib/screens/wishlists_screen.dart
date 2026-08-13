@@ -33,6 +33,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     setState(() => _loading = true);
     final lists = await DataService.getWishlists();
     final by = await DataService.getItemsByWishlist();
+    if (!mounted) return;
     setState(() {
       _lists = lists;
       _itemsByList = by;
@@ -224,6 +225,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
     setState(() => _loading = true);
     try {
       final by = await DataService.getItemsByWishlist();
+      if (!mounted) return;
       _items = by[widget.listId] ?? const <Item>[];
     } catch (_) {}
     if (mounted) setState(() => _loading = false);

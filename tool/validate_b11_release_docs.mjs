@@ -127,6 +127,17 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
     manifest.releaseChecks?.crashReleaseMapping,
     'releaseChecks.crashReleaseMapping',
   );
+  const storeLinksAndSigning = object(
+    manifest.releaseChecks?.storeWarningsLinksAndSigning,
+    'releaseChecks.storeWarningsLinksAndSigning',
+  );
+  const playInstalledCell = Array.isArray(manifest.deviceMatrix)
+    ? manifest.deviceMatrix.find((cell) => (
+        cell?.platform === 'android'
+        && cell?.storeInstall === 'play-internal'
+        && cell?.tests?.installAndFirstStart === 'passed'
+      ))
+    : null;
   const fcmPassed = exactDiagnostics.foregroundFcm === 'passed'
     && exactDiagnostics.backgroundFcm === 'passed'
     && exactDiagnostics.terminatedProcessFcm === 'passed'
@@ -169,12 +180,14 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
 | Kontrollierte Android-FCM-Diagnose | ${fcmSummary} |
 | Android-Abmeldung und Push-Unterdrückung | ${logoutSummary} |
 | Android-Offline-/Realtime-Wiederherstellung | ${renderAndroidDiagnostic(android.offlineRealtime, 'candidate.android.offlineRealtime')} |
+| Google-Play-Installation | ${playInstalledCell ? `\`passed\`; interner Track, exakte Version \`${nonEmptyString(candidate.versionName, 'candidate.versionName')} (${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')})\`` : '`testing`; noch keine belegte Installation aus dem internen Play-Track'} |
+| Play-Signing und öffentliche App-Links | \`${nonEmptyString(storeLinksAndSigning.status, 'releaseChecks.storeWarningsLinksAndSigning.status')}\`${storeLinksAndSigning.evidenceRef ? `; \`${nonEmptyString(storeLinksAndSigning.evidenceRef, 'releaseChecks.storeWarningsLinksAndSigning.evidenceRef')}\`` : '; noch kein kandidatenspezifischer Nachweis'} |
 | Crashlytics-Releasezuordnung | \`${nonEmptyString(crashReleaseMapping.status, 'releaseChecks.crashReleaseMapping.status')}\`${crashEvidence} |
 | Kandidatenbeleg | \`${nonEmptyString(manifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef, 'releaseChecks.candidateIdentityAndSignatures.evidenceRef')}\` |
 | Staging-Servercommit | \`${fullCommit(staging.serverCommit, 'candidate evidence.staging.serverCommit')}\` |
 | Ehrlicher Freigabestand | \`${nonEmptyString(manifest.state, 'state')}/${nonEmptyString(manifest.goNoGo, 'goNoGo')}\`; Gerätezellen ${passedCells}/${totalCells}; Releaseprüfungen ${passedReleaseChecks}/${releaseChecks.length} |
 
-Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM-, Abmelde- und Offline-/Realtime-Diagnosen sind keine Store-Installation. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
+Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Eine bestandene Google-Play-Installation ist nur belegt, wenn der aktuelle Kandidat aus dem internen Track installiert und gestartet wurde. Die früheren direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM-, Abmelde- und Offline-/Realtime-Diagnosen bleiben davon abgegrenzte Vorprüfungen. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 ${snapshotEnd}`;
 }
 

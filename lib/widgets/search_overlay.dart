@@ -99,6 +99,7 @@ class _SearchSheetState extends State<_SearchSheet> {
         unavailableRanges: const [],
       ),
     );
+    if (!mounted) return;
     if (picked != null) {
       setState(() {
         _pickup = picked.start;
@@ -150,10 +151,25 @@ class _SearchSheetState extends State<_SearchSheet> {
   }
 
   Future<void> _loadData() async {
-    final items = await DataService.getPublicItems();
-    final users = await DataService.getUsers();
-    final me = await DataService.getCurrentUser();
-    final categories = await DataService.getCategories();
+    late final List<Item> items;
+    late final List<app_user.User> users;
+    late final app_user.User? me;
+    late final List<app_category.Category> categories;
+    try {
+      items = await DataService.getPublicItems();
+      if (!mounted) return;
+      users = await DataService.getUsers();
+      if (!mounted) return;
+      me = await DataService.getCurrentUser();
+      if (!mounted) return;
+      categories = await DataService.getCategories();
+      if (!mounted) return;
+    } catch (error) {
+      debugPrint('[_SearchSheet] initial load failed: $error');
+      if (!mounted) return;
+      setState(() => _loading = false);
+      return;
+    }
     final byId = {for (final u in users) u.id: u};
     final verifiedIds =
         users.where((u) => u.isVerified).map((u) => u.id).toSet();
@@ -416,6 +432,7 @@ class _SearchSheetState extends State<_SearchSheet> {
 
     // Use ChatGPT to intelligently parse the user's natural language input
     final result = await OpenAIConfig.parseSearchQuery(prompt);
+    if (!mounted) return;
 
     setState(() {
       // Update "Was" field
@@ -483,6 +500,7 @@ class _SearchSheetState extends State<_SearchSheet> {
 
   void _onQueryChangedWhat(String v) async {
     final items = await DataService.getItems();
+    if (!mounted) return;
     final q = v.toLowerCase();
     final titles =
         items.map((e) => e.title).where((t) => t.trim().isNotEmpty).toSet();
@@ -513,6 +531,7 @@ class _SearchSheetState extends State<_SearchSheet> {
     final q = v.toLowerCase();
     final cities = DataService.getCities().keys;
     final items = await DataService.getItems();
+    if (!mounted) return;
     final fromItems = <String>{
       ...items.map((e) => e.city),
       ...items.map((e) => e.country),
@@ -659,6 +678,7 @@ class _SearchSheetState extends State<_SearchSheet> {
         ];
       }
 
+      if (!mounted) return;
       setState(() {
         _displayNearby = available.take(16).toList();
       });

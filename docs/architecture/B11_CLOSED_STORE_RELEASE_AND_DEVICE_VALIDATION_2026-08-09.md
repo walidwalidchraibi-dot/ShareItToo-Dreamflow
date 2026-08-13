@@ -36,12 +36,14 @@ sind ausdrücklich nicht Bestandteil dieser Freigabe.
 | Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081302-20260813T151533Z.json` |
 | Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081302-20260813T151851Z.json` |
 | Android-Offline-/Realtime-Wiederherstellung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-offline-realtime-2026081302-20260813T151710Z.json` |
+| Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081302)` |
+| Play-Signing und öffentliche App-Links | `passed`; `docs/evidence/b11/android-play-store-links-signing-2026081302-20260813.json` |
 | Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081302.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081302.json` |
 | Staging-Servercommit | `530ed17e46dbd82916eef0d59f1b07e448c737f8` |
-| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
+| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 5/7 |
 
-Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM-, Abmelde- und Offline-/Realtime-Diagnosen sind keine Store-Installation. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
+Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Eine bestandene Google-Play-Installation ist nur belegt, wenn der aktuelle Kandidat aus dem internen Track installiert und gestartet wurde. Die früheren direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM-, Abmelde- und Offline-/Realtime-Diagnosen bleiben davon abgegrenzte Vorprüfungen. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
 
 Der chronologisch erhaltene historische Logout-/Push-Lebenszyklusnachweis für Build
@@ -322,7 +324,7 @@ inhaltlich als kandidatengebundene JSON-Dokumente geprüft; eine beliebige
 nicht leere Datei kann kein Geräte-, Release- oder Freigabegate schließen.
 Abweichende Commits, Zell-/Prüfungs-IDs, credential-förmige Felder und
 Roh-Gerätekennungen werden abgelehnt. Der aktuelle ehrliche Zustand ist
-`testing`, `hold`, vier offene Gerätezellen und drei von sieben bestandene
+`testing`, `hold`, vier noch nicht vollständig bestandene Gerätezellen und fünf von sieben bestandene
 Releaseprüfungen. `tool/validate_device_evidence.mjs` prüft App-Identität,
 Mindestbuild `2026080903`, vollständigen Commit, Android-/iOS-Artefakthashes,
 Play-Internal-/TestFlight-Installation, physische Rollen-/Netzmatrix,

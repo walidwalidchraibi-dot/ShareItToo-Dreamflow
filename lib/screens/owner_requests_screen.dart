@@ -208,7 +208,8 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen> with SingleTi
       );
       _unreadCounts[cat] = unreadCount;
     }
-    
+
+    if (!mounted) return;
     setState(() => _entries = list);
   }
 

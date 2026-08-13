@@ -33,6 +33,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     final item = await DataService.getItemById(req.itemId);
     final renter = await DataService.getUserById(req.renterId);
     final owner = await DataService.getUserById(req.ownerId);
+    if (!mounted) return;
     setState(() { _req = req; _item = item; _renter = renter; _owner = owner; });
     _startOrStopTicker();
   }

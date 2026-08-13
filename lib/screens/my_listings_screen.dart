@@ -39,6 +39,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
   Future<void> _load() async {
     final user = await DataService.getCurrentUser();
     final all = await DataService.getItems();
+    if (!mounted) return;
     setState(() {
       _canCreateListings = user != null && !user.isBanned;
       final owned = all.where((e) => e.ownerId == user?.id).toList()
@@ -66,6 +67,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> with SingleTickerPr
 
   Future<void> _changeStatus(Item it, String status) async {
     await DataService.updateItemStatus(itemId: it.id, status: status);
+    if (!mounted) return;
     setState(() {
       _items = _items.map((e) {
         if (e.id != it.id) return e;
