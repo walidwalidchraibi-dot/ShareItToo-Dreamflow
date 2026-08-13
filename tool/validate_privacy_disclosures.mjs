@@ -397,6 +397,9 @@ export function validatePrivacyDisclosures({
   }
   const socialAuth = object(services.firebaseAuthentication, 'externalServices.firebaseAuthentication');
   if (socialAuth.enabled !== true
+      || socialAuth.enabledInBoundEnvironment !== false
+      || socialAuth.role !==
+        'processor-for-firebase-authentication-separate-provider-role-review-if-enabled'
       || !Array.isArray(socialAuth.providers)
       || socialAuth.providers.join(',') !== 'google,apple,facebook') {
     fail('Firebase Authentication must disclose Google, Apple, and Facebook.');
@@ -404,6 +407,10 @@ export function validatePrivacyDisclosures({
   const maps = object(services.googleMapsPlatform, 'externalServices.googleMapsPlatform');
   if (maps.enabled !== true) {
     fail('The candidate must disclose its Google Maps integration.');
+  }
+  if (maps.activeTransferProven !== false
+      || maps.role !== 'independent-controller-if-activated') {
+    fail('Google Maps must remain an unproven independent-controller transfer until activation.');
   }
   if (!superseded && (maps.clientCredentialEmbedded !== false || maps.serverProxied !== true)) {
     fail('The signed candidate must disclose the server-proxied Google Maps integration without a client credential.');

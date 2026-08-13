@@ -12,6 +12,7 @@ const expectedEvidenceRefs = [
   'docs/evidence/b11/google-play-data-safety-step2-20260812.json',
   'docs/evidence/b11/google-play-data-safety-datatypes-20260812.json',
   'docs/evidence/b11/privacy-provider-retention-sources-20260812.json',
+  'docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json',
 ];
 const expectedGuidance = [
   'https://support.google.com/googleplay/android-developer/answer/10787469?hl=en',
@@ -156,6 +157,22 @@ export function validateGooglePlayDataSafetyAnswerMatrix({
   ], 'blockingGates');
   if (Object.values(gates).some((value) => value !== false)) {
     fail('Every legal, provider, public-route, save, and submission gate must remain closed.');
+  }
+  const sharingClassification = object(
+    load(repositoryRoot,
+      'docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json',
+      overrides),
+    'sharingClassification',
+  );
+  if (sharingClassification.status !==
+        'technical-provider-roles-classified-owner-contract-and-legal-approval-open'
+      || sharingClassification.technicalConclusion?.classificationResearchComplete !== true
+      || sharingClassification.technicalConclusion?.preparedOverallSharingAnswer !==
+        'no-subject-to-owner-contract-acceptance-and-legal-approval'
+      || sharingClassification.technicalConclusion?.consoleAnswerAllowed !== false
+      || sharingClassification.blockingGates?.currentAccountContractAcceptanceConfirmed !== false
+      || sharingClassification.blockingGates?.legalApproval !== false) {
+    fail('Data Safety matrix must bind the complete but unapproved provider classification.');
   }
   const boundaries = object(matrix.boundaries, 'boundaries');
   for (const value of Object.values(boundaries)) {

@@ -19,9 +19,9 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts the clean fixture while old local screenshots remain superseded', () => {
+test('accepts four visually approved images from the exact installed candidate', () => {
   assert.deepEqual(validateGooglePlayScreenshotReadiness({ repositoryRoot }), {
-    status: 'superseded-four-local-candidates-not-uploaded',
+    status: 'four-exact-candidate-local-images-validated-not-uploaded',
     curatedListingCount: 4,
   });
 });

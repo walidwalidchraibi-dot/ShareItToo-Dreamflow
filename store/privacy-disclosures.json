@@ -117,13 +117,15 @@
     },
     "firebaseAuthentication": {
       "enabled": true,
-      "role": "processor-and-federated-identity-broker-review-required",
+      "enabledInBoundEnvironment": false,
+      "role": "processor-for-firebase-authentication-separate-provider-role-review-if-enabled",
       "providers": ["google", "apple", "facebook"],
       "dataTypes": ["name", "emailAddress", "userId"]
     },
     "googleMapsPlatform": {
       "enabled": true,
-      "role": "processor-review-required",
+      "activeTransferProven": false,
+      "role": "independent-controller-if-activated",
       "dataTypes": [
         "physicalAddress",
         "approximateLocation",

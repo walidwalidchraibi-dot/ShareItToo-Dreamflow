@@ -1,16 +1,17 @@
 {
   "schemaVersion": 1,
   "kind": "google-play-feed-screenshot-readiness",
-  "status": "superseded-four-local-candidates-not-uploaded",
-  "capturedAt": "2026-08-12T09:40:00Z",
+  "status": "four-exact-candidate-local-images-validated-not-uploaded",
+  "capturedAt": "2026-08-13T05:57:06.605Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081116",
+    "buildNumber": "2026081202",
+    "commit": "72dd8f13b5d3be0e82392a8b28c31292bdc23b53",
+    "apkSha256": "4445ff773ae728ef0959b4063e9f687ab86777ca9847d2a3605766de55afafec",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
   },
-  "replacementBuildNumber": "2026081202",
   "device": {
     "platform": "android",
     "modelClass": "Pixel 7 Pro",
@@ -31,8 +32,8 @@
     "technicalFixtureCopyVisible": false,
     "protectedActiveBookings": 6,
     "protectedPublicListingsObserved": 6,
-    "storeScreenshotAccepted": false,
-    "validatedLocalCandidates": 0
+    "storeScreenshotAccepted": true,
+    "validatedLocalCandidates": 4
   },
   "completedRemediation": {
     "method": "pause-unreferenced-and-neutralize-protected-staging-listings",

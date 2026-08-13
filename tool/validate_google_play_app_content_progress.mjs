@@ -35,7 +35,7 @@ export function validateGooglePlayAppContentProgress({
     fail('Play app-content open tasks are not fail-closed.');
   }
   if (evidence.storeDraft?.germanCopySaved !== true ||
-      evidence.storeDraft?.phoneScreenshotsValidatedLocal !== 0 ||
+      evidence.storeDraft?.phoneScreenshotsValidatedLocal !== 4 ||
       evidence.storeDraft?.phoneScreenshotsUploaded !== false ||
       evidence.storeDraft?.appBundleUploaded !== false) {
     fail('Play store draft state is invalid.');
@@ -54,6 +54,8 @@ export function validateGooglePlayAppContentProgress({
         'docs/evidence/b11/google-play-data-safety-datatypes-20260812.json' ||
       dataSafety.answerMatrixEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json' ||
+      dataSafety.providerClassificationEvidenceRef !==
+        'docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json' ||
       dataSafety.dataTypesSaved !== false ||
       dataSafety.submitted !== false) {
     fail('Play data-safety partial draft state is invalid.');
@@ -102,6 +104,19 @@ export function validateGooglePlayAppContentProgress({
       JSON.stringify(answerMatrixEvidence).includes('@')) {
     fail('Play data-safety answer matrix is invalid, stale, or unsafe.');
   }
+  const providerEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
+    dataSafety.providerClassificationEvidenceRef), 'utf8'));
+  if (providerEvidence.kind !== 'google-play-service-provider-sharing-classification' ||
+      providerEvidence.status !==
+        'technical-provider-roles-classified-owner-contract-and-legal-approval-open' ||
+      providerEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
+      providerEvidence.technicalConclusion?.classificationResearchComplete !== true ||
+      providerEvidence.technicalConclusion?.consoleAnswerAllowed !== false ||
+      Object.values(providerEvidence.blockingGates ?? {}).some((value) => value !== false) ||
+      providerEvidence.boundaries?.technicalClassificationOnly !== true ||
+      JSON.stringify(providerEvidence).includes('@')) {
+    fail('Play service-provider classification is invalid, stale, or unsafe.');
+  }
   const advertisingId = evidence.advertisingIdDraft ?? {};
   if (advertisingId.usesAdvertisingId !== false ||
       advertisingId.answerSaved !== true ||
@@ -129,7 +144,7 @@ export function validateGooglePlayAppContentProgress({
       contentRating.category !== 'all-other-app-types' ||
       contentRating.userGeneratedContent !== true ||
       contentRating.directUserCommunication !== true ||
-      contentRating.protectedContactAddressEntered !== false ||
+      contentRating.protectedContactAddressEntered !== true ||
       contentRating.iarcTermsAccepted !== false ||
       contentRating.submitted !== false ||
       contentRating.evidenceRef !==
@@ -139,12 +154,17 @@ export function validateGooglePlayAppContentProgress({
   const iarcEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
     contentRating.evidenceRef), 'utf8'));
   if (iarcEvidence.kind !== 'google-play-iarc-content-rating-preparation' ||
+      iarcEvidence.status !== 'category-contact-and-interaction-truth-entered-owner-terms-pending' ||
       iarcEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
       iarcEvidence.preparedTruth?.category !== 'all-other-app-types' ||
       iarcEvidence.preparedTruth?.userGeneratedContent !== true ||
       iarcEvidence.preparedTruth?.directUserCommunication !== true ||
-      Object.values(iarcEvidence.blockingGates ?? {}).some((value) => value !== false) ||
-      Object.values(iarcEvidence.boundaries ?? {}).some((value) => value !== false) ||
+      iarcEvidence.blockingGates?.protectedContactAddressEntered !== true ||
+      Object.entries(iarcEvidence.blockingGates ?? {}).some(([key, value]) =>
+        key !== 'protectedContactAddressEntered' && value !== false) ||
+      iarcEvidence.boundaries?.consoleAnswersChanged !== true ||
+      Object.entries(iarcEvidence.boundaries ?? {}).some(([key, value]) =>
+        key !== 'consoleAnswersChanged' && value !== false) ||
       JSON.stringify(iarcEvidence).includes('@')) {
     fail('Play IARC content-rating evidence is invalid or unsafe.');
   }

@@ -91,6 +91,16 @@ test('rejects a stale Data Safety handoff that is not bound to the full answer m
     /product truth/);
 });
 
+test('rejects a Data Safety handoff without the provider-role classification', async (t) => {
+  const data = await fixture((handoff) => {
+    handoff.tasks.dataSafety.providerClassificationEvidenceRef =
+      'docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json';
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+    /product truth/);
+});
+
 test('rejects credential or account data', async (t) => {
   const data = await fixture((handoff) => { handoff.account = 'private@example.test'; });
   t.after(() => rm(data.root, { recursive: true, force: true }));

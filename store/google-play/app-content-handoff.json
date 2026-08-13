@@ -25,11 +25,11 @@
       "basis": "no-ad-sdk-no-advertising-tracking"
     },
     "contentRating": {
-      "status": "iarc-category-and-interaction-truth-prepared-contact-and-owner-terms-pending",
+      "status": "iarc-category-contact-and-interaction-truth-entered-owner-terms-pending",
       "category": "all-other-app-types",
       "userGeneratedContent": true,
       "directUserCommunication": true,
-      "protectedContactAddressEntered": false,
+      "protectedContactAddressEntered": true,
       "iarcTermsAccepted": false,
       "evidenceRef": "docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json"
     },
@@ -50,6 +50,7 @@
       "dataTypesPrepared": 16,
       "dataTypesEvidenceRef": "docs/evidence/b11/google-play-data-safety-datatypes-20260812.json",
       "answerMatrixEvidenceRef": "docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json",
+      "providerClassificationEvidenceRef": "docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json",
       "sellsData": false,
       "advertisingTracking": false,
       "stepTwoEvidenceRef": "docs/evidence/b11/google-play-data-safety-step2-20260812.json"
@@ -79,10 +80,10 @@
       "website": "https://shareittoo.com/"
     },
     "storeListing": {
-      "status": "exact-current-screenshots-recapture-and-public-pages-pending",
+      "status": "exact-current-screenshots-validated-public-pages-and-upload-pending",
       "copyAndGraphicsPrepared": true,
-      "phoneScreenshotsValidated": false,
-      "validatedPhoneScreenshotCount": 0,
+      "phoneScreenshotsValidated": true,
+      "validatedPhoneScreenshotCount": 4,
       "recommendedPhoneScreenshotTarget": 4,
       "uploadedToPlayConsole": false,
       "screenshotReadinessRef": "docs/evidence/b11/google-play-feed-screenshot-readiness-20260812.json"
@@ -105,6 +106,7 @@
     "docs/evidence/b11/google-play-data-safety-step2-20260812.json",
     "docs/evidence/b11/google-play-data-safety-datatypes-20260812.json",
     "docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json",
+    "docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json",
     "docs/evidence/b11/google-play-advertising-id-declaration-20260812.json",
     "docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json"
   ],

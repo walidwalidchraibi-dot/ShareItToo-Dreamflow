@@ -153,6 +153,18 @@ test('rejects hiding any implemented social authentication provider', () => {
   );
 });
 
+test('rejects presenting disabled social login as active in the bound environment', () => {
+  const privacyManifest = clone(basePrivacyManifest);
+  privacyManifest.externalServices.firebaseAuthentication.enabledInBoundEnvironment = true;
+  assert.throws(() => validate({ privacyManifest }), /Firebase Authentication/);
+});
+
+test('rejects classifying Maps as a processor after controller-role review', () => {
+  const privacyManifest = clone(basePrivacyManifest);
+  privacyManifest.externalServices.googleMapsPlatform.role = 'processor';
+  assert.throws(() => validate({ privacyManifest }), /independent-controller/);
+});
+
 test('rejects closing the Store privacy gate without owner decisions', () => {
   const submissionManifest = clone(baseSubmissionManifest);
   submissionManifest.blockingGates.finalBinaryPrivacyScan = 'closed';

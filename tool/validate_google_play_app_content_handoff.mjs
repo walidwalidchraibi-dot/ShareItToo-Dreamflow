@@ -69,11 +69,11 @@ export function validateGooglePlayAppContentHandoff({
       tasks.ads.status !== 'saved-current-build-no-ads' ||
       tasks.ads.proposedAnswer !== false ||
       tasks.contentRating.status !==
-        'iarc-category-and-interaction-truth-prepared-contact-and-owner-terms-pending' ||
+        'iarc-category-contact-and-interaction-truth-entered-owner-terms-pending' ||
       tasks.contentRating.category !== 'all-other-app-types' ||
       tasks.contentRating.userGeneratedContent !== true ||
       tasks.contentRating.directUserCommunication !== true ||
-      tasks.contentRating.protectedContactAddressEntered !== false ||
+      tasks.contentRating.protectedContactAddressEntered !== true ||
       tasks.contentRating.iarcTermsAccepted !== false ||
       tasks.contentRating.evidenceRef !==
         'docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json' ||
@@ -94,6 +94,8 @@ export function validateGooglePlayAppContentHandoff({
         'docs/evidence/b11/google-play-data-safety-datatypes-20260812.json' ||
       tasks.dataSafety.answerMatrixEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json' ||
+      tasks.dataSafety.providerClassificationEvidenceRef !==
+        'docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json' ||
       tasks.dataSafety.stepTwoEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-step2-20260812.json' ||
       tasks.dataSafety.sellsData !== false ||
@@ -114,12 +116,12 @@ export function validateGooglePlayAppContentHandoff({
       tasks.categoryAndContact.status !== 'saved-shopping-and-public-contact' ||
       tasks.categoryAndContact.category !== 'Shopping' ||
       tasks.storeListing.copyAndGraphicsPrepared !== true ||
-      tasks.storeListing.phoneScreenshotsValidated !== false ||
-      tasks.storeListing.validatedPhoneScreenshotCount !== 0 ||
+      tasks.storeListing.phoneScreenshotsValidated !== true ||
+      tasks.storeListing.validatedPhoneScreenshotCount !== 4 ||
       tasks.storeListing.recommendedPhoneScreenshotTarget !== 4 ||
       tasks.storeListing.uploadedToPlayConsole !== false ||
       tasks.storeListing.status !==
-        'exact-current-screenshots-recapture-and-public-pages-pending' ||
+        'exact-current-screenshots-validated-public-pages-and-upload-pending' ||
       tasks.storeListing.screenshotReadinessRef !==
         'docs/evidence/b11/google-play-feed-screenshot-readiness-20260812.json') {
     fail('One or more prepared Play answers no longer match the bounded product truth.');
@@ -132,7 +134,7 @@ export function validateGooglePlayAppContentHandoff({
   if (Object.keys(hardStops).length !== 7) {
     fail('App-content handoff must preserve all seven hard stops.');
   }
-  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 9 ||
+  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 10 ||
       handoff.evidenceRefs.some((ref) => typeof ref !== 'string' ||
         ref.includes('..') || !resolve(repositoryRoot, ref).startsWith(`${resolve(repositoryRoot)}/`))) {
     fail('App-content evidence references are invalid.');

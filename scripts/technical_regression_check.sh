@@ -118,6 +118,8 @@ node --check tool/validate_google_play_screenshot_readiness.mjs
 node --test test/tool/validate_google_play_screenshot_readiness.test.mjs
 node --check tool/validate_google_play_screenshot_candidate.mjs
 node --test test/tool/validate_google_play_screenshot_candidate.test.mjs
+node --check tool/capture_google_play_android_screenshots.mjs
+node --test test/tool/capture_google_play_android_screenshots.test.mjs
 node --check tool/validate_google_cloud_android_key_restriction.mjs
 node --test test/tool/validate_google_cloud_android_key_restriction.test.mjs
 node tool/validate_google_cloud_android_key_restriction.mjs
@@ -132,6 +134,9 @@ node --test test/tool/validate_google_play_app_content_progress.test.mjs
 node --check tool/validate_google_play_data_safety_answer_matrix.mjs
 node --test test/tool/validate_google_play_data_safety_answer_matrix.test.mjs
 node tool/validate_google_play_data_safety_answer_matrix.mjs
+node --check tool/validate_google_play_service_provider_sharing_classification.mjs
+node --test test/tool/validate_google_play_service_provider_sharing_classification.test.mjs
+node tool/validate_google_play_service_provider_sharing_classification.mjs
 node --check tool/run_staging_synthetic_booking.mjs
 node --test test/tool/run_staging_synthetic_booking.test.mjs
 node --check tool/run_isolated_android_role_booking_diagnostic.mjs

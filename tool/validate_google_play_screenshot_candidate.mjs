@@ -28,14 +28,17 @@ export function validateGooglePlayScreenshotCandidate({
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'google-play-screenshot-candidate' ||
-      evidence.status !== 'superseded-local-not-uploaded') fail('Screenshot candidate state is invalid.');
+      evidence.status !== 'exact-candidate-local-not-uploaded') fail('Screenshot candidate state is invalid.');
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
       evidence.candidate?.versionName !== '1.0.0' ||
-      evidence.candidate?.buildNumber !== '2026081116' ||
+      evidence.candidate?.buildNumber !== '2026081202' ||
+      evidence.candidate?.commit !== '72dd8f13b5d3be0e82392a8b28c31292bdc23b53' ||
+      evidence.candidate?.apkSha256 !==
+        '4445ff773ae728ef0959b4063e9f687ab86777ca9847d2a3605766de55afafec' ||
       evidence.candidate?.releaseChannel !== 'internal' ||
       evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1' ||
-      evidence.replacementBuildNumber !== '2026081202') {
-    fail('Screenshot candidate is not bound to the superseded and replacement builds.');
+      Object.hasOwn(evidence, 'replacementBuildNumber')) {
+    fail('Screenshot candidate is not bound to the exact installed build.');
   }
   const scene = evidence.scene ?? {};
   if (!['feed', 'listing-detail', 'search', 'create-listing'].includes(scene.id) || scene.locale !== 'de-DE' ||
@@ -48,7 +51,7 @@ export function validateGooglePlayScreenshotCandidate({
   const bytes = readFileSync(path);
   const metadata = pngMetadata(bytes);
   if (metadata.width !== scene.width || metadata.height !== scene.height ||
-      scene.width < 320 || scene.height < 320 || scene.height > scene.width * 2 ||
+      scene.width !== 1080 || scene.height !== 1920 ||
       metadata.bitDepth !== 8 || metadata.colorType !== 2 ||
       bytes.length !== scene.byteSize ||
       createHash('sha256').update(bytes).digest('hex') !== scene.sha256) {

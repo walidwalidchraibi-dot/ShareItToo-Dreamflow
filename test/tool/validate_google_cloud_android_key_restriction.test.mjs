@@ -22,13 +22,24 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts the saved Android restriction while runtime verification is pending', () => {
+test('accepts the saved Android restriction after exact-candidate runtime verification', () => {
   assert.deepEqual(validateGoogleCloudAndroidKeyRestriction({ repositoryRoot }), {
-    status: 'saved-runtime-regression-pending',
+    status: 'saved-runtime-regression-passed',
     project: 'shareittoo-staging',
     packageName: 'com.shareittoo.app',
-    runtimeRegression: 'pending-device-reconnect',
+    runtimeRegression: 'passed-exact-installed-candidate-auth-session-and-full-fcm',
   });
+});
+
+test('rejects claiming the runtime passed without full Firebase Messaging proof', async (t) => {
+  const data = await fixture((evidence) => {
+    evidence.verification.firebaseMessaging.status = 'pending';
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(
+    () => validateGoogleCloudAndroidKeyRestriction({ repositoryRoot, ...data }),
+    /runtime verification is incomplete/,
+  );
 });
 
 test('rejects pretending the separate server credential is restricted', async (t) => {

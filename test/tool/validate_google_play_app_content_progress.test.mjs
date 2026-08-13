@@ -44,6 +44,15 @@ test('rejects premature IARC terms acceptance', async (t) => {
     /IARC content-rating draft/);
 });
 
+test('rejects losing the protected IARC contact entry', async (t) => {
+  const data = await fixture((evidence) => {
+    evidence.contentRatingDraft.protectedContactAddressEntered = false;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
+    /IARC content-rating draft/);
+});
+
 test('rejects claiming OAuth account creation before provider activation', async (t) => {
   const data = await fixture((evidence) => {
     evidence.dataSafetyDraft.oauthPreparedButUnavailable = false;
@@ -55,6 +64,14 @@ test('rejects claiming OAuth account creation before provider activation', async
 
 test('rejects claiming an AAB upload', async (t) => {
   const data = await fixture((evidence) => { evidence.storeDraft.appBundleUploaded = true; });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }), /draft state/);
+});
+
+test('rejects losing the four exact-candidate local screenshots', async (t) => {
+  const data = await fixture((evidence) => {
+    evidence.storeDraft.phoneScreenshotsValidatedLocal = 0;
+  });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }), /draft state/);
 });

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "google-play-iarc-content-rating-preparation",
-  "capturedAt": "2026-08-12T22:03:15Z",
-  "status": "incomplete-questionnaire-observed-category-and-interaction-truth-prepared-owner-terms-pending",
+  "capturedAt": "2026-08-13T06:03:00Z",
+  "status": "category-contact-and-interaction-truth-entered-owner-terms-pending",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
@@ -43,14 +43,14 @@
     "https://web.iarcservices.com/terms"
   ],
   "blockingGates": {
-    "protectedContactAddressEntered": false,
+    "protectedContactAddressEntered": true,
     "ownerAcceptedIarcTerms": false,
     "fullQuestionnaireReviewed": false,
     "calculatedRatingsReviewed": false,
     "questionnaireSubmitted": false
   },
   "boundaries": {
-    "consoleAnswersChanged": false,
+    "consoleAnswersChanged": true,
     "draftSaved": false,
     "termsAccepted": false,
     "questionnaireSubmitted": false,

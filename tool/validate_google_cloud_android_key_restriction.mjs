@@ -18,7 +18,7 @@ export function validateGoogleCloudAndroidKeyRestriction({
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   if (evidence.schemaVersion !== 1
       || evidence.kind !== 'google-cloud-android-api-key-restriction'
-      || evidence.status !== 'saved-runtime-regression-pending'
+      || evidence.status !== 'saved-runtime-regression-passed'
       || evidence.project !== 'shareittoo-staging') {
     fail('Google Cloud Android key evidence state is invalid.');
   }
@@ -45,8 +45,51 @@ export function validateGoogleCloudAndroidKeyRestriction({
   if (verification.consoleSaveCompleted !== true
       || verification.credentialsOverviewShowsAndroidApplicationRestriction !== true
       || verification.postPropagationCandidateRuntimeRegression !==
-        'pending-device-reconnect') {
-    fail('Google Cloud Android key verification must remain honest and pending.');
+        'passed-exact-installed-candidate-auth-session-and-full-fcm'
+      || verification.authenticatedSession?.status !== 'passed'
+      || verification.authenticatedSession?.capturedAt !== '2026-08-13T05:35:42.062Z'
+      || verification.authenticatedSession?.result !==
+        'authenticated-profile-and-cold-start-session-restore-passed'
+      || verification.authenticatedSession?.evidenceRef !==
+        'docs/evidence/b11/android-authenticated-session-post-key-restriction-2026081202-20260813T053542Z.json'
+      || verification.firebaseMessaging?.status !== 'passed'
+      || verification.firebaseMessaging?.capturedAt !== '2026-08-13T05:37:51.745Z'
+      || verification.firebaseMessaging?.result !==
+        'foreground-background-and-terminated-process-fcm-delivery-passed'
+      || verification.firebaseMessaging?.evidenceRef !==
+        'docs/evidence/b11/android-controlled-fcm-post-key-restriction-2026081202-20260813T053751Z.json'
+      || verification.notificationIconVisual?.status !== 'passed'
+      || verification.notificationIconVisual?.result !==
+        'brand-glyph-centered-contained-and-evenly-spaced-in-system-circle') {
+    fail('Google Cloud Android key runtime verification is incomplete.');
+  }
+  const sessionEvidence = JSON.parse(readFileSync(resolve(
+    repositoryRoot, verification.authenticatedSession.evidenceRef,
+  ), 'utf8'));
+  if (sessionEvidence.kind !== 'android-authenticated-session-diagnostic'
+      || sessionEvidence.status !== 'passed-bounded-authenticated-session-diagnostic'
+      || sessionEvidence.capturedAt !== verification.authenticatedSession.capturedAt
+      || sessionEvidence.candidate?.buildNumber !== candidate.buildNumber
+      || sessionEvidence.installed?.apkSha256 !== candidate.apkSha256
+      || sessionEvidence.tests?.authenticatedProfileAccess?.status !== 'passed'
+      || sessionEvidence.tests?.coldStartSessionRestore?.status !== 'passed') {
+    fail('Google Cloud Android key authenticated-session evidence is stale or incomplete.');
+  }
+  const fcmEvidence = JSON.parse(readFileSync(resolve(
+    repositoryRoot, verification.firebaseMessaging.evidenceRef,
+  ), 'utf8'));
+  if (fcmEvidence.kind !== 'android-controlled-fcm-diagnostic'
+      || fcmEvidence.status !== 'passed-bounded-full-fcm-diagnostic'
+      || fcmEvidence.capturedAt !== verification.firebaseMessaging.capturedAt
+      || fcmEvidence.candidate?.buildNumber !== candidate.buildNumber
+      || fcmEvidence.candidate?.apkSha256 !== candidate.apkSha256
+      || fcmEvidence.tests?.foregroundPushDelivery?.status !== 'passed'
+      || fcmEvidence.tests?.backgroundPushDelivery?.status !== 'passed'
+      || fcmEvidence.tests?.terminatedProcessPushDelivery?.status !== 'passed'
+      || fcmEvidence.tests?.notificationIconVisual?.status !== 'passed'
+      || fcmEvidence.boundaries?.fullFcmMatrixPassed !== true
+      || fcmEvidence.boundaries?.productionPushSent !== false) {
+    fail('Google Cloud Android key Firebase Messaging evidence is stale or incomplete.');
   }
   const gates = evidence.remainingSeparateGates ?? {};
   if (gates.googleMapsServerCredentialRestriction !== 'open'
