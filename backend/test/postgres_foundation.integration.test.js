@@ -26,6 +26,13 @@ if (!databaseUrl) {
     process.env.PAYOUT_HOLD_HOURS = '0';
     const uploadDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sit-b3-uploads-'));
     process.env.UPLOAD_DIR = uploadDir;
+    const firebaseServiceAccountFile = path.join(
+      uploadDir,
+      'firebase-service-account.json',
+    );
+    await fs.writeFile(firebaseServiceAccountFile, '{}', { mode: 0o600 });
+    process.env.FIREBASE_PROJECT_ID = 'shareittoo-staging';
+    process.env.FIREBASE_SERVICE_ACCOUNT_FILE = firebaseServiceAccountFile;
 
     const { Pool } = pg;
     const setupPool = new Pool({ connectionString: databaseUrl, max: 4 });
