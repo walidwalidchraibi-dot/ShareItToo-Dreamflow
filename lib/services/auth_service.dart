@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -330,6 +331,241 @@ class AuthService {
     }
   }
 
+  static Future<PhoneVerificationChallenge> requestPhoneVerification(
+    String phoneNumber,
+  ) async {
+    if (!BackendConfig.enabled || kIsWeb) {
+      throw const PhoneVerificationException(
+        PhoneVerificationFailure.unavailable,
+      );
+    }
+    final normalized = normalizePhoneNumber(phoneNumber);
+    if (normalized == null) {
+      throw const PhoneVerificationException(
+        PhoneVerificationFailure.invalidPhone,
+      );
+    }
+    final access = await accessToken();
+    if (access == null || access.isEmpty) {
+      throw const PhoneVerificationException(
+        PhoneVerificationFailure.sessionExpired,
+      );
+    }
+    try {
+      final status = await BackendHttp.requestJson(
+        method: 'GET',
+        path: '/auth/phone-verification/status',
+        accessToken: access,
+      );
+      if (status['available'] != true ||
+          status['provider'] != 'firebase-phone') {
+        throw const PhoneVerificationException(
+          PhoneVerificationFailure.unavailable,
+        );
+      }
+    } on PhoneVerificationException {
+      rethrow;
+    } on BackendException catch (error) {
+      if (error.statusCode == 401) {
+        throw const PhoneVerificationException(
+          PhoneVerificationFailure.sessionExpired,
+        );
+      }
+      throw const PhoneVerificationException(
+        PhoneVerificationFailure.unavailable,
+      );
+    } catch (_) {
+      throw const PhoneVerificationException(
+        PhoneVerificationFailure.network,
+      );
+    }
+    try {
+      await FirebaseRuntime.ensureFirebaseApp();
+    } catch (_) {
+      throw const PhoneVerificationException(
+        PhoneVerificationFailure.unavailable,
+      );
+    }
+    if (Firebase.apps.isEmpty) {
+      throw const PhoneVerificationException(
+        PhoneVerificationFailure.unavailable,
+      );
+    }
+    final completer = Completer<PhoneVerificationChallenge>();
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: normalized,
+        timeout: const Duration(seconds: 60),
+        verificationCompleted: (credential) async {
+          if (completer.isCompleted) return;
+          try {
+            await _confirmPhoneCredential(
+              phoneNumber: normalized,
+              credential: credential,
+            );
+            if (!completer.isCompleted) {
+              completer.complete(PhoneVerificationChallenge(
+                phoneNumber: normalized,
+                automaticallyVerified: true,
+              ));
+            }
+          } catch (error, stack) {
+            if (!completer.isCompleted) completer.completeError(error, stack);
+          }
+        },
+        verificationFailed: (error) {
+          if (completer.isCompleted) return;
+          completer.completeError(_phoneVerificationException(error));
+        },
+        codeSent: (verificationId, _) {
+          if (completer.isCompleted) return;
+          completer.complete(PhoneVerificationChallenge(
+            phoneNumber: normalized,
+            verificationId: verificationId,
+          ));
+        },
+        codeAutoRetrievalTimeout: (verificationId) {
+          if (completer.isCompleted) return;
+          completer.complete(PhoneVerificationChallenge(
+            phoneNumber: normalized,
+            verificationId: verificationId,
+          ));
+        },
+      );
+      return await completer.future.timeout(
+        const Duration(seconds: 75),
+        onTimeout: () => throw const PhoneVerificationException(
+          PhoneVerificationFailure.timeout,
+        ),
+      );
+    } on PhoneVerificationException {
+      rethrow;
+    } on FirebaseAuthException catch (error) {
+      throw _phoneVerificationException(error);
+    } catch (error) {
+      debugPrint('[AuthService] phone verification request failed: $error');
+      throw const PhoneVerificationException(
+        PhoneVerificationFailure.network,
+      );
+    }
+  }
+
+  static Future<void> confirmPhoneVerification({
+    required PhoneVerificationChallenge challenge,
+    required String smsCode,
+  }) async {
+    final verificationId = challenge.verificationId?.trim() ?? '';
+    final code = smsCode.trim();
+    if (challenge.automaticallyVerified) return;
+    if (verificationId.isEmpty || !RegExp(r'^\d{6}$').hasMatch(code)) {
+      throw const PhoneVerificationException(
+        PhoneVerificationFailure.invalidCode,
+      );
+    }
+    try {
+      await _confirmPhoneCredential(
+        phoneNumber: challenge.phoneNumber,
+        credential: PhoneAuthProvider.credential(
+          verificationId: verificationId,
+          smsCode: code,
+        ),
+      );
+    } on PhoneVerificationException {
+      rethrow;
+    } on FirebaseAuthException catch (error) {
+      throw _phoneVerificationException(error);
+    } catch (error) {
+      debugPrint('[AuthService] phone verification confirm failed: $error');
+      throw const PhoneVerificationException(
+        PhoneVerificationFailure.network,
+      );
+    }
+  }
+
+  static Future<void> _confirmPhoneCredential({
+    required String phoneNumber,
+    required PhoneAuthCredential credential,
+  }) async {
+    try {
+      final signedIn = await FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
+      final firebaseIdToken = await signedIn.user?.getIdToken(true);
+      if (firebaseIdToken == null || firebaseIdToken.length < 100) {
+        throw const PhoneVerificationException(
+          PhoneVerificationFailure.invalidToken,
+        );
+      }
+      final access = await accessToken();
+      if (access == null || access.isEmpty) {
+        throw const PhoneVerificationException(
+          PhoneVerificationFailure.sessionExpired,
+        );
+      }
+      await BackendHttp.requestJson(
+        method: 'POST',
+        path: '/auth/phone-verification/confirm',
+        accessToken: access,
+        body: {
+          'phoneNumber': phoneNumber,
+          'firebaseIdToken': firebaseIdToken,
+        },
+      );
+    } on BackendException catch (error) {
+      final failure = switch (error.code) {
+        'phone_verification_mismatch' => PhoneVerificationFailure.phoneMismatch,
+        'phone_already_verified' =>
+          PhoneVerificationFailure.phoneAlreadyVerified,
+        'invalid_phone' => PhoneVerificationFailure.invalidPhone,
+        'invalid_phone_verification_token' ||
+        'invalid_phone_verification_provider' =>
+          PhoneVerificationFailure.invalidToken,
+        'phone_verification_unavailable' =>
+          PhoneVerificationFailure.unavailable,
+        'authentication_required' ||
+        'invalid_or_expired_session' =>
+          PhoneVerificationFailure.sessionExpired,
+        _ => PhoneVerificationFailure.network,
+      };
+      throw PhoneVerificationException(failure);
+    } finally {
+      try {
+        await FirebaseAuth.instance.signOut();
+      } catch (_) {}
+    }
+  }
+
+  static String? normalizePhoneNumber(String value) {
+    final compact = value
+        .trim()
+        .replaceAll(RegExp(r'[\s().-]'), '')
+        .replaceFirst(RegExp(r'^00'), '+');
+    return RegExp(r'^\+[1-9][0-9]{7,14}$').hasMatch(compact) ? compact : null;
+  }
+
+  static PhoneVerificationException _phoneVerificationException(
+    FirebaseAuthException error,
+  ) {
+    final failure = switch (error.code) {
+      'invalid-phone-number' => PhoneVerificationFailure.invalidPhone,
+      'invalid-verification-code' ||
+      'session-expired' ||
+      'missing-verification-code' =>
+        PhoneVerificationFailure.invalidCode,
+      'too-many-requests' ||
+      'quota-exceeded' =>
+        PhoneVerificationFailure.rateLimited,
+      'operation-not-allowed' ||
+      'app-not-authorized' ||
+      'missing-client-identifier' ||
+      'captcha-check-failed' =>
+        PhoneVerificationFailure.unavailable,
+      'network-request-failed' => PhoneVerificationFailure.network,
+      _ => PhoneVerificationFailure.network,
+    };
+    return PhoneVerificationException(failure);
+  }
+
   static Future<AuthResult> requestEmailChange({
     required String newEmail,
     required String currentPassword,
@@ -649,6 +885,37 @@ class _DiscardedRefreshResult implements Exception {
 }
 
 enum AuthSocialProvider { google, apple, facebook }
+
+enum PhoneVerificationFailure {
+  invalidPhone,
+  invalidCode,
+  invalidToken,
+  phoneMismatch,
+  phoneAlreadyVerified,
+  rateLimited,
+  sessionExpired,
+  timeout,
+  unavailable,
+  network,
+}
+
+class PhoneVerificationException implements Exception {
+  final PhoneVerificationFailure failure;
+
+  const PhoneVerificationException(this.failure);
+}
+
+class PhoneVerificationChallenge {
+  final String phoneNumber;
+  final String? verificationId;
+  final bool automaticallyVerified;
+
+  const PhoneVerificationChallenge({
+    required this.phoneNumber,
+    this.verificationId,
+    this.automaticallyVerified = false,
+  });
+}
 
 class _SocialSignInCancelled implements Exception {
   const _SocialSignInCancelled();

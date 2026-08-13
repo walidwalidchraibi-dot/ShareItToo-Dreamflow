@@ -29,7 +29,11 @@ flutter --version
 
 dart --version
 
-dart run tool/validate_store_metadata.dart
+if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  dart run tool/validate_store_metadata.dart --allow-candidate-rollover
+else
+  dart run tool/validate_store_metadata.dart
+fi
 node --test test/tool/validate_store_metadata_cli.test.mjs
 
 node --check tool/validate_legal_readiness.mjs
@@ -144,7 +148,16 @@ node --test test/tool/run_isolated_android_role_booking_diagnostic.test.mjs
 
 node --check tool/validate_firebase_release_config.mjs
 node --test test/tool/validate_firebase_release_config.test.mjs
-node tool/validate_firebase_release_config.mjs
+firebase_validation_platform="${SIT_FIREBASE_VALIDATION_PLATFORM:-all}"
+[[ "$firebase_validation_platform" =~ ^(android|ios|all)$ ]] || {
+  echo "ERROR: SIT_FIREBASE_VALIDATION_PLATFORM must be android, ios, or all." >&2
+  exit 1
+}
+node tool/validate_firebase_release_config.mjs --platform "$firebase_validation_platform"
+
+node --check tool/validate_phone_verification_readiness.mjs
+node --test test/tool/validate_phone_verification_readiness.test.mjs
+node tool/validate_phone_verification_readiness.mjs
 
 node --check tool/validate_android_signing_config.mjs
 node --test test/tool/validate_android_signing_config.test.mjs

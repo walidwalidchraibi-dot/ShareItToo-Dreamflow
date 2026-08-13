@@ -15,6 +15,16 @@
       "officialFact": "Crash traces, processed minidump data and associated installation identifiers are retained for 90 days before removal from live and backup systems begins."
     },
     {
+      "provider": "Firebase Authentication",
+      "url": "https://firebase.google.com/support/privacy/",
+      "officialFact": "Firebase Authentication processes phone numbers, user agents and IP addresses for authentication, security and abuse prevention. Logged IP addresses are retained for a few weeks; other authentication information is retained until the Firebase customer initiates deletion of the associated user and is then removed from live and backup systems within 180 days."
+    },
+    {
+      "provider": "Firebase Authentication Admin SDK",
+      "url": "https://firebase.google.com/docs/auth/admin/manage-users",
+      "officialFact": "The Firebase Admin SDK supports retrieving a user by UID and deleting a user by UID from a trusted server. ShareItToo uses these operations to verify that a phone-only temporary identity is safe to remove and then deletes it before storing the ownership proof."
+    },
+    {
       "provider": "Google Maps Platform",
       "url": "https://developers.google.com/maps/security/compliance/security-compliance",
       "officialFact": "Google Maps Platform logs may include the account identifier, device or server IP address, request URL, timestamp and technical app or device information. Google publishes no single fixed retention period for these logs and states that data is retained according to legitimate business need and deleted when no longer necessary."

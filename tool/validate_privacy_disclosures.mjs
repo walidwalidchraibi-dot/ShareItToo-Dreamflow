@@ -16,8 +16,12 @@ const sourcePaths = [
   'backend/src/privacy_export.js',
   'backend/src/security.js',
   'backend/src/maps_proxy.js',
+  'backend/src/config.js',
+  'backend/src/firebase_phone_verification.js',
+  'backend/sql/migrations/010_phone_verification.up.sql',
   'lib/services/firebase_runtime.dart',
   'lib/services/auth_service.dart',
+  'lib/screens/contact_data_screen.dart',
   'lib/openai/openai_config.dart',
   'lib/services/maps_service.dart',
   'backend/src/app.js',
@@ -25,6 +29,7 @@ const sourcePaths = [
   'lib/screens/message_thread_screen.dart',
   'lib/widgets/return_handover_stepper_sheet.dart',
   'lib/screens/report_user_screen.dart',
+  'store/phone-verification-readiness.json',
 ];
 
 const dataTypeIds = [
@@ -228,6 +233,48 @@ function assertSourceContracts({ root, sourceTexts }) {
   ]) {
     if (!auth.includes(marker)) fail(`Social authentication is missing ${marker}.`);
   }
+  for (const marker of [
+    'FirebaseAuth.instance.verifyPhoneNumber(',
+    "path: '/auth/phone-verification/status'",
+    "path: '/auth/phone-verification/confirm'",
+  ]) {
+    if (!auth.includes(marker)) fail(`Phone authentication is missing ${marker}.`);
+  }
+  const phoneConfig = sourceText(root, sourceTexts, 'backend/src/config.js');
+  if (!phoneConfig.includes("process.env.FIREBASE_PHONE_VERIFICATION_ENABLED ?? 'false'")) {
+    fail('Phone authentication must remain separately disabled by default.');
+  }
+  const phoneVerifier = sourceText(root, sourceTexts, 'backend/src/firebase_phone_verification.js');
+  for (const marker of ["sign_in_provider, 40) !== 'phone'", 'await verify(token, true)']) {
+    if (!phoneVerifier.includes(marker)) fail(`Phone token verification is missing ${marker}.`);
+  }
+  if (!phoneVerifier.includes("providers[0]?.providerId !== 'phone'")
+      || !phoneVerifier.includes('await remove(firebaseUserId)')) {
+    fail('Temporary Firebase phone identities must be removed after ownership proof.');
+  }
+  const phoneMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/010_phone_verification.up.sql',
+  );
+  if (!phoneMigration.includes('users_verified_phone_unique_idx')) {
+    fail('Verified phone numbers must remain unique at the database layer.');
+  }
+  const phoneConsent = sourceText(root, sourceTexts, 'lib/screens/contact_data_screen.dart');
+  for (const marker of ['Firebase Authentication (Google)', 'ShareItToo speichert keinen SMS-Code']) {
+    if (!phoneConsent.includes(marker)) fail(`Phone verification consent is missing ${marker}.`);
+  }
+  const phoneReadiness = JSON.parse(sourceText(
+    root,
+    sourceTexts,
+    'store/phone-verification-readiness.json',
+  ));
+  if (phoneReadiness.activationAllowed !== false
+      || phoneReadiness.storeSubmissionAllowed !== false
+      || phoneReadiness.externalGates?.privacyAndProviderClassification !==
+        'pending-successor-candidate-reclassification') {
+    fail('Phone verification privacy and activation gates must remain open.');
+  }
 
   const maps = sourceText(root, sourceTexts, 'lib/services/maps_service.dart');
   const mapsProxy = sourceText(root, sourceTexts, 'backend/src/maps_proxy.js');
@@ -401,8 +448,10 @@ export function validatePrivacyDisclosures({
       || socialAuth.role !==
         'processor-for-firebase-authentication-separate-provider-role-review-if-enabled'
       || !Array.isArray(socialAuth.providers)
-      || socialAuth.providers.join(',') !== 'google,apple,facebook') {
-    fail('Firebase Authentication must disclose Google, Apple, and Facebook.');
+      || socialAuth.providers.join(',') !== 'google,apple,facebook,phone'
+      || !Array.isArray(socialAuth.dataTypes)
+      || !socialAuth.dataTypes.includes('phoneNumber')) {
+    fail('Firebase Authentication must disclose Google, Apple, Facebook, and phone verification.');
   }
   const maps = object(services.googleMapsPlatform, 'externalServices.googleMapsPlatform');
   if (maps.enabled !== true) {

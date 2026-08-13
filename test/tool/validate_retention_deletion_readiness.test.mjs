@@ -74,6 +74,18 @@ test('rejects provider evidence that prematurely claims owner approval', () => {
   );
 });
 
+test('rejects omitting Firebase Authentication retention and deletion evidence', () => {
+  const path = 'docs/evidence/b11/privacy-provider-retention-sources-20260812.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.sources = evidence.sources.filter(
+    (source) => source.provider !== 'Firebase Authentication',
+  );
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /Firebase Authentication source contract/,
+  );
+});
+
 test('rejects owner verification without a separate owner evidence reference', () => {
   const retentionManifest = clone(baseRetention);
   const privacyManifest = clone(basePrivacy);

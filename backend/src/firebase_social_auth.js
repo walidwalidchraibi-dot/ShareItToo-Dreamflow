@@ -62,10 +62,7 @@ export function normalizeFirebaseSocialClaims(decoded) {
 
 let authClientPromise;
 
-async function firebaseAuthClient() {
-  if (!config.socialAuth.enabled) {
-    throw new SocialAuthError(503, 'social_auth_unavailable');
-  }
+export async function firebaseAuthClient() {
   if (!authClientPromise) {
     const initialization = (async () => {
       let serviceAccount;
@@ -93,6 +90,9 @@ async function firebaseAuthClient() {
 }
 
 export async function verifyFirebaseSocialToken(rawToken, { verifyIdToken } = {}) {
+  if (!verifyIdToken && !config.socialAuth.enabled) {
+    throw new SocialAuthError(503, 'social_auth_unavailable');
+  }
   const token = boundedText(rawToken, 12_000);
   if (token.length < 100) throw new SocialAuthError(401, 'invalid_social_token');
   try {

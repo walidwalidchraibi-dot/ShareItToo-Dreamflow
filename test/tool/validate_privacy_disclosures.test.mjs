@@ -144,12 +144,12 @@ test('rejects hiding the Google Maps integration found in the candidate', () => 
   );
 });
 
-test('rejects hiding any implemented social authentication provider', () => {
+test('rejects hiding any implemented Firebase authentication provider', () => {
   const privacyManifest = clone(basePrivacyManifest);
-  privacyManifest.externalServices.firebaseAuthentication.providers = ['google', 'apple'];
+  privacyManifest.externalServices.firebaseAuthentication.providers = ['google', 'apple', 'facebook'];
   assert.throws(
     () => validate({ privacyManifest }),
-    /must disclose Google, Apple, and Facebook/,
+    /must disclose Google, Apple, Facebook, and phone verification/,
   );
 });
 

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "firebase-phone-verification-readiness",
+  "state": "implementation-complete-external-gates-open",
+  "sourceBuild": {
+    "applicationId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081301"
+  },
+  "implementation": {
+    "provider": "firebase-phone",
+    "backendFeatureFlag": "FIREBASE_PHONE_VERIFICATION_ENABLED",
+    "enabledByDefault": false,
+    "backendStatusGate": "/v1/auth/phone-verification/status",
+    "backendConfirmationEndpoint": "/v1/auth/phone-verification/confirm",
+    "firebaseTokenRevocationChecked": true,
+    "firebasePhoneProviderRequired": true,
+    "requestedAndVerifiedPhoneMustMatch": true,
+    "verifiedPhoneUniquePerAccount": true,
+    "phoneNumbersAndSmsCodesExcludedFromAuditMetadata": true,
+    "temporaryFirebasePhoneIdentityDeleted": true,
+    "explicitTransferNoticeBeforeSms": true,
+    "clientSideVerificationBypassRemoved": true
+  },
+  "externalGates": {
+    "firebasePhoneProvider": "pending-owner-console-terms-and-configuration",
+    "smsRegionPolicy": "pending-owner-region-selection",
+    "androidAppVerification": "pending-console-proof-and-successor-build-check",
+    "androidRealDeviceSms": "pending",
+    "appleApnsConfiguration": "pending-apple-account-and-apns",
+    "appleRealDeviceSms": "pending",
+    "privacyAndProviderClassification": "pending-successor-candidate-reclassification",
+    "abuseAndQuotaObservation": "pending-staging-observation"
+  },
+  "activationAllowed": false,
+  "storeSubmissionAllowed": false,
+  "boundaries": {
+    "firebaseConsoleChanged": false,
+    "smsSent": false,
+    "productionChanged": false,
+    "storeSubmissionChanged": false,
+    "containsPhoneNumbers": false,
+    "containsSmsCodes": false,
+    "containsFirebaseTokens": false,
+    "containsCredentials": false,
+    "containsSecrets": false
+  },
+  "officialReferences": [
+    "https://firebase.google.com/docs/auth/flutter/phone-auth",
+    "https://firebase.google.com/docs/auth/admin/verify-id-tokens",
+    "https://firebase.google.com/docs/auth/android/phone-auth",
+    "https://firebase.google.com/docs/android/play-data-disclosure"
+  ]
+}

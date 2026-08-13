@@ -344,11 +344,11 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
   }
 
   Future<void> _verifyPhoneFlow() async {
-    if (BackendConfig.enabled) {
+    if (!BackendConfig.enabled) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-              'Telefonverifizierung wird nach Anbindung des sicheren SMS-Dienstes freigeschaltet.'),
+              'Telefonverifizierung ist nur mit einem sicheren ShareItToo-Konto verfügbar.'),
         ),
       );
       return;
@@ -360,9 +360,56 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
       return;
     }
 
-    final code = (Random().nextInt(900000) + 100000).toString();
-    debugPrint(
-        '[ContactData] Demo SMS code for ${_phoneCtrl.text.trim()}: $code');
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('SMS-Code anfordern?'),
+        content: const Text(
+          'Zur Bestätigung wird deine Telefonnummer an Firebase Authentication (Google) übertragen. Google verwendet sie außerdem zur Spam- und Missbrauchsabwehr. ShareItToo speichert keinen SMS-Code.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Code senden'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || approved != true) return;
+
+    PhoneVerificationChallenge challenge;
+    try {
+      setState(() => _saving = true);
+      challenge = await AuthService.requestPhoneVerification(
+        _phoneCtrl.text,
+      );
+    } on PhoneVerificationException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_phoneVerificationMessage(error.failure))),
+      );
+      return;
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+
+    if (challenge.automaticallyVerified) {
+      final refreshed = await _refreshVerifiedPhone();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(refreshed
+              ? 'Telefonnummer verifiziert'
+              : 'Telefonnummer bestätigt. Der Profilstatus wird beim nächsten Laden aktualisiert.'),
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
 
     final codeCtrl = TextEditingController();
     bool verifying = false;
@@ -375,7 +422,7 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
         return _SheetScaffold(
           title: 'Telefonnummer verifizieren',
           subtitle:
-              'Wir haben dir einen SMS‑Code gesendet. (Demo‑Code steht im Debug‑Log)',
+              'Wir haben einen sechsstelligen SMS‑Code an ${challenge.phoneNumber} gesendet.',
           child: StatefulBuilder(
             builder: (context, setLocal) {
               return Column(
@@ -396,33 +443,40 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                           : () async {
                               setLocal(() => verifying = true);
                               try {
-                                final entered = codeCtrl.text.trim();
-                                if (entered != code) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content:
-                                              Text('Code ist nicht korrekt.')));
-                                  return;
-                                }
-                                final u = _user;
-                                if (u == null) return;
-                                final updated = u.copyWith(phoneVerified: true);
-                                await DataService.setCurrentUser(updated);
+                                await AuthService.confirmPhoneVerification(
+                                  challenge: challenge,
+                                  smsCode: codeCtrl.text,
+                                );
                                 if (!mounted || !sheetContext.mounted) return;
-                                setState(() => _user = updated);
+                                final refreshed = await _refreshVerifiedPhone();
+                                if (!mounted || !sheetContext.mounted) return;
                                 Navigator.of(sheetContext).pop();
                                 ScaffoldMessenger.of(this.context).showSnackBar(
-                                    const SnackBar(
-                                        content:
-                                            Text('Telefonnummer verifiziert')));
-                              } catch (e) {
+                                  SnackBar(
+                                    content: Text(refreshed
+                                        ? 'Telefonnummer verifiziert'
+                                        : 'Telefonnummer bestätigt. Der Profilstatus wird beim nächsten Laden aktualisiert.'),
+                                  ),
+                                );
+                              } on PhoneVerificationException catch (error) {
                                 debugPrint(
-                                    '[ContactData] verify phone failed: $e');
+                                    '[ContactData] verify phone failed: ${error.failure.name}');
                                 if (!sheetContext.mounted) return;
                                 ScaffoldMessenger.of(sheetContext).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'Verifizierung fehlgeschlagen.')));
+                                  SnackBar(
+                                      content: Text(
+                                    _phoneVerificationMessage(error.failure),
+                                  )),
+                                );
+                              } catch (error) {
+                                debugPrint('[ContactData] verify phone failed');
+                                if (!sheetContext.mounted) return;
+                                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                  const SnackBar(
+                                      content: Text(
+                                    'Verifizierung fehlgeschlagen. Bitte versuche es erneut.',
+                                  )),
+                                );
                               } finally {
                                 setLocal(() => verifying = false);
                               }
@@ -437,6 +491,44 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
         );
       },
     );
+    codeCtrl.dispose();
+  }
+
+  Future<bool> _refreshVerifiedPhone() async {
+    try {
+      await DataService.syncCurrentUserForSessionEmail(_user?.email ?? '');
+      final updated = await DataService.getCurrentUser();
+      if (!mounted) return updated?.phoneVerified ?? false;
+      setState(() => _user = updated);
+      return updated?.phoneVerified ?? false;
+    } catch (_) {
+      debugPrint('[ContactData] verified phone profile refresh deferred');
+      return false;
+    }
+  }
+
+  String _phoneVerificationMessage(PhoneVerificationFailure failure) {
+    return switch (failure) {
+      PhoneVerificationFailure.invalidPhone =>
+        'Bitte gib die Telefonnummer im internationalen Format ein, zum Beispiel +49 …',
+      PhoneVerificationFailure.invalidCode =>
+        'Der SMS-Code ist falsch oder abgelaufen.',
+      PhoneVerificationFailure.phoneAlreadyVerified =>
+        'Diese Telefonnummer ist bereits mit einem anderen Konto verifiziert.',
+      PhoneVerificationFailure.rateLimited =>
+        'Zu viele Versuche. Bitte warte und versuche es später erneut.',
+      PhoneVerificationFailure.sessionExpired =>
+        'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.',
+      PhoneVerificationFailure.timeout =>
+        'Der SMS-Versand hat zu lange gedauert. Bitte versuche es erneut.',
+      PhoneVerificationFailure.unavailable =>
+        'Die sichere SMS-Prüfung ist derzeit noch nicht verfügbar.',
+      PhoneVerificationFailure.invalidToken ||
+      PhoneVerificationFailure.phoneMismatch =>
+        'Die bestätigte Nummer stimmt nicht mit deiner Eingabe überein.',
+      PhoneVerificationFailure.network =>
+        'Die Telefonnummer konnte nicht bestätigt werden. Prüfe deine Verbindung und versuche es erneut.',
+    };
   }
 
   Future<void> _verifyEmailFlow() async {
@@ -762,19 +854,22 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                                       ),
                                       const SizedBox(height: 12),
                                       FilledButton.icon(
-                                        onPressed: (user?.phoneVerified ?? false) || BackendConfig.enabled
-                                            ? null
-                                            : _verifyPhoneFlow,
-                                        icon: const Icon(Icons.verified_outlined),
-                                        label: Text(BackendConfig.enabled && !(user?.phoneVerified ?? false)
-                                            ? 'Telefonprüfung noch nicht verfügbar'
-                                            : 'Telefonnummer verifizieren'),
+                                        onPressed:
+                                            (user?.phoneVerified ?? false) ||
+                                                    _saving
+                                                ? null
+                                                : _verifyPhoneFlow,
+                                        icon:
+                                            const Icon(Icons.verified_outlined),
+                                        label: const Text(
+                                            'Telefonnummer verifizieren'),
                                       ),
-                                      if (BackendConfig.enabled && !(user?.phoneVerified ?? false)) ...[
+                                      if (!(user?.phoneVerified ?? false)) ...[
                                         const SizedBox(height: 8),
                                         Text(
-                                          'Die sichere SMS-Bestätigung wird vor dem Produktionsstart freigeschaltet.',
-                                          style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                                          'Der SMS-Code wird sicher über Firebase Authentication versendet. ShareItToo speichert den Code nicht.',
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(color: Colors.white70),
                                         ),
                                       ],
                                     ]),

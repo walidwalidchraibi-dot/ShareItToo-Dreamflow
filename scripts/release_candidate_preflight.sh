@@ -40,10 +40,16 @@ node --check tool/diagnose_android_offline_realtime.mjs
 node --check tool/run_staging_synthetic_booking.mjs
 node --check tool/prepare_store_screenshot_fixture.mjs
 node --check tool/validate_firebase_release_config.mjs
+node --check tool/validate_phone_verification_readiness.mjs
 node --check tool/validate_android_signing_config.mjs
 node tool/verify_brand_assets.mjs
-dart run tool/validate_store_metadata.dart
+if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  dart run tool/validate_store_metadata.dart --allow-candidate-rollover
+else
+  dart run tool/validate_store_metadata.dart
+fi
 node tool/validate_device_evidence.mjs
+node tool/validate_phone_verification_readiness.mjs
 node tool/validate_legal_readiness.mjs
 node tool/validate_privacy_disclosures.mjs
 node tool/validate_retention_deletion_readiness.mjs

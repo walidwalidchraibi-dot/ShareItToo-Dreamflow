@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "cbfe80d3be388ac28a4ce56d172397148d238450699c6c16beca83548a51aa5d"
+      "sha256": "011ee2733e13dbf0665bf609d94da1bfd9c59cb69ee5c8af740c848722b0c325"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -51,12 +51,28 @@
       "sha256": "e3b3ec6db438488910e8638fe498f0d61652250d803e007a513f74eec8f6b8de"
     },
     {
+      "path": "backend/src/config.js",
+      "sha256": "0cef16622667574b7d4f2cc5a9647a98c951afcceb2ca8aaae3c77dd9c21473e"
+    },
+    {
+      "path": "backend/src/firebase_phone_verification.js",
+      "sha256": "ea8fb71aeada7eab59006e789d7890c697e1d6d43fbf7c94a3bed5df615d81dc"
+    },
+    {
+      "path": "backend/sql/migrations/010_phone_verification.up.sql",
+      "sha256": "75ae4d33448d1b8b512b5cc956ead31d6ae947d96f6e194a0d67e07adc1ffebf"
+    },
+    {
       "path": "lib/services/firebase_runtime.dart",
       "sha256": "2ce9ce307ac4c6e76182d0dc6086774e1cbdf1cc549b82ed7664ff279d69d493"
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "c75ea6de6cce29d82f819280e6d45d39a6ba0d60d0f18f9f462e1676bb89b89e"
+      "sha256": "be038fe592011b181095fabdc164663a7597fb7812a320e817cce5c5b7eb1d9a"
+    },
+    {
+      "path": "lib/screens/contact_data_screen.dart",
+      "sha256": "df19ad7c2d75f3ef2e6621fea02c04dfdcf70d7311456112778851ad2e90a814"
     },
     {
       "path": "lib/openai/openai_config.dart",
@@ -68,7 +84,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "7074140591537ba5e24d98acda05764ee61485e51a2664eb0187e6b831e7cade"
+      "sha256": "c71edf1a8ceab6535f1c0c43365a2f657024ac27e0c8cc4ac03050080eeba71c"
     },
     {
       "path": "lib/screens/create_listing_screen.dart",
@@ -85,6 +101,10 @@
     {
       "path": "lib/screens/report_user_screen.dart",
       "sha256": "0451df1b18e75662a76988cc9ef816073273651731b855e43e06cbe4db722760"
+    },
+    {
+      "path": "store/phone-verification-readiness.json",
+      "sha256": "9c971bfb50b133cedfa41cca8743a18f83cb32433e35ee5c96cb41e6be1ac5a9"
     }
   ],
   "binaryEvidence": {
@@ -119,8 +139,8 @@
       "enabled": true,
       "enabledInBoundEnvironment": false,
       "role": "processor-for-firebase-authentication-separate-provider-role-review-if-enabled",
-      "providers": ["google", "apple", "facebook"],
-      "dataTypes": ["name", "emailAddress", "userId"]
+      "providers": ["google", "apple", "facebook", "phone"],
+      "dataTypes": ["name", "emailAddress", "phoneNumber", "userId"]
     },
     "googleMapsPlatform": {
       "enabled": true,

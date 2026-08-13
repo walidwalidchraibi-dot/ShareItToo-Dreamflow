@@ -115,6 +115,11 @@ import {
   verifyFirebaseSocialToken,
 } from './firebase_social_auth.js';
 import {
+  deleteFirebasePhoneIdentity,
+  PhoneVerificationError,
+  verifyFirebasePhoneToken,
+} from './firebase_phone_verification.js';
+import {
   ListingValidationError,
   listingProjection,
   normalizeListingPayload,
@@ -915,7 +920,11 @@ async function listThreads(client, userId) {
   return threads;
 }
 
-export function createApp({ verifySocialToken = verifyFirebaseSocialToken } = {}) {
+export function createApp({
+  verifySocialToken = verifyFirebaseSocialToken,
+  verifyPhoneToken = verifyFirebasePhoneToken,
+  deletePhoneIdentity = deleteFirebasePhoneIdentity,
+} = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
@@ -952,6 +961,7 @@ export function createApp({ verifySocialToken = verifyFirebaseSocialToken } = {}
   const socialAuthLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 12, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const refreshLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const actionLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const phoneVerificationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   const exportLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const deletionLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const mapsLimiter = rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
@@ -1566,6 +1576,79 @@ export function createApp({ verifySocialToken = verifyFirebaseSocialToken } = {}
   app.post('/v1/auth/email-verification/confirm', actionLimiter, asyncRoute(async (req, res) => {
     await confirmEmail(safeText(req.body?.token, 500));
     res.json({ verified: true });
+  }));
+
+  app.get('/v1/auth/phone-verification/status', requireAuth, requireActiveAccount, (_req, res) => {
+    res.set('Cache-Control', 'no-store').json({
+      available: config.phoneVerification.enabled,
+      provider: config.phoneVerification.enabled ? 'firebase-phone' : null,
+    });
+  });
+
+  app.post('/v1/auth/phone-verification/confirm', requireAuth, requireActiveAccount, phoneVerificationLimiter, asyncRoute(async (req, res) => {
+    if (!config.phoneVerification.enabled) {
+      throw new HttpError(503, 'phone_verification_unavailable');
+    }
+    const requestedPhone = normalizePhoneE164(req.body?.phoneNumber);
+    if (!requestedPhone) throw new HttpError(400, 'invalid_phone');
+    const verified = await verifyPhoneToken(req.body?.firebaseIdToken);
+    // Phone authentication is used only as a possession proof. Consume the
+    // provider identity before storing the result, and refuse to delete an
+    // identity that is linked to any durable login provider.
+    await deletePhoneIdentity(verified);
+    if (verified.phoneNumber !== requestedPhone) {
+      throw new HttpError(422, 'phone_verification_mismatch');
+    }
+    let outcome;
+    try {
+      outcome = await inTransaction(async (client) => {
+        const current = await client.query(
+          `SELECT * FROM users
+           WHERE id = $1 AND deactivated_at IS NULL AND account_status = 'active'
+           FOR UPDATE`,
+          [req.auth.userId],
+        );
+        if (!current.rowCount) throw new HttpError(404, 'user_not_found');
+        const conflict = await client.query(
+          `SELECT 1 FROM users
+           WHERE phone_e164 = $1 AND phone_verified_at IS NOT NULL AND id <> $2
+           LIMIT 1`,
+          [verified.phoneNumber, req.auth.userId],
+        );
+        if (conflict.rowCount) throw new HttpError(409, 'phone_already_verified');
+        const updated = await client.query(
+          `UPDATE users
+           SET phone_e164 = $2,
+               phone_verified_at = COALESCE(
+                 CASE WHEN phone_e164 = $2 THEN phone_verified_at END,
+                 now()
+               ),
+               profile = jsonb_set(
+                 jsonb_set(profile, '{phone}', to_jsonb($2::text), true),
+                 '{phoneVerified}', 'true'::jsonb, true
+               )
+           WHERE id = $1
+           RETURNING *`,
+          [req.auth.userId, verified.phoneNumber],
+        );
+        await writeAudit(client, {
+          actor: req.actor,
+          action: 'auth.phone_verified',
+          resourceType: 'user',
+          resourceId: req.auth.userId,
+          requestId: req.requestId,
+          metadata: { provider: 'firebase-phone' },
+        });
+        return updated.rows[0];
+      });
+    } catch (error) {
+      if (error?.code === '23505' && error?.constraint === 'users_verified_phone_unique_idx') {
+        throw new HttpError(409, 'phone_already_verified');
+      }
+      throw error;
+    }
+    publishToUsers([req.auth.userId], { type: 'changed', resource: 'profiles' });
+    res.json({ verified: true, user: shapeUser(outcome) });
   }));
 
   app.post('/v1/auth/email-change/request', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
@@ -3220,14 +3303,14 @@ export function createApp({ verifySocialToken = verifyFirebaseSocialToken } = {}
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });

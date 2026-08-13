@@ -57,7 +57,10 @@ const firebaseServiceAccountFile = process.env.FIREBASE_SERVICE_ACCOUNT_FILE?.tr
 const firebaseAuthEnabled = (process.env.FIREBASE_AUTH_ENABLED ?? 'false')
   .trim()
   .toLowerCase() === 'true';
-if (pushTransport === 'fcm' || firebaseAuthEnabled) {
+const firebasePhoneVerificationEnabled = (
+  process.env.FIREBASE_PHONE_VERIFICATION_ENABLED ?? 'false'
+).trim().toLowerCase() === 'true';
+if (pushTransport === 'fcm' || firebaseAuthEnabled || firebasePhoneVerificationEnabled) {
   if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(firebaseProjectId)) {
     throw new Error('FIREBASE_PROJECT_ID must be configured for Firebase services');
   }
@@ -220,6 +223,13 @@ export const config = Object.freeze({
       ? path.resolve(firebaseServiceAccountFile)
       : '',
     allowedProviders: Object.freeze(['google', 'apple', 'facebook']),
+  }),
+  phoneVerification: Object.freeze({
+    enabled: firebasePhoneVerificationEnabled,
+    firebaseProjectId,
+    firebaseServiceAccountFile: firebaseServiceAccountFile
+      ? path.resolve(firebaseServiceAccountFile)
+      : '',
   }),
   payments: Object.freeze({
     transport: paymentTransport,

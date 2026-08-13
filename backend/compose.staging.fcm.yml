@@ -8,6 +8,7 @@ services:
     environment:
       PUSH_TRANSPORT: fcm
       FIREBASE_AUTH_ENABLED: ${FIREBASE_AUTH_ENABLED:-false}
+      FIREBASE_PHONE_VERIFICATION_ENABLED: ${FIREBASE_PHONE_VERIFICATION_ENABLED:-false}
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:?FIREBASE_PROJECT_ID must be set for the staging FCM override}
       FIREBASE_SERVICE_ACCOUNT_FILE: /run/secrets/firebase-service-account.json
     volumes:

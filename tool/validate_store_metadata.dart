@@ -234,6 +234,7 @@ String _pubspecVersion(Directory root) {
 
 void main(List<String> arguments) {
   var requireSubmittable = false;
+  var allowCandidateRollover = false;
   String? manifestPath;
   String? accountReadinessPath;
   String? closedTestingReadinessPath;
@@ -241,6 +242,8 @@ void main(List<String> arguments) {
     final value = arguments[index];
     if (value == '--require-submittable') {
       requireSubmittable = true;
+    } else if (value == '--allow-candidate-rollover') {
+      allowCandidateRollover = true;
     } else if (value == '--manifest') {
       if (index + 1 >= arguments.length) {
         _fail('--manifest requires a path.');
@@ -725,6 +728,17 @@ void main(List<String> arguments) {
     File('${root.path}/$googleInternalUploadHandoffPath'),
     'Google Play internal upload handoff',
   );
+  final handoffCandidate = _map(googleInternalUploadHandoff['candidate'],
+      'Google Play handoff candidate');
+  final handoffPreUploadGates = _map(
+    googleInternalUploadHandoff['preUploadGates'],
+    'Google Play handoff pre-upload gates',
+  );
+  final handoffBuild =
+      BigInt.tryParse(handoffCandidate['buildNumber']?.toString() ?? '');
+  if (handoffBuild == null) {
+    _fail('Google Play handoff buildNumber must be numeric.');
+  }
   final googleProductionAccessApplication = _readJsonMapFile(
     File('${root.path}/$productionAccessApplicationBinding'),
     'Google Play production-access application',
@@ -825,7 +839,7 @@ void main(List<String> arguments) {
 
   for (final required in [
     'com.shareittoo.app',
-    currentBuild.toString(),
+    handoffBuild.toString(),
     'Nein, die App enthält keine Werbung.',
     'kein Google Play Billing',
     'keine Store-Einreichung erlaubt',
@@ -838,14 +852,20 @@ void main(List<String> arguments) {
     }
   }
 
-  final handoffCandidate = _map(googleInternalUploadHandoff['candidate'],
-      'Google Play handoff candidate');
-  final handoffPreUploadGates = _map(
-    googleInternalUploadHandoff['preUploadGates'],
-    'Google Play handoff pre-upload gates',
-  );
   final handoffSuperseded = googleInternalUploadHandoff['status'] ==
       'superseded-privacy-rescan-failed-replacement-pending';
+  final candidateBuildMatches = handoffSuperseded
+      ? googleInternalUploadHandoff['replacementBuildNumber'] ==
+          currentBuild.toString()
+      : allowCandidateRollover
+          ? handoffBuild <= currentBuild
+          : handoffBuild == currentBuild;
+  if (allowCandidateRollover &&
+      (manifest['state'] != 'draft' ||
+          manifest['submissionAllowed'] != false ||
+          requireSubmittable)) {
+    _fail('Candidate rollover is restricted to a fail-closed Store draft.');
+  }
   if ((!handoffSuperseded &&
           googleInternalUploadHandoff['status'] !=
               'verified-artifact-ready-immediate-reverification-pending') ||
@@ -853,10 +873,7 @@ void main(List<String> arguments) {
       googleInternalUploadHandoff['track'] != 'internal' ||
       handoffCandidate['applicationId'] != identity['applicationId'] ||
       handoffCandidate['versionName'] != identity['versionName'] ||
-      (handoffSuperseded
-          ? googleInternalUploadHandoff['replacementBuildNumber'] !=
-              currentBuild.toString()
-          : handoffCandidate['buildNumber'] != currentBuild.toString()) ||
+      !candidateBuildMatches ||
       handoffCandidate['apiBaseUrl'] != identity['apiBaseUrl'] ||
       handoffPreUploadGates['personalIdentityVerification'] != 'verified' ||
       handoffPreUploadGates['deviceVerification'] != 'verified' ||
@@ -1018,7 +1035,8 @@ void main(List<String> arguments) {
 
   stdout.writeln(
     'Store metadata valid: state=$state, submissionAllowed=$submissionAllowed, '
-    'currentBuild=$currentBuild, minimumStoreBuild=$minimumStoreBuild, '
+    'currentBuild=$currentBuild, storeCandidateBuild=$handoffBuild, '
+    'minimumStoreBuild=$minimumStoreBuild, '
     'openUrls=${openUrlGates.length}, openGates=${openGates.length}.',
   );
 }

@@ -34,6 +34,8 @@ const providerEvidencePath = 'docs/evidence/b11/privacy-provider-retention-sourc
 const requiredOfficialSources = [
   ['Firebase Cloud Messaging', 'https://firebase.google.com/support/privacy/', 'within 180 days'],
   ['Firebase Crashlytics', 'https://firebase.google.com/support/privacy/', 'retained for 90 days'],
+  ['Firebase Authentication', 'https://firebase.google.com/support/privacy/', 'removed from live and backup systems within 180 days'],
+  ['Firebase Authentication Admin SDK', 'https://firebase.google.com/docs/auth/admin/manage-users', 'deleting a user by UID'],
   ['Google Maps Platform', 'https://developers.google.com/maps/security/compliance/security-compliance', 'no single fixed retention period'],
   ['Google Play', 'https://support.google.com/googleplay/android-developer/answer/10787469?hl=en', 'Data safety form'],
   ['Google Play', 'https://support.google.com/googleplay/android-developer/answer/13327111?hl=en', 'public web resource'],
@@ -200,7 +202,12 @@ export function validateRetentionDeletionReadiness({
   }
 
   const processors = object(retention.externalProcessors, 'externalProcessors');
-  for (const processor of ['firebaseCloudMessaging', 'firebaseCrashlytics', 'googleMapsPlatform']) {
+  for (const processor of [
+    'firebaseCloudMessaging',
+    'firebaseCrashlytics',
+    'firebaseAuthentication',
+    'googleMapsPlatform',
+  ]) {
     const processorState = object(processors[processor], `externalProcessors.${processor}`);
     exactKeys(processorState, [
       'retentionOwnerVerified',

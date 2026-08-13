@@ -22,6 +22,7 @@ if (!databaseUrl) {
     process.env.JWT_SECRET ??= crypto.randomBytes(48).toString('base64url');
     process.env.MAIL_TRANSPORT = 'memory';
     process.env.PAYMENT_TRANSPORT = 'memory';
+    process.env.FIREBASE_PHONE_VERIFICATION_ENABLED = 'true';
     process.env.PAYOUT_HOLD_HOURS = '0';
     const uploadDir = await fs.mkdtemp(path.join(os.tmpdir(), 'sit-b3-uploads-'));
     process.env.UPLOAD_DIR = uploadDir;
@@ -51,6 +52,7 @@ if (!databaseUrl) {
         '007_b8_payments_and_ledger.up.sql',
         '008_b9_moderation_and_reviews.up.sql',
         '009_social_auth_providers.up.sql',
+        '010_phone_verification.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -291,6 +293,8 @@ if (!databaseUrl) {
         [await hashPassword(adminPassword), await hashPassword(supportPassword)],
       );
       const socialClaims = new Map();
+      const phoneClaims = new Map();
+      const deletedPhoneIdentities = [];
       server = http.createServer(createApp({
         verifySocialToken: async (token) => {
           const identity = socialClaims.get(token);
@@ -301,6 +305,19 @@ if (!databaseUrl) {
             throw error;
           }
           return identity;
+        },
+        verifyPhoneToken: async (token) => {
+          const identity = phoneClaims.get(token);
+          if (!identity) {
+            const error = new Error('invalid_phone_verification_token');
+            error.status = 401;
+            error.code = 'invalid_phone_verification_token';
+            throw error;
+          }
+          return identity;
+        },
+        deletePhoneIdentity: async (identity) => {
+          deletedPhoneIdentities.push(identity.firebaseUserId);
         },
       }));
       await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -343,6 +360,77 @@ if (!databaseUrl) {
         Authorization: `Bearer ${tokenFor('renter-b')}`,
         'Content-Type': 'application/json',
       };
+      const phoneStatus = await fetch(`${baseUrl}/v1/auth/phone-verification/status`, {
+        headers: ownerHeaders,
+      });
+      assert.equal(phoneStatus.status, 200);
+      assert.deepEqual(await phoneStatus.json(), {
+        available: true,
+        provider: 'firebase-phone',
+      });
+      phoneClaims.set('phone-token-owner', {
+        firebaseUserId: 'firebase-phone-owner',
+        phoneNumber: '+4915212345678',
+      });
+      phoneClaims.set('phone-token-other', {
+        firebaseUserId: 'firebase-phone-other',
+        phoneNumber: '+491701234567',
+      });
+      const mismatchedPhone = await fetch(`${baseUrl}/v1/auth/phone-verification/confirm`, {
+        method: 'POST',
+        headers: ownerHeaders,
+        body: JSON.stringify({
+          phoneNumber: '+4915212345678',
+          firebaseIdToken: 'phone-token-other',
+        }),
+      });
+      assert.equal(mismatchedPhone.status, 422);
+      assert.equal((await mismatchedPhone.json()).error, 'phone_verification_mismatch');
+
+      const verifiedPhone = await fetch(`${baseUrl}/v1/auth/phone-verification/confirm`, {
+        method: 'POST',
+        headers: ownerHeaders,
+        body: JSON.stringify({
+          phoneNumber: '+4915212345678',
+          firebaseIdToken: 'phone-token-owner',
+        }),
+      });
+      assert.equal(verifiedPhone.status, 200);
+      const verifiedPhonePayload = await verifiedPhone.json();
+      assert.equal(verifiedPhonePayload.verified, true);
+      assert.equal(verifiedPhonePayload.user.phone, '+4915212345678');
+      assert.equal(verifiedPhonePayload.user.phoneVerified, true);
+      assert.deepEqual(deletedPhoneIdentities, [
+        'firebase-phone-other',
+        'firebase-phone-owner',
+      ]);
+
+      phoneClaims.set('phone-token-renter-a', {
+        firebaseUserId: 'firebase-phone-renter-a',
+        phoneNumber: '+4915212345678',
+      });
+      const duplicateVerifiedPhone = await fetch(`${baseUrl}/v1/auth/phone-verification/confirm`, {
+        method: 'POST',
+        headers: renterAHeaders,
+        body: JSON.stringify({
+          phoneNumber: '+4915212345678',
+          firebaseIdToken: 'phone-token-renter-a',
+        }),
+      });
+      assert.equal(duplicateVerifiedPhone.status, 409);
+      assert.equal((await duplicateVerifiedPhone.json()).error, 'phone_already_verified');
+      assert.deepEqual(deletedPhoneIdentities, [
+        'firebase-phone-other',
+        'firebase-phone-owner',
+        'firebase-phone-renter-a',
+      ]);
+
+      const phoneAudit = await setupPool.query(
+        `SELECT metadata FROM audit_log
+         WHERE actor_id = 'owner' AND action = 'auth.phone_verified'`,
+      );
+      assert.equal(phoneAudit.rowCount, 1);
+      assert.deepEqual(phoneAudit.rows[0].metadata, { provider: 'firebase-phone' });
       const availabilityRules = Array.from({ length: 7 }, (_, weekday) => ({
         weekday,
         localStart: '00:00',

@@ -21,6 +21,7 @@ function runWithManifests({
   mutateManifest = () => {},
   mutateAccountReadiness = () => {},
   mutateClosedTestingReadiness = () => {},
+  extraArgs = ['--allow-candidate-rollover'],
 }) {
   const directory = mkdtempSync(join(tmpdir(), 'sit-store-metadata-'));
   try {
@@ -39,6 +40,7 @@ function runWithManifests({
     return spawnSync('dart', [
       'run',
       validator,
+      ...extraArgs,
       '--manifest',
       manifestPath,
       '--account-readiness',
@@ -58,6 +60,20 @@ test('accepts the current honest fail-closed Store metadata draft', () => {
   const result = runWithManifests({});
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Store metadata valid/);
+});
+
+test('strict Store validation rejects a newer unfinished source build', () => {
+  const result = runWithManifests({ extraArgs: [] });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /internal upload handoff must remain bound/);
+});
+
+test('candidate rollover remains forbidden when a Store submission is requested', () => {
+  const result = runWithManifests({
+    extraArgs: ['--allow-candidate-rollover', '--require-submittable'],
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /restricted to a fail-closed Store draft/);
 });
 
 test('rejects a missing mandatory Store release gate', () => {
