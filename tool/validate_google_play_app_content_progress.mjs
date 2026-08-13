@@ -52,6 +52,8 @@ export function validateGooglePlayAppContentProgress({
       dataSafety.dataTypesPrepared !== 16 ||
       dataSafety.dataTypesEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-datatypes-20260812.json' ||
+      dataSafety.answerMatrixEvidenceRef !==
+        'docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json' ||
       dataSafety.dataTypesSaved !== false ||
       dataSafety.submitted !== false) {
     fail('Play data-safety partial draft state is invalid.');
@@ -86,6 +88,19 @@ export function validateGooglePlayAppContentProgress({
       Object.values(dataTypesEvidence.boundaries ?? {}).some((value) => value !== false) ||
       JSON.stringify(dataTypesEvidence).includes('@')) {
     fail('Play data-safety data-type preparation is invalid or unsafe.');
+  }
+  const answerMatrixEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
+    dataSafety.answerMatrixEvidenceRef), 'utf8'));
+  if (answerMatrixEvidence.kind !== 'google-play-data-safety-answer-matrix' ||
+      answerMatrixEvidence.status !== 'all-data-type-answers-prepared-console-save-blocked' ||
+      answerMatrixEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
+      answerMatrixEvidence.dataTypes?.length !== 17 ||
+      answerMatrixEvidence.dataTypes?.filter((entry) => entry.selected).length !== 16 ||
+      answerMatrixEvidence.consoleBaseline?.dataTypeAnswersSaved !== false ||
+      Object.values(answerMatrixEvidence.blockingGates ?? {}).some((value) => value !== false) ||
+      Object.values(answerMatrixEvidence.boundaries ?? {}).some((value) => value !== false) ||
+      JSON.stringify(answerMatrixEvidence).includes('@')) {
+    fail('Play data-safety answer matrix is invalid, stale, or unsafe.');
   }
   const advertisingId = evidence.advertisingIdDraft ?? {};
   if (advertisingId.usesAdvertisingId !== false ||

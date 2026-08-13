@@ -81,6 +81,16 @@ test('rejects a Data safety type count that includes free documents', async (t) 
     /product truth/);
 });
 
+test('rejects a stale Data Safety handoff that is not bound to the full answer matrix', async (t) => {
+  const data = await fixture((handoff) => {
+    handoff.tasks.dataSafety.answerMatrixEvidenceRef =
+      'docs/evidence/b11/google-play-data-safety-datatypes-20260812.json';
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+    /product truth/);
+});
+
 test('rejects credential or account data', async (t) => {
   const data = await fixture((handoff) => { handoff.account = 'private@example.test'; });
   t.after(() => rm(data.root, { recursive: true, force: true }));

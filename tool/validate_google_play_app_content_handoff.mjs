@@ -82,7 +82,7 @@ export function validateGooglePlayAppContentHandoff({
       tasks.targetAudience.designedForChildren !== false ||
       tasks.dataSafety.collectsOrTransmitsUserData !== true ||
       tasks.dataSafety.status !==
-        'step-two-observed-public-deletion-route-and-provider-classification-pending' ||
+        'all-data-type-answers-prepared-console-save-blocked' ||
       tasks.dataSafety.accountCreationMethod !== 'username-and-password' ||
       tasks.dataSafety.oauthPreparedButUnavailable !== true ||
       tasks.dataSafety.deleteAccountUrlSaved !== false ||
@@ -92,6 +92,8 @@ export function validateGooglePlayAppContentHandoff({
       tasks.dataSafety.dataTypesPrepared !== 16 ||
       tasks.dataSafety.dataTypesEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-datatypes-20260812.json' ||
+      tasks.dataSafety.answerMatrixEvidenceRef !==
+        'docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json' ||
       tasks.dataSafety.stepTwoEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-step2-20260812.json' ||
       tasks.dataSafety.sellsData !== false ||
@@ -130,7 +132,7 @@ export function validateGooglePlayAppContentHandoff({
   if (Object.keys(hardStops).length !== 7) {
     fail('App-content handoff must preserve all seven hard stops.');
   }
-  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 8 ||
+  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 9 ||
       handoff.evidenceRefs.some((ref) => typeof ref !== 'string' ||
         ref.includes('..') || !resolve(repositoryRoot, ref).startsWith(`${resolve(repositoryRoot)}/`))) {
     fail('App-content evidence references are invalid.');

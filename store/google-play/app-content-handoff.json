@@ -39,7 +39,7 @@
       "designedForChildren": false
     },
     "dataSafety": {
-      "status": "step-two-observed-public-deletion-route-and-provider-classification-pending",
+      "status": "all-data-type-answers-prepared-console-save-blocked",
       "collectsOrTransmitsUserData": true,
       "encryptedInTransit": true,
       "accountCreationMethod": "username-and-password",
@@ -49,6 +49,7 @@
       "preparedPartialDataDeletionAnswer": false,
       "dataTypesPrepared": 16,
       "dataTypesEvidenceRef": "docs/evidence/b11/google-play-data-safety-datatypes-20260812.json",
+      "answerMatrixEvidenceRef": "docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json",
       "sellsData": false,
       "advertisingTracking": false,
       "stepTwoEvidenceRef": "docs/evidence/b11/google-play-data-safety-step2-20260812.json"
@@ -103,6 +104,7 @@
     "docs/evidence/b11/google-play-app-content-progress-20260812.json",
     "docs/evidence/b11/google-play-data-safety-step2-20260812.json",
     "docs/evidence/b11/google-play-data-safety-datatypes-20260812.json",
+    "docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json",
     "docs/evidence/b11/google-play-advertising-id-declaration-20260812.json",
     "docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json"
   ],
