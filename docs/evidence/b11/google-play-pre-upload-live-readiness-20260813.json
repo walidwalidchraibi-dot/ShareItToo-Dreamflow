@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "kind": "google-play-pre-upload-live-readiness",
-  "status": "superseded-product-truth-failed-replacement-pending",
-  "capturedAt": "2026-08-13T09:49:49Z",
+  "status": "ready-awaiting-explicit-internal-upload-approval",
+  "capturedAt": "2026-08-13T17:15:49Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081202",
-    "commit": "72dd8f13b5d3be0e82392a8b28c31292bdc23b53",
-    "aabSha256": "aaee3f1193e1a16ed29fa686af8017c3f0f244676f6a75b3fae2036efbe6ffc6",
+    "buildNumber": "2026081302",
+    "commit": "530ed17e46dbd82916eef0d59f1b07e448c737f8",
+    "aabSha256": "e9c2927b1ab57d82c15a9d5525c4b9ed8386b2b27be24dd067ed8794b0a6fa97",
     "uploadCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
     "playAppSigningCertificateSha256": "36488abf86c51da07ab2258f31b00e2f1ba8a36d076107b9f006376ade80b956"
   },
@@ -59,7 +59,7 @@
       "appIconUploaded": false,
       "featureGraphicUploaded": false,
       "phoneScreenshotsUploaded": 0,
-      "validatedLocalPhoneScreenshots": 0,
+      "validatedLocalPhoneScreenshots": 4,
       "savedInThisObservation": false
     },
     "appSigning": {
@@ -78,7 +78,7 @@
       "model": "Pixel 7 Pro",
       "osVersion": "16",
       "installedVersionName": "1.0.0",
-      "installedBuildNumber": "2026081202",
+      "installedBuildNumber": "2026081302",
       "installMethod": "direct-apk-diagnostic",
       "storeInstall": "pending"
     }
@@ -90,10 +90,10 @@
     "rolloutAllowed": false,
     "testerInvitationsAllowed": false
   },
-  "supersessionEvidenceRef": "docs/evidence/b11/android-candidate-2026081202-product-truth-supersession-20260813.json",
   "sources": {
-    "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081202.json",
-    "signingReadinessEvidenceRef": "docs/evidence/b11/store-links-signing-readiness-2026081202.json",
+    "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081302.json",
+    "signingReadinessEvidenceRef": "docs/evidence/b11/store-links-signing-readiness-2026081302.json",
+    "screenshotReadinessEvidenceRef": "docs/evidence/b11/google-play-feed-screenshot-readiness-20260813.json",
     "closedTestingReadinessRef": "store/google-play/closed-testing-readiness.json",
     "deviceValidationRef": "store/device-validation.json"
   },

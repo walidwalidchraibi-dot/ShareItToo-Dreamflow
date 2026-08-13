@@ -1,6 +1,6 @@
 # B11 – Google-Play-Console-Eingabeblatt
 
-Stand: 12. August 2026
+Stand: 13. August 2026
 Status: interner, geheimnisfreier Arbeitsentwurf; keine Einreichung freigegeben
 
 ## 1. Zweck und feste Grenze
@@ -16,8 +16,8 @@ Verbindlicher Kandidat:
 - App: `ShareItToo`
 - Paket: `com.shareittoo.app`
 - Version: `1.0.0`
-- Build: `2026081202` (gebaut, archiviert und erneut binär geprüft)
-- App-Commit: `72dd8f13b5d3be0e82392a8b28c31292bdc23b53`
+- Build: `2026081302` (gebaut, archiviert, binär geprüft und auf dem physischen Android-Gerät validiert)
+- App-Commit: `530ed17e46dbd82916eef0d59f1b07e448c737f8`
 - Kanal: ausschließlich Internal Testing
 - Umgebung: ausschließlich Staging
 - Zahlung: `paymentMode=memory`, `stripeLivemode=false`
@@ -57,7 +57,7 @@ Zahlungsdaten oder Google-Konto-IDs in Git, Drive, Telegram oder Evidenz
 Die App vermittelt die zeitweise Nutzung physischer Gegenstände außerhalb der
 App. Für diese Mietzahlungen wird kein Google Play Billing eingerichtet.
 Digitale Abonnements, Credits, Funktionsfreischaltungen oder werbefreie
-Premiumstufen sind auch im geplanten Ersatzkandidaten 2026081202 nicht enthalten.
+Premiumstufen sind auch im aktuellen Kandidaten 2026081302 nicht enthalten.
 
 Falls die Kontoregistrierung allgemein nach geplanten Einnahmequellen fragt,
 ist eine mögliche spätere Provision auf die Miete physischer Gegenstände als
@@ -90,7 +90,7 @@ Arbeitswerte:
 | Support-URL | `https://shareittoo.com/support` – noch nicht veröffentlichungsfähig |
 | Datenschutz-URL | `https://shareittoo.com/privacy` – noch nicht veröffentlichungsfähig |
 | öffentliche Kontolöschung | `https://shareittoo.com/account-deletion` – noch nicht veröffentlichungsfähig |
-| Telefon-Screenshots | vier bereinigte, lokal validierte Aufnahmen vorhanden; vor Console-Upload nochmals visuell gegen Kandidat 2026081202 prüfen |
+| Telefon-Screenshots | vier bereinigte Aufnahmen aus dem exakten Kandidaten 2026081302 lokal vorhanden und visuell validiert; noch nicht in die Console hochgeladen |
 
 Support-, Datenschutz- und Lösch-URL erst speichern beziehungsweise zur
 Prüfung senden, wenn die sichtbaren öffentlichen Seiten inhaltlich freigegeben
@@ -101,7 +101,7 @@ gilt nicht als Nachweis.
 
 ### 5.1 Werbung
 
-- Antwort für Kandidat 2026081202: **Nein, die App enthält keine Werbung.**
+- Antwort für Kandidat 2026081302: **Nein, die App enthält keine Werbung.**
 - Beleg: kein Werbe-SDK, kein Firebase Analytics, kein Advertising Tracking.
 - Eine im Entwicklerprofil genannte mögliche spätere Werbefinanzierung ändert
   die Antwort für diesen konkreten App-Build nicht.
@@ -126,7 +126,7 @@ Englischer Review-Text ist im Abschnitt „App-Zugriff für Google Review“ von
 
 - Google Play zeigt eine zusätzliche verpflichtende Erklärung an: **„Does
   your app use advertising ID?“**
-- Arbeitsantwort für Kandidat 2026081202: **Nein.**
+- Arbeitsantwort für Kandidat 2026081302: **Nein.**
 - Der signierte Build mit Ziel-Android 35 enthält weder
   `com.google.android.gms.permission.AD_ID` noch
   `android.permission.ACCESS_ADSERVICES_AD_ID`, kein Werbe-, Analytics- oder
@@ -221,7 +221,7 @@ einzeln belegt. Dazu gehören insbesondere:
 - User-ID;
 - grober und optional präziser Standort;
 - Fotos, Nachrichten und sonstige Nutzerinhalte; keine freien Dokument-,
-  Video- oder Audio-Uploads im Kandidaten 2026081202;
+  Video- oder Audio-Uploads im Kandidaten 2026081302;
 - Buchungs-/Kaufhistorie und sonstige Finanzinformationen;
 - Push-/Installationskennungen;
 - Crashdaten und sonstige Diagnostik.
@@ -245,15 +245,18 @@ maschinengeprüfte Liste liegt in
 
 Der Release-APK von Kandidat 2026081201 wurde geprüft, anschließend aber wegen
 eines eingebetteten, nicht an eine Anwendung gebundenen Google-Schlüssels
-gesperrt und nicht hochgeladen. Ersatzkandidat 2026081202 wurde anschließend
-neu gebaut, archiviert und binär geprüft. Er enthält nur die erwarteten Funktions-,
+gesperrt und nicht hochgeladen. Kandidat 2026081202 wurde danach sicher gebaut,
+aber durch die spätere Produktkorrektur „keine Kaution und kein Schutz zum
+Launch“ ersetzt und ebenfalls nicht hochgeladen. Der aktuelle Kandidat
+2026081302 wurde neu gebaut, privat archiviert, binär geprüft und auf dem
+physischen Android-Gerät validiert. Er enthält nur die erwarteten Funktions-,
 Netzwerk- und Firebase-Berechtigungen für Kamera, Bilder, groben/präzisen
 Standort, Benachrichtigungen, Internet/Netzstatus, Wake Lock und FCM. Nicht
 enthalten sind unter anderem SMS-/Anruflisten-/Kontakte-, Mikrofon-,
 Accessibility-Service-, Vollspeicher-, Paketinstallations-,
 Alle-Pakete-Abfrage- oder Overlay-Berechtigungen. Der bereinigte,
 artefaktgebundene Nachweis liegt in
-`docs/evidence/b11/android-release-permissions-2026081202.json`.
+`docs/evidence/b11/android-release-permissions-2026081302.json`.
 
 Diese Vorprüfung nimmt keine Console-Antwort vorweg. Google kann erst nach dem
 AAB-Upload zusätzliche SDK- oder Berechtigungswarnungen anzeigen; diese bleiben
@@ -274,7 +277,7 @@ Nach dem ersten Internal-AAB-Upload:
 
 ## 8. Internal Testing – Freigabereihenfolge
 
-1. ausschließlich den gebundenen AAB-Kandidaten 2026081202 nach unmittelbarer
+1. ausschließlich den gebundenen AAB-Kandidaten 2026081302 nach unmittelbarer
    Hash-Prüfung hochladen;
 2. Store-Haupteintrag und App-Inhalte weiter als Entwurf vervollständigen;
 3. Uploadwarnungen, App-Signing-Fingerprint und Artefaktidentität prüfen;
@@ -361,7 +364,7 @@ einer dieser Punkte offen ist:
 ## 10. Maschinengeprüfte Upload-Übergabe
 
 Die Datei `store/google-play/internal-upload-handoff.json` bindet die nächste
-mögliche Play-Aktion ausschließlich an Build `2026081202`. AAB-Hash,
+mögliche Play-Aktion ausschließlich an Build `2026081302`. AAB-Hash,
 Upload-Zertifikat und privater Archivname sind eingetragen und geprüft. Das Prüfwerkzeug
 `tool/validate_google_play_internal_handoff.mjs` bricht ab, wenn sich Datei,
 Hash, Kandidatenidentität oder Dateirechte unterscheiden.

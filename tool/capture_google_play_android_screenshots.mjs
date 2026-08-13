@@ -14,8 +14,10 @@ import {
   selectSinglePhysicalDevice,
   validateCandidateArchive,
 } from './prepare_android_device_test.mjs';
+import { storeScreenshotListings } from './prepare_store_screenshot_fixture.mjs';
 
 const applicationId = 'com.shareittoo.app';
+const screenshotListingTitle = storeScreenshotListings[0].title;
 const remoteHierarchy = '/sdcard/sit-google-play-screenshot.xml';
 const requireFromBackend = createRequire(new URL('../backend/package.json', import.meta.url));
 const sharp = requireFromBackend('sharp');
@@ -212,7 +214,7 @@ export async function captureGooglePlayAndroidScreenshots({
     hierarchy = await waitForUi(
       adbPath,
       device,
-      (value) => nodes(value, 'Kamera-Set für den Wochenendausflug', { startsWith: true }).length === 1,
+      (value) => nodes(value, screenshotListingTitle, { startsWith: true }).length === 1,
       wait,
       'feed',
     );
@@ -220,11 +222,11 @@ export async function captureGooglePlayAndroidScreenshots({
   const scenes = {};
   scenes.feed = await screenshot(adbPath, device, resolve(outputDirectory, '01-feed.png'));
 
-  tapNode(adbPath, device, hierarchy, 'Kamera-Set für den Wochenendausflug', { startsWith: true });
+  tapNode(adbPath, device, hierarchy, screenshotListingTitle, { startsWith: true });
   hierarchy = await waitForUi(
     adbPath,
     device,
-    (value) => value.includes('Artikelbeschreibung') && value.includes('Kamera-Set für den Wochenendausflug'),
+    (value) => value.includes('Artikelbeschreibung') && value.includes(screenshotListingTitle),
     wait,
     'listing detail',
   );
@@ -248,7 +250,7 @@ export async function captureGooglePlayAndroidScreenshots({
     device,
     (value) => value.includes('KI-Suche')
       && value.includes('Zurücksetzen')
-      && value.includes('Kamera-Set für den Wochenendausflug'),
+      && value.includes(screenshotListingTitle),
     wait,
     'search',
   );

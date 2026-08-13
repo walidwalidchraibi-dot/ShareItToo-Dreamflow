@@ -13,7 +13,7 @@ export const storeScreenshotListings = Object.freeze([
     id: 'sit-store-preview-v1-drill',
     title: 'Akku-Bohrschrauber mit Zubehör',
     description: 'Handlicher Akku-Bohrschrauber mit Ladegerät, zwei Akkus und praktischem Zubehörkoffer.',
-    categoryId: 'tools',
+    categoryId: 'cat8',
     subcategory: 'Elektrowerkzeuge',
     tags: Object.freeze(['werkzeug', 'bohrschrauber']),
     pricePerDay: 9,
@@ -25,7 +25,7 @@ export const storeScreenshotListings = Object.freeze([
     id: 'sit-store-preview-v1-camera',
     title: 'Kamera-Set mit Tasche',
     description: 'Kompakte Systemkamera mit Objektiv, Akku, Ladegerät und gepolsterter Tragetasche.',
-    categoryId: 'electronics',
+    categoryId: 'cat3',
     subcategory: 'Kameras',
     tags: Object.freeze(['kamera', 'foto']),
     pricePerDay: 18,
@@ -37,7 +37,7 @@ export const storeScreenshotListings = Object.freeze([
     id: 'sit-store-preview-v1-tent',
     title: '4-Personen-Campingzelt',
     description: 'Geräumiges Campingzelt für bis zu vier Personen inklusive Gestänge, Heringen und Packsack.',
-    categoryId: 'outdoor',
+    categoryId: 'cat23',
     subcategory: 'Zelte',
     tags: Object.freeze(['camping', 'zelt']),
     pricePerDay: 12,
@@ -49,7 +49,7 @@ export const storeScreenshotListings = Object.freeze([
     id: 'sit-store-preview-v1-projector',
     title: 'Heimkino-Beamer mit Leinwand',
     description: 'Heller Heimkino-Beamer mit Fernbedienung, Anschlusskabeln und kompakter Leinwand.',
-    categoryId: 'electronics',
+    categoryId: 'cat1',
     subcategory: 'Beamer',
     tags: Object.freeze(['beamer', 'heimkino']),
     pricePerDay: 15,
@@ -154,6 +154,17 @@ function verifiedImage(definition, assetRoot) {
   return bytes;
 }
 
+async function publicImageIsReachable(fetchImpl, listing) {
+  const url = listing?.photos?.[0];
+  if (typeof url !== 'string' || !url.startsWith('https://staging.shareittoo.com/')) return false;
+  try {
+    const response = await fetchImpl(url);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 function listingPayload(definition, photoUrl) {
   return {
     id: definition.id,
@@ -253,7 +264,20 @@ export async function prepareStoreScreenshotFixture({
       fail('A curated title already exists under an unexpected identifier.');
     }
     if (byId) {
-      verifiedImage(definition, assetRoot);
+      const imageReachable = await publicImageIsReachable(fetchImpl, byId);
+      const photoUrl = imageReachable
+        ? byId.photos[0]
+        : await uploadListingImage(fetchImpl, token, definition, assetRoot);
+      if (imageReachable) verifiedImage(definition, assetRoot);
+      const updated = await request(fetchImpl, `/listings/${encodeURIComponent(definition.id)}`, {
+        method: 'PUT',
+        token,
+        body: listingPayload(definition, photoUrl),
+      });
+      if (updated?.listing?.id !== definition.id) {
+        fail('A curated Staging listing could not be reconciled safely.');
+      }
+      await setAlwaysAvailable(fetchImpl, token, definition.id);
       reusedCount += 1;
       continue;
     }

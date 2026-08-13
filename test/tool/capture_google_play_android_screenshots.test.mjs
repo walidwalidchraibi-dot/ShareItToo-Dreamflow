@@ -27,7 +27,8 @@ test('uses the reviewed Pixel crop and Play phone dimensions', () => {
     '.extract({ left: 0, top: 144, width: 1440, height: 2560 })',
     ".resize(1080, 1920, { fit: 'fill' })",
     '.removeAlpha()',
-    "value.includes('Kamera-Set für den Wochenendausflug')",
+    'value.includes(screenshotListingTitle)',
+    'const screenshotListingTitle = storeScreenshotListings[0].title',
   ]) assert.ok(source.includes(marker), `missing screenshot guard: ${marker}`);
 });
 

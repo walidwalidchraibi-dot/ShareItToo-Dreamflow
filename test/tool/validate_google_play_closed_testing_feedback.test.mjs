@@ -9,12 +9,21 @@ import { validateGooglePlayClosedTestingFeedback } from '../../tool/validate_goo
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const plan = JSON.parse(readFileSync(resolve(root, 'store/google-play/closed-testing-feedback-plan.json'), 'utf8'));
 const readiness = JSON.parse(readFileSync(resolve(root, 'store/google-play/closed-testing-readiness.json'), 'utf8'));
+const deviceCandidate = JSON.parse(readFileSync(
+  resolve(root, 'store/device-validation.json'),
+  'utf8',
+)).candidate;
+
+function validate(planFixture, readinessFixture) {
+  return validateGooglePlayClosedTestingFeedback({
+    plan: planFixture,
+    closedTestingReadiness: readinessFixture,
+    deviceCandidate,
+  });
+}
 
 test('accepts the empty plan before the real closed test', () => {
-  const result = validateGooglePlayClosedTestingFeedback({
-    plan: structuredClone(plan),
-    closedTestingReadiness: structuredClone(readiness),
-  });
+  const result = validate(structuredClone(plan), structuredClone(readiness));
   assert.equal(result.state, 'planned');
   assert.equal(result.scenarioCount, 9);
 });
@@ -23,7 +32,7 @@ test('rejects invented feedback before the test starts', () => {
   const fixture = structuredClone(plan);
   fixture.aggregate.feedbackItemCount = 1;
   assert.throws(
-    () => validateGooglePlayClosedTestingFeedback({ plan: fixture, closedTestingReadiness: readiness }),
+    () => validate(fixture, readiness),
     /must remain empty until the real closed test starts/,
   );
 });
@@ -32,7 +41,7 @@ test('rejects personal tester data anywhere in the plan', () => {
   const fixture = structuredClone(plan);
   fixture.aggregate.feedbackThemes.push('tester@example.test');
   assert.throws(
-    () => validateGooglePlayClosedTestingFeedback({ plan: fixture, closedTestingReadiness: readiness }),
+    () => validate(fixture, readiness),
     /must not contain tester or account email addresses/,
   );
 });
@@ -41,7 +50,7 @@ test('rejects a device identifier field even without a value', () => {
   const fixture = structuredClone(plan);
   fixture.aggregate.deviceId = null;
   assert.throws(
-    () => validateGooglePlayClosedTestingFeedback({ plan: fixture, closedTestingReadiness: readiness }),
+    () => validate(fixture, readiness),
     /forbidden private field/,
   );
 });
@@ -51,7 +60,7 @@ test('rejects collecting feedback without an active closed test', () => {
   fixture.state = 'collecting';
   fixture.aggregate.observedTesterCount = 12;
   assert.throws(
-    () => validateGooglePlayClosedTestingFeedback({ plan: fixture, closedTestingReadiness: readiness }),
+    () => validate(fixture, readiness),
     /requires an active or completed closed test/,
   );
 });
@@ -65,6 +74,6 @@ test('accepts a sanitized aggregate while the closed test is running', () => {
   fixture.aggregate.issueCounts.p2 = 1;
   const active = structuredClone(readiness);
   active.status = 'running';
-  const result = validateGooglePlayClosedTestingFeedback({ plan: fixture, closedTestingReadiness: active });
+  const result = validate(fixture, active);
   assert.equal(result.feedbackItemCount, 3);
 });

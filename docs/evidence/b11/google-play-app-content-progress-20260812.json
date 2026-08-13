@@ -6,7 +6,7 @@
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081202",
+    "buildNumber": "2026081302",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
   },
@@ -29,11 +29,11 @@
   "openTasks": {
     "privacyPolicy": "public-privacy-page-not-release-ready",
     "dataSafety": "all-data-type-answers-prepared-provider-roles-technically-classified-contract-retention-public-route-and-legal-pending",
-    "storeListing": "replacement-build-screenshot-recapture-upload-and-public-pages-pending"
+    "storeListing": "exact-candidate-local-screenshots-validated-upload-and-public-pages-pending"
   },
   "storeDraft": {
     "germanCopySaved": true,
-    "phoneScreenshotsValidatedLocal": 0,
+    "phoneScreenshotsValidatedLocal": 4,
     "phoneScreenshotsUploaded": false,
     "appBundleUploaded": false
   },

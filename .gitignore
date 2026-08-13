@@ -44,6 +44,7 @@ backend/node_modules/
 .pub-cache/
 .pub/
 /build/
+/android/build/
 
 # Symbolication related
 app.*.symbols

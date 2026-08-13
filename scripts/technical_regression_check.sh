@@ -79,6 +79,11 @@ fi
 
 node --check tool/validate_google_play_internal_handoff.mjs
 node --test test/tool/validate_google_play_internal_handoff.test.mjs
+node tool/validate_google_play_internal_handoff.mjs
+node --test test/tool/upload_exact_crashlytics_mapping_wiring.test.mjs
+node --check tool/validate_google_play_app_content_handoff.mjs
+node --test test/tool/validate_google_play_app_content_handoff.test.mjs
+node tool/validate_google_play_app_content_handoff.mjs
 
 node --check tool/validate_google_play_closed_testing.mjs
 node --test test/tool/validate_google_play_closed_testing.test.mjs

@@ -201,10 +201,15 @@ function verifiedReplacementBytes(definition) {
 
 async function currentPhotoHash(fetchImpl, listing) {
   const url = listing?.photos?.[0];
-  if (typeof url !== 'string' || !url.startsWith('https://staging.shareittoo.com/')) return null;
+  if (typeof url !== 'string' || !url.startsWith('https://staging.shareittoo.com/')) {
+    return { reachable: false, sha256: null };
+  }
   const response = await fetchImpl(url);
-  if (!response.ok) fail('A protected Staging listing image could not be verified.');
-  return createHash('sha256').update(Buffer.from(await response.arrayBuffer())).digest('hex');
+  if (!response.ok) return { reachable: false, sha256: null };
+  return {
+    reachable: true,
+    sha256: createHash('sha256').update(Buffer.from(await response.arrayBuffer())).digest('hex'),
+  };
 }
 
 async function uploadReplacement(fetchImpl, token, definition) {
@@ -280,7 +285,8 @@ export async function cleanStagingStoreFeed({
         fail('An active technical owner listing remained after cleanup.');
       }
       for (const listing of activeListings(verified).filter(({ id }) => protectedIds.has(id))) {
-        if (await currentPhotoHash(fetchImpl, listing) !== placeholderSha256) continue;
+        const currentPhoto = await currentPhotoHash(fetchImpl, listing);
+        if (currentPhoto.reachable && currentPhoto.sha256 !== placeholderSha256) continue;
         const definition = replacementDefinition(listing.title);
         const photoUrl = await uploadReplacement(fetchImpl, session.token, definition);
         await request(fetchImpl, `/listings/${encodeURIComponent(listing.id)}`, {
@@ -293,14 +299,19 @@ export async function cleanStagingStoreFeed({
       }
     }
     const publicListings = await publicActiveListings(fetchImpl);
-    if (publicListings.some(isTechnical) ||
-        [...curatedIds].some((id) => !publicListings.some((listing) => listing.id === id)) ||
-        [...protectedIds].some((id) => !publicListings.some((listing) => listing.id === id))) {
-      fail('The public Staging catalog did not pass the post-cleanup verification.');
+    if (publicListings.some(isTechnical)) {
+      fail('The public Staging catalog still contains technical listing copy.');
+    }
+    if ([...curatedIds].some((id) => !publicListings.some((listing) => listing.id === id))) {
+      fail('The public Staging catalog is missing a curated screenshot listing.');
+    }
+    if ([...protectedIds].some((id) => !publicListings.some((listing) => listing.id === id))) {
+      fail('The public Staging catalog is missing a protected accepted-booking listing.');
     }
     for (const listing of publicListings.filter(({ id }) => protectedIds.has(id))) {
-      if (await currentPhotoHash(fetchImpl, listing) === placeholderSha256) {
-        fail('A protected technical placeholder image remained publicly visible.');
+      const currentPhoto = await currentPhotoHash(fetchImpl, listing);
+      if (!currentPhoto.reachable || currentPhoto.sha256 === placeholderSha256) {
+        fail('A protected Staging listing still has an invalid public image.');
       }
     }
   } catch (error) {

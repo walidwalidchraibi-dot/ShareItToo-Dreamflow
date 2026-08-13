@@ -94,27 +94,74 @@ test('creates four truthful Staging listings without touching payments or produc
 
 test('reuses an exact complete fixture without duplicate uploads or listings', async () => {
   const calls = [];
-  const existing = storeScreenshotListings.map(({ id, title }) => ({
+  const existing = storeScreenshotListings.map(({ id, title, categoryId }) => ({
     id,
     title,
+    categoryId,
     status: 'active',
+    photos: [`https://staging.shareittoo.com/api/v1/uploads/${id}.webp`],
   }));
   const result = await prepareStoreScreenshotFixture({
     vaultFile: privateVault(),
-    fetchImpl: async (url) => {
+    fetchImpl: async (url, options = {}) => {
       const path = new URL(url).pathname.replace('/api/v1', '');
       calls.push(path);
       if (path === '/auth/login') {
         return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
       }
       if (path === '/listings/mine') return response(200, { listings: existing });
+      if (path.startsWith('/uploads/')) return new Response('verified-image');
+      const listingId = path.match(/^\/listings\/([^/]+)$/u)?.[1];
+      if (listingId && options.method === 'PUT') return response(200, { listing: { id: listingId } });
+      if (path.endsWith('/availability')) return response(200, {});
       throw new Error(`Unexpected path ${path}`);
     },
   });
 
   assert.equal(result.createdCount, 0);
   assert.equal(result.reusedCount, 4);
-  assert.deepEqual(calls, ['/auth/login', '/listings/mine']);
+  assert.equal(calls[0], '/auth/login');
+  assert.equal(calls[1], '/listings/mine');
+  assert.equal(calls.filter((path) => path.startsWith('/uploads/')).length, 4);
+  assert.equal(calls.filter((path) => /^\/listings\/sit-store-preview-v1-[^/]+$/u.test(path)).length, 4);
+  assert.equal(calls.filter((path) => path.endsWith('/availability')).length, 4);
+});
+
+test('repairs a reused fixture whose public image disappeared', async () => {
+  const definition = storeScreenshotListings[0];
+  const existing = storeScreenshotListings.map((entry) => ({
+    id: entry.id,
+    title: entry.title,
+    status: 'active',
+    photos: [`https://staging.shareittoo.com/api/v1/uploads/${
+      entry.id === definition.id ? 'missing' : entry.id
+    }.webp`],
+  }));
+  const calls = [];
+  const result = await prepareStoreScreenshotFixture({
+    vaultFile: privateVault(),
+    fetchImpl: async (url, options = {}) => {
+      const path = new URL(url).pathname.replace('/api/v1', '');
+      calls.push({ path, method: options.method ?? 'GET' });
+      if (path === '/auth/login') {
+        return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+      }
+      if (path === '/listings/mine') return response(200, { listings: existing });
+      if (path === '/uploads/missing.webp') return response(404, null);
+      if (path === '/uploads') {
+        return response(201, { url: 'https://staging.shareittoo.com/api/v1/uploads/repaired.webp' });
+      }
+      const listingId = path.match(/^\/listings\/([^/]+)$/u)?.[1];
+      if (listingId && options.method === 'PUT') {
+        return response(200, { listing: { id: listingId } });
+      }
+      if (path.endsWith('/availability')) return response(200, {});
+      if (path.startsWith('/uploads/')) return new Response('verified-image');
+      throw new Error(`Unexpected path ${path}`);
+    },
+  });
+  assert.equal(result.reusedCount, 4);
+  assert.equal(calls.some(({ path, method }) => path === `/listings/${definition.id}` && method === 'PUT'), true);
 });
 
 test('fails closed when an expected identifier conflicts with another listing', async () => {

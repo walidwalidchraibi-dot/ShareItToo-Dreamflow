@@ -313,7 +313,8 @@ function cliOptions(argv) {
   return options;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : null;
+if (invokedPath === import.meta.url) {
   diagnoseStoreReviewAccounts(cliOptions(process.argv.slice(2)))
     .then((result) => process.stdout.write(`${JSON.stringify(result, null, 2)}\n`))
     .catch((error) => {

@@ -107,7 +107,7 @@ geprüft:
    Produktions-Löschseite aus dem finalen Store-Build nachgewiesen sind.
 
 Nicht auswählen: **Files and docs**. Alle serverseitigen Uploads des Kandidaten
-2026081202 akzeptieren ausschließlich JPEG, PNG oder WebP; Chat, Inserate,
+2026081302 akzeptieren ausschließlich JPEG, PNG oder WebP; Chat, Inserate,
 Meldungen sowie Übergabe/Rückgabe bieten nur Bildauswahl. Lokal erzeugte
 Rechnungs-PDFs werden auf Nutzerwunsch heruntergeladen, aber nicht von der App
 erhoben oder an ShareItToo übertragen. Video- und Audio-Uploads sind ebenfalls

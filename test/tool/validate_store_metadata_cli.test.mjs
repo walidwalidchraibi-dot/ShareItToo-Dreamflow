@@ -21,6 +21,7 @@ function runWithManifests({
   mutateManifest = () => {},
   mutateAccountReadiness = () => {},
   mutateClosedTestingReadiness = () => {},
+  sourceVersion = null,
   extraArgs = ['--allow-candidate-rollover'],
 }) {
   const directory = mkdtempSync(join(tmpdir(), 'sit-store-metadata-'));
@@ -34,9 +35,11 @@ function runWithManifests({
     const manifestPath = join(directory, 'submission.json');
     const accountReadinessPath = join(directory, 'platform-account-readiness.json');
     const closedTestingReadinessPath = join(directory, 'closed-testing-readiness.json');
+    const pubspecPath = join(directory, 'pubspec.yaml');
     writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
     writeFileSync(accountReadinessPath, `${JSON.stringify(accountReadiness, null, 2)}\n`);
     writeFileSync(closedTestingReadinessPath, `${JSON.stringify(closedTestingReadiness, null, 2)}\n`);
+    if (sourceVersion !== null) writeFileSync(pubspecPath, `name: shareittoo\nversion: ${sourceVersion}\n`);
     return spawnSync('dart', [
       'run',
       validator,
@@ -47,6 +50,7 @@ function runWithManifests({
       accountReadinessPath,
       '--closed-testing-readiness',
       closedTestingReadinessPath,
+      ...(sourceVersion === null ? [] : ['--pubspec', pubspecPath]),
     ], {
       cwd: repositoryRoot,
       encoding: 'utf8',
@@ -63,7 +67,10 @@ test('accepts the current honest fail-closed Store metadata draft', () => {
 });
 
 test('strict Store validation rejects a newer unfinished source build', () => {
-  const result = runWithManifests({ extraArgs: [] });
+  const result = runWithManifests({
+    extraArgs: [],
+    sourceVersion: '1.0.0+2026081303',
+  });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /internal upload handoff must remain bound/);
 });

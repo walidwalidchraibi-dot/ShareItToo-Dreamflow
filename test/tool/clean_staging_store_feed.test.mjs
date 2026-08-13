@@ -77,6 +77,7 @@ function api(state, { failRenameFor, inaccessibleEmails = new Set(['stale@exampl
     calls.push({ method, path });
     if (path === '/uploads/logo') return new Response('placeholder');
     if (path === '/uploads/genuine') return new Response('genuine-product-photo');
+    if (path === '/uploads/missing') return new Response('missing', { status: 404 });
     if (path === '/uploads/replacement') return new Response('replacement');
     if (path === '/auth/login') {
       const email = JSON.parse(options.body).email;
@@ -150,7 +151,7 @@ test('cleans every synthetic owner while preserving recursively referenced accep
   const neutralized = state.get('one@example.invalid').find(({ id }) => id === 'protected-one');
   assert.equal(neutralized.description,
     'Kompakte Systemkamera mit Objektiv, Akku, Ladegerät und gepolsterter Tragetasche.');
-  assert.equal(neutralized.categoryId, 'electronics');
+  assert.equal(neutralized.categoryId, 'cat3');
   assert.deepEqual(neutralized.tags, ['kamera', 'foto']);
   assert.equal(state.get('two@example.invalid').find(({ id }) => id === 'protected-two').photos[0],
     'https://staging.shareittoo.com/uploads/genuine');
@@ -166,6 +167,27 @@ test('rolls back earlier mutations when a later owner mutation fails', async () 
     vaultFile: data.vaultFile, vaultRoot: data.root, fetchImpl,
   }), /HTTP 500/);
   assert.deepEqual([...state.entries()], original);
+});
+
+test('replaces an unreachable protected Staging image without deleting its listing', async () => {
+  const data = fixture();
+  const state = initialState();
+  state.set('two@example.invalid', state.get('two@example.invalid').map((entry) => (
+    entry.id === 'protected-two'
+      ? { ...entry, photos: ['https://staging.shareittoo.com/uploads/missing'] }
+      : entry
+  )));
+  const { calls, fetchImpl } = api(state);
+  const result = await cleanStagingStoreFeed({
+    vaultFile: data.vaultFile,
+    vaultRoot: data.root,
+    fetchImpl,
+    placeholderSha256: createHash('sha256').update('placeholder').digest('hex'),
+  });
+  assert.equal(result.replacedProtectedPlaceholderPhotos, 2);
+  assert.equal(state.get('two@example.invalid').find(({ id }) => id === 'protected-two').photos[0],
+    'https://staging.shareittoo.com/uploads/replacement');
+  assert.equal(calls.some(({ method }) => method === 'DELETE'), false);
 });
 
 test('fails closed when an accepted protected listing is inaccessible', async () => {

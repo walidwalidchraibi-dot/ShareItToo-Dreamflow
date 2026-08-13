@@ -8,7 +8,7 @@ import { validateGooglePlayScreenshotReadiness } from '../../tool/validate_googl
 
 const repositoryRoot = new URL('../../', import.meta.url).pathname;
 const canonical = JSON.parse(await readFile(
-  new URL('../../docs/evidence/b11/google-play-feed-screenshot-readiness-20260812.json', import.meta.url), 'utf8'));
+  new URL('../../docs/evidence/b11/google-play-feed-screenshot-readiness-20260813.json', import.meta.url), 'utf8'));
 
 async function fixture(mutate) {
   const root = await mkdtemp(join(tmpdir(), 'sit-screenshot-ready-'));
@@ -19,9 +19,9 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts the fail-closed supersession while replacement capture is pending', () => {
+test('accepts four locally validated exact-candidate screenshots', () => {
   assert.deepEqual(validateGooglePlayScreenshotReadiness({ repositoryRoot }), {
-    status: 'superseded-product-truth-failed-recapture-required',
+    status: 'exact-candidate-local-screenshots-validated-not-uploaded',
     curatedListingCount: 4,
   });
 });

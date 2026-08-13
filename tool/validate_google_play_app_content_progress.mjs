@@ -18,7 +18,7 @@ export function validateGooglePlayAppContentProgress({
   }
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
       evidence.candidate?.versionName !== '1.0.0' ||
-      evidence.candidate?.buildNumber !== '2026081202' ||
+      evidence.candidate?.buildNumber !== '2026081302' ||
       evidence.candidate?.releaseChannel !== 'internal' ||
       evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1') {
     fail('Play app-content progress is not bound to the internal candidate.');
@@ -35,7 +35,7 @@ export function validateGooglePlayAppContentProgress({
     fail('Play app-content open tasks are not fail-closed.');
   }
   if (evidence.storeDraft?.germanCopySaved !== true ||
-      evidence.storeDraft?.phoneScreenshotsValidatedLocal !== 0 ||
+      evidence.storeDraft?.phoneScreenshotsValidatedLocal !== 4 ||
       evidence.storeDraft?.phoneScreenshotsUploaded !== false ||
       evidence.storeDraft?.appBundleUploaded !== false) {
     fail('Play store draft state is invalid.');

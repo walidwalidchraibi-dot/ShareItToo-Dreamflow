@@ -24,20 +24,23 @@ function pngMetadata(bytes) {
 export function validateGooglePlayScreenshotCandidate({
   repositoryRoot,
   evidencePath = resolve(repositoryRoot,
-    'docs/evidence/b11/google-play-screenshot-candidate-feed-20260812.json'),
+    'docs/evidence/b11/google-play-screenshot-candidate-feed-20260813.json'),
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
+  const deviceValidation = JSON.parse(readFileSync(
+    resolve(repositoryRoot, 'store/device-validation.json'), 'utf8'));
+  const exactCandidate = deviceValidation.candidate;
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'google-play-screenshot-candidate' ||
       evidence.status !== 'exact-candidate-local-not-uploaded') fail('Screenshot candidate state is invalid.');
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
-      evidence.candidate?.versionName !== '1.0.0' ||
-      evidence.candidate?.buildNumber !== '2026081202' ||
-      evidence.candidate?.commit !== '72dd8f13b5d3be0e82392a8b28c31292bdc23b53' ||
-      evidence.candidate?.apkSha256 !==
-        '4445ff773ae728ef0959b4063e9f687ab86777ca9847d2a3605766de55afafec' ||
+      evidence.candidate?.versionName !== exactCandidate?.versionName ||
+      evidence.candidate?.buildNumber !== exactCandidate?.buildNumber ||
+      evidence.candidate?.commit !== exactCandidate?.commit ||
+      evidence.candidate?.apkSha256 !== exactCandidate?.android?.apkSha256 ||
       evidence.candidate?.releaseChannel !== 'internal' ||
       evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1' ||
-      Object.hasOwn(evidence, 'replacementBuildNumber')) {
+      Object.hasOwn(evidence, 'replacementBuildNumber') ||
+      Object.hasOwn(evidence, 'supersessionEvidenceRef')) {
     fail('Screenshot candidate is not bound to the exact installed build.');
   }
   const scene = evidence.scene ?? {};

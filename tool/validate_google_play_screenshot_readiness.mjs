@@ -10,23 +10,25 @@ function fail(message) {
 
 export function validateGooglePlayScreenshotReadiness({
   repositoryRoot,
-  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-readiness-20260812.json'),
+  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-readiness-20260813.json'),
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
+  const exactCandidate = JSON.parse(readFileSync(
+    resolve(repositoryRoot, 'store/device-validation.json'), 'utf8')).candidate;
   if (evidence.schemaVersion !== 1 ||
       evidence.kind !== 'google-play-feed-screenshot-readiness' ||
-      evidence.status !== 'superseded-product-truth-failed-recapture-required') {
+      evidence.status !== 'exact-candidate-local-screenshots-validated-not-uploaded') {
     fail('Feed screenshot readiness must preserve the exact local candidate state.');
   }
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
-      evidence.candidate?.versionName !== '1.0.0' ||
-      evidence.candidate?.buildNumber !== '2026081202' ||
-      evidence.candidate?.commit !== '72dd8f13b5d3be0e82392a8b28c31292bdc23b53' ||
-      evidence.candidate?.apkSha256 !==
-        '4445ff773ae728ef0959b4063e9f687ab86777ca9847d2a3605766de55afafec' ||
+      evidence.candidate?.versionName !== exactCandidate?.versionName ||
+      evidence.candidate?.buildNumber !== exactCandidate?.buildNumber ||
+      evidence.candidate?.commit !== exactCandidate?.commit ||
+      evidence.candidate?.apkSha256 !== exactCandidate?.android?.apkSha256 ||
       evidence.candidate?.releaseChannel !== 'internal' ||
       evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1' ||
-      evidence.replacementBuildNumber !== '2026081302') {
+      Object.hasOwn(evidence, 'replacementBuildNumber') ||
+      Object.hasOwn(evidence, 'supersessionEvidenceRef')) {
     fail('Feed screenshot readiness is not bound to the exact installed build.');
   }
   if (evidence.device?.installedCandidateVerified !== true ||
@@ -40,8 +42,8 @@ export function validateGooglePlayScreenshotReadiness({
       evidence.feedObservation?.technicalFixtureCopyVisible !== false ||
       evidence.feedObservation?.protectedActiveBookings !== 6 ||
       evidence.feedObservation?.protectedPublicListingsObserved !== 6 ||
-      evidence.feedObservation?.storeScreenshotAccepted !== false ||
-      evidence.feedObservation?.validatedLocalCandidates !== 0) {
+      evidence.feedObservation?.storeScreenshotAccepted !== true ||
+      evidence.feedObservation?.validatedLocalCandidates !== 4) {
     fail('Feed screenshot observation is incomplete or contradicts the verified cleanup.');
   }
   if (evidence.completedRemediation?.method !==
@@ -61,15 +63,6 @@ export function validateGooglePlayScreenshotReadiness({
         candidate.candidate?.buildNumber !== evidence.candidate.buildNumber) {
       fail('Screenshot readiness references a stale or unvalidated local candidate.');
     }
-  }
-  const supersession = JSON.parse(readFileSync(resolve(
-    repositoryRoot,
-    evidence.supersessionEvidenceRef,
-  ), 'utf8'));
-  if (supersession.status !== 'superseded-product-truth-failed' ||
-      supersession.remediation?.replacementBuildNumber !== evidence.replacementBuildNumber ||
-      supersession.boundaries?.uploadedToStore !== false) {
-    fail('Screenshot readiness lacks the fail-closed product-truth supersession.');
   }
   const boundaries = evidence.boundaries ?? {};
   if (Object.keys(boundaries).length !== 9 || boundaries.screenshotUploaded !== false ||

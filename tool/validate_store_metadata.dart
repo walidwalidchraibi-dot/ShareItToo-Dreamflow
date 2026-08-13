@@ -227,8 +227,9 @@ void _rejectPublicCopy(String label, String value) {
   }
 }
 
-String _pubspecVersion(Directory root) {
-  final pubspec = File('${root.path}/pubspec.yaml').readAsLinesSync();
+String _pubspecVersion(Directory root, {String? pubspecPath}) {
+  final pubspec =
+      File(pubspecPath ?? '${root.path}/pubspec.yaml').readAsLinesSync();
   final line = pubspec.firstWhere(
     (value) => value.startsWith('version:'),
     orElse: () => _fail('pubspec.yaml has no version field.'),
@@ -242,6 +243,7 @@ void main(List<String> arguments) {
   String? manifestPath;
   String? accountReadinessPath;
   String? closedTestingReadinessPath;
+  String? pubspecPath;
   for (var index = 0; index < arguments.length; index += 1) {
     final value = arguments[index];
     if (value == '--require-submittable') {
@@ -265,6 +267,12 @@ void main(List<String> arguments) {
         _fail('--closed-testing-readiness requires a path.');
       }
       closedTestingReadinessPath = arguments[index + 1];
+      index += 1;
+    } else if (value == '--pubspec') {
+      if (index + 1 >= arguments.length) {
+        _fail('--pubspec requires a path.');
+      }
+      pubspecPath = arguments[index + 1];
       index += 1;
     } else {
       _fail('Unknown argument: $value');
@@ -686,7 +694,7 @@ void main(List<String> arguments) {
     _fail('Android and iOS store identifiers must both be $expectedId.');
   }
 
-  final pubspecVersion = _pubspecVersion(root);
+  final pubspecVersion = _pubspecVersion(root, pubspecPath: pubspecPath);
   final match =
       RegExp(r'^(\d+\.\d+\.\d+)\+(\d{10})$').firstMatch(pubspecVersion);
   if (match == null) _fail('pubspec version must use semantic+YYYYMMDDNN.');

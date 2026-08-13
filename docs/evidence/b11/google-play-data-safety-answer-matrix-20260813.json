@@ -6,8 +6,8 @@
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081202",
-    "commit": "72dd8f13b5d3be0e82392a8b28c31292bdc23b53",
+    "buildNumber": "2026081302",
+    "commit": "530ed17e46dbd82916eef0d59f1b07e448c737f8",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
   },
@@ -263,7 +263,7 @@
   ],
   "evidenceRefs": [
     "store/privacy-disclosures.json",
-    "docs/evidence/b11/android-binary-privacy-release-check-2026081202.json",
+    "docs/evidence/b11/android-binary-privacy-release-check-2026081302.json",
     "docs/evidence/b11/google-play-data-safety-step2-20260812.json",
     "docs/evidence/b11/google-play-data-safety-datatypes-20260812.json",
     "docs/evidence/b11/privacy-provider-retention-sources-20260812.json",

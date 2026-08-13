@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -178,6 +178,21 @@ Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Die direkten A
 ${snapshotEnd}`;
 }
 
+export function updateB11ReleaseSnapshots({ root, deviceManifest, candidateEvidence }) {
+  const snapshot = renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence });
+  for (const relativePath of snapshotDocuments) {
+    const path = resolve(root, relativePath);
+    const content = readFileSync(path, 'utf8');
+    if (countMatches(content, snapshotBegin) !== 1 || countMatches(content, snapshotEnd) !== 1) {
+      fail(`${relativePath} must contain exactly one current-release snapshot block.`);
+    }
+    const updated = content.slice(0, content.indexOf(snapshotBegin))
+      + snapshot
+      + content.slice(content.indexOf(snapshotEnd) + snapshotEnd.length);
+    writeFileSync(path, updated);
+  }
+}
+
 export function validateB11ReleaseDocs({
   root,
   deviceManifest,
@@ -319,9 +334,18 @@ if (invokedPath === import.meta.url) {
   try {
     const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
     const allowCandidateRollover = process.argv.includes('--allow-candidate-rollover');
+    const updateSnapshots = process.argv.includes('--update-snapshots');
+    const unknownArgs = process.argv.slice(2).filter((arg) => (
+      arg !== '--allow-candidate-rollover' && arg !== '--update-snapshots'
+    ));
+    if (unknownArgs.length > 0) fail(`Unknown argument: ${unknownArgs[0]}`);
+    const inputs = loadRepositoryInputs(root);
+    if (updateSnapshots) {
+      updateB11ReleaseSnapshots({ root, ...inputs });
+    }
     const result = validateB11ReleaseDocs({
       root,
-      ...loadRepositoryInputs(root),
+      ...inputs,
       allowCandidateRollover,
     });
     console.log(
