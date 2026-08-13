@@ -131,8 +131,9 @@ Englischer Review-Text ist im Abschnitt „App-Zugriff für Google Review“ von
   `com.google.android.gms.permission.AD_ID` noch
   `android.permission.ACCESS_ADSERVICES_AD_ID`, kein Werbe-, Analytics- oder
   Attributions-SDK und keine Facebook-Werbe-ID-Erfassung.
-- Die Antwort ist vorbereitet, aber noch nicht in der Console gespeichert.
-  Nachweis:
+- Die Antwort wurde am 13. August 2026 in der Console gespeichert. Sie liegt
+  ausschließlich im Veröffentlichungsüberblick bereit; sie wurde nicht zur
+  Prüfung eingereicht und löste keinen Rollout aus. Nachweis:
   `docs/evidence/b11/google-play-advertising-id-declaration-20260812.json`.
 
 ### 5.3 Zielgruppe und Kinder

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "google-play-app-content-progress",
-  "capturedAt": "2026-08-12T21:48:11Z",
-  "status": "seven-of-twelve-saved-five-open",
+  "capturedAt": "2026-08-13T01:31:57Z",
+  "status": "eight-of-twelve-saved-four-open",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
@@ -12,8 +12,8 @@
   },
   "counts": {
     "totalTasks": 12,
-    "savedTasks": 7,
-    "openTasks": 5
+    "savedTasks": 8,
+    "openTasks": 4
   },
   "savedTasks": [
     "appAccess",
@@ -22,14 +22,14 @@
     "governmentApps",
     "financialFeatures",
     "health",
-    "categoryAndContact"
+    "categoryAndContact",
+    "advertisingId"
   ],
   "openTasks": {
     "privacyPolicy": "public-privacy-page-not-release-ready",
     "contentRating": "iarc-category-and-interaction-truth-prepared-contact-and-owner-terms-pending",
     "dataSafety": "step-two-observed-public-deletion-provider-classification-and-retention-pending",
-    "storeListing": "graphics-upload-and-public-pages-pending",
-    "advertisingId": "visible-console-declaration-answer-no-prepared-save-pending"
+    "storeListing": "graphics-upload-and-public-pages-pending"
   },
   "storeDraft": {
     "germanCopySaved": true,
@@ -53,7 +53,7 @@
   },
   "advertisingIdDraft": {
     "usesAdvertisingId": false,
-    "answerSaved": false,
+    "answerSaved": true,
     "evidenceRef": "docs/evidence/b11/google-play-advertising-id-declaration-20260812.json"
   },
   "contentRatingDraft": {

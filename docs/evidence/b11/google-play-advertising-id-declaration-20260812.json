@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "kind": "google-play-advertising-id-declaration-preparation",
-  "capturedAt": "2026-08-12T22:03:15Z",
-  "status": "visible-console-declaration-observed-answer-no-prepared-save-pending",
+  "kind": "google-play-advertising-id-declaration-observation",
+  "capturedAt": "2026-08-13T01:31:57Z",
+  "status": "console-declaration-saved-answer-no",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
@@ -26,8 +26,8 @@
     "docs/evidence/b11/android-candidate-2026081202.json"
   ],
   "boundaries": {
-    "consoleAnswerChanged": false,
-    "draftSaved": false,
+    "consoleAnswerChanged": true,
+    "draftSaved": true,
     "formSubmitted": false,
     "releaseRolledOut": false,
     "productionChanged": false,

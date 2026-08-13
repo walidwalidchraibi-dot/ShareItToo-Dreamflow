@@ -294,7 +294,7 @@ Container- und Image-IDs; beide blieben gesund.
 | Firebase-Projekt | Android technisch fertig | realen Android-Push auf eigenem Pilotgerät prüfen; iOS/APNs folgt separat |
 | FCM-Service-Account | Staging bestanden | echte Zustellung, Tokenwechsel und Abmeldung auf dem Pilotgerät prüfen |
 | APNs | offen | Apple-ID und Developer-Mitgliedschaft einrichten; danach Team, Push-Key und Provisioning verbinden |
-| Google Play Internal Testing | Konto erstellt und bezahlt; Identität offen | Identitäts-, Geräte- und Telefonnummernprüfung abschließen, danach App-Datensatz anlegen |
+| Google Play Internal Testing | Konto, Gebühr, Identität, Gerät, Telefonnummer und App-Datensatz bestätigt | offene App-Inhalte schließen; danach nur den exakt gebundenen AAB nach unmittelbarer Bestätigung in den internen Entwurf laden |
 | App Store Connect/TestFlight | gesperrt | Apple-Anmeldung und 2FA durch Walid; vollständiges Xcode und Team-Signierung einrichten |
 | Reale Android-Geräte | Direkt-Smoke bestanden, Matrix offen | aktuellen Kandidaten auf Pixel 7 Pro funktional über WLAN und Hotspot sowie später unverändert über Play Internal prüfen |
 | Reale iOS-Geräte | offen | TestFlight-Build auf mindestens einem unterstützten Gerät testen |

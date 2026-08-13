@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "seven-of-twelve-saved-five-open",
+  "status": "eight-of-twelve-saved-four-open",
   "submissionAllowed": false,
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -54,7 +54,7 @@
       "stepTwoEvidenceRef": "docs/evidence/b11/google-play-data-safety-step2-20260812.json"
     },
     "advertisingId": {
-      "status": "visible-console-declaration-answer-no-prepared-save-pending",
+      "status": "saved-current-build-no-advertising-id",
       "proposedAnswer": false,
       "evidenceRef": "docs/evidence/b11/google-play-advertising-id-declaration-20260812.json"
     },
