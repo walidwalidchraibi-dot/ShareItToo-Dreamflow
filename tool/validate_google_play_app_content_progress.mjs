@@ -106,9 +106,16 @@ export function validateGooglePlayAppContentProgress({
   }
   const answerMatrixEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
     dataSafety.answerMatrixEvidenceRef), 'utf8'));
+  const answerMatrixBuild = Number(answerMatrixEvidence.candidate?.buildNumber);
+  const progressBuild = Number(evidence.candidate.buildNumber);
   if (answerMatrixEvidence.kind !== 'google-play-data-safety-answer-matrix' ||
       answerMatrixEvidence.status !== 'all-data-type-answers-prepared-console-save-blocked' ||
-      answerMatrixEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
+      answerMatrixEvidence.candidate?.applicationId !== evidence.candidate.applicationId ||
+      answerMatrixEvidence.candidate?.versionName !== evidence.candidate.versionName ||
+      answerMatrixEvidence.candidate?.releaseChannel !== evidence.candidate.releaseChannel ||
+      answerMatrixEvidence.candidate?.apiBaseUrl !== evidence.candidate.apiBaseUrl ||
+      !Number.isSafeInteger(answerMatrixBuild) || !Number.isSafeInteger(progressBuild) ||
+      answerMatrixBuild < progressBuild ||
       answerMatrixEvidence.dataTypes?.length !== 17 ||
       answerMatrixEvidence.dataTypes?.filter((entry) => entry.selected).length !== 16 ||
       answerMatrixEvidence.consoleBaseline?.dataTypeAnswersSaved !== false ||
@@ -119,10 +126,15 @@ export function validateGooglePlayAppContentProgress({
   }
   const providerEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
     dataSafety.providerClassificationEvidenceRef), 'utf8'));
+  const providerBuild = Number(providerEvidence.candidate?.buildNumber);
   if (providerEvidence.kind !== 'google-play-service-provider-sharing-classification' ||
       providerEvidence.status !==
         'technical-provider-roles-classified-owner-contract-and-legal-approval-open' ||
-      providerEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
+      providerEvidence.candidate?.applicationId !== evidence.candidate.applicationId ||
+      providerEvidence.candidate?.versionName !== evidence.candidate.versionName ||
+      providerEvidence.candidate?.releaseChannel !== evidence.candidate.releaseChannel ||
+      providerEvidence.candidate?.apiBaseUrl !== evidence.candidate.apiBaseUrl ||
+      !Number.isSafeInteger(providerBuild) || providerBuild < progressBuild ||
       providerEvidence.technicalConclusion?.classificationResearchComplete !== true ||
       providerEvidence.technicalConclusion?.consoleAnswerAllowed !== false ||
       Object.values(providerEvidence.blockingGates ?? {}).some((value) => value !== false) ||
@@ -184,9 +196,14 @@ export function validateGooglePlayAppContentProgress({
   }
   const internalReleaseEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
     evidence.storeDraft.internalReleaseEvidenceRef), 'utf8'));
+  const internalReleaseBuild = Number(internalReleaseEvidence.candidate?.buildNumber);
+  const recordedProgressBuild = Number(evidence.candidate.buildNumber);
   if (internalReleaseEvidence.kind !== 'google-play-internal-release-active' ||
       internalReleaseEvidence.status !== 'available-and-store-install-verified' ||
-      internalReleaseEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
+      internalReleaseEvidence.candidate?.applicationId !== evidence.candidate.applicationId ||
+      internalReleaseEvidence.candidate?.versionName !== evidence.candidate.versionName ||
+      !Number.isSafeInteger(internalReleaseBuild) || !Number.isSafeInteger(recordedProgressBuild) ||
+      internalReleaseBuild < recordedProgressBuild ||
       internalReleaseEvidence.release?.track !== 'internal' ||
       internalReleaseEvidence.release?.statusObserved !== 'available-to-internal-testers' ||
       internalReleaseEvidence.validation?.errorCount !== 0 ||

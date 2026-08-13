@@ -69,7 +69,7 @@ test('accepts the current honest fail-closed Store metadata draft', () => {
 test('strict Store validation rejects a newer unfinished source build', () => {
   const result = runWithManifests({
     extraArgs: [],
-    sourceVersion: '1.0.0+2026081303',
+    sourceVersion: '1.0.0+2026081304',
   });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /internal upload handoff must remain bound/);

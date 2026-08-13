@@ -723,7 +723,7 @@ test('accepts the honest in-progress B11 evidence state', () => {
     goNoGo: 'hold',
     matrixPassed: 0,
     matrixTotal: 4,
-    releaseChecksPassed: 5,
+    releaseChecksPassed: 4,
     releaseChecksTotal: 7,
     minimumBuild: '2026080903',
   });
@@ -745,12 +745,33 @@ test('rejects a restricted permission added to the exact release inventory', () 
 
 test('Android FCM progress evidence must match the exact candidate APK', () => {
   const root = progressEvidenceRoot();
-  const ref = baseDeviceManifest.releaseChecks.firebaseFcmAndApns.evidenceRef;
+  const deviceManifest = clone(baseDeviceManifest);
+  const previousManifest = JSON.parse(readFileSync(
+    resolve(repositoryRoot, 'docs/evidence/b11/android-controlled-fcm-2026081302-20260813T151533Z.json'),
+    'utf8',
+  ));
+  const ref = 'docs/evidence/b11/android-controlled-fcm-progress-fixture.json';
+  previousManifest.candidate = {
+    ...previousManifest.candidate,
+    applicationId: deviceManifest.candidate.applicationId,
+    bundleId: deviceManifest.candidate.bundleId,
+    versionName: deviceManifest.candidate.versionName,
+    buildNumber: deviceManifest.candidate.buildNumber,
+    commit: deviceManifest.candidate.commit,
+    releaseChannel: deviceManifest.candidate.releaseChannel,
+    apiBaseUrl: deviceManifest.candidate.apiBaseUrl,
+    firebaseConfigured: deviceManifest.candidate.firebaseConfigured,
+    paymentMode: deviceManifest.candidate.paymentMode,
+    stripeLivemode: deviceManifest.candidate.stripeLivemode,
+    apkSha256: deviceManifest.candidate.android.apkSha256,
+  };
+  writeEvidence(root, ref, previousManifest);
+  deviceManifest.releaseChecks.firebaseFcmAndApns = { status: 'testing', evidenceRef: ref };
   const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
   evidence.candidate.apkSha256 = 'f'.repeat(64);
   writeEvidence(root, ref, evidence);
   assert.throws(
-    () => validate({ root }),
+    () => validate({ root, deviceManifest }),
     /must match the exact current Android candidate and Staging boundary/,
   );
 });
@@ -905,7 +926,7 @@ test('rejects a premature Store-console or public-route pass claim', () => {
 test('strict mode rejects the in-progress evidence state', () => {
   assert.throws(
     () => validate({ requirePassed: true }),
-    /remains testing: matrix=0\/4, releaseChecks=5\/7/,
+    /remains testing: matrix=0\/4, releaseChecks=4\/7/,
   );
 });
 

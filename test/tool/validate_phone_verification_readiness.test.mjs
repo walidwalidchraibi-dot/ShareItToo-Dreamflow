@@ -14,7 +14,7 @@ const canonical = JSON.parse(readFileSync(
 test('accepts the implemented but fail-closed phone verification flow', () => {
   assert.deepEqual(validatePhoneVerificationReadiness({ root }), {
     state: 'implementation-complete-external-gates-open',
-    buildNumber: '2026081302',
+    buildNumber: '2026081303',
     openGates: 8,
     activationAllowed: false,
   });
@@ -52,7 +52,7 @@ test('rejects a reused source build number after pubspec advances', () => {
       root,
       readiness: canonical,
       sourceOverrides: {
-        'pubspec.yaml': 'name: lendify\nversion: 1.0.0+2026081303\n',
+        'pubspec.yaml': 'name: lendify\nversion: 1.0.0+2026081304\n',
       },
     }),
     /not bound to the current source build/,

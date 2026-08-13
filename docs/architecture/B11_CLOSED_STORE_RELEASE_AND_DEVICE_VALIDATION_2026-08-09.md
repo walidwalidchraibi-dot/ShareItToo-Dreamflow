@@ -21,27 +21,27 @@ sind ausdrücklich nicht Bestandteil dieser Freigabe.
 | Merkmal | Verbindlicher Wert |
 |---|---|
 | App-Identität | `com.shareittoo.app` (Android und iOS) |
-| Version und Build | `1.0.0 (2026081302)` |
-| App-Commit | `530ed17e46dbd82916eef0d59f1b07e448c737f8` |
+| Version und Build | `1.0.0 (2026081303)` |
+| App-Commit | `4144d0c0a3a2e19e89b6523594607c14625b0119` |
 | Kanal und API | `internal`, `https://staging.shareittoo.com/api/v1` |
 | Firebase und Zahlung | vollständig: `true`; `memory`; `stripeLivemode=false` |
-| Android-AAB SHA-256 | `e9c2927b1ab57d82c15a9d5525c4b9ed8386b2b27be24dd067ed8794b0a6fa97` |
-| Android-APK SHA-256 | `2a9f7e1e4ba0f43cd99f03e20635113e2b0aae2c8a18cc4b9394ebcd2b516e38` |
+| Android-AAB SHA-256 | `c900bbf4ad223d9d08f15f931a8fcaca62538c500a480749cb7396a454fddac6` |
+| Android-APK SHA-256 | `19505969ca133bb773b59c3e0afd0d4e733b844bcde926fca742d6f3c91813b8` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
-| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081302-20260813T135002Z.json` |
-| Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081302-20260813T135719Z.json` |
-| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081302-20260813T135900Z.json` |
-| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081302-20260813T153225Z.json` |
-| Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081302-20260813T151257Z.json` |
-| Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081302-20260813T151533Z.json` |
-| Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081302-20260813T151851Z.json` |
-| Android-Offline-/Realtime-Wiederherstellung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-offline-realtime-2026081302-20260813T151710Z.json` |
-| Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081302)` |
-| Play-Signing und öffentliche App-Links | `passed`; `docs/evidence/b11/android-play-store-links-signing-2026081302-20260813.json` |
-| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081302.json` |
-| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081302.json` |
+| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081303-20260813T203829Z.json` |
+| Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Kontrollierte Android-FCM-Diagnose | `pending/pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081303)` |
+| Play-Signing und öffentliche App-Links | `open`; noch kein kandidatenspezifischer Nachweis |
+| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081303.json` |
+| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081303.json` |
 | Staging-Servercommit | `530ed17e46dbd82916eef0d59f1b07e448c737f8` |
-| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 5/7 |
+| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
 
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Eine bestandene Google-Play-Installation ist nur belegt, wenn der aktuelle Kandidat aus dem internen Track installiert und gestartet wurde. Die früheren direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM-, Abmelde- und Offline-/Realtime-Diagnosen bleiben davon abgegrenzte Vorprüfungen. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
@@ -296,19 +296,19 @@ Container- und Image-IDs; beide blieben gesund.
 | Firebase-Projekt | Android technisch fertig | realen Android-Push auf eigenem Pilotgerät prüfen; iOS/APNs folgt separat |
 | FCM-Service-Account | Staging bestanden | echte Zustellung, Tokenwechsel und Abmeldung auf dem Pilotgerät prüfen |
 | APNs | offen | Apple-ID und Developer-Mitgliedschaft einrichten; danach Team, Push-Key und Provisioning verbinden |
-| Google Play Internal Testing | Konto, Gebühr, Identität, Gerät, Telefonnummer und App-Datensatz bestätigt | offene App-Inhalte schließen; danach nur den exakt gebundenen AAB nach unmittelbarer Bestätigung in den internen Entwurf laden |
+| Google Play Internal Testing | Build `2026081303` im internen Track aktiv und aus Google Play auf dem Pixel installiert | verbleibende App-Inhalte schließen und den unveränderten Store-Build in der Rollen-/Netzmatrix prüfen |
 | App Store Connect/TestFlight | gesperrt | Apple-Anmeldung und 2FA durch Walid; vollständiges Xcode und Team-Signierung einrichten |
-| Reale Android-Geräte | Direkt-Smoke bestanden, Matrix offen | aktuellen Kandidaten auf Pixel 7 Pro funktional über WLAN und Hotspot sowie später unverändert über Play Internal prüfen |
+| Reale Android-Geräte | Play-Installation auf Pixel 7 Pro bestanden, Matrix offen | Store-Build funktional über WLAN und Hotspot mit beiden Rollen sowie TalkBack prüfen |
 | Reale iOS-Geräte | offen | TestFlight-Build auf mindestens einem unterstützten Gerät testen |
 | Stripe-Testmodus | offen | echte Testschlüssel und Webhook erst nach ausdrücklicher Kontofreigabe verbinden |
 | Tester/Einladungen | offen | zwei Rollen festlegen und ausschließlich geschlossene Gruppen einladen |
 
 Es ist derzeit kein vollständiges Xcode installiert, kein iOS-Signing-Team
 verbunden und kein physisches iOS-Gerät für TestFlight verfügbar. Für Android
-wurden reale Direktinstallationen auf OnePlus und Pixel nachgewiesen; diese
-ersetzen weder die offene Rollen-/Netzmatrix noch die spätere Installation
-über Google Play Internal. Diese Punkte dürfen nicht als bestanden markiert
-werden.
+wurden reale Direktinstallationen auf OnePlus und Pixel nachgewiesen. Der
+aktuelle Kandidat `2026081303` wurde zusätzlich aus Google Play Internal auf
+dem Pixel installiert und gestartet. Damit ist das Store-Installationsgate
+bestanden; die Rollen-/Netz-, Push- und Accessibility-Matrix bleibt offen.
 
 ## Noch auszuführende Kernmatrix
 
@@ -324,7 +324,7 @@ inhaltlich als kandidatengebundene JSON-Dokumente geprüft; eine beliebige
 nicht leere Datei kann kein Geräte-, Release- oder Freigabegate schließen.
 Abweichende Commits, Zell-/Prüfungs-IDs, credential-förmige Felder und
 Roh-Gerätekennungen werden abgelehnt. Der aktuelle ehrliche Zustand ist
-`testing`, `hold`, vier noch nicht vollständig bestandene Gerätezellen und fünf von sieben bestandene
+`testing`, `hold`, vier noch nicht vollständig bestandene Gerätezellen und vier von sieben bestandene
 Releaseprüfungen. `tool/validate_device_evidence.mjs` prüft App-Identität,
 Mindestbuild `2026080903`, vollständigen Commit, Android-/iOS-Artefakthashes,
 Play-Internal-/TestFlight-Installation, physische Rollen-/Netzmatrix,
@@ -336,14 +336,15 @@ gemeinsam. Er ist im späteren Uploadmodus Pflicht und bleibt bis zur realen
 Ausführung erwartungsgemäß gesperrt. Detailnachweis:
 `docs/operations/B11_MACHINE_READABLE_DEVICE_EVIDENCE_2026-08-09.md`.
 
-Der unveränderte Kandidat `2026080903` wurde am 9. August 2026 nach der
+Historischer Vorläufer: Der Kandidat `2026080903` wurde am 9. August 2026 nach der
 fail-closed Vorprüfung erstmals direkt auf einem physischen OnePlus-Gerät mit
 Android 16 installiert. Installierte Version, Buildnummer, Erststart und
 Vordergrundaktivität wurden bestätigt; der bereinigte Nachweis liegt unter
 `docs/evidence/b11/android-direct-smoke-2026080903-20260809T202357Z.json`.
-Weil die Installation nicht über Google Play Internal erfolgte und noch keine
-Funktions-, Push-, Netzwerk- oder Accessibility-Matrix durchgeführt wurde,
-bleiben alle vier Gerätezellen und das B11-Go unverändert offen.
+Diese direkte Installation erfüllte damals noch nicht das
+Play-Internal-Gate. Dieses Gate wurde später mit Kandidat `2026081303`
+geschlossen; Funktions-, Push-, Netzwerk- und Accessibility-Matrix sowie das
+B11-Go bleiben davon getrennt offen.
 
 ### Kandidat 2026080904 und korrigierte Registrierungsübergabe
 

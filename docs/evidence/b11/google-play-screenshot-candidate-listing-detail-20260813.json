@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "kind": "google-play-screenshot-candidate",
   "status": "exact-candidate-local-not-uploaded",
-  "capturedAt": "2026-08-13T17:05:04.374Z",
+  "capturedAt": "2026-08-13T21:05:04.000Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081302",
-    "commit": "530ed17e46dbd82916eef0d59f1b07e448c737f8",
-    "apkSha256": "2a9f7e1e4ba0f43cd99f03e20635113e2b0aae2c8a18cc4b9394ebcd2b516e38",
+    "buildNumber": "2026081303",
+    "commit": "4144d0c0a3a2e19e89b6523594607c14625b0119",
+    "apkSha256": "19505969ca133bb773b59c3e0afd0d4e733b844bcde926fca742d6f3c91813b8",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
   },
@@ -20,8 +20,8 @@
     "width": 1080,
     "height": 1920,
     "format": "png",
-    "byteSize": 1228521,
-    "sha256": "7e6d7f5ee35b70d9883c720ea1d3e18d62fd1d6d3d7b2cff33c2ccab3e0764ce"
+    "byteSize": 1205066,
+    "sha256": "3844fe472d79cf8ee76ad72ae99d9522c5aeb612370e0b362a111b30c008559a"
   },
   "validation": {
     "exactInstalledCandidateObserved": true,

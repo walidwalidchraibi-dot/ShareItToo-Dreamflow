@@ -26,27 +26,27 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Merkmal | Verbindlicher Wert |
 |---|---|
 | App-Identität | `com.shareittoo.app` (Android und iOS) |
-| Version und Build | `1.0.0 (2026081302)` |
-| App-Commit | `530ed17e46dbd82916eef0d59f1b07e448c737f8` |
+| Version und Build | `1.0.0 (2026081303)` |
+| App-Commit | `4144d0c0a3a2e19e89b6523594607c14625b0119` |
 | Kanal und API | `internal`, `https://staging.shareittoo.com/api/v1` |
 | Firebase und Zahlung | vollständig: `true`; `memory`; `stripeLivemode=false` |
-| Android-AAB SHA-256 | `e9c2927b1ab57d82c15a9d5525c4b9ed8386b2b27be24dd067ed8794b0a6fa97` |
-| Android-APK SHA-256 | `2a9f7e1e4ba0f43cd99f03e20635113e2b0aae2c8a18cc4b9394ebcd2b516e38` |
+| Android-AAB SHA-256 | `c900bbf4ad223d9d08f15f931a8fcaca62538c500a480749cb7396a454fddac6` |
+| Android-APK SHA-256 | `19505969ca133bb773b59c3e0afd0d4e733b844bcde926fca742d6f3c91813b8` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
-| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081302-20260813T135002Z.json` |
-| Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-app-link-diagnostic-2026081302-20260813T135719Z.json` |
-| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081302-20260813T135900Z.json` |
-| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081302-20260813T153225Z.json` |
-| Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081302-20260813T151257Z.json` |
-| Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081302-20260813T151533Z.json` |
-| Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081302-20260813T151851Z.json` |
-| Android-Offline-/Realtime-Wiederherstellung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-offline-realtime-2026081302-20260813T151710Z.json` |
-| Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081302)` |
-| Play-Signing und öffentliche App-Links | `passed`; `docs/evidence/b11/android-play-store-links-signing-2026081302-20260813.json` |
-| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081302.json` |
-| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081302.json` |
+| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081303-20260813T203829Z.json` |
+| Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Kontrollierte Android-FCM-Diagnose | `pending/pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081303)` |
+| Play-Signing und öffentliche App-Links | `open`; noch kein kandidatenspezifischer Nachweis |
+| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081303.json` |
+| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081303.json` |
 | Staging-Servercommit | `530ed17e46dbd82916eef0d59f1b07e448c737f8` |
-| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 5/7 |
+| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
 
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Eine bestandene Google-Play-Installation ist nur belegt, wenn der aktuelle Kandidat aus dem internen Track installiert und gestartet wurde. Die früheren direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM-, Abmelde- und Offline-/Realtime-Diagnosen bleiben davon abgegrenzte Vorprüfungen. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
@@ -137,10 +137,10 @@ ersetzen.
 
 | Plattform | Gerät/Modell | Betriebssystem | Build | Netz | Rolle | Ergebnis |
 |---|---|---|---|---|---|---|
-| Android real | offen | offen | `2026081302` | WLAN | Vermieter | offen |
-| Android real | offen | offen | `2026081302` | Mobilfunk/Hotspot | Mieter | offen |
-| iOS real | offen | offen | `2026081302` | WLAN | Vermieter | offen |
-| iOS real | offen | offen | `2026081302` | Mobilfunk/Hotspot | Mieter | offen |
+| Android real | offen | offen | `2026081303` | WLAN | Vermieter | offen |
+| Android real | offen | offen | `2026081303` | Mobilfunk/Hotspot | Mieter | offen |
+| iOS real | offen | offen | `2026081303` | WLAN | Vermieter | offen |
+| iOS real | offen | offen | `2026081303` | Mobilfunk/Hotspot | Mieter | offen |
 
 Vor einer manuellen Android-Matrixrunde muss der neue, rein lesende Preflight
 `tool/preflight_android_manual_matrix.mjs` den Status
@@ -199,15 +199,17 @@ Sie installiert exakt das geprüfte APK, liest die installierte Version zurück
 und startet die App einmal. Das ausgegebene bereinigte JSON kennzeichnet diesen
 Schritt bewusst als `direct-apk-diagnostic`: Er erfüllt weder das
 Play-Internal-Installationsgate noch die manuelle Rollen-, Netzwerk-, Push-
-oder Accessibility-Matrix. Erst der spätere unveränderte Store-Download zählt
-als Store-Installation.
+oder Accessibility-Matrix. Für Kandidat `2026081303` ist der getrennte
+Store-Download inzwischen bestanden; eine erneute direkte APK-Installation
+darf diesen Play-Stand nicht ersetzen.
 
 1. Commit, Buildnummer, Paketkennung, API-Ziel und Hash gegen den
    Release-Eintrag prüfen.
-2. Android-AAB nur in den geschlossenen Internal-Track laden; Warnungen und
-   Play-App-Signing-Zertifikat dokumentieren.
-3. Android zunächst über den offiziellen Testlink installieren. Ein direktes
-   APK dient nur der Diagnose und zählt nicht als Store-Installation.
+2. Den bereits aktiven Android-AAB im geschlossenen Internal-Track unverändert
+   lassen; Warnungen und Play-App-Signing-Zertifikat dokumentieren.
+3. Android weiterhin über den offiziellen Testlink verwenden. Die
+   Store-Installation von `2026081303` ist belegt; ein direktes APK dient nur
+   der Diagnose und zählt nicht als Ersatz.
 4. iOS-Archiv aus dem dokumentierten Commit mit dem ausgewählten Team bauen,
    in TestFlight laden und Verarbeitung ohne kritische Warnung abwarten.
 5. TestFlight-Build ausschließlich an interne oder ausdrücklich benannte

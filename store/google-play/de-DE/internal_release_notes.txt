@@ -1,1 +1,1 @@
-Erster interner ShareItToo-Test: lokale Inserate, Buchungen, Chat, Übergabe/Rückgabe, Meldungen sowie Kontodatenexport und Kontolöschung. Dieser Build verwendet ausschließlich Staging und Testzahlungen.
+Stabilerer interner ShareItToo-Test: Inserate, KI-Suche, Buchungen, Chat und Übergabe/Rückgabe. Dieser Build verwendet ausschließlich Staging und Testzahlungen.
