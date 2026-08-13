@@ -27,6 +27,12 @@ SET status = 'failed',
     failure_code = COALESCE(failure_code, 'launch_deposit_disabled')
 WHERE status IN ('created', 'requires_action');
 
+-- A legacy client does not send the catalog projection columns. Its insert
+-- must still inherit the neutral launch product instead of the former
+-- protection default.
+ALTER TABLE listings
+  ALTER COLUMN protection_model SET DEFAULT 'none';
+
 ALTER TABLE listings
   DROP CONSTRAINT IF EXISTS listings_launch_no_deposit_check,
   DROP CONSTRAINT IF EXISTS listings_launch_no_protection_check,
