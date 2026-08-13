@@ -179,15 +179,23 @@ Speichern jede dann sichtbare Definition erneut gegen den tatsächlichen Build
 prüfen; eine spätere Wallet-, Kredit-, Versicherungs- oder eigene
 Zahlungsfunktion würde eine neue Bewertung erzwingen.
 
-Der unvollständige IARC-Fragebogen wurde lesend geprüft. Sachlich vorbereitet
-ist **„Alle anderen App-Typen“**, weil Miete/Shopping der Hauptzweck ist und
-nicht soziale Vernetzung oder Gaming. Nutzerinhalte, private direkte
+Der zunächst unvollständige IARC-Fragebogen wurde lesend geprüft und auf
+**„Alle anderen App-Typen“** vorbereitet, weil Miete/Shopping der Hauptzweck
+ist und nicht soziale Vernetzung oder Gaming. Nutzerinhalte, private direkte
 Kommunikation und Fotoaustausch sind wahrheitsgemäß vorhanden; freie
-Dokumente, Video und Audio nicht. Schritt 1 verlangt jedoch eine geschützte
-Kontaktadresse, die an IARC und Bewertungsstellen weitergegeben werden kann,
-sowie die Zustimmung zu den IARC-Nutzungsbedingungen. Beides bleibt bis zur
-ausdrücklichen Eigentümerbestätigung unberührt. Nachweis:
+Dokumente, Video und Audio nicht. Der damalige Vorbereitungsstand mit noch
+offener persönlicher Zustimmung ist chronologisch erhalten unter
 `docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json`.
+
+Am 13. August 2026 hat der Betreiber die IARC-Nutzungsbedingungen persönlich
+bestätigt. Der anschließend kandidatengenau ausgefüllte Fragebogen wurde in
+Google Play gespeichert. Er weist Nutzerinhalte, Bild-/Textaustausch,
+Melden/Blockieren, Online-Inhalte und das freiwillige Teilen eines präzisen
+Standorts aus; nicht vorhandene oder nicht erlaubte Inhalte wurden nicht
+behauptet. Google Play zeigt für Deutschland **USK 12+** und den interaktiven
+Hinweis „Users Interact“. Die Bewertung liegt in der Publishing Overview,
+wurde aber nicht zur Store-Prüfung gesendet. Abschlussnachweis:
+`docs/evidence/b11/google-play-iarc-content-rating-completion-20260813.json`.
 
 ## 6. Data Safety – technischer Entwurf
 

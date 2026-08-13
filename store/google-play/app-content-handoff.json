@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "eight-of-twelve-saved-four-open",
+  "status": "nine-of-twelve-saved-three-open",
   "submissionAllowed": false,
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -25,13 +25,17 @@
       "basis": "no-ad-sdk-no-advertising-tracking"
     },
     "contentRating": {
-      "status": "iarc-category-contact-and-interaction-truth-entered-owner-terms-pending",
+      "status": "saved-iarc-completed-usk-12-plus",
       "category": "all-other-app-types",
       "userGeneratedContent": true,
       "directUserCommunication": true,
+      "preciseDeviceLocationSharedByUser": true,
       "protectedContactAddressEntered": true,
-      "iarcTermsAccepted": false,
-      "evidenceRef": "docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json"
+      "iarcTermsAccepted": true,
+      "questionnaireSubmitted": true,
+      "germanyRating": "usk-12-plus",
+      "sentForReview": false,
+      "evidenceRef": "docs/evidence/b11/google-play-iarc-content-rating-completion-20260813.json"
     },
     "targetAudience": {
       "status": "saved-eighteen-and-over",
@@ -108,7 +112,7 @@
     "docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json",
     "docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json",
     "docs/evidence/b11/google-play-advertising-id-declaration-20260812.json",
-    "docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json"
+    "docs/evidence/b11/google-play-iarc-content-rating-completion-20260813.json"
   ],
   "containsSecrets": false,
   "containsAccountAddresses": false,

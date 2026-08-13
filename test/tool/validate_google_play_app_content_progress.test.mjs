@@ -19,10 +19,10 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts eight saved and four fail-closed Play work areas', () => {
+test('accepts nine saved and three fail-closed Play work areas', () => {
   assert.deepEqual(validateGooglePlayAppContentProgress({ repositoryRoot }), {
-    status: 'eight-of-twelve-saved-four-open', totalTasks: 12,
-    savedTasks: 8, openTasks: 4,
+    status: 'nine-of-twelve-saved-three-open', totalTasks: 12,
+    savedTasks: 9, openTasks: 3,
   });
 });
 
@@ -35,13 +35,13 @@ test('rejects claiming Advertising ID use for the exact candidate', async (t) =>
     /Advertising ID draft/);
 });
 
-test('rejects premature IARC terms acceptance', async (t) => {
+test('rejects losing the completed IARC terms acceptance', async (t) => {
   const data = await fixture((evidence) => {
-    evidence.contentRatingDraft.iarcTermsAccepted = true;
+    evidence.contentRatingDraft.iarcTermsAccepted = false;
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
-    /IARC content-rating draft/);
+    /IARC content-rating completion/);
 });
 
 test('rejects losing the protected IARC contact entry', async (t) => {
@@ -50,7 +50,16 @@ test('rejects losing the protected IARC contact entry', async (t) => {
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
-    /IARC content-rating draft/);
+    /IARC content-rating completion/);
+});
+
+test('rejects an IARC completion that omits precise location sharing', async (t) => {
+  const data = await fixture((evidence) => {
+    evidence.contentRatingDraft.preciseDeviceLocationSharedByUser = false;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
+    /IARC content-rating completion/);
 });
 
 test('rejects claiming OAuth account creation before provider activation', async (t) => {

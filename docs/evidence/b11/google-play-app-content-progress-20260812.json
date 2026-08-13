@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "google-play-app-content-progress",
-  "capturedAt": "2026-08-13T05:57:06.605Z",
-  "status": "eight-of-twelve-saved-four-open",
+  "capturedAt": "2026-08-13T08:30:00Z",
+  "status": "nine-of-twelve-saved-three-open",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
@@ -12,8 +12,8 @@
   },
   "counts": {
     "totalTasks": 12,
-    "savedTasks": 8,
-    "openTasks": 4
+    "savedTasks": 9,
+    "openTasks": 3
   },
   "savedTasks": [
     "appAccess",
@@ -23,11 +23,11 @@
     "financialFeatures",
     "health",
     "categoryAndContact",
-    "advertisingId"
+    "advertisingId",
+    "contentRating"
   ],
   "openTasks": {
     "privacyPolicy": "public-privacy-page-not-release-ready",
-    "contentRating": "iarc-category-contact-and-interaction-truth-entered-owner-terms-pending",
     "dataSafety": "all-data-type-answers-prepared-provider-roles-technically-classified-contract-retention-public-route-and-legal-pending",
     "storeListing": "screenshots-upload-and-public-pages-pending"
   },
@@ -59,14 +59,17 @@
     "evidenceRef": "docs/evidence/b11/google-play-advertising-id-declaration-20260812.json"
   },
   "contentRatingDraft": {
-    "questionnaireInProgress": true,
+    "questionnaireInProgress": false,
     "category": "all-other-app-types",
     "userGeneratedContent": true,
     "directUserCommunication": true,
+    "preciseDeviceLocationSharedByUser": true,
     "protectedContactAddressEntered": true,
-    "iarcTermsAccepted": false,
-    "submitted": false,
-    "evidenceRef": "docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json"
+    "iarcTermsAccepted": true,
+    "submitted": true,
+    "germanyRating": "usk-12-plus",
+    "sentForReview": false,
+    "evidenceRef": "docs/evidence/b11/google-play-iarc-content-rating-completion-20260813.json"
   },
   "boundaries": {
     "sentForReview": false,

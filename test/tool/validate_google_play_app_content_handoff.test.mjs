@@ -19,9 +19,27 @@ async function fixture(mutate = () => {}) {
   return { root, handoffPath };
 }
 
-test('accepts eight saved Play tasks while four work areas remain stopped', () => {
+test('accepts nine saved Play tasks while three work areas remain stopped', () => {
   const result = validateGooglePlayAppContentHandoff({ repositoryRoot });
   assert.deepEqual(result, { taskCount: 12, buildNumber: '2026081202' });
+});
+
+test('rejects losing the completed owner-approved IARC state', async (t) => {
+  const data = await fixture((handoff) => {
+    handoff.tasks.contentRating.iarcTermsAccepted = false;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+    /product truth/);
+});
+
+test('rejects omitting the user-controlled precise location share', async (t) => {
+  const data = await fixture((handoff) => {
+    handoff.tasks.contentRating.preciseDeviceLocationSharedByUser = false;
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+    /product truth/);
 });
 
 test('rejects claiming Advertising ID use for the current binary', async (t) => {

@@ -13,7 +13,7 @@ export function validateGooglePlayAppContentProgress({
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'google-play-app-content-progress' ||
-      evidence.status !== 'eight-of-twelve-saved-four-open') {
+      evidence.status !== 'nine-of-twelve-saved-three-open') {
     fail('Play app-content progress state is invalid.');
   }
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
@@ -23,13 +23,13 @@ export function validateGooglePlayAppContentProgress({
       evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1') {
     fail('Play app-content progress is not bound to the internal candidate.');
   }
-  if (evidence.counts?.totalTasks !== 12 || evidence.counts?.savedTasks !== 8 ||
-      evidence.counts?.openTasks !== 4 || !Array.isArray(evidence.savedTasks) ||
+  if (evidence.counts?.totalTasks !== 12 || evidence.counts?.savedTasks !== 9 ||
+      evidence.counts?.openTasks !== 3 || !Array.isArray(evidence.savedTasks) ||
       evidence.savedTasks.join(',') !==
-        'appAccess,ads,targetAudience,governmentApps,financialFeatures,health,categoryAndContact,advertisingId') {
+        'appAccess,ads,targetAudience,governmentApps,financialFeatures,health,categoryAndContact,advertisingId,contentRating') {
     fail('Play app-content task counts or saved tasks are incomplete.');
   }
-  const expectedOpen = ['privacyPolicy', 'contentRating', 'dataSafety', 'storeListing'];
+  const expectedOpen = ['privacyPolicy', 'dataSafety', 'storeListing'];
   if (Object.keys(evidence.openTasks ?? {}).join(',') !== expectedOpen.join(',') ||
       Object.values(evidence.openTasks).some((value) => typeof value !== 'string' || !value.includes('pending') && !value.includes('not-release-ready'))) {
     fail('Play app-content open tasks are not fail-closed.');
@@ -140,33 +140,42 @@ export function validateGooglePlayAppContentProgress({
     fail('Play Advertising ID evidence is invalid or unsafe.');
   }
   const contentRating = evidence.contentRatingDraft ?? {};
-  if (contentRating.questionnaireInProgress !== true ||
+  if (contentRating.questionnaireInProgress !== false ||
       contentRating.category !== 'all-other-app-types' ||
       contentRating.userGeneratedContent !== true ||
       contentRating.directUserCommunication !== true ||
+      contentRating.preciseDeviceLocationSharedByUser !== true ||
       contentRating.protectedContactAddressEntered !== true ||
-      contentRating.iarcTermsAccepted !== false ||
-      contentRating.submitted !== false ||
+      contentRating.iarcTermsAccepted !== true ||
+      contentRating.submitted !== true ||
+      contentRating.germanyRating !== 'usk-12-plus' ||
+      contentRating.sentForReview !== false ||
       contentRating.evidenceRef !==
-        'docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json') {
-    fail('Play IARC content-rating draft state is invalid.');
+        'docs/evidence/b11/google-play-iarc-content-rating-completion-20260813.json') {
+    fail('Play IARC content-rating completion state is invalid.');
   }
   const iarcEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
     contentRating.evidenceRef), 'utf8'));
-  if (iarcEvidence.kind !== 'google-play-iarc-content-rating-preparation' ||
-      iarcEvidence.status !== 'category-contact-and-interaction-truth-entered-owner-terms-pending' ||
+  if (iarcEvidence.kind !== 'google-play-iarc-content-rating-completion' ||
+      iarcEvidence.status !== 'questionnaire-completed-owner-terms-accepted-ratings-saved' ||
       iarcEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
-      iarcEvidence.preparedTruth?.category !== 'all-other-app-types' ||
-      iarcEvidence.preparedTruth?.userGeneratedContent !== true ||
-      iarcEvidence.preparedTruth?.directUserCommunication !== true ||
-      iarcEvidence.blockingGates?.protectedContactAddressEntered !== true ||
-      Object.entries(iarcEvidence.blockingGates ?? {}).some(([key, value]) =>
-        key !== 'protectedContactAddressEntered' && value !== false) ||
-      iarcEvidence.boundaries?.consoleAnswersChanged !== true ||
+      iarcEvidence.observedConsoleState?.questionnaire !== 'completed' ||
+      iarcEvidence.observedConsoleState?.category !== 'all-other-app-types' ||
+      iarcEvidence.observedConsoleState?.ownerAcceptedIarcTerms !== true ||
+      iarcEvidence.observedConsoleState?.sentForReview !== false ||
+      iarcEvidence.submittedTruth?.nativeUserContentExchange !== true ||
+      iarcEvidence.submittedTruth?.userGeneratedContentPrimary !== true ||
+      iarcEvidence.submittedTruth?.userOrContentBlocking !== true ||
+      iarcEvidence.submittedTruth?.userOrContentReporting !== true ||
+      iarcEvidence.submittedTruth?.preciseDeviceLocationSharedByUser !== true ||
+      iarcEvidence.submittedTruth?.digitalGoodsPurchases !== false ||
+      iarcEvidence.calculatedRatings?.germany !== 'usk-12-plus' ||
+      iarcEvidence.boundaries?.questionnaireSubmitted !== true ||
+      iarcEvidence.boundaries?.ownerTermsAcceptanceObserved !== true ||
       Object.entries(iarcEvidence.boundaries ?? {}).some(([key, value]) =>
-        key !== 'consoleAnswersChanged' && value !== false) ||
+        ['questionnaireSubmitted', 'ownerTermsAcceptanceObserved'].includes(key) ? value !== true : value !== false) ||
       JSON.stringify(iarcEvidence).includes('@')) {
-    fail('Play IARC content-rating evidence is invalid or unsafe.');
+    fail('Play IARC content-rating completion evidence is invalid or unsafe.');
   }
   return {
     status: evidence.status,

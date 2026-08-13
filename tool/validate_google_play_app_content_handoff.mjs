@@ -34,7 +34,7 @@ export function validateGooglePlayAppContentHandoff({
   );
   const currentCandidate = object(deviceValidation.candidate, 'device validation candidate');
   if (handoff.schemaVersion !== 1 ||
-      handoff.status !== 'eight-of-twelve-saved-four-open' ||
+      handoff.status !== 'nine-of-twelve-saved-three-open' ||
       handoff.submissionAllowed !== false) {
     fail('App-content handoff must remain prepared and fail-closed.');
   }
@@ -69,14 +69,18 @@ export function validateGooglePlayAppContentHandoff({
       tasks.ads.status !== 'saved-current-build-no-ads' ||
       tasks.ads.proposedAnswer !== false ||
       tasks.contentRating.status !==
-        'iarc-category-contact-and-interaction-truth-entered-owner-terms-pending' ||
+        'saved-iarc-completed-usk-12-plus' ||
       tasks.contentRating.category !== 'all-other-app-types' ||
       tasks.contentRating.userGeneratedContent !== true ||
       tasks.contentRating.directUserCommunication !== true ||
+      tasks.contentRating.preciseDeviceLocationSharedByUser !== true ||
       tasks.contentRating.protectedContactAddressEntered !== true ||
-      tasks.contentRating.iarcTermsAccepted !== false ||
+      tasks.contentRating.iarcTermsAccepted !== true ||
+      tasks.contentRating.questionnaireSubmitted !== true ||
+      tasks.contentRating.germanyRating !== 'usk-12-plus' ||
+      tasks.contentRating.sentForReview !== false ||
       tasks.contentRating.evidenceRef !==
-        'docs/evidence/b11/google-play-iarc-content-rating-preparation-20260812.json' ||
+        'docs/evidence/b11/google-play-iarc-content-rating-completion-20260813.json' ||
       tasks.targetAudience.status !== 'saved-eighteen-and-over' ||
       tasks.targetAudience.minimumAge !== 18 ||
       tasks.targetAudience.designedForChildren !== false ||
