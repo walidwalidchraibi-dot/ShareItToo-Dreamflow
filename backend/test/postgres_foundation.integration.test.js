@@ -30,7 +30,18 @@ if (!databaseUrl) {
       uploadDir,
       'firebase-service-account.json',
     );
-    await fs.writeFile(firebaseServiceAccountFile, '{}', { mode: 0o600 });
+    const privateKeyBegin = ['-----BEGIN', 'PRIVATE', 'KEY-----'].join(' ');
+    const privateKeyEnd = ['-----END', 'PRIVATE', 'KEY-----'].join(' ');
+    await fs.writeFile(firebaseServiceAccountFile, JSON.stringify({
+      type: 'service_account',
+      project_id: 'shareittoo-staging',
+      private_key_id: 'a'.repeat(40),
+      private_key: `${privateKeyBegin}\nsynthetic-test-material\n${privateKeyEnd}\n`,
+      client_email:
+        'synthetic-phone-test@shareittoo-staging.iam.gserviceaccount.com',
+      client_id: '123456789012345678901',
+      token_uri: 'https://oauth2.googleapis.com/token',
+    }), { mode: 0o600 });
     process.env.FIREBASE_PROJECT_ID = 'shareittoo-staging';
     process.env.FIREBASE_SERVICE_ACCOUNT_FILE = firebaseServiceAccountFile;
 
