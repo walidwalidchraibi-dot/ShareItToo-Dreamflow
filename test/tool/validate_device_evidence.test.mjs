@@ -900,6 +900,60 @@ test('rejects using aggregate Crashlytics issue counts as exact candidate proof'
   );
 });
 
+test('accepts exact Crashlytics release observation while native-symbol upload remains pending', () => {
+  const { root, deviceManifest, ref, evidence } = crashProgressFixture();
+  evidence.status =
+    'mapping-uploaded-native-symbols-packaged-console-release-observed-controlled-event-pending';
+  evidence.verifications.consoleReleaseAssignment = 'passed';
+  evidence.verifications.consoleObservedVersion =
+    `${deviceManifest.candidate.versionName} (${deviceManifest.candidate.buildNumber})`;
+  evidence.verifications.controlledSanitizedCrashEvent = 'pending';
+  evidence.verifications.nativeSymbolsPackagedForAllBundledAbis = 'passed';
+  evidence.verifications.nativeSymbolUploadToCrashlytics = 'pending';
+  evidence.verifications.nativeSymbolUploadBuildResult = 'pending';
+  evidence.verifications.nativeSymbolCacheDrainedAfterUpload = 'pending';
+  evidence.boundaries.controlledStagingEventGenerated = false;
+  evidence.consoleObservation = {
+    capturedAt: '2026-08-14T00:58:00+02:00',
+    source: 'firebase-console-read-only',
+    observedLatestRelease:
+      `${deviceManifest.candidate.versionName} (${deviceManifest.candidate.buildNumber})`,
+    latestReleaseMatchesExactCandidate: true,
+    issueCountsUsedAsCandidateProof: false,
+    settingsChanged: false,
+    eventGenerated: false,
+  };
+  writeEvidence(root, ref, evidence);
+  assert.equal(validate({ root, deviceManifest }).state, 'testing');
+});
+
+test('rejects claiming a native-symbol upload in the packaged-only console stage', () => {
+  const { root, deviceManifest, ref, evidence } = crashProgressFixture();
+  evidence.status =
+    'mapping-uploaded-native-symbols-packaged-console-release-observed-controlled-event-pending';
+  evidence.verifications.consoleReleaseAssignment = 'passed';
+  evidence.verifications.consoleObservedVersion =
+    `${deviceManifest.candidate.versionName} (${deviceManifest.candidate.buildNumber})`;
+  evidence.verifications.controlledSanitizedCrashEvent = 'pending';
+  evidence.verifications.nativeSymbolUploadToCrashlytics = 'passed';
+  evidence.boundaries.controlledStagingEventGenerated = false;
+  evidence.consoleObservation = {
+    capturedAt: '2026-08-14T00:58:00+02:00',
+    source: 'firebase-console-read-only',
+    observedLatestRelease:
+      `${deviceManifest.candidate.versionName} (${deviceManifest.candidate.buildNumber})`,
+    latestReleaseMatchesExactCandidate: true,
+    issueCountsUsedAsCandidateProof: false,
+    settingsChanged: false,
+    eventGenerated: false,
+  };
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root, deviceManifest }),
+    /native-symbol upload honestly pending/,
+  );
+});
+
 test('accepts bounded Store links and signing progress without closing Store gates', () => {
   const { root, deviceManifest, ref, evidence } = storeLinksProgressFixture();
   writeEvidence(root, ref, evidence);

@@ -1047,6 +1047,9 @@ function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
   const mappingUploadedConsoleObservedEventPending =
     evidence.status ===
       'mapping-and-native-symbols-uploaded-console-release-observed-controlled-event-pending';
+  const mappingUploadedNativePackagedConsoleObservedEventPending =
+    evidence.status ===
+      'mapping-uploaded-native-symbols-packaged-console-release-observed-controlled-event-pending';
   const controlledEventSentConsolePending =
     evidence.status === 'mapping-symbols-and-controlled-event-sent-console-pending';
   if (evidence.schemaVersion !== 1 ||
@@ -1054,6 +1057,7 @@ function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
       (!mappingUploadedEventPending &&
        !mappingUploadedNativePackagedEventPending &&
        !mappingUploadedConsoleObservedEventPending &&
+       !mappingUploadedNativePackagedConsoleObservedEventPending &&
        !controlledEventSentConsolePending)) {
     fail(`${label} must be the bounded in-progress Android crash mapping evidence.`);
   }
@@ -1139,7 +1143,8 @@ function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
         fail(`${label} must record only an honest read-only nonmatching Console observation while the exact release remains pending.`);
       }
     }
-  } else if (mappingUploadedConsoleObservedEventPending) {
+  } else if (mappingUploadedConsoleObservedEventPending ||
+      mappingUploadedNativePackagedConsoleObservedEventPending) {
     const expectedVersion = `${candidate.versionName} (${candidate.buildNumber})`;
     const observation = object(evidence.consoleObservation, `${label}.consoleObservation`);
     if (verifications.consoleReleaseAssignment !== 'passed' ||
@@ -1151,6 +1156,13 @@ function validateCrashMappingProgressEvidence(root, ref, candidate, label) {
         evidence.boundaries.productionCrashGenerated !== false ||
         evidence.boundaries.controlledStagingEventGenerated !== false) {
       fail(`${label} must prove only the exact console release assignment while keeping the controlled event pending.`);
+    }
+    if (mappingUploadedNativePackagedConsoleObservedEventPending &&
+        (verifications.nativeSymbolsPackagedForAllBundledAbis !== 'passed' ||
+         verifications.nativeSymbolUploadToCrashlytics !== 'pending' ||
+         verifications.nativeSymbolUploadBuildResult !== 'pending' ||
+         verifications.nativeSymbolCacheDrainedAfterUpload !== 'pending')) {
+      fail(`${label} must keep the separate Crashlytics native-symbol upload honestly pending.`);
     }
   } else if (verifications.consoleReleaseAssignment !== 'pending' ||
       verifications.controlledSanitizedCrashEvent !== 'passed' ||

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "kind": "android-crash-release-mapping",
-  "status": "mapping-uploaded-native-symbols-packaged-controlled-event-pending",
-  "capturedAt": "2026-08-13T20:33:23Z",
+  "status": "mapping-uploaded-native-symbols-packaged-console-release-observed-controlled-event-pending",
+  "capturedAt": "2026-08-14T00:58:00+02:00",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
@@ -50,7 +50,18 @@
     "originalAabMappingUploadedToCrashlytics": "passed",
     "uploadBuildResult": "successful",
     "controlledSanitizedCrashEvent": "pending",
-    "consoleReleaseAssignment": "pending"
+    "consoleReleaseAssignment": "passed",
+    "consoleObservedVersion": "1.0.0 (2026081303)"
+  },
+  "consoleObservation": {
+    "capturedAt": "2026-08-14T00:58:00+02:00",
+    "source": "firebase-console-read-only",
+    "observedLatestRelease": "1.0.0 (2026081303)",
+    "latestReleaseMatchesExactCandidate": true,
+    "activeUsersObservedForExactRelease": true,
+    "issueCountsUsedAsCandidateProof": false,
+    "settingsChanged": false,
+    "eventGenerated": false
   },
   "diagnosticGate": {
     "exactCandidateEnabled": false,
