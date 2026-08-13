@@ -19,7 +19,7 @@ async function fixture(mutate = () => {}) {
   return { root, handoffPath };
 }
 
-test('accepts seven saved Play tasks while five declarations remain stopped', () => {
+test('accepts eight saved Play tasks while four work areas remain stopped', () => {
   const result = validateGooglePlayAppContentHandoff({ repositoryRoot });
   assert.deepEqual(result, { taskCount: 12, buildNumber: '2026081202' });
 });

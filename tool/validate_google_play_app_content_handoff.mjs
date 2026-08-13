@@ -34,7 +34,7 @@ export function validateGooglePlayAppContentHandoff({
   );
   const currentCandidate = object(deviceValidation.candidate, 'device validation candidate');
   if (handoff.schemaVersion !== 1 ||
-      handoff.status !== 'seven-of-twelve-saved-five-open' ||
+      handoff.status !== 'eight-of-twelve-saved-four-open' ||
       handoff.submissionAllowed !== false) {
     fail('App-content handoff must remain prepared and fail-closed.');
   }
@@ -97,7 +97,7 @@ export function validateGooglePlayAppContentHandoff({
       tasks.dataSafety.sellsData !== false ||
       tasks.dataSafety.advertisingTracking !== false ||
       tasks.advertisingId.status !==
-        'visible-console-declaration-answer-no-prepared-save-pending' ||
+        'saved-current-build-no-advertising-id' ||
       tasks.advertisingId.proposedAnswer !== false ||
       tasks.advertisingId.evidenceRef !==
         'docs/evidence/b11/google-play-advertising-id-declaration-20260812.json' ||
