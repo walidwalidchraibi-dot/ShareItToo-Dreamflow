@@ -36,6 +36,15 @@
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
         "evidenceRef": "docs/evidence/b11/android-play-authenticated-session-2026081303-20260813T223518Z.json"
+      },
+      "playAuthenticatedDeepLinks": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-13T23:01:55.478Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-play-authenticated-deep-links-2026081303-20260813T230155Z.json"
       }
     },
     "ios": {
@@ -61,7 +70,7 @@
         "installAndFirstStart": "passed",
         "authenticationAndSession": "passed",
         "listingAndBooking": "open",
-        "chatAndDeepLink": "open",
+        "chatAndDeepLink": "passed",
         "pushForeground": "open",
         "pushBackground": "open",
         "pushTerminated": "open",

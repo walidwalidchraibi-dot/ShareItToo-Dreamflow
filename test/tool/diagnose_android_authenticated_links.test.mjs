@@ -66,7 +66,7 @@ const bookingHierarchy = '<hierarchy><node text="Private synthetic fixture title
 const chatHierarchy = '<hierarchy><node text="Private synthetic fixture title"/><node text="Der Buchungs-Chat ist geöffnet"/></hierarchy>';
 const guestHierarchy = '<hierarchy><node text="Bitte zuerst anmelden"/><node text="Nach der Anmeldung öffnen wir den sicheren Chat-Kontext."/></hierarchy>';
 
-function fakeRunner({ locked = false, guestChat = false, bytes = apkBytes } = {}) {
+function fakeRunner({ locked = false, guestChat = false, bytes = apkBytes, playSplit = false } = {}) {
   let surface = 'listing';
   const links = [];
   const calls = [];
@@ -76,7 +76,14 @@ function fakeRunner({ locked = false, guestChat = false, bytes = apkBytes } = {}
     if (command.join(' ') === 'shell dumpsys window policy') {
       return locked ? 'keyguardShowing=true' : 'keyguardShowing=false';
     }
-    if (command.join(' ') === 'shell pm path com.shareittoo.app') return 'package:/data/app/base.apk';
+    if (command.join(' ') === 'shell pm path com.shareittoo.app') {
+      return playSplit
+        ? 'package:/data/app/com.shareittoo.app/base.apk\npackage:/data/app/com.shareittoo.app/split_config.de.apk'
+        : 'package:/data/app/base.apk';
+    }
+    if (command.join(' ') === 'shell pm list packages -i com.shareittoo.app') {
+      return 'package:com.shareittoo.app installer=com.android.vending';
+    }
     if (command.join(' ') === 'exec-out cat /data/app/base.apk') return options.binary ? bytes : bytes.toString();
     if (command.join(' ') === 'shell dumpsys package com.shareittoo.app') {
       return '  versionName=1.0.0\n  versionCode=2026081018 minSdk=23 targetSdk=36';
@@ -132,6 +139,24 @@ test('proves three authenticated fixture links without emitting private fixture 
     assert.equal(serialized.includes(privateValue), false);
   }
   assert.equal(fake.links.length, 3);
+});
+
+test('accepts the exact Google Play split installation for authenticated links', async () => {
+  const fake = fakeRunner({ playSplit: true });
+  const evidence = await diagnoseAndroidAuthenticatedLinks({
+    vaultFile: privateVault(),
+    commandRunner: fake.runner,
+    adbPath: 'adb',
+    device,
+    deviceSummary,
+    candidate,
+    archive,
+    wait: async () => {},
+  });
+  assert.equal(evidence.installed.delivery, 'google-play-split');
+  assert.equal(evidence.installed.installerPackageName, 'com.android.vending');
+  assert.equal(evidence.boundaries.storeInstallationGateSatisfied, true);
+  assert.equal(evidence.boundaries.directDiagnosticOnly, false);
 });
 
 test('refuses a locked phone without entering a passcode', async () => {
