@@ -47,6 +47,7 @@ node --test test/tool/verify_restore_readiness_wiring.test.mjs
 node tool/validate_retention_deletion_readiness.mjs
 node --check tool/validate_production_restore_readiness.mjs
 node --test test/tool/validate_production_restore_readiness.test.mjs
+node --test test/tool/deploy_release_automatic_rollback.test.mjs
 node tool/validate_production_restore_readiness.mjs
 
 node --check tool/diagnose_store_review_accounts.mjs
