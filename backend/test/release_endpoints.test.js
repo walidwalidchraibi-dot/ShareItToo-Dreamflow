@@ -70,3 +70,15 @@ test('responses carry a validated correlation id without echoing unsafe input', 
     });
   });
 });
+
+test('the public account-deletion information page is not action-rate-limited', async () => {
+  await withServer(async (baseUrl) => {
+    for (let pageView = 0; pageView < 5; pageView += 1) {
+      const response = await fetch(`${baseUrl}/v1/account-deletion`);
+      assert.equal(response.status, 200);
+      const body = await response.text();
+      assert.match(body, /data-sit-public-page="account-deletion"/u);
+      assert.match(body, /data-sit-compliance-status="operational"/u);
+    }
+  });
+});

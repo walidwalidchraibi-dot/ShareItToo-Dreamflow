@@ -2180,11 +2180,13 @@ if (!databaseUrl) {
       assert.deepEqual(erasedListing.rows[0].payload.photos, []);
       assert.equal(erasedListing.rows[0].payload.status, 'ended');
 
-      const deletionPage = await fetch(`${baseUrl}/v1/account-deletion`);
-      assert.equal(deletionPage.status, 200);
-      const deletionPageBody = await deletionPage.text();
-      assert.match(deletionPageBody, /Konto löschen/);
-      assert.match(deletionPageBody, /data-sit-compliance-status="operational"/);
+      for (let pageView = 0; pageView < 5; pageView += 1) {
+        const deletionPage = await fetch(`${baseUrl}/v1/account-deletion`);
+        assert.equal(deletionPage.status, 200);
+        const deletionPageBody = await deletionPage.text();
+        assert.match(deletionPageBody, /Konto löschen/);
+        assert.match(deletionPageBody, /data-sit-compliance-status="operational"/);
+      }
       const compliance = await fetch(`${baseUrl}/v1/public/compliance`);
       assert.equal(compliance.status, 200);
       assert.deepEqual(await compliance.json(), {

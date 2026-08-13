@@ -65,6 +65,16 @@ test('mixed or partially routed responses halt the rollout', () => {
   ]), 'unexpected-partial-state');
 });
 
+test('the live inspector accepts only the two bounded HTTPS origins', () => {
+  const source = fs.readFileSync(
+    path.join(root, 'tool', 'prepare_public_store_route_rollout.mjs'),
+    'utf8',
+  );
+  assert.match(source, /\['shareittoo\.com', 'staging\.shareittoo\.com'\]/u);
+  assert.match(source, /inspectedOrigin\.protocol !== 'https:'/u);
+  assert.match(source, /staging-routes-active-production-pending/u);
+});
+
 test('saved readiness evidence is bound to the canonical Caddyfile and records no change', () => {
   assert.equal(
     evidence.localCaddySha256,

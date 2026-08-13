@@ -2024,7 +2024,11 @@ export function createApp({
     res.json({ deleted: true });
   }));
 
-  app.get('/v1/account-deletion', deletionLimiter, (_req, res) => {
+  // The public store-facing information page is read-only and already covered
+  // by the general limiter. Only actions that create or consume deletion
+  // tokens use the stricter deletion limiter; otherwise three harmless page
+  // views could lock an entire shared IP out of the required public page.
+  app.get('/v1/account-deletion', (_req, res) => {
     sendHtml(res, 200, accountDeletionRequestForm({ submitted: false }));
   });
 

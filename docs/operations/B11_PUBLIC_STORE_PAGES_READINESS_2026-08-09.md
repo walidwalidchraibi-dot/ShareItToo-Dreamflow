@@ -194,3 +194,28 @@ Der maschinenlesbare Beleg liegt unter
 Bis zur separaten Freigabe gilt weiterhin: kein Caddy-Reload, keine Änderung
 auf Produktion oder Staging und keine rechtliche Freigabe von Support oder
 Datenschutz.
+
+## Kontrollierter Staging-Routenrollout vom 14. August 2026
+
+Die drei Root-Routen wurden ausschließlich auf `staging.shareittoo.com`
+aktiviert. Die Kandidatenkonfiguration wurde vorab im laufenden Caddy-Image
+validiert und der vorherige Web-Proxy blieb gestoppt als sofort verwendbarer
+Rückfall erhalten. Wegen der read-only Dateibindung war eine kurze Neuerstellung
+nur des Web-Proxys erforderlich; Image, Ports, Volumes und Netzwerke blieben
+identisch. API- und Datenbankcontainer wurden nicht neu erstellt.
+
+Die externe Abnahme bestand mit den verbindlichen Entwurfsgrenzen:
+
+- `/support`: HTTP 503, Seitenmarker `support`, Status `draft`;
+- `/privacy`: HTTP 503, Seitenmarker `privacy`, Status `draft`;
+- `/account-deletion`: HTTP 200, Seitenmarker `account-deletion`, Status
+  `operational`;
+- Staging- und Produktions-API gesund;
+- Produktions-Root-Routen weiterhin unverändert in der App-Shell;
+- Android Asset Links weiterhin erreichbar.
+
+Damit ist die technische Staging-Abnahme abgeschlossen. Die öffentliche
+Produktionsfreigabe bleibt getrennt gesperrt, bis Anbieteridentität,
+Supportkontakt und rechtliche Endfassung bestätigt sind. Der bereinigte
+Nachweis liegt unter
+`docs/evidence/b11/public-store-staging-routes-active-20260814.json`.

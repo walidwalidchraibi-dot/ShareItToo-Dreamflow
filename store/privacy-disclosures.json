@@ -84,7 +84,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "9b1d9c657399eef8e26ec38ddaace16d854e2b99bbf1dd9a74d7da1668d3e441"
+      "sha256": "67a5793d70383d362016b0d8049452fd589af81d39c320b914476bed644b2494"
     },
     {
       "path": "lib/screens/create_listing_screen.dart",

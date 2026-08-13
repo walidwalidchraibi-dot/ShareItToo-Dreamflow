@@ -145,24 +145,44 @@ async function inspectRoute(origin, spec) {
 async function run() {
   const args = process.argv.slice(2);
   const requireActive = args.includes('--require-active');
-  const unknown = args.filter((value) => value !== '--require-active');
+  const originIndex = args.indexOf('--origin');
+  const originValue = originIndex >= 0 ? args[originIndex + 1] : 'https://shareittoo.com';
+  if (originIndex >= 0 && !originValue) fail('--origin requires a URL.');
+  let inspectedOrigin;
+  try {
+    inspectedOrigin = new URL(originValue);
+  } catch {
+    fail('--origin must be an absolute HTTPS URL.');
+  }
+  if (inspectedOrigin.protocol !== 'https:' ||
+      !['shareittoo.com', 'staging.shareittoo.com'].includes(inspectedOrigin.hostname) ||
+      inspectedOrigin.pathname !== '/' || inspectedOrigin.search || inspectedOrigin.hash) {
+    fail('--origin must be exactly https://shareittoo.com or https://staging.shareittoo.com.');
+  }
+  const unknown = args.filter((value, index) => (
+    value !== '--require-active' && value !== '--origin' && index !== originIndex + 1
+  ));
   if (unknown.length > 0) fail(`Unknown arguments: ${unknown.join(', ')}`);
 
   const caddyfile = fs.readFileSync(caddyPath, 'utf8');
   const canonical = validateCanonicalCaddy(caddyfile);
   const results = await Promise.all(
-    routeSpecs.map((spec) => inspectRoute('https://shareittoo.com', spec)),
+    routeSpecs.map((spec) => inspectRoute(inspectedOrigin, spec)),
   );
   const deployedState = classifyPublicRouteResults(results);
+  const stagingInspection = inspectedOrigin.hostname === 'staging.shareittoo.com';
   const report = {
     schemaVersion: 1,
     kind: 'public-store-route-rollout-readiness',
     status: deployedState === 'routes-active'
-      ? 'already-active'
+      ? stagingInspection
+        ? 'staging-routes-active-production-pending'
+        : 'production-routes-active'
       : deployedState === 'deployed-config-out-of-date'
         ? 'ready-awaiting-explicit-production-route-approval'
         : 'halt-unexpected-partial-state',
     localCaddySha256: createHash('sha256').update(caddyfile).digest('hex'),
+    inspectedOrigin: inspectedOrigin.origin,
     canonical,
     deployedState,
     checks: results,
