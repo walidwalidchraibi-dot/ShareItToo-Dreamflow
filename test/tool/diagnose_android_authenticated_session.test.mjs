@@ -46,6 +46,8 @@ function fakeRunner({
   transientGuestDumps = 0,
   bytes = apkBytes,
   internetLeak = false,
+  playSplit = false,
+  playInstaller = 'com.android.vending',
 } = {}) {
   let surface = 'main';
   let launches = 0;
@@ -59,7 +61,14 @@ function fakeRunner({
     if (command.join(' ') === 'shell dumpsys window policy') {
       return locked ? 'keyguardShowing=true' : 'keyguardShowing=false';
     }
-    if (command.join(' ') === 'shell pm path com.shareittoo.app') return 'package:/data/app/base.apk';
+    if (command.join(' ') === 'shell pm path com.shareittoo.app') {
+      return playSplit
+        ? 'package:/data/app/com.shareittoo.app/base.apk\npackage:/data/app/com.shareittoo.app/split_config.de.apk'
+        : 'package:/data/app/base.apk';
+    }
+    if (command.join(' ') === 'shell pm list packages -i com.shareittoo.app') {
+      return `package:com.shareittoo.app installer=${playInstaller}`;
+    }
     if (command.join(' ') === 'exec-out cat /data/app/base.apk') return options.binary ? bytes : bytes.toString();
     if (command.join(' ') === 'shell dumpsys package com.shareittoo.app') {
       return '  versionName=1.0.0\n  versionCode=2026081018 minSdk=23 targetSdk=36';
@@ -256,5 +265,41 @@ test('rejects an installed APK that differs from the candidate', async () => {
       wait: async () => {},
     }),
     /APK does not match/,
+  );
+});
+
+test('accepts an exact-version split installation delivered by Google Play', async () => {
+  const fake = fakeRunner({ playSplit: true });
+  const evidence = await diagnoseAndroidAuthenticatedSession({
+    commandRunner: fake.runner,
+    adbPath: 'adb',
+    device,
+    deviceSummary,
+    candidate,
+    archive,
+    wait: async () => {},
+  });
+  assert.equal(evidence.installed.delivery, 'google-play-split');
+  assert.equal(evidence.installed.installerPackageName, 'com.android.vending');
+  assert.equal(evidence.installed.splitCount, 2);
+  assert.equal(evidence.installed.apkSha256, undefined);
+  assert.equal(evidence.boundaries.storeInstallationGateSatisfied, true);
+  assert.equal(evidence.boundaries.directDiagnosticOnly, false);
+  assert.equal(fake.calls.some((args) => args.includes('cat') && args.includes('/data/app/com.shareittoo.app/base.apk')), false);
+});
+
+test('rejects a split installation not delivered by Google Play', async () => {
+  const fake = fakeRunner({ playSplit: true, playInstaller: 'com.example.unknown' });
+  await assert.rejects(
+    diagnoseAndroidAuthenticatedSession({
+      commandRunner: fake.runner,
+      adbPath: 'adb',
+      device,
+      deviceSummary,
+      candidate,
+      archive,
+      wait: async () => {},
+    }),
+    /not delivered by Google Play/,
   );
 });

@@ -27,6 +27,15 @@
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
         "evidenceRef": "docs/evidence/b11/android-direct-smoke-2026081303-20260813T203829Z.json"
+      },
+      "playAuthenticatedSessionDiagnostic": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-13T22:35:18.857Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-play-authenticated-session-2026081303-20260813T223518Z.json"
       }
     },
     "ios": {
@@ -50,7 +59,7 @@
       "status": "testing",
       "tests": {
         "installAndFirstStart": "passed",
-        "authenticationAndSession": "open",
+        "authenticationAndSession": "passed",
         "listingAndBooking": "open",
         "chatAndDeepLink": "open",
         "pushForeground": "open",
@@ -61,7 +70,7 @@
         "offlineRecovery": "open",
         "largeTextAndScreenReader": "open"
       },
-      "evidenceRef": null
+      "evidenceRef": "docs/evidence/b11/android-play-authenticated-session-2026081303-20260813T223518Z.json"
     },
     {
       "id": "android-hotspot-renter",
