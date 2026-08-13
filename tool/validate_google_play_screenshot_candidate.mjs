@@ -28,13 +28,14 @@ export function validateGooglePlayScreenshotCandidate({
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'google-play-screenshot-candidate' ||
-      evidence.status !== 'validated-local-not-uploaded') fail('Screenshot candidate state is invalid.');
+      evidence.status !== 'superseded-local-not-uploaded') fail('Screenshot candidate state is invalid.');
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
       evidence.candidate?.versionName !== '1.0.0' ||
       evidence.candidate?.buildNumber !== '2026081116' ||
       evidence.candidate?.releaseChannel !== 'internal' ||
-      evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1') {
-    fail('Screenshot candidate is not bound to the exact internal build.');
+      evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1' ||
+      evidence.replacementBuildNumber !== '2026081202') {
+    fail('Screenshot candidate is not bound to the superseded and replacement builds.');
   }
   const scene = evidence.scene ?? {};
   if (!['feed', 'listing-detail', 'search', 'create-listing'].includes(scene.id) || scene.locale !== 'de-DE' ||

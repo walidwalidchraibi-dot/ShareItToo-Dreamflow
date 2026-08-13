@@ -78,10 +78,10 @@
       "website": "https://shareittoo.com/"
     },
     "storeListing": {
-      "status": "four-phone-screenshots-validated-local-and-public-pages-pending",
+      "status": "exact-current-screenshots-recapture-and-public-pages-pending",
       "copyAndGraphicsPrepared": true,
-      "phoneScreenshotsValidated": true,
-      "validatedPhoneScreenshotCount": 4,
+      "phoneScreenshotsValidated": false,
+      "validatedPhoneScreenshotCount": 0,
       "recommendedPhoneScreenshotTarget": 4,
       "uploadedToPlayConsole": false,
       "screenshotReadinessRef": "docs/evidence/b11/google-play-feed-screenshot-readiness-20260812.json"

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "google-play-screenshot-candidate",
-  "status": "validated-local-not-uploaded",
+  "status": "superseded-local-not-uploaded",
   "capturedAt": "2026-08-12T09:40:00Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -10,6 +10,7 @@
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
   },
+  "replacementBuildNumber": "2026081202",
   "scene": {
     "id": "feed",
     "locale": "de-DE",

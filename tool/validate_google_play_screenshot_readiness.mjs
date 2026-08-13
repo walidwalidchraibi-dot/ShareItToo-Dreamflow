@@ -15,15 +15,16 @@ export function validateGooglePlayScreenshotReadiness({
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   if (evidence.schemaVersion !== 1 ||
       evidence.kind !== 'google-play-feed-screenshot-readiness' ||
-      evidence.status !== 'passed-feed-clean-four-local-candidates-not-uploaded') {
-    fail('Feed screenshot readiness must preserve the verified local candidate state.');
+      evidence.status !== 'superseded-four-local-candidates-not-uploaded') {
+    fail('Feed screenshot readiness must preserve the superseded local candidate state.');
   }
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
       evidence.candidate?.versionName !== '1.0.0' ||
       evidence.candidate?.buildNumber !== '2026081116' ||
       evidence.candidate?.releaseChannel !== 'internal' ||
-      evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1') {
-    fail('Feed screenshot readiness is not bound to the exact internal candidate.');
+      evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1' ||
+      evidence.replacementBuildNumber !== '2026081202') {
+    fail('Feed screenshot readiness is not bound to the superseded and replacement builds.');
   }
   if (evidence.device?.installedCandidateVerified !== true ||
       evidence.device?.syntheticScreenshotSessionReady !== true ||
@@ -36,8 +37,8 @@ export function validateGooglePlayScreenshotReadiness({
       evidence.feedObservation?.technicalFixtureCopyVisible !== false ||
       evidence.feedObservation?.protectedActiveBookings !== 6 ||
       evidence.feedObservation?.protectedPublicListingsObserved !== 6 ||
-      evidence.feedObservation?.storeScreenshotAccepted !== true ||
-      evidence.feedObservation?.validatedLocalCandidates !== 4) {
+      evidence.feedObservation?.storeScreenshotAccepted !== false ||
+      evidence.feedObservation?.validatedLocalCandidates !== 0) {
     fail('Feed screenshot observation is incomplete or contradicts the verified cleanup.');
   }
   if (evidence.completedRemediation?.method !==

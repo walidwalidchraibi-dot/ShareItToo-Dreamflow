@@ -19,19 +19,19 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts the exact visually inspected local feed candidate', () => {
+test('accepts the superseded local feed candidate only as historical evidence', () => {
   assert.deepEqual(validateGooglePlayScreenshotCandidate({ repositoryRoot }), {
-    status: 'validated-local-not-uploaded', scene: 'feed', width: 1080, height: 1920,
+    status: 'superseded-local-not-uploaded', scene: 'feed', width: 1080, height: 1920,
   });
 });
 
-test('accepts the exact visually inspected local listing-detail candidate', () => {
+test('accepts the superseded local listing-detail candidate only as historical evidence', () => {
   assert.deepEqual(validateGooglePlayScreenshotCandidate({
     repositoryRoot,
     evidencePath: new URL(
       '../../docs/evidence/b11/google-play-screenshot-candidate-listing-detail-20260812.json', import.meta.url).pathname,
   }), {
-    status: 'validated-local-not-uploaded', scene: 'listing-detail', width: 1440, height: 1920,
+    status: 'superseded-local-not-uploaded', scene: 'listing-detail', width: 1440, height: 1920,
   });
 });
 
@@ -39,7 +39,7 @@ for (const [scene, file] of [
   ['search', 'google-play-screenshot-candidate-search-20260812.json'],
   ['create-listing', 'google-play-screenshot-candidate-create-listing-20260812.json'],
 ]) {
-  test(`accepts the exact visually inspected local ${scene} candidate`, () => {
+  test(`accepts the superseded local ${scene} candidate only as historical evidence`, () => {
     assert.equal(validateGooglePlayScreenshotCandidate({
       repositoryRoot,
       evidencePath: new URL(`../../docs/evidence/b11/${file}`, import.meta.url).pathname,
