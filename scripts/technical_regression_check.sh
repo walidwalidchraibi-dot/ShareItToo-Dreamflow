@@ -129,6 +129,9 @@ node --test test/tool/validate_public_store_backend_candidate_preflight.test.mjs
 node tool/validate_public_store_backend_candidate_preflight.mjs
 node --check tool/validate_google_play_app_content_progress.mjs
 node --test test/tool/validate_google_play_app_content_progress.test.mjs
+node --check tool/validate_google_play_data_safety_answer_matrix.mjs
+node --test test/tool/validate_google_play_data_safety_answer_matrix.test.mjs
+node tool/validate_google_play_data_safety_answer_matrix.mjs
 node --check tool/run_staging_synthetic_booking.mjs
 node --test test/tool/run_staging_synthetic_booking.test.mjs
 node --check tool/run_isolated_android_role_booking_diagnostic.mjs
