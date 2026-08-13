@@ -13,12 +13,7 @@ SET security_deposit_minor = NULL,
     );
 
 UPDATE bookings
-SET security_deposit_minor = 0,
-    payload = CASE
-      WHEN jsonb_typeof(payload->'quote') = 'object' THEN
-        jsonb_set(payload, '{quote,securityDepositMinor}', '0'::jsonb, true)
-      ELSE payload
-    END;
+SET security_deposit_minor = 0;
 
 UPDATE payments
 SET security_deposit_minor = 0;
@@ -49,13 +44,7 @@ ALTER TABLE listings
 ALTER TABLE bookings
   DROP CONSTRAINT IF EXISTS bookings_launch_no_deposit_check,
   ADD CONSTRAINT bookings_launch_no_deposit_check
-    CHECK (
-      security_deposit_minor = 0
-      AND (
-        (payload #> '{quote,securityDepositMinor}') IS NULL
-        OR payload #> '{quote,securityDepositMinor}' = '0'::jsonb
-      )
-    ) NOT VALID;
+    CHECK (security_deposit_minor = 0) NOT VALID;
 
 ALTER TABLE payments
   DROP CONSTRAINT IF EXISTS payments_launch_no_deposit_check,
