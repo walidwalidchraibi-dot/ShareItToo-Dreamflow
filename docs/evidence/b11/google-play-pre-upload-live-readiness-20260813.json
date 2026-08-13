@@ -40,6 +40,28 @@
         "store-listing"
       ]
     },
+    "privacyPolicy": {
+      "urlSaved": false,
+      "preparedUrl": "https://shareittoo.com/privacy",
+      "publicRouteReleaseReady": false
+    },
+    "dataSafety": {
+      "currentStep": 1,
+      "totalSteps": 5,
+      "draftSaved": false,
+      "preparedAnswerMatrixAvailable": true
+    },
+    "storeListing": {
+      "language": "de-DE",
+      "textFieldsPresent": true,
+      "shortDescriptionConsoleWarning": "en-dash-instead-of-em-dash",
+      "shortDescriptionLocalRemediationPrepared": true,
+      "appIconUploaded": false,
+      "featureGraphicUploaded": false,
+      "phoneScreenshotsUploaded": 0,
+      "validatedLocalPhoneScreenshots": 4,
+      "savedInThisObservation": false
+    },
     "appSigning": {
       "releasesSignedByPlay": true,
       "playAppSigningFingerprintObserved": true,

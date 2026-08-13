@@ -21,6 +21,7 @@ async function fixture() {
   const handoffPath = join(root, 'handoff.json');
   const evidencePath = join(root, 'evidence.json');
   const liveReadinessPath = join(root, 'live-readiness.json');
+  const shortDescriptionPath = join(root, 'short-description.txt');
   const artifactPath = join(
     archiveRoot,
     canonicalHandoff.artifact.archiveDirectoryName,
@@ -40,12 +41,15 @@ async function fixture() {
   await writeFile(handoffPath, JSON.stringify(handoff));
   await writeFile(evidencePath, JSON.stringify(evidence));
   await writeFile(liveReadinessPath, JSON.stringify(liveReadiness));
+  await writeFile(shortDescriptionPath,
+    'Miete und vermiete Dinge in deiner Nähe — mit Buchung, Chat und Übergabe.\n');
   return {
     root,
     archiveRoot,
     handoffPath,
     evidencePath,
     liveReadinessPath,
+    shortDescriptionPath,
     artifactPath,
     handoff,
     liveReadiness,
@@ -177,4 +181,15 @@ test('rejects tester email addresses in the live Console evidence', async (t) =>
     repositoryRoot,
     ...data,
   }), /must not contain email addresses/);
+});
+
+test('rejects the Play-warning en dash in the prepared short description', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  await writeFile(data.shortDescriptionPath,
+    'Miete und vermiete Dinge in deiner Nähe – mit Buchung, Chat und Übergabe.\n');
+  assert.throws(() => validateGooglePlayInternalHandoff({
+    repositoryRoot,
+    ...data,
+  }), /prepared Google Play short description/);
 });

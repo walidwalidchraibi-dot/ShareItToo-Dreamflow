@@ -68,6 +68,7 @@ export function validateGooglePlayInternalHandoff({
   handoffPath = resolve(repositoryRoot, 'store', 'google-play', 'internal-upload-handoff.json'),
   evidencePath = null,
   liveReadinessPath = null,
+  shortDescriptionPath = null,
 }) {
   const handoff = object(readJson(handoffPath, 'Google Play handoff'), 'handoff');
   const resolvedEvidencePath = evidencePath ?? resolve(repositoryRoot, handoff.evidenceRef ?? '');
@@ -253,6 +254,55 @@ export function validateGooglePlayInternalHandoff({
     ['privacy-policy', 'data-safety', 'store-listing'].sort().join(','),
     'pre-upload live readiness.googlePlayConsole.appContent.openTasks',
   );
+  const privacyPolicy = object(consoleState.privacyPolicy,
+    'pre-upload live readiness.googlePlayConsole.privacyPolicy');
+  const expectedPrivacyPolicy = {
+    urlSaved: false,
+    preparedUrl: 'https://shareittoo.com/privacy',
+    publicRouteReleaseReady: false,
+  };
+  for (const [key, value] of Object.entries(expectedPrivacyPolicy)) {
+    same(privacyPolicy[key], value, `pre-upload live readiness.googlePlayConsole.privacyPolicy.${key}`);
+  }
+  const dataSafety = object(consoleState.dataSafety,
+    'pre-upload live readiness.googlePlayConsole.dataSafety');
+  const expectedDataSafety = {
+    currentStep: 1,
+    totalSteps: 5,
+    draftSaved: false,
+    preparedAnswerMatrixAvailable: true,
+  };
+  for (const [key, value] of Object.entries(expectedDataSafety)) {
+    same(dataSafety[key], value, `pre-upload live readiness.googlePlayConsole.dataSafety.${key}`);
+  }
+  const listing = object(consoleState.storeListing,
+    'pre-upload live readiness.googlePlayConsole.storeListing');
+  const expectedListing = {
+    language: 'de-DE',
+    textFieldsPresent: true,
+    shortDescriptionConsoleWarning: 'en-dash-instead-of-em-dash',
+    shortDescriptionLocalRemediationPrepared: true,
+    appIconUploaded: false,
+    featureGraphicUploaded: false,
+    phoneScreenshotsUploaded: 0,
+    validatedLocalPhoneScreenshots: 4,
+    savedInThisObservation: false,
+  };
+  for (const [key, value] of Object.entries(expectedListing)) {
+    same(listing[key], value, `pre-upload live readiness.googlePlayConsole.storeListing.${key}`);
+  }
+  const shortDescription = readFileSync(
+    shortDescriptionPath ?? resolve(repositoryRoot, 'store/google-play/de-DE/short_description.txt'),
+    'utf8',
+  ).trim();
+  same(
+    shortDescription,
+    'Miete und vermiete Dinge in deiner Nähe — mit Buchung, Chat und Übergabe.',
+    'prepared Google Play short description',
+  );
+  if (shortDescription.includes('–') || shortDescription.includes('--')) {
+    fail('The prepared Google Play short description must use an em dash.');
+  }
   const signing = object(consoleState.appSigning,
     'pre-upload live readiness.googlePlayConsole.appSigning');
   const expectedSigning = {
