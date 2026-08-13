@@ -219,3 +219,15 @@ Produktionsfreigabe bleibt getrennt gesperrt, bis Anbieteridentität,
 Supportkontakt und rechtliche Endfassung bestätigt sind. Der bereinigte
 Nachweis liegt unter
 `docs/evidence/b11/public-store-staging-routes-active-20260814.json`.
+
+## Staging-Backend-Fix vom 14. August 2026
+
+Der CI-grüne Backend-Fix
+`32a2dfb9a570fd7a64128bc6ce0ae0faf4f73f88` wurde ausschließlich auf
+Staging ausgerollt. Die öffentliche Kontolöschseite teilt sich seitdem nicht
+mehr den strengen Lösch-Aktionsbegrenzer mit tatsächlichen Löschanfragen.
+Fünf aufeinanderfolgende Seitenaufrufe lieferten jeweils HTTP 200; Support
+und Datenschutz blieben korrekt als nicht veröffentlichungsfähige Entwürfe
+bei HTTP 503. FCM, Datenbank und API-Health blieben grün, und der
+Produktionscontainer blieb unverändert. Der bereinigte Nachweis liegt unter
+`docs/evidence/b11/public-store-staging-backend-fix-20260814.json`.
