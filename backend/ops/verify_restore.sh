@@ -54,12 +54,18 @@ docker run -d --name "$task_container" \
   "$task_postgres_image" >/dev/null
 
 for _ in $(seq 1 60); do
-  if docker exec "$task_container" pg_isready -U shareittoo_restore -d shareittoo_restore >/dev/null 2>&1; then
+  # The official Postgres image briefly starts an initialization server on its
+  # Unix socket and then shuts it down before starting the final server.  A
+  # socket-only readiness probe can therefore succeed too early.  TCP is only
+  # available from the final server and is the stable restore target.
+  if docker exec "$task_container" pg_isready -h 127.0.0.1 \
+      -U shareittoo_restore -d shareittoo_restore >/dev/null 2>&1; then
     break
   fi
   sleep 1
 done
-if ! docker exec "$task_container" pg_isready -U shareittoo_restore -d shareittoo_restore >/dev/null 2>&1; then
+if ! docker exec "$task_container" pg_isready -h 127.0.0.1 \
+    -U shareittoo_restore -d shareittoo_restore >/dev/null 2>&1; then
   echo "Isolated restore database did not become ready." >&2
   exit 1
 fi

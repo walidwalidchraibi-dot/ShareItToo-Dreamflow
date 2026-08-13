@@ -43,7 +43,11 @@ node tool/validate_privacy_disclosures.mjs
 
 node --check tool/validate_retention_deletion_readiness.mjs
 node --test test/tool/validate_retention_deletion_readiness.test.mjs
+node --test test/tool/verify_restore_readiness_wiring.test.mjs
 node tool/validate_retention_deletion_readiness.mjs
+node --check tool/validate_production_restore_readiness.mjs
+node --test test/tool/validate_production_restore_readiness.test.mjs
+node tool/validate_production_restore_readiness.mjs
 
 node --check tool/diagnose_store_review_accounts.mjs
 node --test test/tool/diagnose_store_review_accounts.test.mjs
