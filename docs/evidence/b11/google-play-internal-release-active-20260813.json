@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kind": "google-play-internal-release-active",
+  "capturedAt": "2026-08-13T18:42:00Z",
+  "status": "available-to-internal-testers",
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081302",
+    "commit": "530ed17e46dbd82916eef0d59f1b07e448c737f8",
+    "aabSha256": "e9c2927b1ab57d82c15a9d5525c4b9ed8386b2b27be24dd067ed8794b0a6fa97",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
+  },
+  "release": {
+    "track": "internal",
+    "name": "1.0.0-internal-2026081302",
+    "versionCodeObserved": "2026081302",
+    "versionNameObserved": "1.0.0",
+    "minimumApiObserved": 24,
+    "targetSdkObserved": 35,
+    "newInstallSizeMbObserved": 59.2,
+    "statusObserved": "available-to-internal-testers",
+    "reviewStatusObserved": "not-reviewed",
+    "temporaryAppNameObserved": true
+  },
+  "validation": {
+    "uploadAcceptedByGooglePlay": true,
+    "retraceMappingAttached": true,
+    "nativeDebugSymbolsAttached": true,
+    "errorCount": 0,
+    "warningCountBeforeTesterSelection": 1,
+    "warningCause": "no-testers-selected",
+    "readyToReleaseAfterTesterSelection": true
+  },
+  "testers": {
+    "emailListCreated": true,
+    "selectedListCount": 1,
+    "selectedUserCount": 1,
+    "joinLinkAvailable": true,
+    "containsTesterAddress": false
+  },
+  "postReleaseChecks": {
+    "playStoreOptInCompleted": false,
+    "playStoreInstallCompleted": false,
+    "installedVersionVerified": false,
+    "crashlyticsCandidateAssignmentVerified": false
+  },
+  "boundaries": {
+    "internalReleaseActivated": true,
+    "closedTestingStarted": false,
+    "openTestingStarted": false,
+    "productionChanged": false,
+    "publicRolloutStarted": false,
+    "sentForProductionReview": false,
+    "containsSecrets": false,
+    "containsEmailAddresses": false,
+    "containsAccountIdentifiers": false
+  }
+}

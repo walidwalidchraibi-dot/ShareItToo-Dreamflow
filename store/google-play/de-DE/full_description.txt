@@ -9,7 +9,7 @@ Buchungen gemeinsam abwickeln
 • Sende und verwalte Buchungsanfragen mit einem klaren Status.
 • Stimme Details im Buchungs-Chat direkt mit der anderen Person ab.
 • Nutze geführte Schritte und QR-Codes für Übergabe und Rückgabe.
-• Dokumentiere bei Bedarf den Zustand mit Bildern oder Dateien.
+• Dokumentiere bei Bedarf den Zustand mit Bildern.
 
 Vertrauen und Kontrolle
 • Bewerte abgeschlossene Buchungen.

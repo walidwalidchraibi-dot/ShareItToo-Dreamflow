@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "google-play-app-content-progress",
   "capturedAt": "2026-08-13T08:30:00Z",
-  "status": "nine-of-twelve-saved-three-open",
+  "status": "ten-of-twelve-saved-two-open",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
@@ -12,8 +12,8 @@
   },
   "counts": {
     "totalTasks": 12,
-    "savedTasks": 9,
-    "openTasks": 3
+    "savedTasks": 10,
+    "openTasks": 2
   },
   "savedTasks": [
     "appAccess",
@@ -24,18 +24,24 @@
     "health",
     "categoryAndContact",
     "advertisingId",
-    "contentRating"
+    "contentRating",
+    "storeListing"
   ],
   "openTasks": {
     "privacyPolicy": "public-privacy-page-not-release-ready",
-    "dataSafety": "all-data-type-answers-prepared-provider-roles-technically-classified-contract-retention-public-route-and-legal-pending",
-    "storeListing": "exact-candidate-local-screenshots-validated-upload-and-public-pages-pending"
+    "dataSafety": "all-data-type-answers-prepared-provider-roles-technically-classified-contract-retention-public-route-and-legal-pending"
   },
   "storeDraft": {
     "germanCopySaved": true,
     "phoneScreenshotsValidatedLocal": 4,
-    "phoneScreenshotsUploaded": false,
-    "appBundleUploaded": false
+    "phoneScreenshotsUploaded": true,
+    "appIconUploaded": true,
+    "featureGraphicUploaded": true,
+    "storeListingTaskCompleted": true,
+    "consoleSaveEvidenceRef": "docs/evidence/b11/google-play-store-listing-saved-20260813.json",
+    "appBundleUploaded": true,
+    "internalReleaseActive": true,
+    "internalReleaseEvidenceRef": "docs/evidence/b11/google-play-internal-release-active-20260813.json"
   },
   "dataSafetyDraft": {
     "collectsOrSharesRequiredData": true,
@@ -80,6 +86,8 @@
     "containsSecrets": false,
     "containsEmailAddresses": false,
     "containsAccountIdentifiers": false,
-    "containsReviewCredentials": false
+    "containsReviewCredentials": false,
+    "storeListingChanged": true,
+    "storeListingAssetsUploaded": true
   }
 }

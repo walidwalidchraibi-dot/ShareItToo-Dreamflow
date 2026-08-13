@@ -881,7 +881,9 @@ void main(List<String> arguments) {
           requireSubmittable)) {
     _fail('Candidate rollover is restricted to a fail-closed Store draft.');
   }
-  if ((!handoffSuperseded &&
+  final handoffInternalActive = googleInternalUploadHandoff['status'] ==
+      'internal-release-active-store-install-pending';
+  if ((!handoffSuperseded && !handoffInternalActive &&
           googleInternalUploadHandoff['status'] !=
               'verified-artifact-ready-immediate-reverification-pending') ||
       googleInternalUploadHandoff['submissionAllowed'] != false ||
@@ -900,7 +902,8 @@ void main(List<String> arguments) {
       handoffPreUploadGates['usExportLawsDeclaration'] !=
           'accepted-with-owner-approval' ||
       handoffPreUploadGates['playAppRecordCreated'] != true ||
-      handoffPreUploadGates['immediateArtifactReverification'] != false) {
+      handoffPreUploadGates['immediateArtifactReverification'] !=
+          handoffInternalActive) {
     _fail(
         'Google Play internal upload handoff must remain bound and fail-closed.');
   }

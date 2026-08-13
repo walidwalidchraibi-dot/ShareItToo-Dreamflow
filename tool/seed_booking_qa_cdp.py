@@ -25,6 +25,7 @@ import datetime as dt
 import json
 import os
 import pathlib
+import secrets
 import socket
 import struct
 import sys
@@ -185,7 +186,14 @@ def iso(days_offset: int, hour: int = 10, minute: int = 0) -> str:
     return (base + dt.timedelta(days=days_offset)).isoformat().replace('+00:00', 'Z')
 
 
-def build_payload(session_persona: str | None = None) -> dict[str, str | None]:
+def build_payload(
+    session_persona: str | None = None,
+    qa_passwords: dict[str, str] | None = None,
+) -> dict[str, str | None]:
+    qa_passwords = qa_passwords or {
+        'walid': secrets.token_urlsafe(24),
+        'laura': secrets.token_urlsafe(24),
+    }
     walid = {
         'id': 'qa-user-walid',
         'displayName': 'Walid',
@@ -724,13 +732,13 @@ def build_payload(session_persona: str | None = None) -> dict[str, str | None]:
     auth_accounts = [
         {
             'email': 'walid.qa@shareittoo.local',
-            'password': 'walid123',
+            'password': qa_passwords['walid'],
             'createdAt': iso(-1, 8, 0),
             'qaPersona': 'walid',
         },
         {
             'email': 'laura.qa@shareittoo.local',
-            'password': 'laura123',
+            'password': qa_passwords['laura'],
             'createdAt': iso(-1, 8, 5),
             'qaPersona': 'laura',
         },
@@ -845,7 +853,14 @@ def main() -> int:
         path.write_text(json.dumps(backup, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
         print(f'Backup written: {path}')
 
-        payload = build_payload(session_persona=args.session)
+        qa_passwords = {
+            'walid': secrets.token_urlsafe(24),
+            'laura': secrets.token_urlsafe(24),
+        }
+        payload = build_payload(
+            session_persona=args.session,
+            qa_passwords=qa_passwords,
+        )
         summary = {k: ('REMOVE' if v is None else len(v)) for k, v in payload.items()}
         print('Planned payload bytes by key:')
         for k, size in summary.items():
@@ -857,6 +872,9 @@ def main() -> int:
 
         write_raw = page.evaluate_json(build_write_expr(payload, reload=not args.no_reload))
         print('Write result:', write_raw)
+        print('Ephemeral local QA credentials for this seed run:')
+        print(f"  - Walid: walid.qa@shareittoo.local / {qa_passwords['walid']}")
+        print(f"  - Laura: laura.qa@shareittoo.local / {qa_passwords['laura']}")
     finally:
         page.close()
 

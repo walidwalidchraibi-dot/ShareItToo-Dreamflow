@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "nine-of-twelve-saved-three-open",
+  "status": "ten-of-twelve-saved-two-open",
   "submissionAllowed": false,
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -84,13 +84,14 @@
       "website": "https://shareittoo.com/"
     },
     "storeListing": {
-      "status": "current-candidate-screenshots-validated-local-not-uploaded",
+      "status": "saved-in-console-exact-candidate-copy-and-assets",
       "copyAndGraphicsPrepared": true,
       "phoneScreenshotsValidated": true,
       "validatedPhoneScreenshotCount": 4,
       "recommendedPhoneScreenshotTarget": 4,
-      "uploadedToPlayConsole": false,
-      "screenshotReadinessRef": "docs/evidence/b11/google-play-feed-screenshot-readiness-20260813.json"
+      "uploadedToPlayConsole": true,
+      "screenshotReadinessRef": "docs/evidence/b11/google-play-feed-screenshot-readiness-20260813.json",
+      "consoleSaveEvidenceRef": "docs/evidence/b11/google-play-store-listing-saved-20260813.json"
     }
   },
   "hardStops": {
@@ -112,7 +113,8 @@
     "docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json",
     "docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json",
     "docs/evidence/b11/google-play-advertising-id-declaration-20260812.json",
-    "docs/evidence/b11/google-play-iarc-content-rating-completion-20260813.json"
+    "docs/evidence/b11/google-play-iarc-content-rating-completion-20260813.json",
+    "docs/evidence/b11/google-play-store-listing-saved-20260813.json"
   ],
   "containsSecrets": false,
   "containsAccountAddresses": false,

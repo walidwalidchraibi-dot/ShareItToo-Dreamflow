@@ -147,7 +147,7 @@ Englischer Review-Text ist im Abschnitt „App-Zugriff für Google Review“ von
 
 ### 5.4 Nutzerinhalte und Kommunikation
 
-- Nutzerinhalte: **Ja** – Inserate, Bilder, Dateien, Chats, Bewertungen und
+- Nutzerinhalte: **Ja** – Inserate, Bilder, Chats, Bewertungen und
   Meldungen.
 - Direkte Kommunikation: **Ja** – private Buchungs-Chats.
 - Melden und Blockieren sind im Kandidaten vorhanden und technisch geprüft.

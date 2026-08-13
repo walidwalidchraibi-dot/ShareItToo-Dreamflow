@@ -19,10 +19,10 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts nine saved and three fail-closed Play work areas', () => {
+test('accepts ten saved and two fail-closed Play work areas', () => {
   assert.deepEqual(validateGooglePlayAppContentProgress({ repositoryRoot }), {
-    status: 'nine-of-twelve-saved-three-open', totalTasks: 12,
-    savedTasks: 9, openTasks: 3,
+    status: 'ten-of-twelve-saved-two-open', totalTasks: 12,
+    savedTasks: 10, openTasks: 2,
   });
 });
 
@@ -71,13 +71,13 @@ test('rejects claiming OAuth account creation before provider activation', async
     /data-safety partial draft/);
 });
 
-test('rejects claiming an AAB upload', async (t) => {
-  const data = await fixture((evidence) => { evidence.storeDraft.appBundleUploaded = true; });
+test('rejects losing the accepted AAB upload', async (t) => {
+  const data = await fixture((evidence) => { evidence.storeDraft.appBundleUploaded = false; });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }), /draft state/);
 });
 
-test('rejects claiming replacement screenshots before recapture', async (t) => {
+test('rejects losing the validated screenshots', async (t) => {
   const data = await fixture((evidence) => {
     evidence.storeDraft.phoneScreenshotsValidatedLocal = 0;
   });

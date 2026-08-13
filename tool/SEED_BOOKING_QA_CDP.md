@@ -25,5 +25,6 @@ That leaves the app in guest state so login can be tested normally.
 
 ## QA credentials
 
-- Walid: `walid.qa@shareittoo.local` / `walid123`
-- Laura: `laura.qa@shareittoo.local` / `laura123`
+The two local QA passwords are generated randomly for every `--apply` run and
+printed once after the seed is written. They are never committed. Use the
+displayed credentials for the current seed run; reseeding replaces them.

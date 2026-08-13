@@ -13,7 +13,7 @@ export function validateGooglePlayAppContentProgress({
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'google-play-app-content-progress' ||
-      evidence.status !== 'nine-of-twelve-saved-three-open') {
+      evidence.status !== 'ten-of-twelve-saved-two-open') {
     fail('Play app-content progress state is invalid.');
   }
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
@@ -23,21 +23,29 @@ export function validateGooglePlayAppContentProgress({
       evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1') {
     fail('Play app-content progress is not bound to the internal candidate.');
   }
-  if (evidence.counts?.totalTasks !== 12 || evidence.counts?.savedTasks !== 9 ||
-      evidence.counts?.openTasks !== 3 || !Array.isArray(evidence.savedTasks) ||
+  if (evidence.counts?.totalTasks !== 12 || evidence.counts?.savedTasks !== 10 ||
+      evidence.counts?.openTasks !== 2 || !Array.isArray(evidence.savedTasks) ||
       evidence.savedTasks.join(',') !==
-        'appAccess,ads,targetAudience,governmentApps,financialFeatures,health,categoryAndContact,advertisingId,contentRating') {
+        'appAccess,ads,targetAudience,governmentApps,financialFeatures,health,categoryAndContact,advertisingId,contentRating,storeListing') {
     fail('Play app-content task counts or saved tasks are incomplete.');
   }
-  const expectedOpen = ['privacyPolicy', 'dataSafety', 'storeListing'];
+  const expectedOpen = ['privacyPolicy', 'dataSafety'];
   if (Object.keys(evidence.openTasks ?? {}).join(',') !== expectedOpen.join(',') ||
       Object.values(evidence.openTasks).some((value) => typeof value !== 'string' || !value.includes('pending') && !value.includes('not-release-ready'))) {
     fail('Play app-content open tasks are not fail-closed.');
   }
   if (evidence.storeDraft?.germanCopySaved !== true ||
       evidence.storeDraft?.phoneScreenshotsValidatedLocal !== 4 ||
-      evidence.storeDraft?.phoneScreenshotsUploaded !== false ||
-      evidence.storeDraft?.appBundleUploaded !== false) {
+      evidence.storeDraft?.phoneScreenshotsUploaded !== true ||
+      evidence.storeDraft?.appIconUploaded !== true ||
+      evidence.storeDraft?.featureGraphicUploaded !== true ||
+      evidence.storeDraft?.storeListingTaskCompleted !== true ||
+      evidence.storeDraft?.consoleSaveEvidenceRef !==
+        'docs/evidence/b11/google-play-store-listing-saved-20260813.json' ||
+      evidence.storeDraft?.appBundleUploaded !== true ||
+      evidence.storeDraft?.internalReleaseActive !== true ||
+      evidence.storeDraft?.internalReleaseEvidenceRef !==
+        'docs/evidence/b11/google-play-internal-release-active-20260813.json') {
     fail('Play store draft state is invalid.');
   }
   const dataSafety = evidence.dataSafetyDraft ?? {};
@@ -61,7 +69,12 @@ export function validateGooglePlayAppContentProgress({
     fail('Play data-safety partial draft state is invalid.');
   }
   const boundaries = evidence.boundaries ?? {};
-  if (Object.keys(boundaries).length !== 9 || Object.values(boundaries).some((value) => value !== false) ||
+  if (Object.keys(boundaries).length !== 11 ||
+      boundaries.storeListingChanged !== true ||
+      boundaries.storeListingAssetsUploaded !== true ||
+      Object.entries(boundaries).some(([key, value]) =>
+        ['storeListingChanged', 'storeListingAssetsUploaded'].includes(key) ?
+          value !== true : value !== false) ||
       JSON.stringify(evidence).includes('@')) {
     fail('Play app-content progress boundaries are unsafe or unsanitized.');
   }
@@ -153,6 +166,33 @@ export function validateGooglePlayAppContentProgress({
       contentRating.evidenceRef !==
         'docs/evidence/b11/google-play-iarc-content-rating-completion-20260813.json') {
     fail('Play IARC content-rating completion state is invalid.');
+  }
+  const listingEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
+    evidence.storeDraft.consoleSaveEvidenceRef), 'utf8'));
+  if (listingEvidence.kind !== 'google-play-store-listing-saved' ||
+      listingEvidence.status !== 'saved-console-task-completed' ||
+      listingEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
+      listingEvidence.observedConsoleState?.storeListingTaskCompleted !== true ||
+      listingEvidence.observedConsoleState?.dashboardCompletedTasks !== 9 ||
+      listingEvidence.observedConsoleState?.dashboardTotalTasks !== 11 ||
+      listingEvidence.copy?.mentionsFreeDocuments !== false ||
+      listingEvidence.copy?.mentionsDepositOrProtection !== false ||
+      listingEvidence.assets?.phoneScreenshots?.uploadedCount !== 4 ||
+      listingEvidence.boundaries?.sentForReview !== false ||
+      JSON.stringify(listingEvidence).includes('@')) {
+    fail('Play store-listing save evidence is invalid or unsafe.');
+  }
+  const internalReleaseEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
+    evidence.storeDraft.internalReleaseEvidenceRef), 'utf8'));
+  if (internalReleaseEvidence.kind !== 'google-play-internal-release-active' ||
+      internalReleaseEvidence.status !== 'available-to-internal-testers' ||
+      internalReleaseEvidence.candidate?.buildNumber !== evidence.candidate.buildNumber ||
+      internalReleaseEvidence.release?.track !== 'internal' ||
+      internalReleaseEvidence.release?.statusObserved !== 'available-to-internal-testers' ||
+      internalReleaseEvidence.validation?.errorCount !== 0 ||
+      internalReleaseEvidence.boundaries?.productionChanged !== false ||
+      JSON.stringify(internalReleaseEvidence).includes('@')) {
+    fail('Play internal-release evidence is invalid or unsafe.');
   }
   const iarcEvidence = JSON.parse(readFileSync(resolve(repositoryRoot,
     contentRating.evidenceRef), 'utf8'));

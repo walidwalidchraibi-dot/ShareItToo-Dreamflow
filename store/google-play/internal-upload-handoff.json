@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "verified-artifact-ready-immediate-reverification-pending",
+  "status": "internal-release-active-store-install-pending",
   "submissionAllowed": false,
   "track": "internal",
   "candidate": {
@@ -22,8 +22,8 @@
     "name": "1.0.0-internal-2026081302",
     "notesPath": "store/google-play/de-DE/internal_release_notes.txt",
     "language": "de-DE",
-    "saveOnly": true,
-    "rolloutAllowed": false
+    "saveOnly": false,
+    "rolloutAllowed": true
   },
   "preUploadGates": {
     "personalIdentityVerification": "verified",
@@ -33,12 +33,12 @@
     "playAppSigningTerms": "accepted-with-owner-approval",
     "usExportLawsDeclaration": "accepted-with-owner-approval",
     "playAppRecordCreated": true,
-    "immediateArtifactReverification": false
+    "immediateArtifactReverification": true
   },
   "postUploadChecks": {
-    "uploadedArtifactHashRecorded": "pending",
+    "uploadedArtifactHashRecorded": "passed-exact-bound-candidate",
     "playAppSigningFingerprintRecorded": "passed-pre-upload-console",
-    "uploadWarningsReviewed": "pending",
+    "uploadWarningsReviewed": "passed-only-missing-testers-warning-resolved",
     "crashlyticsCandidateAssignmentVerified": "pending",
     "internalStoreInstallCompleted": "pending"
   },
@@ -52,6 +52,7 @@
     "credentialsInRepository": true
   },
   "preUploadLiveReadinessEvidenceRef": "docs/evidence/b11/google-play-pre-upload-live-readiness-20260813.json",
+  "internalReleaseEvidenceRef": "docs/evidence/b11/google-play-internal-release-active-20260813.json",
   "evidenceRef": "docs/evidence/b11/android-candidate-2026081302.json",
   "containsSecrets": false,
   "containsReviewCredentials": false

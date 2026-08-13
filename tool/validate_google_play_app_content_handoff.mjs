@@ -34,7 +34,7 @@ export function validateGooglePlayAppContentHandoff({
   );
   const currentCandidate = object(deviceValidation.candidate, 'device validation candidate');
   if (handoff.schemaVersion !== 1 ||
-      handoff.status !== 'nine-of-twelve-saved-three-open' ||
+      handoff.status !== 'ten-of-twelve-saved-two-open' ||
       handoff.submissionAllowed !== false) {
     fail('App-content handoff must remain prepared and fail-closed.');
   }
@@ -123,11 +123,13 @@ export function validateGooglePlayAppContentHandoff({
       tasks.storeListing.phoneScreenshotsValidated !== true ||
       tasks.storeListing.validatedPhoneScreenshotCount !== 4 ||
       tasks.storeListing.recommendedPhoneScreenshotTarget !== 4 ||
-      tasks.storeListing.uploadedToPlayConsole !== false ||
+      tasks.storeListing.uploadedToPlayConsole !== true ||
       tasks.storeListing.status !==
-        'current-candidate-screenshots-validated-local-not-uploaded' ||
+        'saved-in-console-exact-candidate-copy-and-assets' ||
       tasks.storeListing.screenshotReadinessRef !==
-        'docs/evidence/b11/google-play-feed-screenshot-readiness-20260813.json') {
+        'docs/evidence/b11/google-play-feed-screenshot-readiness-20260813.json' ||
+      tasks.storeListing.consoleSaveEvidenceRef !==
+        'docs/evidence/b11/google-play-store-listing-saved-20260813.json') {
     fail('One or more prepared Play answers no longer match the bounded product truth.');
   }
 
@@ -138,7 +140,7 @@ export function validateGooglePlayAppContentHandoff({
   if (Object.keys(hardStops).length !== 7) {
     fail('App-content handoff must preserve all seven hard stops.');
   }
-  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 10 ||
+  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 11 ||
       handoff.evidenceRefs.some((ref) => typeof ref !== 'string' ||
         ref.includes('..') || !resolve(repositoryRoot, ref).startsWith(`${resolve(repositoryRoot)}/`))) {
     fail('App-content evidence references are invalid.');

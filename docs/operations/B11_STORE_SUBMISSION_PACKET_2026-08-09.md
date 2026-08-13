@@ -87,7 +87,7 @@ Text liegt unter der Grenze von 80 Zeichen.
 > • Sende und verwalte Buchungsanfragen mit einem klaren Status.
 > • Stimme Details im Buchungs-Chat direkt mit der anderen Person ab.
 > • Nutze geführte Schritte und QR-Codes für Übergabe und Rückgabe.
-> • Dokumentiere bei Bedarf den Zustand mit Bildern oder Dateien.
+> • Dokumentiere bei Bedarf den Zustand mit Bildern.
 >
 > Vertrauen und Kontrolle
 > • Bewerte abgeschlossene Buchungen.
@@ -251,10 +251,10 @@ Abonnements, Credits, virtuellen Güter oder werbefreien Premiumstufen.
 | Kostenloser Download | ja | Geschäftsentscheidung bestätigen |
 | Anzeigen | nein | Abhängigkeiten erneut scannen |
 | Zielgruppe Kinder | nein | nur Altersgruppen ab 18 auswählen |
-| Nutzerinhalte | ja: Inserate, Bilder, Nachrichten, Dateien, Bewertungen | Meldung/Blockierung/Moderation auf Store-Build testen |
+| Nutzerinhalte | ja: Inserate, Bilder, Nachrichten und Bewertungen | Meldung/Blockierung/Moderation auf Store-Build testen |
 | Kommunikation | private Chats zwischen Buchungsparteien und Support | Review-Konto vorbereiten |
 | Standort | grob und präzise, nur funktionsbezogen/optional je Flow | Laufzeitdialoge und Datenschutzerklärung abgleichen |
-| Kamera/Fotos/Dateien | nur nutzerinitiierte Medien- und QR-Flows | Ablehnung der Berechtigung testen |
+| Kamera/Fotos | nur nutzerinitiierte Bild- und QR-Flows | Ablehnung der Berechtigung testen |
 | Benachrichtigungen | Buchung, Chat, Übergabe, Zahlung, Support | FCM/APNs real testen |
 | Kontenerstellung | ja | Löschung in App und öffentliche Löschseite nachweisen |
 | Inhaltsbewertung | nicht vorwegnehmen | Google-IARC- und Apple-Fragebogen wahrheitsgemäß ausfüllen |

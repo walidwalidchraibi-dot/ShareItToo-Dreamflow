@@ -68,6 +68,7 @@ export function validateGooglePlayInternalHandoff({
   handoffPath = resolve(repositoryRoot, 'store', 'google-play', 'internal-upload-handoff.json'),
   evidencePath = null,
   liveReadinessPath = null,
+  internalReleasePath = null,
   shortDescriptionPath = null,
   allowMissingPrivateArtifact = false,
 }) {
@@ -82,7 +83,9 @@ export function validateGooglePlayInternalHandoff({
     'superseded-product-truth-failed-replacement-pending',
   ]);
   const superseded = supersededStatuses.has(handoff.status);
-  if (!superseded && handoff.status !== 'verified-artifact-ready-immediate-reverification-pending') {
+  const internalActive = handoff.status === 'internal-release-active-store-install-pending';
+  if (!superseded && !internalActive &&
+      handoff.status !== 'verified-artifact-ready-immediate-reverification-pending') {
     fail('status must describe either the verified artifact or its fail-closed supersession.');
   }
   same(handoff.submissionAllowed, false, 'submissionAllowed');
@@ -146,8 +149,8 @@ export function validateGooglePlayInternalHandoff({
   same(releaseDraft.notesPath, 'store/google-play/de-DE/internal_release_notes.txt',
     'releaseDraft.notesPath');
   same(releaseDraft.language, 'de-DE', 'releaseDraft.language');
-  same(releaseDraft.saveOnly, true, 'releaseDraft.saveOnly');
-  same(releaseDraft.rolloutAllowed, false, 'releaseDraft.rolloutAllowed');
+  same(releaseDraft.saveOnly, !internalActive, 'releaseDraft.saveOnly');
+  same(releaseDraft.rolloutAllowed, internalActive, 'releaseDraft.rolloutAllowed');
   const notesPath = resolve(repositoryRoot, releaseDraft.notesPath);
   if (!notesPath.startsWith(`${realpathSync(repositoryRoot)}/`)) {
     fail('Release notes left the repository.');
@@ -168,18 +171,60 @@ export function validateGooglePlayInternalHandoff({
   same(preUpload.usExportLawsDeclaration, 'accepted-with-owner-approval',
     'usExportLawsDeclaration');
   same(preUpload.playAppRecordCreated, true, 'playAppRecordCreated');
-  same(preUpload.immediateArtifactReverification, false, 'immediateArtifactReverification');
+  same(preUpload.immediateArtifactReverification, internalActive,
+    'immediateArtifactReverification');
 
   const expectedPostUploadChecks = {
-    uploadedArtifactHashRecorded: 'pending',
+    uploadedArtifactHashRecorded: internalActive ?
+      'passed-exact-bound-candidate' : 'pending',
     playAppSigningFingerprintRecorded: 'passed-pre-upload-console',
-    uploadWarningsReviewed: 'pending',
+    uploadWarningsReviewed: internalActive ?
+      'passed-only-missing-testers-warning-resolved' : 'pending',
     crashlyticsCandidateAssignmentVerified: 'pending',
     internalStoreInstallCompleted: 'pending',
   };
   const postUploadChecks = object(handoff.postUploadChecks, 'postUploadChecks');
   for (const [key, value] of Object.entries(expectedPostUploadChecks)) {
     same(postUploadChecks[key], value, `postUploadChecks.${key}`);
+  }
+  if (internalActive) {
+    if (!internalReleasePath) {
+      same(handoff.internalReleaseEvidenceRef,
+        'docs/evidence/b11/google-play-internal-release-active-20260813.json',
+        'internalReleaseEvidenceRef');
+    }
+    const internalEvidence = object(readJson(
+      internalReleasePath ?? resolve(repositoryRoot, handoff.internalReleaseEvidenceRef),
+      'internal release evidence'), 'internal release evidence');
+    assertNoCredentials(internalEvidence, 'internal release evidence');
+    same(internalEvidence.kind, 'google-play-internal-release-active',
+      'internal release evidence.kind');
+    same(internalEvidence.status, 'available-to-internal-testers',
+      'internal release evidence.status');
+    same(internalEvidence.candidate?.buildNumber, candidate.buildNumber,
+      'internal release evidence.candidate.buildNumber');
+    same(internalEvidence.candidate?.aabSha256, candidate.aabSha256,
+      'internal release evidence.candidate.aabSha256');
+    same(internalEvidence.release?.track, 'internal',
+      'internal release evidence.release.track');
+    same(internalEvidence.release?.statusObserved, 'available-to-internal-testers',
+      'internal release evidence.release.statusObserved');
+    same(internalEvidence.validation?.errorCount, 0,
+      'internal release evidence.validation.errorCount');
+    same(internalEvidence.testers?.emailListCreated, true,
+      'internal release evidence.testers.emailListCreated');
+    same(internalEvidence.testers?.joinLinkAvailable, true,
+      'internal release evidence.testers.joinLinkAvailable');
+    same(internalEvidence.boundaries?.internalReleaseActivated, true,
+      'internal release evidence.boundaries.internalReleaseActivated');
+    for (const key of [
+      'closedTestingStarted', 'openTestingStarted', 'productionChanged',
+      'publicRolloutStarted', 'sentForProductionReview', 'containsSecrets',
+      'containsEmailAddresses', 'containsAccountIdentifiers',
+    ]) {
+      same(internalEvidence.boundaries?.[key], false,
+        `internal release evidence.boundaries.${key}`);
+    }
   }
   const hardStops = object(handoff.hardStops, 'hardStops');
   for (const key of expectedHardStops) same(hardStops[key], true, `hardStops.${key}`);

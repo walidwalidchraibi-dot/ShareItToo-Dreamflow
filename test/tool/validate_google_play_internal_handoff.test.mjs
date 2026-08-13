@@ -14,6 +14,9 @@ const canonicalEvidence = JSON.parse(await readFile(
 const canonicalLiveReadiness = JSON.parse(await readFile(
   new URL('../../docs/evidence/b11/google-play-pre-upload-live-readiness-20260813.json', import.meta.url),
   'utf8'));
+const canonicalInternalRelease = JSON.parse(await readFile(
+  new URL('../../docs/evidence/b11/google-play-internal-release-active-20260813.json', import.meta.url),
+  'utf8'));
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'sit-play-handoff-'));
@@ -22,6 +25,7 @@ async function fixture() {
   const evidencePath = join(root, 'evidence.json');
   const liveReadinessPath = join(root, 'live-readiness.json');
   const shortDescriptionPath = join(root, 'short-description.txt');
+  const internalReleasePath = join(root, 'internal-release.json');
   const artifactPath = join(
     archiveRoot,
     canonicalHandoff.artifact.archiveDirectoryName,
@@ -33,14 +37,18 @@ async function fixture() {
   const handoff = structuredClone(canonicalHandoff);
   const evidence = structuredClone(canonicalEvidence);
   const liveReadiness = structuredClone(canonicalLiveReadiness);
+  const internalRelease = structuredClone(canonicalInternalRelease);
   handoff.candidate.aabSha256 = hash;
   evidence.android.aabSha256 = hash;
   liveReadiness.candidate.aabSha256 = hash;
+  internalRelease.candidate.aabSha256 = hash;
+  handoff.internalReleaseEvidenceRef = 'internal-release.json';
   await mkdir(dirname(artifactPath), { recursive: true });
   await writeFile(artifactPath, bytes, { mode: 0o600 });
   await writeFile(handoffPath, JSON.stringify(handoff));
   await writeFile(evidencePath, JSON.stringify(evidence));
   await writeFile(liveReadinessPath, JSON.stringify(liveReadiness));
+  await writeFile(internalReleasePath, JSON.stringify(internalRelease));
   await writeFile(shortDescriptionPath,
     'Miete und vermiete Dinge in deiner Nähe — mit Buchung, Chat und Übergabe.\n');
   return {
@@ -49,6 +57,7 @@ async function fixture() {
     handoffPath,
     evidencePath,
     liveReadinessPath,
+    internalReleasePath,
     shortDescriptionPath,
     artifactPath,
     handoff,
@@ -56,14 +65,14 @@ async function fixture() {
   };
 }
 
-test('accepts the exact private artifact while explicit upload approval remains pending', async (t) => {
+test('accepts the active exact internal release while store install remains pending', async (t) => {
   const data = await fixture();
   t.after(() => rm(data.root, { recursive: true, force: true }));
   const result = validateGooglePlayInternalHandoff({ repositoryRoot, ...data });
   assert.equal(result.buildNumber, '2026081302');
   assert.equal(result.artifactPath, data.artifactPath);
   assert.equal(result.releaseName, '1.0.0-internal-2026081302');
-  assert.equal(result.status, 'verified-artifact-ready-immediate-reverification-pending');
+  assert.equal(result.status, 'internal-release-active-store-install-pending');
   assert.equal(result.artifactVerified, true);
   assert.match(result.releaseNotes, /ausschließlich Staging und Testzahlungen/u);
 });
@@ -149,10 +158,10 @@ test('rejects premature submission permission', async (t) => {
     /submissionAllowed/);
 });
 
-test('rejects an internal draft that permits rollout', async (t) => {
+test('rejects disabling the authorized internal rollout after activation', async (t) => {
   const data = await fixture();
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  data.handoff.releaseDraft.rolloutAllowed = true;
+  data.handoff.releaseDraft.rolloutAllowed = false;
   await writeFile(data.handoffPath, JSON.stringify(data.handoff));
   assert.throws(() => validateGooglePlayInternalHandoff({ repositoryRoot, ...data }),
     /releaseDraft.rolloutAllowed/);
