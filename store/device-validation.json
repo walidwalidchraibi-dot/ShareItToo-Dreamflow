@@ -39,6 +39,51 @@
         "sameProcessRecovery": "passed",
         "originalNetworkRestored": "passed",
         "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081401-20260814T002910Z.json"
+      },
+      "directAppLinks": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-14T00:45:31.040Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-direct-app-links-2026081401-20260814T004531Z.json"
+      },
+      "authenticatedSession": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-14T00:47:05.602Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081401-20260814T004705Z.json"
+      },
+      "syntheticRoleBooking": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-14T00:47:44.984Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081401-20260814T004744Z.json"
+      },
+      "authenticatedDeepLinks": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-14T00:49:03.284Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081401-20260814T004903Z.json"
+      },
+      "logoutLifecycle": {
+        "status": "passed",
+        "installMethod": "direct-apk-diagnostic",
+        "capturedAt": "2026-08-14T00:50:45.924Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081401-20260814T005045Z.json"
       }
     },
     "ios": {

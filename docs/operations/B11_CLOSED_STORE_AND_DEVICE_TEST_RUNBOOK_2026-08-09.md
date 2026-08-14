@@ -34,12 +34,12 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Android-APK SHA-256 | `788f15e1f160ec1e27f2529b34f90061fdef46c82197af93a8cabd9bd085b299` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
 | Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081401-20260814T002619Z.json` |
-| Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-app-links-2026081401-20260814T004531Z.json` |
+| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081401-20260814T004705Z.json` |
+| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081401-20260814T004744Z.json` |
+| Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081401-20260814T004903Z.json` |
 | Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081401-20260814T004122Z.json` |
-| Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081401-20260814T005045Z.json` |
 | Android-Offline-/Realtime-Wiederherstellung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-offline-realtime-2026081401-20260814T002910Z.json` |
 | Google-Play-Installation | `testing`; noch keine belegte Installation aus dem internen Play-Track |
 | Play-Signing und öffentliche App-Links | `open`; noch kein kandidatenspezifischer Nachweis |

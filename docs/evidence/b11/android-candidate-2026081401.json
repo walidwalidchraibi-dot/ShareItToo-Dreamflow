@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "built-scanned-directly-installed-offline-realtime-and-controlled-fcm-passed",
+  "status": "built-scanned-direct-device-diagnostics-passed-store-matrix-pending",
   "generatedAt": "2026-08-14T00:23:32Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -47,16 +47,16 @@
     "directInstallAndLaunch": "passed",
     "searchOverlayAsyncLifecycle": "passed-source-regression",
     "listingSignalTruthfulness": "pending",
-    "guestAppLinks": "pending",
-    "authenticatedSessionRestore": "pending",
-    "syntheticRoleBooking": "pending",
-    "authenticatedDeepLinks": "pending",
+    "guestAppLinks": "passed",
+    "authenticatedSessionRestore": "passed",
+    "syntheticRoleBooking": "passed",
+    "authenticatedDeepLinks": "passed",
     "foregroundFcm": "passed",
     "backgroundFcm": "passed",
     "terminatedProcessFcm": "passed",
     "notificationIconVisualFit": "passed",
-    "logoutColdStartGuestPersistence": "pending",
-    "postLogoutPushSuppression": "pending",
+    "logoutColdStartGuestPersistence": "passed",
+    "postLogoutPushSuppression": "passed",
     "offlineRealtimeRecovery": "passed"
   },
   "staging": {
@@ -88,6 +88,30 @@
   "directDiagnostic": {
     "status": "passed",
     "evidenceRef": "docs/evidence/b11/android-direct-smoke-2026081401-20260814T002619Z.json"
+  },
+  "directAppLinks": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-direct-app-links-2026081401-20260814T004531Z.json"
+  },
+  "authenticatedSession": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081401-20260814T004705Z.json"
+  },
+  "syntheticRoleBooking": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081401-20260814T004744Z.json",
+    "protectedReviewFixtureUnchanged": true
+  },
+  "authenticatedDeepLinks": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081401-20260814T004903Z.json",
+    "protectedReviewFixtureUnchanged": true,
+    "protectedReviewSessionRestored": true
+  },
+  "logoutLifecycle": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081401-20260814T005045Z.json",
+    "syntheticSessionRestoredAfterProbe": true
   },
   "offlineRealtime": {
     "status": "passed",
