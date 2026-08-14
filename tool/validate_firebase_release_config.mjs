@@ -182,6 +182,43 @@ function validateApiKey(value, label) {
   return apiKey;
 }
 
+export function deriveAndroidFirebaseReleaseEnvironment(config) {
+  if (config === null || typeof config !== 'object' || Array.isArray(config)) {
+    fail('android/app/google-services.json must contain a JSON object.');
+  }
+  const clients = (Array.isArray(config.client) ? config.client : []).filter(
+    (entry) => entry?.client_info?.android_client_info?.package_name === bundleId,
+  );
+  if (clients.length !== 1) {
+    fail(`google-services.json must contain exactly one Android client for ${bundleId}.`);
+  }
+  const projectInfo = config.project_info;
+  if (projectInfo === null || typeof projectInfo !== 'object') {
+    fail('google-services.json project_info is missing.');
+  }
+  const client = clients[0];
+  const values = {
+    SIT_FIREBASE_PROJECT_ID: text(projectInfo.project_id, 'Firebase project ID'),
+    SIT_FIREBASE_MESSAGING_SENDER_ID: text(
+      String(projectInfo.project_number ?? ''),
+      'Firebase messaging sender ID',
+    ),
+    SIT_FIREBASE_STORAGE_BUCKET: typeof projectInfo.storage_bucket === 'string'
+      ? projectInfo.storage_bucket.trim()
+      : '',
+    SIT_FIREBASE_ANDROID_APP_ID: text(
+      client.client_info?.mobilesdk_app_id,
+      'Android Firebase App ID',
+    ),
+    SIT_FIREBASE_ANDROID_API_KEY: text(
+      client.api_key?.[0]?.current_key,
+      'Android Firebase API key',
+    ),
+  };
+  validateAndroidConfig(config, values);
+  return values;
+}
+
 function validateAndroidConfig(config, values) {
   if (config === null || typeof config !== 'object' || Array.isArray(config)) {
     fail('android/app/google-services.json must contain a JSON object.');

@@ -33,6 +33,24 @@ test('Android packaging scopes Firebase validation to Android', () => {
   );
 });
 
+test('Android packaging derives missing Firebase client values from the exact local config without logging them', () => {
+  assert.match(androidBuild, /deriveAndroidFirebaseReleaseEnvironment/);
+  assert.match(androidBuild, /android\/app\/google-services\.json/);
+  assert.ok(
+    androidBuild.indexOf('deriveAndroidFirebaseReleaseEnvironment')
+      < androidBuild.indexOf('release_candidate_preflight.sh'),
+  );
+  assert.doesNotMatch(androidBuild, /echo "\$firebase_env_lines"/);
+});
+
+test('Android packaging exposes a preflight-only path before either binary build', () => {
+  assert.match(androidBuild, /SIT_BUILD_PREFLIGHT_ONLY/);
+  const preflightOnly = androidBuild.indexOf('Android release build preflight passed without creating artifacts.');
+  assert.ok(preflightOnly > androidBuild.indexOf('validate_firebase_release_config.mjs --require-configured'));
+  assert.ok(preflightOnly < androidBuild.indexOf('flutter build appbundle'));
+  assert.ok(preflightOnly < androidBuild.indexOf('flutter build apk'));
+});
+
 test('CI provisions and caches the checksum-verified Gradle wrapper before Flutter builds', () => {
   assert.match(workflow, /uses: gradle\/actions\/setup-gradle@v6/);
   assert.match(workflow, /cache-provider: basic/);

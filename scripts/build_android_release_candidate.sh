@@ -18,6 +18,59 @@ version="$(awk '/^version:/ {print $2; exit}' pubspec.yaml)"
 build_name="${version%%+*}"
 build_number="${version##*+}"
 
+# The Android Firebase file is local and git-ignored. Derive its public client
+# values in memory when the caller did not already provide them, so the exact
+# file that Gradle packages is also the source for Dart FirebaseOptions. The
+# values are passed directly to the build without being printed or copied into
+# another configuration file.
+firebase_config_path="$ROOT/android/app/google-services.json"
+firebase_android_names=(
+  SIT_FIREBASE_PROJECT_ID
+  SIT_FIREBASE_MESSAGING_SENDER_ID
+  SIT_FIREBASE_STORAGE_BUCKET
+  SIT_FIREBASE_ANDROID_APP_ID
+  SIT_FIREBASE_ANDROID_API_KEY
+)
+firebase_value_missing=false
+for firebase_name in "${firebase_android_names[@]}"; do
+  if [[ -z "${!firebase_name:-}" ]]; then
+    firebase_value_missing=true
+    break
+  fi
+done
+if [[ -f "$firebase_config_path" && "$firebase_value_missing" == "true" ]]; then
+  command -v node >/dev/null 2>&1 || {
+    echo "ERROR: node is required to validate the local Firebase configuration." >&2
+    exit 1
+  }
+  firebase_env_lines="$(node --input-type=module - "$firebase_config_path" <<'NODE'
+import { readFileSync } from 'node:fs';
+import { deriveAndroidFirebaseReleaseEnvironment } from './tool/validate_firebase_release_config.mjs';
+
+const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+const values = deriveAndroidFirebaseReleaseEnvironment(config);
+for (const [name, value] of Object.entries(values)) {
+  process.stdout.write(`${name}=${value}\n`);
+}
+NODE
+)"
+  while IFS='=' read -r firebase_name firebase_value; do
+    case "$firebase_name" in
+      SIT_FIREBASE_PROJECT_ID|SIT_FIREBASE_MESSAGING_SENDER_ID|SIT_FIREBASE_STORAGE_BUCKET|SIT_FIREBASE_ANDROID_APP_ID|SIT_FIREBASE_ANDROID_API_KEY)
+        if [[ -z "${!firebase_name:-}" ]]; then
+          printf -v "$firebase_name" '%s' "$firebase_value"
+          export "$firebase_name"
+        fi
+        ;;
+      *)
+        echo "ERROR: Unexpected Firebase environment field." >&2
+        exit 1
+        ;;
+    esac
+  done <<< "$firebase_env_lines"
+  unset firebase_env_lines firebase_value
+fi
+
 SIT_FIREBASE_VALIDATION_PLATFORM=android bash scripts/release_candidate_preflight.sh
 
 common_args=(
@@ -95,6 +148,11 @@ fi
 
 if [[ "${SIT_REQUIRE_FIREBASE:-0}" == "1" ]]; then
   node tool/validate_firebase_release_config.mjs --require-configured --platform android
+fi
+
+if [[ "${SIT_BUILD_PREFLIGHT_ONLY:-0}" == "1" ]]; then
+  echo "Android release build preflight passed without creating artifacts."
+  exit 0
 fi
 
 flutter build appbundle "${common_args[@]}"
