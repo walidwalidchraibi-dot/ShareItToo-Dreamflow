@@ -885,7 +885,8 @@ void main(List<String> arguments) {
     'internal-release-active-store-install-pending',
     'internal-release-active-store-install-verified',
   }.contains(googleInternalUploadHandoff['status']);
-  if ((!handoffSuperseded && !handoffInternalActive &&
+  if ((!handoffSuperseded &&
+          !handoffInternalActive &&
           googleInternalUploadHandoff['status'] !=
               'verified-artifact-ready-immediate-reverification-pending') ||
       googleInternalUploadHandoff['submissionAllowed'] != false ||
@@ -943,6 +944,7 @@ void main(List<String> arguments) {
 
   final appleHandoffCandidate =
       _map(appleTestFlightHandoff['candidate'], 'Apple TestFlight candidate');
+  final appleHandoffBuildNumber = _string(appleHandoffCandidate, 'buildNumber');
   if (appleTestFlightHandoff['status'] !=
           'static-config-ready-tooling-and-account-gates-pending' ||
       appleTestFlightHandoff['submissionAllowed'] != false ||
@@ -958,7 +960,6 @@ void main(List<String> arguments) {
   }
   for (final required in const [
     'com.shareittoo.app',
-    '2026081116',
     'TestFlight',
     'Privacy Manifest',
     'Export Compliance',
@@ -967,6 +968,10 @@ void main(List<String> arguments) {
     if (!appleDeveloperWorksheet.contains(required)) {
       _fail('Apple Developer worksheet is missing: $required');
     }
+  }
+  if (!appleDeveloperWorksheet.contains(appleHandoffBuildNumber)) {
+    _fail('Apple Developer worksheet is missing the bound TestFlight build: '
+        '$appleHandoffBuildNumber');
   }
 
   final sourceDocuments = manifest['sourceDocuments'];
