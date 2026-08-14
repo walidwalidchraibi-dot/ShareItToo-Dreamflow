@@ -18,7 +18,7 @@
     "terms": {
       "status": "draft",
       "sourceFile": "lib/screens/legal_terms_screen.dart",
-      "currentContentSha256": "da601b59621d7fdb616d559f7a6b761e5f0361cfc40f529a52cb5695829d41ea",
+      "currentContentSha256": "544912426ff30339d4f56506e892eae28b89505e3253430aefa9399108bcea2c",
       "approvedContentSha256": null,
       "publicUrl": null,
       "approvalEvidenceRef": null
@@ -26,7 +26,7 @@
     "communityRules": {
       "status": "draft",
       "sourceFile": "lib/screens/legal_community_rules_screen.dart",
-      "currentContentSha256": "e811a9a885b05d80c51a04e23e967e2edf898583ed9c483c7ee1431edaf218de",
+      "currentContentSha256": "917e22c8a101fb8b2a06770c11a223efbf4ecc83ae67e3214880440ceeddacb5",
       "approvedContentSha256": null,
       "publicUrl": null,
       "approvalEvidenceRef": null
