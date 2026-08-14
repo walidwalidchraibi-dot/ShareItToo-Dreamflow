@@ -179,5 +179,7 @@ printf '%s\n' \
 cp "$aab" "$evidence_dir/shareittoo-$build_name-$build_number-$commit.aab"
 cp "$apk" "$evidence_dir/shareittoo-$build_name-$build_number-$commit.apk"
 
+node tool/archive_android_release_candidate.mjs
+
 echo "Signed Android release candidate created for commit $commit."
 echo "Evidence: $evidence_dir/manifest.json"

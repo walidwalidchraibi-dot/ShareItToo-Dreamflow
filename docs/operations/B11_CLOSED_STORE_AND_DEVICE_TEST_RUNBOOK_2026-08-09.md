@@ -192,6 +192,13 @@ Artefakte führen zum Stopp. Die Geräte-Seriennummer wird intern nur als
 separates Prozessargument an ADB übergeben und weder ausgegeben noch in einen
 Nachweis übernommen.
 
+Der signierte Build archiviert das exakt geprüfte AAB, APK, Manifest und den
+Datenschutzbericht jetzt automatisch über
+`tool/archive_android_release_candidate.mjs`. Das private Ziel wird mit engen
+Dateirechten angelegt, alle Hashes werden nach dem Kopieren erneut geprüft und
+ein vorhandenes Kandidatenarchiv niemals überschrieben. Damit entfällt das
+frühere manuelle Kopieren vor der Geräteprüfung.
+
 Nach grünem Prüflauf erfolgt die ausdrücklich getrennte Diagnoseinstallation:
 
 ```text

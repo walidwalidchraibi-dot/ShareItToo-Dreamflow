@@ -67,6 +67,8 @@ node tool/validate_store_review_access.mjs
 node --check tool/validate_device_evidence.mjs
 node --test test/tool/validate_device_evidence.test.mjs
 node tool/validate_device_evidence.mjs
+node --check tool/archive_android_release_candidate.mjs
+node --test test/tool/archive_android_release_candidate.test.mjs
 
 node --check tool/validate_b11_release_docs.mjs
 node --test test/tool/validate_b11_release_docs.test.mjs
