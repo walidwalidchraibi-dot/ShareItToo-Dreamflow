@@ -1,1 +1,1 @@
-Interner ShareItToo-Test: zusätzlich abgesichertes Nachladen im geöffneten Chat nach einem Netzwechsel; ausschließlich Staging und Testzahlungen.
+Interner ShareItToo-Test: schneller begrenzte Chat-Nachladeversuche nach einem Netzwechsel; ausschließlich Staging und Testzahlungen.
