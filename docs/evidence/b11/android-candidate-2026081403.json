@@ -52,10 +52,10 @@
     "searchOverlayAsyncLifecycle": "passed-source-regression",
     "listingSignalTruthfulness": "pending",
     "authenticatedDeepLinks": "pending-exact-build",
-    "foregroundFcm": "pending-exact-build",
-    "backgroundFcm": "pending-exact-build",
-    "terminatedProcessFcm": "pending-exact-build",
-    "notificationIconVisualFit": "pending-exact-build",
+    "foregroundFcm": "passed",
+    "backgroundFcm": "passed",
+    "terminatedProcessFcm": "passed",
+    "notificationIconVisualFit": "passed",
     "logoutColdStartGuestPersistence": "pending-exact-build",
     "postLogoutPushSuppression": "pending-exact-build",
     "offlineRealtimeRecovery": "pending-exact-build"
@@ -69,6 +69,15 @@
     "evidenceRef": "docs/evidence/b11/firebase-phone-real-sms-verification-2026081403-20260814.json",
     "installedCandidateUiFinding": "invalid-code-was-rejected-but-not-visibly-explained",
     "nextSourceCandidateFix": "centered-sit-popup-with-specific-error-reason"
+  },
+  "controlledFcm": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "foreground": "passed",
+    "background": "passed",
+    "terminatedProcess": "passed",
+    "notificationIconVisualFit": "passed-centered-and-contained",
+    "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081403-20260814T111938Z.json"
   },
   "staging": {
     "serverCommit": "09c9211e41da75969b9ee59e9954ac7465250e80",
@@ -86,7 +95,7 @@
   "boundaries": {
     "uploadedToStore": true,
     "installedOnPhysicalDevice": true,
-    "controlledFcmSentToSyntheticAccount": false,
+    "controlledFcmSentToSyntheticAccount": true,
     "controlledCrashDiagnosticSent": false,
     "productionPushSent": false,
     "productionCrashGenerated": false,
