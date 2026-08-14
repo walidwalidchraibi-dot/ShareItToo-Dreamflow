@@ -179,6 +179,8 @@ test('rejects credential-shaped fields', async (t) => {
 test('rejects a completed Crashlytics assignment without exact release evidence', async (t) => {
   const data = await fixture();
   t.after(() => rm(data.root, { recursive: true, force: true }));
+  data.handoff.postUploadChecks.crashlyticsCandidateAssignmentVerified =
+    'passed-exact-controlled-event';
   data.handoff.crashReleaseEvidenceRef = 'docs/evidence/b11/missing-crash-release.json';
   await writeFile(data.handoffPath, JSON.stringify(data.handoff));
   assert.throws(() => validateGooglePlayInternalHandoff({ repositoryRoot, ...data }),

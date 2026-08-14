@@ -174,7 +174,7 @@ export function validateGooglePlayInternalHandoff({
     fail('Release notes left the repository.');
   }
   const notes = readFileSync(notesPath, 'utf8').trim();
-  if (!notes.includes('interner ShareItToo-Test:') ||
+  if (!/interner ShareItToo-Test:/iu.test(notes) ||
       !notes.includes('ausschließlich Staging und Testzahlungen')) {
     fail('Release notes must describe the bounded internal Staging build.');
   }

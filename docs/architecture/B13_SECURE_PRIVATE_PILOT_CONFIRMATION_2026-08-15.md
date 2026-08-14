@@ -4,7 +4,7 @@ Stand: 2026-08-15
 Kandidat: `1.0.0+2026081411`  
 Commit: `7f86ffd1a2c18a41a8b0479c5deba5251fb3a911`  
 Backend-Staging: `1.0.0-2026081412-v4` / `0761f938241476d5b6ba7988c873f81a57fb63f0`
-Umgebung: internes Android-Staging, kein Echtgeld, kein externer Upload
+Umgebung: internes Android-Staging, kein Echtgeld, Google-Play-Internal-Test
 
 ## Ergebnis
 
@@ -119,10 +119,31 @@ Servernachweis:
 
 - Migration 013 und der sichere Zwei-Rollen-Serverfluss sind auf der isolierten
   Staging-Umgebung angewendet und integrativ bestanden.
-- Kandidat 2026081411 wurde nicht zu Google Play hochgeladen und nicht auf
-  Produktion ausgerollt.
+- Kandidat 2026081411 ist ausschliesslich im Google-Play-Internal-Test als
+  `1.0.0-internal-2026081411` verfuegbar. Closed Testing, Open Testing und
+  Produktion blieben unveraendert.
+- Das Pixel 7 Pro wurde verlustfrei ueber Google Play von 2026081409 auf
+  2026081411 aktualisiert. Installer, Versionscode, erhaltener Staging-Login,
+  Kaltstart und geladener Feed wurden verifiziert; es trat kein fataler
+  Startfehler auf.
 - Der reale PSP-Vertrag, finale Rechtsfreigabe, Store-Datenschutzantworten und
   der geschlossene Test bleiben offene Live-Gates.
-- Naechster technischer Schritt: Installation des Android-Kandidaten auf den
-  zwei Testgeraeten und visueller End-to-End-Test fuer Uebergabe, Rueckgabe,
-  Fehlcode, Ablauf, Replay-Schutz und die SIT-Dialoge.
+- Naechster technischer Schritt: Google-Play-Installation auf dem zweiten
+  Testgeraet und visueller Zwei-Rollen-End-to-End-Test fuer Uebergabe,
+  Rueckgabe, Fehlcode, Ablauf, Replay-Schutz und die SIT-Dialoge.
+
+## Google-Play-Internal-Meilenstein 16.51
+
+- Release: `1.0.0-internal-2026081411`
+- Status: `Available to internal testers`
+- Versionscode: `2026081411`
+- Google-Pruefung: noch nicht erfolgt; temporaerer Paketname fuer interne
+  Tester bleibt erwartungsgemaess sichtbar.
+- Unterstuetzte Telefone: 12.427; kein Geraeteverlust zur Vorversion.
+- Downloadgroesse fuer neue Installationen: 59,3 MB; Updategroesse: 5 MB.
+- Release-Hinweis bindet den sicheren Privat-Pilot-Ablauf ausdruecklich an
+  Staging und Testzahlungen.
+- Play-signiertes Pixel-Update: bestanden, Installer `com.android.vending`.
+- Repository-Nachweise und Fail-closed-Validatoren: bestanden.
+- Grenzen: kein Closed-, Open- oder Production-Release, keine oeffentliche
+  Ausrollung, kein Echtgeld und keine Produktionsaenderung.
