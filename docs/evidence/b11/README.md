@@ -75,12 +75,12 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Merkmal | Verbindlicher Wert |
 |---|---|
 | App-Identität | `com.shareittoo.app` (Android und iOS) |
-| Version und Build | `1.0.0 (2026081407)` |
-| App-Commit | `de2d1e727ac46f9c7d8957fd5ac7afcf1b46e9b2` |
+| Version und Build | `1.0.0 (2026081408)` |
+| App-Commit | `27e65ee39a102241090c000bbf52b410cd99698b` |
 | Kanal und API | `internal`, `https://staging.shareittoo.com/api/v1` |
 | Firebase und Zahlung | vollständig: `true`; `memory`; `stripeLivemode=false` |
-| Android-AAB SHA-256 | `61de53bd6f8eb0449a0b4a6238fa10e7280669e5078fb6f7f514a596d36d0189` |
-| Android-APK SHA-256 | `3cb4b34cfe1ef125b8f7de6b5dc2bc8b2f7fe36352d94122ef106d87c1c05944` |
+| Android-AAB SHA-256 | `bf5e0c119334195f4d7ad33d6c45e68b0d66a615ea3ff6b8d0d898f2fa436b8e` |
+| Android-APK SHA-256 | `4c013b2e22bfbcf2b98e74f2595064fb4478f0811f536b87159cb65b620c7b25` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
 | Direkte Android-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
@@ -90,10 +90,10 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Kontrollierte Android-FCM-Diagnose | `pending-exact-build/pending-exact-build/pending-exact-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
 | Android-Abmeldung und Push-Unterdrückung | `pending-exact-build/pending-exact-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
 | Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081407)` |
+| Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081408)` |
 | Play-Signing und öffentliche App-Links | `open`; noch kein kandidatenspezifischer Nachweis |
 | Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
-| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081407.json` |
+| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081408.json` |
 | Staging-Servercommit | `09c9211e41da75969b9ee59e9954ac7465250e80` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
 

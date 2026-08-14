@@ -6,8 +6,8 @@
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081407",
-    "commit": "de2d1e727ac46f9c7d8957fd5ac7afcf1b46e9b2"
+    "buildNumber": "2026081408",
+    "commit": "27e65ee39a102241090c000bbf52b410cd99698b"
   },
   "sourceInventory": [
     {
@@ -92,7 +92,7 @@
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "7727426aa9a41b750714f8fec26956d17338e58c5c0c46a457f7ec1607bef1d1"
+      "sha256": "a3c01a0d2f6ca04ca0a67aa3463f53e659db941d87c296b4fe3aeadff5c3f44a"
     },
     {
       "path": "lib/widgets/return_handover_stepper_sheet.dart",
@@ -108,9 +108,9 @@
     }
   ],
   "binaryEvidence": {
-    "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081407.json",
+    "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081408.json",
     "binaryScan": "passed",
-    "binaryScanReportSha256": "8911767be9d36b684536347cfdc61f341aa98ac9114e23f20dde8e2e3f4bdd5a",
+    "binaryScanReportSha256": "1692d161e5d22a598c025749bb5829271c4704e14c66983015af4b7871e9132b",
     "releaseCheckStatus": "passed"
   },
   "externalServices": {

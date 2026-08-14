@@ -23,6 +23,7 @@ class BackendRepository {
     required String path,
     Object? body,
     Map<String, String> additionalHeaders = const <String, String>{},
+    Duration timeout = const Duration(seconds: 20),
   }) async {
     var token = await _token();
     try {
@@ -32,6 +33,7 @@ class BackendRepository {
         accessToken: token,
         body: body,
         additionalHeaders: additionalHeaders,
+        timeout: timeout,
       );
     } on BackendException catch (error) {
       if (error.statusCode != 401) rethrow;
@@ -43,6 +45,7 @@ class BackendRepository {
         accessToken: token,
         body: body,
         additionalHeaders: additionalHeaders,
+        timeout: timeout,
       );
     }
   }
@@ -419,10 +422,12 @@ class BackendRepository {
 
   static Future<List<Map<String, dynamic>>> getMessageThreads({
     bool includeArchived = false,
+    Duration timeout = const Duration(seconds: 20),
   }) async {
     final response = await _authorized(
       method: 'GET',
       path: '/message-threads${includeArchived ? '?includeArchived=true' : ''}',
+      timeout: timeout,
     );
     return _maps(response['threads']);
   }

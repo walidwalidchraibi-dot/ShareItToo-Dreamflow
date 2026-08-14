@@ -137,11 +137,14 @@ class DataService {
   }
 
   static Future<String?> _readMessageThreads(
-    SharedPreferences prefs,
-  ) async {
+    SharedPreferences prefs, {
+    Duration remoteTimeout = const Duration(seconds: 20),
+  }) async {
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
       try {
-        final remote = await BackendRepository.getMessageThreads();
+        final remote = await BackendRepository.getMessageThreads(
+          timeout: remoteTimeout,
+        );
         final encoded = jsonEncode(remote);
         await prefs.setString(_messageThreadsKey, encoded);
         return encoded;
@@ -8154,13 +8157,19 @@ class DataService {
   }
 
   /// Findet einen Thread anhand der Thread-ID
-  static Future<MessageThread?> getMessageThreadById(String threadId) async {
+  static Future<MessageThread?> getMessageThreadById(
+    String threadId, {
+    Duration remoteTimeout = const Duration(seconds: 20),
+  }) async {
     final normalizedThreadId = threadId.trim();
     if (normalizedThreadId.isEmpty) return null;
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = await _readMessageThreads(prefs);
+      final raw = await _readMessageThreads(
+        prefs,
+        remoteTimeout: remoteTimeout,
+      );
       if (raw == null || raw.isEmpty) return null;
 
       final List<dynamic> list = jsonDecode(raw);

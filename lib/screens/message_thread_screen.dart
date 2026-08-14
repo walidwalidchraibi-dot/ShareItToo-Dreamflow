@@ -225,7 +225,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _refreshThreadMessagesInBackground() async {
     final threadId = (_thread?.id ?? widget.threadId ?? '').trim();
     if (!mounted || threadId.isEmpty) return;
-    final refreshed = await DataService.getMessageThreadById(threadId);
+    final refreshed = await DataService.getMessageThreadById(
+      threadId,
+      remoteTimeout: const Duration(seconds: 3),
+    );
     if (!mounted || refreshed == null) return;
 
     final current = _thread;
