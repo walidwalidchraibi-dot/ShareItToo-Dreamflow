@@ -174,6 +174,26 @@ function appForeground(commandRunner, adbPath, device) {
   return /topResumedActivity=.*com\.shareittoo\.app\/.MainActivity/.test(activities);
 }
 
+export function isExpectedForegroundPushPopup(hierarchy, fixtureTitle) {
+  return typeof hierarchy === 'string'
+    && hierarchy.includes('Benachrichtigung:')
+    && hierarchy.includes('content-desc="Öffnen"')
+    && hierarchy.includes(fixtureTitle);
+}
+
+function dismissExpectedForegroundPushPopup(
+  commandRunner,
+  adbPath,
+  device,
+  hierarchy,
+  fixtureTitle,
+) {
+  if (!isExpectedForegroundPushPopup(hierarchy, fixtureTitle)) return false;
+  if (!appForeground(commandRunner, adbPath, device)) return false;
+  adb(commandRunner, adbPath, device, ['shell', 'input', 'keyevent', '4']);
+  return true;
+}
+
 function packageCrashEntries(commandRunner, adbPath, device, pid) {
   const log = adb(commandRunner, adbPath, device, ['logcat', '-d', '--pid', pid, '-v', 'brief', '*:E']);
   return log.split(/\r?\n/).filter((line) => /FATAL EXCEPTION|Fatal signal/.test(line)).length;
@@ -247,8 +267,22 @@ export async function diagnoseAndroidOfflineRealtime({
     if (!transportRestored) fail('The original Android network state did not return.');
     networkRestored = true;
 
+    let foregroundPushPopupsDismissed = 0;
     const recoveredInChat = await waitFor(
-      () => dumpUi(commandRunner, adbPath, device).includes(offlineMessage),
+      () => {
+        const hierarchy = dumpUi(commandRunner, adbPath, device);
+        if (hierarchy.includes(offlineMessage)) return true;
+        if (dismissExpectedForegroundPushPopup(
+          commandRunner,
+          adbPath,
+          device,
+          hierarchy,
+          nonEmptyString(fixture.title, 'syntheticBooking.title'),
+        )) {
+          foregroundPushPopupsDismissed += 1;
+        }
+        return false;
+      },
       { attempts: 45, intervalMs: 700, wait },
     );
     if (!recoveredInChat) fail('The controlled message did not appear after realtime recovery.');
@@ -304,6 +338,7 @@ export async function diagnoseAndroidOfflineRealtime({
         appForegroundAfterRecovery: true,
         packageCrashBufferEntries: 0,
         networkRestored: true,
+        foregroundPushPopupsDismissed,
       },
       boundaries: {
         syntheticAccountsOnly: true,

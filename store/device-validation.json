@@ -7,8 +7,8 @@
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
     "minimumBuildNumber": "2026080903",
-    "buildNumber": "2026081408",
-    "commit": "27e65ee39a102241090c000bbf52b410cd99698b",
+    "buildNumber": "2026081409",
+    "commit": "4950fd2d5502075336a2f63bc3af91480eeea1a4",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
@@ -16,9 +16,21 @@
     "stripeLivemode": false,
     "android": {
       "delivery": "play-internal",
-      "aabSha256": "bf5e0c119334195f4d7ad33d6c45e68b0d66a615ea3ff6b8d0d898f2fa436b8e",
-      "apkSha256": "4c013b2e22bfbcf2b98e74f2595064fb4478f0811f536b87159cb65b620c7b25",
-      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
+      "aabSha256": "70bd52d8c5bff7f36cc367f5e94cfac1170995a3dc0de7c2ea878be0bccc7e5f",
+      "apkSha256": "3ed2e266ba9dc190b81cb0954bc8d50d1bd9fe9fd2f4a64722cd3380d03b99bb",
+      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
+      "offlineRealtime": {
+        "status": "passed",
+        "capturedAt": "2026-08-14T19:23:07.513Z",
+        "installMethod": "google-play-split",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "offlineWindowSeconds": 15,
+        "sameProcessRecovery": "passed",
+        "originalNetworkRestored": "passed",
+        "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081409-20260814T192307Z.json"
+      }
     },
     "ios": {
       "delivery": "pending",
@@ -136,7 +148,7 @@
   "releaseChecks": {
     "candidateIdentityAndSignatures": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081408.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081409.json"
     },
     "firebaseFcmAndApns": {
       "status": "open",
@@ -144,7 +156,7 @@
     },
     "binaryPrivacyAndNetwork": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081408.json"
+      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081409.json"
     },
     "crashReleaseMapping": {
       "status": "open",
@@ -156,11 +168,11 @@
     },
     "stagingCleanupAndHealth": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081408.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081409.json"
     },
     "productionInvariant": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081408.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081409.json"
     }
   },
   "approvals": {
