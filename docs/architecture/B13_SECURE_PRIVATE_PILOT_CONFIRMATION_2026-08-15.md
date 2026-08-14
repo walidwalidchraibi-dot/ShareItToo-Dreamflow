@@ -3,6 +3,7 @@
 Stand: 2026-08-15  
 Kandidat: `1.0.0+2026081411`  
 Commit: `7f86ffd1a2c18a41a8b0479c5deba5251fb3a911`  
+Backend-Staging: `1.0.0-2026081412-v4` / `0761f938241476d5b6ba7988c873f81a57fb63f0`
 Umgebung: internes Android-Staging, kein Echtgeld, kein externer Upload
 
 ## Ergebnis
@@ -59,7 +60,7 @@ den gebundenen Tests gemeinsam versioniert.
 ## Verifikation
 
 - Flutter-Gesamtsuite: 262 bestanden, 0 fehlgeschlagen.
-- Backend-Gesamtsuite: 118 bestanden, 0 fehlgeschlagen, 1 PostgreSQL-Test lokal
+- Backend-Gesamtsuite: 120 bestanden, 0 fehlgeschlagen, 1 PostgreSQL-Test lokal
   mangels `TEST_DATABASE_URL` uebersprungen.
 - Flutter-Gesamtanalyse: Exit 0; nur bereits bekannte Warnungen/Hinweise.
 - Legal-Readiness: gueltiger Draft, Live-Freigabe weiterhin fail-closed.
@@ -75,15 +76,53 @@ Artefakt-Hashes:
 - Datenschutzbericht:
   `bcd7631589b0c116f445bfbbffb8e687843c01e2569a5fbd144d26acb98af9a9`
 
+## Staging-Abnahme
+
+Vor dem Rollout wurden Datenbank und Uploads getrennt gesichert. Das exakte
+Backend-Image wurde zunaechst gegen eine temporaere PostgreSQL-Instanz
+gestartet. Alle 13 Migrationen und die 14 Spalten der Challenge-Tabelle waren
+dort vorhanden. Anschliessend wurde nur Staging mit automatischem Rollback
+aktualisiert; FCM bestand seine separate Secret-Pruefung.
+
+Der erste reale Zwei-Rollen-Test deckte eine falsche Tabellenquelle fuer den
+Buchungs-Payload auf. Die Abfrage wurde auf den gesperrten Verbund aus
+`bookings` und `rental_requests` korrigiert, erneut vollstaendig getestet und
+als Backend-Kandidat `2026081412-v4` ausgerollt.
+
+Die wiederholte Abnahme bewies danach:
+
+- Eigener Code kann nicht selbst bestaetigt werden;
+- falscher Code wird abgelehnt und reduziert die verbleibenden Versuche;
+- korrekter Uebergabe-Code wird durch die Gegenpartei verbraucht;
+- identische Wiederholung ist idempotent und erzeugt kein zweites Ereignis;
+- Statuswechsel zu `active` ist erst nach verifizierter Uebergabe moeglich;
+- Rueckgabe-Code folgt der umgekehrten Rollenrichtung;
+- Abschluss ist erst nach verifizierter Rueckgabe moeglich;
+- beide Bestaetigungen stehen als Version 3 im Buchungsnachweis;
+- genau zwei unveraenderliche Bestaetigungsereignisse wurden protokolliert;
+- Testkonten, Inserat und Buchung sind geschlossen beziehungsweise beendet;
+  es blieb kein aktiver Testnutzer, kein aktives Inserat, keine offene
+  Testbuchung und keine aktive Challenge zurueck;
+- Staging ist oeffentlich bereit, nutzt Testzahlung ohne Echtgeld und meldet
+  keine fatalen Laufzeitfehler;
+- Produktion blieb unveraendert auf Commit
+  `09c9211e41da75969b9ee59e9954ac7465250e80`.
+
+Servernachweis:
+
+- Staging-Release:
+  `/docker/shareittoo/releases/staging-20260814T224254Z-0761f9382414.json`
+- Staging-Sicherung:
+  `/docker/shareittoo/backups/staging/shareittoo-staging-20260814T222552Z.sha256`
+
 ## Bewusste Grenzen / naechste Schritte
 
-- Migration 013 muss vor Nutzung auf der isolierten Staging-Datenbank
-  angewendet und dort integrativ geprueft werden.
+- Migration 013 und der sichere Zwei-Rollen-Serverfluss sind auf der isolierten
+  Staging-Umgebung angewendet und integrativ bestanden.
 - Kandidat 2026081411 wurde nicht zu Google Play hochgeladen und nicht auf
   Produktion ausgerollt.
 - Der reale PSP-Vertrag, finale Rechtsfreigabe, Store-Datenschutzantworten und
   der geschlossene Test bleiben offene Live-Gates.
-- Naechster technischer Schritt: Staging-Migration, Deployment des gebundenen
-  Backends, Installation des Kandidaten und ein Zwei-Geraete-Test fuer
-  Uebergabe, Rueckgabe, Fehlcode, Ablauf und Replay-Schutz.
-
+- Naechster technischer Schritt: Installation des Android-Kandidaten auf den
+  zwei Testgeraeten und visueller End-to-End-Test fuer Uebergabe, Rueckgabe,
+  Fehlcode, Ablauf, Replay-Schutz und die SIT-Dialoge.
