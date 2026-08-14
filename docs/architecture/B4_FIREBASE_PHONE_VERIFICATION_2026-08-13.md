@@ -1,6 +1,6 @@
 # B4 – Sichere Telefonnummern-Verifizierung
 
-Stand: 13. August 2026  
+Stand: 14. August 2026
 Status: technisch implementiert; standardmäßig deaktiviert; Console-, Datenschutz- und echte Gerätetests offen
 
 ## Ziel und klare Grenze
@@ -11,10 +11,13 @@ markieren. Der ShareItToo-Server akzeptiert ausschließlich ein serverseitig
 geprüftes Firebase-ID-Token aus dem Provider `phone` und nur dann, wenn die
 darin bestätigte E.164-Nummer exakt der angeforderten Nummer entspricht.
 
-Der bestehende, vollständig geprüfte Google-Play-Kandidat `2026081202` bleibt
-unverändert. Die Implementierung ist an den noch nicht einreichbaren
-Nachfolger `2026081302` gebunden. Es wurde weder ein AAB hochgeladen noch eine
-Firebase-Option aktiviert oder eine SMS versendet.
+Die Implementierung ist an den reservierten, noch nicht gebauten oder
+eingereichten Nachfolger `2026081403` gebunden. Firebase Authentication ist
+im Staging-Projekt initialisiert; noch kein Anmeldeanbieter ist aktiviert.
+Die kanonischen SHA-1- und SHA-256-Fingerabdrücke des Android-
+Uploadzertifikats sind im Firebase-App-Eintrag gespeichert. Der Telefonanbieter
+und eine SMS-Region wurden nicht aktiviert, es wurde keine SMS versendet und
+kein AAB dieses Nachfolgers gebaut oder hochgeladen.
 
 ## Ablauf
 
@@ -61,9 +64,10 @@ Firebase-Option aktiviert oder eine SMS versendet.
 
 | Gate | Status |
 |---|---|
-| Firebase-Provider `Phone` und sichtbare Bedingungen | Eigentümer-/Console-Prüfung offen |
-| Zulässige SMS-Regionen | bewusste Auswahl offen |
-| Android-Appprüfung, SHA-Zuordnung und Nachfolger-Build | Console-Nachweis offen |
+| Firebase Authentication | initialisiert; kein Anbieter aktiviert |
+| Firebase-Provider `Phone` und sichtbare Bedingungen | ausdrückliche Zustimmung und Aktivierung offen |
+| Zulässige SMS-Regionen | Deutschland-only für den Pilot empfohlen; Zustimmung und Speichern offen |
+| Android-Appprüfung, SHA-Zuordnung und Nachfolger-Build | SHA-1 und SHA-256 registriert; Nachfolger-Build und realer Nachweis offen |
 | echter Android-SMS-Test | offen |
 | Apple-Mitgliedschaft, APNs und iOS-Appprüfung | offen |
 | echter iOS-SMS-Test | offen |
@@ -73,9 +77,17 @@ Firebase-Option aktiviert oder eine SMS versendet.
 Solange auch nur ein Gate offen ist, bleiben `activationAllowed=false`,
 `storeSubmissionAllowed=false` und die Servervariable `false`.
 
+Die Deutschland-only-Empfehlung folgt dem verbindlichen lokalen Pilot mit
+einer einzigen Startzone. Sie ist noch keine gespeicherte Konsolenentscheidung.
+Eine breitere SMS-Freigabe würde Missbrauchs- und Kostenfläche ohne Nutzen für
+den ersten Pilot vergrößern. Für neue Firebase-Projekte erlaubt die
+Standard-SMS-Regionsrichtlinie keine Region; deshalb darf der Anbieter erst
+nach bewusster Auswahl aktiviert werden.
+
 ## Offizielle technische Grundlagen
 
 - <https://firebase.google.com/docs/auth/flutter/phone-auth>
+- <https://firebase.google.com/docs/auth/web/phone-auth>
 - <https://firebase.google.com/docs/auth/admin/verify-id-tokens>
 - <https://firebase.google.com/docs/auth/admin/manage-users>
 - <https://firebase.google.com/docs/auth/android/phone-auth>

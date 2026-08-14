@@ -29,6 +29,24 @@ test('rejects claiming activation before every external gate is evidenced', () =
   );
 });
 
+test('rejects claiming that the Firebase phone provider is already enabled', () => {
+  const readiness = structuredClone(canonical);
+  readiness.consoleEvidence.phoneProviderEnabled = true;
+  assert.throws(
+    () => validatePhoneVerificationReadiness({ root, readiness }),
+    /console evidence is incomplete or unsafe/,
+  );
+});
+
+test('rejects claiming an SMS region policy was saved without evidence', () => {
+  const readiness = structuredClone(canonical);
+  readiness.consoleEvidence.smsRegionPolicySaved = true;
+  assert.throws(
+    () => validatePhoneVerificationReadiness({ root, readiness }),
+    /console evidence is incomplete or unsafe/,
+  );
+});
+
 test('rejects a client-side phone verification bypass', () => {
   const current = readFileSync(
     new URL('../../lib/services/auth_service.dart', import.meta.url),

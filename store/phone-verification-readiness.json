@@ -22,10 +22,17 @@
     "explicitTransferNoticeBeforeSms": true,
     "clientSideVerificationBypassRemoved": true
   },
+  "consoleEvidence": {
+    "firebaseAuthenticationInitialized": true,
+    "enabledSignInProviders": [],
+    "canonicalAndroidSigningFingerprintsRegistered": true,
+    "phoneProviderEnabled": false,
+    "smsRegionPolicySaved": false
+  },
   "externalGates": {
-    "firebasePhoneProvider": "pending-owner-console-terms-and-configuration",
-    "smsRegionPolicy": "pending-owner-region-selection",
-    "androidAppVerification": "pending-console-proof-and-successor-build-check",
+    "firebasePhoneProvider": "pending-explicit-owner-acceptance-and-enable",
+    "smsRegionPolicy": "pending-germany-only-owner-approval",
+    "androidAppVerification": "signing-fingerprints-registered-successor-build-check-pending",
     "androidRealDeviceSms": "pending",
     "appleApnsConfiguration": "pending-apple-account-and-apns",
     "appleRealDeviceSms": "pending",
@@ -35,7 +42,9 @@
   "activationAllowed": false,
   "storeSubmissionAllowed": false,
   "boundaries": {
-    "firebaseConsoleChanged": false,
+    "googleProviderEnabled": false,
+    "firebasePhoneProviderEnabled": false,
+    "smsRegionPolicySaved": false,
     "smsSent": false,
     "productionChanged": false,
     "storeSubmissionChanged": false,
@@ -47,6 +56,7 @@
   },
   "officialReferences": [
     "https://firebase.google.com/docs/auth/flutter/phone-auth",
+    "https://firebase.google.com/docs/auth/web/phone-auth",
     "https://firebase.google.com/docs/auth/admin/verify-id-tokens",
     "https://firebase.google.com/docs/auth/android/phone-auth",
     "https://firebase.google.com/docs/android/play-data-disclosure"

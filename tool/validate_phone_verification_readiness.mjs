@@ -59,11 +59,23 @@ export function validatePhoneVerificationReadiness({
     fail('Phone verification implementation claims are incomplete or stale.');
   }
 
+  const consoleEvidence = readiness.consoleEvidence ?? {};
+  const expectedConsoleEvidence = {
+    firebaseAuthenticationInitialized: true,
+    enabledSignInProviders: [],
+    canonicalAndroidSigningFingerprintsRegistered: true,
+    phoneProviderEnabled: false,
+    smsRegionPolicySaved: false,
+  };
+  if (JSON.stringify(consoleEvidence) !== JSON.stringify(expectedConsoleEvidence)) {
+    fail('Phone verification console evidence is incomplete or unsafe.');
+  }
+
   const externalGates = readiness.externalGates ?? {};
   const expectedGates = {
-    firebasePhoneProvider: 'pending-owner-console-terms-and-configuration',
-    smsRegionPolicy: 'pending-owner-region-selection',
-    androidAppVerification: 'pending-console-proof-and-successor-build-check',
+    firebasePhoneProvider: 'pending-explicit-owner-acceptance-and-enable',
+    smsRegionPolicy: 'pending-germany-only-owner-approval',
+    androidAppVerification: 'signing-fingerprints-registered-successor-build-check-pending',
     androidRealDeviceSms: 'pending',
     appleApnsConfiguration: 'pending-apple-account-and-apns',
     appleRealDeviceSms: 'pending',
@@ -77,8 +89,20 @@ export function validatePhoneVerificationReadiness({
   }
 
   const boundaries = readiness.boundaries ?? {};
-  if (Object.keys(boundaries).length !== 9
-      || Object.values(boundaries).some((value) => value !== false)) {
+  const expectedBoundaries = {
+    googleProviderEnabled: false,
+    firebasePhoneProviderEnabled: false,
+    smsRegionPolicySaved: false,
+    smsSent: false,
+    productionChanged: false,
+    storeSubmissionChanged: false,
+    containsPhoneNumbers: false,
+    containsSmsCodes: false,
+    containsFirebaseTokens: false,
+    containsCredentials: false,
+    containsSecrets: false,
+  };
+  if (JSON.stringify(boundaries) !== JSON.stringify(expectedBoundaries)) {
     fail('Phone verification evidence crosses a protected boundary.');
   }
   const serialized = JSON.stringify(readiness);

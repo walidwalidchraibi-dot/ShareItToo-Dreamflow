@@ -104,7 +104,7 @@
     },
     {
       "path": "store/phone-verification-readiness.json",
-      "sha256": "2293a4c7348d5c57db5af4ba3bd407162f23da388ddb432e683a9f07cac1167f"
+      "sha256": "046b7c90d18dd7f01f4c93b98ec6a94bec82e6d6593c96809712c9ea3d443f39"
     }
   ],
   "binaryEvidence": {
