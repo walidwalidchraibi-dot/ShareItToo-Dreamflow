@@ -24,6 +24,19 @@ class BackendRealtimeService {
       results.any((result) => result != ConnectivityResult.none);
 
   @visibleForTesting
+  static void listenBeforeAuthenticate({
+    required void Function() listen,
+    required void Function() authenticate,
+  }) {
+    listen();
+    authenticate();
+  }
+
+  @visibleForTesting
+  static bool mayReconnectFromSource(Object? current, Object? source) =>
+      source == null || identical(current, source);
+
+  @visibleForTesting
   static Set<String> sharedPersistenceKeysForEvent(
     Map<dynamic, dynamic> event,
   ) {
@@ -128,19 +141,32 @@ class BackendRealtimeService {
         await channel.sink.close();
         return;
       }
-      channel.sink.add(jsonEncode({'type': 'auth', 'token': accessToken}));
-      _subscription = channel.stream.listen(
-        _handleMessage,
-        onError: (Object error) {
-          debugPrint('[BackendRealtime] connection error: $error');
-          _scheduleReconnect();
+      // Listen before authenticating. The server answers an accepted auth
+      // immediately with `ready`; subscribing afterwards can lose that event
+      // and therefore skip the cache catch-up needed after an offline window.
+      listenBeforeAuthenticate(
+        listen: () {
+          _subscription = channel!.stream.listen(
+            _handleMessage,
+            onError: (Object error) {
+              debugPrint('[BackendRealtime] connection error: $error');
+              _scheduleReconnect(channel);
+            },
+            onDone: () => _scheduleReconnect(channel),
+            cancelOnError: true,
+          );
         },
-        onDone: _scheduleReconnect,
-        cancelOnError: true,
+        authenticate: () => channel!.sink.add(
+          jsonEncode({'type': 'auth', 'token': accessToken}),
+        ),
       );
     } catch (error) {
       debugPrint('[BackendRealtime] connect failed: $error');
-      if (_channel == channel) _channel = null;
+      final shouldReconnect = _channel == channel;
+      if (shouldReconnect) {
+        _subscription = null;
+        _channel = null;
+      }
       if (channel != null) {
         try {
           await channel.sink.close();
@@ -148,7 +174,7 @@ class BackendRealtimeService {
           // The connection may have failed before a close frame was possible.
         }
       }
-      _scheduleReconnect();
+      if (shouldReconnect) _scheduleReconnect();
     }
   }
 
@@ -177,7 +203,10 @@ class BackendRealtimeService {
     }
   }
 
-  static void _scheduleReconnect() {
+  static void _scheduleReconnect([WebSocketChannel? sourceChannel]) {
+    // A delayed callback from an older socket must never clear a newer,
+    // already-connected channel.
+    if (!mayReconnectFromSource(_channel, sourceChannel)) return;
     _subscription = null;
     _channel = null;
     if (_stopped || _networkUnavailable || _reconnectTimer != null) return;

@@ -458,6 +458,7 @@ function authenticatedSessionFixture() {
       packageIdentityVerified: true,
       versionName: deviceManifest.candidate.versionName,
       buildNumber: deviceManifest.candidate.buildNumber,
+      delivery: 'direct-apk',
       apkSha256: deviceManifest.candidate.android.apkSha256,
     },
     device: {
@@ -493,6 +494,25 @@ function authenticatedSessionFixture() {
       containsReviewCredentials: false,
     },
   });
+  return fixture;
+}
+
+function playLogoutLifecycleFixture() {
+  const fixture = logoutLifecycleFixture();
+  const diagnostic = fixture.deviceManifest.candidate.android.logoutLifecycle;
+  diagnostic.installMethod = 'google-play-split';
+  const evidence = JSON.parse(readFileSync(resolve(fixture.root, diagnostic.evidenceRef), 'utf8'));
+  evidence.installed = {
+    packageIdentityVerified: true,
+    versionName: fixture.deviceManifest.candidate.versionName,
+    buildNumber: fixture.deviceManifest.candidate.buildNumber,
+    delivery: 'google-play-split',
+    installerPackageName: 'com.android.vending',
+    splitCount: 4,
+  };
+  evidence.boundaries.directDiagnosticOnly = false;
+  evidence.boundaries.storeInstallationGateSatisfied = true;
+  writeEvidence(fixture.root, diagnostic.evidenceRef, evidence);
   return fixture;
 }
 
@@ -536,6 +556,7 @@ function syntheticRoleBookingFixture() {
       packageIdentityVerified: true,
       versionName: deviceManifest.candidate.versionName,
       buildNumber: deviceManifest.candidate.buildNumber,
+      delivery: 'direct-apk',
       apkSha256: deviceManifest.candidate.android.apkSha256,
     },
     device: {
@@ -1354,6 +1375,13 @@ test('accepts exact bounded logout lifecycle evidence without closing the device
   assert.equal(summary.matrixPassed, 0);
 });
 
+test('accepts exact bounded logout lifecycle evidence from Google Play', () => {
+  const fixture = playLogoutLifecycleFixture();
+  const summary = validate(fixture);
+  assert.equal(summary.state, 'testing');
+  assert.equal(summary.matrixPassed, 0);
+});
+
 test('logout lifecycle evidence rejects a different candidate APK', () => {
   const fixture = logoutLifecycleFixture();
   const ref = fixture.deviceManifest.candidate.android.logoutLifecycle.evidenceRef;
@@ -1362,7 +1390,7 @@ test('logout lifecycle evidence rejects a different candidate APK', () => {
   writeEvidence(fixture.root, ref, evidence);
   assert.throws(
     () => validate(fixture),
-    /must prove the exact installed candidate APK and package identity/,
+    /must prove the exact directly installed candidate APK/,
   );
 });
 

@@ -45,6 +45,35 @@ void main() {
       );
     });
 
+    test('subscribes before sending the immediate authentication request', () {
+      final operations = <String>[];
+
+      BackendRealtimeService.listenBeforeAuthenticate(
+        listen: () => operations.add('listen'),
+        authenticate: () => operations.add('authenticate'),
+      );
+
+      expect(operations, ['listen', 'authenticate']);
+    });
+
+    test('ignores termination callbacks from a superseded socket', () {
+      final active = Object();
+      final stale = Object();
+
+      expect(
+        BackendRealtimeService.mayReconnectFromSource(active, active),
+        isTrue,
+      );
+      expect(
+        BackendRealtimeService.mayReconnectFromSource(active, null),
+        isTrue,
+      );
+      expect(
+        BackendRealtimeService.mayReconnectFromSource(active, stale),
+        isFalse,
+      );
+    });
+
     test('keeps ordinary changed events scoped to their resource', () {
       expect(
         BackendRealtimeService.sharedPersistenceKeysForEvent(
