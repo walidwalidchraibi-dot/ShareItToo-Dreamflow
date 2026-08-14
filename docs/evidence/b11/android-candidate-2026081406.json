@@ -24,6 +24,10 @@
     "packageIdentityVerified": true,
     "privateArchivePermissionsVerified": true
   },
+  "googlePlayInternalRelease": {
+    "status": "store-install-verified",
+    "evidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081406-20260814.json"
+  },
   "privacyAndNetwork": {
     "binaryScan": "passed",
     "binaryScanReportSha256": "f39be26d4a440b0b154c25a34b8ee6cce9104b2ea4a71890600a407d8d0a592d",
