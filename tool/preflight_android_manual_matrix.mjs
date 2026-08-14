@@ -49,10 +49,15 @@ export function parseActiveTransport(output) {
     .find((transport) => networkLine.includes(transport)) ?? null;
 }
 
-export function wifiNetworkFingerprint(output) {
+export function wifiNetworkFingerprint(output, routeOutput = '') {
   const ssid = /^\s*SSID:\s*(.+)$/mu.exec(output)?.[1]?.trim() ?? '';
-  if (ssid === '' || ssid === '<unknown ssid>') return null;
-  return createHash('sha256').update(ssid).digest('hex').slice(0, 16);
+  const privateNetworkSignature = ssid !== '' && ssid !== '<unknown ssid>'
+    ? `ssid:${ssid}`
+    : routeOutput.trim() === ''
+      ? null
+      : `route:${routeOutput.trim().replace(/\s+/gu, ' ')}`;
+  if (privateNetworkSignature === null) return null;
+  return createHash('sha256').update(privateNetworkSignature).digest('hex').slice(0, 16);
 }
 
 export function parseFontScale(output) {
@@ -71,6 +76,7 @@ export function buildManualMatrixReadiness({
   installerOutput,
   connectivityDump,
   wifiStatus,
+  routeStatus = '',
   fontScaleOutput,
   accessibilityServices,
   baselineNetworkFingerprint = null,
@@ -80,7 +86,7 @@ export function buildManualMatrixReadiness({
   const identity = parsePackageIdentity(packageDump);
   const installerPackage = parseInstallerPackage(installerOutput);
   const activeTransport = parseActiveTransport(connectivityDump);
-  const networkFingerprint = wifiNetworkFingerprint(wifiStatus);
+  const networkFingerprint = wifiNetworkFingerprint(wifiStatus, routeStatus);
   const fontScale = parseFontScale(fontScaleOutput);
   const talkBackEnabled = isTalkBackEnabled(accessibilityServices);
   const hotspotCell = cellId === 'android-hotspot-renter';
@@ -138,6 +144,7 @@ export function buildManualMatrixReadiness({
       containsSecrets: false,
       containsRawDeviceIdentifiers: false,
       containsRawNetworkNames: false,
+      containsRawNetworkRoutes: false,
     },
   };
 }
@@ -196,6 +203,11 @@ function run() {
     installerOutput: adb(args.adbPath, device.serial, ['shell', 'pm', 'list', 'packages', '-i', applicationId]),
     connectivityDump: adb(args.adbPath, device.serial, ['shell', 'dumpsys', 'connectivity']),
     wifiStatus: adb(args.adbPath, device.serial, ['shell', 'cmd', 'wifi', 'status']),
+    routeStatus: adb(
+      args.adbPath,
+      device.serial,
+      ['shell', 'ip', 'route', 'show', 'dev', 'wlan0'],
+    ),
     fontScaleOutput: adb(args.adbPath, device.serial, ['shell', 'settings', 'get', 'system', 'font_scale']),
     accessibilityServices: adb(
       args.adbPath,

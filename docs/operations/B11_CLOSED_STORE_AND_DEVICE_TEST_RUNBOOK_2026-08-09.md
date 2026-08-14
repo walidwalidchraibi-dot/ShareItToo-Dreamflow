@@ -156,8 +156,11 @@ node tool/preflight_android_manual_matrix.mjs --cell android-wifi-owner
 ```
 
 Der ausgegebene bereinigte `networkFingerprint` wird anschließend als
-Ausgangswert für die Hotspot-Runde verwendet. Erst nachdem das Telefon sichtbar
-mit dem getrennten Handy-Hotspot verbunden wurde, darf die ausdrücklich manuelle
+Ausgangswert für die Hotspot-Runde verwendet. Wenn Android den WLAN-Namen aus
+Datenschutzgründen nicht an ADB ausgibt, verwendet der Prüfer stattdessen einen
+anonymisierten Fingerabdruck der lokalen WLAN-Route; weder Netzname noch
+IP-Adresse erscheinen im Bericht. Erst nachdem das Telefon sichtbar mit dem
+getrennten Handy-Hotspot verbunden wurde, darf die ausdrücklich manuelle
 Bestätigung gesetzt werden:
 
 ```bash

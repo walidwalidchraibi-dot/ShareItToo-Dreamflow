@@ -90,5 +90,22 @@ test('preflight report never records raw SSID or device identifiers', () => {
   assert.equal(serialized.includes('serial'), false);
   assert.match(report.observed.networkFingerprint, /^[a-f0-9]{16}$/u);
   assert.equal(report.boundaries.containsRawNetworkNames, false);
+  assert.equal(report.boundaries.containsRawNetworkRoutes, false);
   assert.equal(report.boundaries.containsRawDeviceIdentifiers, false);
+});
+
+test('uses a sanitized route fingerprint when Android hides the SSID', () => {
+  const privateRoute = 'default via 192.0.2.1 dev wlan0 proto dhcp src 192.0.2.8\n';
+  const report = buildManualMatrixReadiness(readyInput({
+    wifiStatus: 'Wi-Fi is enabled\nSSID: <unknown ssid>\n',
+    routeStatus: privateRoute,
+    baselineNetworkFingerprint: wifiNetworkFingerprint(
+      'SSID: <unknown ssid>\n',
+      'default via 198.51.100.1 dev wlan0 proto dhcp src 198.51.100.8\n',
+    ),
+  }));
+  assert.equal(report.status, 'ready-for-manual-matrix');
+  assert.match(report.observed.networkFingerprint, /^[a-f0-9]{16}$/u);
+  assert.equal(JSON.stringify(report).includes('192.0.2'), false);
+  assert.equal(JSON.stringify(report).includes('wlan0'), false);
 });
