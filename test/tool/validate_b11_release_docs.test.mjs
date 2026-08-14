@@ -156,6 +156,7 @@ test('rejects candidate evidence whose artifact hash differs', () => {
 
 test('rejects a Store-upload boundary without an exact internal-release binding', () => {
   const changed = structuredClone(candidateEvidence);
+  changed.boundaries.uploadedToStore = true;
   changed.googlePlayInternalRelease = undefined;
   assert.throws(
     () => validateStrict({ candidateEvidence: changed }),
