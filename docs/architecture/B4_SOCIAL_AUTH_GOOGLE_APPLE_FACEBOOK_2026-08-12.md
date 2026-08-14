@@ -3,6 +3,28 @@
 Status: Code und lokale Prüfungen fertig; Anbieter in den externen Konsolen
 noch nicht aktiviert.
 
+## Verifizierter externer Stand am 14. August 2026
+
+- Firebase Authentication ist im Projekt `shareittoo-staging` initialisiert.
+  Noch kein Anbieter ist gespeichert oder für Nutzer freigeschaltet.
+- Das SIT-Geschäftskonto besitzt Projektzugriff und ist zusätzlich zum
+  bisherigen privaten Eigentümerkonto als Projekteigentümer eingetragen. Das
+  private Konto bleibt als Rückfallzugang bestehen.
+- Der Google-Anbieter ist vorbereitet, aber nicht gespeichert: Die Konsole
+  verlangt eine erneute Anmeldung des SIT-Geschäftskontos, bevor dessen
+  Adresse als öffentliche OAuth-Supportadresse verwendet werden kann. Die
+  private Adresse wurde ausdrücklich nicht ersatzweise gespeichert.
+- Die vorhandene Apple-Firebase-Datei passt zu Projekt und Bundle-ID, enthält
+  aber vor der Google-Aktivierung noch keinen iOS-OAuth-Client, keine
+  umgekehrte Client-ID und kein aktiviertes Google Sign-In. Der
+  Release-Validator lehnt sie deshalb weiterhin geschlossen ab.
+- Auf dem Build-Mac sind nur die Apple Command Line Tools vorhanden.
+  Vollständiges Xcode, `xcodebuild` und CocoaPods fehlen; ein iOS-Archiv wurde
+  folgerichtig nicht versucht.
+- Es wurden keine OAuth-Schlüssel, Provider-Secrets oder Nutzertokens gelesen,
+  gespeichert oder in das Repository übernommen. `FIREBASE_AUTH_ENABLED`
+  bleibt unverändert aus.
+
 ## Architektur
 
 - Firebase Authentication führt den jeweiligen Anbieter-Dialog aus und stellt
