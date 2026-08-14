@@ -153,7 +153,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
                           Text(
                             captured
                                 ? 'Stripe hat die Zahlung bestätigt. Der Status stammt direkt vom Server.'
-                                : 'Betrag und Gebühr werden vom ShareItToo-Server festgelegt. Deine Kartendaten werden ausschließlich bei Stripe eingegeben.',
+                                : 'Betrag und Gebühr werden vom ShareItToo-Server festgelegt. Deine Zahlungsdaten werden ausschließlich bei Stripe eingegeben.',
                           ),
                           if (amounts != null) ...[
                             const SizedBox(height: 18),

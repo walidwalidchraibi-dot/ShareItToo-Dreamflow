@@ -172,7 +172,6 @@ export class StripeProvider {
       params: {
         mode: 'payment',
         customer: customerId,
-        payment_method_types: ['card'],
         success_url: successUrl,
         cancel_url: cancelUrl,
         expires_at: expiresAt,

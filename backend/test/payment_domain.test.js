@@ -106,7 +106,7 @@ test('Stripe transport sends server-only form parameters and idempotency', async
     idempotencyKey: 'checkout:booking-1',
   });
   const checkoutForm = captured.options.body.toString();
-  assert.match(checkoutForm, /payment_method_types%5B0%5D=card/);
+  assert.doesNotMatch(checkoutForm, /payment_method_types/);
   assert.match(checkoutForm, /payment_intent_data%5Btransfer_group%5D=booking_booking-1/);
   assert.doesNotMatch(checkoutForm, /setup_future_usage/);
 });
