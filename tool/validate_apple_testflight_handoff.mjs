@@ -74,7 +74,7 @@ export function validateAppleTestFlightHandoff({
   const candidate = object(handoff.candidate, 'candidate');
   same(candidate.bundleId, 'com.shareittoo.app', 'candidate.bundleId');
   same(candidate.versionName, '1.0.0', 'candidate.versionName');
-  same(candidate.buildNumber, '2026081116', 'candidate.buildNumber');
+  same(candidate.buildNumber, '2026081403', 'candidate.buildNumber');
   same(candidate.apiBaseUrl, 'https://staging.shareittoo.com/api/v1', 'candidate.apiBaseUrl');
   same(candidate.firebaseConfigured, true, 'candidate.firebaseConfigured');
   same(candidate.firebaseAnalyticsEnabled, false, 'candidate.firebaseAnalyticsEnabled');
@@ -83,8 +83,13 @@ export function validateAppleTestFlightHandoff({
   const pubspec = source(root, 'pubspec.yaml', sourceOverrides);
   if (allowAndroidCandidateRollover) {
     const currentVersion = /^version:\s+([^+\s]+)\+(\d{10})$/mu.exec(pubspec);
+    const currentBuildNumber = currentVersion?.[2] ?? '';
+    const candidateBuildNumber = String(candidate.buildNumber ?? '');
+    const buildNumbersValid = /^\d{10}$/u.test(currentBuildNumber) &&
+      /^\d{10}$/u.test(candidateBuildNumber);
     if (currentVersion?.[1] !== candidate.versionName ||
-        Number(currentVersion?.[2]) <= Number(candidate.buildNumber) ||
+        !buildNumbersValid ||
+        BigInt(currentBuildNumber) < BigInt(candidateBuildNumber) ||
         handoff.submissionAllowed !== false) {
       fail('Android-only rollover must keep the unchanged Apple handoff safely pending.');
     }
@@ -194,6 +199,20 @@ export function validateAppleTestFlightHandoff({
   const tooling = object(handoff.toolingGates, 'toolingGates');
   for (const [key, value] of Object.entries(tooling)) {
     same(value, key === 'runnerPrivacyManifestValidated', `toolingGates.${key}`);
+  }
+  const toolingAudit = object(handoff.toolingAudit, 'toolingAudit');
+  same(toolingAudit.fullXcodeApplicationPresent, false,
+    'toolingAudit.fullXcodeApplicationPresent');
+  same(toolingAudit.activeDeveloperDirectory, 'command-line-tools-only',
+    'toolingAudit.activeDeveloperDirectory');
+  same(toolingAudit.cocoaPodsAvailable, false, 'toolingAudit.cocoaPodsAvailable');
+  same(toolingAudit.flutterDoctorIosReady, false, 'toolingAudit.flutterDoctorIosReady');
+  same(toolingAudit.archiveAttempted, false, 'toolingAudit.archiveAttempted');
+  same(toolingAudit.evidenceConclusion,
+    'blocked-before-build-by-missing-local-ios-tooling',
+    'toolingAudit.evidenceConclusion');
+  if (!/^2026-08-14T\d{2}:\d{2}:\d{2}Z$/u.test(toolingAudit.checkedAt ?? '')) {
+    fail('toolingAudit.checkedAt must record the current sanitized tooling audit.');
   }
   for (const [key, value] of Object.entries(object(handoff.postUploadChecks, 'postUploadChecks'))) {
     same(value, 'pending', `postUploadChecks.${key}`);

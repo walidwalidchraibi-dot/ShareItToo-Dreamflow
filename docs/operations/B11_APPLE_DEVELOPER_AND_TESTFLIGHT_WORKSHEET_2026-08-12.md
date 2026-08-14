@@ -1,8 +1,11 @@
 # B11 – Apple Developer und TestFlight: vorbereitete Übergabe
 
-Stand: 12. August 2026  
-Gebundener Kandidat: `ShareItToo 1.0.0 (2026081116)`  
-Bundle-ID: `com.shareittoo.app`  
+Stand: 14. August 2026
+
+Gebundener gemeinsamer Endkandidat: `ShareItToo 1.0.0 (2026081403)`
+
+Bundle-ID: `com.shareittoo.app`
+
 Umgebung: ausschließlich `https://staging.shareittoo.com/api/v1`
 
 ## 1. Zweck und Grenze
@@ -79,6 +82,8 @@ Connect-Felder eingetragen werden.
 Auf dem aktuellen Mac sind nur die Apple Command Line Tools aktiv; die
 vollständige Xcode-App und ihre iOS-SDKs fehlen. Deshalb sind Archiv,
 Codesigning, Simulator, Geräteinstallation und Upload noch nicht möglich.
+CocoaPods ist ebenfalls noch nicht verfügbar. Diese lokale Prüfung wurde am
+14. August erneut durchgeführt und endet bewusst vor jedem Buildversuch.
 
 Nach vollständiger Xcode-Installation:
 
