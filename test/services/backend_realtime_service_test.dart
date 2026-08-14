@@ -74,6 +74,36 @@ void main() {
       );
     });
 
+    test('ignores only a prompt equivalent initial connectivity echo', () {
+      expect(
+        BackendRealtimeService.isInitialConnectivityEcho(
+          pending: true,
+          unavailable: false,
+          previouslyUnavailable: false,
+          elapsed: const Duration(milliseconds: 500),
+        ),
+        isTrue,
+      );
+      expect(
+        BackendRealtimeService.isInitialConnectivityEcho(
+          pending: true,
+          unavailable: false,
+          previouslyUnavailable: false,
+          elapsed: const Duration(seconds: 3),
+        ),
+        isFalse,
+      );
+      expect(
+        BackendRealtimeService.isInitialConnectivityEcho(
+          pending: true,
+          unavailable: true,
+          previouslyUnavailable: false,
+          elapsed: const Duration(milliseconds: 500),
+        ),
+        isFalse,
+      );
+    });
+
     test('keeps ordinary changed events scoped to their resource', () {
       expect(
         BackendRealtimeService.sharedPersistenceKeysForEvent(

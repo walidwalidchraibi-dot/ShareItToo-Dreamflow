@@ -18,6 +18,8 @@ class BackendRealtimeService {
   static String? _accessToken;
   static bool _stopped = true;
   static bool _networkUnavailable = false;
+  static DateTime? _connectivityMonitoringStartedAt;
+  static bool _pendingInitialConnectivityEcho = false;
 
   @visibleForTesting
   static bool hasUsableConnectivity(Iterable<ConnectivityResult> results) =>
@@ -35,6 +37,17 @@ class BackendRealtimeService {
   @visibleForTesting
   static bool mayReconnectFromSource(Object? current, Object? source) =>
       source == null || identical(current, source);
+
+  @visibleForTesting
+  static bool isInitialConnectivityEcho({
+    required bool pending,
+    required bool unavailable,
+    required bool previouslyUnavailable,
+    required Duration elapsed,
+  }) =>
+      pending &&
+      unavailable == previouslyUnavailable &&
+      elapsed <= const Duration(seconds: 2);
 
   @visibleForTesting
   static Set<String> sharedPersistenceKeysForEvent(
@@ -72,6 +85,7 @@ class BackendRealtimeService {
 
   static Future<void> _startConnectivityMonitoring() async {
     final connectivity = Connectivity();
+    _connectivityMonitoringStartedAt = DateTime.now();
     try {
       _networkUnavailable = !hasUsableConnectivity(
         await connectivity.checkConnectivity(),
@@ -82,6 +96,7 @@ class BackendRealtimeService {
       debugPrint('[BackendRealtime] connectivity check unavailable: $error');
       _networkUnavailable = false;
     }
+    _pendingInitialConnectivityEcho = true;
     _connectivitySubscription = connectivity.onConnectivityChanged.listen(
       (results) => unawaited(_handleConnectivityChanged(results)),
       onError: (Object error) {
@@ -96,6 +111,18 @@ class BackendRealtimeService {
   ) async {
     if (_stopped) return;
     final unavailable = !hasUsableConnectivity(results);
+    final previouslyUnavailable = _networkUnavailable;
+    final monitoringStartedAt = _connectivityMonitoringStartedAt;
+    final initialEcho = isInitialConnectivityEcho(
+      pending: _pendingInitialConnectivityEcho,
+      unavailable: unavailable,
+      previouslyUnavailable: previouslyUnavailable,
+      elapsed: monitoringStartedAt == null
+          ? Duration.zero
+          : DateTime.now().difference(monitoringStartedAt),
+    );
+    _pendingInitialConnectivityEcho = false;
+    if (initialEcho) return;
     if (unavailable) {
       _networkUnavailable = true;
       _reconnectTimer?.cancel();
@@ -103,9 +130,10 @@ class BackendRealtimeService {
       await _closeCurrentChannel();
       return;
     }
-    final recovered = _networkUnavailable;
     _networkUnavailable = false;
-    if (!recovered) return;
+    // A concrete usable-transport event is also a recovery signal when the
+    // platform omitted the intermediate `none` event. Recycle the socket so a
+    // half-open connection cannot suppress the authenticated catch-up.
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
     await _closeCurrentChannel();
@@ -187,7 +215,11 @@ class BackendRealtimeService {
       final syncKeys = sharedPersistenceKeysForEvent(decoded);
       for (final key in syncKeys) {
         await prefs.remove(key);
-        SharedPersistenceSync.notify(key);
+        if (decoded['type'] == 'ready') {
+          SharedPersistenceSync.notifyWithCatchUpRetry(key);
+        } else {
+          SharedPersistenceSync.notify(key);
+        }
       }
       if (decoded['type'] != 'changed') return;
       switch (resource) {
@@ -219,6 +251,9 @@ class BackendRealtimeService {
   static Future<void> disconnect() async {
     _stopped = true;
     _networkUnavailable = false;
+    _connectivityMonitoringStartedAt = null;
+    _pendingInitialConnectivityEcho = false;
+    SharedPersistenceSync.cancelCatchUpRetries();
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
     await _connectivitySubscription?.cancel();

@@ -34,6 +34,26 @@ function sha256(contents) {
   return createHash('sha256').update(contents).digest('hex');
 }
 
+const unsafeFailureDetail = /(?:@|https?:\/\/|\/Users\/|password|passcode|secret|token|credential|private.?key|api.?key|otp|pin|\b\d{6,}\b)/iu;
+
+export function sanitizedChildFailure(error) {
+  const stderr = Buffer.isBuffer(error?.stderr)
+    ? error.stderr.toString('utf8')
+    : typeof error?.stderr === 'string'
+      ? error.stderr
+      : '';
+  const line = stderr
+    .split(/\r?\n/u)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.startsWith('ERROR: '))
+    .at(-1);
+  if (line === undefined) return null;
+  const detail = line.slice('ERROR: '.length).trim();
+  if (detail.length === 0 || detail.length > 240 || unsafeFailureDetail.test(detail)) return null;
+  if (!/^[A-Za-z0-9 .,()'/-]+$/u.test(detail)) return null;
+  return detail;
+}
+
 function argumentValue(args, flag) {
   const index = args.indexOf(flag);
   return index >= 0 ? args[index + 1] : null;
@@ -116,7 +136,10 @@ async function run() {
     }
   }
   if (primaryFailure !== null) {
-    fail(`The isolated ${kind} diagnostic failed without exposing private state.`);
+    const detail = sanitizedChildFailure(primaryFailure);
+    fail(detail === null
+      ? `The isolated ${kind} diagnostic failed without exposing private state.`
+      : `The isolated ${kind} diagnostic failed safely: ${detail}`);
   }
   const evidence = result?.evidence ?? result;
   console.log(JSON.stringify({

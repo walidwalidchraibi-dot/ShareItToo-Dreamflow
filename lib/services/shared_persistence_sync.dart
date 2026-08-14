@@ -16,12 +16,39 @@ class SharedPersistenceSync {
     handoverReturnStateKey,
   };
 
+  static final Map<String, Timer> _catchUpRetryTimers = <String, Timer>{};
+
   static Stream<String> get changes => sharedPersistenceChanges;
 
   static void notify(String key) {
     if (affectsBookingSync(key)) {
       notifySharedPersistenceChange(key);
     }
+  }
+
+  /// Emits a refresh immediately and once more after a short recovery window.
+  ///
+  /// A phone can report that a transport is back before authenticated HTTP is
+  /// fully usable. Screens serialize and coalesce these notifications, so the
+  /// delayed pulse becomes one bounded retry instead of concurrent reloads.
+  static void notifyWithCatchUpRetry(
+    String key, {
+    Duration retryDelay = const Duration(seconds: 4),
+  }) {
+    notify(key);
+    if (!affectsBookingSync(key)) return;
+    _catchUpRetryTimers.remove(key)?.cancel();
+    _catchUpRetryTimers[key] = Timer(retryDelay, () {
+      _catchUpRetryTimers.remove(key);
+      notify(key);
+    });
+  }
+
+  static void cancelCatchUpRetries() {
+    for (final timer in _catchUpRetryTimers.values) {
+      timer.cancel();
+    }
+    _catchUpRetryTimers.clear();
   }
 
   static bool affectsBookingSync(String key) => _bookingKeys.contains(key);

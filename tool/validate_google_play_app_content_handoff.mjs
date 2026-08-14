@@ -137,7 +137,7 @@ export function validateGooglePlayAppContentHandoff({
       tasks.storeListing.status !==
         'saved-in-console-compatible-copy-and-assets' ||
       tasks.storeListing.screenshotReadinessRef !==
-        'docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081403-20260814.json' ||
+        'docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081405-20260814.json' ||
       tasks.storeListing.consoleSaveEvidenceRef !==
         'docs/evidence/b11/google-play-store-listing-saved-20260813.json') {
     fail('One or more prepared Play answers no longer match the bounded product truth.');

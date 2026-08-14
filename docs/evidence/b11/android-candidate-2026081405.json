@@ -53,11 +53,12 @@
     "backgroundFcm": "passed",
     "terminatedProcessFcm": "passed",
     "notificationIconVisualFit": "passed-centered-contained-safety-margin",
+    "syntheticRoleBooking": "passed-physical-play-build",
     "controlledCrashDiagnostic": "sent-once-console-assignment-pending",
     "authenticatedSession": "pending-exact-build",
-    "authenticatedDeepLinks": "pending-exact-build",
-    "logoutColdStartGuestPersistence": "pending-exact-build",
-    "postLogoutPushSuppression": "pending-exact-build",
+    "authenticatedDeepLinks": "passed-physical-play-build",
+    "logoutColdStartGuestPersistence": "passed-physical-play-build",
+    "postLogoutPushSuppression": "passed-physical-play-build",
     "offlineRealtimeRecovery": "pending-exact-build"
   },
   "googlePlayInternalRelease": {
@@ -72,6 +73,13 @@
     "terminatedProcess": "passed",
     "notificationIconVisualFit": "passed-centered-and-contained",
     "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081405-20260814T141032Z.json"
+  },
+  "logoutLifecycle": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "coldStartGuestPersistence": "passed",
+    "postLogoutPushSuppression": "passed",
+    "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081405-20260814T145955Z.json"
   },
   "staging": {
     "serverCommit": "09c9211e41da75969b9ee59e9954ac7465250e80",

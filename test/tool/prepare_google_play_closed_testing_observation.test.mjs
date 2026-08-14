@@ -24,8 +24,8 @@ const feedbackBase = JSON.parse(readFileSync(
   'utf8',
 ));
 const finalDeviceCandidate = {
-  versionName: '1.0.0',
-  buildNumber: '2026081403',
+  versionName: feedbackBase.candidate.versionName,
+  buildNumber: feedbackBase.candidate.buildNumber,
   commit: 'b'.repeat(40),
 };
 

@@ -125,6 +125,8 @@ node --test test/tool/diagnose_android_controlled_fcm.test.mjs
 node --check tool/restore_android_synthetic_session.mjs
 node --check tool/diagnose_android_logout_lifecycle.mjs
 node --check tool/diagnose_android_offline_realtime.mjs
+node --check tool/run_isolated_android_device_message_diagnostic.mjs
+node --test test/tool/run_isolated_android_device_message_diagnostic.test.mjs
 
 node --check tool/diagnose_android_app_links.mjs
 node --test test/tool/diagnose_android_app_links.test.mjs

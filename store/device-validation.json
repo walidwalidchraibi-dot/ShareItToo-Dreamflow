@@ -18,7 +18,34 @@
       "delivery": "play-internal",
       "aabSha256": "1795e54184a1467f981557cdede8b07821b1a2eeb058786569b519f6d97e6f67",
       "apkSha256": "565e38ffe5faa7b6f1b367281ee78d59e2e2b52f159b7ea68c439711eb3bef3d",
-      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
+      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
+      "syntheticRoleBooking": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-14T14:55:11.640Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081405-20260814T145511Z.json"
+      },
+      "authenticatedDeepLinks": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-14T14:58:00.731Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081405-20260814T145800Z.json"
+      },
+      "logoutLifecycle": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-14T14:59:55.699Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081405-20260814T145955Z.json"
+      }
     },
     "ios": {
       "delivery": "pending",

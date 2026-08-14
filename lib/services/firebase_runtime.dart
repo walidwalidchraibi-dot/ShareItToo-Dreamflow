@@ -492,7 +492,7 @@ class FirebaseRuntime {
 
   static void _captureForegroundMessage(RemoteMessage message) {
     for (final key in sharedPersistenceKeysForForegroundPush(message.data)) {
-      SharedPersistenceSync.notify(key);
+      SharedPersistenceSync.notifyWithCatchUpRetry(key);
     }
     final notification = message.notification;
     final foreground = parseForegroundPushMessage(
