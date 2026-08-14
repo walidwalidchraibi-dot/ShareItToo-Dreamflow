@@ -27,6 +27,15 @@
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
         "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081403-20260814T104456Z.json"
+      },
+      "authenticatedDeepLinks": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-14T11:08:17.534Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081403-20260814T110817Z.json"
       }
     },
     "ios": {
