@@ -7,8 +7,8 @@
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
     "minimumBuildNumber": "2026080903",
-    "buildNumber": "2026081405",
-    "commit": "a00606f979315930ea6c28c0ce7495ef4ec56368",
+    "buildNumber": "2026081406",
+    "commit": "8583ecd40c06df6d8fa7246e931ef5f2ef3ccfd4",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
@@ -16,36 +16,9 @@
     "stripeLivemode": false,
     "android": {
       "delivery": "play-internal",
-      "aabSha256": "1795e54184a1467f981557cdede8b07821b1a2eeb058786569b519f6d97e6f67",
-      "apkSha256": "565e38ffe5faa7b6f1b367281ee78d59e2e2b52f159b7ea68c439711eb3bef3d",
-      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
-      "syntheticRoleBooking": {
-        "status": "passed",
-        "installMethod": "google-play-split",
-        "capturedAt": "2026-08-14T14:55:11.640Z",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081405-20260814T145511Z.json"
-      },
-      "authenticatedDeepLinks": {
-        "status": "passed",
-        "installMethod": "google-play-split",
-        "capturedAt": "2026-08-14T14:58:00.731Z",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081405-20260814T145800Z.json"
-      },
-      "logoutLifecycle": {
-        "status": "passed",
-        "installMethod": "google-play-split",
-        "capturedAt": "2026-08-14T14:59:55.699Z",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081405-20260814T145955Z.json"
-      }
+      "aabSha256": "7edb50dc36750ce9ff68ec8e36793a9593b543c7e74933057bc1bbc8bf83bf95",
+      "apkSha256": "f9ab4f8bff0abcab4a63bd1b1f91ee2d121295f97b69622c35b9373deb3ae843",
+      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
     },
     "ios": {
       "delivery": "pending",
@@ -79,7 +52,7 @@
         "offlineRecovery": "open",
         "largeTextAndScreenReader": "open"
       },
-      "evidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081405-20260814.json"
+      "evidenceRef": null
     },
     {
       "id": "android-hotspot-renter",
@@ -163,31 +136,31 @@
   "releaseChecks": {
     "candidateIdentityAndSignatures": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081405.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081406.json"
     },
     "firebaseFcmAndApns": {
-      "status": "testing",
-      "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081405-20260814T141032Z.json"
+      "status": "open",
+      "evidenceRef": null
     },
     "binaryPrivacyAndNetwork": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081405.json"
+      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081406.json"
     },
     "crashReleaseMapping": {
-      "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-crash-release-check-2026081405.json"
+      "status": "open",
+      "evidenceRef": null
     },
     "storeWarningsLinksAndSigning": {
-      "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-play-store-links-signing-2026081405-20260814.json"
+      "status": "open",
+      "evidenceRef": null
     },
     "stagingCleanupAndHealth": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081405.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081406.json"
     },
     "productionInvariant": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081405.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081406.json"
     }
   },
   "approvals": {

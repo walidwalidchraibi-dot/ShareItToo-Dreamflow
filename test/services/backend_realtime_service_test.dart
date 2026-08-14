@@ -45,6 +45,17 @@ void main() {
       );
     });
 
+    test('refreshes booking and chat data independently on transport recovery',
+        () {
+      expect(
+        BackendRealtimeService.sharedPersistenceKeysForConnectivityRecovery,
+        {
+          'rental_requests',
+          'message_threads_v1',
+        },
+      );
+    });
+
     test('subscribes before sending the immediate authentication request', () {
       final operations = <String>[];
 

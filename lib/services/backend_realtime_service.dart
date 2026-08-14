@@ -73,6 +73,12 @@ class BackendRealtimeService {
     return const {};
   }
 
+  @visibleForTesting
+  static Set<String> get sharedPersistenceKeysForConnectivityRecovery => const {
+        SharedPersistenceSync.rentalRequestsKey,
+        SharedPersistenceSync.messageThreadsKey,
+      };
+
   static Future<void> connect(String accessToken) async {
     if (!BackendConfig.enabled || accessToken.trim().isEmpty) return;
     if (_channel != null && _accessToken == accessToken && !_stopped) return;
@@ -131,6 +137,14 @@ class BackendRealtimeService {
       return;
     }
     _networkUnavailable = false;
+    // Do not make the visible catch-up depend exclusively on the websocket
+    // handshake. A half-open socket can survive a radio outage long enough to
+    // miss both the changed event and the next ready event. The active screens
+    // therefore receive one immediate HTTP refresh pulse plus one bounded
+    // retry as soon as Android reports a usable transport again.
+    for (final key in sharedPersistenceKeysForConnectivityRecovery) {
+      SharedPersistenceSync.notifyWithCatchUpRetry(key);
+    }
     // A concrete usable-transport event is also a recovery signal when the
     // platform omitted the intermediate `none` event. Recycle the socket so a
     // half-open connection cannot suppress the authenticated catch-up.
