@@ -7,8 +7,8 @@
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
     "minimumBuildNumber": "2026080903",
-    "buildNumber": "2026081403",
-    "commit": "09c9211e41da75969b9ee59e9954ac7465250e80",
+    "buildNumber": "2026081404",
+    "commit": "79f63e183767563424355407ca52b1c5a62b85ed",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
@@ -16,47 +16,24 @@
     "stripeLivemode": false,
     "android": {
       "delivery": "play-internal",
-      "aabSha256": "c933d642cc02417e655d8e7f60960508a0a6ff271e7a684429c14492286b7f0c",
-      "apkSha256": "29386ee981dd895bd2bfa70d4dd4564a1237141dce38a4f33e0f2994c975755b",
+      "aabSha256": "80844a34939d848211d46c580853e4f201154ab73a7e811aa09d4d7555ed5be1",
+      "apkSha256": "84b98da3a63df18a4fe1fac2b11adfbaef08305b6fbe4aa15cf77393a6e1186f",
       "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
       "authenticatedSession": {
-        "status": "passed",
-        "installMethod": "google-play-split",
-        "capturedAt": "2026-08-14T10:44:56.790Z",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081403-20260814T104456Z.json"
+        "status": "open",
+        "evidenceRef": null
       },
       "authenticatedDeepLinks": {
-        "status": "passed",
-        "installMethod": "google-play-split",
-        "capturedAt": "2026-08-14T11:08:17.534Z",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081403-20260814T110817Z.json"
+        "status": "open",
+        "evidenceRef": null
       },
       "logoutLifecycle": {
-        "status": "passed",
-        "capturedAt": "2026-08-14T11:45:51.711Z",
-        "installMethod": "google-play-split",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081403-20260814T114551Z.json"
+        "status": "open",
+        "evidenceRef": null
       },
       "offlineRealtime": {
-        "status": "passed",
-        "capturedAt": "2026-08-14T11:50:06.972Z",
-        "installMethod": "google-play-split",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "offlineWindowSeconds": 15,
-        "sameProcessRecovery": "passed",
-        "originalNetworkRestored": "passed",
-        "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081403-20260814T115006Z.json"
+        "status": "open",
+        "evidenceRef": null
       }
     },
     "ios": {
@@ -80,10 +57,10 @@
       "status": "open",
       "tests": {
         "installAndFirstStart": "passed",
-        "authenticationAndSession": "passed",
+        "authenticationAndSession": "open",
         "listingAndBooking": "open",
         "chatAndDeepLink": "open",
-        "pushForeground": "open",
+        "pushForeground": "failed-source-fix-pending-next-candidate",
         "pushBackground": "open",
         "pushTerminated": "open",
         "handoverAndReturn": "open",
@@ -91,7 +68,7 @@
         "offlineRecovery": "open",
         "largeTextAndScreenReader": "open"
       },
-      "evidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081403-20260814.json"
+      "evidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081404-20260814.json"
     },
     {
       "id": "android-hotspot-renter",
@@ -175,31 +152,31 @@
   "releaseChecks": {
     "candidateIdentityAndSignatures": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081403.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081404.json"
     },
     "firebaseFcmAndApns": {
       "status": "testing",
-      "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081403-20260814T111938Z.json"
+      "evidenceRef": "docs/evidence/b11/android-controlled-fcm-foreground-popup-failure-2026081404-20260814.json"
     },
     "binaryPrivacyAndNetwork": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081403.json"
+      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081404.json"
     },
     "crashReleaseMapping": {
       "status": "testing",
-      "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081403.json"
+      "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081404.json"
     },
     "storeWarningsLinksAndSigning": {
-      "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-play-store-links-signing-2026081403-20260814.json"
+      "status": "testing",
+      "evidenceRef": null
     },
     "stagingCleanupAndHealth": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081403.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081404.json"
     },
     "productionInvariant": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081403.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081404.json"
     }
   },
   "approvals": {

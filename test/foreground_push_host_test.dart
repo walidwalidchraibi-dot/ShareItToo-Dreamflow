@@ -46,4 +46,35 @@ void main() {
     await tester.pump();
     expect(opened, same(message));
   });
+
+  testWidgets('uses the root navigator when hosted by MaterialApp.builder',
+      (tester) async {
+    final messages = StreamController<ForegroundPushMessage>.broadcast();
+    final navigatorKey = GlobalKey<NavigatorState>();
+    addTearDown(messages.close);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        builder: (context, child) => ForegroundPushHost(
+          navigatorKey: navigatorKey,
+          messages: messages.stream,
+          child: child ?? const SizedBox.shrink(),
+        ),
+        home: const Scaffold(body: Text('Start')),
+      ),
+    );
+
+    messages.add(const ForegroundPushMessage(
+      title: 'Neue Nachricht',
+      body: 'Du hast eine neue Nachricht.',
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Neue Nachricht'), findsOneWidget);
+    expect(find.text('Du hast eine neue Nachricht.'), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }

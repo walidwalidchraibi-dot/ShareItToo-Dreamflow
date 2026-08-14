@@ -22,6 +22,7 @@ import 'package:lendify/widgets/foreground_push_host.dart';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   // Initialize bindings once in the same zone as runApp to avoid zone mismatch warnings.
@@ -118,11 +119,13 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             title: 'ShareItToo',
             debugShowCheckedModeBanner: false,
+            navigatorKey: rootNavigatorKey,
             scaffoldMessengerKey: rootScaffoldMessengerKey,
             theme: buildLightTheme(context),
             darkTheme: buildDarkTheme(context),
             themeMode: ThemeMode.system,
             builder: (context, child) => ForegroundPushHost(
+              navigatorKey: rootNavigatorKey,
               messengerKey: rootScaffoldMessengerKey,
               child: AppGradientBackground(
                 child: child ?? const SizedBox.shrink(),

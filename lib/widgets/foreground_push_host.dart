@@ -9,6 +9,7 @@ class ForegroundPushHost extends StatefulWidget {
   final Widget child;
   final Stream<ForegroundPushMessage>? messages;
   final void Function(ForegroundPushMessage message)? onOpen;
+  final GlobalKey<NavigatorState>? navigatorKey;
   final GlobalKey<ScaffoldMessengerState>? messengerKey;
 
   const ForegroundPushHost({
@@ -16,6 +17,7 @@ class ForegroundPushHost extends StatefulWidget {
     required this.child,
     this.messages,
     this.onOpen,
+    this.navigatorKey,
     this.messengerKey,
   });
 
@@ -55,11 +57,18 @@ class _ForegroundPushHostState extends State<ForegroundPushHost> {
     if (_showingMessage || _pendingMessages.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _showingMessage || _pendingMessages.isEmpty) return;
+      final presentationContext =
+          widget.navigatorKey?.currentState?.overlay?.context ??
+              (Navigator.maybeOf(context) == null ? null : context);
+      if (presentationContext == null) {
+        _presentNextMessage();
+        return;
+      }
       final message = _pendingMessages.removeFirst();
       _showingMessage = true;
       unawaited(
         AppPopup.showCustom<void>(
-          context,
+          presentationContext,
           icon: Icons.notifications_active_outlined,
           title: message.title,
           showCloseIcon: true,
@@ -77,7 +86,10 @@ class _ForegroundPushHostState extends State<ForegroundPushHost> {
                 const SizedBox(height: 20),
                 FilledButton.icon(
                   onPressed: () {
-                    Navigator.of(context, rootNavigator: true).maybePop();
+                    Navigator.of(
+                      presentationContext,
+                      rootNavigator: true,
+                    ).maybePop();
                     (widget.onOpen ?? FirebaseRuntime.openForegroundMessage)(
                       message,
                     );

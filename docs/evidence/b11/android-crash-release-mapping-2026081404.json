@@ -67,7 +67,7 @@
     "reason": "The bounded staging crash diagnostic is compiled into this exact candidate and guarded by an on-device one-attempt receipt reserved before event generation. It remains unopened until the exact Play build is installed."
   },
   "boundaries": {
-    "uploadedToStore": false,
+    "uploadedToStore": true,
     "productionCrashGenerated": false,
     "controlledStagingEventGenerated": false,
     "containsSecrets": false,

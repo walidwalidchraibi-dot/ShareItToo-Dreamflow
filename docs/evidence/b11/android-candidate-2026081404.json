@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "built-scanned-internal-upload-pending",
+  "status": "play-internal-installed-exact-diagnostics-pending",
   "generatedAt": "2026-08-14T12:17:00.586Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -16,7 +16,7 @@
     "stripeLivemode": false
   },
   "android": {
-    "delivery": "internal-upload-pending",
+    "delivery": "play-internal",
     "aabSha256": "80844a34939d848211d46c580853e4f201154ab73a7e811aa09d4d7555ed5be1",
     "apkSha256": "84b98da3a63df18a4fe1fac2b11adfbaef08305b6fbe4aa15cf77393a6e1186f",
     "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
@@ -44,10 +44,11 @@
     "findings": []
   },
   "exactCandidateDiagnostics": {
-    "playInternalInstallAndLaunch": "pending",
-    "playInstallerVerified": "pending",
+    "playInternalInstallAndLaunch": "passed",
+    "playInstallerVerified": "passed-com.android.vending",
     "centeredSitFeedback": "passed-source-and-widget-regression",
-    "foregroundPushCenteredSitPopup": "passed-source-and-widget-regression",
+    "foregroundPushCenteredSitPopup": "failed-on-physical-play-build-root-cause-fixed-for-next-candidate",
+    "foregroundPushDiagnosticEvidenceRef": "docs/evidence/b11/android-controlled-fcm-foreground-popup-failure-2026081404-20260814.json",
     "backgroundAndTerminatedPush": "system-notification-required",
     "controlledCrashDiagnostic": "compiled-exact-run-one-attempt-guarded",
     "authenticatedSession": "pending-exact-build",
@@ -70,9 +71,9 @@
     "productionReadyRouteAvailable": true
   },
   "boundaries": {
-    "uploadedToStore": false,
-    "installedOnPhysicalDevice": false,
-    "controlledFcmSentToSyntheticAccount": false,
+    "uploadedToStore": true,
+    "installedOnPhysicalDevice": true,
+    "controlledFcmSentToSyntheticAccount": true,
     "controlledCrashDiagnosticSent": false,
     "productionPushSent": false,
     "productionCrashGenerated": false,

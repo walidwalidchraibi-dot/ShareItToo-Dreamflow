@@ -6,7 +6,7 @@
   "candidate": {
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081403",
+    "buildNumber": "2026081404",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
     "firebaseAnalyticsEnabled": false,
