@@ -57,12 +57,22 @@ Die ersten vier Punkte blockieren weiterhin jede Live-Aktivierung. Aenderungen
 werden im zentralen Register, im Backend-Spiegel, in den Rechtstexten und in
 den gebundenen Tests gemeinsam versioniert.
 
+Am 15.08.2026 wurde festgelegt, dass alle sechs Zwischenregeln im internen und
+geschlossenen Test aktiv verwendet werden, bis der Nutzer eine aktualisierte
+Entscheidung mitteilt. Die maschinenlesbare Fassung traegt die Version
+`V4-INTERIM-2026-08-15`, gilt ausschliesslich fuer interne und geschlossene
+Tests und aktiviert weder Echtgeld noch eine rechtliche Live-Freigabe. Jede
+spaetere Mitteilung ersetzt den betroffenen Wert zentral in App, Backend,
+Rechtstexten und Regressionstests.
+
 ## Verifikation
 
 - Flutter-Gesamtsuite: 262 bestanden, 0 fehlgeschlagen.
 - Backend-Gesamtsuite: 120 bestanden, 0 fehlgeschlagen, 1 PostgreSQL-Test lokal
   mangels `TEST_DATABASE_URL` uebersprungen.
-- Flutter-Gesamtanalyse: Exit 0; nur bereits bekannte Warnungen/Hinweise.
+- Flutter-Gesamtanalyse: 640 bereits vorhandene Warnungen/Hinweise; der Lauf
+  bleibt deshalb als eigener Qualitaetsblock offen. Die in diesem Meilenstein
+  geaenderten V4-Dateien wurden separat ohne Befund analysiert.
 - Legal-Readiness: gueltiger Draft, Live-Freigabe weiterhin fail-closed.
 - Datenschutz- und Aufbewahrungsmanifest: Quellhashes aktuell und Validatoren
   bestanden.
@@ -128,6 +138,13 @@ Servernachweis:
   Startfehler auf.
 - Der reale PSP-Vertrag, finale Rechtsfreigabe, Store-Datenschutzantworten und
   der geschlossene Test bleiben offene Live-Gates.
+- Der geschuetzte Store-Review-Nachweis wurde fuer Kandidat 2026081411
+  ehrlich auf `review-fixture-refresh-pending` gesetzt: beide Rollen-Logins,
+  Staging-Health, Positivlisten-Inserat und Preisangebot bestehen; das
+  Erzeugen der neuen akzeptierten Testbuchung endet serverseitig noch mit
+  `internal_error`. Die alte stornierte, zahlungsfreie Fixture wurde
+  archiviert. Ein neues synthetisches Inserat ist vorbereitet; akzeptierte
+  Buchung und gemeinsamer Chat bleiben bis zur Fehlerbehebung offen.
 - Naechster technischer Schritt: Google-Play-Installation auf dem zweiten
   Testgeraet und visueller Zwei-Rollen-End-to-End-Test fuer Uebergabe,
   Rueckgabe, Fehlcode, Ablauf, Replay-Schutz und die SIT-Dialoge.
@@ -147,3 +164,28 @@ Servernachweis:
 - Repository-Nachweise und Fail-closed-Validatoren: bestanden.
 - Grenzen: kein Closed-, Open- oder Production-Release, keine oeffentliche
   Ausrollung, kein Echtgeld und keine Produktionsaenderung.
+
+## Meilenstein 16.52 – aktive V4-Zwischenregeln und ehrlicher Review-Stand
+
+- Alle sechs offenen V4-Punkte sind zentral als Version
+  `V4-INTERIM-2026-08-15` fuer interne und geschlossene Tests aktiv. Sie koennen
+  nach einer neuen Nutzerentscheidung gemeinsam in App, Backend,
+  Rechtstexten und Tests ersetzt werden.
+- Echtgeld, Auszahlung, Schadensverrechnung und rechtliche Live-Freigabe
+  bleiben technisch ausgeschaltet.
+- Der Store-Review-Nachweis ist nicht mehr faelschlich gruen: beide
+  Rollen-Logins, Staging-Health, Positivlisten-Inserat und Preisangebot sind
+  verifiziert; akzeptierte Buchung und gemeinsamer Chat bleiben wegen eines
+  serverseitigen `internal_error` offen.
+- Das Werkzeug fuer synthetische Review-Buchungen sendet jetzt die
+  Privatstatus-Bestaetigung, die erlaubte Kategorie und alle fuenf getrennten,
+  versionierten V4-Erklaerungen.
+- Vollstaendige App-Suite: 262 bestanden, 0 fehlgeschlagen.
+- Vollstaendige Backend-Suite: 120 bestanden, 0 fehlgeschlagen, 1 lokaler
+  PostgreSQL-Test mangels `TEST_DATABASE_URL` uebersprungen.
+- Analyse der geaenderten V4-Dateien: 0 Befunde. Die 640 bereits vorhandenen
+  Hinweise der Gesamtanalyse bleiben transparent offen und werden nicht als
+  Freigabe behauptet.
+- Google Play bleibt ausschliesslich beim internen Kandidaten
+  `1.0.0-internal-2026081411`; Closed, Open, Produktion und Echtgeld wurden
+  nicht veraendert.

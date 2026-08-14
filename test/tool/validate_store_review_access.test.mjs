@@ -119,7 +119,7 @@ test('accepts the honest fail-closed testing state with device and network check
   const result = validate();
   assert.equal(result.state, 'testing');
   assert.equal(result.readyForStore, false);
-  assert.equal(result.passedScenarios, 8);
+  assert.equal(result.passedScenarios, 6);
   assert.equal(result.storeGate, 'open');
 });
 
@@ -149,6 +149,15 @@ test('rejects incomplete technical evidence', () => {
   const evidence = clone(passedEvidence);
   evidence.checks.sharedChatReadableByBothRoles = false;
   assert.throws(() => validate({ evidence, technicalPass: true }), /must be true/);
+});
+
+test('requires bounded mutations to be disclosed while a fixture is refreshed', () => {
+  const evidence = clone(currentEvidence);
+  evidence.boundaries.businessDataMutations = false;
+  assert.throws(
+    () => validate({ evidence }),
+    /must disclose its bounded synthetic Staging mutations/,
+  );
 });
 
 test('rejects incomplete safety action evidence', () => {

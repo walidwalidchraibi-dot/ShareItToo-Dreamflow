@@ -153,11 +153,9 @@ export function validateStoreReviewAccess({
     fail('review access must contain exactly owner and renter roles.');
   }
   for (const role of review.roles) {
-    const expectedRoleStatus = review.technicalAccess?.status === 'passed'
-      ? 'verified'
-      : 'pending-verification';
-    if (role.credentialStorage !== 'owner-only-vault' || role.status !== expectedRoleStatus) {
-      fail(`review roles must be ${expectedRoleStatus} and stored only in the owner-only vault.`);
+    if (role.credentialStorage !== 'owner-only-vault'
+        || !['verified', 'pending-verification'].includes(role.status)) {
+      fail('review roles must use a valid status and remain only in the owner-only vault.');
     }
   }
   const technical = object(review.technicalAccess, 'technicalAccess');
@@ -180,6 +178,18 @@ export function validateStoreReviewAccess({
     fail('review evidence must match the current technical access state.');
   }
   assertSameCandidate(evidence.candidate, device.candidate, 'review evidence.candidate');
+  const refreshPending = evidence.status === 'review-fixture-refresh-pending';
+  const expectedRoleStatus = technical.status === 'passed'
+    || (refreshPending
+      && evidence.checks?.ownerLoginPassed === true
+      && evidence.checks?.renterLoginPassed === true)
+    ? 'verified'
+    : 'pending-verification';
+  for (const role of review.roles) {
+    if (role.status !== expectedRoleStatus) {
+      fail(`review roles must be ${expectedRoleStatus} for the recorded access state.`);
+    }
+  }
   if (technical.status === 'passed') {
     for (const key of requiredChecks) {
       if (evidence.checks?.[key] !== true) fail(`review evidence.checks.${key} must be true.`);
@@ -189,7 +199,12 @@ export function validateStoreReviewAccess({
         || evidence.checks?.registrationsAccepted !== true
         || evidence.checks?.priorVerificationEvidenceAvailable !== true
         || evidence.checks?.ownerLoginPassed !== true
-        || evidence.checks?.renterLoginPassed !== false
+        || evidence.checks?.renterLoginPassed !== true
+        || evidence.checks?.stagingHealthPassed !== true
+        || evidence.checks?.listingGuardrailsPassed !== true
+        || evidence.checks?.bookingQuotePassed !== true
+        || evidence.checks?.bookingCreationPassed !== false
+        || evidence.checks?.partialSyntheticListingPrepared !== true
         || evidence.checks?.liveAccessPassed !== false
         || evidence.checks?.fixtureRefreshRequired !== true) {
       fail('fixture-refresh evidence must preserve only the bounded owner login and renter refresh blocker.');
@@ -215,17 +230,27 @@ export function validateStoreReviewAccess({
     'publicStoreChanged',
     'productionChanged',
   ]);
-  if (evidence.boundaries.productDataReadOnly !== true
-      || evidence.boundaries.businessDataMutations !== false
-      || evidence.boundaries.syntheticAccountsOnly !== true) {
-    fail('review evidence must prove read-only business data and synthetic-only scope.');
+  if (evidence.boundaries.syntheticAccountsOnly !== true) {
+    fail('review evidence must prove synthetic-only scope.');
+  }
+  if (refreshPending) {
+    if (evidence.boundaries.productDataReadOnly !== false
+        || evidence.boundaries.businessDataMutations !== true
+        || evidence.boundaries.boundedSyntheticFixtureMutations !== true
+        || evidence.boundaries.priorTerminalFixtureArchived !== true
+        || evidence.boundaries.syntheticListingCreated !== true
+        || evidence.boundaries.syntheticBookingCreated !== false) {
+      fail('fixture-refresh evidence must disclose its bounded synthetic Staging mutations.');
+    }
+  } else if (evidence.boundaries.productDataReadOnly !== true
+      || evidence.boundaries.businessDataMutations !== false) {
+    fail('passed or verification-pending review evidence must prove read-only business data.');
   }
   if (technical.status === 'passed'
       && evidence.boundaries.authenticationSessionsCreated !== true) {
     fail('passed review evidence must disclose that authentication sessions were created.');
   }
   if (technical.status === 'testing') {
-    const refreshPending = evidence.status === 'review-fixture-refresh-pending';
     const expectedRegistrationsCreated = refreshPending ? false : true;
     if (evidence.boundaries.syntheticAccountRegistrationsCreated !== expectedRegistrationsCreated) {
       fail('testing review evidence must disclose whether synthetic account registrations were created.');

@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "state": "draft",
   "approvalAllowed": false,
+  "interimPilotRules": {
+    "version": "V4-INTERIM-2026-08-15",
+    "status": "active-for-internal-and-closed-testing",
+    "realPaymentsEnabled": false,
+    "replaceOnUserInstruction": true
+  },
   "consentContract": {
     "minimumUserAge": 18,
     "explicitConfirmations": [
@@ -92,36 +98,42 @@
       "status": "open",
       "interimRule": "versioned-separate-declarations-at-booking-request",
       "decisionBy": "legal-review-question-1",
+      "activeForInternalTesting": true,
       "blocksLiveActivation": true
     },
     "withdrawalEffectOnPrivateRental": {
       "status": "open",
       "interimRule": "record-and-confirm-without-automatic-booking-or-money-effect",
       "decisionBy": "legal-review-question-2",
+      "activeForInternalTesting": true,
       "blocksLiveActivation": true
     },
     "cancellationParameters": {
       "status": "open",
       "interimRule": "50-percent-retained-under-24h-and-100-percent-after-start",
       "decisionBy": "legal-and-product-review-question-3",
+      "activeForInternalTesting": true,
       "blocksLiveActivation": true
     },
     "marketplacePspMechanics": {
       "status": "open",
       "interimRule": "test-and-mock-only-no-real-money-movement",
       "decisionBy": "psp-contract-and-payment-legal-review-question-4",
+      "activeForInternalTesting": true,
       "blocksLiveActivation": true
     },
     "missingReturnConfirmationWindow": {
       "status": "open",
       "interimRule": "awaiting-return-confirmation-until-t0-plus-5-calendar-days",
       "decisionBy": "product-and-psp",
+      "activeForInternalTesting": true,
       "blocksLiveActivation": false
     },
     "handoverPhotoWorkflow": {
       "status": "open",
       "interimRule": "four-photos-each-direction-with-counter-confirmation-or-deviation-photo",
       "decisionBy": "pilot-usability-test",
+      "activeForInternalTesting": true,
       "blocksLiveActivation": false
     }
   },

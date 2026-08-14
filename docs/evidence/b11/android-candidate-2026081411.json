@@ -32,12 +32,21 @@
     "cleartextTrafficDisabled": true,
     "analyticsSdkPresent": false,
     "advertisingSdkPresent": false,
+    "permissionInventoryStatus": "passed",
+    "permissionInventoryEvidenceRef": "docs/evidence/b11/android-release-permissions-2026081411.json",
+    "disclosedSdks": [
+      "Firebase Cloud Messaging",
+      "Firebase Crashlytics",
+      "Firebase Authentication",
+      "Facebook Login",
+      "Google Maps Platform"
+    ],
     "findings": []
   },
   "exactCandidateDiagnostics": {
     "playInternalInstallAndLaunch": "passed",
     "playInstallerVerified": "passed",
-    "authenticatedSession": "passed-preserved-from-previous-play-build",
+    "authenticatedSession": "passed-physical-play-build",
     "stagingFeedLoaded": "passed-physical-play-build",
     "controlledCrashDiagnostic": "sent-once-console-assignment-pending",
     "twoDevicePrivatePilotAcceptance": "pending"

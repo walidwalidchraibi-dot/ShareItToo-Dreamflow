@@ -4,6 +4,7 @@ class PilotOpenDecision {
   final String interimRule;
   final String updateAuthority;
   final bool blocksLiveActivation;
+  final bool activeForInternalTesting;
 
   const PilotOpenDecision({
     required this.id,
@@ -11,6 +12,7 @@ class PilotOpenDecision {
     required this.interimRule,
     required this.updateAuthority,
     required this.blocksLiveActivation,
+    this.activeForInternalTesting = true,
   });
 }
 
@@ -29,6 +31,9 @@ class PrivatePilotConfig {
   /// V4 interim model. These values are versioned and intentionally isolated
   /// so later legal feedback changes one source instead of scattered screens.
   static const bool interimLegalModelEnabled = true;
+  static const String interimPolicyVersion = 'V4-INTERIM-2026-08-15';
+  static const String interimPolicyScope = 'internal-and-closed-testing-only';
+  static const bool replaceInterimRulesOnUserInstruction = true;
   static const bool realPaymentsEnabled = false;
   static const String plannedMarketplacePaymentProvider =
       'Stripe Connect (Testkonfiguration; Vertragspartner und Geldfluss vor Livegang erneut verifizieren)';

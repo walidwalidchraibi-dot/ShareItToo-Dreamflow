@@ -11,6 +11,11 @@ import {
 import { isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import {
+  privatePilotDocument,
+  privatePilotRequiredCheckoutDeclarations,
+} from '../backend/src/private_pilot_domain.js';
+
 const repositoryRoot = realpathSync(resolve(fileURLToPath(new URL('..', import.meta.url))));
 const stagingApiBaseUrl = 'https://staging.shareittoo.com/api/v1';
 const allowedTransitions = new Map([
@@ -235,7 +240,7 @@ export async function createSyntheticBookingFixture({
       id: listingId,
       title,
       description: 'Isoliertes Staging-Inserat für die ShareItToo Rollen- und Buchungsprüfung ohne Echtgeld.',
-      categoryId: 'electronics',
+      categoryId: 'cat1',
       subcategory: 'Kameras',
       tags: ['sit', 'role-fixture'],
       pricePerDay: 12,
@@ -254,6 +259,7 @@ export async function createSyntheticBookingFixture({
       minDays: 1,
       maxDays: 14,
       protectionModel: 'none',
+      privateStatusConfirmed: true,
       status: 'active',
       isActive: true,
     },
@@ -276,11 +282,31 @@ export async function createSyntheticBookingFixture({
       blocks: [],
     },
   });
+  const acceptedAt = now.toISOString();
+  const legalDeclarations = privatePilotRequiredCheckoutDeclarations.map(
+    ({ type, wording }) => ({
+      type,
+      exactWording: wording,
+      documentName: privatePilotDocument.name,
+      documentVersion: privatePilotDocument.version,
+      appVersion: 'synthetic-review-tool',
+      language: privatePilotDocument.language,
+      accepted: true,
+      acceptedAt,
+    }),
+  );
   const created = await request(fetchImpl, '/bookings', {
     method: 'POST',
     token: renterToken,
     headers: { 'Idempotency-Key': `${bookingId}-create` },
-    body: { id: bookingId, itemId: listingId, startDate, endDate },
+    body: {
+      id: bookingId,
+      itemId: listingId,
+      startDate,
+      endDate,
+      privateStatusConfirmed: true,
+      legalDeclarations,
+    },
     expected: [201],
   });
   if (created?.booking?.workflowStatus !== 'requested') {

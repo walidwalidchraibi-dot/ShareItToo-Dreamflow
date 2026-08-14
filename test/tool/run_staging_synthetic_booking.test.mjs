@@ -54,7 +54,11 @@ function createFetch(log) {
   let login = 0;
   return async (url, options = {}) => {
     const path = new URL(url).pathname.replace('/api/v1', '');
-    log.push({ path, method: options.method ?? 'GET' });
+    log.push({
+      path,
+      method: options.method ?? 'GET',
+      body: typeof options.body === 'string' ? JSON.parse(options.body) : null,
+    });
     if (path === '/auth/login') {
       login += 1;
       return response(200, { accessToken: `synthetic-token-${login}-${'x'.repeat(30)}` });
@@ -93,6 +97,30 @@ test('creates an isolated requested booking and returns no credentials or identi
     containsTokens: false,
   });
   assert.equal(calls.some(({ path }) => path.includes('payment')), false);
+  const listingCall = calls.find(({ path }) => path === '/listings');
+  assert.equal(listingCall.body.categoryId, 'cat1');
+  assert.equal(listingCall.body.privateStatusConfirmed, true);
+  const bookingCall = calls.find(({ path }) => path === '/bookings');
+  assert.equal(bookingCall.body.privateStatusConfirmed, true);
+  assert.equal(bookingCall.body.legalDeclarations.length, 5);
+  assert.deepEqual(
+    bookingCall.body.legalDeclarations.map(({ type }) => type),
+    [
+      'booking_private',
+      'binding_booking_request',
+      'platform_terms',
+      'early_performance',
+      'withdrawal_knowledge',
+    ],
+  );
+  assert.equal(
+    bookingCall.body.legalDeclarations.every((entry) => (
+      entry.accepted === true
+      && entry.documentVersion === 'V4-2026-08-14'
+      && entry.language === 'de'
+    )),
+    true,
+  );
   const stored = JSON.parse(readFileSync(fixture.vaultFile, 'utf8'));
   assert.equal(stored.syntheticBooking.workflowStatus, 'requested');
 });

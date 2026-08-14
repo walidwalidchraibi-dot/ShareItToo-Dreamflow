@@ -19,7 +19,18 @@ void main() {
     for (final entry in PrivatePilotConfig.openDecisions) {
       expect(entry.interimRule, isNotEmpty);
       expect(entry.updateAuthority, isNotEmpty);
+      expect(entry.activeForInternalTesting, isTrue);
     }
+    expect(
+      PrivatePilotConfig.interimPolicyVersion,
+      'V4-INTERIM-2026-08-15',
+    );
+    expect(
+      PrivatePilotConfig.interimPolicyScope,
+      'internal-and-closed-testing-only',
+    );
+    expect(PrivatePilotConfig.replaceInterimRulesOnUserInstruction, isTrue);
+    expect(PrivatePilotConfig.realPaymentsEnabled, isFalse);
     expect(
       PrivatePilotConfig.openDecisions
           .where((entry) => entry.blocksLiveActivation)
