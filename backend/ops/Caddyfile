@@ -41,6 +41,12 @@ shareittoo.com, srv1580960.hstgr.cloud {
 		reverse_proxy shareittoo-api:8080
 	}
 
+	@public_imprint path /imprint
+	handle @public_imprint {
+		rewrite * /v1/public/imprint
+		reverse_proxy shareittoo-api:8080
+	}
+
 	@public_account_deletion path /account-deletion
 	handle @public_account_deletion {
 		rewrite * /v1/account-deletion
@@ -82,6 +88,12 @@ staging.shareittoo.com {
 	@staging_public_privacy path /privacy
 	handle @staging_public_privacy {
 		rewrite * /v1/public/privacy
+		reverse_proxy shareittoo-staging-api:8080
+	}
+
+	@staging_public_imprint path /imprint
+	handle @staging_public_imprint {
+		rewrite * /v1/public/imprint
 		reverse_proxy shareittoo-staging-api:8080
 	}
 

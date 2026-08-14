@@ -24,7 +24,7 @@ class LegalPrivacyScreen extends StatelessWidget {
             ]),
             SizedBox(height: 10),
             LegalParagraph(
-              'Der aktuelle Store-Kandidat bietet keine Ausweisprüfung und keinen Upload von Identitätsdokumenten an. Eine SMS-Verifizierung der Telefonnummer bleibt bis zu einem gesondert geprüften Nachfolger deaktiviert.',
+              'Der aktuelle Store-Kandidat bietet keine Ausweisprüfung und keinen Upload von Identitätsdokumenten an. Eine Telefonnummer kann freiwillig per SMS-Verifizierung über Firebase Authentication bestätigt werden. ShareItToo erhält und speichert den SMS-Code nicht; der Versand ist auf deutsche Rufnummern beschränkt.',
             ),
           ],
         ),
@@ -77,10 +77,11 @@ class LegalPrivacyScreen extends StatelessWidget {
               'Firebase Cloud Messaging für Push‑Benachrichtigungen; dabei wird eine technische Installationskennung verarbeitet',
               'Firebase Crashlytics für Absturz-, Geräte-, Diagnose- und App-Sitzungsdaten; es wird keine Werbe-ID verwendet und kein Nutzerprofil für Werbung erstellt',
               'Firebase Authentication für die freiwillige Anmeldung über einen freigegebenen externen Anbieter; dabei werden Anbieterkennung, E-Mail, E-Mail-Bestätigungsstatus und gegebenenfalls der Anzeigename verarbeitet',
+              'Firebase Authentication für die freiwillige SMS-Bestätigung einer Telefonnummer; die nur für den Nachweis verwendete Firebase-Telefonidentität wird nach der serverseitigen Bestätigung entfernt',
             ]),
             SizedBox(height: 10),
             LegalParagraph(
-                'Analyse zu Werbezwecken und Werbe-SDKs sind im aktuellen Kandidaten nicht aktiviert. Ein externer Anmeldedienst wird nur nach ausdrücklichem Antippen der jeweiligen Anmeldung verwendet; automatische Werbeereignisse und Werbetracking werden nicht verwendet. Eine finale rechtliche Einordnung der technischen Empfänger ist vor der Veröffentlichung noch freizugeben.'),
+                'Analyse zu Werbezwecken und Werbe-SDKs sind im aktuellen Kandidaten nicht aktiviert. Firebase Authentication wird nur nach ausdrücklichem Start einer Anmeldung oder SMS-Bestätigung verwendet; automatische Werbeereignisse und Werbetracking werden nicht verwendet.'),
           ],
         ),
         LegalSectionCard(

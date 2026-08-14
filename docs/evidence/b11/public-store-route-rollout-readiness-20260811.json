@@ -3,7 +3,7 @@
   "kind": "public-store-route-rollout-readiness",
   "capturedAt": "2026-08-11",
   "status": "ready-awaiting-explicit-production-route-approval",
-  "localCaddySha256": "521f3beed1e29a2af866a7e2ffe847efda55f2d1d0f43153045dbb5d74c0493e",
+  "localCaddySha256": "6e5bf590292e7a28fc38ac1d43a68b1d4697831db33d6b49c0b9d1f21c0aca5b",
   "canonical": {
     "productionRoutes": [
       "support",

@@ -128,6 +128,8 @@ const publicCompliance = {
   privacyEmail: process.env.PUBLIC_PRIVACY_EMAIL?.trim() ?? '',
   providerName: process.env.PUBLIC_LEGAL_PROVIDER_NAME?.trim() ?? '',
   providerAddress: process.env.PUBLIC_LEGAL_PROVIDER_ADDRESS?.trim() ?? '',
+  representative: process.env.PUBLIC_LEGAL_REPRESENTATIVE?.trim() ?? '',
+  contentResponsible: process.env.PUBLIC_LEGAL_CONTENT_RESPONSIBLE?.trim() ?? '',
   effectiveDate: process.env.PUBLIC_PRIVACY_EFFECTIVE_DATE?.trim() ?? '',
 };
 
@@ -141,6 +143,8 @@ if (publicComplianceApproved) {
     ['PUBLIC_PRIVACY_EMAIL', publicCompliance.privacyEmail],
     ['PUBLIC_LEGAL_PROVIDER_NAME', publicCompliance.providerName],
     ['PUBLIC_LEGAL_PROVIDER_ADDRESS', publicCompliance.providerAddress],
+    ['PUBLIC_LEGAL_REPRESENTATIVE', publicCompliance.representative],
+    ['PUBLIC_LEGAL_CONTENT_RESPONSIBLE', publicCompliance.contentResponsible],
     ['PUBLIC_PRIVACY_EFFECTIVE_DATE', publicCompliance.effectiveDate],
   ];
   const missingComplianceFields = requiredComplianceFields

@@ -28,7 +28,7 @@
     },
     {
       "path": "lib/screens/legal_privacy_screen.dart",
-      "sha256": "983e08d647f981036341f3d808688dfa08e348cf55a84f38e1030f63178434a6"
+      "sha256": "68d253d42664c615c1e46c06651a37b76153ae7ebe5a2e7c72bb3e60b73046f0"
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
@@ -36,7 +36,7 @@
     },
     {
       "path": "backend/src/account_actions.js",
-      "sha256": "0773aafb4af4b44c8986dcc15f5f2f6e4cd687cc982a7d1815a90e35da1b35f8"
+      "sha256": "d0bd8947185c7b0fd5bdc6ab600e2ffbafd8e89bf7a6b7e51b12706c5965ed37"
     },
     {
       "path": "backend/src/privacy_export.js",
@@ -52,7 +52,7 @@
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "1339428db4d13a0a5a71f2c6161ff1f775e9191f7e0b15719e848cd0b25d5de3"
+      "sha256": "3d9567524b2a9e24ac85b99bfcfabd85df8da4c6f9b7753eb2a426c9a3505372"
     },
     {
       "path": "backend/src/firebase_phone_verification.js",
@@ -84,7 +84,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "67a5793d70383d362016b0d8049452fd589af81d39c320b914476bed644b2494"
+      "sha256": "6e70f78fb338278473d94b20bf283c4a4338ac4066fe4ea96dbf775eecc8e3d0"
     },
     {
       "path": "lib/screens/create_listing_screen.dart",
@@ -104,7 +104,7 @@
     },
     {
       "path": "store/phone-verification-readiness.json",
-      "sha256": "046b7c90d18dd7f01f4c93b98ec6a94bec82e6d6593c96809712c9ea3d443f39"
+      "sha256": "f9bfb4d6d945f5cad16c591739d89269a61fb10dda154980ad41bd3ab49f0102"
     }
   ],
   "binaryEvidence": {

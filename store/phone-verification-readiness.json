@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "firebase-phone-verification-readiness",
-  "state": "implementation-complete-external-gates-open",
+  "state": "firebase-console-activated-staging-test-pending",
   "sourceBuild": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
@@ -24,30 +24,33 @@
   },
   "consoleEvidence": {
     "firebaseAuthenticationInitialized": true,
-    "enabledSignInProviders": [],
+    "enabledSignInProviders": ["phone"],
     "canonicalAndroidSigningFingerprintsRegistered": true,
-    "phoneProviderEnabled": false,
-    "smsRegionPolicySaved": false
+    "phoneProviderEnabled": true,
+    "smsRegionPolicySaved": true,
+    "smsRegionPolicy": "allow-only-de",
+    "evidenceRef": "docs/evidence/b11/firebase-phone-console-activation-20260814.json"
   },
   "externalGates": {
-    "firebasePhoneProvider": "pending-explicit-owner-acceptance-and-enable",
-    "smsRegionPolicy": "pending-germany-only-owner-approval",
+    "firebasePhoneProvider": "enabled-owner-authorized",
+    "smsRegionPolicy": "germany-only-saved",
     "androidAppVerification": "signing-fingerprints-registered-successor-build-check-pending",
     "androidRealDeviceSms": "pending",
     "appleApnsConfiguration": "pending-apple-account-and-apns",
     "appleRealDeviceSms": "pending",
-    "privacyAndProviderClassification": "pending-successor-candidate-reclassification",
+    "privacyAndProviderClassification": "successor-candidate-copy-updated-play-form-pending",
     "abuseAndQuotaObservation": "pending-staging-observation"
   },
   "activationAllowed": false,
   "storeSubmissionAllowed": false,
   "boundaries": {
     "googleProviderEnabled": false,
-    "firebasePhoneProviderEnabled": false,
-    "smsRegionPolicySaved": false,
+    "firebasePhoneProviderEnabled": true,
+    "smsRegionPolicySaved": true,
     "smsSent": false,
     "productionChanged": false,
     "storeSubmissionChanged": false,
+    "externalConsoleChanged": true,
     "containsPhoneNumbers": false,
     "containsSmsCodes": false,
     "containsFirebaseTokens": false,

@@ -11,11 +11,11 @@ const canonical = JSON.parse(readFileSync(
   'utf8',
 ));
 
-test('accepts the implemented but fail-closed phone verification flow', () => {
+test('accepts the owner-authorized Firebase console activation while the real-device test remains closed', () => {
   assert.deepEqual(validatePhoneVerificationReadiness({ root }), {
-    state: 'implementation-complete-external-gates-open',
+    state: 'firebase-console-activated-staging-test-pending',
     buildNumber: canonical.sourceBuild.buildNumber,
-    openGates: 8,
+    openGates: 6,
     activationAllowed: false,
   });
 });
@@ -29,18 +29,18 @@ test('rejects claiming activation before every external gate is evidenced', () =
   );
 });
 
-test('rejects claiming that the Firebase phone provider is already enabled', () => {
+test('rejects removing the observed Firebase phone provider activation', () => {
   const readiness = structuredClone(canonical);
-  readiness.consoleEvidence.phoneProviderEnabled = true;
+  readiness.consoleEvidence.phoneProviderEnabled = false;
   assert.throws(
     () => validatePhoneVerificationReadiness({ root, readiness }),
     /console evidence is incomplete or unsafe/,
   );
 });
 
-test('rejects claiming an SMS region policy was saved without evidence', () => {
+test('rejects removing the saved Germany-only SMS region policy', () => {
   const readiness = structuredClone(canonical);
-  readiness.consoleEvidence.smsRegionPolicySaved = true;
+  readiness.consoleEvidence.smsRegionPolicySaved = false;
   assert.throws(
     () => validatePhoneVerificationReadiness({ root, readiness }),
     /console evidence is incomplete or unsafe/,

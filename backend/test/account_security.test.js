@@ -126,6 +126,10 @@ test('public compliance pages stay visibly fail-closed before legal approval', (
   assert.match(privacy, /data-sit-compliance-status="draft"/);
   assert.match(privacy, /rechtlicher Endprüfung/);
 
+  const imprint = accountActions.publicImprintPage();
+  assert.match(imprint, /data-sit-public-page="imprint"/);
+  assert.match(imprint, /data-sit-compliance-status="draft"/);
+
   const deletion = accountActions.accountDeletionRequestForm({ submitted: false });
   assert.match(deletion, /data-sit-public-page="account-deletion"/);
   assert.match(deletion, /data-sit-compliance-status="operational"/);
@@ -147,6 +151,8 @@ test('approved public privacy copy covers the evidenced current data flows and d
   assert.match(privacy, /Google Maps Platform/);
   assert.match(privacy, /Firebase Cloud Messaging/);
   assert.match(privacy, /Firebase Crashlytics/);
+  assert.match(privacy, /Telefonnummer per SMS bestätigen/);
+  assert.match(privacy, /deutsche Rufnummern/);
   assert.match(privacy, /bis zu 180 Tagen/);
   assert.match(privacy, /90 Tage/);
   assert.match(privacy, /keine dauerhafte Hintergrund- oder Live-Ortung/);
@@ -158,6 +164,25 @@ test('approved public privacy copy covers the evidenced current data flows and d
   assert.match(privacy, /innerhalb von 14 Tagen/);
   assert.match(privacy, /shareittoo\.com\/account-deletion/);
   assert.doesNotMatch(privacy, /OpenAI/);
+});
+
+test('approved public imprint exposes only the confirmed provider identity', () => {
+  const imprint = accountActions.publicImprintPage({
+    compliance: {
+      approved: true,
+      providerName: 'Example Provider',
+      providerAddress: 'Example Address',
+      supportEmail: 'contact.invalid',
+      representative: 'Example Representative',
+      contentResponsible: 'Example Responsible',
+    },
+  });
+
+  assert.match(imprint, /data-sit-compliance-status="approved"/);
+  assert.match(imprint, /Example Provider/);
+  assert.match(imprint, /Example Representative/);
+  assert.match(imprint, /Example Responsible/);
+  assert.match(imprint, /mailto:contact\.invalid/);
 });
 
 test('approved public support page exposes a clear electronic notice and complaint route', () => {

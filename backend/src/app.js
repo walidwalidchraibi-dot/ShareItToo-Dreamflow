@@ -18,6 +18,7 @@ import {
   passwordResetForm,
   publicComplianceOverview,
   publicPrivacyPage,
+  publicImprintPage,
   publicSupportPage,
   resultPage,
 } from './account_actions.js';
@@ -2049,6 +2050,12 @@ export function createApp({
     const approved = config.publicCompliance.approved;
     res.set('X-SIT-Compliance-Status', approved ? 'approved' : 'draft');
     sendHtml(res, approved ? 200 : 503, publicPrivacyPage());
+  });
+
+  app.get('/v1/public/imprint', (_req, res) => {
+    const approved = config.publicCompliance.approved;
+    res.set('X-SIT-Compliance-Status', approved ? 'approved' : 'draft');
+    sendHtml(res, approved ? 200 : 503, publicImprintPage());
   });
 
   app.post('/v1/account-deletion/request', deletionLimiter, asyncRoute(async (req, res) => {

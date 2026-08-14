@@ -23,9 +23,14 @@ export function validatePhoneVerificationReadiness({
   readiness = JSON.parse(readFileSync(resolve(root, 'store/phone-verification-readiness.json'), 'utf8')),
   sourceOverrides = {},
 } = {}) {
+  const allowedStates = [
+    'implementation-complete-external-gates-open',
+    'firebase-console-activated-staging-test-pending',
+    'android-real-device-sms-passed',
+  ];
   if (readiness.schemaVersion !== 1
       || readiness.kind !== 'firebase-phone-verification-readiness'
-      || readiness.state !== 'implementation-complete-external-gates-open') {
+      || !allowedStates.includes(readiness.state)) {
     fail('Phone verification readiness state is invalid.');
   }
 
@@ -60,12 +65,18 @@ export function validatePhoneVerificationReadiness({
   }
 
   const consoleEvidence = readiness.consoleEvidence ?? {};
+  const activated = readiness.state !== 'implementation-complete-external-gates-open';
+  const devicePassed = readiness.state === 'android-real-device-sms-passed';
   const expectedConsoleEvidence = {
     firebaseAuthenticationInitialized: true,
-    enabledSignInProviders: [],
+    enabledSignInProviders: activated ? ['phone'] : [],
     canonicalAndroidSigningFingerprintsRegistered: true,
-    phoneProviderEnabled: false,
-    smsRegionPolicySaved: false,
+    phoneProviderEnabled: activated,
+    smsRegionPolicySaved: activated,
+    smsRegionPolicy: activated ? 'allow-only-de' : 'not-saved',
+    evidenceRef: activated
+      ? 'docs/evidence/b11/firebase-phone-console-activation-20260814.json'
+      : null,
   };
   if (JSON.stringify(consoleEvidence) !== JSON.stringify(expectedConsoleEvidence)) {
     fail('Phone verification console evidence is incomplete or unsafe.');
@@ -73,17 +84,17 @@ export function validatePhoneVerificationReadiness({
 
   const externalGates = readiness.externalGates ?? {};
   const expectedGates = {
-    firebasePhoneProvider: 'pending-explicit-owner-acceptance-and-enable',
-    smsRegionPolicy: 'pending-germany-only-owner-approval',
-    androidAppVerification: 'signing-fingerprints-registered-successor-build-check-pending',
-    androidRealDeviceSms: 'pending',
+    firebasePhoneProvider: activated ? 'enabled-owner-authorized' : 'pending-explicit-owner-acceptance-and-enable',
+    smsRegionPolicy: activated ? 'germany-only-saved' : 'pending-germany-only-owner-approval',
+    androidAppVerification: devicePassed ? 'successor-build-passed' : 'signing-fingerprints-registered-successor-build-check-pending',
+    androidRealDeviceSms: devicePassed ? 'passed' : 'pending',
     appleApnsConfiguration: 'pending-apple-account-and-apns',
     appleRealDeviceSms: 'pending',
-    privacyAndProviderClassification: 'pending-successor-candidate-reclassification',
-    abuseAndQuotaObservation: 'pending-staging-observation',
+    privacyAndProviderClassification: activated ? 'successor-candidate-copy-updated-play-form-pending' : 'pending-successor-candidate-reclassification',
+    abuseAndQuotaObservation: devicePassed ? 'initial-real-device-observation-passed' : 'pending-staging-observation',
   };
   if (JSON.stringify(externalGates) !== JSON.stringify(expectedGates)
-      || readiness.activationAllowed !== false
+      || readiness.activationAllowed !== devicePassed
       || readiness.storeSubmissionAllowed !== false) {
     fail('Phone verification external gates must remain fail-closed.');
   }
@@ -91,11 +102,12 @@ export function validatePhoneVerificationReadiness({
   const boundaries = readiness.boundaries ?? {};
   const expectedBoundaries = {
     googleProviderEnabled: false,
-    firebasePhoneProviderEnabled: false,
-    smsRegionPolicySaved: false,
-    smsSent: false,
+    firebasePhoneProviderEnabled: activated,
+    smsRegionPolicySaved: activated,
+    smsSent: devicePassed,
     productionChanged: false,
     storeSubmissionChanged: false,
+    externalConsoleChanged: activated,
     containsPhoneNumbers: false,
     containsSmsCodes: false,
     containsFirebaseTokens: false,
@@ -162,7 +174,7 @@ export function validatePhoneVerificationReadiness({
   return {
     state: readiness.state,
     buildNumber: sourceBuild.buildNumber,
-    openGates: Object.keys(externalGates).length,
+    openGates: Object.values(externalGates).filter((value) => value.includes('pending')).length,
     activationAllowed: readiness.activationAllowed,
   };
 }

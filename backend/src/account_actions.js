@@ -121,8 +121,9 @@ export function publicPrivacyPage({
 <h2>Zwecke und Rechtsgrundlagen</h2><p>Die Verarbeitung dient – abhängig vom jeweiligen Vorgang – der Vertragsanbahnung und Kontoführung, der Vermittlung und Abwicklung physischer Mietvorgänge, Kommunikation, Sicherheit und Missbrauchsabwehr, Support, gesetzlichen Nachweisen oder einer ausdrücklich gestarteten beziehungsweise eingewilligten Funktion. Als Rechtsgrundlagen kommen insbesondere Art. 6 Abs. 1 Buchst. a, b, c und f DSGVO in Betracht.</p>
 <h2>Standort und Google Maps Platform</h2><p>Adressvorschläge und Ortsdetails werden nur bei Nutzung der entsprechenden Eingabefunktion an Google Maps Platform übertragen. Dabei können die eingegebene Adresse beziehungsweise Ortskennung, die IP-Adresse des Geräts und technische Anfrageinformationen verarbeitet werden. Einen präzisen aktuellen Gerätestandort fragt die App nur ab, wenn du „Standort prüfen“ selbst startest. Es findet keine dauerhafte Hintergrund- oder Live-Ortung statt. Weitere Informationen enthalten die <a href="https://policies.google.com/privacy">Datenschutzhinweise von Google</a>.</p>
 <h2>Firebase Push und Crashdiagnose</h2><p>Firebase Cloud Messaging verarbeitet eine Firebase-Installationskennung, um Push-Nachrichten an die App-Installation zuzustellen. Nach einer Löschanforderung für die Installationskennung entfernt Firebase die zugehörigen Daten nach eigenen Angaben innerhalb von bis zu 180 Tagen aus Live- und Sicherungssystemen. Firebase Crashlytics verarbeitet Installations- und Sitzungskennungen, Geräte- und App-Informationen sowie Crash- und Diagnosedaten. Crashlytics bewahrt Crashdaten und zugehörige Kennungen nach eigenen Angaben 90 Tage auf, bevor die Entfernung aus Live- und Sicherungssystemen beginnt.</p>
+<h2>Telefonnummer per SMS bestätigen</h2><p>Wenn du diese freiwillige Funktion startest, übermittelt die App die angegebene Telefonnummer an Firebase Authentication und Google sendet einen einmal verwendbaren SMS-Code. ShareItToo erhält den SMS-Code nicht. Der Server akzeptiert die Bestätigung nur, wenn die von Firebase geprüfte Nummer exakt der angeforderten Nummer entspricht, und entfernt anschließend die nur für diesen Nachweis verwendete Firebase-Telefonidentität. Der SMS-Versand ist auf deutsche Rufnummern beschränkt.</p>
 <h2>Anmeldung mit Google, Apple oder Facebook</h2><p>Diese Anmeldearten sind im aktuellen Kandidaten technisch vorbereitet, aber noch nicht für Nutzer aktiviert. Vor einer Aktivierung werden Anbieter, Rechtsgrundlage und Datenflüsse erneut geprüft. Wenn du später freiwillig eine aktivierte Anmeldeart wählst, verarbeitet Firebase Authentication insbesondere Anbieterkennung, E-Mail-Adresse, E-Mail-Bestätigungsstatus und gegebenenfalls den Anzeigenamen. ShareItToo speichert dann nur die sichere Kontoverknüpfung, nicht das Passwort des Anbieters und nicht dessen Zugriffstoken.</p>
-<h2>Empfänger und Dienstleister</h2><p>Daten werden nur zweckgebunden an erforderliche Hosting-, E-Mail-, Push-, Diagnose- und Kartendienstleister sowie bei rechtlicher Pflicht an zuständige Stellen übermittelt. Google-Dienste können Daten auf globaler Infrastruktur, auch außerhalb von EU und EWR, nach den jeweils geltenden Datenschutzbedingungen verarbeiten. Apple- und Meta-Anmeldedienste erhalten im aktuellen Kandidaten keine Anmeldedaten, weil diese Anmeldearten nicht aktiviert sind. Der aktuelle Store-Kandidat enthält keine Werbung, kein Werbetracking und keine aktivierte Echtgeld-Zahlungsübertragung an Stripe. Vor einer späteren Aktivierung externer Anmeldungen oder Zahlungen wird diese Erklärung aktualisiert.</p>
+<h2>Empfänger und Dienstleister</h2><p>Daten werden nur zweckgebunden an erforderliche Hosting-, E-Mail-, Push-, Diagnose-, Authentifizierungs- und Kartendienstleister sowie bei rechtlicher Pflicht an zuständige Stellen übermittelt. Google-Dienste können Daten auf globaler Infrastruktur, auch außerhalb von EU und EWR, nach den jeweils geltenden Datenschutzbedingungen verarbeiten. Apple- und Meta-Anmeldedienste erhalten im aktuellen Kandidaten keine Anmeldedaten, weil diese Anmeldearten nicht aktiviert sind. Der aktuelle Store-Kandidat enthält keine Werbung, kein Werbetracking und keine aktivierte Echtgeld-Zahlungsübertragung an Stripe. Vor einer späteren Aktivierung externer Anmeldungen oder Zahlungen wird diese Erklärung aktualisiert.</p>
 <h2>Speicherung, Löschung und Rechte</h2><p>Konto- und Inhaltsdaten werden grundsätzlich für die aktive Kontonutzung und die Abwicklung der angeforderten Funktionen gespeichert. Bei Kontolöschung werden Profil-, Kontakt-, Geräte- und Zugangsdaten gelöscht oder anonymisiert; aktive Sitzungen und Zustellkennungen werden widerrufen. Gesetzlich oder zur Geltendmachung, Ausübung oder Verteidigung von Ansprüchen erforderliche Buchungs-, Sicherheits- und Transaktionsnachweise können zweckgebunden und soweit möglich pseudonymisiert bis zum Ablauf der maßgeblichen Frist verbleiben. Operative Sicherungen rotieren derzeit innerhalb von 14 Tagen; eine kontobezogene Einzelentfernung aus bereits erzeugten Sicherungen ist nicht möglich.</p>
 <h2>Kontolöschung und Datenkopie</h2><p>Du kannst deine Daten in der App exportieren und dein Konto unter Konto → Konto löschen entfernen. Alternativ kannst du die Löschung über die <a href="https://shareittoo.com/account-deletion">öffentliche Kontolöschseite</a> anfordern. Offene Buchungen, Sicherheitsfälle oder Streitfälle müssen gegebenenfalls zuerst abgeschlossen werden.</p>
 <p>Dir können insbesondere Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch zustehen. Einwilligungen kannst du mit Wirkung für die Zukunft widerrufen. Außerdem kannst du dich bei einer zuständigen Datenschutzaufsichtsbehörde beschweren.</p>
@@ -132,6 +133,25 @@ export function publicPrivacyPage({
   return pageShell({
     title: 'Datenschutz',
     pageId: 'privacy',
+    complianceStatus: status,
+    content,
+  });
+}
+
+export function publicImprintPage({
+  compliance = config.publicCompliance,
+} = {}) {
+  const status = compliance.approved ? 'approved' : 'draft';
+  const content = compliance.approved
+    ? `<h1>Impressum</h1>
+<h2>Anbieter</h2><p>${escapeHtml(compliance.providerName)}<br>${escapeHtml(compliance.providerAddress)}</p>
+<h2>Kontakt</h2><p><a href="mailto:${escapeHtml(compliance.supportEmail)}">${escapeHtml(compliance.supportEmail)}</a></p>
+<h2>Vertretung und inhaltliche Verantwortung</h2><p>Vertretungsberechtigt: ${escapeHtml(compliance.representative)}<br>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV: ${escapeHtml(compliance.contentResponsible)}</p>
+<h2>Verbraucherstreitbeilegung</h2><p>Wir sind zur Teilnahme an einem Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle weder verpflichtet noch bereit.</p>`
+    : `<h1>Impressum</h1><p class="draft">Die Anbieterkennzeichnung ist noch nicht zur Veröffentlichung freigegeben.</p>`;
+  return pageShell({
+    title: 'Impressum',
+    pageId: 'imprint',
     complianceStatus: status,
     content,
   });

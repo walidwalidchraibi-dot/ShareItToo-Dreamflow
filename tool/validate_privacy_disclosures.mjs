@@ -269,10 +269,26 @@ function assertSourceContracts({ root, sourceTexts }) {
     sourceTexts,
     'store/phone-verification-readiness.json',
   ));
-  if (phoneReadiness.activationAllowed !== false
+  const phoneReadinessStates = new Map([
+    ['implementation-complete-external-gates-open', {
+      activationAllowed: false,
+      privacy: 'pending-successor-candidate-reclassification',
+    }],
+    ['firebase-console-activated-staging-test-pending', {
+      activationAllowed: false,
+      privacy: 'successor-candidate-copy-updated-play-form-pending',
+    }],
+    ['android-real-device-sms-passed', {
+      activationAllowed: true,
+      privacy: 'successor-candidate-copy-updated-play-form-pending',
+    }],
+  ]);
+  const expectedPhoneReadiness = phoneReadinessStates.get(phoneReadiness.state);
+  if (!expectedPhoneReadiness
+      || phoneReadiness.activationAllowed !== expectedPhoneReadiness.activationAllowed
       || phoneReadiness.storeSubmissionAllowed !== false
       || phoneReadiness.externalGates?.privacyAndProviderClassification !==
-        'pending-successor-candidate-reclassification') {
+        expectedPhoneReadiness.privacy) {
     fail('Phone verification privacy and activation gates must remain open.');
   }
 
