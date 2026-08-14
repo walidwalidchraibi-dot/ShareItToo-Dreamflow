@@ -20,6 +20,11 @@ außerhalb des Repositorys eingerichtet wurden.
 
 - Stripe-hosted Checkout verarbeitet die Mietzahlung. Die App erfasst und
   speichert keine vollständige Kartennummer, keinen CVC und keine IBAN.
+- Checkout überlässt die Auswahl der im jeweiligen Konto, Land, Gerät und
+  Betrag zulässigen Zahlungsmethoden Stripe. Karten und verfügbare Wallets
+  können dadurch ohne clientseitige Zahlungsdatenfelder erscheinen; weitere
+  Methoden wie Klarna oder PayPal gelten erst nach ihrer nachgewiesenen
+  Aktivierung und einem echten Test im Plattformkonto als verfügbar.
 - Stripe Connect mit gehostetem Express-Onboarding bildet das
   Auszahlungskonto des Vermieters ab.
 - Separate Charges and Transfers halten die Vermieterauszahlung bis zum
@@ -72,6 +77,16 @@ erst nach einem erfolgreich verarbeiteten Provider-Ereignis bestätigt.
 `requires_action`, Ablehnung, Abbruch, Wiederholung und Ereignisse außerhalb
 der Reihenfolge sind eigene Zustände. Betrag, Währung, Zahlungs-ID und
 Live/Test-Modus müssen mit dem gespeicherten Vertrag übereinstimmen.
+
+Bei verzögerten Zahlungsmethoden ist der Abschluss der Checkout-Oberfläche
+noch kein Geldeingang. `checkout.session.completed` und
+`checkout.session.async_payment_succeeded` bestätigen deshalb nicht direkt
+die SIT-Buchung. Erst das signierte `payment_intent.succeeded` mit der
+kanonischen Payment-Intent-, Betrags-, Währungs- und Charge-Referenz löst die
+Ledger-Buchung und Buchungsbestätigung aus. Ein
+`checkout.session.async_payment_failed` darf den Zahlungsversuch dagegen
+explizit als fehlgeschlagen markieren. Allgemeine Providerobjekte mit einem
+Feld `status=succeeded` werden niemals als Zahlungsnachweis akzeptiert.
 
 ### Auszahlung
 

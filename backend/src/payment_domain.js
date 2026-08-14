@@ -109,14 +109,16 @@ export function splitRefund({ amountMinor, paymentAmountMinor, ownerPayoutMinor 
 }
 
 export function paymentStatusForProvider(eventType, object = {}) {
-  const status = object.status;
   if (eventType === 'checkout.session.expired') return 'cancelled';
+  if (eventType === 'checkout.session.async_payment_failed') return 'failed';
   if (eventType === 'payment_intent.succeeded') return 'captured';
   if (eventType === 'payment_intent.payment_failed') return 'failed';
   if (eventType === 'payment_intent.canceled') return 'cancelled';
-  if (eventType === 'payment_intent.requires_action' || status === 'requires_action') return 'requires_action';
-  if (eventType === 'payment_intent.amount_capturable_updated' || status === 'requires_capture') return 'authorized';
-  if (status === 'succeeded') return 'captured';
+  if (eventType === 'payment_intent.requires_action') return 'requires_action';
+  if (eventType === 'payment_intent.amount_capturable_updated') return 'authorized';
+  // Checkout completion is not sufficient settlement evidence for delayed
+  // methods. The canonical PaymentIntent event carries the captured amount and
+  // charge needed for refunds and destination transfers.
   return null;
 }
 

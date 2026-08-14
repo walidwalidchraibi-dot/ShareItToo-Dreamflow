@@ -64,7 +64,12 @@ test('provider events map to authoritative payment states', () => {
   assert.equal(paymentStatusForProvider('payment_intent.succeeded', {}), 'captured');
   assert.equal(paymentStatusForProvider('payment_intent.payment_failed', {}), 'failed');
   assert.equal(paymentStatusForProvider('checkout.session.expired', {}), 'cancelled');
+  assert.equal(paymentStatusForProvider('checkout.session.async_payment_failed', {}), 'failed');
   assert.equal(paymentStatusForProvider('payment_intent.amount_capturable_updated', {}), 'authorized');
+  assert.equal(paymentStatusForProvider('checkout.session.completed', { status: 'complete', payment_status: 'paid' }), null);
+  assert.equal(paymentStatusForProvider('checkout.session.async_payment_succeeded', { status: 'complete', payment_status: 'paid' }), null);
+  assert.equal(paymentStatusForProvider('charge.refund.updated', { status: 'succeeded' }), null);
+  assert.equal(paymentStatusForProvider('payment_intent.processing', { status: 'processing' }), null);
   assert.equal(paymentStatusForProvider('unrelated.event', {}), null);
 });
 
