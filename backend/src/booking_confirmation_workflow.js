@@ -19,10 +19,12 @@ import { evaluateReturnTimeline } from './private_pilot_return_domain.js';
 
 async function lockedBooking(client, bookingId) {
   const result = await client.query(
-    `SELECT id, owner_id, renter_id, workflow_status, payload
-       FROM bookings
-      WHERE id = $1
-      FOR UPDATE`,
+    `SELECT booking.id, booking.owner_id, booking.renter_id,
+            booking.workflow_status, request.payload
+       FROM bookings AS booking
+       JOIN rental_requests AS request ON request.id = booking.id
+      WHERE booking.id = $1
+      FOR UPDATE OF booking, request`,
     [bookingId],
   );
   if (!result.rowCount) throw new BookingConfirmationError(404, 'booking_not_found');

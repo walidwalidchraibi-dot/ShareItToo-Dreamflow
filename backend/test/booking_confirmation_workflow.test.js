@@ -28,7 +28,7 @@ function memoryClient({ workflowStatus = 'accepted' } = {}) {
     state,
     async query(sql, values) {
       const compact = sql.replace(/\s+/g, ' ').trim();
-      if (compact.startsWith('SELECT id, owner_id, renter_id, workflow_status, payload FROM bookings')) {
+      if (compact.startsWith('SELECT booking.id, booking.owner_id, booking.renter_id, booking.workflow_status, request.payload FROM bookings AS booking JOIN rental_requests AS request ON request.id = booking.id')) {
         return { rowCount: 1, rows: [{ ...state.booking }] };
       }
       if (compact.startsWith('UPDATE booking_confirmation_challenges SET revoked_at')) {
