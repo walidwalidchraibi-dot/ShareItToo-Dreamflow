@@ -52,15 +52,6 @@
     "controlledSanitizedCrashEvent": "pending",
     "consoleReleaseAssignment": "pending"
   },
-  "consoleObservation": {
-    "source": "exact-build-artifact-and-upload-task",
-    "capturedAt": "2026-08-14T12:41:31Z",
-    "observedLatestRelease": null,
-    "latestReleaseMatchesExactCandidate": null,
-    "issueCountsUsedAsCandidateProof": false,
-    "settingsChanged": false,
-    "eventGenerated": false
-  },
   "diagnosticGate": {
     "exactCandidateEnabled": true,
     "source": "exact-candidate-aot-inspection-and-regression-test",

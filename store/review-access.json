@@ -27,8 +27,8 @@
     }
   ],
   "technicalAccess": {
-    "status": "testing",
-    "evidenceRef": null
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/store-review-access-refresh-2026081404-20260814T133939Z.json"
   },
   "reviewScenarios": {
     "ownerLogin": "passed",

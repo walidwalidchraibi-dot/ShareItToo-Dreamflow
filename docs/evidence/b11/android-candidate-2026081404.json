@@ -70,6 +70,10 @@
     "productionReadyHttpStatus": 200,
     "productionReadyRouteAvailable": true
   },
+  "googlePlayInternalRelease": {
+    "status": "store-install-verified",
+    "evidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081404-20260814.json"
+  },
   "boundaries": {
     "uploadedToStore": true,
     "installedOnPhysicalDevice": true,

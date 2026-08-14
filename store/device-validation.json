@@ -18,23 +18,7 @@
       "delivery": "play-internal",
       "aabSha256": "80844a34939d848211d46c580853e4f201154ab73a7e811aa09d4d7555ed5be1",
       "apkSha256": "84b98da3a63df18a4fe1fac2b11adfbaef08305b6fbe4aa15cf77393a6e1186f",
-      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
-      "authenticatedSession": {
-        "status": "open",
-        "evidenceRef": null
-      },
-      "authenticatedDeepLinks": {
-        "status": "open",
-        "evidenceRef": null
-      },
-      "logoutLifecycle": {
-        "status": "open",
-        "evidenceRef": null
-      },
-      "offlineRealtime": {
-        "status": "open",
-        "evidenceRef": null
-      }
+      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
     },
     "ios": {
       "delivery": "pending",
@@ -60,7 +44,7 @@
         "authenticationAndSession": "open",
         "listingAndBooking": "open",
         "chatAndDeepLink": "open",
-        "pushForeground": "failed-source-fix-pending-next-candidate",
+        "pushForeground": "failed",
         "pushBackground": "open",
         "pushTerminated": "open",
         "handoverAndReturn": "open",
@@ -156,7 +140,7 @@
     },
     "firebaseFcmAndApns": {
       "status": "testing",
-      "evidenceRef": "docs/evidence/b11/android-controlled-fcm-foreground-popup-failure-2026081404-20260814.json"
+      "evidenceRef": null
     },
     "binaryPrivacyAndNetwork": {
       "status": "passed",
@@ -167,8 +151,8 @@
       "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081404.json"
     },
     "storeWarningsLinksAndSigning": {
-      "status": "testing",
-      "evidenceRef": null
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/android-play-store-links-signing-2026081404-20260814.json"
     },
     "stagingCleanupAndHealth": {
       "status": "passed",
