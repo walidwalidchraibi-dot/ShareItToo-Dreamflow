@@ -10,9 +10,22 @@ const canonical = JSON.parse(readFileSync(
   new URL('../../store/phone-verification-readiness.json', import.meta.url),
   'utf8',
 ));
+const canonicalPubspec =
+  `name: lendify\nversion: ${canonical.sourceBuild.versionName}+${canonical.sourceBuild.buildNumber}\n`;
+
+function validateReadiness(options = {}) {
+  return validatePhoneVerificationReadiness({
+    root,
+    ...options,
+    sourceOverrides: {
+      'pubspec.yaml': canonicalPubspec,
+      ...(options.sourceOverrides ?? {}),
+    },
+  });
+}
 
 test('accepts the owner-authorized Firebase console activation while the real-device test remains closed', () => {
-  assert.deepEqual(validatePhoneVerificationReadiness({ root }), {
+  assert.deepEqual(validateReadiness(), {
     state: 'firebase-console-activated-staging-test-pending',
     buildNumber: canonical.sourceBuild.buildNumber,
     openGates: 6,
@@ -24,7 +37,7 @@ test('rejects claiming activation before every external gate is evidenced', () =
   const readiness = structuredClone(canonical);
   readiness.activationAllowed = true;
   assert.throws(
-    () => validatePhoneVerificationReadiness({ root, readiness }),
+    () => validateReadiness({ readiness }),
     /external gates must remain fail-closed/,
   );
 });
@@ -33,7 +46,7 @@ test('rejects removing the observed Firebase phone provider activation', () => {
   const readiness = structuredClone(canonical);
   readiness.consoleEvidence.phoneProviderEnabled = false;
   assert.throws(
-    () => validatePhoneVerificationReadiness({ root, readiness }),
+    () => validateReadiness({ readiness }),
     /console evidence is incomplete or unsafe/,
   );
 });
@@ -42,7 +55,7 @@ test('rejects removing the saved Germany-only SMS region policy', () => {
   const readiness = structuredClone(canonical);
   readiness.consoleEvidence.smsRegionPolicySaved = false;
   assert.throws(
-    () => validatePhoneVerificationReadiness({ root, readiness }),
+    () => validateReadiness({ readiness }),
     /console evidence is incomplete or unsafe/,
   );
 });
@@ -53,8 +66,7 @@ test('rejects a client-side phone verification bypass', () => {
     'utf8',
   );
   assert.throws(
-    () => validatePhoneVerificationReadiness({
-      root,
+    () => validateReadiness({
       readiness: canonical,
       sourceOverrides: {
         'lib/services/auth_service.dart': `${current}\n// phoneVerified: true`,
@@ -66,8 +78,7 @@ test('rejects a client-side phone verification bypass', () => {
 
 test('rejects a reused source build number after pubspec advances', () => {
   assert.throws(
-    () => validatePhoneVerificationReadiness({
-      root,
+    () => validateReadiness({
       readiness: canonical,
       sourceOverrides: {
         'pubspec.yaml': `name: lendify\nversion: 1.0.0+${BigInt(canonical.sourceBuild.buildNumber) + 1n}\n`,
@@ -77,11 +88,27 @@ test('rejects a reused source build number after pubspec advances', () => {
   );
 });
 
+test('permits an older passed phone check only during an explicit internal candidate rollover', () => {
+  assert.deepEqual(
+    validatePhoneVerificationReadiness({
+      root,
+      readiness: canonical,
+      allowCandidateRollover: true,
+    }),
+    {
+      state: 'firebase-console-activated-staging-test-pending',
+      buildNumber: canonical.sourceBuild.buildNumber,
+      openGates: 6,
+      activationAllowed: false,
+    },
+  );
+});
+
 test('rejects phone numbers in readiness evidence', () => {
   const readiness = structuredClone(canonical);
   readiness.note = '+4915212345678';
   assert.throws(
-    () => validatePhoneVerificationReadiness({ root, readiness }),
+    () => validateReadiness({ readiness }),
     /account data or a secret/,
   );
 });

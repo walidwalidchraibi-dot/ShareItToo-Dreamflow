@@ -49,7 +49,11 @@ else
   dart run tool/validate_store_metadata.dart
 fi
 node tool/validate_device_evidence.mjs
-node tool/validate_phone_verification_readiness.mjs
+if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  node tool/validate_phone_verification_readiness.mjs --allow-candidate-rollover
+else
+  node tool/validate_phone_verification_readiness.mjs
+fi
 node tool/validate_legal_readiness.mjs
 node tool/validate_privacy_disclosures.mjs
 node tool/validate_retention_deletion_readiness.mjs

@@ -10,6 +10,14 @@ const androidBuild = readFileSync(
   new URL('../../scripts/build_android_release_candidate.sh', import.meta.url),
   'utf8',
 );
+const releasePreflight = readFileSync(
+  new URL('../../scripts/release_candidate_preflight.sh', import.meta.url),
+  'utf8',
+);
+const technicalRegression = readFileSync(
+  new URL('../../scripts/technical_regression_check.sh', import.meta.url),
+  'utf8',
+);
 const wrapperProperties = readFileSync(
   new URL('../../android/gradle/wrapper/gradle-wrapper.properties', import.meta.url),
   'utf8',
@@ -30,6 +38,17 @@ test('Android packaging scopes Firebase validation to Android', () => {
   assert.match(
     androidBuild,
     /SIT_FIREBASE_VALIDATION_PLATFORM=android bash scripts\/release_candidate_preflight\.sh/,
+  );
+});
+
+test('candidate rollover keeps the prior phone evidence read-only until the new binary is tested', () => {
+  assert.match(
+    releasePreflight,
+    /validate_phone_verification_readiness\.mjs --allow-candidate-rollover/,
+  );
+  assert.match(
+    technicalRegression,
+    /validate_phone_verification_readiness\.mjs --allow-candidate-rollover/,
   );
 });
 

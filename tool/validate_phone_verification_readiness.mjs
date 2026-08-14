@@ -22,6 +22,7 @@ export function validatePhoneVerificationReadiness({
   root,
   readiness = JSON.parse(readFileSync(resolve(root, 'store/phone-verification-readiness.json'), 'utf8')),
   sourceOverrides = {},
+  allowCandidateRollover = false,
 } = {}) {
   const allowedStates = [
     'implementation-complete-external-gates-open',
@@ -37,10 +38,16 @@ export function validatePhoneVerificationReadiness({
   const sourceBuild = readiness.sourceBuild ?? {};
   const pubspec = source(root, 'pubspec.yaml', sourceOverrides);
   const version = /^version:\s+(\d+\.\d+\.\d+)\+(\d{10})$/mu.exec(pubspec);
+  const sourceBuildNumberValid = /^\d{10}$/u.test(sourceBuild.buildNumber ?? '');
+  const buildMatches = version
+    && (sourceBuild.buildNumber === version[2]
+      || (allowCandidateRollover
+        && sourceBuildNumberValid
+        && BigInt(sourceBuild.buildNumber) < BigInt(version[2])));
   if (!version
       || sourceBuild.applicationId !== 'com.shareittoo.app'
       || sourceBuild.versionName !== version[1]
-      || sourceBuild.buildNumber !== version[2]) {
+      || !buildMatches) {
     fail('Phone verification readiness is not bound to the current source build.');
   }
 
@@ -181,7 +188,16 @@ export function validatePhoneVerificationReadiness({
 
 function main() {
   const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
-  const result = validatePhoneVerificationReadiness({ root });
+  const unknownArgs = process.argv.slice(2).filter(
+    (arg) => arg !== '--allow-candidate-rollover',
+  );
+  if (unknownArgs.length > 0) {
+    fail(`Unknown argument: ${unknownArgs[0]}`);
+  }
+  const result = validatePhoneVerificationReadiness({
+    root,
+    allowCandidateRollover: process.argv.includes('--allow-candidate-rollover'),
+  });
   process.stdout.write(
     `Phone verification readiness: PASS (${result.state}, build ${result.buildNumber}, open gates ${result.openGates})\n`,
   );

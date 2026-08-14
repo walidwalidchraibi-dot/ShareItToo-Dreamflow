@@ -181,7 +181,11 @@ node tool/validate_firebase_release_config.mjs --platform "$firebase_validation_
 
 node --check tool/validate_phone_verification_readiness.mjs
 node --test test/tool/validate_phone_verification_readiness.test.mjs
-node tool/validate_phone_verification_readiness.mjs
+if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  node tool/validate_phone_verification_readiness.mjs --allow-candidate-rollover
+else
+  node tool/validate_phone_verification_readiness.mjs
+fi
 
 node --check tool/validate_android_signing_config.mjs
 node --test test/tool/validate_android_signing_config.test.mjs
