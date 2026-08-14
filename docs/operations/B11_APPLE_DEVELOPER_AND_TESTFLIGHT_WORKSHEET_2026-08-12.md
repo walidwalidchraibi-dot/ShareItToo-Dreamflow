@@ -84,6 +84,10 @@ vollständige Xcode-App und ihre iOS-SDKs fehlen. Deshalb sind Archiv,
 Codesigning, Simulator, Geräteinstallation und Upload noch nicht möglich.
 CocoaPods ist ebenfalls noch nicht verfügbar. Diese lokale Prüfung wurde am
 14. August erneut durchgeführt und endet bewusst vor jedem Buildversuch.
+Der wiederholbare, rein lesende Status kann künftig ohne Konto- oder
+Schlüsselzugriff mit `node tool/diagnose_ios_tooling_readiness.mjs` geprüft
+werden. Erst der getrennte strenge Modus `--require-ready` darf die lokale
+Build-Vorbereitung freigeben.
 
 Nach vollständiger Xcode-Installation:
 

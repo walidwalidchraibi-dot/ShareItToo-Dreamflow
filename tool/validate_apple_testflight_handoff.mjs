@@ -211,6 +211,9 @@ export function validateAppleTestFlightHandoff({
   same(toolingAudit.evidenceConclusion,
     'blocked-before-build-by-missing-local-ios-tooling',
     'toolingAudit.evidenceConclusion');
+  same(toolingAudit.diagnosticCommand,
+    'node tool/diagnose_ios_tooling_readiness.mjs',
+    'toolingAudit.diagnosticCommand');
   if (!/^2026-08-14T\d{2}:\d{2}:\d{2}Z$/u.test(toolingAudit.checkedAt ?? '')) {
     fail('toolingAudit.checkedAt must record the current sanitized tooling audit.');
   }

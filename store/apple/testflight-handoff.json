@@ -57,7 +57,8 @@
     "cocoaPodsAvailable": false,
     "flutterDoctorIosReady": false,
     "archiveAttempted": false,
-    "evidenceConclusion": "blocked-before-build-by-missing-local-ios-tooling"
+    "evidenceConclusion": "blocked-before-build-by-missing-local-ios-tooling",
+    "diagnosticCommand": "node tool/diagnose_ios_tooling_readiness.mjs"
   },
   "postUploadChecks": {
     "processingCompleted": "pending",

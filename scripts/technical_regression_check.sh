@@ -108,6 +108,8 @@ node tool/validate_google_play_production_access_application.mjs
 
 node --check tool/validate_apple_testflight_handoff.mjs
 node --test test/tool/validate_apple_testflight_handoff.test.mjs
+node --check tool/diagnose_ios_tooling_readiness.mjs
+node --test test/tool/diagnose_ios_tooling_readiness.test.mjs
 if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
   node tool/validate_apple_testflight_handoff.mjs --allow-android-candidate-rollover
 else
