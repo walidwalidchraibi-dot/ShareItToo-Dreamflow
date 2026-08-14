@@ -39,7 +39,7 @@ test('accepts the honest fail-closed legal draft', () => {
   assert.equal(result.approvalAllowed, false);
   assert.equal(result.storeGate, 'open');
   assert.equal(result.documentCount, 6);
-  assert.equal(result.explicitConfirmations, 3);
+  assert.equal(result.explicitConfirmations, 4);
 });
 
 test('strict approval rejects the current draft', () => {

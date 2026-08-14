@@ -7,7 +7,8 @@
     "explicitConfirmations": [
       "minimumAge",
       "terms",
-      "privacy"
+      "privacy",
+      "privateUse"
     ],
     "technicalStatus": "explicit-unversioned-draft",
     "registrationSource": "lib/screens/register_screen.dart",
@@ -18,7 +19,7 @@
     "terms": {
       "status": "draft",
       "sourceFile": "lib/screens/legal_terms_screen.dart",
-      "currentContentSha256": "544912426ff30339d4f56506e892eae28b89505e3253430aefa9399108bcea2c",
+      "currentContentSha256": "22da5213613c8b168bcbc4a5616b1ab2876be8c487fd30f078b2cfbf5fc207b1",
       "approvedContentSha256": null,
       "publicUrl": null,
       "approvalEvidenceRef": null
@@ -34,7 +35,7 @@
     "cancellationPolicy": {
       "status": "draft",
       "sourceFile": "lib/screens/legal_cancellation_policy_screen.dart",
-      "currentContentSha256": "e593aa8e473d39cf78cae7011c9821fca2619bd6507bcf9c84bfcb2bfdfde6ee",
+      "currentContentSha256": "58a5073d35642cc353e3247a7da8fb5d83939b2d8a6b0812d409ea686478c833",
       "approvedContentSha256": null,
       "publicUrl": null,
       "approvalEvidenceRef": null
@@ -42,7 +43,7 @@
     "feesAndPayments": {
       "status": "draft",
       "sourceFile": "lib/screens/legal_fees_payments_screen.dart",
-      "currentContentSha256": "ccf8b06d29d08e3bb0e7c3f00860518038b158979204585cefd38402af8665c2",
+      "currentContentSha256": "671174975a610376b19a8ab8c518b5e9075b767614a9eb6aee9c515979a74e94",
       "approvedContentSha256": null,
       "publicUrl": null,
       "approvalEvidenceRef": null
@@ -50,7 +51,7 @@
     "privacy": {
       "status": "draft",
       "sourceFile": "lib/screens/legal_privacy_screen.dart",
-      "currentContentSha256": "68d253d42664c615c1e46c06651a37b76153ae7ebe5a2e7c72bb3e60b73046f0",
+      "currentContentSha256": "678cf8f9f99ce7b1e475b79510d50507ee7af2e2e91e6b8e79faf80e82c26ebb",
       "approvedContentSha256": null,
       "publicUrl": null,
       "approvalEvidenceRef": null
@@ -84,6 +85,44 @@
     "cancellationRefundNoDepositConsistency": {
       "status": "open",
       "evidenceRef": null
+    }
+  },
+  "openPilotDecisions": {
+    "platformContractAndWithdrawalTiming": {
+      "status": "open",
+      "interimRule": "versioned-separate-declarations-at-booking-request",
+      "decisionBy": "legal-review-question-1",
+      "blocksLiveActivation": true
+    },
+    "withdrawalEffectOnPrivateRental": {
+      "status": "open",
+      "interimRule": "record-and-confirm-without-automatic-booking-or-money-effect",
+      "decisionBy": "legal-review-question-2",
+      "blocksLiveActivation": true
+    },
+    "cancellationParameters": {
+      "status": "open",
+      "interimRule": "50-percent-retained-under-24h-and-100-percent-after-start",
+      "decisionBy": "legal-and-product-review-question-3",
+      "blocksLiveActivation": true
+    },
+    "marketplacePspMechanics": {
+      "status": "open",
+      "interimRule": "test-and-mock-only-no-real-money-movement",
+      "decisionBy": "psp-contract-and-payment-legal-review-question-4",
+      "blocksLiveActivation": true
+    },
+    "missingReturnConfirmationWindow": {
+      "status": "open",
+      "interimRule": "awaiting-return-confirmation-until-t0-plus-5-calendar-days",
+      "decisionBy": "product-and-psp",
+      "blocksLiveActivation": false
+    },
+    "handoverPhotoWorkflow": {
+      "status": "open",
+      "interimRule": "four-photos-each-direction-with-counter-confirmation-or-deviation-photo",
+      "decisionBy": "pilot-usability-test",
+      "blocksLiveActivation": false
     }
   },
   "storeGate": {

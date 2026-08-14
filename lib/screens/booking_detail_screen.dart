@@ -8,6 +8,7 @@ import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:lendify/widgets/return_reminder_picker_sheet.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/models/invoice.dart';
 import 'package:lendify/services/invoice_pdf_service.dart';
@@ -1627,7 +1628,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         const SizedBox(height: 16),
         // Übergabe-Karte (mit Code + QR) nur zeigen, wenn der Viewer Vermieter ist.
         // Dieser Block befindet sich im laufenden View.
-        if (_isViewerOwnerSync())
+        if (_isViewerOwnerSync() && !BackendConfig.enabled)
           Container(
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.20),
@@ -3236,6 +3237,46 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         presenterRole: HandoverCodeService.presenterRenter,
       );
 
+  Future<Map<String, dynamic>?> _issueSecureChallenge(String segment) async {
+    final requestId = (widget.booking['requestId'] as String?)?.trim();
+    if (requestId == null || requestId.isEmpty) return null;
+    try {
+      return await DataService.issueBookingConfirmationChallenge(
+        requestId: requestId,
+        segment: segment,
+      );
+    } catch (_) {
+      if (!mounted) return null;
+      AppPopup.toast(
+        context,
+        icon: Icons.lock_outline,
+        title: 'Sicherer Bestätigungscode konnte nicht erstellt werden.',
+      );
+      return null;
+    }
+  }
+
+  Future<bool> _verifySecureChallenge({
+    required String segment,
+    required String presenterRole,
+    String? qrPayload,
+    String? code,
+  }) async {
+    final requestId = (widget.booking['requestId'] as String?)?.trim();
+    if (requestId == null || requestId.isEmpty) return false;
+    try {
+      return await DataService.verifyBookingConfirmationChallenge(
+        requestId: requestId,
+        segment: segment,
+        presenterRole: presenterRole,
+        qrPayload: qrPayload,
+        code: code,
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
   String _handoverCode() {
     final title = (widget.booking['title'] as String?) ?? '';
     return HandoverCodeService.codeFromTitleAndStart(
@@ -3473,13 +3514,30 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final renterName = widget.viewerIsOwner ? _listerName : 'Mieter';
     final ownerName = widget.viewerIsOwner ? 'Vermieter' : _listerName;
 
+    Map<String, dynamic>? challenge;
+    if (!widget.viewerIsOwner) {
+      challenge = await _issueSecureChallenge(
+        HandoverCodeService.segmentReturn,
+      );
+      if (challenge == null) return;
+    }
+
     final ok = await ReturnHandoverStepperSheet.push(
       context,
       item: item,
       request: req,
       renterName: renterName,
       ownerName: ownerName,
-      handoverCode: _returnRenterCode(),
+      handoverCode: challenge?['code']?.toString() ?? '',
+      qrPayload: challenge?['qrPayload']?.toString(),
+      confirmationVerifier: widget.viewerIsOwner
+          ? ({qrPayload, code}) => _verifySecureChallenge(
+                segment: HandoverCodeService.segmentReturn,
+                presenterRole: HandoverCodeService.presenterRenter,
+                qrPayload: qrPayload,
+                code: code,
+              )
+          : null,
       viewerIsOwner: widget.viewerIsOwner,
       mode: ReturnFlowMode.returnFlow,
     );
@@ -3675,13 +3733,30 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final renterName = widget.viewerIsOwner ? _listerName : 'Mieter';
     final ownerName = widget.viewerIsOwner ? 'Vermieter' : _listerName;
 
+    Map<String, dynamic>? challenge;
+    if (widget.viewerIsOwner) {
+      challenge = await _issueSecureChallenge(
+        HandoverCodeService.segmentPickup,
+      );
+      if (challenge == null) return;
+    }
+
     final ok = await ReturnHandoverStepperSheet.push(
       context,
       item: item,
       request: req,
       renterName: renterName,
       ownerName: ownerName,
-      handoverCode: _pickupOwnerCode(),
+      handoverCode: challenge?['code']?.toString() ?? '',
+      qrPayload: challenge?['qrPayload']?.toString(),
+      confirmationVerifier: widget.viewerIsOwner
+          ? null
+          : ({qrPayload, code}) => _verifySecureChallenge(
+                segment: HandoverCodeService.segmentPickup,
+                presenterRole: HandoverCodeService.presenterOwner,
+                qrPayload: qrPayload,
+                code: code,
+              ),
       viewerIsOwner: widget.viewerIsOwner,
       mode: ReturnFlowMode.pickupFlow,
     );
@@ -3966,24 +4041,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
 
     try {
-      final raw = scanned!.trim();
-      final matches = HandoverCodeService.isExpectedQrPayload(
-        raw,
-        segment: HandoverCodeService.segmentPickup,
-        presenterRole: HandoverCodeService.presenterOwner,
-        code: _pickupOwnerCode(),
-        bookingId: _computeBookingId(),
-      );
-      if (!matches) {
-        AppPopup.toast(
-          context,
-          icon: Icons.error_outline,
-          title:
-              'Dieser Code passt nicht zu diesem Übergabeschritt. Bitte den aktuellen Code erneut anzeigen oder scannen.',
-        );
-        return;
-      }
-
       if (!_canStartBookingHandover) {
         AppPopup.toast(
           context,
@@ -3997,6 +4054,20 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       if (renterUserId == null) return;
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
+        final matches = await _verifySecureChallenge(
+          segment: HandoverCodeService.segmentPickup,
+          presenterRole: HandoverCodeService.presenterOwner,
+          qrPayload: scanned!.trim(),
+        );
+        if (!matches) {
+          AppPopup.toast(
+            context,
+            icon: Icons.error_outline,
+            title:
+                'Dieser Code passt nicht zu diesem Übergabeschritt. Bitte den aktuellen Code erneut anzeigen oder scannen.',
+          );
+          return;
+        }
         final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(
           requestId,
           isReturn: false,
@@ -4100,24 +4171,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
 
     try {
-      final raw = scanned!.trim();
-      final matches = HandoverCodeService.isExpectedQrPayload(
-        raw,
-        segment: HandoverCodeService.segmentReturn,
-        presenterRole: HandoverCodeService.presenterRenter,
-        code: _returnRenterCode(),
-        bookingId: _computeBookingId(),
-      );
-      if (!matches) {
-        AppPopup.toast(
-          context,
-          icon: Icons.error_outline,
-          title:
-              'Dieser Code gehört nicht zu dieser Rückgabe. Bitte den aktuellen Rückgabe-Code verwenden.',
-        );
-        return;
-      }
-
       if (!_canCompleteBookingReturn) {
         AppPopup.toast(
           context,
@@ -4141,6 +4194,20 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
+        final matches = await _verifySecureChallenge(
+          segment: HandoverCodeService.segmentReturn,
+          presenterRole: HandoverCodeService.presenterRenter,
+          qrPayload: scanned!.trim(),
+        );
+        if (!matches) {
+          AppPopup.toast(
+            context,
+            icon: Icons.error_outline,
+            title:
+                'Dieser Code gehört nicht zu dieser Rückgabe. Bitte den aktuellen Rückgabe-Code verwenden.',
+          );
+          return;
+        }
         final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(
           requestId,
           isReturn: true,
@@ -4210,15 +4277,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       );
       return;
     }
-    if (entered != _returnRenterCode()) {
-      AppPopup.toast(
-        context,
-        icon: Icons.error_outline,
-        title:
-            'Dieser Code gehört nicht zu dieser Rückgabe. Bitte den aktuellen Rückgabe-Code verwenden.',
-      );
-      return;
-    }
     try {
       if (!_canCompleteBookingReturn) {
         AppPopup.toast(
@@ -4244,6 +4302,20 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
       final requestId = widget.booking['requestId'] as String?;
       if (requestId != null && requestId.isNotEmpty) {
+        final matches = await _verifySecureChallenge(
+          segment: HandoverCodeService.segmentReturn,
+          presenterRole: HandoverCodeService.presenterRenter,
+          code: entered,
+        );
+        if (!matches) {
+          AppPopup.toast(
+            context,
+            icon: Icons.error_outline,
+            title:
+                'Dieser Code gehört nicht zu dieser Rückgabe. Bitte den aktuellen Rückgabe-Code verwenden.',
+          );
+          return;
+        }
         final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(
           requestId,
           isReturn: true,
@@ -4518,15 +4590,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       );
       return;
     }
-    if (entered != _pickupOwnerCode()) {
-      AppPopup.toast(
-        context,
-        icon: Icons.error_outline,
-        title:
-            'Dieser Code passt nicht zu diesem Übergabeschritt. Bitte den aktuellen Code erneut anzeigen oder scannen.',
-      );
-      return;
-    }
     try {
       final renterUserId = await _guardAuthenticatedRenter();
       if (renterUserId == null) return;
@@ -4537,6 +4600,20 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             context,
             icon: Icons.info_outline,
             title: 'Übergabe ist gerade nicht verfügbar',
+          );
+          return;
+        }
+        final matches = await _verifySecureChallenge(
+          segment: HandoverCodeService.segmentPickup,
+          presenterRole: HandoverCodeService.presenterOwner,
+          code: entered,
+        );
+        if (!matches) {
+          AppPopup.toast(
+            context,
+            icon: Icons.error_outline,
+            title:
+                'Dieser Code passt nicht zu diesem Übergabeschritt. Bitte den aktuellen Code erneut anzeigen oder scannen.',
           );
           return;
         }

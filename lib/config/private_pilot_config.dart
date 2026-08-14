@@ -1,3 +1,19 @@
+class PilotOpenDecision {
+  final String id;
+  final String title;
+  final String interimRule;
+  final String updateAuthority;
+  final bool blocksLiveActivation;
+
+  const PilotOpenDecision({
+    required this.id,
+    required this.title,
+    required this.interimRule,
+    required this.updateAuthority,
+    required this.blocksLiveActivation,
+  });
+}
+
 class PrivatePilotConfig {
   PrivatePilotConfig._();
 
@@ -44,6 +60,62 @@ class PrivatePilotConfig {
   static const String documentName = 'ShareItToo Rechtsmappe Privat-Pilot';
   static const String documentVersion = 'V4-2026-08-14';
   static const String language = 'de';
+
+  /// Central register for the open V4 decisions. The app uses the stated
+  /// interim rule for closed testing, but none of these entries may silently
+  /// be treated as final legal or live-payment approval. A later decision is
+  /// applied by changing this registry and the matching versioned tests.
+  static const List<PilotOpenDecision> openDecisions = [
+    PilotOpenDecision(
+      id: 'platform_contract_and_withdrawal_timing',
+      title: 'Plattformvertrag und Widerrufserklärungen',
+      interimRule:
+          'Getrennte, nicht vorausgewählte Erklärungen werden bei der Buchungsanfrage versioniert protokolliert; das V4-Zwischenmodell ordnet die SIT-Annahme der Buchungsbestätigung zu.',
+      updateAuthority: 'Anwalt - Rechtsmappe Teil K, Frage 1',
+      blocksLiveActivation: true,
+    ),
+    PilotOpenDecision(
+      id: 'withdrawal_effect_on_private_rental',
+      title: 'Wirkung des Widerrufs auf den privaten Mietvertrag',
+      interimRule:
+          'Der Eingang wird bestätigt und protokolliert; Buchung, privater Mietvertrag und Geldfluss werden nicht automatisch verändert.',
+      updateAuthority: 'Anwalt - Rechtsmappe Teil K, Frage 2',
+      blocksLiveActivation: true,
+    ),
+    PilotOpenDecision(
+      id: 'cancellation_50_100_or_30_50',
+      title: 'Stornoparameter 50/100 oder 30/50',
+      interimRule:
+          'Für geschlossene Tests gelten konfigurierbar 50 % verbleibend unter 24 Stunden und 100 % ab Mietbeginn oder Mieter-No-Show.',
+      updateAuthority: 'Anwalt und Produkt - Rechtsmappe Teil K, Frage 3',
+      blocksLiveActivation: true,
+    ),
+    PilotOpenDecision(
+      id: 'marketplace_psp_mechanics',
+      title: 'PSP- und Geldflussmechanik',
+      interimRule:
+          'Nur Test- und Mockzustände; keine echte Autorisierung, Belastung, Auszahlung, Erstattung oder Schadensverrechnung.',
+      updateAuthority:
+          'PSP-Vertrag und ZAG-erfahrene Prüfung - Rechtsmappe Teil K, Frage 4',
+      blocksLiveActivation: true,
+    ),
+    PilotOpenDecision(
+      id: 'missing_return_confirmation_window',
+      title: 'Klärungsfenster bei fehlender Rückgabebestätigung',
+      interimRule:
+          'Neutraler Zustand awaitingReturnConfirmation bis T0 plus 5 Kalendertage; keine automatische needsReview-Eskalation.',
+      updateAuthority: 'Produkt und PSP',
+      blocksLiveActivation: false,
+    ),
+    PilotOpenDecision(
+      id: 'handover_photo_workflow',
+      title: 'Fotoablauf bei Übergabe und Rückgabe',
+      interimRule:
+          'Vier aktuelle Basisfotos je Richtung, Gegenbestätigung oder mindestens ein Abweichungsfoto, danach getrennte QR- oder Fallback-Code-Bestätigung.',
+      updateAuthority: 'Usability-Test vor Pilot',
+      blocksLiveActivation: false,
+    ),
+  ];
 
   static const String accountPrivateDeclaration =
       'Ich bin mindestens 18 Jahre alt, handle als natuerliche Person und nutze ShareItToo im Privat-Pilot ausschliesslich privat.';

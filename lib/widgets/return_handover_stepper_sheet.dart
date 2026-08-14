@@ -15,6 +15,11 @@ import 'package:lendify/services/handover_code.dart';
 import 'package:lendify/services/local_artifact_storage_service.dart';
 import 'package:lendify/widgets/private_pilot_risk_notice.dart';
 
+typedef CounterpartyConfirmationVerifier = Future<bool> Function({
+  String? qrPayload,
+  String? code,
+});
+
 class ReturnHandoverStepResult {
   final bool confirmed;
   final bool galleryUsed;
@@ -30,6 +35,8 @@ class ReturnHandoverStepperSheet {
     required String renterName,
     required String ownerName,
     required String handoverCode,
+    String? qrPayload,
+    CounterpartyConfirmationVerifier? confirmationVerifier,
     bool viewerIsOwner = false,
     ReturnFlowMode mode = ReturnFlowMode.returnFlow,
   }) async {
@@ -45,6 +52,8 @@ class ReturnHandoverStepperSheet {
         renterName: renterName,
         ownerName: ownerName,
         handoverCode: handoverCode,
+        qrPayload: qrPayload,
+        confirmationVerifier: confirmationVerifier,
         viewerIsOwner: viewerIsOwner,
         mode: mode,
         fullScreen: false,
@@ -60,6 +69,8 @@ class ReturnHandoverStepperSheet {
     required String renterName,
     required String ownerName,
     required String handoverCode,
+    String? qrPayload,
+    CounterpartyConfirmationVerifier? confirmationVerifier,
     bool viewerIsOwner = false,
     ReturnFlowMode mode = ReturnFlowMode.returnFlow,
   }) async {
@@ -71,6 +82,8 @@ class ReturnHandoverStepperSheet {
           renterName: renterName,
           ownerName: ownerName,
           handoverCode: handoverCode,
+          qrPayload: qrPayload,
+          confirmationVerifier: confirmationVerifier,
           viewerIsOwner: viewerIsOwner,
           mode: mode,
         ),
@@ -85,6 +98,8 @@ class ReturnHandoverStepperPage extends StatelessWidget {
   final String renterName;
   final String ownerName;
   final String handoverCode;
+  final String? qrPayload;
+  final CounterpartyConfirmationVerifier? confirmationVerifier;
   final ReturnFlowMode mode;
   final bool viewerIsOwner;
   const ReturnHandoverStepperPage(
@@ -94,6 +109,8 @@ class ReturnHandoverStepperPage extends StatelessWidget {
       required this.renterName,
       required this.ownerName,
       required this.handoverCode,
+      this.qrPayload,
+      this.confirmationVerifier,
       this.mode = ReturnFlowMode.returnFlow,
       this.viewerIsOwner = false});
 
@@ -107,6 +124,8 @@ class ReturnHandoverStepperPage extends StatelessWidget {
         renterName: renterName,
         ownerName: ownerName,
         handoverCode: handoverCode,
+        qrPayload: qrPayload,
+        confirmationVerifier: confirmationVerifier,
         viewerIsOwner: viewerIsOwner,
         mode: mode,
         fullScreen: true,
@@ -121,6 +140,8 @@ class _ReturnHandoverStepper extends StatefulWidget {
   final String renterName;
   final String ownerName;
   final String handoverCode;
+  final String? qrPayload;
+  final CounterpartyConfirmationVerifier? confirmationVerifier;
   final bool
       fullScreen; // new: when true, fill the whole page instead of sheet height
   final ReturnFlowMode mode;
@@ -131,6 +152,8 @@ class _ReturnHandoverStepper extends StatefulWidget {
       required this.renterName,
       required this.ownerName,
       required this.handoverCode,
+      this.qrPayload,
+      this.confirmationVerifier,
       this.mode = ReturnFlowMode.returnFlow,
       this.fullScreen = false,
       this.viewerIsOwner = false});
@@ -1013,12 +1036,13 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
     final presenterRole = isReturn
         ? HandoverCodeService.presenterRenter
         : HandoverCodeService.presenterOwner;
-    final qrData = HandoverCodeService.qrPayload(
-      segment: segment,
-      presenterRole: presenterRole,
-      code: widget.handoverCode,
-      bookingId: bookingSeed,
-    );
+    final qrData = widget.qrPayload ??
+        HandoverCodeService.qrPayload(
+          segment: segment,
+          presenterRole: presenterRole,
+          code: widget.handoverCode,
+          bookingId: bookingSeed,
+        );
 
     // Owner:
     // - In pickup flow the owner SHOWS QR + Code to the renter
@@ -1086,7 +1110,9 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
                           onPressed: () async {
                             final entered = _manualCodeCtrl.text.trim();
                             if (entered.isEmpty) return;
-                            if (entered == widget.handoverCode) {
+                            final verified =
+                                await _verifyCounterpartyCode(entered);
+                            if (verified) {
                               setState(() => _otherPartyConfirmed = true);
                               await AppPopup.toast(context,
                                   icon: Icons.check_circle_outline,
@@ -1301,7 +1327,8 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
                       onPressed: () async {
                         final entered = _manualCodeCtrl.text.trim();
                         if (entered.isEmpty) return;
-                        if (entered == widget.handoverCode) {
+                        final verified = await _verifyCounterpartyCode(entered);
+                        if (verified) {
                           setState(() => _otherPartyConfirmed = true);
                           await AppPopup.toast(context,
                               icon: Icons.check_circle_outline,
@@ -1390,13 +1417,15 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
       final expectedPresenterRole = widget.mode == ReturnFlowMode.returnFlow
           ? HandoverCodeService.presenterRenter
           : HandoverCodeService.presenterOwner;
-      final matches = HandoverCodeService.isExpectedQrPayload(
-        raw,
-        segment: expectedSegment,
-        presenterRole: expectedPresenterRole,
-        code: widget.handoverCode,
-        bookingId: _computeBookingSeed(widget.item, widget.request),
-      );
+      final matches = widget.confirmationVerifier != null
+          ? await widget.confirmationVerifier!(qrPayload: raw)
+          : HandoverCodeService.isExpectedQrPayload(
+              raw,
+              segment: expectedSegment,
+              presenterRole: expectedPresenterRole,
+              code: widget.handoverCode,
+              bookingId: _computeBookingSeed(widget.item, widget.request),
+            );
       if (!matches) {
         await AppPopup.toast(context,
             icon: Icons.error_outline,
@@ -1415,6 +1444,13 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
       await AppPopup.toast(context,
           icon: Icons.error_outline, title: 'Bestätigung fehlgeschlagen');
     }
+  }
+
+  Future<bool> _verifyCounterpartyCode(String code) async {
+    if (widget.confirmationVerifier != null) {
+      return widget.confirmationVerifier!(code: code);
+    }
+    return code == widget.handoverCode;
   }
 
   void _showQrOverlay(BuildContext context, String data) {

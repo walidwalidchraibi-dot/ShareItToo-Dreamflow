@@ -44,6 +44,11 @@ import {
   replaceListingAvailability,
   transitionBooking,
 } from './booking_workflow.js';
+import { BookingConfirmationError } from './booking_confirmation_domain.js';
+import {
+  issueBookingConfirmationChallenge,
+  verifyBookingConfirmationChallenge,
+} from './booking_confirmation_workflow.js';
 import {
   getMailerStatus,
   sendAccountDeletionEmail,
@@ -544,55 +549,25 @@ function existingRentalPayload(raw, existing, actorId) {
   const isRenter = actorId === existing.renter_id;
   const merged = { ...stored };
 
-  if (Object.hasOwn(candidate, 'handoverConfirmation')) {
+  if (!config.privatePilotV4Enabled && Object.hasOwn(candidate, 'handoverConfirmation')) {
     merged.handoverConfirmation = candidate.handoverConfirmation;
   }
 
   if (config.privatePilotV4Enabled) {
     const now = new Date();
+    merged.handoverConfirmation = stored.handoverConfirmation ?? null;
     const storedConfirmation = stored.returnConfirmation
       && typeof stored.returnConfirmation === 'object'
       && !Array.isArray(stored.returnConfirmation)
       ? { ...stored.returnConfirmation }
       : {};
-    const candidateConfirmation = candidate.returnConfirmation
-      && typeof candidate.returnConfirmation === 'object'
-      && !Array.isArray(candidate.returnConfirmation)
-      ? candidate.returnConfirmation
-      : null;
-    const submittedReturnConfirmation = candidateConfirmation != null && (
-      (isRenter
-        && !Number.isFinite(Date.parse(storedConfirmation.renterConfirmedAt))
-        && Number.isFinite(Date.parse(candidateConfirmation.renterConfirmedAt)))
-      || (!isRenter
-        && !Number.isFinite(Date.parse(storedConfirmation.ownerConfirmedAt))
-        && Number.isFinite(Date.parse(candidateConfirmation.ownerConfirmedAt)))
-    );
-    if (submittedReturnConfirmation) {
-      const submitted = ensureObject(candidateConfirmation, 'invalid_return_confirmation');
-      const confirmedAt = now.toISOString();
-      if (isRenter) {
-        storedConfirmation.renterConfirmedAt = confirmedAt;
-        if (Number.isFinite(Date.parse(submitted.ownerConfirmedAt))) {
-          storedConfirmation.ownerConfirmedAt = confirmedAt;
-        }
-      } else {
-        storedConfirmation.ownerConfirmedAt = confirmedAt;
-        if (Number.isFinite(Date.parse(submitted.renterConfirmedAt))) {
-          storedConfirmation.renterConfirmedAt = confirmedAt;
-        }
-      }
-      storedConfirmation.method = safeText(submitted.method, 80) || 'app';
-      storedConfirmation.confirmedByUserId = actorId;
-      storedConfirmation.confirmedByRole = isRenter ? 'renter' : 'owner';
-    }
     merged.returnConfirmation = storedConfirmation;
     const normalizedConfirmation = storedConfirmation;
     const ownerConfirmed = Number.isFinite(Date.parse(normalizedConfirmation.ownerConfirmedAt));
     const renterConfirmed = Number.isFinite(Date.parse(normalizedConfirmation.renterConfirmedAt));
     const t0 = Number.isFinite(Date.parse(stored.returnT0))
       ? new Date(stored.returnT0)
-      : (submittedReturnConfirmation ? now : new Date(stored.end));
+      : new Date(stored.end);
     const requestedEvidence = Array.isArray(candidate.reviewEvidenceReferences)
       ? candidate.reviewEvidenceReferences
         .map((entry) => safeText(entry, 500))
@@ -1120,6 +1095,7 @@ export function createApp({
   const exportLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const deletionLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 3, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const mapsLimiter = rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
+  const confirmationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, handler: limitHandler });
   const staffElevationLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false, skipSuccessfulRequests: true, handler: limitHandler });
   app.use(generalLimiter);
 
@@ -2684,6 +2660,37 @@ export function createApp({
     res.json(result);
   }));
 
+  app.post('/v1/bookings/:id/confirmation-challenges', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), confirmationLimiter, asyncRoute(async (req, res) => {
+    assertBookingPilot(config);
+    const challenge = await inTransaction((client) => issueBookingConfirmationChallenge(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      raw: req.body,
+      secret: config.jwtSecret,
+    }));
+    res.status(201).json({ challenge });
+  }));
+
+  app.post('/v1/bookings/:id/confirmation-challenges/verify', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), confirmationLimiter, asyncRoute(async (req, res) => {
+    assertBookingPilot(config);
+    const outcome = await inTransaction((client) => verifyBookingConfirmationChallenge(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      raw: req.body,
+      secret: config.jwtSecret,
+    }));
+    if (outcome.rejected) {
+      throw new HttpError(400, outcome.code, {
+        attemptsRemaining: outcome.attemptsRemaining,
+      });
+    }
+    publishToUsers(outcome.participantUserIds, {
+      type: 'changed',
+      resource: 'rental_requests',
+    });
+    res.json(outcome);
+  }));
+
   app.post('/v1/bookings/:id/transitions', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
     assertBookingPilot(config);
     const result = await inTransaction((client) => transitionBooking(client, {
@@ -3640,18 +3647,19 @@ export function createApp({
     const paymentWorkflowError = error instanceof PaymentDomainError;
     const moderationWorkflowError = error instanceof ModerationDomainError;
     const mapsProxyError = error instanceof MapsProxyError;
+    const bookingConfirmationError = error instanceof BookingConfirmationError;
     const status = bookingConflict
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError || bookingConfirmationError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError || bookingConfirmationError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });

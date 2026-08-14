@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/backend_repository.dart';
+import 'package:lendify/services/handover_code.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
@@ -5851,6 +5852,119 @@ class DataService {
     }
   }
 
+  static Future<Map<String, dynamic>?> issueBookingConfirmationChallenge({
+    required String requestId,
+    required String segment,
+  }) async {
+    final id = requestId.trim();
+    if (id.isEmpty ||
+        !const <String>{
+          HandoverCodeService.segmentPickup,
+          HandoverCodeService.segmentReturn,
+        }.contains(segment)) {
+      return null;
+    }
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      return BackendRepository.issueBookingConfirmationChallenge(
+        bookingId: id,
+        segment: segment,
+      );
+    }
+    final request = await getRentalRequestById(id);
+    final current = await getCurrentUser();
+    final item = request == null ? null : await getItemById(request.itemId);
+    if (request == null || current == null || item == null) return null;
+    final presenterRole = current.id == request.ownerId
+        ? HandoverCodeService.presenterOwner
+        : current.id == request.renterId
+            ? HandoverCodeService.presenterRenter
+            : null;
+    if (presenterRole == null) return null;
+    final expectedPresenterRole = segment == HandoverCodeService.segmentPickup
+        ? HandoverCodeService.presenterOwner
+        : HandoverCodeService.presenterRenter;
+    if (presenterRole != expectedPresenterRole) return null;
+    final code = HandoverCodeService.codeForTitleAndStart(
+      title: item.title,
+      start: request.start,
+      bookingId: request.id,
+      segment: segment,
+      presenterRole: presenterRole,
+    );
+    return <String, dynamic>{
+      'id': 'local-${request.id}-$segment-$presenterRole',
+      'bookingId': request.id,
+      'segment': segment,
+      'presenterRole': presenterRole,
+      'code': code,
+      'qrPayload': HandoverCodeService.qrPayload(
+        segment: segment,
+        presenterRole: presenterRole,
+        code: code,
+        bookingId: request.id,
+      ),
+      'issuedAt': DateTime.now().toIso8601String(),
+      'expiresAt':
+          DateTime.now().add(const Duration(minutes: 10)).toIso8601String(),
+    };
+  }
+
+  static Future<bool> verifyBookingConfirmationChallenge({
+    required String requestId,
+    required String segment,
+    required String presenterRole,
+    String? qrPayload,
+    String? code,
+    String? challengeId,
+  }) async {
+    final id = requestId.trim();
+    if (id.isEmpty) return false;
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final response =
+          await BackendRepository.verifyBookingConfirmationChallenge(
+        bookingId: id,
+        qrPayload: qrPayload,
+        challengeId: challengeId,
+        code: code,
+        segment: segment,
+        presenterRole: presenterRole,
+      );
+      return response['confirmation'] is Map || response['replayed'] == true;
+    }
+    final request = await getRentalRequestById(id);
+    final current = await getCurrentUser();
+    final item = request == null ? null : await getItemById(request.itemId);
+    if (request == null || current == null || item == null) return false;
+    final expectedPresenterRole = segment == HandoverCodeService.segmentPickup
+        ? HandoverCodeService.presenterOwner
+        : segment == HandoverCodeService.segmentReturn
+            ? HandoverCodeService.presenterRenter
+            : null;
+    if (presenterRole != expectedPresenterRole) return false;
+    final expectedVerifierId =
+        presenterRole == HandoverCodeService.presenterOwner
+            ? request.renterId
+            : request.ownerId;
+    if (current.id != expectedVerifierId) return false;
+    final expected = HandoverCodeService.codeForTitleAndStart(
+      title: item.title,
+      start: request.start,
+      bookingId: request.id,
+      segment: segment,
+      presenterRole: presenterRole,
+    );
+    if (qrPayload != null && qrPayload.trim().isNotEmpty) {
+      return HandoverCodeService.isExpectedQrPayload(
+        qrPayload,
+        segment: segment,
+        presenterRole: presenterRole,
+        code: expected,
+        bookingId: request.id,
+      );
+    }
+    return code?.trim() == expected;
+  }
+
   static Future<RentalRequest?> refreshPrivatePilotReturnState(
     String requestId, {
     DateTime? actualReturnAt,
@@ -5960,6 +6074,12 @@ class DataService {
         'Übergabe-Daten fehlen.',
       );
     }
+    final currentUser = await getCurrentUser();
+    if (currentUser == null || currentUser.id != userId) {
+      return const RentalRequestTransitionResult.failure(
+        'Bitte melde dich mit dem bestätigenden Konto an.',
+      );
+    }
     if (request.renterId != userId) {
       return const RentalRequestTransitionResult.failure(
         'Diese Bestätigung ist nur für den Mieter möglich.',
@@ -6025,6 +6145,12 @@ class DataService {
     if (request == null) {
       return const RentalRequestTransitionResult.failure(
         'Rückgabe-Daten fehlen.',
+      );
+    }
+    final currentUser = await getCurrentUser();
+    if (currentUser == null || currentUser.id != userId) {
+      return const RentalRequestTransitionResult.failure(
+        'Bitte melde dich mit dem bestätigenden Konto an.',
       );
     }
     if (request.ownerId != userId) {

@@ -5,6 +5,7 @@ import {
   assertPrivatePilotBooking,
   assertPrivatePilotListing,
   privatePilotDocument,
+  privatePilotOpenDecisions,
   privatePilotRequiredCheckoutDeclarations,
   PrivatePilotValidationError,
 } from '../src/private_pilot_domain.js';
@@ -28,6 +29,26 @@ function checkoutDeclarations() {
     acceptedAt: '2026-08-14T12:00:00.000Z',
   }));
 }
+
+test('all six V4 open decisions have an explicit interim rule and owner', () => {
+  assert.equal(privatePilotOpenDecisions.length, 6);
+  assert.deepEqual(
+    privatePilotOpenDecisions.map((entry) => entry.id),
+    [
+      'platform_contract_and_withdrawal_timing',
+      'withdrawal_effect_on_private_rental',
+      'cancellation_50_100_or_30_50',
+      'marketplace_psp_mechanics',
+      'missing_return_confirmation_window',
+      'handover_photo_workflow',
+    ],
+  );
+  for (const entry of privatePilotOpenDecisions) {
+    assert.ok(entry.interimRule.length > 0);
+    assert.ok(entry.updateAuthority.length > 0);
+    assert.equal(typeof entry.blocksLiveActivation, 'boolean');
+  }
+});
 
 test('private listing and booking guardrails reject bypasses', () => {
   assert.equal(assertPrivatePilotListing({

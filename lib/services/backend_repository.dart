@@ -364,6 +364,41 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['booking'] as Map);
   }
 
+  static Future<Map<String, dynamic>> issueBookingConfirmationChallenge({
+    required String bookingId,
+    required String segment,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path:
+          '/bookings/${Uri.encodeComponent(bookingId)}/confirmation-challenges',
+      body: {'segment': segment},
+    );
+    return Map<String, dynamic>.from(response['challenge'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> verifyBookingConfirmationChallenge({
+    required String bookingId,
+    String? qrPayload,
+    String? challengeId,
+    String? code,
+    String? segment,
+    String? presenterRole,
+  }) async {
+    return _authorized(
+      method: 'POST',
+      path:
+          '/bookings/${Uri.encodeComponent(bookingId)}/confirmation-challenges/verify',
+      body: {
+        if (qrPayload != null) 'qrPayload': qrPayload,
+        if (challengeId != null) 'challengeId': challengeId,
+        if (code != null) 'code': code,
+        if (segment != null) 'segment': segment,
+        if (presenterRole != null) 'presenterRole': presenterRole,
+      },
+    );
+  }
+
   static Future<Map<String, dynamic>> recordPlatformWithdrawal({
     required String bookingId,
     required Map<String, dynamic> declaration,

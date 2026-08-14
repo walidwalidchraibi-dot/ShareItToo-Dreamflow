@@ -626,6 +626,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementHandoverPhotos('req-pickup');
         }
+        await DataService.setCurrentUser(renter);
 
         final result = await DataService.confirmPickupTransition(
           requestId: 'req-pickup',
@@ -648,7 +649,7 @@ void main() {
     );
 
     test(
-      'pickup transition rejects wrong renter role even when status is accepted',
+      'pickup transition rejects owner because renter verifies the owner code',
       () async {
         await DataService.setHandoverActive('req-pickup', active: true);
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
@@ -673,11 +674,38 @@ void main() {
     );
 
     test(
+      'pickup transition rejects a forged participant id from another session',
+      () async {
+        await DataService.setHandoverActive('req-pickup', active: true);
+        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+          await DataService.incrementHandoverPhotos('req-pickup');
+        }
+        await DataService.setCurrentUser(outsider);
+
+        final result = await DataService.confirmPickupTransition(
+          requestId: 'req-pickup',
+          confirmedByUserId: renter.id,
+          method: 'manual',
+          confirmationContextVerified: true,
+          galleryAcknowledged: true,
+        );
+
+        final request = await DataService.getRentalRequestById('req-pickup');
+
+        expect(result.success, isFalse);
+        expect(result.errorMessage, contains('bestätigenden Konto'));
+        expect(request!.status, 'accepted');
+        expect(request.handoverConfirmation, isNull);
+      },
+    );
+
+    test(
       'pickup transition rejects accepted request without active handover flow',
       () async {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementHandoverPhotos('req-pickup');
         }
+        await DataService.setCurrentUser(renter);
 
         final result = await DataService.confirmPickupTransition(
           requestId: 'req-pickup',
@@ -706,6 +734,7 @@ void main() {
         await DataService.incrementHandoverPhotos('req-pickup');
         await DataService.incrementHandoverPhotos('req-pickup');
         await DataService.incrementHandoverPhotos('req-pickup');
+        await DataService.setCurrentUser(renter);
 
         final result = await DataService.confirmPickupTransition(
           requestId: 'req-pickup',
@@ -730,6 +759,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementHandoverPhotos('req-pickup');
         }
+        await DataService.setCurrentUser(renter);
 
         final result = await DataService.confirmPickupTransition(
           requestId: 'req-pickup',
@@ -757,6 +787,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementHandoverPhotos('req-pickup');
         }
+        await DataService.setCurrentUser(renter);
 
         final first = await DataService.confirmPickupTransition(
           requestId: 'req-pickup',
@@ -803,6 +834,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementReturnPhotos('req-return');
         }
+        await DataService.setCurrentUser(owner);
 
         final result = await DataService.confirmReturnTransition(
           requestId: 'req-return',
@@ -859,6 +891,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementReturnPhotos('req-return');
         }
+        await DataService.setCurrentUser(owner);
 
         final result = await DataService.confirmReturnTransition(
           requestId: 'req-return',
@@ -889,6 +922,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementReturnPhotos('req-review');
         }
+        await DataService.setCurrentUser(owner);
 
         final result = await DataService.confirmReturnTransition(
           requestId: 'req-review',
@@ -918,6 +952,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementReturnPhotos('req-return');
         }
+        await DataService.setCurrentUser(owner);
 
         final result = await DataService.confirmReturnTransition(
           requestId: 'req-return',
@@ -948,6 +983,7 @@ void main() {
         for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
           await DataService.incrementReturnPhotos('req-return');
         }
+        await DataService.setCurrentUser(owner);
 
         final first = await DataService.confirmReturnTransition(
           requestId: 'req-return',

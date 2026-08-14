@@ -41,6 +41,28 @@ Ziel: App, Backend und Nachweise fuer einen rein privaten Deutschland-Pilot vorb
 | Fallabschluss | V4-Zwischenregel umgesetzt | Menschliche Bearbeitung muss beim Schliessen einen autorisierten Erstattungsbetrag zwischen 0 und Buchungsgesamtbetrag festlegen. Erst danach werden Refund und restliche Vermieterauszahlung anweisbar; behauptete Sachschaeden erzeugen keine Zusatzbelastung. |
 | Gewerbliche Anbieter, Fahrzeuge, Lieferung, Schutzprodukt, Kaution, bezahltes Ranking, Marketingtracking | nur zukuenftiges Modul | Hinter Pilotkonfiguration deaktiviert lassen; keine Loeschung zukunftsfaehiger Module. |
 
+## Offene Punkte mit gesetzter Zwischenregel
+
+Diese Punkte bleiben ausdruecklich offen. Sie sind nicht vergessen und werden
+nicht stillschweigend als rechtlich oder zahlungsseitig final behandelt. Fuer
+den geschlossenen Test gilt jeweils die folgende, zentral austauschbare
+Zwischenregel:
+
+| Offener Punkt | Gesetzte Zwischenregel | Spaetere Aktualisierung durch | Live-Blocker |
+|---|---|---|---|
+| Plattformvertrag und Zeitpunkt der Widerrufserklaerungen | Fuenf getrennte, nicht vorausgewaehlte Erklaerungen bei der Buchungsanfrage; SIT-Annahme im V4-Zwischenmodell mit Buchungsbestaetigung | Anwalt, Teil K Frage 1 | ja |
+| Wirkung des Plattformwiderrufs auf die private Miete | Eingang bestaetigen und versioniert protokollieren; Buchung, C2C-Mietvertrag und Geldfluss nicht automatisch veraendern | Anwalt, Teil K Frage 2 | ja |
+| Storno 50/100 oder 30/50 | Geschlossener Test nutzt konfigurierbar 50 Prozent verbleibend unter 24 Stunden und 100 Prozent ab Mietbeginn/No-Show | Anwalt und Produkt, Teil K Frage 3 | ja |
+| PSP-Autorisierung, Capture, Hold, Payout, Refund und Chargeback | Nur Test- und Mockzustaende; kein Echtgeld und keine Schadensverrechnung | PSP-Vertrag und ZAG-erfahrene Pruefung, Teil K Frage 4 | ja |
+| T0 plus 5 Tage oder kuerzeres Klaerungsfenster | `awaitingReturnConfirmation` bis T0 plus 5 Kalendertage, keine automatische `needsReview`-Eskalation | Produkt und PSP | nein, aber vor Pilot bestaetigen |
+| Vierer-Fotoablauf | Vier Basisfotos je Richtung, Gegenbestaetigung oder Abweichungsfoto, danach getrennte QR-/Fallback-Bestaetigung | Usability-Test vor Pilot | nein, aber vor Pilot bestaetigen |
+
+Die identische maschinenlesbare Liste liegt in
+`store/legal-readiness.json`, `lib/config/private_pilot_config.dart` und
+`backend/src/private_pilot_domain.js`. Wenn eine Entscheidung aktualisiert
+wird, muessen Dokumentversion, App-, Backend- und Regressionstest gemeinsam
+angepasst werden.
+
 ## Umsetzungscluster
 
 1. Zentrale Pilotkonfiguration, Cent-Preislogik, oeffentliche Endpreise, Checkout-Vorschau und Liefer-/Kategorie-Sperren.

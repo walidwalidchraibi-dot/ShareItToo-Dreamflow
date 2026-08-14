@@ -72,9 +72,38 @@ if (!databaseUrl) {
         '009_social_auth_providers.up.sql',
         '010_phone_verification.up.sql',
         '011_launch_without_deposit_or_protection.up.sql',
+        '012_private_pilot_v4_foundation.up.sql',
+        '013_secure_booking_confirmation_challenges.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
+      assert.match(migrationRows.rows.at(-1).checksum, /^[0-9a-f]{64}$/);
+      const confirmationChallengeColumns = await setupPool.query(
+        `SELECT column_name
+           FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'booking_confirmation_challenges'
+          ORDER BY ordinal_position`,
+      );
+      assert.deepEqual(
+        confirmationChallengeColumns.rows.map((row) => row.column_name),
+        [
+          'id',
+          'booking_id',
+          'segment',
+          'presenter_role',
+          'presenter_user_id',
+          'verifier_user_id',
+          'code_digest',
+          'issued_at',
+          'expires_at',
+          'consumed_at',
+          'revoked_at',
+          'attempt_count',
+          'locked_at',
+          'metadata',
+        ],
+      );
       const launchTruthConstraints = await setupPool.query(
         `SELECT conname, convalidated
          FROM pg_constraint

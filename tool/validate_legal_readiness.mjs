@@ -107,12 +107,14 @@ function assertExplicitConsentContract({ root, sourceTexts, consent }) {
     '_minimumAgeConfirmed',
     '_termsAccepted',
     '_privacyAccepted',
+    '_privateUseConfirmed',
     'Ich bin 18 Jahre oder älter.',
     'Ich akzeptiere die AGB.',
     'Ich akzeptiere die Datenschutzbestimmungen.',
     'termsAccepted: _termsAccepted',
     'privacyAccepted: _privacyAccepted',
     'minimumAgeConfirmed: _minimumAgeConfirmed',
+    'privateUseConfirmed: _privateUseConfirmed',
   ]) {
     if (!registration.includes(marker)) {
       fail(`Registration consent contract is missing: ${marker}`);
@@ -124,10 +126,15 @@ function assertExplicitConsentContract({ root, sourceTexts, consent }) {
     'required bool termsAccepted',
     'required bool privacyAccepted',
     'required bool minimumAgeConfirmed',
-    'if (!termsAccepted || !privacyAccepted || !minimumAgeConfirmed)',
+    'required bool privateUseConfirmed',
+    '!termsAccepted',
+    '!privacyAccepted',
+    '!minimumAgeConfirmed',
+    '!privateUseConfirmed',
     "'termsAccepted': termsAccepted",
     "'privacyAccepted': privacyAccepted",
     "'minimumAgeConfirmed': minimumAgeConfirmed",
+    "'privateUseConfirmed': privateUseConfirmed",
   ]) {
     if (!authService.includes(marker)) {
       fail(`Auth consent contract is missing: ${marker}`);
@@ -137,6 +144,7 @@ function assertExplicitConsentContract({ root, sourceTexts, consent }) {
     /['\"]termsAccepted['\"]\s*:\s*true/,
     /['\"]privacyAccepted['\"]\s*:\s*true/,
     /['\"]minimumAgeConfirmed['\"]\s*:\s*true/,
+    /['\"]privateUseConfirmed['\"]\s*:\s*true/,
   ]) {
     if (forbidden.test(authService)) {
       fail('Auth consent values must never be hardcoded to true.');
@@ -148,6 +156,7 @@ function assertExplicitConsentContract({ root, sourceTexts, consent }) {
     'req.body?.termsAccepted !== true',
     'req.body?.privacyAccepted !== true',
     'req.body?.minimumAgeConfirmed !== true',
+    'req.body?.privateUseConfirmed !== true',
     'registration_consents_required',
     'terms_accepted_at, privacy_accepted_at, minimum_age_confirmed_at',
   ]) {
@@ -228,8 +237,9 @@ export function validateLegalReadiness({
     fail('The registration and store minimum age must both remain 18.');
   }
   const confirmations = consent.explicitConfirmations;
-  if (!Array.isArray(confirmations) || confirmations.join(',') !== 'minimumAge,terms,privacy') {
-    fail('consentContract.explicitConfirmations must contain minimumAge, terms, and privacy in order.');
+  if (!Array.isArray(confirmations)
+      || confirmations.join(',') !== 'minimumAge,terms,privacy,privateUse') {
+    fail('consentContract.explicitConfirmations must contain minimumAge, terms, privacy, and privateUse in order.');
   }
   const expectedTechnicalStatus = legal.state === 'approved'
     ? 'explicit-versioned-approved'

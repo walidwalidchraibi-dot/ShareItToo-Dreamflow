@@ -20,6 +20,7 @@ import {
   cancellationAmounts,
   evaluateCancellation,
 } from './private_pilot_return_domain.js';
+import { hasVerifiedBookingConfirmation } from './booking_confirmation_workflow.js';
 import {
   assertPrivatePilotBooking,
   assertPrivatePilotOwnerAcceptance,
@@ -859,6 +860,16 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
   const steps = transitionPath(current, requested, {
     pilotWithoutPayment: config.bookingPilotWithoutPayment,
   });
+  if (config.privatePilotV4Enabled
+      && steps.includes('active')
+      && !hasVerifiedBookingConfirmation(row.payload, 'pickup')) {
+    throw new BookingWorkflowError(409, 'verified_pickup_confirmation_required');
+  }
+  if (config.privatePilotV4Enabled
+      && steps.includes('completed')
+      && !hasVerifiedBookingConfirmation(row.payload, 'return')) {
+    throw new BookingWorkflowError(409, 'verified_return_confirmation_required');
+  }
   if (current === 'requested' && steps[0] === 'accepted') {
     const bindingExpiresAt = row.payload?.bindingExpiresAt
       ? new Date(row.payload.bindingExpiresAt)

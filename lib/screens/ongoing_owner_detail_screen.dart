@@ -17,7 +17,6 @@ import 'package:lendify/widgets/return_handover_stepper_sheet.dart';
 import 'package:lendify/widgets/review_prompt_sheet.dart';
 import 'package:lendify/screens/owner_requests_screen.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
@@ -2176,181 +2175,27 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     );
   }
 
-  RentalRequest? _requestForId(String requestId) {
-    final req = _req;
-    if (req != null && req.id == requestId) return req;
-    return null;
-  }
-
-  Future<void> _startQrScan(
-    BuildContext context, {
-    required String expectedCode,
-    required String bookingId,
-    required String requestId,
-  }) async {
-    String? scanned;
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.black,
-      barrierColor: Colors.black.withValues(alpha: 0.8),
-      builder: (ctx) {
-        return SizedBox(
-          height: MediaQuery.of(ctx).size.height * 0.86,
-          child: Stack(
-            children: [
-              MobileScanner(
-                controller: MobileScannerController(
-                  detectionSpeed: DetectionSpeed.normal,
-                  facing: CameraFacing.back,
-                  torchEnabled: false,
-                ),
-                onDetect: (capture) {
-                  final barcodes = capture.barcodes;
-                  if (barcodes.isEmpty) return;
-                  final value = barcodes.first.rawValue ?? '';
-                  if (value.isEmpty) return;
-                  scanned = value;
-                  Navigator.of(ctx).maybePop();
-                },
-              ),
-              Positioned(
-                left: 8,
-                top: 8,
-                child: IconButton(
-                  onPressed: () => Navigator.of(ctx).maybePop(),
-                  icon: const Icon(Icons.close, color: Colors.white),
-                ),
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    'Scanne den QR-Code des Mieters',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (!mounted) return;
-    if (scanned == null || scanned!.isEmpty) {
-      AppPopup.toast(
-        context,
-        icon: Icons.qr_code_2,
-        title: 'Kein Code erkannt',
-      );
-      return;
-    }
-
-    try {
-      final raw = scanned!.trim();
-      final matches = HandoverCodeService.isExpectedQrPayload(
-        raw,
-        segment: HandoverCodeService.segmentPickup,
-        presenterRole: HandoverCodeService.presenterRenter,
-        code: expectedCode,
-        bookingId: bookingId,
-      );
-      if (!matches) {
-        AppPopup.toast(
-          context,
-          icon: Icons.error_outline,
-          title:
-              'Dieser Code passt nicht zu diesem Übergabeschritt. Bitte den aktuellen Code erneut anzeigen oder scannen.',
-        );
-        return;
-      }
-
-      final request = _requestForId(requestId);
-      if (request == null) {
-        AppPopup.toast(
-          context,
-          icon: Icons.info_outline,
-          title: 'Übergabe ist gerade nicht verfügbar',
-        );
-        return;
-      }
-      final ownerUserId = await _guardAuthenticatedOwner(request.ownerId);
-      if (!context.mounted) return;
-      if (ownerUserId == null) return;
-      if (!_canStartOwnerHandover(request)) {
-        AppPopup.toast(
-          context,
-          icon: Icons.info_outline,
-          title: 'Übergabe ist gerade nicht verfügbar',
-        );
-        return;
-      }
-      final isActive = await _guardActiveFlow(requestId, isReturn: false);
-      if (!isActive) return;
-      final hasRequiredPhotos = await _guardRequiredHandoverPhotos(requestId);
-      if (!hasRequiredPhotos) return;
-      final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(
-        requestId,
-        isReturn: false,
-      );
-      if (!galleryAcknowledged) return;
-      final result = await DataService.confirmPickupTransition(
-        requestId: requestId,
-        confirmedByUserId: ownerUserId,
-        method: 'qr',
-        confirmationContextVerified: true,
-        galleryAcknowledged: galleryAcknowledged,
-      );
-      if (!context.mounted) return;
-      if (!result.success) {
-        AppPopup.toast(
-          context,
-          icon: Icons.lock_outline,
-          title: result.errorMessage ?? 'Bestätigung fehlgeschlagen',
-        );
-        return;
-      }
-      AppPopup.toast(
-        context,
-        icon: Icons.check_circle_outline,
-        title: 'Übergabe per QR bestätigt',
-      );
-      await _load();
-    } catch (e) {
-      debugPrint('[handover] qr scan verification failed: $e');
-      if (!context.mounted) return;
-      AppPopup.toast(
-        context,
-        icon: Icons.error_outline,
-        title: 'Bestätigung fehlgeschlagen',
-      );
-    }
-  }
-
   Future<void> _startReturnFlow(
     BuildContext context,
     RentalRequest req,
     Item item,
     User renter,
   ) async {
-    final code = _confirmationCode(
-      item,
-      req,
-      segment: HandoverCodeService.segmentReturn,
-      presenterRole: HandoverCodeService.presenterRenter,
-    );
     final ok = await ReturnHandoverStepperSheet.push(
       context,
       item: item,
       request: req,
       renterName: renter.displayName,
       ownerName: _owner?.displayName ?? 'Vermieter',
-      handoverCode: code,
+      handoverCode: '',
+      confirmationVerifier: ({qrPayload, code}) =>
+          DataService.verifyBookingConfirmationChallenge(
+        requestId: req.id,
+        segment: HandoverCodeService.segmentReturn,
+        presenterRole: HandoverCodeService.presenterRenter,
+        qrPayload: qrPayload,
+        code: code,
+      ),
       viewerIsOwner: true,
       mode: ReturnFlowMode.returnFlow,
     );
@@ -2456,19 +2301,27 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     Item item,
     User renter,
   ) async {
-    final code = _confirmationCode(
-      item,
-      req,
+    final challenge = await DataService.issueBookingConfirmationChallenge(
+      requestId: req.id,
       segment: HandoverCodeService.segmentPickup,
-      presenterRole: HandoverCodeService.presenterOwner,
     );
+    if (challenge == null) {
+      if (!context.mounted) return;
+      AppPopup.toast(
+        context,
+        icon: Icons.lock_outline,
+        title: 'Sicherer Übergabe-Code konnte nicht erstellt werden.',
+      );
+      return;
+    }
     await ReturnHandoverStepperSheet.push(
       context,
       item: item,
       request: req,
       renterName: renter.displayName,
       ownerName: _owner?.displayName ?? 'Vermieter',
-      handoverCode: code,
+      handoverCode: challenge['code']?.toString() ?? '',
+      qrPayload: challenge['qrPayload']?.toString(),
       viewerIsOwner: true,
       mode: ReturnFlowMode.pickupFlow,
     );
