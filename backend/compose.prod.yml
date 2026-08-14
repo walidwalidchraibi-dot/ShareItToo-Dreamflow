@@ -62,6 +62,7 @@ services:
       MAIL_FROM: "${MAIL_FROM:-ShareItToo <contact@shareittoo.com>}"
       MAIL_REPLY_TO: "${MAIL_REPLY_TO:-contact@shareittoo.com}"
       BOOKING_PILOT_MODE: ${BOOKING_PILOT_MODE:-off}
+      PRIVATE_PILOT_V4_ENABLED: ${PRIVATE_PILOT_V4_ENABLED:-false}
       PUSH_TRANSPORT: ${PUSH_TRANSPORT:-disabled}
       PUSH_WEBHOOK_URL: ${PUSH_WEBHOOK_URL:-}
       PUSH_WEBHOOK_TOKEN: ${PUSH_WEBHOOK_TOKEN:-}
