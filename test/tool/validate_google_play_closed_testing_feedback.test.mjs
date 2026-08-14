@@ -13,7 +13,10 @@ const deviceCandidate = JSON.parse(readFileSync(
   resolve(root, 'store/device-validation.json'),
   'utf8',
 )).candidate;
-const currentCandidate = { versionName: '1.0.0', buildNumber: '2026081403' };
+const currentCandidate = {
+  versionName: plan.candidate.versionName,
+  buildNumber: plan.candidate.buildNumber,
+};
 
 function validate(planFixture, readinessFixture) {
   return validateGooglePlayClosedTestingFeedback({

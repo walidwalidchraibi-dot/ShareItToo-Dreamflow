@@ -11,7 +11,7 @@
     {"path": "backend/sql/migrations/006_b7_communications.up.sql", "sha256": "f1452d85f736cc013c33747ec6de71a9d139a1b6f993eb39f591171cc2a1dd83"},
     {"path": "backend/ops/backup.sh", "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"},
     {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "68d253d42664c615c1e46c06651a37b76153ae7ebe5a2e7c72bb3e60b73046f0"},
-    {"path": "lib/screens/privacy_info_screen.dart", "sha256": "7c4ab7b76fc6cc63aed439ce513cdc712da699ae6dff41ef87266308b1e707fa"}
+    {"path": "lib/screens/privacy_info_screen.dart", "sha256": "2738e28f1e26c4b04716b9e2bf6c14699f879a45f73c4a88755fd88236a4db61"}
   ],
   "implementedControls": {
     "accountErasure": {
