@@ -15,6 +15,19 @@ import {
   workflowStatusForLegacy,
 } from './booking_domain.js';
 import { enqueueBookingNotifications } from './notifications.js';
+import { releaseMetadata } from './release.js';
+import {
+  cancellationAmounts,
+  evaluateCancellation,
+} from './private_pilot_return_domain.js';
+import {
+  assertPrivatePilotBooking,
+  assertPrivatePilotOwnerAcceptance,
+  privatePilotDeclarations,
+  privatePilotDocument,
+  privatePilotRequiredCheckoutDeclarations,
+  PrivatePilotValidationError,
+} from './private_pilot_domain.js';
 
 const blockingWorkflowStatuses = Object.freeze(['accepted', 'payment_pending', 'confirmed', 'active', 'returned']);
 
@@ -119,6 +132,7 @@ function bookingPayload(row) {
     start: new Date(row.starts_at).toISOString(),
     end: new Date(row.ends_at).toISOString(),
     holdExpiresAt: row.hold_expires_at ? new Date(row.hold_expires_at).toISOString() : null,
+    acceptedAt: row.accepted_at ? new Date(row.accepted_at).toISOString() : null,
     quotedTotalRenter: money(row.quoted_total_minor),
     quote: {
       ...breakdown,
@@ -152,6 +166,7 @@ const bookingProjection = `
   booking.delivery_fee_minor, booking.pickup_fee_minor, booking.express_fee_minor,
   booking.owner_payout_minor, booking.quote_version, booking.quote_breakdown,
   booking.hold_expires_at, booking.created_at, booking.updated_at
+  , booking.accepted_at
 `;
 
 async function writeAudit(client, {
@@ -470,9 +485,19 @@ export async function listBookings(client, userId) {
   return result.rows.map(bookingPayload);
 }
 
-export async function quoteBooking(client, { actorId, raw }) {
+export async function quoteBooking(client, { actorId, raw, privatePilot = false }) {
   await expireBookingHolds(client);
   const candidate = object(raw);
+  if (privatePilot) {
+    try {
+      assertPrivatePilotBooking(candidate, { requireDeclaration: false });
+    } catch (error) {
+      if (error instanceof PrivatePilotValidationError) {
+        throw new BookingWorkflowError(400, error.code);
+      }
+      throw error;
+    }
+  }
   const listingId = text(candidate.itemId ?? candidate.listingId, 120);
   const listing = await listingForBooking(client, listingId);
   if (listing.owner_id === actorId) throw new BookingWorkflowError(409, 'cannot_rent_own_listing');
@@ -498,8 +523,24 @@ export async function quoteBooking(client, { actorId, raw }) {
   };
 }
 
-export async function createBooking(client, { actor, raw, key }) {
+export async function createBooking(client, {
+  actor,
+  raw,
+  key,
+  privatePilot = false,
+  appVersion = 'development',
+}) {
   const candidate = object(raw);
+  if (privatePilot) {
+    try {
+      assertPrivatePilotBooking(candidate);
+    } catch (error) {
+      if (error instanceof PrivatePilotValidationError) {
+        throw new BookingWorkflowError(400, error.code);
+      }
+      throw error;
+    }
+  }
   const commandKey = idempotencyKey(key ?? candidate.idempotencyKey);
   const replay = await startCommand(client, {
     key: commandKey,
@@ -539,6 +580,10 @@ export async function createBooking(client, { actor, raw, key }) {
   const quote = quoteForListing(candidate, dates, listing);
   const id = bookingIdentifier(candidate.id);
   const createdAt = new Date();
+  const bindingExpiresAt = new Date(Math.min(
+    createdAt.getTime() + (24 * 60 * 60 * 1000),
+    new Date(period.starts_at).getTime(),
+  ));
   const payload = {
     ...candidate,
     idempotencyKey: undefined,
@@ -556,6 +601,7 @@ export async function createBooking(client, { actor, raw, key }) {
     start: new Date(period.starts_at).toISOString(),
     end: new Date(period.ends_at).toISOString(),
     createdAt: createdAt.toISOString(),
+    bindingExpiresAt: bindingExpiresAt.toISOString(),
     quotedTotalRenter: money(quote.totalMinor),
     quote,
   };
@@ -574,11 +620,13 @@ export async function createBooking(client, { actor, raw, key }) {
        price_per_day_minor, base_rental_minor, discount_minor,
        rental_subtotal_minor, platform_fee_minor, delivery_fee_minor,
        pickup_fee_minor, express_fee_minor, owner_payout_minor,
-       quote_version, quote_breakdown, requested_at, created_at
+       quote_version, quote_breakdown, requested_at, created_at,
+       private_status_confirmed_at
      ) VALUES (
        $1, $2, $3, $4, 'pending', 'requested', 1, 1, $5, $6,
        $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-       $17, $18, $19, $20, $21, $22, $23, $24::jsonb, $25, $25
+       $17, $18, $19, $20, $21, $22, $23, $24::jsonb, $25, $25,
+       CASE WHEN $26::boolean THEN $25 ELSE NULL END
      )`,
     [
       id, listing.id, listing.owner_id, actor.id, period.starts_at, period.ends_at,
@@ -587,9 +635,34 @@ export async function createBooking(client, { actor, raw, key }) {
       quote.baseRentalMinor, quote.discountMinor, quote.rentalSubtotalMinor,
       quote.platformFeeMinor, quote.deliveryFeeMinor, quote.pickupFeeMinor,
       quote.expressFeeMinor, quote.ownerPayoutMinor, quote.quoteVersion,
-      JSON.stringify(quote), createdAt,
+      JSON.stringify(quote), createdAt, privatePilot,
     ],
   );
+  if (privatePilot) {
+    const acceptedByType = new Map(
+      candidate.legalDeclarations.map((entry) => [entry.type, entry]),
+    );
+    for (const declaration of privatePilotRequiredCheckoutDeclarations) {
+      const accepted = acceptedByType.get(declaration.type);
+      await client.query(
+        `INSERT INTO legal_declarations (
+           user_id, booking_id, declaration_type, exact_wording, document_name,
+           document_version, app_version, language, accepted, declared_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9)`,
+        [
+          actor.id,
+          id,
+          declaration.type,
+          declaration.wording,
+          privatePilotDocument.name,
+          privatePilotDocument.version,
+          appVersion,
+          privatePilotDocument.language,
+          new Date(accepted.acceptedAt),
+        ],
+      );
+    }
+  }
   await client.query(
     `INSERT INTO booking_events (
        booking_id, actor_id, event_type, to_status, idempotency_key, metadata
@@ -787,6 +860,19 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
     pilotWithoutPayment: config.bookingPilotWithoutPayment,
   });
   if (current === 'requested' && steps[0] === 'accepted') {
+    const bindingExpiresAt = row.payload?.bindingExpiresAt
+      ? new Date(row.payload.bindingExpiresAt)
+      : new Date(Math.min(
+          new Date(row.created_at).getTime() + (24 * 60 * 60 * 1000),
+          new Date(row.starts_at).getTime(),
+        ));
+    if (!Number.isFinite(bindingExpiresAt.getTime())
+        || Date.now() >= bindingExpiresAt.getTime()) {
+      throw new BookingWorkflowError(409, 'booking_request_expired');
+    }
+    if (config.privatePilotV4Enabled) {
+      assertPrivatePilotOwnerAcceptance(candidate);
+    }
     const listing = await listingForBooking(client, row.listing_id);
     const dates = parseRentalDates(
       databaseDate(row.rental_start_date),
@@ -837,6 +923,25 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
        WHERE id = $1`,
       [bookingId, legacyStatus, next, holdExpiresAt],
     );
+    if (next === 'accepted' && config.privatePilotV4Enabled) {
+      const declaration = assertPrivatePilotOwnerAcceptance(candidate);
+      await client.query(
+        `INSERT INTO legal_declarations (
+           user_id, booking_id, declaration_type, exact_wording, document_name,
+           document_version, app_version, language, accepted, declared_at
+         ) VALUES ($1, $2, 'owner_booking_acceptance', $3, $4, $5, $6, $7, true, $8)`,
+        [
+          actor.id,
+          bookingId,
+          privatePilotDeclarations.ownerAcceptance,
+          privatePilotDocument.name,
+          privatePilotDocument.version,
+          releaseMetadata.version,
+          privatePilotDocument.language,
+          new Date(declaration.acceptedAt),
+        ],
+      );
+    }
     const nextPayload = {
       ...(row.payload ?? {}),
       status: legacyStatus,
@@ -846,6 +951,23 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
       holdExpiresAt: holdExpiresAt?.toISOString() ?? null,
       ...(next === 'cancelled' ? { cancelledBy: actorRole } : {}),
     };
+    if (next === 'cancelled' && config.privatePilotV4Enabled) {
+      const outcome = evaluateCancellation({
+        rentalStartAt: row.starts_at,
+        cancelAt: new Date(),
+        contractConfirmedAt: row.accepted_at,
+        actor: actorRole,
+      });
+      nextPayload.cancellationOutcome = {
+        ...outcome,
+        ...cancellationAmounts({
+          totalMinor: Number(row.quoted_total_minor),
+          refundBasisPoints: outcome.refundBasisPoints,
+        }),
+        calculatedAt: new Date().toISOString(),
+        modelVersion: privatePilotDocument.version,
+      };
+    }
     row.payload = nextPayload;
     await client.query(
       `UPDATE rental_requests SET status = $2, payload = $3::jsonb WHERE id = $1`,

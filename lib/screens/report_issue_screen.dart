@@ -67,6 +67,15 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
     }
     final note = _detailsCtrl.text.trim();
     final code = _selectedCode!;
+    if (_isHardIssue(code) && note.length < 10) {
+      await AppPopup.info(
+        context,
+        title: 'Bitte genauer beschreiben',
+        message:
+            'Für einen Prüffall brauchen wir eine konkrete Beschreibung mit mindestens 10 Zeichen. Fotos aus Übergabe und Rückgabe bleiben als Nachweise erhalten.',
+      );
+      return;
+    }
     try {
       await DataService.addTimelineEvent(
         requestId: widget.requestId,
@@ -79,11 +88,23 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
             'Deine Meldung für "${widget.itemTitle ?? 'Buchung'}" wurde gespeichert.',
       );
       if (_isHardIssue(code)) {
-        await DataService.markRentalRequestNeedsReview(
+        final opened = await DataService.markRentalRequestNeedsReview(
           widget.requestId,
           reason: _reviewReason(code, note),
           source: 'report_issue_screen',
+          evidenceReferences: [
+            'timeline:issue:$code',
+            'handover_return_photo_record',
+          ],
         );
+        if (!opened && mounted) {
+          await AppPopup.info(
+            context,
+            title: 'Meldung gespeichert',
+            message:
+                'Die Meldung wurde dokumentiert, öffnet aber außerhalb des 48-Stunden-Fensters nicht automatisch einen Zahlungsprüffall. Der Support kann sie weiterhin prüfen.',
+          );
+        }
       }
       debugPrint(
           '[issue] reported $code for request ${widget.requestId}: $note');

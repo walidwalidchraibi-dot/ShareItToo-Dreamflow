@@ -25,6 +25,7 @@ import 'package:lendify/services/local_artifact_storage_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/private_pilot_owner_acceptance_dialog.dart';
 import 'package:lendify/widgets/return_handover_stepper_sheet.dart';
 import 'package:lendify/widgets/sit_glass_time_picker.dart';
 import 'package:lendify/widgets/user_avatar.dart';
@@ -142,6 +143,33 @@ bool _isChatActiveForState(_ChatState st) {
     case _ChatState.completed: // completed/declined/cancelled
       return false;
   }
+}
+
+/// V4 keeps the booking chat available through the relevant return/report
+/// window and, for a substantiated case, until that case is explicitly closed.
+bool isPrivatePilotBookingChatOpen({
+  required String bookingStatus,
+  required String returnState,
+  DateTime? reportDeadline,
+  DateTime? clarificationDeadline,
+  DateTime? caseClosedAt,
+  DateTime? now,
+}) {
+  final status = bookingStatus.trim().toLowerCase();
+  if (status == 'accepted' || status == 'running') return true;
+  if (status != 'completed') return false;
+
+  final state = returnState.trim();
+  if (state == 'needsReview') return caseClosedAt == null;
+  final current = now ?? DateTime.now();
+  if (state == 'awaitingReturnConfirmation') {
+    return clarificationDeadline != null &&
+        !current.isAfter(clarificationDeadline);
+  }
+  if (state == 'reportWindowOpen') {
+    return reportDeadline != null && !current.isAfter(reportDeadline);
+  }
+  return false;
 }
 
 class _MessageThreadScreenState extends State<MessageThreadScreen> {
@@ -1172,9 +1200,15 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
             );
           } else {
             if (!_viewerIsOwner()) return;
+            final declarations = await showPrivatePilotOwnerAcceptanceDialog(
+              context,
+              request: r,
+            );
+            if (declarations == null) return;
             await DataService.updateRentalRequestStatus(
               requestId: r.id,
               status: 'accepted',
+              legalDeclarations: declarations,
             );
             await DataService.updateMessageThreadBookingStatus(
               threadId: t.id,
@@ -1968,8 +2002,17 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final showActions = _shouldShowActions(st);
     final showAddressHint = _showAddressHint();
 
-    // Chat-Gating: Nur accepted/running erlaubt
-    final isChatActive = _isChatActiveForState(st);
+    final request = _request;
+    final isChatActive = st == _ChatState.support ||
+        (request == null
+            ? _isChatActiveForState(st)
+            : isPrivatePilotBookingChatOpen(
+                bookingStatus: request.status,
+                returnState: request.returnState,
+                reportDeadline: request.returnReportDeadline,
+                clarificationDeadline: request.returnClarificationDeadline,
+                caseClosedAt: request.returnCaseClosedAt,
+              ));
 
     final handoverActive = _handoverReturnState['handoverActive'] == true;
     final returnActive = _handoverReturnState['returnActive'] == true;
@@ -2435,7 +2478,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       case _ChatState.requestOpen:
         return 'Der Chat ist erst nach Annahme der Anfrage verfügbar.';
       case _ChatState.completed:
-        return 'Diese Buchung ist abgeschlossen.\nFür Fragen nutze den Support.';
+        return 'Das Rückgabe- oder Fallfenster ist geschlossen.\nFür weitere Fragen nutze den Support.';
       default:
         return 'Der Chat ist derzeit nicht verfügbar.';
     }

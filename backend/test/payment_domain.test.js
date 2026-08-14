@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { StripeProvider } from '../src/stripe_provider.js';
 
 import {
   captureLedger,
@@ -8,11 +9,36 @@ import {
   refundLedger,
   requestHash,
   splitRefund,
+  privatePilotReleasableOwnerAmount,
   stripeSignatureHeader,
   transferLedger,
   verifyStripeSignature,
 } from '../src/payment_domain.js';
-import { StripeProvider } from '../src/stripe_provider.js';
+
+test('private pilot payout releases only the undisputed authorized owner share', () => {
+  const result = privatePilotReleasableOwnerAmount({
+    paymentAmountMinor: 1100,
+    ownerPayoutMinor: 1000,
+    contestedAuthorizedMinor: 330,
+  });
+  assert.deepEqual(result, {
+    ownerAfterRefundsMinor: 1000,
+    heldOwnerMinor: 300,
+    releasableMinor: 700,
+  });
+});
+
+test('private pilot payout accounts for refunds and prior transfers', () => {
+  const result = privatePilotReleasableOwnerAmount({
+    paymentAmountMinor: 1100,
+    ownerPayoutMinor: 1000,
+    refundedOwnerMinor: 500,
+    transferredMinor: 100,
+    contestedAuthorizedMinor: 110,
+  });
+  assert.equal(result.heldOwnerMinor, 100);
+  assert.equal(result.releasableMinor, 300);
+});
 
 function balanced(entries) {
   return entries.reduce((sum, entry) => sum + entry.debitMinor - entry.creditMinor, 0) === 0;

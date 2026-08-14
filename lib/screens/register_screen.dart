@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/navigation/main_navigation.dart';
 import 'package:lendify/screens/legal_privacy_screen.dart';
 import 'package:lendify/screens/legal_terms_screen.dart';
@@ -44,6 +45,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _pw2Visible = false;
   bool _peekBackdrop = false;
   bool _minimumAgeConfirmed = false;
+  bool _privateUseConfirmed = false;
   bool _termsAccepted = false;
   bool _privacyAccepted = false;
 
@@ -151,7 +153,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       return;
     }
-    if (!_termsAccepted || !_privacyAccepted) {
+    if (!_termsAccepted || !_privacyAccepted || !_privateUseConfirmed) {
       await AppPopup.toast(
         context,
         icon: Icons.gavel_outlined,
@@ -170,6 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         termsAccepted: _termsAccepted,
         privacyAccepted: _privacyAccepted,
         minimumAgeConfirmed: _minimumAgeConfirmed,
+        privateUseConfirmed: _privateUseConfirmed,
       );
       if (!mounted) return;
       if (!result.ok) {
@@ -254,7 +257,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       AuthSocialProvider.apple => 'Apple',
       AuthSocialProvider.facebook => 'Facebook',
     };
-    if (!_minimumAgeConfirmed || !_termsAccepted || !_privacyAccepted) {
+    if (!_minimumAgeConfirmed ||
+        !_termsAccepted ||
+        !_privacyAccepted ||
+        !_privateUseConfirmed) {
       await AppPopup.toast(
         context,
         icon: Icons.gavel_outlined,
@@ -269,6 +275,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         termsAccepted: _termsAccepted,
         privacyAccepted: _privacyAccepted,
         minimumAgeConfirmed: _minimumAgeConfirmed,
+        privateUseConfirmed: _privateUseConfirmed,
       );
       if (!mounted) return;
       if (!result.ok) {
@@ -646,6 +653,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                       dense: true,
                                                       title: const Text(
                                                         'Ich bin 18 Jahre oder älter.',
+                                                      ),
+                                                    ),
+                                                    CheckboxListTile(
+                                                      value:
+                                                          _privateUseConfirmed,
+                                                      onChanged: _busy
+                                                          ? null
+                                                          : (value) => setState(
+                                                              () =>
+                                                                  _privateUseConfirmed =
+                                                                      value ==
+                                                                          true),
+                                                      controlAffinity:
+                                                          ListTileControlAffinity
+                                                              .leading,
+                                                      contentPadding:
+                                                          EdgeInsets.zero,
+                                                      dense: true,
+                                                      title: const Text(
+                                                        PrivatePilotConfig
+                                                            .accountPrivateDeclaration,
                                                       ),
                                                     ),
                                                     CheckboxListTile(

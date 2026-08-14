@@ -40,7 +40,9 @@ class LegalPrivacyScreen extends StatelessWidget {
               'Buchungsdaten (z.B. Zeitraum, Artikel, Status, Übergabe/Rückgabe)',
               'Buchungsbeträge, berechnete Gebühren und Buchungsstatus; keine Karten- oder Bankdaten',
               'Nachrichten zwischen Nutzern (zur Abwicklung der Buchung)',
-              'Standortdaten: Stadt/Region sowie – wenn du entsprechende Funktionen nutzt – genaue Adressen und genaue Standortkoordinaten für Inserate, Buchungen, Lieferungen, Übergaben oder Rückgaben',
+              'Standortdaten: Stadt/Region sowie genaue Adressen und Standortkoordinaten, soweit sie für persönliche Übergabe und Rückgabe erforderlich sind',
+              'Rechtserklärungen mit genauem Wortlaut, Dokumentversion, Sprache, Buchungsbezug sowie Datum und Uhrzeit',
+              'Übergabe-, Rückgabe- und fallbezogene Fotos mit Buchungszuordnung und Zeitstempel',
             ]),
             SizedBox(height: 10),
             LegalParagraph(
@@ -90,6 +92,10 @@ class LegalPrivacyScreen extends StatelessWidget {
           children: const [
             LegalParagraph(
               'Daten werden nur so lange gespeichert, wie sie für den jeweiligen Zweck erforderlich sind. Bestimmte Informationen (z.B. buchungs- oder abrechnungsrelevante Daten) können aufgrund gesetzlicher Aufbewahrungspflichten länger gespeichert werden.',
+            ),
+            SizedBox(height: 10),
+            LegalParagraph(
+              'Buchungschats und Nachweisfotos werden im Privat-Pilot grundsätzlich sechs Monate nach Rückgabe vorgehalten. Bei einem konkret eröffneten Fall oder gesetzlichen Nachweispflichten erfolgt die Aufbewahrung nur fallbezogen so lange wie erforderlich. Rechtserklärungen bleiben als unveränderbarer Vertragsnachweis erhalten.',
             ),
           ],
         ),

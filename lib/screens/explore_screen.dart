@@ -567,7 +567,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final double minPerDay =
         priceUnit == 'week' ? price.start / 7 : price.start;
     final double maxPerDay = priceUnit == 'week' ? price.end / 7 : price.end;
-    if (it.pricePerDay < minPerDay || it.pricePerDay > maxPerDay) return false;
+    final customerPrice = listingCustomerPrice(it.pricePerDay);
+    if (customerPrice < minPerDay || customerPrice > maxPerDay) return false;
     if (verifiedOnly) {
       final ok = it.verificationStatus == 'approved' ||
           it.verificationStatus == 'verified';
@@ -635,7 +636,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
     switch (sort) {
       case 'Preis':
         final order = (_filters?['priceOrder'] as String?) ?? 'asc';
-        list.sort((a, b) => a.pricePerDay.compareTo(b.pricePerDay));
+        list.sort((a, b) => listingCustomerPrice(a.pricePerDay)
+            .compareTo(listingCustomerPrice(b.pricePerDay)));
         if (order == 'desc') {
           list = list.reversed.toList();
         }
@@ -1634,9 +1636,8 @@ class _SquareItemCardState extends State<_SquareItemCard> {
                               final perDay = widget.item.pricePerDay;
                               final price =
                                   unit == 'week' ? perDay * 7 : perDay;
-                              final suffix =
-                                  unit == 'week' ? '€/Woche' : '€/Tag';
-                              return Text('${price.toStringAsFixed(0)} $suffix',
+                              return Text(
+                                  '${listingCustomerPriceText(price, currency: widget.item.currency)} ${unit == 'week' ? '/ Woche' : '/ Tag'}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context)
@@ -1810,9 +1811,8 @@ class _SmallScrollCardState extends State<_SmallScrollCard> {
                               final perDay = widget.item.pricePerDay;
                               final price =
                                   unit == 'week' ? perDay * 7 : perDay;
-                              final suffix =
-                                  unit == 'week' ? '€/Woche' : '€/Tag';
-                              return Text('${price.toStringAsFixed(0)} $suffix',
+                              return Text(
+                                  '${listingCustomerPriceText(price, currency: widget.item.currency)} ${unit == 'week' ? '/ Woche' : '/ Tag'}',
                                   style: Theme.of(context)
                                       .textTheme
                                       .labelSmall
@@ -2326,7 +2326,10 @@ class _ExploreListingCardContent extends StatelessWidget {
                                     fit: BoxFit.scaleDown,
                                     alignment: Alignment.centerLeft,
                                     child: Text(
-                                        '${item.pricePerDay.toStringAsFixed(0)} €',
+                                        listingCustomerPriceText(
+                                          item.pricePerDay,
+                                          currency: item.currency,
+                                        ),
                                         style: theme.textTheme.titleMedium
                                             ?.copyWith(
                                           color: priceColor,

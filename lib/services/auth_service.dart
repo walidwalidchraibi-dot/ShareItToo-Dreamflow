@@ -217,8 +217,12 @@ class AuthService {
     required bool termsAccepted,
     required bool privacyAccepted,
     required bool minimumAgeConfirmed,
+    required bool privateUseConfirmed,
   }) async {
-    if (!termsAccepted || !privacyAccepted || !minimumAgeConfirmed) {
+    if (!termsAccepted ||
+        !privacyAccepted ||
+        !minimumAgeConfirmed ||
+        !privateUseConfirmed) {
       return const AuthResult.failure(AuthFailure.consentRequired);
     }
     if (BackendConfig.enabled) {
@@ -233,6 +237,7 @@ class AuthService {
             'termsAccepted': termsAccepted,
             'privacyAccepted': privacyAccepted,
             'minimumAgeConfirmed': minimumAgeConfirmed,
+            'privateUseConfirmed': privateUseConfirmed,
           },
         );
         if (response['accepted'] != true) {
@@ -660,6 +665,7 @@ class AuthService {
     bool termsAccepted = false,
     bool privacyAccepted = false,
     bool minimumAgeConfirmed = false,
+    bool privateUseConfirmed = false,
   }) async {
     if (!BackendConfig.enabled) {
       return const AuthResult.failure(AuthFailure.providerUnavailable);
@@ -674,6 +680,7 @@ class AuthService {
           'termsAccepted': termsAccepted,
           'privacyAccepted': privacyAccepted,
           'minimumAgeConfirmed': minimumAgeConfirmed,
+          'privateUseConfirmed': privateUseConfirmed,
         },
       );
       if (response['accepted'] == true &&

@@ -80,13 +80,18 @@ class Invoice {
           (e) => e.name == (json['type'] ?? '').toString(),
           orElse: () => InvoiceType.invoice,
         ),
-        date: DateTime.tryParse((json['date'] ?? '').toString()) ?? DateTime.now(),
+        date: DateTime.tryParse((json['date'] ?? '').toString()) ??
+            DateTime.now(),
         title: (json['title'] ?? '').toString(),
         amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
-        booking: InvoiceBookingDetails.fromJson(Map<String, dynamic>.from((json['booking'] as Map?) ?? const {})),
-        pricing: InvoicePriceBreakdown.fromJson(Map<String, dynamic>.from((json['pricing'] as Map?) ?? const {})),
-        createdAt: DateTime.tryParse((json['createdAt'] ?? '').toString()) ?? DateTime.now(),
-        updatedAt: DateTime.tryParse((json['updatedAt'] ?? '').toString()) ?? DateTime.now(),
+        booking: InvoiceBookingDetails.fromJson(
+            Map<String, dynamic>.from((json['booking'] as Map?) ?? const {})),
+        pricing: InvoicePriceBreakdown.fromJson(
+            Map<String, dynamic>.from((json['pricing'] as Map?) ?? const {})),
+        createdAt: DateTime.tryParse((json['createdAt'] ?? '').toString()) ??
+            DateTime.now(),
+        updatedAt: DateTime.tryParse((json['updatedAt'] ?? '').toString()) ??
+            DateTime.now(),
       );
 }
 
@@ -105,7 +110,12 @@ class InvoiceBookingDetails {
     required this.rentalDays,
   });
 
-  InvoiceBookingDetails copyWith({String? itemTitle, String? renterName, String? ownerName, int? rentalDays}) => InvoiceBookingDetails(
+  InvoiceBookingDetails copyWith(
+          {String? itemTitle,
+          String? renterName,
+          String? ownerName,
+          int? rentalDays}) =>
+      InvoiceBookingDetails(
         itemTitle: itemTitle ?? this.itemTitle,
         renterName: renterName ?? this.renterName,
         ownerName: ownerName ?? this.ownerName,
@@ -119,7 +129,8 @@ class InvoiceBookingDetails {
         'rentalDays': rentalDays,
       };
 
-  factory InvoiceBookingDetails.fromJson(Map<String, dynamic> json) => InvoiceBookingDetails(
+  factory InvoiceBookingDetails.fromJson(Map<String, dynamic> json) =>
+      InvoiceBookingDetails(
         itemTitle: (json['itemTitle'] ?? '-').toString(),
         renterName: (json['renterName'] ?? '-').toString(),
         ownerName: (json['ownerName'] ?? '-').toString(),
@@ -128,11 +139,11 @@ class InvoiceBookingDetails {
 }
 
 class InvoicePriceBreakdown {
-  final double vatRate; // e.g. 0.19
-  final double netAmount;
-  final double taxAmount;
-  final double totalAfterTax;
-  final double platformFee; // ALWAYS 10% of totalAfterTax
+  final double vatRate; // 0 until tax treatment is approved
+  final double netAmount; // Privat-Pilot: discounted owner rental subtotal
+  final double taxAmount; // 0 until tax treatment is approved
+  final double totalAfterTax; // renter total including platform contribution
+  final double platformFee; // exact 10% of discounted owner rental subtotal
   final double payoutToOwner;
 
   const InvoicePriceBreakdown({
@@ -170,8 +181,9 @@ class InvoicePriceBreakdown {
         'payoutToOwner': payoutToOwner,
       };
 
-  factory InvoicePriceBreakdown.fromJson(Map<String, dynamic> json) => InvoicePriceBreakdown(
-        vatRate: (json['vatRate'] as num?)?.toDouble() ?? 0.19,
+  factory InvoicePriceBreakdown.fromJson(Map<String, dynamic> json) =>
+      InvoicePriceBreakdown(
+        vatRate: (json['vatRate'] as num?)?.toDouble() ?? 0.0,
         netAmount: (json['netAmount'] as num?)?.toDouble() ?? 0.0,
         taxAmount: (json['taxAmount'] as num?)?.toDouble() ?? 0.0,
         totalAfterTax: (json['totalAfterTax'] as num?)?.toDouble() ?? 0.0,

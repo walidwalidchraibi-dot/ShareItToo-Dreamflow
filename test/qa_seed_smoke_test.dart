@@ -122,13 +122,13 @@ void main() {
       );
       expect(
         invoices.where((d) => d.requestId == 'qa_req_review_${renterMain.id}'),
-        isEmpty,
+        isNotEmpty,
       );
     },
   );
 
   test(
-    'qa owner lane supports handover pickup return completion and held-doc smoke',
+    'qa owner lane supports handover pickup return completion and review-doc smoke',
     () async {
       await seedQaBase(currentUserId: ownerMain.id);
       await triggerQaSeed(ownerMain.id);
@@ -243,7 +243,7 @@ void main() {
         ownerInvoices.where(
           (d) => d.requestId == 'qa_owner_completed_problem_${ownerMain.id}',
         ),
-        isEmpty,
+        isNotEmpty,
       );
     },
   );

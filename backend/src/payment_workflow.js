@@ -9,6 +9,7 @@ import {
   paymentIdempotencyKey,
   paymentStatusForProvider,
   payloadHash,
+  privatePilotReleasableOwnerAmount,
   refundLedger,
   requestHash,
   splitRefund,
@@ -1026,9 +1027,13 @@ export async function releasePayout({ actor = null, paymentId, key: rawKey }) {
   const prepared = await inTransaction(async (client) => {
     const result = await client.query(
       `SELECT payment.*, booking.owner_id, booking.workflow_status, booking.completed_at,
+              booking.ends_at, booking.return_state, booking.payout_instruction_due_at,
+              request.payload AS booking_payload,
               connected.provider_account_id, connected.payouts_enabled, connected.transfers_capability,
               COALESCE(refunded.owner_share_minor, 0) AS refunded_owner_minor
-       FROM payments AS payment JOIN bookings AS booking ON booking.id = payment.booking_id
+       FROM payments AS payment
+       JOIN bookings AS booking ON booking.id = payment.booking_id
+       JOIN rental_requests AS request ON request.id = booking.id
        LEFT JOIN stripe_connect_accounts AS connected ON connected.user_id = booking.owner_id
        LEFT JOIN LATERAL (
          SELECT sum(owner_share_minor)::bigint AS owner_share_minor
@@ -1042,8 +1047,17 @@ export async function releasePayout({ actor = null, paymentId, key: rawKey }) {
     if (payment.status !== 'captured' && payment.status !== 'partially_refunded') {
       throw new PaymentDomainError(409, 'payment_not_settled');
     }
-    if (payment.workflow_status !== 'completed') throw new PaymentDomainError(409, 'booking_not_completed');
-    const availableAt = new Date(new Date(payment.completed_at).getTime() + config.payments.payoutHoldHours * 3_600_000);
+    if (!['completed', 'cancelled'].includes(payment.workflow_status)) {
+      throw new PaymentDomainError(409, 'booking_not_completed');
+    }
+    const fallbackBase = payment.workflow_status === 'cancelled'
+      ? payment.ends_at
+      : payment.completed_at;
+    const availableAt = payment.workflow_status === 'completed'
+      && payment.payout_instruction_due_at
+      ? new Date(payment.payout_instruction_due_at)
+      : new Date(new Date(fallbackBase).getTime()
+          + config.payments.payoutHoldHours * 3_600_000);
     if (Date.now() < availableAt.getTime()) {
       throw new PaymentDomainError(409, 'payout_hold_active', { availableAt: availableAt.toISOString() });
     }
@@ -1077,13 +1091,28 @@ export async function releasePayout({ actor = null, paymentId, key: rawKey }) {
     if (activePayout.rowCount && activePayout.rows[0].idempotency_key !== key) {
       throw new PaymentDomainError(409, 'payout_in_progress');
     }
-    const refundableOwnerShare = Math.max(
-      0,
-      Number(payment.owner_payout_minor) - Number(payment.refunded_owner_minor),
-    );
-    const amount = refundableOwnerShare - Number(payment.transferred_minor);
+    const payload = payment.booking_payload && typeof payment.booking_payload === 'object'
+      ? payment.booking_payload
+      : {};
+    const contestedAuthorizedMinor = payment.return_state === 'needsReview'
+      && !payload.returnCaseClosedAt
+      ? Number(payload.contestedAuthorizedMinor ?? 0)
+      : 0;
+    const payoutAmounts = privatePilotReleasableOwnerAmount({
+      paymentAmountMinor: Number(payment.amount_minor),
+      ownerPayoutMinor: Number(payment.owner_payout_minor),
+      refundedOwnerMinor: Number(payment.refunded_owner_minor),
+      transferredMinor: Number(payment.transferred_minor),
+      contestedAuthorizedMinor,
+    });
+    const amount = payoutAmounts.releasableMinor;
     if (amount <= 0) {
       const existing = await client.query('SELECT * FROM payouts WHERE payment_id = $1 ORDER BY created_at DESC LIMIT 1', [paymentId]);
+      if (!existing.rowCount && payoutAmounts.heldOwnerMinor > 0) {
+        throw new PaymentDomainError(409, 'payout_held_by_return_case', {
+          heldOwnerMinor: payoutAmounts.heldOwnerMinor,
+        });
+      }
       return { replay: true, payment, payout: existing.rows[0] };
     }
     const command = await beginCommand(client, {
@@ -1156,7 +1185,11 @@ export async function reconcilePaymentLifecycle() {
   let payouts = 0;
   let failures = 0;
   const cancelled = await pool.query(
-    `SELECT payment.id FROM payments AS payment JOIN bookings AS booking ON booking.id = payment.booking_id
+    `SELECT payment.id, payment.captured_minor, payment.refunded_minor,
+            request.payload AS booking_payload
+     FROM payments AS payment
+     JOIN bookings AS booking ON booking.id = payment.booking_id
+     JOIN rental_requests AS request ON request.id = booking.id
      WHERE booking.workflow_status = 'cancelled'
        AND payment.status IN ('captured', 'partially_refunded')
        AND payment.captured_minor > payment.refunded_minor
@@ -1164,27 +1197,92 @@ export async function reconcilePaymentLifecycle() {
   );
   for (const row of cancelled.rows) {
     try {
-      await refundPayment({ paymentId: row.id, key: `system:cancel-refund:${row.id}` });
+      const outcome = row.booking_payload?.cancellationOutcome;
+      const configuredTarget = Number(outcome?.refundMinor);
+      const targetRefundMinor = Number.isSafeInteger(configuredTarget)
+        ? Math.min(Number(row.captured_minor), Math.max(0, configuredTarget))
+        : Number(row.captured_minor);
+      const remainingRefundMinor = targetRefundMinor - Number(row.refunded_minor);
+      if (remainingRefundMinor <= 0) continue;
+      await refundPayment({
+        paymentId: row.id,
+        amountMinor: remainingRefundMinor,
+        key: `system:cancel-refund:${row.id}`,
+      });
+      refunds += 1;
+    } catch (error) {
+      if (!['payment_not_refundable'].includes(error.code)) failures += 1;
+    }
+  }
+  const resolvedReturnCases = await pool.query(
+    `SELECT payment.id, payment.captured_minor, payment.refunded_minor,
+            request.payload AS booking_payload
+     FROM payments AS payment
+     JOIN bookings AS booking ON booking.id = payment.booking_id
+     JOIN rental_requests AS request ON request.id = booking.id
+     WHERE booking.workflow_status = 'completed'
+       AND booking.return_state = 'closed'
+       AND payment.status IN ('captured', 'partially_refunded')
+       AND payment.captured_minor > payment.refunded_minor
+       AND request.payload #> '{returnCaseResolution}' IS NOT NULL
+     ORDER BY booking.updated_at LIMIT 20`,
+  );
+  for (const row of resolvedReturnCases.rows) {
+    try {
+      const configuredTarget = Number(
+        row.booking_payload?.returnCaseResolution?.authorizedRefundMinor,
+      );
+      if (!Number.isSafeInteger(configuredTarget)) continue;
+      const targetRefundMinor = Math.min(
+        Number(row.captured_minor),
+        Math.max(0, configuredTarget),
+      );
+      const remainingRefundMinor = targetRefundMinor - Number(row.refunded_minor);
+      if (remainingRefundMinor <= 0) continue;
+      await refundPayment({
+        paymentId: row.id,
+        amountMinor: remainingRefundMinor,
+        reason: 'return_case_resolution',
+        key: `system:return-case-refund:${row.id}`,
+      });
       refunds += 1;
     } catch (error) {
       if (!['payment_not_refundable'].includes(error.code)) failures += 1;
     }
   }
   const eligible = await pool.query(
-    `SELECT payment.id FROM payments AS payment JOIN bookings AS booking ON booking.id = payment.booking_id
+    `SELECT payment.id, payment.transferred_minor, booking.return_state
+     FROM payments AS payment JOIN bookings AS booking ON booking.id = payment.booking_id
      LEFT JOIN LATERAL (
        SELECT COALESCE(sum(owner_share_minor), 0)::bigint AS owner_share_minor
        FROM refunds WHERE payment_id = payment.id AND status = 'succeeded'
      ) AS refunded ON true
-     WHERE booking.workflow_status = 'completed' AND payment.status IN ('captured', 'partially_refunded')
+     WHERE booking.workflow_status IN ('completed', 'cancelled')
+       AND payment.status IN ('captured', 'partially_refunded')
        AND payment.transferred_minor < payment.owner_payout_minor - refunded.owner_share_minor
-       AND booking.completed_at <= now() - ($1::text || ' hours')::interval
-     ORDER BY booking.completed_at LIMIT 20`,
+       AND (
+         (booking.workflow_status = 'completed' AND (
+           booking.payout_instruction_due_at <= now()
+           OR (
+             booking.payout_instruction_due_at IS NULL
+             AND booking.completed_at <= now() - ($1::text || ' hours')::interval
+           )
+         ))
+         OR (
+           booking.workflow_status = 'cancelled'
+           AND booking.ends_at <= now() - ($1::text || ' hours')::interval
+         )
+       )
+     ORDER BY COALESCE(booking.payout_instruction_due_at, booking.completed_at, booking.ends_at)
+     LIMIT 20`,
     [config.payments.payoutHoldHours],
   );
   for (const row of eligible.rows) {
     try {
-      await releasePayout({ paymentId: row.id, key: `system:payout:${row.id}` });
+      await releasePayout({
+        paymentId: row.id,
+        key: `system:payout:${row.id}:${row.transferred_minor}:${row.return_state}`,
+      });
       payouts += 1;
     } catch (error) {
       if (!['payout_blocked_by_dispute', 'owner_payout_account_not_ready'].includes(error.code)) failures += 1;

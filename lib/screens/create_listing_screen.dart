@@ -21,6 +21,8 @@ import 'package:lendify/services/ai_price_calculator_service.dart';
 import 'package:lendify/openai/openai_config.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
 import 'package:lendify/widgets/selection_controls.dart';
+import 'package:lendify/config/private_pilot_config.dart';
+import 'package:lendify/widgets/private_pilot_risk_notice.dart';
 import 'package:lendify/theme.dart';
 
 class CreateListingScreen extends StatefulWidget {
@@ -103,6 +105,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   bool _tier1PctEmpty = false;
   bool _tier2PctEmpty = false;
   bool _tier3PctEmpty = false;
+  bool _privateStatusConfirmed = false;
   // Force-refresh discount rows when switching strategy so focused inputs also update
   int _strategyEpoch = 0;
 
@@ -124,21 +127,25 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         _priceUnit = 'day';
       }
       _condition = ex.condition;
-      _offersDeliveryAtDropoff = ex.offersDeliveryAtDropoff;
-      _offersPickupAtReturn = ex.offersPickupAtReturn;
+      _offersDeliveryAtDropoff =
+          PrivatePilotConfig.deliveryEnabled && ex.offersDeliveryAtDropoff;
+      _offersPickupAtReturn =
+          PrivatePilotConfig.deliveryEnabled && ex.offersPickupAtReturn;
       // Deprecated: no longer used, UI removed
       _offersExpressAtDropoff = false;
       _maxDistanceKm = ex.maxDeliveryKmAtDropoff ?? ex.maxPickupKmAtReturn;
       // Enable the section by default in edit mode only if any option had been set before
-      _deliveryOptionsEnabled = _offersDeliveryAtDropoff ||
-          _offersPickupAtReturn ||
-          (_maxDistanceKm != null);
+      _deliveryOptionsEnabled = PrivatePilotConfig.deliveryEnabled &&
+          (_offersDeliveryAtDropoff ||
+              _offersPickupAtReturn ||
+              (_maxDistanceKm != null));
       _registeredCity = ex.city;
       _addressCtrl.text = ex.locationText;
       _selectedAddrLat = ex.lat;
       _selectedAddrLng = ex.lng;
       _existingPhotos = List<String>.from(ex.photos);
       _cancellationPolicy = ex.cancellationPolicy;
+      _privateStatusConfirmed = ex.privateStatusConfirmed;
       // Prefill discount tiers: map first three thresholds ascending
       _autoApplyDiscounts = ex.autoApplyDiscounts;
       if (ex.longRentalDiscounts.isNotEmpty) {
@@ -179,9 +186,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     }
     setState(() {
       _categories = cats;
-      _categoryId = cats.isNotEmpty
-          ? (widget.existing?.categoryId ?? cats.first.id)
-          : null;
+      final existingCategory = widget.existing?.categoryId;
+      _categoryId = cats.isEmpty
+          ? null
+          : (cats.any((category) => category.id == existingCategory)
+              ? existingCategory
+              : cats.first.id);
       _coarseCats =
           ordered.isNotEmpty ? ordered : DataService.coarseCategoryOrder;
       _catsByCoarse = byCoarse;
@@ -364,6 +374,29 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       return;
     }
 
+    if (PrivatePilotConfig.enabled && !_privateStatusConfirmed) {
+      await AppPopup.show(
+        context,
+        icon: Icons.person_outline,
+        title: 'Privatstatus bestaetigen',
+        message: PrivatePilotConfig.listingPrivateDeclaration,
+        plainCloseIcon: true,
+      );
+      return;
+    }
+    if (PrivatePilotConfig.enabled &&
+        !PrivatePilotConfig.categoryAllowed(_categoryId ?? '')) {
+      await AppPopup.show(
+        context,
+        icon: Icons.block_outlined,
+        title: 'Kategorie im Privat-Pilot nicht zugelassen',
+        message:
+            'Bitte waehle eine Kategorie aus der technisch freigeschalteten Positivliste.',
+        plainCloseIcon: true,
+      );
+      return;
+    }
+
     final user = await DataService.getCurrentUser();
     if (user == null) {
       if (!mounted) return;
@@ -471,11 +504,15 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         city: city,
         country: 'Deutschland',
         status: forceInactive ? 'draft' : 'active',
-        offersDeliveryAtDropoff: _offersDeliveryAtDropoff,
-        offersPickupAtReturn: _offersPickupAtReturn,
+        offersDeliveryAtDropoff:
+            PrivatePilotConfig.deliveryEnabled && _offersDeliveryAtDropoff,
+        offersPickupAtReturn:
+            PrivatePilotConfig.deliveryEnabled && _offersPickupAtReturn,
         offersExpressAtDropoff: false, // deprecated option removed from UI
-        maxDeliveryKmAtDropoff: _maxDistanceKm,
-        maxPickupKmAtReturn: _maxDistanceKm,
+        maxDeliveryKmAtDropoff:
+            PrivatePilotConfig.deliveryEnabled ? _maxDistanceKm : null,
+        maxPickupKmAtReturn:
+            PrivatePilotConfig.deliveryEnabled ? _maxDistanceKm : null,
         cancellationPolicy: 'unified',
         availabilityMode: 'calendar',
         autoApplyDiscounts: _autoApplyDiscounts,
@@ -484,6 +521,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           LongRentalDiscount(days: _tier2Days, discountPercent: _tier2Pct),
           LongRentalDiscount(days: _tier3Days, discountPercent: _tier3Pct),
         ]..sort((a, b) => a.days.compareTo(b.days))),
+        privateStatusConfirmed: _privateStatusConfirmed,
       );
 
       final saved = await DataService.addItem(item);
@@ -526,11 +564,15 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       status: forceInactive ? 'draft' : 'active',
       endedAt: forceInactive ? null : ex.endedAt,
       timesLent: ex.timesLent,
-      offersDeliveryAtDropoff: _offersDeliveryAtDropoff,
-      offersPickupAtReturn: _offersPickupAtReturn,
+      offersDeliveryAtDropoff:
+          PrivatePilotConfig.deliveryEnabled && _offersDeliveryAtDropoff,
+      offersPickupAtReturn:
+          PrivatePilotConfig.deliveryEnabled && _offersPickupAtReturn,
       offersExpressAtDropoff: false, // deprecated option removed from UI
-      maxDeliveryKmAtDropoff: _maxDistanceKm,
-      maxPickupKmAtReturn: _maxDistanceKm,
+      maxDeliveryKmAtDropoff:
+          PrivatePilotConfig.deliveryEnabled ? _maxDistanceKm : null,
+      maxPickupKmAtReturn:
+          PrivatePilotConfig.deliveryEnabled ? _maxDistanceKm : null,
       cancellationPolicy: 'unified',
       availabilityMode: ex.availabilityMode,
       autoApplyDiscounts: _autoApplyDiscounts,
@@ -539,6 +581,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         LongRentalDiscount(days: _tier2Days, discountPercent: _tier2Pct),
         LongRentalDiscount(days: _tier3Days, discountPercent: _tier3Pct),
       ]..sort((a, b) => a.days.compareTo(b.days))),
+      privateStatusConfirmed: _privateStatusConfirmed,
     );
 
     await DataService.updateItem(updated);
@@ -588,6 +631,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   }
 
   void _schedulePriceRecalc() {
+    if (!PrivatePilotConfig.aiFeaturesEnabled) return;
     _priceRecalcDebounce?.cancel();
     _priceRecalcDebounce = Timer(const Duration(milliseconds: 450), () async {
       await _calculatePriceSuggestion();
@@ -707,6 +751,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   }
 
   Future<void> _calculatePriceSuggestion() async {
+    if (!PrivatePilotConfig.aiFeaturesEnabled) return;
     // Only calculate if all required fields are filled
     if (_titleCtrl.text.trim().isEmpty ||
         _categoryId == null ||
@@ -824,7 +869,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     // Auto-calculate price suggestion when all required fields are filled (only once)
-    if (!_hasCalculatedPrice &&
+    if (PrivatePilotConfig.aiFeaturesEnabled &&
+        !_hasCalculatedPrice &&
         _titleCtrl.text.trim().isNotEmpty &&
         _categoryId != null &&
         _addressCtrl.text.trim().isNotEmpty) {
@@ -1117,140 +1163,21 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                         ])),
                 const SizedBox(height: 12),
                 _Section(
-                  title: 'Lieferung / Abholung anbieten',
-                  leading: Icon(Icons.local_shipping_outlined,
+                  title: 'Persönliche Abholung im Privat-Pilot',
+                  leading: Icon(Icons.handshake_outlined,
                       color: colorScheme.primary, size: 18),
-                  trailing: Switch.adaptive(
-                    value: _deliveryOptionsEnabled,
-                    onChanged: (v) => setState(() {
-                      _deliveryOptionsEnabled = v;
-                      if (!v) {
-                        _offersDeliveryAtDropoff = false;
-                        _offersPickupAtReturn = false;
-                        _offersExpressAtDropoff = false;
-                        _maxDistanceKm = null;
-                      }
-                    }),
-                    activeColor: colorScheme.primary,
+                  child: Text(
+                    'Lieferung und Versand sind im Privat-Pilot deaktiviert. '
+                    'Mieter und Vermieter treffen sich persönlich am vereinbarten '
+                    'Übergabeort und dokumentieren Übergabe und Rückgabe gemeinsam.',
+                    style: TextStyle(
+                      color: isDark
+                          ? Colors.white70
+                          : AppTheme.textSecondary(context),
+                      fontSize: 13.5,
+                      height: 1.45,
+                    ),
                   ),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (_deliveryOptionsEnabled) ...[
-                          ToggleTextOption(
-                            label: 'Lieferung',
-                            selected: _offersDeliveryAtDropoff,
-                            onTap: () => setState(() {
-                              _offersDeliveryAtDropoff =
-                                  !_offersDeliveryAtDropoff;
-                              if (!_offersDeliveryAtDropoff)
-                                _offersExpressAtDropoff = false;
-                            }),
-                          ),
-                          ToggleTextOption(
-                            label: 'Abholung',
-                            selected: _offersPickupAtReturn,
-                            onTap: () => setState(() =>
-                                _offersPickupAtReturn = !_offersPickupAtReturn),
-                          ),
-                          const SizedBox(height: 8),
-                          _Accordion(
-                            title: 'Was bedeutet das?',
-                            initiallyExpanded: false,
-                            bare: true,
-                            bodyPadding: EdgeInsets.zero,
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Text(
-                                'Wenn du Lieferung anbietest und der Mieter diese Option bei der Buchung auswählt, bringst du den Artikel zum vereinbarten Übergabeort des Mieters.\n\n'
-                                'Wenn Abholung aktiviert ist und der Mieter diese Option für die Rückgabe auswählt, holst du den Artikel nach der Miete wieder beim Mieter ab.\n\n'
-                                'Wenn Lieferung oder Abholung nicht aktiviert sind, holt der Mieter den Artikel selbst am Übergabeort ab und bringt ihn nach der Miete selbst wieder zurück.',
-                                style: TextStyle(
-                                  color: isDark
-                                      ? Colors.white70
-                                      : AppTheme.textSecondary(context),
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.45,
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (_offersDeliveryAtDropoff ||
-                              _offersPickupAtReturn) ...[
-                            const SizedBox(height: 8),
-                            TextFormField(
-                              initialValue: _maxDistanceKm?.toStringAsFixed(1),
-                              onChanged: (v) => _maxDistanceKm =
-                                  double.tryParse(v.replaceAll(',', '.')),
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                      decimal: true),
-                              style: TextStyle(
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppTheme.textBody(context),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500),
-                              decoration: InputDecoration(
-                                labelText:
-                                    'Maximale Liefer-/Abholentfernung in km',
-                                // Make the label more subtle/smaller when the field appears
-                                labelStyle: TextStyle(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white70
-                                        : AppTheme.textSecondary(context),
-                                    fontSize: 13),
-                                floatingLabelStyle: TextStyle(
-                                    color: colorScheme.primary,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          _Accordion(
-                            title: 'Vergütung für Fahrtaufwand',
-                            initiallyExpanded: false,
-                            bare: true,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                    'Die Vergütung wird automatisch anhand der Entfernung berechnet.',
-                                    style: TextStyle(
-                                        color: Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.white70
-                                            : AppTheme.textSecondary(context),
-                                        fontSize: 13.5,
-                                        height: 1.4)),
-                                SizedBox(height: 6),
-                                Text(
-                                    'Aktuell: 0,30 € pro km für Hin- und Rückfahrt, mindestens 3,00 € pro Lieferung oder Abholung.',
-                                    style: TextStyle(
-                                        color: Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.white70
-                                            : AppTheme.textSecondary(context),
-                                        fontSize: 13.5,
-                                        height: 1.4)),
-                                SizedBox(height: 6),
-                                Text(
-                                    'Der Mieter sieht die Kosten vor dem Absenden der Anfrage.',
-                                    style: TextStyle(
-                                        color: Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.white70
-                                            : AppTheme.textSecondary(context),
-                                        fontSize: 13.5,
-                                        height: 1.4)),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ]),
                 ),
                 // Removed per request: Preisberechnung & Gebühren infocard
                 const SizedBox(height: 12),
@@ -1297,7 +1224,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                               color: Colors.lightBlueAccent,
                               diameter: 38),
                           const SizedBox(width: 12),
-                          Text('Preis pro Tag',
+                          Text('Dein Mietpreis pro Tag',
                               style: TextStyle(
                                   color: Theme.of(context).brightness ==
                                           Brightness.dark
@@ -1307,27 +1234,46 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                   fontSize: 16)),
                         ]),
                         const SizedBox(height: 14),
-                        _AIPriceCalculatorCard(
-                          suggestion: _priceSuggestion,
-                          strategy: _priceStrategy,
-                          onStrategyChanged: (v) {
-                            // Always re-apply mode defaults when switching strategy
-                            setState(() {
-                              _priceStrategy = v;
-                              // bump epoch to recreate discount inputs, ensuring visible values refresh even if focused
-                              _strategyEpoch++;
-                              // Reset manual override so the mode can take full effect
-                              _priceTouched = false;
-                            });
-                            _autofillPriceFromMarket();
-                            // Always reset the discount preset for the chosen mode
-                            _applyModeDiscountPreset(force: true);
-                          },
-                          onRecalculate: _calculatePriceSuggestion,
-                          canCalculate: _titleCtrl.text.trim().isNotEmpty &&
-                              _categoryId != null &&
-                              _addressCtrl.text.trim().isNotEmpty,
-                        ),
+                        if (PrivatePilotConfig.aiFeaturesEnabled)
+                          _AIPriceCalculatorCard(
+                            suggestion: _priceSuggestion,
+                            strategy: _priceStrategy,
+                            onStrategyChanged: (v) {
+                              setState(() {
+                                _priceStrategy = v;
+                                _strategyEpoch++;
+                                _priceTouched = false;
+                              });
+                              _autofillPriceFromMarket();
+                              _applyModeDiscountPreset(force: true);
+                            },
+                            onRecalculate: _calculatePriceSuggestion,
+                            canCalculate: _titleCtrl.text.trim().isNotEmpty &&
+                                _categoryId != null &&
+                                _addressCtrl.text.trim().isNotEmpty,
+                          )
+                        else
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primaryContainer
+                                  .withValues(alpha: 0.28),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Der Vermieter legt den Mietpreis selbst fest. Die '
+                              'KI-Preisberechnung bleibt im Privat-Pilot deaktiviert, '
+                              'bis Transparenz, Anbieter und Datenfluss freigegeben sind.',
+                              style: TextStyle(
+                                color: isDark
+                                    ? Colors.white70
+                                    : AppTheme.textSecondary(context),
+                                fontSize: 13.5,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
                         const SizedBox(height: 14),
                         _PricePerDayInput(
                           controller: _priceCtrl,
@@ -1624,7 +1570,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                 ]),
                                 SizedBox(height: 8),
                                 Text(
-                                    'Für ähnliche Objekte in dieser Kategorie sind Rabatte wie oben angegeben zu empfehlen, um Mietfrequenz und Mietdauer zu erhöhen. Du kannst den Preis und die Staffelung anpassen oder komplett deaktivieren.',
+                                    'Du legst deinen Mietpreis selbst fest. Im öffentlichen Endpreis ist der Plattformbeitrag von exakt 10 % bereits enthalten. Rabatte werden zuerst vom Mietpreis abgezogen; danach wird der Beitrag centgenau berechnet.',
                                     style: TextStyle(
                                         color: Theme.of(context).brightness ==
                                                 Brightness.dark
@@ -1652,6 +1598,31 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   ),
                   child: _OwnerCancellationInfoCard(
                       body: CancellationPolicyText.bodyForOwnerListingCard),
+                ),
+                const SizedBox(height: 12),
+                const PrivatePilotRiskNotice(
+                  title: 'Hinweis vor dem Veröffentlichen',
+                ),
+                const SizedBox(height: 8),
+                CheckboxListTile(
+                  value: _privateStatusConfirmed,
+                  onChanged: (value) => setState(
+                    () => _privateStatusConfirmed = value ?? false,
+                  ),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(
+                    PrivatePilotConfig.listingPrivateDeclaration,
+                    style: TextStyle(fontSize: 13.5, height: 1.35),
+                  ),
+                  subtitle: const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Text(
+                      '${PrivatePilotConfig.documentName} · '
+                      '${PrivatePilotConfig.documentVersion}',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Column(

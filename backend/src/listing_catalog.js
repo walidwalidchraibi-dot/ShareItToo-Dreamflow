@@ -1,3 +1,9 @@
+import {
+  assertPrivatePilotListing,
+  privatePilotListingFields,
+  PrivatePilotValidationError,
+} from './private_pilot_domain.js';
+
 const listingStatuses = new Set(['draft', 'active', 'paused', 'ended']);
 const listingConditions = new Set([
   'new',
@@ -55,9 +61,20 @@ export function normalizeListingPayload(raw, {
   ownerId,
   existing = null,
   now = new Date(),
+  privatePilot = false,
 } = {}) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     throw new ListingValidationError('invalid_listing');
+  }
+  if (privatePilot) {
+    try {
+      assertPrivatePilotListing(raw);
+    } catch (error) {
+      if (error instanceof PrivatePilotValidationError) {
+        throw new ListingValidationError(error.code);
+      }
+      throw error;
+    }
   }
   const title = text(raw.title, 160);
   const description = text(raw.description, 10_000);
@@ -120,6 +137,7 @@ export function normalizeListingPayload(raw, {
     : null;
   const isActive = status === 'active';
 
+  const pilotFields = privatePilot ? privatePilotListingFields(raw) : null;
   return {
     id,
     ownerId,
@@ -152,12 +170,18 @@ export function normalizeListingPayload(raw, {
     status,
     endedAt,
     timesLent: existing?.timesLent ?? 0,
-    offersDeliveryAtDropoff: raw.offersDeliveryAtDropoff === true,
-    offersPickupAtReturn: raw.offersPickupAtReturn === true,
+    offersDeliveryAtDropoff:
+      pilotFields?.offersDeliveryAtDropoff ?? raw.offersDeliveryAtDropoff === true,
+    offersPickupAtReturn:
+      pilotFields?.offersPickupAtReturn ?? raw.offersPickupAtReturn === true,
     offersExpressAtDropoff: false,
-    maxDeliveryKmAtDropoff,
-    maxPickupKmAtReturn,
-    handoverRadiusKm,
+    maxDeliveryKmAtDropoff:
+      pilotFields?.maxDeliveryKmAtDropoff ?? maxDeliveryKmAtDropoff,
+    maxPickupKmAtReturn:
+      pilotFields?.maxPickupKmAtReturn ?? maxPickupKmAtReturn,
+    handoverRadiusKm: pilotFields?.handoverRadiusKm ?? handoverRadiusKm,
+    privateStatusConfirmed:
+      pilotFields?.privateStatusConfirmed ?? raw.privateStatusConfirmed === true,
     cancellationPolicy: ['flexible', 'moderate', 'strict', 'unified'].includes(raw.cancellationPolicy)
       ? raw.cancellationPolicy
       : 'unified',

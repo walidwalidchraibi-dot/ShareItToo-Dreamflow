@@ -49,6 +49,37 @@ test('legacy deposit and protection input is neutralized for the launch product'
   assert.equal(listing.protectionModel, 'none');
 });
 
+test('Privat-Pilot listing validation is fail-closed', () => {
+  const pilotListing = normalizeListingPayload({
+    ...validListing,
+    privateStatusConfirmed: true,
+  }, {
+    id: 'listing-pilot',
+    ownerId: 'owner',
+    privatePilot: true,
+  });
+  assert.equal(pilotListing.privateStatusConfirmed, true);
+  assert.equal(pilotListing.offersDeliveryAtDropoff, false);
+  assert.equal(pilotListing.maxDeliveryKmAtDropoff, null);
+
+  for (const [override, code] of [
+    [{ privateStatusConfirmed: false }, 'private_status_confirmation_required'],
+    [{ categoryId: 'cat10', privateStatusConfirmed: true }, 'private_pilot_category_not_allowed'],
+    [{ categoryId: 'other', privateStatusConfirmed: true }, 'private_pilot_category_not_allowed'],
+    [{ country: 'Frankreich', privateStatusConfirmed: true }, 'private_pilot_country_not_allowed'],
+    [{ offersDeliveryAtDropoff: true, privateStatusConfirmed: true }, 'private_pilot_delivery_disabled'],
+  ]) {
+    assert.throws(
+      () => normalizeListingPayload({ ...validListing, ...override }, {
+        id: 'listing-pilot',
+        ownerId: 'owner',
+        privatePilot: true,
+      }),
+      (error) => error instanceof ListingValidationError && error.code === code,
+    );
+  }
+});
+
 test('active listings require an image while drafts may remain private without one', () => {
   assert.throws(
     () => normalizeListingPayload({ ...validListing, photos: [] }, { id: 'listing-1', ownerId: 'owner' }),

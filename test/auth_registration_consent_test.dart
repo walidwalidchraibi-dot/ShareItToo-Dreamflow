@@ -17,6 +17,7 @@ void main() {
     required bool age,
     required bool terms,
     required bool privacy,
+    bool privateUse = true,
   }) {
     return AuthService.registerLocalAccount(
       email: 'consent-${DateTime.now().microsecondsSinceEpoch}@example.invalid',
@@ -25,6 +26,7 @@ void main() {
       minimumAgeConfirmed: age,
       termsAccepted: terms,
       privacyAccepted: privacy,
+      privateUseConfirmed: privateUse,
     );
   }
 
@@ -46,6 +48,13 @@ void main() {
       expect(result.ok, isFalse);
       expect(result.failure, AuthFailure.consentRequired);
     }
+    final privateUseMissing = await register(
+      age: true,
+      terms: true,
+      privacy: true,
+      privateUse: false,
+    );
+    expect(privateUseMissing.failure, AuthFailure.consentRequired);
   });
 
   test('local registration accepts only the complete consent set', () async {

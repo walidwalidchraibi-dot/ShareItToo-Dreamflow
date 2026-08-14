@@ -6,6 +6,7 @@ import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/filters_overlay.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/widgets/app_image.dart';
+import 'package:lendify/widgets/listing_display_truth.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 
@@ -107,7 +108,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     final double minPerDay =
         priceUnit == 'week' ? price.start / 7 : price.start;
     final double maxPerDay = priceUnit == 'week' ? price.end / 7 : price.end;
-    if (it.pricePerDay < minPerDay || it.pricePerDay > maxPerDay) return false;
+    final customerPrice = listingCustomerPrice(it.pricePerDay);
+    if (customerPrice < minPerDay || customerPrice > maxPerDay) return false;
     if (verifiedOnly) {
       final ok = it.verificationStatus == 'approved' ||
           it.verificationStatus == 'verified';
@@ -175,7 +177,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     switch (sort) {
       case 'Preis':
         final order = (_filters?['priceOrder'] as String?) ?? 'asc';
-        list.sort((a, b) => a.pricePerDay.compareTo(b.pricePerDay));
+        list.sort((a, b) => listingCustomerPrice(a.pricePerDay)
+            .compareTo(listingCustomerPrice(b.pricePerDay)));
         if (order == 'desc') list = list.reversed.toList();
         break;
       case 'Neueste':

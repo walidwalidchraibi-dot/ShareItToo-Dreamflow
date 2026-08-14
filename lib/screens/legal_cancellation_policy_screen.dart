@@ -9,27 +9,27 @@ class LegalCancellationPolicyScreen extends StatelessWidget {
     return LegalDetailScaffold(
       title: 'Stornierungsbedingungen',
       intro:
-          'Stornierungen sollen fair für beide Seiten sein. Diese Übersicht beschreibt den aktuellen Buchungsablauf. Verbindliche Gebühren- und Erstattungsregeln werden vor der Aktivierung von Echtgeldzahlungen gesondert freigegeben.',
+          'V4-Zwischenregel für den privaten Pilot. Die Werte sind zentral änderbar und werden vor Echtgeldaktivierung nochmals rechtlich freigegeben.',
       sections: [
         LegalSectionCard(
           icon: Icons.event_busy_outlined,
           title: 'Wann kann storniert werden?',
           children: const [
             LegalBullets(items: [
-              'Vor Buchungsbeginn: in der Regel möglich, je nach Frist und Status.',
-              'Während einer laufenden Buchung: nur bei besonderen Umständen und nach Abstimmung.',
+              'Mindestens 24 Stunden vor Mietbeginn: 100 % Erstattung des Gesamtbetrags.',
+              'Weniger als 24 Stunden vor Mietbeginn: vorläufig 50 % Erstattung; 50 % des Mietpreises und der darauf entfallende Plattformbeitrag verbleiben.',
+              'Ab Mietbeginn oder bei Mieter-No-Show: vorläufig keine vertragliche Erstattung.',
+              'Storniert der Vermieter oder scheitert die Übergabe aus seiner Sphäre: grundsätzlich 100 % Erstattung.',
             ]),
           ],
         ),
         LegalSectionCard(
           icon: Icons.payments_outlined,
-          title: 'Mögliche Gebühren',
+          title: '60-Minuten-Karenz',
           children: const [
-            LegalBullets(items: [
-              'Der aktuelle Store-Kandidat belastet bei einer Stornierung kein echtes Zahlungsmittel.',
-              'Spätere Stornogebühren müssen vor der Buchung klar angezeigt und verbindlich freigegeben werden.',
-              'Bei wiederholtem Missbrauch kann das Konto eingeschränkt werden.',
-            ]),
+            LegalParagraph(
+              'Entsteht der Mietvertrag weniger als 24 Stunden vor Mietbeginn, kann der Mieter innerhalb von 60 Minuten nach der Buchungsbestätigung kostenlos stornieren, höchstens bis Mietbeginn. Die App zeigt den genauen Zeitpunkt.',
+            ),
           ],
         ),
         LegalSectionCard(
@@ -38,7 +38,9 @@ class LegalCancellationPolicyScreen extends StatelessWidget {
           children: const [
             LegalBullets(items: [
               'Ohne aktivierte Echtgeldzahlung gibt es im aktuellen Store-Kandidaten keine reale Rückerstattung.',
-              'Bei späterer Zahlungsabwicklung hängen Erstattungsweg und Bearbeitungszeit von der dann freigegebenen Regel und dem Zahlungsdienstleister ab.',
+              'Bei aktivierter Zahlungsabwicklung folgt der Plattformbeitrag demselben Erstattungsverhältnis wie der Mietpreis.',
+              'Ersparte Aufwendungen, Ersatzvermietung und der Nachweis eines geringeren Schadens werden berücksichtigt.',
+              'Rückerstattungen erfolgen über die ursprüngliche Zahlungsart und den freigegebenen Marketplace-Zahlungsdienstleister.',
             ]),
           ],
         ),
@@ -47,7 +49,7 @@ class LegalCancellationPolicyScreen extends StatelessWidget {
           title: 'Probleme zwischen Nutzern',
           children: const [
             LegalParagraph(
-                'Wenn Probleme auftreten (z.B. Artikel nicht wie beschrieben, verspätete Rückgabe, Streit über Schäden), kontaktiere den Support so früh wie möglich. Foto‑Dokumentation bei Übergabe/Rückgabe hilft, Fälle fair zu klären.'),
+                'Ein No-Show liegt grundsätzlich erst 30 Minuten nach der beidseitig bestätigten Zeit, ohne andere Vereinbarung und nach zwei dokumentierten Kontaktversuchen vor. Sicherheits-, Notfall- und nachweisbare technische Fälle werden einzeln geprüft.'),
           ],
         ),
       ],

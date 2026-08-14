@@ -267,7 +267,11 @@ void main() {
       await File('lib/screens/payment_methods_screen.dart').readAsString(),
       await File('lib/services/data_service.dart').readAsString(),
     ].join('\n');
-    expect(sources.toLowerCase(), isNot(contains('kaution')));
+    // Rechtstexte müssen ausdrücklich erklären dürfen, dass es keine Kaution
+    // gibt. Verboten bleiben nur technische Kautions- oder Schutzprodukt-Flows.
+    expect(sources, contains('Keine Kaution'));
+    expect(sources, isNot(contains('Kaution hinterlegen')));
+    expect(sources, isNot(contains('Kaution einziehen')));
     expect(sources, isNot(contains('protectionModel:')));
     expect(sources, isNot(contains('createDepositSetup')));
     expect(sources.toLowerCase(), isNot(contains('securitydeposit')));

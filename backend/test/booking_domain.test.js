@@ -73,7 +73,7 @@ test('server quote is deterministic in minor units and matches launch fee rules'
     currency: 'eur',
   });
   assert.deepEqual(quote, {
-    quoteVersion: 1,
+    quoteVersion: 2,
     currency: 'EUR',
     days: 5,
     pricePerDayMinor: 1_500,
@@ -91,9 +91,29 @@ test('server quote is deterministic in minor units and matches launch fee rules'
     securityDepositMinor: 0,
   });
   assert.equal(platformFeeMinor(0), 0);
+  assert.equal(platformFeeMinor(1), 0);
   assert.equal(platformFeeMinor(1_000), 100);
   assert.equal(platformFeeMinor(1_001), 100);
+  assert.equal(platformFeeMinor(1_005), 101);
+  assert.equal(platformFeeMinor(99), 10);
   assert.equal(quoteRental({ days: 31, pricePerDayMinor: 100, maximumDays: 30 }), null);
+});
+
+test('Privat-Pilot contribution is 10 percent after discounts without a minimum fee', () => {
+  const quote = quoteRental({
+    days: 3,
+    pricePerDayMinor: 1_001,
+    autoApplyDiscounts: true,
+    discountTiers: [{ days: 3, discountPercent: 10 }],
+  });
+
+  assert.equal(quote.baseRentalMinor, 3_003);
+  assert.equal(quote.discountMinor, 300);
+  assert.equal(quote.rentalSubtotalMinor, 2_703);
+  assert.equal(quote.platformFeeMinor, 270);
+  assert.equal(quote.totalMinor, 2_973);
+  assert.equal(quote.ownerPayoutMinor, 2_703);
+  assert.equal(quote.securityDepositMinor, 0);
 });
 
 test('distance delivery fees and workflow roles are server-controlled', () => {

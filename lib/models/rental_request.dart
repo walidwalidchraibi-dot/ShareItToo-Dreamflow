@@ -36,12 +36,14 @@ class RentalRequest {
   final double? returnLng;
   // Timestamps
   final DateTime createdAt; // when the request was created
+  final DateTime? acceptedAt; // when the booking contract was confirmed
   final DateTime? expressRequestedAt; // when renter opted for express
   final DateTime? expressConfirmedAt; // when owner confirmed express
   final bool needsReview;
   final String? reviewReason;
   final String? reviewSource;
   final DateTime? reviewRequestedAt;
+  final List<String> reviewEvidenceReferences;
   final Map<String, dynamic>? handoverConfirmation;
   final Map<String, dynamic>? returnConfirmation;
   // Snapshot of renter-facing total and subtitle at booking time to keep UI constant
@@ -49,6 +51,20 @@ class RentalRequest {
       quotedTotalRenter; // what the renter saw as Gesamtbetrag at request time
   final String?
       quotedSubtitle; // the small info line under Gesamtbetrag at request time
+  final bool privateStatusConfirmed;
+  final int? quotedRentalSubtotalMinor;
+  final int? quotedPlatformFeeMinor;
+  final int? quotedTotalMinor;
+  final List<Map<String, dynamic>> legalDeclarations;
+  final String returnState;
+  final DateTime? returnT0;
+  final DateTime? returnReportDeadline;
+  final DateTime? returnClarificationDeadline;
+  final DateTime? returnCaseOpenedAt;
+  final DateTime? returnCaseClosedAt;
+  final int contestedAuthorizedMinor;
+  final int allegedDamageMinorRecordedOnly;
+  final Map<String, dynamic>? cancellationOutcome;
 
   RentalRequest({
     required this.id,
@@ -76,16 +92,32 @@ class RentalRequest {
     this.returnLat,
     this.returnLng,
     DateTime? createdAt,
+    this.acceptedAt,
     this.expressRequestedAt,
     this.expressConfirmedAt,
     this.needsReview = false,
     this.reviewReason,
     this.reviewSource,
     this.reviewRequestedAt,
+    this.reviewEvidenceReferences = const [],
     this.handoverConfirmation,
     this.returnConfirmation,
     this.quotedTotalRenter,
     this.quotedSubtitle,
+    this.privateStatusConfirmed = false,
+    this.quotedRentalSubtotalMinor,
+    this.quotedPlatformFeeMinor,
+    this.quotedTotalMinor,
+    this.legalDeclarations = const [],
+    this.returnState = 'not_started',
+    this.returnT0,
+    this.returnReportDeadline,
+    this.returnClarificationDeadline,
+    this.returnCaseOpenedAt,
+    this.returnCaseClosedAt,
+    this.contestedAuthorizedMinor = 0,
+    this.allegedDamageMinorRecordedOnly = 0,
+    this.cancellationOutcome,
   })  : startDate = startDate ?? _dateOnly(start.toLocal()),
         endDate = endDate ?? _dateOnly(end.toLocal()),
         createdAt = createdAt ?? DateTime.now();
@@ -102,10 +134,12 @@ class RentalRequest {
     double? expressFee,
     DateTime? expressConfirmedAt,
     DateTime? expressRequestedAt,
+    DateTime? acceptedAt,
     bool? needsReview,
     String? reviewReason,
     String? reviewSource,
     DateTime? reviewRequestedAt,
+    List<String>? reviewEvidenceReferences,
     Map<String, dynamic>? handoverConfirmation,
     Map<String, dynamic>? returnConfirmation,
     bool? ownerDeliversAtDropoffChosen,
@@ -120,6 +154,20 @@ class RentalRequest {
     double? returnLng,
     double? quotedTotalRenter,
     String? quotedSubtitle,
+    bool? privateStatusConfirmed,
+    int? quotedRentalSubtotalMinor,
+    int? quotedPlatformFeeMinor,
+    int? quotedTotalMinor,
+    List<Map<String, dynamic>>? legalDeclarations,
+    String? returnState,
+    DateTime? returnT0,
+    DateTime? returnReportDeadline,
+    DateTime? returnClarificationDeadline,
+    DateTime? returnCaseOpenedAt,
+    DateTime? returnCaseClosedAt,
+    int? contestedAuthorizedMinor,
+    int? allegedDamageMinorRecordedOnly,
+    Map<String, dynamic>? cancellationOutcome,
   }) =>
       RentalRequest(
         id: id,
@@ -137,12 +185,15 @@ class RentalRequest {
         expressStatus: expressStatus ?? this.expressStatus,
         expressFee: expressFee ?? this.expressFee,
         createdAt: createdAt,
+        acceptedAt: acceptedAt ?? this.acceptedAt,
         expressRequestedAt: expressRequestedAt ?? this.expressRequestedAt,
         expressConfirmedAt: expressConfirmedAt ?? this.expressConfirmedAt,
         needsReview: needsReview ?? this.needsReview,
         reviewReason: reviewReason ?? this.reviewReason,
         reviewSource: reviewSource ?? this.reviewSource,
         reviewRequestedAt: reviewRequestedAt ?? this.reviewRequestedAt,
+        reviewEvidenceReferences:
+            reviewEvidenceReferences ?? this.reviewEvidenceReferences,
         handoverConfirmation: handoverConfirmation ?? this.handoverConfirmation,
         returnConfirmation: returnConfirmation ?? this.returnConfirmation,
         ownerDeliversAtDropoffChosen:
@@ -159,47 +210,100 @@ class RentalRequest {
         returnLng: returnLng ?? this.returnLng,
         quotedTotalRenter: quotedTotalRenter ?? this.quotedTotalRenter,
         quotedSubtitle: quotedSubtitle ?? this.quotedSubtitle,
+        privateStatusConfirmed:
+            privateStatusConfirmed ?? this.privateStatusConfirmed,
+        quotedRentalSubtotalMinor:
+            quotedRentalSubtotalMinor ?? this.quotedRentalSubtotalMinor,
+        quotedPlatformFeeMinor:
+            quotedPlatformFeeMinor ?? this.quotedPlatformFeeMinor,
+        quotedTotalMinor: quotedTotalMinor ?? this.quotedTotalMinor,
+        legalDeclarations: legalDeclarations ?? this.legalDeclarations,
+        returnState: returnState ?? this.returnState,
+        returnT0: returnT0 ?? this.returnT0,
+        returnReportDeadline: returnReportDeadline ?? this.returnReportDeadline,
+        returnClarificationDeadline:
+            returnClarificationDeadline ?? this.returnClarificationDeadline,
+        returnCaseOpenedAt: returnCaseOpenedAt ?? this.returnCaseOpenedAt,
+        returnCaseClosedAt: returnCaseClosedAt ?? this.returnCaseClosedAt,
+        contestedAuthorizedMinor:
+            contestedAuthorizedMinor ?? this.contestedAuthorizedMinor,
+        allegedDamageMinorRecordedOnly: allegedDamageMinorRecordedOnly ??
+            this.allegedDamageMinorRecordedOnly,
+        cancellationOutcome: cancellationOutcome ?? this.cancellationOutcome,
       );
 
-  factory RentalRequest.fromJson(Map<String, dynamic> json) => RentalRequest(
-        id: json['id'] as String,
-        itemId: json['itemId'] as String,
-        ownerId: json['ownerId'] as String,
-        renterId: json['renterId'] as String,
-        start: DateTime.parse(json['start'] as String),
-        end: DateTime.parse(json['end'] as String),
-        startDate: json['startDate'] as String?,
-        endDate: json['endDate'] as String?,
-        status: (json['status'] as String?) ?? 'pending',
-        message: json['message'] as String?,
-        cancelledBy: json['cancelledBy'] as String?,
-        expressRequested: (json['expressRequested'] as bool?) ?? false,
-        expressStatus: json['expressStatus'] as String?,
-        expressFee: (json['expressFee'] as num?)?.toDouble() ?? 5.0,
-        ownerDeliversAtDropoffChosen:
-            (json['ownerDeliversAtDropoffChosen'] as bool?) ?? false,
-        ownerPicksUpAtReturnChosen:
-            (json['ownerPicksUpAtReturnChosen'] as bool?) ?? false,
-        deliveryAddressLine: json['deliveryAddressLine'] as String?,
-        deliveryCity: json['deliveryCity'] as String?,
-        deliveryLat: (json['deliveryLat'] as num?)?.toDouble(),
-        deliveryLng: (json['deliveryLng'] as num?)?.toDouble(),
-        returnAddressLine: json['returnAddressLine'] as String?,
-        returnCity: json['returnCity'] as String?,
-        returnLat: (json['returnLat'] as num?)?.toDouble(),
-        returnLng: (json['returnLng'] as num?)?.toDouble(),
-        createdAt: _parseDt(json['createdAt']) ?? DateTime.now(),
-        expressRequestedAt: _parseDt(json['expressRequestedAt']),
-        expressConfirmedAt: _parseDt(json['expressConfirmedAt']),
-        needsReview: (json['needsReview'] as bool?) ?? false,
-        reviewReason: json['reviewReason'] as String?,
-        reviewSource: json['reviewSource'] as String?,
-        reviewRequestedAt: _parseDt(json['reviewRequestedAt']),
-        handoverConfirmation: _parseMap(json['handoverConfirmation']),
-        returnConfirmation: _parseMap(json['returnConfirmation']),
-        quotedTotalRenter: (json['quotedTotalRenter'] as num?)?.toDouble(),
-        quotedSubtitle: json['quotedSubtitle'] as String?,
-      );
+  factory RentalRequest.fromJson(Map<String, dynamic> json) {
+    final quote = json['quote'] is Map
+        ? Map<String, dynamic>.from(json['quote'] as Map)
+        : const <String, dynamic>{};
+    return RentalRequest(
+      id: json['id'] as String,
+      itemId: json['itemId'] as String,
+      ownerId: json['ownerId'] as String,
+      renterId: json['renterId'] as String,
+      start: DateTime.parse(json['start'] as String),
+      end: DateTime.parse(json['end'] as String),
+      startDate: json['startDate'] as String?,
+      endDate: json['endDate'] as String?,
+      status: (json['status'] as String?) ?? 'pending',
+      message: json['message'] as String?,
+      cancelledBy: json['cancelledBy'] as String?,
+      expressRequested: (json['expressRequested'] as bool?) ?? false,
+      expressStatus: json['expressStatus'] as String?,
+      expressFee: (json['expressFee'] as num?)?.toDouble() ?? 5.0,
+      ownerDeliversAtDropoffChosen:
+          (json['ownerDeliversAtDropoffChosen'] as bool?) ?? false,
+      ownerPicksUpAtReturnChosen:
+          (json['ownerPicksUpAtReturnChosen'] as bool?) ?? false,
+      deliveryAddressLine: json['deliveryAddressLine'] as String?,
+      deliveryCity: json['deliveryCity'] as String?,
+      deliveryLat: (json['deliveryLat'] as num?)?.toDouble(),
+      deliveryLng: (json['deliveryLng'] as num?)?.toDouble(),
+      returnAddressLine: json['returnAddressLine'] as String?,
+      returnCity: json['returnCity'] as String?,
+      returnLat: (json['returnLat'] as num?)?.toDouble(),
+      returnLng: (json['returnLng'] as num?)?.toDouble(),
+      createdAt: _parseDt(json['createdAt']) ?? DateTime.now(),
+      acceptedAt: _parseDt(json['acceptedAt']),
+      expressRequestedAt: _parseDt(json['expressRequestedAt']),
+      expressConfirmedAt: _parseDt(json['expressConfirmedAt']),
+      needsReview: (json['needsReview'] as bool?) ?? false,
+      reviewReason: json['reviewReason'] as String?,
+      reviewSource: json['reviewSource'] as String?,
+      reviewRequestedAt: _parseDt(json['reviewRequestedAt']),
+      reviewEvidenceReferences: (json['reviewEvidenceReferences'] as List?)
+              ?.map((entry) => entry.toString())
+              .where((entry) => entry.trim().isNotEmpty)
+              .toList(growable: false) ??
+          const [],
+      handoverConfirmation: _parseMap(json['handoverConfirmation']),
+      returnConfirmation: _parseMap(json['returnConfirmation']),
+      quotedTotalRenter: (json['quotedTotalRenter'] as num?)?.toDouble(),
+      quotedSubtitle: json['quotedSubtitle'] as String?,
+      privateStatusConfirmed: json['privateStatusConfirmed'] == true,
+      quotedRentalSubtotalMinor:
+          (json['quotedRentalSubtotalMinor'] as num?)?.toInt() ??
+              (quote['rentalSubtotalMinor'] as num?)?.toInt(),
+      quotedPlatformFeeMinor:
+          (json['quotedPlatformFeeMinor'] as num?)?.toInt() ??
+              (quote['platformFeeMinor'] as num?)?.toInt(),
+      quotedTotalMinor: (json['quotedTotalMinor'] as num?)?.toInt() ??
+          (quote['totalMinor'] as num?)?.toInt(),
+      legalDeclarations: _parseMapList(json['legalDeclarations']),
+      returnState: (json['returnState'] as String?) ?? 'not_started',
+      returnT0: _parseDt(json['returnT0']),
+      returnReportDeadline: _parseDt(json['returnReportDeadline']),
+      returnClarificationDeadline:
+          _parseDt(json['returnClarificationDeadline']),
+      returnCaseOpenedAt: _parseDt(json['returnCaseOpenedAt']),
+      returnCaseClosedAt: _parseDt(json['returnCaseClosedAt']),
+      contestedAuthorizedMinor:
+          (json['contestedAuthorizedMinor'] as num?)?.toInt() ?? 0,
+      allegedDamageMinorRecordedOnly:
+          (json['allegedDamageMinorRecordedOnly'] as num?)?.toInt() ?? 0,
+      cancellationOutcome: _parseMap(json['cancellationOutcome']),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -227,16 +331,33 @@ class RentalRequest {
         'returnLat': returnLat,
         'returnLng': returnLng,
         'createdAt': createdAt.toIso8601String(),
+        'acceptedAt': acceptedAt?.toIso8601String(),
         'expressRequestedAt': expressRequestedAt?.toIso8601String(),
         'expressConfirmedAt': expressConfirmedAt?.toIso8601String(),
         'needsReview': needsReview,
         'reviewReason': reviewReason,
         'reviewSource': reviewSource,
         'reviewRequestedAt': reviewRequestedAt?.toIso8601String(),
+        'reviewEvidenceReferences': reviewEvidenceReferences,
         'handoverConfirmation': handoverConfirmation,
         'returnConfirmation': returnConfirmation,
         'quotedTotalRenter': quotedTotalRenter,
         'quotedSubtitle': quotedSubtitle,
+        'privateStatusConfirmed': privateStatusConfirmed,
+        'quotedRentalSubtotalMinor': quotedRentalSubtotalMinor,
+        'quotedPlatformFeeMinor': quotedPlatformFeeMinor,
+        'quotedTotalMinor': quotedTotalMinor,
+        'legalDeclarations': legalDeclarations,
+        'returnState': returnState,
+        'returnT0': returnT0?.toIso8601String(),
+        'returnReportDeadline': returnReportDeadline?.toIso8601String(),
+        'returnClarificationDeadline':
+            returnClarificationDeadline?.toIso8601String(),
+        'returnCaseOpenedAt': returnCaseOpenedAt?.toIso8601String(),
+        'returnCaseClosedAt': returnCaseClosedAt?.toIso8601String(),
+        'contestedAuthorizedMinor': contestedAuthorizedMinor,
+        'allegedDamageMinorRecordedOnly': allegedDamageMinorRecordedOnly,
+        'cancellationOutcome': cancellationOutcome,
       };
 }
 
@@ -259,4 +380,12 @@ Map<String, dynamic>? _parseMap(Object? v) {
     return v.map((k, val) => MapEntry(k.toString(), val));
   }
   return null;
+}
+
+List<Map<String, dynamic>> _parseMapList(Object? value) {
+  if (value is! List) return const [];
+  return value
+      .whereType<Map>()
+      .map((entry) => entry.map((key, val) => MapEntry(key.toString(), val)))
+      .toList(growable: false);
 }

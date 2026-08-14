@@ -158,8 +158,9 @@ export function amountToMinor(value, { nullable = true } = {}) {
 
 export function platformFeeMinor(rentalSubtotalMinor) {
   if (!Number.isSafeInteger(rentalSubtotalMinor) || rentalSubtotalMinor <= 0) return 0;
-  if (rentalSubtotalMinor <= 1_000) return 100;
-  return Math.round(rentalSubtotalMinor * 0.1);
+  // Privat-Pilot V4: exactly 10% of the discounted owner rental subtotal.
+  // Keep the calculation in minor units and round half-up once at the end.
+  return Math.floor((rentalSubtotalMinor * 1_000 + 5_000) / 10_000);
 }
 
 function normalizedDiscountTiers(value) {
@@ -210,7 +211,7 @@ export function quoteRental({
   const totalMinor = rentalSubtotalMinor + platformContributionMinor + delivery + pickup + express + expressPlatformMinor;
   const ownerPayoutMinor = rentalSubtotalMinor + delivery + pickup + express;
   return Object.freeze({
-    quoteVersion: 1,
+    quoteVersion: 2,
     currency: normalizeCurrency(currency),
     days,
     pricePerDayMinor,

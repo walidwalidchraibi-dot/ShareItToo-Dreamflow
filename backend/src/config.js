@@ -32,6 +32,9 @@ const bookingPilotMode = (process.env.BOOKING_PILOT_MODE ?? (
 if (!['off', 'pilot', 'on'].includes(bookingPilotMode)) {
   throw new Error('BOOKING_PILOT_MODE must be off, pilot, or on');
 }
+const privatePilotV4Enabled = (process.env.PRIVATE_PILOT_V4_ENABLED ?? 'false')
+  .trim()
+  .toLowerCase() === 'true';
 const pushTransport = (process.env.PUSH_TRANSPORT ?? (
   deploymentEnvironment === 'staging' || deploymentEnvironment === 'test'
     ? 'memory'
@@ -187,6 +190,7 @@ export const config = Object.freeze({
   bookingPilotMode,
   bookingPilotEnabled: bookingPilotMode !== 'off',
   bookingPilotWithoutPayment: bookingPilotMode === 'pilot',
+  privatePilotV4Enabled,
   failedLoginLimit: 10,
   failedLoginLockMinutes: 15,
   appPublicUrl: (process.env.APP_PUBLIC_URL ?? 'https://shareittoo.com').replace(/\/$/, ''),

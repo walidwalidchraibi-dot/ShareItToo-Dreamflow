@@ -29,6 +29,10 @@ import 'package:lendify/widgets/image_gallery_overlay.dart';
 import 'package:lendify/widgets/login_nudge_sheet.dart';
 import 'package:lendify/widgets/listing_display_truth.dart';
 import 'package:lendify/widgets/rating_badge.dart';
+import 'package:lendify/config/private_pilot_config.dart';
+import 'package:lendify/services/private_pilot_pricing.dart';
+import 'package:lendify/screens/private_pilot_checkout_screen.dart';
+import 'package:lendify/widgets/private_pilot_risk_notice.dart';
 import 'package:lendify/theme.dart';
 
 class ItemDetailsOverlay {
@@ -236,6 +240,18 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
       return;
     }
 
+    if (PrivatePilotConfig.enabled) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => PrivatePilotCheckoutScreen(
+            item: widget.item,
+            range: range,
+          ),
+        ),
+      );
+      return;
+    }
+
     final req = RentalRequest(
       id: 'local',
       itemId: widget.item.id,
@@ -279,10 +295,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
   String _priceWithUnit(Item i) {
     final unit = i.priceUnit;
     final raw = i.priceRaw;
-    final platformFee = DataService.platformContributionForRental(raw);
-    final customerPrice = raw + platformFee;
-    final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
-    return '${customerPrice.toStringAsFixed(0)} $suffix · Inkl. Plattformgebühr';
+    return '${listingCustomerPriceText(raw, currency: i.currency)} ${unit == 'week' ? '/ Woche' : '/ Tag'}';
   }
 
   String _formatRangeForButton(Item i, DateTimeRange r) {
@@ -296,12 +309,9 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
     final diff = r.end.difference(r.start);
     int days = diff.inDays;
     if (days <= 0) days = 1;
-    final priced = DataService.computeTotalWithDiscounts(item: i, days: days);
-    final rentalSubtotal = priced.$1;
-    final total = rentalSubtotal +
-        DataService.platformContributionForRental(rentalSubtotal);
+    final quote = PrivatePilotPricing.quoteForItem(item: i, days: days);
     final span = days == 1 ? '1 Tag' : '$days Tage';
-    return '${total.round()} € für $span · Inkl. Plattformgebühr';
+    return '${PrivatePilotPricing.formatMinor(quote.totalMinor, currency: quote.currency)} für $span';
   }
 
   Future<void> _addToWishlist() async {
@@ -817,6 +827,18 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
       return;
     }
 
+    if (PrivatePilotConfig.enabled) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => PrivatePilotCheckoutScreen(
+            item: widget.item,
+            range: range,
+          ),
+        ),
+      );
+      return;
+    }
+
     final req = RentalRequest(
       id: 'local',
       itemId: widget.item.id,
@@ -867,10 +889,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
   String _priceWithUnit(Item i) {
     final unit = i.priceUnit;
     final raw = i.priceRaw;
-    final platformFee = DataService.platformContributionForRental(raw);
-    final customerPrice = raw + platformFee;
-    final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
-    return '${customerPrice.toStringAsFixed(0)} $suffix · Inkl. Plattformgebühr';
+    return '${listingCustomerPriceText(raw, currency: i.currency)} ${unit == 'week' ? '/ Woche' : '/ Tag'}';
   }
 
   String _formatRangeForButton(Item i, DateTimeRange r) {
@@ -1257,12 +1276,10 @@ class _ItemMetaSection extends StatelessWidget {
         Builder(builder: (context) {
           final unit = item.priceUnit;
           final raw = item.priceRaw;
-          final suffix = unit == 'week' ? '€/Woche' : '€/Tag';
-          final customerPrice =
-              raw + DataService.platformContributionForRental(raw);
           return _TableLine(
               label: l10n.t('Preis'),
-              value: '${customerPrice.toStringAsFixed(0)} $suffix');
+              value:
+                  '${listingCustomerPriceText(raw, currency: item.currency)} ${unit == 'week' ? '/ Woche' : '/ Tag'}');
         }),
         _TableLine(
             label: l10n.t('Kategorie'),
@@ -2290,15 +2307,20 @@ class _BottomActionBarState extends State<_BottomActionBar> {
       final bool hinweg = saved != null ? (saved['hinweg'] == true) : false;
       final bool rueck = saved != null ? (saved['rueckweg'] == true) : false;
       // Respect item capabilities; coerce to self if landlord option not offered
-      _dropoff = (hinweg && widget.item.offersDeliveryAtDropoff)
+      _dropoff = (PrivatePilotConfig.deliveryEnabled &&
+              hinweg &&
+              widget.item.offersDeliveryAtDropoff)
           ? _DropoffOption.landlord
           : _DropoffOption.self;
-      _returning = (rueck && widget.item.offersPickupAtReturn)
+      _returning = (PrivatePilotConfig.deliveryEnabled &&
+              rueck &&
+              widget.item.offersPickupAtReturn)
           ? _ReturnOption.landlord
           : _ReturnOption.self;
       // Restore Priorität exactly as the user selected it earlier – independent of item flags
       // so the Gesamtbetrag and Untertitel remain consistent across pages.
-      _wantExpress = (saved != null ? (saved['express'] == true) : false);
+      _wantExpress = PrivatePilotConfig.deliveryEnabled &&
+          (saved != null ? (saved['express'] == true) : false);
       _loadingUserCity = false;
     });
     _recomputeFees();
@@ -2347,9 +2369,12 @@ class _BottomActionBarState extends State<_BottomActionBar> {
   Widget build(BuildContext context) {
     final item = widget.item;
     final range = widget.range;
-    final canOfferHinweg = item.offersDeliveryAtDropoff;
-    final canOfferRueckweg = item.offersPickupAtReturn;
-    final showDeliveryOptions = range != null; // only after dates are chosen
+    final canOfferHinweg =
+        PrivatePilotConfig.deliveryEnabled && item.offersDeliveryAtDropoff;
+    final canOfferRueckweg =
+        PrivatePilotConfig.deliveryEnabled && item.offersPickupAtReturn;
+    final showDeliveryOptions =
+        range != null && PrivatePilotConfig.deliveryEnabled;
     final theme = Theme.of(context);
 
     final deliverySum = (_feeHinweg + _feeRueckweg);
@@ -2373,10 +2398,12 @@ class _BottomActionBarState extends State<_BottomActionBar> {
       km = DataService.estimateDistanceKmFromAddressLine(
           widget.item.lat, widget.item.lng, _addressLine);
     }
-    final bool dropSelected =
-        _dropoff == _DropoffOption.landlord && item.offersDeliveryAtDropoff;
-    final bool pickSelected =
-        _returning == _ReturnOption.landlord && item.offersPickupAtReturn;
+    final bool dropSelected = PrivatePilotConfig.deliveryEnabled &&
+        _dropoff == _DropoffOption.landlord &&
+        item.offersDeliveryAtDropoff;
+    final bool pickSelected = PrivatePilotConfig.deliveryEnabled &&
+        _returning == _ReturnOption.landlord &&
+        item.offersPickupAtReturn;
     double deliveryFee = 0.0; // Abgabe
     double pickupFee = 0.0; // Rückgabe
     if (range != null && dropSelected) {
@@ -2389,7 +2416,8 @@ class _BottomActionBarState extends State<_BottomActionBar> {
     // Prioritätszuschlag: 5,00€ sobald ausgewählt (immer, auch bei Selbstabholung), plus 10% Plattformanteil auf Priorität
     // Wichtig: Der Betrag reagiert sofort auf die Nutzerwahl. Dadurch bleibt er konsistent
     // über Ausstehend → Kommend → Laufend → Abgeschlossen.
-    final bool expressIncluded = _wantExpress;
+    final bool expressIncluded =
+        PrivatePilotConfig.deliveryEnabled && _wantExpress;
     final double expressFee = (range != null && expressIncluded) ? 5.0 : 0.0;
     final double expressFeePlatform = expressFee > 0
         ? double.parse((expressFee * 0.10).toStringAsFixed(2))
@@ -3045,6 +3073,11 @@ class _BottomActionBarState extends State<_BottomActionBar> {
 
                 const SizedBox(height: 12),
 
+                if (range != null && PrivatePilotConfig.enabled) ...[
+                  const PrivatePilotRiskNotice(),
+                  const SizedBox(height: 12),
+                ],
+
                 if (range != null) ...[
                   Text(
                     'Zusammenfassung',
@@ -3222,14 +3255,14 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                       icon: const Icon(Icons.event_available),
                       label: Text(widget.isEditing
                           ? 'Reservierung aktualisieren'
-                          : l10n.t('Anfrage senden')),
+                          : 'Reservieren'),
                     );
                     return btn;
                   }),
                   if (range != null) ...[
                     const SizedBox(height: 6),
                     Text(
-                        'Mit Klick auf „Anfrage senden“ akzeptierst du die AGB und die Stornierungsbedingungen.',
+                        '„Reservieren“ oeffnet zuerst die vollstaendige Preis- und Risikouebersicht. Es wird noch keine Anfrage gesendet.',
                         style: TextStyle(
                             color:
                                 Theme.of(context).brightness == Brightness.dark
@@ -3330,6 +3363,18 @@ class _BottomActionBarState extends State<_BottomActionBar> {
       return;
     }
 
+    if (PrivatePilotConfig.enabled) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => PrivatePilotCheckoutScreen(
+            item: widget.item,
+            range: widget.range!,
+          ),
+        ),
+      );
+      return;
+    }
+
     final req = RentalRequest(
       id: 'local',
       itemId: widget.item.id,
@@ -3391,9 +3436,8 @@ Future<void> _showReservationSentPopup(BuildContext context,
       : '${formatDate(range.start)} – ${formatDate(range.end)}';
   final unit = item.priceUnit;
   final raw = item.priceRaw;
-  final platformFee = DataService.platformContributionForRental(raw);
   final customerPriceText =
-      '${(raw + platformFee).toStringAsFixed(0)} ${unit == 'week' ? '€/Woche' : '€/Tag'} · Inkl. Plattformgebühr';
+      '${listingCustomerPriceText(raw, currency: item.currency)} ${unit == 'week' ? '/ Woche' : '/ Tag'}';
 
   await showGeneralDialog<void>(
     context: context,

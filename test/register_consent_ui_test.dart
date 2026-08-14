@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/screens/register_screen.dart';
 
 void main() {
-  testWidgets('registration shows three separate unchecked confirmations',
+  testWidgets('registration shows four separate unchecked confirmations',
       (tester) async {
     await tester.pumpWidget(const MaterialApp(home: RegisterScreen()));
     await tester.pumpAndSettle();
@@ -14,6 +14,10 @@ void main() {
     );
     expect(find.text('Ich akzeptiere die AGB.'), findsOneWidget);
     expect(
+      find.textContaining('nutze ShareItToo im Privat-Pilot'),
+      findsOneWidget,
+    );
+    expect(
       find.text('Ich akzeptiere die Datenschutzbestimmungen.'),
       findsOneWidget,
     );
@@ -21,7 +25,7 @@ void main() {
     final confirmations = tester.widgetList<CheckboxListTile>(
       find.byType(CheckboxListTile),
     );
-    expect(confirmations, hasLength(3));
+    expect(confirmations, hasLength(4));
     expect(confirmations.every((checkbox) => checkbox.value == false), isTrue);
   });
 }

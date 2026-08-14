@@ -13,6 +13,10 @@ import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/blocked_users_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
+import 'package:lendify/services/private_pilot_pricing.dart';
+import 'package:lendify/services/private_pilot_cancellation_policy.dart';
+import 'package:lendify/services/private_pilot_return_policy.dart';
+import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/models/category.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart';
@@ -457,40 +461,25 @@ class DataService {
     double appliedPercent,
     double discountAmount,
   ) computeTotalWithDiscounts({required Item item, required int days}) {
-    final d = days.clamp(1, 3650);
-    final base = (item.pricePerDay * d);
-    if (!item.autoApplyDiscounts || item.longRentalDiscounts.isEmpty) {
-      return (base, base, 0.0, 0.0);
-    }
-    // Pick the highest threshold <= days
-    double pct = 0.0;
-    for (final tier in item.longRentalDiscounts) {
-      if (tier.days <= d && tier.discountPercent > pct) {
-        pct = tier.discountPercent;
-      }
-    }
-    final discountAmount = (base * (pct / 100)).clamp(0.0, base);
-    final total = (base - discountAmount).clamp(0.0, base);
-    return (total, base, pct, discountAmount);
+    final quote = PrivatePilotPricing.quoteForItem(item: item, days: days);
+    return (
+      PrivatePilotPricing.minorToEuros(quote.rentalSubtotalMinor),
+      PrivatePilotPricing.minorToEuros(quote.baseRentalMinor),
+      quote.discountBasisPoints / 100,
+      PrivatePilotPricing.minorToEuros(quote.discountMinor),
+    );
   }
 
   /// Platform contribution ("Plattformbeitrag").
   /// Input: rentalSubtotal (after any rental discounts), excluding delivery/express.
-  /// Rule update:
-  ///  - Bis 10,00 € Mietbetrag: 1,00 €
-  ///  - Ab 10,01 € Mietbetrag: 10 % des Mietbetrags
-  /// Edge case: For a 0 € subtotal, the fee is 0 €.
-  /// UI never shows percentages, only the absolute fee.
+  /// The private-pilot contribution is always exactly 10% of the discounted
+  /// rental subtotal. It is calculated in integer cents with one documented
+  /// half-up rounding step and has no minimum fee.
   static double platformContributionForRental(double rentalSubtotal) {
-    final v = (rentalSubtotal.isNaN ||
-            rentalSubtotal.isInfinite ||
-            rentalSubtotal < 0)
-        ? 0.0
-        : rentalSubtotal;
-    if (v <= 0.0) return 0.0;
-    if (v <= 10.0) return 1.0; // ≤ 10 € => 1 € flat
-    final fee = v * 0.10; // ≥ 10.01 € => 10%
-    return double.parse(fee.toStringAsFixed(2));
+    final rentalMinor = PrivatePilotPricing.eurosToMinor(rentalSubtotal);
+    return PrivatePilotPricing.minorToEuros(
+      PrivatePilotPricing.platformFeeMinor(rentalMinor),
+    );
   }
 
   /// Unified pricing breakdown for an existing rental request.
@@ -607,8 +596,12 @@ class DataService {
 
     double dropoffFee = 0.0;
     double returnFee = 0.0;
-    if (ownerDelivers) dropoffFee = deliveryFeeForDistanceKm(dropoffKm);
-    if (ownerPicksUp) returnFee = deliveryFeeForDistanceKm(returnKm);
+    if (PrivatePilotConfig.deliveryEnabled && ownerDelivers) {
+      dropoffFee = deliveryFeeForDistanceKm(dropoffKm);
+    }
+    if (PrivatePilotConfig.deliveryEnabled && ownerPicksUp) {
+      returnFee = deliveryFeeForDistanceKm(returnKm);
+    }
 
     // Express: renter sees the surcharge as soon as it is selected/requested.
     // We consider three sources:
@@ -621,7 +614,9 @@ class DataService {
     final bool expressRequestedOrSelected =
         expressSelectedTransient || req.expressRequested || expressAccepted;
     final double expressApplied =
-        expressRequestedOrSelected ? (req.expressFee) : 0.0; // renter-facing
+        PrivatePilotConfig.deliveryEnabled && expressRequestedOrSelected
+            ? req.expressFee
+            : 0.0;
     // New rule: add 10% of the Express surcharge to the renter total
     final double expressPlatformPart = expressApplied > 0
         ? double.parse((expressApplied * 0.10).toStringAsFixed(2))
@@ -641,7 +636,9 @@ class DataService {
       (rentalSubtotal +
               dropoffFee +
               returnFee +
-              (expressAccepted ? req.expressFee : 0.0))
+              (PrivatePilotConfig.deliveryEnabled && expressAccepted
+                  ? req.expressFee
+                  : 0.0))
           .toStringAsFixed(2),
     );
 
@@ -820,6 +817,11 @@ class DataService {
       );
     }
 
+    if (PrivatePilotConfig.enabled) {
+      return categories
+          .where((category) => PrivatePilotConfig.categoryAllowed(category.id))
+          .toList(growable: false);
+    }
     return categories;
   }
 
@@ -5552,6 +5554,20 @@ class DataService {
       expressConfirmedAt: null,
       quotedTotalRenter: quotedTotal,
       quotedSubtitle: quotedSub,
+      privateStatusConfirmed: req.privateStatusConfirmed,
+      quotedRentalSubtotalMinor: req.quotedRentalSubtotalMinor,
+      quotedPlatformFeeMinor: req.quotedPlatformFeeMinor,
+      quotedTotalMinor: req.quotedTotalMinor,
+      legalDeclarations: req.legalDeclarations,
+      returnState: req.returnState,
+      returnT0: req.returnT0,
+      returnReportDeadline: req.returnReportDeadline,
+      returnClarificationDeadline: req.returnClarificationDeadline,
+      returnCaseOpenedAt: req.returnCaseOpenedAt,
+      returnCaseClosedAt: req.returnCaseClosedAt,
+      reviewEvidenceReferences: req.reviewEvidenceReferences,
+      contestedAuthorizedMinor: req.contestedAuthorizedMinor,
+      allegedDamageMinorRecordedOnly: req.allegedDamageMinorRecordedOnly,
     );
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
       final remote = await BackendRepository.createBooking(
@@ -5617,6 +5633,7 @@ class DataService {
   static Future<void> updateRentalRequestStatus({
     required String requestId,
     required String status,
+    List<Map<String, dynamic>>? legalDeclarations,
   }) async {
     final all = await _getAllRentalRequests();
     bool mutated = false;
@@ -5629,6 +5646,7 @@ class DataService {
           bookingId: requestId,
           status: status,
           idempotencyKey: 'transition_${requestId}_${current.status}_$status',
+          legalDeclarations: legalDeclarations,
         );
         updatedRequest = RentalRequest.fromJson(remote);
         all[index] = updatedRequest;
@@ -5637,7 +5655,15 @@ class DataService {
     } else {
       for (int i = 0; i < all.length; i++) {
         if (all[i].id == requestId) {
-          all[i] = all[i].copyWith(status: status);
+          all[i] = all[i].copyWith(
+            status: status,
+            legalDeclarations: legalDeclarations == null
+                ? all[i].legalDeclarations
+                : [...all[i].legalDeclarations, ...legalDeclarations],
+          );
+          if (status == 'accepted' && all[i].acceptedAt == null) {
+            all[i] = all[i].copyWith(acceptedAt: DateTime.now());
+          }
           updatedRequest = all[i];
           mutated = true;
           break;
@@ -5727,11 +5753,37 @@ class DataService {
     bool mutated = false;
     for (int i = 0; i < all.length; i++) {
       if (all[i].id == requestId) {
+        Map<String, dynamic>? cancellationOutcome;
+        if (status == 'cancelled') {
+          final current = all[i];
+          final actor = cancelledBy == 'owner'
+              ? PrivatePilotCancellationActor.owner
+              : PrivatePilotCancellationActor.renter;
+          final outcome = PrivatePilotCancellationPolicy.evaluate(
+            rentalStartAt: current.start,
+            cancelAt: DateTime.now(),
+            actor: actor,
+            contractConfirmedAt: current.acceptedAt,
+          );
+          final totalMinor = current.quotedTotalMinor ?? 0;
+          cancellationOutcome = {
+            'refundBasisPoints': outcome.refundBasisPoints,
+            'refundMinor': outcome.refundMinor(totalMinor),
+            'retainedMinor': outcome.retainedMinor(totalMinor),
+            'reasonCode': outcome.reasonCode,
+            'freeCancellationUntil':
+                outcome.freeCancellationUntil?.toIso8601String(),
+            'calculatedAt': DateTime.now().toIso8601String(),
+            'modelVersion': PrivatePilotConfig.documentVersion,
+          };
+        }
         all[i] = all[i].copyWith(
           status: status,
           cancelledBy: (status == 'cancelled')
               ? (cancelledBy ?? all[i].cancelledBy)
               : all[i].cancelledBy,
+          cancellationOutcome:
+              cancellationOutcome ?? all[i].cancellationOutcome,
         );
         mutated = true;
         break;
@@ -5746,6 +5798,7 @@ class DataService {
     required String method,
     required String confirmedByRole,
     required String confirmedByUserId,
+    bool counterpartyConfirmed = false,
   }) async {
     final id = requestId.trim();
     final userId = confirmedByUserId.trim();
@@ -5760,6 +5813,24 @@ class DataService {
     };
     for (int i = 0; i < all.length; i++) {
       if (all[i].id == id) {
+        if (isReturn) {
+          final existing = all[i].returnConfirmation == null
+              ? <String, dynamic>{}
+              : Map<String, dynamic>.from(all[i].returnConfirmation!);
+          final confirmedAt = payload['confirmedAt'];
+          if (confirmedByRole == 'owner') {
+            existing['ownerConfirmedAt'] = confirmedAt;
+            if (counterpartyConfirmed) {
+              existing['renterConfirmedAt'] = confirmedAt;
+            }
+          } else if (confirmedByRole == 'renter') {
+            existing['renterConfirmedAt'] = confirmedAt;
+            if (counterpartyConfirmed) {
+              existing['ownerConfirmedAt'] = confirmedAt;
+            }
+          }
+          payload.addAll(existing);
+        }
         all[i] = all[i].copyWith(
           handoverConfirmation:
               isReturn ? all[i].handoverConfirmation : payload,
@@ -5769,7 +5840,104 @@ class DataService {
         break;
       }
     }
-    if (mutated) await _saveAllRentalRequests(all);
+    if (mutated) {
+      await _saveAllRentalRequests(all);
+      if (isReturn) {
+        await refreshPrivatePilotReturnState(
+          requestId,
+          actualReturnAt: DateTime.now(),
+        );
+      }
+    }
+  }
+
+  static Future<RentalRequest?> refreshPrivatePilotReturnState(
+    String requestId, {
+    DateTime? actualReturnAt,
+    DateTime? now,
+  }) async {
+    final all = await _getAllRentalRequests();
+    final index = all.indexWhere((entry) => entry.id == requestId.trim());
+    if (index < 0) return null;
+    final current = all[index];
+    final confirmation = current.returnConfirmation ?? const {};
+    final ownerConfirmed = confirmation['ownerConfirmedAt'] != null;
+    final renterConfirmed = confirmation['renterConfirmedAt'] != null;
+    final timeline = PrivatePilotReturnPolicy.evaluate(
+      scheduledReturnAt: current.end,
+      mutuallyConfirmedActualReturnAt: actualReturnAt ?? current.returnT0,
+      ownerConfirmed: ownerConfirmed,
+      renterConfirmed: renterConfirmed,
+      substantiatedCaseOpenedAt: current.returnCaseOpenedAt,
+      now: now,
+    );
+    final updated = current.copyWith(
+      returnState: timeline.state.storageValue,
+      returnT0: timeline.t0,
+      returnReportDeadline: timeline.reportDeadline,
+      returnClarificationDeadline: timeline.clarificationDeadline,
+      needsReview: timeline.state == PrivatePilotReturnState.needsReview,
+    );
+    all[index] = updated;
+    await _saveAllRentalRequests(all);
+    return updated;
+  }
+
+  static Future<RentalRequest?> recordPlatformWithdrawal({
+    required String requestId,
+    required String userId,
+  }) async {
+    final normalizedRequestId = requestId.trim();
+    final normalizedUserId = userId.trim();
+    if (normalizedRequestId.isEmpty || normalizedUserId.isEmpty) return null;
+    final all = await _getAllRentalRequests();
+    final index = all.indexWhere((entry) => entry.id == normalizedRequestId);
+    if (index < 0 || all[index].renterId != normalizedUserId) return null;
+    final acceptedAt = DateTime.now();
+    final declaration = <String, dynamic>{
+      'type': 'platform_withdrawal',
+      'exactWording': PrivatePilotConfig.platformWithdrawalDeclaration,
+      'documentName': PrivatePilotConfig.documentName,
+      'documentVersion': PrivatePilotConfig.documentVersion,
+      'language': PrivatePilotConfig.language,
+      'accepted': true,
+      'acceptedAt': acceptedAt.toIso8601String(),
+    };
+    RentalRequest updated;
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final remote = await BackendRepository.recordPlatformWithdrawal(
+        bookingId: normalizedRequestId,
+        declaration: declaration,
+        idempotencyKey:
+            'withdrawal_${normalizedRequestId}_${acceptedAt.microsecondsSinceEpoch}',
+      );
+      updated = RentalRequest.fromJson(remote);
+    } else {
+      updated = all[index].copyWith(
+        legalDeclarations: [...all[index].legalDeclarations, declaration],
+      );
+    }
+    all[index] = updated;
+    await _saveAllRentalRequests(all);
+    await addTimelineEvent(
+      requestId: normalizedRequestId,
+      type: 'platform_withdrawal_received',
+      note:
+          'Widerruf der kostenpflichtigen Plattformleistung eingegangen. Buchungswirkung offen.',
+    );
+    await addStructuredNotification(
+      userId: updated.ownerId,
+      category: 'bookings',
+      priority: 2,
+      title: 'Widerruf zur Buchung eingegangen',
+      body:
+          'Die Plattformleistung zu Buchung $normalizedRequestId wurde widerrufen. Der Buchungsstatus bleibt bis zur rechtlichen Prozessentscheidung neutral.',
+      entityType: 'booking',
+      entityId: normalizedRequestId,
+      ctaLabel: 'Buchung öffnen',
+      payload: {'requestId': normalizedRequestId, 'role': 'owner'},
+    );
+    return updated;
   }
 
   static Future<RentalRequestTransitionResult> confirmPickupTransition({
@@ -5909,7 +6077,14 @@ class DataService {
       method: method,
       confirmedByRole: 'owner',
       confirmedByUserId: userId,
+      counterpartyConfirmed: true,
     );
+    final refreshed = await getRentalRequestById(id);
+    if (refreshed?.needsReview == true) {
+      return const RentalRequestTransitionResult.paused(
+        'Zu dieser Buchung liegt ein belegter Fall vor. Der Abschluss bleibt für die Prüfung markiert; unstrittige Beträge bleiben davon getrennt.',
+      );
+    }
     await clearReturnActive(id);
     await addTimelineEvent(
       requestId: id,
@@ -6053,29 +6228,72 @@ class DataService {
     }
   }
 
-  static Future<void> markRentalRequestNeedsReview(
+  static Future<bool> markRentalRequestNeedsReview(
     String requestId, {
     required String reason,
     required String source,
+    List<String> evidenceReferences = const [],
+    int contestedAuthorizedMinor = 0,
+    int allegedDamageMinor = 0,
   }) async {
+    final normalizedReason = reason.trim();
+    if (normalizedReason.length < 10 || evidenceReferences.isEmpty) {
+      return false;
+    }
     final all = await _getAllRentalRequests();
     bool mutated = false;
     RentalRequest? updatedRequest;
     final requestedAt = DateTime.now();
+    final effectiveEvidenceReferences = [...evidenceReferences];
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final report = await BackendRepository.createReport(
+        targetType: 'booking',
+        targetId: requestId,
+        reasonCode: 'return_issue',
+        details: normalizedReason,
+        reference: source,
+      );
+      final reportId = report['id']?.toString().trim() ?? '';
+      if (reportId.isNotEmpty) {
+        effectiveEvidenceReferences.add('moderationReport:$reportId');
+      }
+    }
     for (int i = 0; i < all.length; i++) {
       if (all[i].id == requestId) {
+        final request = all[i];
+        final reportDeadline = (request.returnT0 ?? request.end).add(
+          const Duration(hours: PrivatePilotConfig.returnReportWindowHours),
+        );
+        if (requestedAt.isAfter(reportDeadline)) return false;
+        final split = PrivatePilotReturnPolicy.splitAuthorizedAmount(
+          authorizedBookingMinor: request.quotedTotalMinor ?? 0,
+          contestedAuthorizedMinor: contestedAuthorizedMinor,
+          allegedDamageMinor: allegedDamageMinor,
+        );
         all[i] = all[i].copyWith(
           needsReview: true,
-          reviewReason: reason,
+          reviewReason: normalizedReason,
           reviewSource: source,
           reviewRequestedAt: requestedAt,
+          reviewEvidenceReferences: effectiveEvidenceReferences,
+          returnState: PrivatePilotReturnState.needsReview.storageValue,
+          returnCaseOpenedAt: requestedAt,
+          returnT0: request.returnT0 ?? request.end,
+          returnReportDeadline: reportDeadline,
+          returnClarificationDeadline: (request.returnT0 ?? request.end).add(
+            const Duration(
+              days: PrivatePilotConfig.missingReturnConfirmationDays,
+            ),
+          ),
+          contestedAuthorizedMinor: split.contestedAuthorizedMinor,
+          allegedDamageMinorRecordedOnly: split.allegedDamageMinorRecordedOnly,
         );
         updatedRequest = all[i];
         mutated = true;
         break;
       }
     }
-    if (!mutated || updatedRequest == null) return;
+    if (!mutated || updatedRequest == null) return false;
 
     await _saveAllRentalRequests(all);
     try {
@@ -6099,6 +6317,7 @@ class DataService {
         '[DataService] markRentalRequestNeedsReview notification failed: $e',
       );
     }
+    return true;
   }
 
   // Schedules a 30-minute timer for express confirmation. If the app is closed,
@@ -6857,41 +7076,36 @@ class DataService {
   static String policyName([String? _ignored]) =>
       'Einheitliche Stornobedingung';
 
-  /// Returns the calendar-date-only representation of a DateTime.
-  static DateTime _dateOnly(DateTime dt) => DateTime(dt.year, dt.month, dt.day);
-
-  /// Compute the deadline date until which cancellation is fully free (100%) under the
-  /// unified policy. We operate on calendar days only (no times).
-  /// Rule interpretation (unified):
-  /// - 100%: Bis mindestens 2 Kalendertage vor Mietbeginn.
-  /// - 50%: Am Kalendertag vor Mietbeginn.
-  /// - 0%: Ab Mietbeginn oder bei Nicht‑Erscheinen.
+  /// Exact V4 deadline. For a normal booking the free deadline is 24 hours
+  /// before start. A short-notice booking receives the centrally configured
+  /// grace period from contract confirmation, capped at rental start.
   static DateTime? freeCancellationUntil({
     required String policy,
     required DateTime start,
     required DateTime createdAt,
   }) {
-    // Unified: Free until the end of the day two days before the start date.
-    final s = _dateOnly(start);
-    final freeUntil = s.subtract(const Duration(days: 2));
-    return freeUntil;
+    final grace = PrivatePilotCancellationPolicy.shortNoticeGraceDeadline(
+      contractConfirmedAt: createdAt,
+      rentalStartAt: start,
+    );
+    return grace ?? start.subtract(const Duration(hours: 24));
   }
 
-  /// Returns the refund ratio (0.0..1.0) applied to the RENTAL PRICE under the unified policy,
-  /// based solely on calendar days between [cancelAt] and [start].
-  /// Master rule is applied by callers to all other fees using the same ratio.
+  /// V4 refund ratio for renter cancellation. The same ratio applies to the
+  /// rental subtotal and the 10% platform contribution.
   static double refundRatio({
     required String policy,
     required DateTime start,
     required DateTime cancelAt,
     DateTime? createdAt,
   }) {
-    final startD = _dateOnly(start);
-    final cancelD = _dateOnly(cancelAt);
-    final daysBefore = startD.difference(cancelD).inDays;
-    if (daysBefore >= 2) return 1.0; // Early: ≥ 2 days before start
-    if (daysBefore == 1) return 0.5; // Late: on the day before start
-    return 0.0; // Start day or after: no refund
+    final outcome = PrivatePilotCancellationPolicy.evaluate(
+      rentalStartAt: start,
+      cancelAt: cancelAt,
+      actor: PrivatePilotCancellationActor.renter,
+      contractConfirmedAt: createdAt,
+    );
+    return outcome.refundBasisPoints / 10000;
   }
 
   /// Deletes ALL locally stored rentals and bookings (rental requests), including

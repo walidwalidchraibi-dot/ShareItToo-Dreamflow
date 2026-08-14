@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/private_pilot_owner_acceptance_dialog.dart';
 import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
@@ -1229,9 +1230,16 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () async {
+                    final declarations =
+                        await showPrivatePilotOwnerAcceptanceDialog(
+                      context,
+                      request: req,
+                    );
+                    if (declarations == null) return;
                     await DataService.updateRentalRequestStatus(
                       requestId: req.id,
                       status: 'accepted',
+                      legalDeclarations: declarations,
                     );
                     await DataService.addTimelineEvent(
                       requestId: req.id,
@@ -2377,44 +2385,29 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     if (!isActive) return;
     final hasRequiredPhotos = await _guardRequiredReturnPhotos(req.id);
     if (!hasRequiredPhotos) return;
-    final pausedForReview =
-        await DataService.pauseReturnCompletionIfNeedsReview(
-      req.id,
-      source: 'ongoing_owner_detail_screen',
-    );
     final galleryAcknowledged = await _acknowledgeGalleryEvidenceIfNeeded(
       req.id,
       isReturn: true,
     );
     if (!galleryAcknowledged) return;
-    if (pausedForReview) {
+    final transition = await DataService.confirmReturnTransition(
+      requestId: req.id,
+      confirmedByUserId: ownerUserId,
+      method: 'stepper',
+      confirmationContextVerified: true,
+      galleryAcknowledged: galleryAcknowledged,
+      reviewPauseSource: 'ongoing_owner_detail_screen',
+    );
+    if (!transition.success) {
       if (!mounted) return;
       AppPopup.toast(
         context,
         icon: Icons.info_outline,
-        title:
-            'Diese Rückgabe ist zur Prüfung markiert. Der Abschluss wird pausiert, bis der Fall geprüft wurde.',
+        title: transition.errorMessage ?? 'Rückgabe nicht abgeschlossen',
       );
       await _load();
       return;
     }
-    await DataService.updateRentalRequestStatus(
-      requestId: req.id,
-      status: 'completed',
-    );
-    await DataService.recordRentalRequestConfirmation(
-      requestId: req.id,
-      isReturn: true,
-      method: 'stepper',
-      confirmedByRole: 'owner',
-      confirmedByUserId: ownerUserId,
-    );
-    await DataService.clearReturnActive(req.id);
-    await DataService.addTimelineEvent(
-      requestId: req.id,
-      type: 'completed',
-      note: 'Rückgabe abgeschlossen',
-    );
     // Release/cancel ride compensation if present (return segment)
     try {
       final grant = await DataService.getRideCompensationDecision(

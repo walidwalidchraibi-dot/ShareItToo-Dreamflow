@@ -31,7 +31,9 @@ class InvoicePdfService {
               pw.SizedBox(height: 18),
               pw.Divider(color: PdfColors.grey300),
               pw.SizedBox(height: 8),
-              pw.Text('Hinweis: Diese Rechnung wird dynamisch aus deinen Buchungsdaten erstellt.', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+              pw.Text(
+                  'Hinweis: Diese Rechnung wird dynamisch aus deinen Buchungsdaten erstellt.',
+                  style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
             ];
           },
         ),
@@ -60,16 +62,23 @@ class InvoicePdfService {
 
     return pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
       pw.Expanded(
-        child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-          pw.Text(_typeLabel(), style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 2),
-          pw.Text('ShareItToo', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-        ]),
+        child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(_typeLabel(),
+                  style: pw.TextStyle(
+                      fontSize: 20, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 2),
+              pw.Text('ShareItToo',
+                  style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+            ]),
       ),
       pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
-        pw.Text(invoice.invoiceNumber, style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+        pw.Text(invoice.invoiceNumber,
+            style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 2),
-        pw.Text(invoice.bookingId, style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+        pw.Text(invoice.bookingId,
+            style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
       ]),
     ]);
   }
@@ -83,7 +92,9 @@ class InvoicePdfService {
 
     return pw.Container(
       padding: const pw.EdgeInsets.all(12),
-      decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey300), borderRadius: pw.BorderRadius.circular(10)),
+      decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: PdfColors.grey300),
+          borderRadius: pw.BorderRadius.circular(10)),
       child: pw.Row(children: [
         pw.Expanded(child: _kv('Datum', dt())),
         pw.SizedBox(width: 12),
@@ -95,39 +106,56 @@ class InvoicePdfService {
   }
 
   static pw.Widget _bookingDetails(Invoice invoice) {
-    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-      pw.Text('Buchungsdetails', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-      pw.SizedBox(height: 8),
-      _kv('Artikel', invoice.booking.itemTitle),
-      _kv('Mieter', invoice.booking.renterName),
-      _kv('Vermieter', invoice.booking.ownerName),
-      _kv('Mietdauer', '${invoice.booking.rentalDays} Tage'),
-    ]);
+    return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('Buchungsdetails',
+              style:
+                  pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 8),
+          _kv('Artikel', invoice.booking.itemTitle),
+          _kv('Mieter', invoice.booking.renterName),
+          _kv('Vermieter', invoice.booking.ownerName),
+          _kv('Mietdauer', '${invoice.booking.rentalDays} Tage'),
+        ]);
   }
 
   static pw.Widget _pricing(Invoice invoice) {
     final p = invoice.pricing;
     String eur(double v) => '${v.toStringAsFixed(2)} €';
-    return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-      pw.Text('Preisübersicht', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+    return pw
+        .Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+      pw.Text('Preisübersicht',
+          style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 8),
-      _rowMoney('Mietpreis', eur(p.netAmount)),
+      _rowMoney('Mietpreis des Vermieters', eur(p.netAmount)),
+      _rowMoney('ShareItToo-Plattformbeitrag 10 %', eur(p.platformFee)),
       pw.Divider(color: PdfColors.grey300),
       _rowMoney('Gesamtbetrag', eur(p.totalAfterTax), bold: true),
       pw.SizedBox(height: 8),
       pw.Container(
         padding: const pw.EdgeInsets.all(10),
-        decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(10)),
-        child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-          pw.Text('ShareItToo Plattformgebühr', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 4),
-          pw.Text('10% des Gesamtbetrags nach Steuern', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
-          pw.SizedBox(height: 2),
-          pw.Text('Dieser Beleg ist keine Umsatzsteuerrechnung.', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
-          pw.SizedBox(height: 8),
-          _rowMoney('SIT Gebühr', eur(p.platformFee)),
-          _rowMoney('Auszahlung an Vermieter', eur(p.payoutToOwner), bold: true),
-        ]),
+        decoration: pw.BoxDecoration(
+            color: PdfColors.grey100,
+            borderRadius: pw.BorderRadius.circular(10)),
+        child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text('ShareItToo Plattformbeitrag',
+                  style: pw.TextStyle(
+                      fontSize: 10, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 4),
+              pw.Text('Exakt 10 % des rabattierten Vermieter-Mietpreises',
+                  style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+              pw.SizedBox(height: 2),
+              pw.Text(
+                  'Die steuerliche Darstellung wird nach Klärung des UG-Status ergänzt.',
+                  style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+              pw.SizedBox(height: 8),
+              _rowMoney('SIT Beitrag', eur(p.platformFee)),
+              _rowMoney('Auszahlung an Vermieter', eur(p.payoutToOwner),
+                  bold: true),
+            ]),
       ),
     ]);
   }
@@ -136,7 +164,10 @@ class InvoicePdfService {
     return pw.Padding(
       padding: const pw.EdgeInsets.only(bottom: 4),
       child: pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-        pw.SizedBox(width: 90, child: pw.Text(k, style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700))),
+        pw.SizedBox(
+            width: 90,
+            child: pw.Text(k,
+                style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700))),
         pw.Expanded(child: pw.Text(v, style: const pw.TextStyle(fontSize: 10))),
       ]),
     );
@@ -146,8 +177,16 @@ class InvoicePdfService {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 2),
       child: pw.Row(children: [
-        pw.Expanded(child: pw.Text(label, style: pw.TextStyle(fontSize: 10, fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal))),
-        pw.Text(value, style: pw.TextStyle(fontSize: 10, fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
+        pw.Expanded(
+            child: pw.Text(label,
+                style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight:
+                        bold ? pw.FontWeight.bold : pw.FontWeight.normal))),
+        pw.Text(value,
+            style: pw.TextStyle(
+                fontSize: 10,
+                fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
       ]),
     );
   }

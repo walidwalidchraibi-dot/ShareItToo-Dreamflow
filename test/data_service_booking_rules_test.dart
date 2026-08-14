@@ -13,7 +13,7 @@ void main() {
 
   group('DataService refund policy', () {
     test(
-      'unified cancellation policy returns 100 percent until two calendar days before start',
+      'V4 cancellation policy uses exact 24-hour instants',
       () {
         final start = DateTime(2026, 7, 29, 12);
 
@@ -29,7 +29,15 @@ void main() {
           DataService.refundRatio(
             policy: 'unified',
             start: start,
-            cancelAt: DateTime(2026, 7, 28, 0, 0),
+            cancelAt: DateTime(2026, 7, 28, 12, 0),
+          ),
+          1.0,
+        );
+        expect(
+          DataService.refundRatio(
+            policy: 'unified',
+            start: start,
+            cancelAt: DateTime(2026, 7, 28, 13, 0),
           ),
           0.5,
         );
@@ -37,7 +45,7 @@ void main() {
           DataService.refundRatio(
             policy: 'unified',
             start: start,
-            cancelAt: DateTime(2026, 7, 29, 0, 0),
+            cancelAt: DateTime(2026, 7, 29, 12, 0),
           ),
           0.0,
         );
@@ -1081,7 +1089,7 @@ void main() {
 
   group('DataService price breakdown', () {
     test(
-      'delivery return and express fees affect renter total and owner payout as implemented',
+      'Privat-Pilot ignores delivery return and express selections',
       () {
         final item = buildTestItem(
           id: 'item-priced',
@@ -1114,12 +1122,12 @@ void main() {
           },
         );
 
-        expect(breakdown.dropoffFee, 3.0);
-        expect(breakdown.returnFee, 3.0);
-        expect(breakdown.expressApplied, 5.0);
+        expect(breakdown.dropoffFee, 0.0);
+        expect(breakdown.returnFee, 0.0);
+        expect(breakdown.expressApplied, 0.0);
         expect(breakdown.platformFee, 4.0);
-        expect(breakdown.totalRenter, 55.5);
-        expect(breakdown.payoutOwner, 51.0);
+        expect(breakdown.totalRenter, 44.0);
+        expect(breakdown.payoutOwner, 40.0);
       },
     );
   });

@@ -105,6 +105,14 @@ import {
 } from './moderation_workflow.js';
 import { publishToAll, publishToUsers } from './realtime.js';
 import { releaseMetadata } from './release.js';
+import {
+  privatePilotDeclarations,
+  privatePilotDocument,
+} from './private_pilot_domain.js';
+import {
+  evaluateReturnTimeline,
+  splitAuthorizedBookingAmount,
+} from './private_pilot_return_domain.js';
 import { errorPayload, requestContext, safeErrorLog } from './observability.js';
 import { buildAccountExport } from './privacy_export.js';
 import { createMapsProxy, MapsProxyError } from './maps_proxy.js';
@@ -286,6 +294,39 @@ async function writeAudit(client, {
   );
 }
 
+async function writePrivatePilotDeclaration(client, {
+  userId,
+  declarationType,
+  listingId = null,
+  bookingId = null,
+  accepted = true,
+}) {
+  const wordingKey = {
+    account_private: 'account',
+    listing_private: 'listing',
+    booking_private: 'booking',
+  }[declarationType];
+  if (!wordingKey) throw new Error('invalid_private_pilot_declaration_type');
+  await client.query(
+    `INSERT INTO legal_declarations (
+       user_id, listing_id, booking_id, declaration_type, exact_wording,
+       document_name, document_version, app_version, language, accepted
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+    [
+      userId,
+      listingId,
+      bookingId,
+      declarationType,
+      privatePilotDeclarations[wordingKey],
+      privatePilotDocument.name,
+      privatePilotDocument.version,
+      releaseMetadata.version,
+      privatePilotDocument.language,
+      accepted,
+    ],
+  );
+}
+
 function listingFinancials(payload) {
   return {
     currency: normalizeCurrency(payload.currency),
@@ -312,6 +353,7 @@ function listingPayload(raw, {
             timesLent: Number.isInteger(existingPayload?.timesLent) ? existingPayload.timesLent : 0,
           }
         : null,
+      privatePilot: config.privatePilotV4Enabled,
     });
   } catch (error) {
     if (error instanceof ListingValidationError) {
@@ -502,11 +544,126 @@ function existingRentalPayload(raw, existing, actorId) {
   const isRenter = actorId === existing.renter_id;
   const merged = { ...stored };
 
-  for (const key of [
-    'needsReview', 'reviewReason', 'reviewSource', 'reviewRequestedAt',
-    'handoverConfirmation', 'returnConfirmation',
-  ]) {
-    if (Object.hasOwn(candidate, key)) merged[key] = candidate[key];
+  if (Object.hasOwn(candidate, 'handoverConfirmation')) {
+    merged.handoverConfirmation = candidate.handoverConfirmation;
+  }
+
+  if (config.privatePilotV4Enabled) {
+    const now = new Date();
+    const storedConfirmation = stored.returnConfirmation
+      && typeof stored.returnConfirmation === 'object'
+      && !Array.isArray(stored.returnConfirmation)
+      ? { ...stored.returnConfirmation }
+      : {};
+    const candidateConfirmation = candidate.returnConfirmation
+      && typeof candidate.returnConfirmation === 'object'
+      && !Array.isArray(candidate.returnConfirmation)
+      ? candidate.returnConfirmation
+      : null;
+    const submittedReturnConfirmation = candidateConfirmation != null && (
+      (isRenter
+        && !Number.isFinite(Date.parse(storedConfirmation.renterConfirmedAt))
+        && Number.isFinite(Date.parse(candidateConfirmation.renterConfirmedAt)))
+      || (!isRenter
+        && !Number.isFinite(Date.parse(storedConfirmation.ownerConfirmedAt))
+        && Number.isFinite(Date.parse(candidateConfirmation.ownerConfirmedAt)))
+    );
+    if (submittedReturnConfirmation) {
+      const submitted = ensureObject(candidateConfirmation, 'invalid_return_confirmation');
+      const confirmedAt = now.toISOString();
+      if (isRenter) {
+        storedConfirmation.renterConfirmedAt = confirmedAt;
+        if (Number.isFinite(Date.parse(submitted.ownerConfirmedAt))) {
+          storedConfirmation.ownerConfirmedAt = confirmedAt;
+        }
+      } else {
+        storedConfirmation.ownerConfirmedAt = confirmedAt;
+        if (Number.isFinite(Date.parse(submitted.renterConfirmedAt))) {
+          storedConfirmation.renterConfirmedAt = confirmedAt;
+        }
+      }
+      storedConfirmation.method = safeText(submitted.method, 80) || 'app';
+      storedConfirmation.confirmedByUserId = actorId;
+      storedConfirmation.confirmedByRole = isRenter ? 'renter' : 'owner';
+    }
+    merged.returnConfirmation = storedConfirmation;
+    const normalizedConfirmation = storedConfirmation;
+    const ownerConfirmed = Number.isFinite(Date.parse(normalizedConfirmation.ownerConfirmedAt));
+    const renterConfirmed = Number.isFinite(Date.parse(normalizedConfirmation.renterConfirmedAt));
+    const t0 = Number.isFinite(Date.parse(stored.returnT0))
+      ? new Date(stored.returnT0)
+      : (submittedReturnConfirmation ? now : new Date(stored.end));
+    const requestedEvidence = Array.isArray(candidate.reviewEvidenceReferences)
+      ? candidate.reviewEvidenceReferences
+        .map((entry) => safeText(entry, 500))
+        .filter(Boolean)
+        .slice(0, 20)
+      : [];
+    const requestsNewCase = candidate.needsReview === true && stored.needsReview !== true;
+
+    if (requestsNewCase) {
+      const reason = safeText(candidate.reviewReason, 2000);
+      const reportDeadline = new Date(t0.getTime() + 48 * 60 * 60 * 1000);
+      if (reason.length < 10 || requestedEvidence.length === 0) {
+        throw new HttpError(400, 'substantiated_return_case_required');
+      }
+      if (now > reportDeadline) {
+        throw new HttpError(409, 'return_report_window_closed');
+      }
+      const amounts = splitAuthorizedBookingAmount({
+        authorizedBookingMinor: Number(stored.quotedTotalMinor ?? 0),
+        contestedAuthorizedMinor: Number(candidate.contestedAuthorizedMinor ?? 0),
+        allegedDamageMinor: Number(candidate.allegedDamageMinorRecordedOnly ?? 0),
+      });
+      merged.needsReview = true;
+      merged.reviewReason = reason;
+      merged.reviewSource = safeText(candidate.reviewSource, 120) || 'booking_return';
+      merged.reviewRequestedAt = now.toISOString();
+      merged.reviewEvidenceReferences = requestedEvidence;
+      merged.returnCaseOpenedAt = now.toISOString();
+      merged.contestedAuthorizedMinor = amounts.contestedAuthorizedMinor;
+      merged.allegedDamageMinorRecordedOnly = amounts.allegedDamageMinorRecordedOnly;
+    } else if (stored.needsReview === true) {
+      for (const key of [
+        'needsReview', 'reviewReason', 'reviewSource', 'reviewRequestedAt',
+        'reviewEvidenceReferences', 'returnCaseOpenedAt', 'returnCaseClosedAt',
+        'contestedAuthorizedMinor', 'allegedDamageMinorRecordedOnly',
+      ]) {
+        if (Object.hasOwn(stored, key)) merged[key] = stored[key];
+      }
+    }
+
+    const shouldTrackReturn = existing.status === 'completed'
+      || ownerConfirmed
+      || renterConfirmed
+      || merged.needsReview === true;
+    if (shouldTrackReturn) {
+      const timeline = evaluateReturnTimeline({
+        scheduledReturnAt: stored.end,
+        mutuallyConfirmedActualReturnAt: t0,
+        ownerConfirmed,
+        renterConfirmed,
+        substantiatedCaseOpenedAt: merged.needsReview === true
+          ? merged.returnCaseOpenedAt
+          : null,
+        now,
+      });
+      merged.returnState = timeline.state;
+      merged.returnT0 = timeline.t0;
+      merged.returnReportDeadline = timeline.reportDeadline;
+      merged.returnClarificationDeadline = timeline.clarificationDeadline;
+      merged.payoutInstructionDueAt = timeline.payoutInstructionDueAt;
+      merged.needsReview = timeline.state === 'needsReview';
+    }
+  } else {
+    if (Object.hasOwn(candidate, 'returnConfirmation')) {
+      merged.returnConfirmation = candidate.returnConfirmation;
+    }
+    for (const key of [
+      'needsReview', 'reviewReason', 'reviewSource', 'reviewRequestedAt',
+    ]) {
+      if (Object.hasOwn(candidate, key)) merged[key] = candidate[key];
+    }
   }
   if (isRenter && existing.status === 'pending') {
     for (const key of ['start', 'end', 'expressRequested', 'expressRequestedAt']) {
@@ -1041,7 +1198,8 @@ export function createApp({
     if (policyError) throw new HttpError(400, policyError);
     if (req.body?.termsAccepted !== true
         || req.body?.privacyAccepted !== true
-        || req.body?.minimumAgeConfirmed !== true) {
+        || req.body?.minimumAgeConfirmed !== true
+        || (config.privatePilotV4Enabled && req.body?.privateUseConfirmed !== true)) {
       throw new HttpError(400, 'registration_consents_required');
     }
     const passwordHash = await hashPassword(password);
@@ -1061,12 +1219,20 @@ export function createApp({
       const result = await client.query(
         `INSERT INTO users (
            id, email, password_hash, profile,
-           terms_accepted_at, privacy_accepted_at, minimum_age_confirmed_at
-         ) VALUES ($1, $2, $3, $4::jsonb, now(), now(), now())
+           terms_accepted_at, privacy_accepted_at, minimum_age_confirmed_at,
+           private_use_confirmed_at
+         ) VALUES ($1, $2, $3, $4::jsonb, now(), now(), now(),
+           CASE WHEN $5::boolean THEN now() ELSE NULL END)
          RETURNING *`,
-        [userId, email, passwordHash, JSON.stringify(profile)],
+        [userId, email, passwordHash, JSON.stringify(profile), req.body?.privateUseConfirmed === true],
       );
       verificationUser = result.rows[0];
+      if (config.privatePilotV4Enabled) {
+        await writePrivatePilotDeclaration(client, {
+          userId,
+          declarationType: 'account_private',
+        });
+      }
       await writeAudit(client, {
         actor: { id: userId, role: 'user' },
         action: 'account.registered',
@@ -1098,7 +1264,8 @@ export function createApp({
     await reconcileExpiredAccountSuspension(identity.email);
     const consentsAccepted = req.body?.termsAccepted === true
       && req.body?.privacyAccepted === true
-      && req.body?.minimumAgeConfirmed === true;
+      && req.body?.minimumAgeConfirmed === true
+      && (!config.privatePilotV4Enabled || req.body?.privateUseConfirmed === true);
     const outcome = await inTransaction(async (client) => {
       await client.query(
         'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
@@ -1148,17 +1315,31 @@ export function createApp({
           const created = await client.query(
             `INSERT INTO users (
                id, email, password_hash, profile, email_verified_at,
-               terms_accepted_at, privacy_accepted_at, minimum_age_confirmed_at
+               terms_accepted_at, privacy_accepted_at, minimum_age_confirmed_at,
+               private_use_confirmed_at
              ) VALUES (
                $1, $2, NULL, $3::jsonb,
                CASE WHEN $4::boolean THEN now() ELSE NULL END,
-               now(), now(), now()
+               now(), now(), now(),
+               CASE WHEN $5::boolean THEN now() ELSE NULL END
              )
              RETURNING *`,
-            [userId, identity.email, JSON.stringify(profile), identity.emailVerified],
+            [
+              userId,
+              identity.email,
+              JSON.stringify(profile),
+              identity.emailVerified,
+              req.body?.privateUseConfirmed === true,
+            ],
           );
           user = created.rows[0];
           createdAccount = true;
+          if (config.privatePilotV4Enabled) {
+            await writePrivatePilotDeclaration(client, {
+              userId,
+              declarationType: 'account_private',
+            });
+          }
           await writeAudit(client, {
             actor: { id: user.id, role: user.role ?? 'user' },
             action: 'account.registered',
@@ -1172,6 +1353,7 @@ export function createApp({
           !user.terms_accepted_at
           || !user.privacy_accepted_at
           || !user.minimum_age_confirmed_at
+          || (config.privatePilotV4Enabled && !user.private_use_confirmed_at)
         )) {
           if (!consentsAccepted) {
             throw new HttpError(400, 'social_registration_consents_required');
@@ -1180,10 +1362,20 @@ export function createApp({
             `UPDATE users
              SET terms_accepted_at = COALESCE(terms_accepted_at, now()),
                  privacy_accepted_at = COALESCE(privacy_accepted_at, now()),
-                 minimum_age_confirmed_at = COALESCE(minimum_age_confirmed_at, now())
+                 minimum_age_confirmed_at = COALESCE(minimum_age_confirmed_at, now()),
+                 private_use_confirmed_at = CASE
+                   WHEN $2::boolean THEN COALESCE(private_use_confirmed_at, now())
+                   ELSE private_use_confirmed_at
+                 END
              WHERE id = $1 RETURNING *`,
-            [user.id],
+            [user.id, req.body?.privateUseConfirmed === true],
           );
+          if (config.privatePilotV4Enabled && !user.private_use_confirmed_at) {
+            await writePrivatePilotDeclaration(client, {
+              userId: user.id,
+              declarationType: 'account_private',
+            });
+          }
           user = consented.rows[0];
         }
         await client.query(
@@ -1206,7 +1398,8 @@ export function createApp({
       }
       if (!user.terms_accepted_at
           || !user.privacy_accepted_at
-          || !user.minimum_age_confirmed_at) {
+          || !user.minimum_age_confirmed_at
+          || (config.privatePilotV4Enabled && !user.private_use_confirmed_at)) {
         if (!consentsAccepted) {
           throw new HttpError(400, 'social_registration_consents_required');
         }
@@ -1214,10 +1407,20 @@ export function createApp({
           `UPDATE users
            SET terms_accepted_at = COALESCE(terms_accepted_at, now()),
                privacy_accepted_at = COALESCE(privacy_accepted_at, now()),
-               minimum_age_confirmed_at = COALESCE(minimum_age_confirmed_at, now())
+               minimum_age_confirmed_at = COALESCE(minimum_age_confirmed_at, now()),
+               private_use_confirmed_at = CASE
+                 WHEN $2::boolean THEN COALESCE(private_use_confirmed_at, now())
+                 ELSE private_use_confirmed_at
+               END
            WHERE id = $1 RETURNING *`,
-          [user.id],
+          [user.id, req.body?.privateUseConfirmed === true],
         );
+        if (config.privatePilotV4Enabled && !user.private_use_confirmed_at) {
+          await writePrivatePilotDeclaration(client, {
+            userId: user.id,
+            declarationType: 'account_private',
+          });
+        }
         user = consented.rows[0];
       }
       if (!user.email_verified_at
@@ -2223,6 +2426,17 @@ export function createApp({
         photos: payload.photos,
         requirePhoto: payload.status === 'active',
       });
+      if (config.privatePilotV4Enabled) {
+        await client.query(
+          'UPDATE listings SET private_status_confirmed_at = now() WHERE id = $1',
+          [id],
+        );
+        await writePrivatePilotDeclaration(client, {
+          userId: req.auth.userId,
+          listingId: id,
+          declarationType: 'listing_private',
+        });
+      }
       await writeAudit(client, {
         actor: req.actor,
         action: 'listing.created',
@@ -2282,6 +2496,17 @@ export function createApp({
         photos: payload.photos,
         requirePhoto: payload.status === 'active',
       });
+      if (config.privatePilotV4Enabled) {
+        await client.query(
+          'UPDATE listings SET private_status_confirmed_at = now() WHERE id = $1',
+          [id],
+        );
+        await writePrivatePilotDeclaration(client, {
+          userId: req.auth.userId,
+          listingId: id,
+          declarationType: 'listing_private',
+        });
+      }
       await writeAudit(client, {
         actor: req.actor,
         action: 'listing.updated',
@@ -2421,6 +2646,7 @@ export function createApp({
     const quote = await inTransaction((client) => quoteBooking(client, {
       actorId: req.auth.userId,
       raw: req.body,
+      privatePilot: config.privatePilotV4Enabled,
     }));
     res.json(quote);
   }));
@@ -2431,6 +2657,8 @@ export function createApp({
       actor: req.actor,
       raw: req.body,
       key: req.get('Idempotency-Key'),
+      privatePilot: config.privatePilotV4Enabled,
+      appVersion: releaseMetadata.version,
     }), { deadlockRetries: 2 });
     publishToUsers([result.booking.ownerId, result.booking.renterId], {
       type: 'changed',
@@ -2471,6 +2699,84 @@ export function createApp({
     });
     kickNotificationWorker();
     res.json(result);
+  }));
+
+  app.post('/v1/bookings/:id/withdrawal', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const bookingId = safeText(req.params.id, 120);
+    const declaration = ensureObject(req.body?.declaration, 'invalid_withdrawal_declaration');
+    const expectedWording = privatePilotDeclarations.platformWithdrawal;
+    if (declaration.type !== 'platform_withdrawal'
+        || declaration.exactWording !== expectedWording
+        || declaration.documentName !== privatePilotDocument.name
+        || declaration.documentVersion !== privatePilotDocument.version
+        || declaration.language !== privatePilotDocument.language
+        || declaration.accepted !== true
+        || !Number.isFinite(Date.parse(declaration.acceptedAt))) {
+      throw new HttpError(400, 'invalid_withdrawal_declaration');
+    }
+    const booking = await inTransaction(async (client) => {
+      const result = await client.query(
+        `SELECT booking.renter_id, booking.owner_id, request.payload
+         FROM bookings AS booking
+         JOIN rental_requests AS request ON request.id = booking.id
+         WHERE booking.id = $1
+         FOR UPDATE OF booking, request`,
+        [bookingId],
+      );
+      if (!result.rowCount) throw new HttpError(404, 'booking_not_found');
+      const row = result.rows[0];
+      if (row.renter_id !== req.auth.userId) {
+        throw new HttpError(403, 'withdrawal_forbidden');
+      }
+      const payload = ensureObject(row.payload, 'invalid_stored_booking');
+      const declarations = Array.isArray(payload.legalDeclarations)
+        ? payload.legalDeclarations
+        : [];
+      const storedDeclaration = {
+        ...declaration,
+        acceptedAt: new Date(declaration.acceptedAt).toISOString(),
+      };
+      payload.legalDeclarations = [...declarations, storedDeclaration];
+      payload.platformWithdrawalReceivedAt = storedDeclaration.acceptedAt;
+      payload.platformWithdrawalBookingEffect = 'pending_legal_process_decision';
+      await client.query(
+        'UPDATE rental_requests SET payload = $2::jsonb WHERE id = $1',
+        [bookingId, JSON.stringify(payload)],
+      );
+      await client.query(
+        `INSERT INTO legal_declarations (
+           user_id, booking_id, declaration_type, exact_wording, document_name,
+           document_version, app_version, language, accepted, declared_at
+         ) VALUES ($1, $2, 'platform_withdrawal', $3, $4, $5, $6, $7, true, $8)`,
+        [
+          req.auth.userId,
+          bookingId,
+          expectedWording,
+          privatePilotDocument.name,
+          privatePilotDocument.version,
+          releaseMetadata.version,
+          privatePilotDocument.language,
+          new Date(storedDeclaration.acceptedAt),
+        ],
+      );
+      await client.query(
+        `INSERT INTO booking_events (
+           booking_id, actor_id, event_type, idempotency_key, metadata
+         ) VALUES ($1, $2, 'platform.withdrawal_received', $3, $4::jsonb)`,
+        [
+          bookingId,
+          req.auth.userId,
+          safeText(req.get('Idempotency-Key'), 160),
+          JSON.stringify({ bookingEffect: 'pending_legal_process_decision' }),
+        ],
+      );
+      return { ...payload, id: bookingId };
+    });
+    publishToUsers([booking.ownerId, booking.renterId], {
+      type: 'changed',
+      resource: 'rental_requests',
+    });
+    res.status(201).json({ booking });
   }));
 
   app.get('/v1/rental-requests', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
@@ -2568,6 +2874,9 @@ export function createApp({
             throw new HttpError(409, 'booking_requires_b6_revalidation');
           }
           const storedPayload = ensureObject(existing.payload, 'invalid_stored_request');
+          const opensReturnCase = config.privatePilotV4Enabled
+            && payload.needsReview === true
+            && storedPayload.needsReview !== true;
           const storedStart = new Date(storedPayload.start).toISOString();
           const storedEnd = new Date(storedPayload.end).toISOString();
           if (payload.status !== existing.status) {
@@ -2582,6 +2891,58 @@ export function createApp({
             `UPDATE rental_requests SET payload = $2::jsonb WHERE id = $1`,
             [id, JSON.stringify(payload)],
           );
+          if (config.privatePilotV4Enabled) {
+            await client.query(
+              `UPDATE bookings
+               SET return_t0 = $2, return_state = $3,
+                   return_report_deadline = $4,
+                   return_clarification_deadline = $5,
+                   payout_instruction_due_at = $6,
+                   version = version + 1
+               WHERE id = $1`,
+              [
+                id,
+                payload.returnT0 ?? null,
+                payload.returnState ?? 'not_started',
+                payload.returnReportDeadline ?? null,
+                payload.returnClarificationDeadline ?? null,
+                payload.payoutInstructionDueAt ?? null,
+              ],
+            );
+            if (opensReturnCase) {
+              await client.query(
+                `INSERT INTO booking_cases (
+                   booking_id, opened_by, opened_at, reason, substantiated,
+                   status, contested_authorized_minor,
+                   undisputed_releasable_minor, response_due_at,
+                   next_status_update_due_at, metadata
+                 )
+                 SELECT $1, $2, $3, $4, true, 'needsReview', $5, $6,
+                        $3::timestamptz + interval '5 days',
+                        $3::timestamptz + interval '7 days', $7::jsonb
+                 WHERE NOT EXISTS (
+                   SELECT 1 FROM booking_cases
+                   WHERE booking_id = $1 AND status <> 'closed'
+                 )`,
+                [
+                  id,
+                  req.auth.userId,
+                  payload.returnCaseOpenedAt,
+                  payload.reviewReason,
+                  payload.contestedAuthorizedMinor ?? 0,
+                  Math.max(
+                    0,
+                    Number(payload.quotedTotalMinor ?? 0)
+                      - Number(payload.contestedAuthorizedMinor ?? 0),
+                  ),
+                  JSON.stringify({
+                    source: payload.reviewSource,
+                    evidenceReferences: payload.reviewEvidenceReferences ?? [],
+                  }),
+                ],
+              );
+            }
+          }
           await client.query(
             `INSERT INTO booking_events (
                booking_id, actor_id, event_type, from_status, to_status, metadata

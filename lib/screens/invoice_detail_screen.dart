@@ -10,7 +10,8 @@ import 'package:printing/printing.dart';
 class InvoiceDetailScreen extends StatefulWidget {
   final Invoice invoice;
   final bool autoStartDownload;
-  const InvoiceDetailScreen({super.key, required this.invoice, this.autoStartDownload = false});
+  const InvoiceDetailScreen(
+      {super.key, required this.invoice, this.autoStartDownload = false});
 
   @override
   State<InvoiceDetailScreen> createState() => _InvoiceDetailScreenState();
@@ -32,10 +33,12 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     setState(() => _busy = true);
     try {
       final bytes = await InvoicePdfService.buildPdf(widget.invoice);
-      final fileName = 'SIT_Rechnung_${widget.invoice.bookingId}_${widget.invoice.date.toIso8601String().split('T').first}.pdf';
+      final fileName =
+          'SIT_Rechnung_${widget.invoice.bookingId}_${widget.invoice.date.toIso8601String().split('T').first}.pdf';
       final saveResult = await LocalArtifactStorageService.maybeSaveReceiptPdf(
         bytes: bytes,
-        artifactKey: 'invoice:${widget.invoice.id}:${widget.invoice.updatedAt.toIso8601String()}',
+        artifactKey:
+            'invoice:${widget.invoice.id}:${widget.invoice.updatedAt.toIso8601String()}',
         filename: fileName,
       );
       if (!saveResult.handledPrimaryAction) {
@@ -63,7 +66,8 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     setState(() => _busy = true);
     try {
       final bytes = await InvoicePdfService.buildPdf(widget.invoice);
-      await Printing.sharePdf(bytes: bytes, filename: '${widget.invoice.invoiceNumber}.pdf');
+      await Printing.sharePdf(
+          bytes: bytes, filename: '${widget.invoice.invoiceNumber}.pdf');
     } catch (e) {
       debugPrint('[InvoiceDetail] share failed: $e');
       if (mounted) {
@@ -103,7 +107,10 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
           elevation: 0,
           scrolledUnderElevation: 0,
           surfaceTintColor: Colors.transparent,
-          leading: IconButton(tooltip: MaterialLocalizations.of(context).backButtonTooltip, icon: const Icon(Icons.arrow_back_rounded), onPressed: () => Navigator.of(context).maybePop()),
+          leading: IconButton(
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              icon: const Icon(Icons.arrow_back_rounded),
+              onPressed: () => Navigator.of(context).maybePop()),
           title: Text(_typeLabel(inv.type)),
         ),
         body: SafeArea(
@@ -114,90 +121,145 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
                 children: [
                   Text(_typeLabel(inv.type), style: theme.textTheme.titleLarge),
                   const SizedBox(height: 4),
-                  Text(inv.bookingId, style: theme.textTheme.titleMedium?.copyWith(color: Colors.white.withValues(alpha: 0.88))),
+                  Text(inv.bookingId,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.88))),
                   const SizedBox(height: 12),
-
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: cardColor,
                       borderRadius: BorderRadius.circular(cardRadius),
                       border: Border.all(color: borderColor),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.30), blurRadius: 16, offset: const Offset(0, 10))],
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.30),
+                            blurRadius: 16,
+                            offset: const Offset(0, 10))
+                      ],
                     ),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      _kv(context, 'Datum', _formatDate(inv.date)),
-                      _kv(context, 'Buchungs-ID', inv.bookingId),
-                      _kv(context, 'Rechnungsnr.', inv.invoiceNumber),
-                    ]),
-                  ),
-                  const SizedBox(height: 12),
-
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(cardRadius),
-                      border: Border.all(color: borderColor),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.26), blurRadius: 16, offset: const Offset(0, 10))],
-                    ),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Buchungsdetails', style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 10),
-                      _kv(context, 'Artikel', inv.booking.itemTitle),
-                      _kv(context, 'Vermieter', inv.booking.ownerName),
-                      _kv(context, 'Mietdauer', '${inv.booking.rentalDays} Tage'),
-                    ]),
-                  ),
-                  const SizedBox(height: 12),
-
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(cardRadius),
-                      border: Border.all(color: borderColor),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.26), blurRadius: 16, offset: const Offset(0, 10))],
-                    ),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Preisübersicht', style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 10),
-                      _moneyRow(context, 'Mietpreis', inv.pricing.netAmount),
-                      const SizedBox(height: 8),
-                      Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
-                      const SizedBox(height: 8),
-                      _moneyRow(context, 'Gesamtbetrag', inv.pricing.totalAfterTax, emphasize: true),
-                      const SizedBox(height: 12),
-
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: Colors.black.withValues(alpha: 0.20),
-                          border: Border.all(color: cs.primary.withValues(alpha: 0.22)),
-                        ),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Row(children: [
-                            Container(
-                              width: 34,
-                              height: 34,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                gradient: const LinearGradient(colors: [BrandColors.logoGradientStart, BrandColors.logoGradientEnd]),
-                              ),
-                              child: Icon(Icons.percent_rounded, color: Colors.white.withValues(alpha: 0.95), size: 18),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(child: Text('ShareItToo Plattformgebühr', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800))),
-                          ]),
-                          const SizedBox(height: 8),
-                          Text('10 % des Gesamtbetrags nach Steuern', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.76))),
-                          const SizedBox(height: 10),
-                          _moneyRow(context, 'SIT Gebühr', inv.pricing.platformFee),
-                          _moneyRow(context, 'Auszahlung an Vermieter', inv.pricing.payoutToOwner, emphasize: true),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _kv(context, 'Datum', _formatDate(inv.date)),
+                          _kv(context, 'Buchungs-ID', inv.bookingId),
+                          _kv(context, 'Rechnungsnr.', inv.invoiceNumber),
                         ]),
-                      ),
-                    ]),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(cardRadius),
+                      border: Border.all(color: borderColor),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.26),
+                            blurRadius: 16,
+                            offset: const Offset(0, 10))
+                      ],
+                    ),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Buchungsdetails',
+                              style: theme.textTheme.titleMedium),
+                          const SizedBox(height: 10),
+                          _kv(context, 'Artikel', inv.booking.itemTitle),
+                          _kv(context, 'Vermieter', inv.booking.ownerName),
+                          _kv(context, 'Mietdauer',
+                              '${inv.booking.rentalDays} Tage'),
+                        ]),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(cardRadius),
+                      border: Border.all(color: borderColor),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.26),
+                            blurRadius: 16,
+                            offset: const Offset(0, 10))
+                      ],
+                    ),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Preisübersicht',
+                              style: theme.textTheme.titleMedium),
+                          const SizedBox(height: 10),
+                          _moneyRow(
+                            context,
+                            'Mietpreis des Vermieters',
+                            inv.pricing.netAmount,
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                              height: 1,
+                              color: Colors.white.withValues(alpha: 0.08)),
+                          const SizedBox(height: 8),
+                          _moneyRow(context, 'Gesamtbetrag',
+                              inv.pricing.totalAfterTax,
+                              emphasize: true),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              color: Colors.black.withValues(alpha: 0.20),
+                              border: Border.all(
+                                  color: cs.primary.withValues(alpha: 0.22)),
+                            ),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(children: [
+                                    Container(
+                                      width: 34,
+                                      height: 34,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(12),
+                                        gradient: const LinearGradient(colors: [
+                                          BrandColors.logoGradientStart,
+                                          BrandColors.logoGradientEnd
+                                        ]),
+                                      ),
+                                      child: Icon(Icons.percent_rounded,
+                                          color: Colors.white
+                                              .withValues(alpha: 0.95),
+                                          size: 18),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                        child: Text(
+                                            'ShareItToo Plattformgebühr',
+                                            style: theme.textTheme.bodyMedium
+                                                ?.copyWith(
+                                                    fontWeight:
+                                                        FontWeight.w800))),
+                                  ]),
+                                  const SizedBox(height: 8),
+                                  Text('10 % des Gesamtbetrags nach Steuern',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.76))),
+                                  const SizedBox(height: 10),
+                                  _moneyRow(
+                                    context,
+                                    'SIT Plattformbeitrag 10 %',
+                                    inv.pricing.platformFee,
+                                  ),
+                                  _moneyRow(context, 'Auszahlung an Vermieter',
+                                      inv.pricing.payoutToOwner,
+                                      emphasize: true),
+                                ]),
+                          ),
+                        ]),
                   ),
                 ],
               ),
@@ -206,19 +268,26 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.30),
-                border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
+                border: Border(
+                    top: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.08))),
               ),
               child: Row(children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _busy ? null : _downloadPdf,
-                    icon: Icon(Icons.picture_as_pdf_rounded, color: _busy ? Colors.white54 : cs.primary),
-                    label: Text('PDF herunterladen', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+                    icon: Icon(Icons.picture_as_pdf_rounded,
+                        color: _busy ? Colors.white54 : cs.primary),
+                    label: Text('PDF herunterladen',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.white, fontWeight: FontWeight.w700)),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+                      side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.14)),
                       backgroundColor: Colors.black.withValues(alpha: 0.18),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
                     ),
                   ),
                 ),
@@ -227,11 +296,14 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
                   child: FilledButton.icon(
                     onPressed: _busy ? null : _sharePdf,
                     icon: Icon(Icons.ios_share_rounded, color: cs.onPrimary),
-                    label: Text('Beleg teilen', style: theme.textTheme.bodyMedium?.copyWith(color: cs.onPrimary, fontWeight: FontWeight.w800)),
+                    label: Text('Beleg teilen',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                            color: cs.onPrimary, fontWeight: FontWeight.w800)),
                     style: FilledButton.styleFrom(
                       backgroundColor: cs.primary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
                     ),
                   ),
                 ),
@@ -262,17 +334,23 @@ Widget _kv(BuildContext context, String k, String v) {
   return Padding(
     padding: const EdgeInsets.only(bottom: 8),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      SizedBox(width: 110, child: Text(k, style: theme.textTheme.labelSmall?.copyWith(color: Colors.white.withValues(alpha: 0.72)))),
+      SizedBox(
+          width: 110,
+          child: Text(k,
+              style: theme.textTheme.labelSmall
+                  ?.copyWith(color: Colors.white.withValues(alpha: 0.72)))),
       Expanded(child: Text(v, style: theme.textTheme.bodyMedium)),
     ]),
   );
 }
 
-Widget _moneyRow(BuildContext context, String label, double amount, {bool emphasize = false}) {
+Widget _moneyRow(BuildContext context, String label, double amount,
+    {bool emphasize = false}) {
   final theme = Theme.of(context);
   final style = emphasize
       ? theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900)
-      : theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withValues(alpha: 0.90));
+      : theme.textTheme.bodyMedium
+          ?.copyWith(color: Colors.white.withValues(alpha: 0.90));
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(children: [

@@ -80,7 +80,7 @@ void main() {
     },
   );
 
-  test('needsReview blocks invoice and payout document generation', () async {
+  test('needsReview does not blanket-block undisputed documents', () async {
     final ownerDocs = await InvoicesService.getInvoicesForUser(owner.id);
     final renterDocs = await InvoicesService.getInvoicesForUser(renter.id);
 
@@ -88,20 +88,34 @@ void main() {
       ownerDocs.where(
         (d) => d.requestId == 'req-review-hold' && d.type.name == 'payment',
       ),
-      isEmpty,
+      isNotEmpty,
     );
     expect(
       ownerDocs.where(
         (d) => d.requestId == 'req-review-hold' && d.type.name == 'fee',
       ),
-      isEmpty,
+      isNotEmpty,
     );
     expect(
       renterDocs.where(
         (d) => d.requestId == 'req-review-hold' && d.type.name == 'invoice',
       ),
-      isEmpty,
+      isNotEmpty,
     );
+  });
+
+  test('receipt repeats the exact owner rent contribution and renter total',
+      () async {
+    final renterDocs = await InvoicesService.getInvoicesForUser(renter.id);
+    final invoice = renterDocs.singleWhere(
+      (d) => d.requestId == 'req-completed' && d.type.name == 'invoice',
+    );
+
+    expect(invoice.pricing.netAmount, 40.0);
+    expect(invoice.pricing.platformFee, 4.0);
+    expect(invoice.pricing.totalAfterTax, 44.0);
+    expect(invoice.pricing.payoutToOwner, 40.0);
+    expect(invoice.pricing.taxAmount, 0.0);
   });
 
   test('owner cancellation produces full renter refund document', () async {

@@ -178,7 +178,10 @@ class ListingCarouselCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                   Text(
-                    '${item.pricePerDay.toStringAsFixed(0)} €',
+                    listingCustomerPriceText(
+                      item.pricePerDay,
+                      currency: item.currency,
+                    ),
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: priceColor,
                       fontWeight: FontWeight.w700,

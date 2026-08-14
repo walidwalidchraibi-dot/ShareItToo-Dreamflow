@@ -3,6 +3,7 @@ import 'package:lendify/models/invoice.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/private_pilot_pricing.dart';
 
 /// Generates invoice/receipt documents dynamically from real booking data.
 ///
@@ -10,9 +11,6 @@ import 'package:lendify/services/data_service.dart';
 /// reuse a single fixed invoice. Documents are generated from persisted
 /// [RentalRequest]s.
 class InvoicesService {
-  static const double vatRateDefault = 0.19;
-  static const double platformFeeRate = 0.10; // 10% AFTER taxes
-
   static Future<List<Invoice>> getInvoicesForCurrentUser() async {
     try {
       final current = await DataService.getCurrentUser();
@@ -89,11 +87,6 @@ class InvoicesService {
     );
 
     final docs = <Invoice>[];
-    final isHeldForReview = req.needsReview;
-    if (isHeldForReview) {
-      return docs;
-    }
-
     // Renter docs
     if (perspectiveUserId == renter.id) {
       docs.add(
@@ -132,7 +125,7 @@ class InvoicesService {
     }
 
     // Owner docs
-    if (perspectiveUserId == owner.id && !isHeldForReview) {
+    if (perspectiveUserId == owner.id) {
       docs.add(
         _buildInvoice(
           baseId: 'payout_${req.id}',
@@ -201,9 +194,9 @@ class InvoicesService {
 
   static int _rentalDays(RentalRequest req) {
     final days = (req.end.difference(req.start).inHours / 24).ceil().clamp(
-      1,
-      365,
-    );
+          1,
+          365,
+        );
     return days;
   }
 
@@ -219,35 +212,25 @@ class InvoicesService {
     required Item item,
     required RentalRequest req,
   }) {
-    // Determine total AFTER taxes (this is what the renter effectively paid).
-    // Prefer a persisted quote to stay stable across UI changes.
-    final fallbackTotal = () {
-      try {
-        final b = DataService.priceBreakdownForRequest(item: item, req: req);
-        return b.totalRenter;
-      } catch (_) {
-        return item.pricePerDay; // last resort
-      }
-    };
-
-    final totalAfterTax = _round2(req.quotedTotalRenter ?? fallbackTotal());
-    final vatRate = vatRateDefault;
-
-    // If the amount already includes VAT, extract the tax part.
-    final taxAmount = _round2(totalAfterTax * (vatRate / (1 + vatRate)));
-    final netAmount = _round2(totalAfterTax - taxAmount);
-
-    // IMPORTANT RULE: platform fee must be 10% of total AFTER taxes.
-    final platformFee = _round2(totalAfterTax * platformFeeRate);
-    final payout = _round2(totalAfterTax - platformFee);
+    final quote = PrivatePilotPricing.quoteForItem(
+      item: item,
+      days: _rentalDays(req),
+    );
+    final rentalMinor =
+        req.quotedRentalSubtotalMinor ?? quote.rentalSubtotalMinor;
+    final platformMinor = req.quotedPlatformFeeMinor ??
+        PrivatePilotPricing.platformFeeMinor(rentalMinor);
+    final totalMinor = req.quotedTotalMinor ?? rentalMinor + platformMinor;
 
     return InvoicePriceBreakdown(
-      vatRate: vatRate,
-      netAmount: netAmount,
-      taxAmount: taxAmount,
-      totalAfterTax: totalAfterTax,
-      platformFee: platformFee,
-      payoutToOwner: payout,
+      // Tax treatment is intentionally not asserted until the UG's status is
+      // decided. Existing model fields remain for backward compatibility.
+      vatRate: 0,
+      netAmount: PrivatePilotPricing.minorToEuros(rentalMinor),
+      taxAmount: 0,
+      totalAfterTax: PrivatePilotPricing.minorToEuros(totalMinor),
+      platformFee: PrivatePilotPricing.minorToEuros(platformMinor),
+      payoutToOwner: PrivatePilotPricing.minorToEuros(rentalMinor),
     );
   }
 

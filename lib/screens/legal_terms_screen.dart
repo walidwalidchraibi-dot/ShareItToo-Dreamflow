@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/screens/legal_detail_scaffold.dart';
 
 class LegalTermsScreen extends StatelessWidget {
@@ -8,165 +9,228 @@ class LegalTermsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return LegalDetailScaffold(
       title: 'AGB',
-      intro:
-          'Diese Nutzungsbedingungen regeln die Verwendung von ShareItToo (SIT). SIT stellt die technische Vermittlungsplattform bereit, wird aber weder Eigentümer der angebotenen Gegenstände noch Vertragspartei des Mietvertrags zwischen den Nutzern.',
-      sections: [
+      intro: 'Plattform-Nutzungsbedingungen für den privaten ShareItToo-Pilot. '
+          'Stand 14.08.2026 · ${PrivatePilotConfig.documentVersion}. '
+          'ShareItToo stellt die technische Vermittlungsplattform bereit und '
+          'wird nicht Partei des privaten Mietvertrags zwischen den Nutzern.',
+      sections: const [
+        LegalSectionCard(
+          icon: Icons.info_outline,
+          title: 'Geltungsbereich und Dokumentenstand',
+          badge: 'Privat-Pilot',
+          children: [
+            LegalParagraph(
+              'Diese Bedingungen gelten für die Plattformnutzung im privaten Pilotbetrieb. Die Regeln für den privaten Mietvertrag, Stornierung, Übergabe, Rückgabe und Fälle werden im jeweiligen Buchungsablauf mit Dokumentversion dauerhaft bereitgestellt.',
+            ),
+            LegalParagraph(
+              'Das Öffnen des Checkouts erzeugt noch keine Buchungsanfrage, keinen Vertrag und keine Zahlung. Erst die dort eindeutig bezeichnete Schaltfläche sendet die verbindliche Buchungsanfrage. Das derzeitige V4-Zwischenmodell wird mit Dokumentversion und Zeitstempel protokolliert und nach neuer rechtlicher Rückmeldung zentral aktualisiert.',
+            ),
+          ],
+        ),
         LegalSectionCard(
           icon: Icons.assignment_ind_outlined,
-          title: 'Konto und Teilnahme',
-          children: const [
+          title: 'Konto und privater Nutzerkreis',
+          children: [
             LegalBullets(items: [
-              'Für die aktive Nutzung ist ein persönliches Konto erforderlich.',
-              'Zum Start richtet sich SIT ausschließlich an volljährige Personen ab 18 Jahren.',
-              'Name, Kontaktangaben und sonstige Kontodaten müssen wahrheitsgemäß und aktuell sein.',
-              'Zugangsdaten dürfen nicht weitergegeben werden. Verdächtige Kontonutzung ist dem Support unverzüglich zu melden.',
-              'Pro Person darf grundsätzlich nur ein Konto geführt werden, soweit SIT nicht ausdrücklich etwas anderes erlaubt.',
+              'Teilnehmen dürfen ausschließlich volljährige natürliche Personen ab 18 Jahren.',
+              'Konto, jedes Inserat und jede Buchung dürfen ausschließlich privat genutzt werden. Gewerbliche, selbständige oder berufliche Vermietung ist im Pilot ausgeschlossen.',
+              'Der Pilot ist auf Deutschland und die in der App freigeschaltete Pilotregion begrenzt.',
+              'Pro Person darf grundsätzlich nur ein persönliches, nicht übertragbares Konto geführt werden.',
+              'Name, Kontakt-, Verifizierungs- und sonstige Kontodaten müssen wahrheitsgemäß und aktuell sein.',
+              'Ändert sich der private Status, ist ShareItToo unverzüglich zu informieren. Funktionen können bis zur Klärung vorläufig eingeschränkt werden.',
             ]),
           ],
         ),
         LegalSectionCard(
           icon: Icons.handshake_outlined,
-          title: 'Rolle von SIT und Vertragsschluss',
+          title: 'Rolle von ShareItToo',
           badge: 'Wichtig',
-          children: const [
+          children: [
             LegalParagraph(
-              'SIT ermöglicht Anzeigen, Buchungsanfragen, Kommunikation sowie die dokumentierte Übergabe und Rückgabe. Der Mietvertrag kommt ausschließlich zwischen Vermieter und Mieter zustande, sobald der Vermieter eine Buchungsanfrage annimmt.',
+              'ShareItToo ermöglicht Registrierung, Inserate, Suche, Preisübersicht, Kommunikation, Zeit- und Adressabstimmung, dokumentierte Übergabe und Rückgabe, Bewertungen, Meldungen und Support.',
             ),
             LegalParagraph(
-              'Gegenstand, Zeitraum, Mietpreis, Übergabeort, Lieferumfang und besondere Vereinbarungen ergeben sich aus der angenommenen Buchung und dem zugehörigen Chat. SIT übernimmt Gegenstände nicht selbst, prüft nicht jede Anzeige vorab und gibt keine Garantie für Zustand, Verfügbarkeit oder Eignung eines Artikels.',
+              'ShareItToo ist nicht Vermieter, Mieter, Eigentümer, Besitzer, Hersteller, Beförderer, Gutachter oder Versicherer. Der Mietvertrag kommt ausschließlich zwischen Vermieter und Mieter zustande. Im V4-Zwischenmodell gibt der Mieter eine verbindliche Buchungsanfrage ab; der Vermieter nimmt sie innerhalb der angezeigten Frist an. Die Annahme wird dem Mieter über die Plattform mitgeteilt.',
             ),
             LegalParagraph(
-              'Wer gewerblich handelt, muss diesen Status und die gesetzlich erforderlichen Anbieterinformationen korrekt offenlegen. Gesetzliche Verbraucherrechte können insbesondere bei Verträgen mit gewerblichen Anbietern gelten; bei rein privaten Verträgen gelten sie nicht automatisch. Zwingende gesetzliche Rechte bleiben stets unberührt.',
+              'ShareItToo prüft Gegenstand, Eigentum, Berechtigung, Funktionsfähigkeit, Sicherheit, Echtheit, Zeitwert und Versicherungsschutz nicht. Eine Veröffentlichung, Kennzeichnung oder Supportbearbeitung ist keine Empfehlung, Garantie oder Sicherheitsfreigabe.',
             ),
-          ],
-        ),
-        LegalSectionCard(
-          icon: Icons.verified_user_outlined,
-          title: 'Pflichten der Nutzer',
-          children: const [
-            LegalBullets(items: [
-              'wahrheitsgemäße Angaben im Profil, in Anzeigen und im Buchungsablauf',
-              'rechtmäßige Nutzung der Plattform und Einhaltung der Community‑Regeln',
-              'respektvolle Kommunikation ohne Druck, Täuschung oder Belästigung',
-              'sorgfältiger und bestimmungsgemäßer Umgang mit gemieteten Gegenständen',
-              'Einhaltung vereinbarter Zeiten, Orte und Übergabe- sowie Rückgabeprozesse',
-              'unverzügliche Information des Vertragspartners bei Verlust, Schaden, Verspätung oder Sicherheitsproblemen',
-            ]),
           ],
         ),
         LegalSectionCard(
           icon: Icons.post_add_outlined,
-          title: 'Anzeigen erstellen & verwalten',
-          children: const [
+          title: 'Inserate und Positivliste',
+          children: [
             LegalBullets(items: [
-              'Es dürfen nur Gegenstände angeboten werden, über die der Vermieter rechtmäßig verfügen darf.',
-              'Beschreibung und Fotos müssen den tatsächlichen Zustand, bekannte Mängel, Funktionsumfang und Lieferumfang zutreffend wiedergeben.',
-              'Preis, Verfügbarkeit, Nutzungsbeschränkungen und besondere Sicherheitsanforderungen müssen vor der Buchung klar erkennbar sein.',
-              'Rechte Dritter, insbesondere Urheber-, Marken-, Persönlichkeits- und Datenschutzrechte, sind zu beachten.',
-              'Verbotene oder gesetzlich beschränkte Angebote richten sich nach den jeweils aktuellen Community‑Regeln.',
-            ]),
-          ],
-        ),
-        LegalSectionCard(
-          icon: Icons.event_available_outlined,
-          title: 'Buchungen & Mietvorgänge',
-          children: const [
-            LegalBullets(items: [
-              'Buchungen entstehen durch Anfrage und Annahme durch den Vermieter.',
-              'Vor der Übergabe müssen Identität des Vertragspartners, Gegenstand, Zeitraum und Lieferumfang geprüft werden.',
-              'Der in SIT geführte QR‑Ablauf und die vorgesehenen Zustandsfotos dokumentieren Übergabe und Rückgabe, ersetzen aber keine eigenständige Prüfung des Gegenstands.',
-              'Fotos dürfen nur den Mietgegenstand, dessen Zubehör und unmittelbar erforderliche Zustandsdetails zeigen. Unbeteiligte Personen und fremde persönliche Daten sind zu vermeiden.',
-              'Bei Konflikten, Schäden oder Sicherheitsproblemen sind Beweise zu sichern, der Vertragspartner zu informieren und die Meldefunktion beziehungsweise der Support frühzeitig zu nutzen.',
+              'Vermieter dürfen nur eigene Gegenstände oder Gegenstände mit wirksamer Vermietberechtigung anbieten.',
+              'Beschreibung und aktuelle Fotos müssen Zustand, bekannte Mängel, Funktion, Zubehör und erforderliche Sicherheits- oder Bedienhinweise zutreffend zeigen.',
+              'Zulässig sind nur technisch freigeschaltete Kategorien der abschließenden Positivliste. Freitext darf die Positivliste nicht umgehen.',
+              'Fahrzeuge und sonstige Verkehrsmittel, Waffen, gefährliche oder erlaubnispflichtige Gegenstände, lebende Tiere, Arzneimittel und rechtswidrige Inhalte sind ausgeschlossen.',
+              'Es gibt keine Wertobergrenze und keine Sperre allein wegen eines hohen Gegenstandswerts. Eine Wertangabe stammt vom Vermieter und wird von SIT nicht bestätigt.',
+              'Persönliche Abholung und Rückgabe sind Pflicht. Lieferung, Versand und Transport durch SIT sind nicht Bestandteil des Piloten.',
             ]),
           ],
         ),
         LegalSectionCard(
           icon: Icons.payments_outlined,
-          title: 'Preise, Zahlungen und Leistungsstand',
-          children: const [
+          title: 'Mietpreis und Plattformbeitrag',
+          children: [
             LegalParagraph(
-              'Der aktuelle interne Kandidat verarbeitet keine echten Zahlungen und löst keine Auszahlungen aus. Angezeigte Beträge dienen in dieser Phase nur der Darstellung und Vorbereitung des Buchungsablaufs.',
+              'Der Vermieter legt seinen Mietpreis fest. Der Mieter trägt zusätzlich einen ShareItToo-Plattformbeitrag von exakt 10 % des Mietpreises. Rabatte werden zuerst auf den Mietpreis angewendet; anschließend werden die 10 % einmal centgenau auf die rabattierte Buchungssumme berechnet.',
             ),
             LegalParagraph(
-              'Sobald echte Zahlungen oder Plattformgebühren aktiviert werden, werden Betrag, Fälligkeit, Zahlungsdienst, Stornierungsfolgen und gegebenenfalls die SIT‑Servicegebühr vor einer kostenpflichtigen Bestätigung transparent angezeigt. Eine Aktivierung erfolgt nicht rückwirkend.',
+              'Öffentliche Inseratspreise sind Endpreise für den Mieter und enthalten den Beitrag bereits. Vor jeder späteren verbindlichen Handlung zeigt der Checkout Mietpreis, Rabatt, Plattformbeitrag in Prozent und Euro, Gesamtpreis, Mietdauer sowie die konkrete Storno- und Karenzfrist.',
             ),
             LegalParagraph(
-              'SIT bietet im aktuellen Leistungsstand keine Versicherung, Garantie oder eigene Schadensregulierung. Gesetzliche Ansprüche zwischen Vermieter und Mieter bleiben davon unberührt.',
+              'Außer dem Plattformbeitrag werden im Privat-Pilot keine Liefer-, Zahlungs-, Refund-, Support- oder sonstigen Zusatzgebühren erhoben. Umsatzsteuertexte werden erst nach Klärung der steuerlichen Behandlung verbindlich ergänzt.',
+            ),
+          ],
+        ),
+        LegalSectionCard(
+          icon: Icons.fact_check_outlined,
+          title: 'Vertragsschluss, Plattformleistung und Widerruf',
+          children: [
+            LegalParagraph(
+              'Das Inserat ist noch kein bindendes Angebot. Der Mieter sendet eine verbindliche zahlungspflichtige Buchungsanfrage. Der private Mietvertrag entsteht im V4-Zwischenmodell erst, wenn der Vermieter rechtzeitig und protokolliert annimmt, die Annahme dem Mieter mitgeteilt wird und eine später aktivierte Zahlungsautorisierung erfolgreich ist. Eine automatische Eingangsbestätigung ist keine Annahme.',
+            ),
+            LegalParagraph(
+              'Die Buchungsanfrage enthält zugleich ein von privatem Mietvertrag und erfolgreicher Zahlungsautorisierung abhängiges Angebot für die entgeltliche SIT-Plattformleistung. ShareItToo nimmt dieses Angebot durch die Buchungsbestätigung an. Vermittlung und technische Buchungsbestätigung gelten im Zwischenmodell dann als vollständig erbracht; Dokumentation und Support laufen unentgeltlich weiter.',
+            ),
+            LegalParagraph(
+              'Das Verlangen nach frühem Leistungsbeginn und die Kenntnisbestätigung zum möglichen Erlöschen des Widerrufsrechts werden getrennt, nicht vorausgewählt, mit genauem Wortlaut, Dokumentversion und Zeitpunkt gespeichert. Unter „Rechtliches > Vertrag widerrufen“ steht ein zweistufiger elektronischer Widerruf bereit. Seine Wirkung auf den privaten Mietvertrag wird bis zur abschließenden Rechtsfreigabe neutral behandelt und nicht automatisch behauptet.',
+            ),
+          ],
+        ),
+        LegalSectionCard(
+          icon: Icons.shield_outlined,
+          title: 'Keine Kaution oder SIT-Schutzleistung',
+          children: [
+            LegalParagraph(PrivatePilotConfig.riskNotice),
+            LegalBullets(items: [
+              'keine Kaution und keine Sicherheitsautorisierung',
+              'keine SIT-Versicherung, kein Schutzfonds und keine Schadengarantie',
+              'keine automatische Schadensbelastung und kein Einzug von Schadensersatz',
+              'keine Verrechnung eines behaupteten Sachschadens mit der Vermieterauszahlung',
+              'Zwingende Haftung von ShareItToo für eigene Pflichtverletzungen bleibt unberührt.',
+            ]),
+          ],
+        ),
+        LegalSectionCard(
+          icon: Icons.qr_code_scanner_outlined,
+          title: 'Übergabe und Rückgabe',
+          children: [
+            LegalBullets(items: [
+              'Bei der Übergabe erstellt der Vermieter mindestens vier aktuelle Fotos: Gesamtansicht, Detailansicht, Zubehör und eine kritische oder zustandsrelevante Stelle.',
+              'Der Mieter bestätigt das Fotoset oder widerspricht mit mindestens einem eigenen Foto der abweichenden Stelle.',
+              'Danach bestätigen beide Parteien getrennt per QR-Code, ersatzweise mit dem sechsstelligen Fallback-Code.',
+              'Bei der Rückgabe erstellt der Mieter das entsprechende Vierer-Fotoset; der Vermieter bestätigt oder dokumentiert eine Abweichung mit eigenem Foto.',
+              'Zeitstempel, Buchungszuordnung, getrennte Bestätigungen und eine nur freiwillige Galerieübernahme bleiben erhalten.',
+              'Die genaue Adresse wird grundsätzlich sechs Stunden vor dem bestätigten Termin sichtbar und darf nur für die konkrete Buchung verwendet werden.',
+            ]),
+            LegalParagraph(
+              'Eine fehlende Gegenbestätigung erzeugt keinen automatischen Streitfall. Sie führt zunächst neutral in „Rückgabebestätigung ausstehend“.',
+            ),
+          ],
+        ),
+        LegalSectionCard(
+          icon: Icons.schedule_outlined,
+          title: 'Rückgabe, Meldefenster und Fälle',
+          children: [
+            LegalParagraph(
+              'T0 ist bei beidseitiger Bestätigung der tatsächliche Rückgabezeitpunkt, sonst die vereinbarte oder beidseitig geänderte Rückgabezeit. Ein substantiierter Fall kann bis T0 + 48 Stunden eröffnet werden.',
+            ),
+            LegalParagraph(
+              'Fehlt nur eine Rückgabebestätigung, gilt „Rückgabebestätigung ausstehend“ mit Erinnerungen und neutralem Klärungsfenster bis T0 + 5 Kalendertage. Das erzeugt nicht automatisch „In Prüfung“. Ohne substantiierten Fall wird danach die Auszahlung anweisbar.',
+            ),
+            LegalParagraph(
+              'Nur ein konkreter und ausreichend begründeter Fall führt zu „In Prüfung“. Eine Schadensbehauptung allein erzeugt keine neue Belastung, blockiert keine Vermieterauszahlung und wird nicht mit dem Mietpreis verrechnet. ShareItToo entscheidet nur über Plattformstatus und zulässige bereits autorisierte Buchungsbeträge, nicht endgültig über zivilrechtlichen Schadensersatz.',
             ),
           ],
         ),
         LegalSectionCard(
           icon: Icons.event_busy_outlined,
-          title: 'Stornierung und gesetzliche Rechte',
-          children: const [
+          title: 'Stornierung und Karenz',
+          children: [
             LegalParagraph(
-              'Die in der App ausgewiesenen Stornierungsregeln gelten nur, soweit sie wirksam vereinbart wurden und zwingendem Recht nicht widersprechen. Der aktuelle interne Kandidat nimmt keine echten Zahlungen oder Erstattungen vor.',
+              'Liegen zwischen einer später wirksam bestätigten Buchung und Mietbeginn weniger als 24 Stunden, kann der Mieter innerhalb von 60 Minuten nach Zugang der Buchungsbestätigung kostenlos stornieren, spätestens bis Mietbeginn. Die App zeigt den genauen Ablaufzeitpunkt.',
             ),
             LegalParagraph(
-              'Bei Verträgen zwischen Privatpersonen besteht nicht allein wegen des Online-Abschlusses ein gesetzliches Verbraucherwiderrufsrecht. Handelt ein Vermieter gewerblich gegenüber einem Verbraucher, können gesetzliche Informations- und Widerrufsrechte bestehen. Der gewerbliche Vermieter ist für deren Erfüllung verantwortlich.',
+              'Aktuelle Prüfparameter sind: mindestens 24 Stunden vor Mietbeginn 100 % Erstattung; weniger als 24 Stunden vorher vorläufig 50 % verbleibender Mietpreis; ab Mietbeginn oder bei Mieter-No-Show vorläufig 100 %. Diese Prozentsätze sind konfigurierbar und noch nicht als endgültig rechtlich freigegeben.',
+            ),
+            LegalParagraph(
+              'Ersatzvermietung, ersparte Aufwendungen und der Nachweis eines geringeren oder ausgebliebenen Schadens bleiben abbildbar. Der Plattformbeitrag folgt anteilig dem nach einer vertraglichen Stornierung verbleibenden Mietpreis.',
+            ),
+          ],
+        ),
+        LegalSectionCard(
+          icon: Icons.chat_bubble_outline,
+          title: 'Kommunikation und Nachweise',
+          children: [
+            LegalParagraph(
+              'Der Buchungschat bleibt während der Buchung und bis zum Ende des konkreten Melde- oder Klärungsfensters geöffnet. Bei „In Prüfung“ bleibt er bis zum Abschluss des Falls erreichbar; danach gelten Archivierungs- und Supportregeln.',
+            ),
+            LegalParagraph(
+              'Private Chats, genaue Adressen, Zahlungsdaten sowie Übergabe-, Rückgabe- und Schadensfotos werden nicht für KI-Modelltraining verwendet. Buchungsbezogene Chats und Nachweisfotos werden grundsätzlich sechs Monate nach Rückgabe vorgehalten; bei einem konkret eröffneten Anspruch nur fallbezogen so lange wie erforderlich.',
+            ),
+          ],
+        ),
+        LegalSectionCard(
+          icon: Icons.auto_awesome_outlined,
+          title: 'KI-Funktionen',
+          children: [
+            LegalParagraph(
+              'KI-Funktionen bleiben im Privat-Pilot deaktiviert, solange Anbieter, Datenfluss, Transparenz und Datenschutz nicht vollständig umgesetzt und freigegeben sind. Eine spätere direkte KI-Interaktion wird spätestens bei der ersten Interaktion eindeutig gekennzeichnet.',
             ),
           ],
         ),
         LegalSectionCard(
           icon: Icons.star_outline,
           title: 'Bewertungen & Bewertungssystem',
-          children: const [
+          children: [
             LegalParagraph(
-              'Bewertungen können grundsätzlich nur von Nutzern abgegeben werden, die an einer über SIT dokumentierten und abgeschlossenen Vermietung beteiligt waren. SIT überprüft die Berechtigung zur Bewertungsabgabe anhand der zugehörigen Buchung.',
+              'Bewertungen können grundsätzlich nur von Nutzern abgegeben werden, die an einer über SIT dokumentierten und abgeschlossenen Vermietung beteiligt waren.',
             ),
             LegalParagraph(
-              'Eine Bewertung umfasst die Kriterien Kommunikation, Zuverlässigkeit, Artikel wie beschrieben sowie Übergabe und Rückgabe. Die Kriterien werden gleich gewichtet. Die Gesamtbewertung einer einzelnen Vermietung entspricht dem arithmetischen Mittelwert der vier Kriterien und wird auf eine Nachkommastelle gerundet. Die öffentliche Gesamtbewertung eines Nutzers ergibt sich aus dem Durchschnitt aller gültigen, vollständigen und eindeutigen Einzelbewertungen.',
+              'Eine Bewertung umfasst Kommunikation, Zuverlässigkeit, Artikel wie beschrieben sowie Übergabe und Rückgabe. Die Gesamtbewertung entspricht dem arithmetischen Mittelwert der vier Kriterien und wird auf eine Nachkommastelle gerundet.',
             ),
             LegalParagraph(
-              'Beim Kriterium „Artikel wie beschrieben“ wird bewertet, ob der tatsächliche Zustand, die Ausstattung, die Funktionsfähigkeit, Gebrauchsspuren und bekannte Mängel mit den Angaben in der Anzeige übereinstimmen. Nicht maßgeblich ist, ob der Artikel neu, neuwertig oder optisch hochwertig ist. Ein zutreffend als gebraucht oder stark gebraucht beschriebener Artikel kann daher die höchste Bewertung erhalten.',
-            ),
-            LegalParagraph(
-              'Das Kriterium „Übergabe und Rückgabe“ umfasst insbesondere den Ablauf, die Einhaltung vereinbarter Zeiten, Sauberkeit, Funktionsfähigkeit, vollständiges Zubehör sowie die ordnungsgemäße Rückgabe.',
-            ),
-            LegalParagraph(
-              'Preis-Leistung ist kein Bestandteil der öffentlichen Bewertung und fließt nicht in die Gesamtbewertung ein.',
-            ),
-            LegalParagraph(
-              'SIT kann Bewertungen prüfen und erforderlichenfalls ausblenden oder entfernen, wenn konkrete Anhaltspunkte für Manipulation, Mehrfachbewertungen, fehlenden Buchungsbezug, Beleidigungen, rechtswidrige Inhalte oder nachweislich falsche Tatsachenbehauptungen bestehen. Technisch fehlerhafte Berechnungen oder doppelt erfasste Bewertungen dürfen berichtigt werden. Eine inhaltliche Veränderung der persönlichen Meinung des Bewertenden erfolgt nicht.',
+              'Preis-Leistung ist kein Bestandteil der öffentlichen Bewertung. Manipulierte, buchungsfremde, beleidigende oder nachweislich falsche Bewertungen können geprüft und entfernt; doppelt erfasste Bewertungen dürfen berichtigt werden.',
             ),
           ],
         ),
         LegalSectionCard(
           icon: Icons.report_outlined,
-          title: 'Meldungen, Moderation und Beschwerden',
-          children: const [
+          title: 'Meldungen und Moderation',
+          children: [
             LegalParagraph(
-              'Rechtswidrige oder regelwidrige Inhalte können über die Meldefunktion oder den Support gemeldet werden. Eine Meldung soll den betroffenen Inhalt eindeutig bezeichnen und nachvollziehbar erklären, weshalb er rechtswidrig oder regelwidrig sein soll.',
+              'Rechtswidrige oder unsichere Inhalte können über die Meldefunktion oder den Support gemeldet werden. Maßnahmen werden mit Grund, Dauer, Erkennungsart und verfügbarer Überprüfungsmöglichkeit dokumentiert, soweit dies gesetzlich erforderlich ist.',
             ),
             LegalParagraph(
-              'SIT kann Inhalte prüfen, ihre Sichtbarkeit einschränken, Anzeigen entfernen, Funktionen begrenzen oder Konten vorübergehend beziehungsweise dauerhaft sperren. Dabei werden insbesondere Schwere, Häufigkeit, Kontext, mögliche Gefahren und die Rechte der Beteiligten berücksichtigt. Soweit erforderlich, erhält der betroffene Nutzer eine verständliche Begründung und eine Möglichkeit zur Beschwerde.',
+              'ShareItToo kann Inhalte entfernen oder herabstufen sowie Funktionen oder Konten verhältnismäßig einschränken. Eine menschliche Überprüfung muss möglich bleiben.',
             ),
           ],
         ),
         LegalSectionCard(
           icon: Icons.delete_outline,
-          title: 'Laufzeit, Kontolöschung und Änderungen',
-          children: const [
+          title: 'Laufzeit, Änderungen und Kontolöschung',
+          children: [
             LegalParagraph(
-              'Das Nutzungsverhältnis läuft auf unbestimmte Zeit. Nutzer können ihr Konto über die Kontoeinstellungen löschen. Offene Buchungen, Sicherheitsfälle oder gesetzliche Aufbewahrungspflichten können eine sofortige vollständige Löschung einzelner Daten verhindern.',
+              'Das Nutzungsverhältnis läuft auf unbestimmte Zeit. Kontolöschung, Vertragsbeendigung und datenschutzrechtliche Löschung sind getrennte Vorgänge. Offene Buchungen, Fälle und gesetzliche Nachweise können eine sofortige vollständige Löschung einzelner Daten verhindern.',
             ),
             LegalParagraph(
-              'SIT kann das Nutzungsverhältnis aus wichtigem Grund beenden, insbesondere bei erheblichen oder wiederholten Rechts- beziehungsweise Regelverstößen. Weniger einschneidende Maßnahmen werden berücksichtigt, soweit sie zumutbar und ausreichend sind.',
-            ),
-            LegalParagraph(
-              'Wesentliche Änderungen dieser Bedingungen werden transparent und mit angemessener Vorlaufzeit bekanntgegeben. Soweit eine erneute Zustimmung erforderlich ist, wird SIT sie ausdrücklich einholen.',
+              'Wesentliche Änderungen werden vorab auf einem dauerhaften Datenträger mitgeteilt. Schweigen oder bloße Weiternutzung gilt nicht als Zustimmung. Änderungen gelten nicht rückwirkend für bestätigte Buchungen.',
             ),
           ],
         ),
         LegalSectionCard(
           icon: Icons.balance_outlined,
           title: 'Haftung und anwendbares Recht',
-          children: const [
+          children: [
             LegalParagraph(
-              'SIT haftet nach den gesetzlichen Vorschriften. Unbeschränkte Haftung gilt insbesondere bei Vorsatz, grober Fahrlässigkeit sowie bei Verletzung von Leben, Körper oder Gesundheit. Zwingende gesetzliche Haftungsregeln und Verbraucherrechte werden nicht eingeschränkt.',
+              'ShareItToo haftet unbeschränkt für Vorsatz und grobe Fahrlässigkeit sowie für schuldhaft verursachte Schäden aus der Verletzung von Leben, Körper oder Gesundheit. Bei leicht fahrlässiger Verletzung wesentlicher Vertragspflichten ist die Haftung auf den vertragstypischen, vorhersehbaren Schaden begrenzt. Zwingende gesetzliche Haftung bleibt unberührt.',
             ),
             LegalParagraph(
-              'Es gilt deutsches Recht. Bei Verbrauchern gilt diese Rechtswahl nur, soweit dadurch zwingender Schutz des Staates ihres gewöhnlichen Aufenthalts nicht entzogen wird. Gesetzliche Gerichtsstände bleiben unberührt.',
+              'Für Gegenstand oder Nutzer haftet ShareItToo nur, soweit ein Schaden auf einer von ShareItToo zu vertretenden eigenen Pflichtverletzung beruht. Es gilt deutsches Recht; zwingende Schutzvorschriften und gesetzliche Gerichtsstände bleiben unberührt.',
             ),
           ],
         ),

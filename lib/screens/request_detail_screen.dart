@@ -9,23 +9,31 @@ import 'package:provider/provider.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/user_avatar.dart';
+import 'package:lendify/widgets/private_pilot_owner_acceptance_dialog.dart';
 
 class RequestDetailScreen extends StatefulWidget {
   final String requestId;
   final String? titleOverride;
-  const RequestDetailScreen({super.key, required this.requestId, this.titleOverride});
+  const RequestDetailScreen(
+      {super.key, required this.requestId, this.titleOverride});
 
   @override
   State<RequestDetailScreen> createState() => _RequestDetailScreenState();
 }
 
 class _RequestDetailScreenState extends State<RequestDetailScreen> {
-  RentalRequest? _req; Item? _item; User? _renter; User? _owner;
+  RentalRequest? _req;
+  Item? _item;
+  User? _renter;
+  User? _owner;
   Timer? _ticker;
   Duration _remainingConfirm = const Duration(minutes: 30);
 
   @override
-  void initState() { super.initState(); _load(); }
+  void initState() {
+    super.initState();
+    _load();
+  }
 
   Future<void> _load() async {
     final req = await DataService.getRentalRequestById(widget.requestId);
@@ -34,14 +42,21 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     final renter = await DataService.getUserById(req.renterId);
     final owner = await DataService.getUserById(req.ownerId);
     if (!mounted) return;
-    setState(() { _req = req; _item = item; _renter = renter; _owner = owner; });
+    setState(() {
+      _req = req;
+      _item = item;
+      _renter = renter;
+      _owner = owner;
+    });
     _startOrStopTicker();
   }
 
   void _startOrStopTicker() {
     _ticker?.cancel();
     final req = _req;
-    if (req != null && req.expressRequested && (req.expressStatus == null || req.expressStatus == 'pending')) {
+    if (req != null &&
+        req.expressRequested &&
+        (req.expressStatus == null || req.expressStatus == 'pending')) {
       _computeRemaining();
       _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
         if (!mounted) return;
@@ -51,11 +66,14 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   }
 
   void _computeRemaining() {
-    final req = _req; if (req == null) return;
+    final req = _req;
+    if (req == null) return;
     final started = req.expressRequestedAt ?? req.createdAt;
     final deadline = started.add(const Duration(minutes: 30));
     final left = deadline.difference(DateTime.now());
-    setState(() { _remainingConfirm = left.isNegative ? Duration.zero : left; });
+    setState(() {
+      _remainingConfirm = left.isNegative ? Duration.zero : left;
+    });
   }
 
   @override
@@ -67,22 +85,29 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
-    final req = _req; final item = _item; final renter = _renter;
+    final req = _req;
+    final item = _item;
+    final renter = _renter;
     return Scaffold(
       appBar: AppBar(title: Text(widget.titleOverride ?? l10n.t('Anfrage'))),
       body: (req == null || item == null || renter == null)
           ? const Center(child: CircularProgressIndicator())
           : ListView(padding: const EdgeInsets.all(16), children: [
-              if (req.expressRequested && (req.expressStatus == null || req.expressStatus == 'pending'))
+              if (req.expressRequested &&
+                  (req.expressStatus == null || req.expressStatus == 'pending'))
                 _ExpressOwnerBanner(
                   remaining: _remainingConfirm,
                   onAccept: () async {
-                    await DataService.updateRentalRequestExpress(requestId: req.id, accept: true);
-                    if (!mounted) return; await _load();
+                    await DataService.updateRentalRequestExpress(
+                        requestId: req.id, accept: true);
+                    if (!mounted) return;
+                    await _load();
                   },
                   onDecline: () async {
-                    await DataService.updateRentalRequestExpress(requestId: req.id, accept: false);
-                    if (!mounted) return; await _load();
+                    await DataService.updateRentalRequestExpress(
+                        requestId: req.id, accept: false);
+                    if (!mounted) return;
+                    await _load();
                   },
                 )
               else if (req.expressRequested && req.expressStatus == 'accepted')
@@ -91,7 +116,17 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                 item: item,
                 request: req,
                 onAccept: () async {
-                  await DataService.updateRentalRequestStatus(requestId: req.id, status: 'accepted');
+                  final declarations =
+                      await showPrivatePilotOwnerAcceptanceDialog(
+                    context,
+                    request: req,
+                  );
+                  if (declarations == null) return;
+                  await DataService.updateRentalRequestStatus(
+                    requestId: req.id,
+                    status: 'accepted',
+                    legalDeclarations: declarations,
+                  );
                   if (mounted) Navigator.of(context).pop(true);
                 },
                 onDecline: () async {
@@ -116,13 +151,16 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                     }),
                     actions: [
                       OutlinedButton(
-                        onPressed: () => Navigator.of(context, rootNavigator: true).maybePop(),
+                        onPressed: () =>
+                            Navigator.of(context, rootNavigator: true)
+                                .maybePop(),
                         child: const Text('Abbrechen'),
                       ),
                       FilledButton(
                         onPressed: () async {
                           Navigator.of(context, rootNavigator: true).maybePop();
-                          await DataService.updateRentalRequestStatus(requestId: req.id, status: 'declined');
+                          await DataService.updateRentalRequestStatus(
+                              requestId: req.id, status: 'declined');
                           if (mounted) Navigator.of(context).pop(true);
                         },
                         child: Text(l10n.t('Ablehnen')),
@@ -144,13 +182,22 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
 }
 
 class _ItemSummaryCard extends StatelessWidget {
-  final Item item; final RentalRequest request;
-  final VoidCallback? onAccept; final VoidCallback? onDecline;
-  const _ItemSummaryCard({required this.item, required this.request, this.onAccept, this.onDecline});
+  final Item item;
+  final RentalRequest request;
+  final VoidCallback? onAccept;
+  final VoidCallback? onDecline;
+  const _ItemSummaryCard(
+      {required this.item,
+      required this.request,
+      this.onAccept,
+      this.onDecline});
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
+      decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.20),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
       padding: const EdgeInsets.all(12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         // Image banner
@@ -158,7 +205,9 @@ class _ItemSummaryCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: AspectRatio(
             aspectRatio: 16 / 9,
-            child: AppImage(url: item.photos.isNotEmpty ? item.photos.first : '', fit: BoxFit.cover),
+            child: AppImage(
+                url: item.photos.isNotEmpty ? item.photos.first : '',
+                fit: BoxFit.cover),
           ),
         ),
         const SizedBox(height: 10),
@@ -186,7 +235,8 @@ class _ItemSummaryCard extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: onAccept,
               icon: const Icon(Icons.check_circle, color: Colors.green),
-              label: const Text('Akzeptieren', style: TextStyle(color: Colors.green)),
+              label: const Text('Akzeptieren',
+                  style: TextStyle(color: Colors.green)),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.green),
                 foregroundColor: Colors.green,
@@ -196,65 +246,111 @@ class _ItemSummaryCard extends StatelessWidget {
         ]),
         const SizedBox(height: 8),
         // Title under the buttons
-        Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+        Text(item.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
         const SizedBox(height: 6),
-        Text('${request.start.day.toString().padLeft(2, '0')}.${request.start.month.toString().padLeft(2, '0')}.${request.start.year} – ${request.end.day.toString().padLeft(2, '0')}.${request.end.month.toString().padLeft(2, '0')}.${request.end.year}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
+        Text(
+            '${request.start.day.toString().padLeft(2, '0')}.${request.start.month.toString().padLeft(2, '0')}.${request.start.year} – ${request.end.day.toString().padLeft(2, '0')}.${request.end.month.toString().padLeft(2, '0')}.${request.end.year}',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: Colors.white70)),
       ]),
     );
   }
 }
 
 class _RenterCard extends StatelessWidget {
-  final User user; const _RenterCard({required this.user});
+  final User user;
+  const _RenterCard({required this.user});
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
     return Container(
-      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
+      decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.20),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
       child: ListTile(
         leading: SitUserAvatar(
           url: user.photoURL,
           radius: 20,
           borderColor: Colors.white.withValues(alpha: 0.12),
         ),
-        title: Text(user.displayName, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)),
-        subtitle: Text('${user.city ?? ''}${(user.city?.isNotEmpty ?? false) && (user.country?.isNotEmpty ?? false) ? ', ' : ''}${user.country ?? ''}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
-        trailing: TextButton(onPressed: () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (_) => _PublicProfileQuickView(user: user, title: 'Profil des Mieters')));
-        }, child: Text(l10n.t('Zum Profil'))),
+        title: Text(user.displayName,
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: Colors.white)),
+        subtitle: Text(
+            '${user.city ?? ''}${(user.city?.isNotEmpty ?? false) && (user.country?.isNotEmpty ?? false) ? ', ' : ''}${user.country ?? ''}',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: Colors.white70)),
+        trailing: TextButton(
+            onPressed: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => _PublicProfileQuickView(
+                      user: user, title: 'Profil des Mieters')));
+            },
+            child: Text(l10n.t('Zum Profil'))),
       ),
     );
   }
 }
 
 class _DatesCard extends StatelessWidget {
-  final RentalRequest request; const _DatesCard({required this.request});
+  final RentalRequest request;
+  const _DatesCard({required this.request});
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
+      decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.20),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(l10n.t('Zeitraum'), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
+        Text(l10n.t('Zeitraum'),
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: Colors.white70)),
         const SizedBox(height: 6),
-        Text('${request.start.day.toString().padLeft(2, '0')}.${request.start.month.toString().padLeft(2, '0')}.${request.start.year} – ${request.end.day.toString().padLeft(2, '0')}.${request.end.month.toString().padLeft(2, '0')}.${request.end.year}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)),
+        Text(
+            '${request.start.day.toString().padLeft(2, '0')}.${request.start.month.toString().padLeft(2, '0')}.${request.start.year} – ${request.end.day.toString().padLeft(2, '0')}.${request.end.month.toString().padLeft(2, '0')}.${request.end.year}',
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: Colors.white)),
       ]),
     );
   }
 }
 
 class _PriceCard extends StatelessWidget {
-  final Item item; final RentalRequest request; const _PriceCard({required this.item, required this.request});
-  int _daysCeil(DateTime a, DateTime b) => ((b.difference(a).inHours) / 24).ceil().clamp(1, 3650);
+  final Item item;
+  final RentalRequest request;
+  const _PriceCard({required this.item, required this.request});
+  int _daysCeil(DateTime a, DateTime b) =>
+      ((b.difference(a).inHours) / 24).ceil().clamp(1, 3650);
   @override
   Widget build(BuildContext context) {
     final days = _daysCeil(request.start, request.end);
-    final fallbackRentalOnly = DataService.computeTotalWithDiscounts(item: item, days: days).$1;
+    final fallbackRentalOnly =
+        DataService.computeTotalWithDiscounts(item: item, days: days).$1;
     double total = request.quotedTotalRenter ?? 0.0;
     if (total <= 0) {
       try {
-        total = DataService.priceBreakdownForRequest(item: item, req: request).totalRenter;
+        total = DataService.priceBreakdownForRequest(item: item, req: request)
+            .totalRenter;
       } catch (_) {
         total = fallbackRentalOnly;
       }
@@ -262,17 +358,34 @@ class _PriceCard extends StatelessWidget {
     final quotedSubtitle = request.quotedSubtitle?.trim();
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
+      decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.20),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
       child: Row(children: [
         const Icon(Icons.payments_outlined, color: Colors.white70),
         const SizedBox(width: 8),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Preis (vom Mieter zu zahlen)', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
+        Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Preis (vom Mieter zu zahlen)',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: Colors.white70)),
           const SizedBox(height: 4),
-          Text('${total.toStringAsFixed(0)} €', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+          Text('${total.toStringAsFixed(0)} €',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
           if (quotedSubtitle != null && quotedSubtitle.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(quotedSubtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60)),
+            Text(quotedSubtitle,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.white60)),
           ],
         ]))
       ]),
@@ -284,12 +397,16 @@ class _ExpressOwnerBanner extends StatelessWidget {
   final Duration remaining;
   final VoidCallback onAccept;
   final VoidCallback onDecline;
-  const _ExpressOwnerBanner({required this.remaining, required this.onAccept, required this.onDecline});
+  const _ExpressOwnerBanner(
+      {required this.remaining,
+      required this.onAccept,
+      required this.onDecline});
   String _fmt(Duration d) {
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$m:$s';
   }
+
   @override
   Widget build(BuildContext context) {
     final left = remaining.isNegative ? Duration.zero : remaining;
@@ -306,18 +423,28 @@ class _ExpressOwnerBanner extends StatelessWidget {
         Row(children: const [
           Icon(Icons.flash_on_outlined, color: Colors.white70),
           SizedBox(width: 8),
-          Text('Prioritätslieferung angefragt', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+          Text('Prioritätslieferung angefragt',
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
         ]),
         const SizedBox(height: 6),
         Text(
-          canAccept ? 'Du hast noch ${_fmt(left)} Minuten zur Bestätigung.' : 'Die 30 Minuten sind abgelaufen. Priorität gilt als nicht bestätigt.',
+          canAccept
+              ? 'Du hast noch ${_fmt(left)} Minuten zur Bestätigung.'
+              : 'Die 30 Minuten sind abgelaufen. Priorität gilt als nicht bestätigt.',
           style: const TextStyle(color: Colors.white70),
         ),
         const SizedBox(height: 10),
         Row(children: [
-          Expanded(child: FilledButton(onPressed: canAccept ? onAccept : null, child: const Text('Priorität bestätigen (+5,00 €)'))),
+          Expanded(
+              child: FilledButton(
+                  onPressed: canAccept ? onAccept : null,
+                  child: const Text('Priorität bestätigen (+5,00 €)'))),
           const SizedBox(width: 12),
-          Expanded(child: OutlinedButton(onPressed: onDecline, child: const Text('Priorität ablehnen'))),
+          Expanded(
+              child: OutlinedButton(
+                  onPressed: onDecline,
+                  child: const Text('Priorität ablehnen'))),
         ]),
         const SizedBox(height: 8),
         const Text(
@@ -333,11 +460,25 @@ class _ExpressAcceptedInfo extends StatelessWidget {
   final DateTime? confirmedAt;
   const _ExpressAcceptedInfo({required this.confirmedAt});
   String _formatGermanDateTime(DateTime d) {
-    const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mär',
+      'Apr',
+      'Mai',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Dez'
+    ];
     final mm = months[d.month - 1];
     final dd = d.day.toString().padLeft(2, '0');
     return '$dd. $mm';
   }
+
   @override
   Widget build(BuildContext context) {
     final confirmed = confirmedAt ?? DateTime.now();
@@ -363,29 +504,42 @@ class _ExpressAcceptedInfo extends StatelessWidget {
         Row(children: const [
           Icon(Icons.check_circle_outline, color: Color(0xFF22C55E)),
           SizedBox(width: 8),
-          Text('Priorität bestätigt (+5,00 €)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+          Text('Priorität bestätigt (+5,00 €)',
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
         ]),
         const SizedBox(height: 6),
-        Text('Lieferung bis: ${_formatGermanDateTime(deliveryBy)}  •  Noch $countdown', style: const TextStyle(color: Colors.white70)),
+        Text(
+            'Lieferung bis: ${_formatGermanDateTime(deliveryBy)}  •  Noch $countdown',
+            style: const TextStyle(color: Colors.white70)),
       ]),
     );
   }
 }
 
 class _MessageCard extends StatelessWidget {
-  final String message; const _MessageCard({required this.message});
+  final String message;
+  const _MessageCard({required this.message});
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.20), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-      child: Text(message, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)),
+      decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.20),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
+      child: Text(message,
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(color: Colors.white)),
     );
   }
 }
 
 class _PublicProfileQuickView extends StatelessWidget {
-  final User user; final String title;
+  final User user;
+  final String title;
   const _PublicProfileQuickView({required this.user, required this.title});
   @override
   Widget build(BuildContext context) {
@@ -399,11 +553,23 @@ class _PublicProfileQuickView extends StatelessWidget {
             borderColor: Colors.white.withValues(alpha: 0.12),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(user.displayName, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
-            const SizedBox(height: 4),
-            Text('${user.city ?? ''}${(user.city?.isNotEmpty ?? false) && (user.country?.isNotEmpty ?? false) ? ', ' : ''}${user.country ?? ''}', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70))
-          ]))
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(user.displayName,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(color: Colors.white)),
+                const SizedBox(height: 4),
+                Text(
+                    '${user.city ?? ''}${(user.city?.isNotEmpty ?? false) && (user.country?.isNotEmpty ?? false) ? ', ' : ''}${user.country ?? ''}',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: Colors.white70))
+              ]))
         ]),
       ]),
     );

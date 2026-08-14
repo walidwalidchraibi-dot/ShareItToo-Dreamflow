@@ -1,3 +1,5 @@
+import 'package:lendify/services/private_pilot_pricing.dart';
+
 /// Returns a real rating that is safe to show, or `null` when no valid
 /// rating exists. A zero value means the owner has not been rated yet.
 double? listingRatingForDisplay(double? rating) {
@@ -41,3 +43,20 @@ String listingLocationLabel({
   final city = listingCity.trim();
   return city.isNotEmpty ? city : unavailableLabel;
 }
+
+/// Public catalogue prices are renter end-prices. The owner's configured
+/// amount remains the pricing basis, but is never shown as if it were the
+/// renter's final price.
+double listingCustomerPrice(double ownerPrice) =>
+    PrivatePilotPricing.minorToEuros(
+      PrivatePilotPricing.customerUnitPriceMinor(ownerPrice),
+    );
+
+String listingCustomerPriceText(
+  double ownerPrice, {
+  String currency = 'EUR',
+}) =>
+    PrivatePilotPricing.formatMinor(
+      PrivatePilotPricing.customerUnitPriceMinor(ownerPrice),
+      currency: currency,
+    );

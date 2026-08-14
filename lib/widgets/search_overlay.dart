@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lendify/models/category.dart' as app_category;
 import 'package:lendify/models/item.dart';
+import 'package:lendify/widgets/listing_display_truth.dart';
 import 'package:lendify/models/user.dart' as app_user;
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/widgets/modern_range_picker_sheet.dart';
@@ -1645,7 +1646,8 @@ class _MapResultsOverlay extends StatelessWidget {
                 : 1 - (it.lat - minLat) / ((maxLat - minLat).abs());
             final left = pad + nx * (constraints.maxWidth - 2 * pad);
             final top = pad + ny * (constraints.maxHeight - 2 * pad);
-            final price = it.pricePerDay.toStringAsFixed(0);
+            final price =
+                listingCustomerPrice(it.pricePerDay).toStringAsFixed(0);
             final symbol = (it.currency == 'EUR')
                 ? '€'
                 : (it.currency == 'USD')

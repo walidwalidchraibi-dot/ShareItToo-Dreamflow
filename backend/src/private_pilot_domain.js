@@ -1,0 +1,127 @@
+export const privatePilotDocument = Object.freeze({
+  name: 'ShareItToo Rechtsmappe Privat-Pilot',
+  version: 'V4-2026-08-14',
+  language: 'de',
+});
+
+export const privatePilotDeclarations = Object.freeze({
+  account: 'Ich bin mindestens 18 Jahre alt, handle als natuerliche Person und nutze ShareItToo im Privat-Pilot ausschliesslich privat.',
+  listing: 'Ich biete diesen Gegenstand als Privatperson an, bin zur Vermietung berechtigt und handle weder gewerblich noch beruflich.',
+  booking: 'Ich buche als Privatperson fuer private Zwecke und akzeptiere, dass ShareItToo keine Kaution, Versicherung oder Schadengarantie anbietet.',
+  bindingBookingRequest: 'Ich gebe eine verbindliche zahlungspflichtige Buchungsanfrage zu den angezeigten Daten, Preisen und Dokumentversionen ab.',
+  platformTerms: 'Ich akzeptiere die Plattform-Nutzungsbedingungen und den angezeigten Plattformbeitrag.',
+  earlyPerformance: 'Ich verlange, dass ShareItToo vor Ablauf der Widerrufsfrist mit der Vermittlung und technischen Buchungsbestätigung beginnt.',
+  withdrawalKnowledge: 'Mir ist bekannt, dass mein Widerrufsrecht bei vollständiger Vertragserfüllung unter den gesetzlichen Voraussetzungen erlöschen kann.',
+  ownerAcceptance: 'Ich nehme die zahlungspflichtige Buchungsanfrage zu den angezeigten Bedingungen und Dokumentversionen an.',
+  platformWithdrawal: 'Ich widerrufe die kostenpflichtige Plattformleistung von ShareItToo für die ausgewählte Buchung.',
+});
+
+export const privatePilotRequiredCheckoutDeclarations = Object.freeze([
+  Object.freeze({ type: 'booking_private', wording: privatePilotDeclarations.booking }),
+  Object.freeze({ type: 'binding_booking_request', wording: privatePilotDeclarations.bindingBookingRequest }),
+  Object.freeze({ type: 'platform_terms', wording: privatePilotDeclarations.platformTerms }),
+  Object.freeze({ type: 'early_performance', wording: privatePilotDeclarations.earlyPerformance }),
+  Object.freeze({ type: 'withdrawal_knowledge', wording: privatePilotDeclarations.withdrawalKnowledge }),
+]);
+
+export const privatePilotAllowedCategoryIds = Object.freeze(new Set([
+  'cat1', 'cat2', 'cat3', 'cat4', 'cat5', 'cat6', 'cat7', 'cat8',
+  'cat12', 'cat14', 'cat15', 'cat16', 'cat17', 'cat20', 'cat22', 'cat23',
+]));
+
+export class PrivatePilotValidationError extends Error {
+  constructor(code) {
+    super(code);
+    this.code = code;
+  }
+}
+
+export function assertPrivatePilotListing(raw) {
+  if (raw?.privateStatusConfirmed !== true) {
+    throw new PrivatePilotValidationError('private_status_confirmation_required');
+  }
+  const categoryId = String(raw?.categoryId ?? '').trim();
+  if (!privatePilotAllowedCategoryIds.has(categoryId)) {
+    throw new PrivatePilotValidationError('private_pilot_category_not_allowed');
+  }
+  const country = String(raw?.country ?? '').trim().toLowerCase();
+  if (!['de', 'deutschland', 'germany'].includes(country)) {
+    throw new PrivatePilotValidationError('private_pilot_country_not_allowed');
+  }
+  if (raw?.offersDeliveryAtDropoff === true
+      || raw?.offersPickupAtReturn === true
+      || raw?.offersExpressAtDropoff === true
+      || raw?.maxDeliveryKmAtDropoff != null
+      || raw?.maxPickupKmAtReturn != null) {
+    throw new PrivatePilotValidationError('private_pilot_delivery_disabled');
+  }
+  return true;
+}
+
+export function privatePilotListingFields(raw) {
+  return Object.freeze({
+    privateStatusConfirmed: raw?.privateStatusConfirmed === true,
+    offersDeliveryAtDropoff: false,
+    offersPickupAtReturn: false,
+    offersExpressAtDropoff: false,
+    maxDeliveryKmAtDropoff: null,
+    maxPickupKmAtReturn: null,
+    handoverRadiusKm: null,
+  });
+}
+
+export function assertPrivatePilotBooking(raw, { requireDeclaration = true } = {}) {
+  if (requireDeclaration && raw?.privateStatusConfirmed !== true) {
+    throw new PrivatePilotValidationError('private_status_confirmation_required');
+  }
+  if (raw?.ownerDeliversAtDropoffChosen === true
+      || raw?.ownerPicksUpAtReturnChosen === true
+      || raw?.expressRequested === true
+      || raw?.deliveryAddressLine != null
+      || raw?.returnAddressLine != null) {
+    throw new PrivatePilotValidationError('private_pilot_delivery_disabled');
+  }
+  if (requireDeclaration) {
+    const declarations = Array.isArray(raw?.legalDeclarations)
+      ? raw.legalDeclarations
+      : [];
+    for (const required of privatePilotRequiredCheckoutDeclarations) {
+      const match = declarations.find((entry) => (
+        entry?.type === required.type
+        && entry?.exactWording === required.wording
+        && entry?.documentName === privatePilotDocument.name
+        && entry?.documentVersion === privatePilotDocument.version
+        && entry?.language === privatePilotDocument.language
+        && entry?.accepted === true
+        && Number.isFinite(Date.parse(entry?.acceptedAt))
+      ));
+      if (!match) {
+        throw new PrivatePilotValidationError(
+          `private_pilot_declaration_missing:${required.type}`,
+        );
+      }
+    }
+  }
+  return true;
+}
+
+export function assertPrivatePilotOwnerAcceptance(raw) {
+  const declarations = Array.isArray(raw?.legalDeclarations)
+    ? raw.legalDeclarations
+    : [];
+  const match = declarations.find((entry) => (
+    entry?.type === 'owner_booking_acceptance'
+    && entry?.exactWording === privatePilotDeclarations.ownerAcceptance
+    && entry?.documentName === privatePilotDocument.name
+    && entry?.documentVersion === privatePilotDocument.version
+    && entry?.language === privatePilotDocument.language
+    && entry?.accepted === true
+    && Number.isFinite(Date.parse(entry?.acceptedAt))
+  ));
+  if (!match) {
+    throw new PrivatePilotValidationError(
+      'private_pilot_declaration_missing:owner_booking_acceptance',
+    );
+  }
+  return match;
+}

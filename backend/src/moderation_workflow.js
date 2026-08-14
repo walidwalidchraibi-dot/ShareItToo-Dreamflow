@@ -350,6 +350,33 @@ export async function updateStaffReport(client, { actor, reportId, raw, idempote
     : (text(candidate.assignedTo, 120) || null);
   const note = text(candidate.note, 8000) || null;
   const resolution = candidate.resolution === undefined ? row.resolution : object(candidate.resolution, 'invalid_report_resolution');
+  let bookingCaseResolution = null;
+  if (nextStatus === 'closed' && row.target_type === 'booking') {
+    const booking = await client.query(
+      `SELECT booking.quoted_total_minor, request.payload
+       FROM bookings AS booking
+       JOIN rental_requests AS request ON request.id = booking.id
+       WHERE booking.id = $1 FOR UPDATE OF booking, request`,
+      [row.target_id],
+    );
+    if (!booking.rowCount) throw new ModerationWorkflowError(404, 'booking_not_found');
+    const authorizedRefundMinor = Number(resolution?.authorizedRefundMinor);
+    const totalMinor = Number(booking.rows[0].quoted_total_minor);
+    if (!Number.isSafeInteger(authorizedRefundMinor)
+        || authorizedRefundMinor < 0
+        || authorizedRefundMinor > totalMinor) {
+      throw new ModerationWorkflowError(400, 'booking_case_refund_amount_required', {
+        min: 0,
+        max: totalMinor,
+      });
+    }
+    bookingCaseResolution = {
+      authorizedRefundMinor,
+      authorizedOwnerRetainedMinor: totalMinor - authorizedRefundMinor,
+      resolvedAt: new Date().toISOString(),
+      resolvedBy: actor.id,
+    };
+  }
   if (nextStatus !== row.status) {
     assertReportTransition({ role: actor.role, fromStatus: row.status, toStatus: nextStatus, resolution });
   }
@@ -372,6 +399,41 @@ export async function updateStaffReport(client, { actor, reportId, raw, idempote
      WHERE id = $1`,
     [row.id, nextStatus, nextAssignee, JSON.stringify(resolution)],
   );
+  if (bookingCaseResolution) {
+    const request = await client.query(
+      'SELECT payload FROM rental_requests WHERE id = $1 FOR UPDATE',
+      [row.target_id],
+    );
+    const payload = object(request.rows[0]?.payload, 'invalid_stored_booking');
+    payload.needsReview = false;
+    payload.returnState = 'closed';
+    payload.returnCaseClosedAt = bookingCaseResolution.resolvedAt;
+    payload.contestedAuthorizedMinor = 0;
+    payload.returnCaseResolution = bookingCaseResolution;
+    payload.payoutInstructionDueAt = bookingCaseResolution.resolvedAt;
+    await client.query(
+      'UPDATE rental_requests SET payload = $2::jsonb WHERE id = $1',
+      [row.target_id, JSON.stringify(payload)],
+    );
+    await client.query(
+      `UPDATE bookings
+       SET return_state = 'closed', payout_instruction_due_at = $2,
+           version = version + 1
+       WHERE id = $1`,
+      [row.target_id, bookingCaseResolution.resolvedAt],
+    );
+    await client.query(
+      `UPDATE booking_cases
+       SET status = 'closed', closed_at = COALESCE(closed_at, $2),
+           metadata = metadata || $3::jsonb
+       WHERE booking_id = $1 AND status <> 'closed'`,
+      [
+        row.target_id,
+        bookingCaseResolution.resolvedAt,
+        JSON.stringify({ resolution: bookingCaseResolution }),
+      ],
+    );
+  }
   await client.query(
     `INSERT INTO moderation_case_events (
        report_id, actor_id, actor_role, event_type, from_status, to_status, note, metadata, idempotency_key

@@ -108,6 +108,41 @@ export function splitRefund({ amountMinor, paymentAmountMinor, ownerPayoutMinor 
   });
 }
 
+export function privatePilotReleasableOwnerAmount({
+  paymentAmountMinor,
+  ownerPayoutMinor,
+  refundedOwnerMinor = 0,
+  transferredMinor = 0,
+  contestedAuthorizedMinor = 0,
+}) {
+  const values = [
+    paymentAmountMinor,
+    ownerPayoutMinor,
+    refundedOwnerMinor,
+    transferredMinor,
+    contestedAuthorizedMinor,
+  ];
+  if (!values.every(Number.isSafeInteger)
+      || paymentAmountMinor <= 0
+      || ownerPayoutMinor < 0
+      || ownerPayoutMinor > paymentAmountMinor
+      || refundedOwnerMinor < 0
+      || transferredMinor < 0
+      || contestedAuthorizedMinor < 0) {
+    throw new PaymentDomainError(400, 'invalid_private_pilot_payout_amount');
+  }
+  const ownerAfterRefunds = Math.max(0, ownerPayoutMinor - refundedOwnerMinor);
+  const proportionalHold = contestedAuthorizedMinor >= paymentAmountMinor
+    ? ownerPayoutMinor
+    : Math.round(contestedAuthorizedMinor * ownerPayoutMinor / paymentAmountMinor);
+  const heldOwnerMinor = Math.min(ownerAfterRefunds, proportionalHold);
+  return Object.freeze({
+    ownerAfterRefundsMinor: ownerAfterRefunds,
+    heldOwnerMinor,
+    releasableMinor: Math.max(0, ownerAfterRefunds - transferredMinor - heldOwnerMinor),
+  });
+}
+
 export function paymentStatusForProvider(eventType, object = {}) {
   if (eventType === 'checkout.session.expired') return 'cancelled';
   if (eventType === 'checkout.session.async_payment_failed') return 'failed';

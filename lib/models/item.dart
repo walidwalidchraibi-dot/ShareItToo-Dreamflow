@@ -50,6 +50,7 @@ class Item {
   final String cancellationPolicy;
   final String availabilityMode;
   final bool approximateLocation;
+  final bool privateStatusConfirmed;
 
   const Item({
     required this.id,
@@ -89,6 +90,7 @@ class Item {
     this.cancellationPolicy = 'flexible',
     this.availabilityMode = 'calendar',
     this.approximateLocation = false,
+    this.privateStatusConfirmed = false,
   }) : priceRaw = priceRaw ?? pricePerDay;
 
   factory Item.fromJson(Map<String, dynamic> json) {
@@ -156,6 +158,7 @@ class Item {
       cancellationPolicy: (json['cancellationPolicy'] as String?) ?? 'flexible',
       availabilityMode: (json['availabilityMode'] as String?) ?? 'calendar',
       approximateLocation: json['approximateLocation'] == true,
+      privateStatusConfirmed: json['privateStatusConfirmed'] == true,
     );
   }
 
@@ -198,6 +201,7 @@ class Item {
         'cancellationPolicy': cancellationPolicy,
         'availabilityMode': availabilityMode,
         'approximateLocation': approximateLocation,
+        'privateStatusConfirmed': privateStatusConfirmed,
       };
 }
 

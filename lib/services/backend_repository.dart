@@ -349,6 +349,7 @@ class BackendRepository {
     required String status,
     required String idempotencyKey,
     int? expectedRevision,
+    List<Map<String, dynamic>>? legalDeclarations,
   }) async {
     final response = await _authorized(
       method: 'POST',
@@ -356,7 +357,22 @@ class BackendRepository {
       body: {
         'status': status,
         if (expectedRevision != null) 'expectedRevision': expectedRevision,
+        if (legalDeclarations != null) 'legalDeclarations': legalDeclarations,
       },
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+    return Map<String, dynamic>.from(response['booking'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> recordPlatformWithdrawal({
+    required String bookingId,
+    required Map<String, dynamic> declaration,
+    required String idempotencyKey,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/bookings/${Uri.encodeComponent(bookingId)}/withdrawal',
+      body: {'declaration': declaration},
       additionalHeaders: {'Idempotency-Key': idempotencyKey},
     );
     return Map<String, dynamic>.from(response['booking'] as Map);
