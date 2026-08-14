@@ -176,6 +176,15 @@ test('rejects credential-shaped fields', async (t) => {
     /forbidden credential-shaped field/);
 });
 
+test('rejects a completed Crashlytics assignment without exact release evidence', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  data.handoff.crashReleaseEvidenceRef = 'docs/evidence/b11/missing-crash-release.json';
+  await writeFile(data.handoffPath, JSON.stringify(data.handoff));
+  assert.throws(() => validateGooglePlayInternalHandoff({ repositoryRoot, ...data }),
+    /could not be read as JSON/);
+});
+
 test('rejects a different observed Play app signing certificate', async (t) => {
   const data = await fixture();
   t.after(() => rm(data.root, { recursive: true, force: true }));

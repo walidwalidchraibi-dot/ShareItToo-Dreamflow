@@ -39,7 +39,7 @@
     "uploadedArtifactHashRecorded": "passed-exact-bound-candidate",
     "playAppSigningFingerprintRecorded": "passed-pre-upload-console",
     "uploadWarningsReviewed": "passed-only-missing-testers-warning-resolved",
-    "crashlyticsCandidateAssignmentVerified": "pending",
+    "crashlyticsCandidateAssignmentVerified": "passed-exact-controlled-event",
     "internalStoreInstallCompleted": "passed-google-play-installer"
   },
   "hardStops": {
@@ -58,6 +58,7 @@
     "exactCandidateReverified": true
   },
   "internalReleaseEvidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081405-20260814.json",
+  "crashReleaseEvidenceRef": "docs/evidence/b11/android-crash-release-check-2026081405.json",
   "evidenceRef": "docs/evidence/b11/android-candidate-2026081405.json",
   "containsSecrets": false,
   "containsReviewCredentials": false

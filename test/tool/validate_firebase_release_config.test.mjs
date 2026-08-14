@@ -208,6 +208,21 @@ test('requires Facebook Login to remove the advertising identifier permission', 
   );
 });
 
+test('requires the opt-in exact Android native-symbol upload wiring', () => {
+  const currentBuild = readFileSync(resolve(repositoryRoot, 'android/app/build.gradle'), 'utf8');
+  assert.throws(
+    () => validate({
+      sourceOverrides: {
+        'android/app/build.gradle': currentBuild.replace(
+          'nativeSymbolUploadEnabled true',
+          'nativeSymbolUploadEnabled false',
+        ),
+      },
+    }),
+    /nativeSymbolUploadEnabled true/,
+  );
+});
+
 test('parses the public Apple Firebase plist without flattening booleans', () => {
   const parsed = parseGoogleServiceInfoPlist(`<?xml version="1.0"?><plist><dict>
     <key>BUNDLE_ID</key><string>com.shareittoo.app</string>

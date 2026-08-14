@@ -198,13 +198,42 @@ export function validateGooglePlayInternalHandoff({
     playAppSigningFingerprintRecorded: 'passed-pre-upload-console',
     uploadWarningsReviewed: internalActive ?
       'passed-only-missing-testers-warning-resolved' : 'pending',
-    crashlyticsCandidateAssignmentVerified: 'pending',
     internalStoreInstallCompleted: storeInstallVerified ?
       'passed-google-play-installer' : 'pending',
   };
   const postUploadChecks = object(handoff.postUploadChecks, 'postUploadChecks');
   for (const [key, value] of Object.entries(expectedPostUploadChecks)) {
     same(postUploadChecks[key], value, `postUploadChecks.${key}`);
+  }
+  const crashAssignment = postUploadChecks.crashlyticsCandidateAssignmentVerified;
+  if (!['pending', 'passed-exact-controlled-event'].includes(crashAssignment)) {
+    fail('postUploadChecks.crashlyticsCandidateAssignmentVerified has an invalid state.');
+  }
+  if (crashAssignment === 'passed-exact-controlled-event') {
+    const crashReleasePath = safeEvidencePath(
+      repositoryRoot,
+      handoff.crashReleaseEvidenceRef,
+      'crashReleaseEvidenceRef',
+    );
+    const crashRelease = object(
+      readJson(crashReleasePath, 'Crashlytics release evidence'),
+      'Crashlytics release evidence',
+    );
+    assertNoCredentials(crashRelease, 'Crashlytics release evidence');
+    same(crashRelease.kind, 'release-check', 'Crashlytics release evidence.kind');
+    same(crashRelease.status, 'passed', 'Crashlytics release evidence.status');
+    same(crashRelease.candidate?.buildNumber, candidate.buildNumber,
+      'Crashlytics release evidence.candidate.buildNumber');
+    same(crashRelease.candidate?.commit, candidate.commit,
+      'Crashlytics release evidence.candidate.commit');
+    same(crashRelease.releaseCheck?.id, 'crashReleaseMapping',
+      'Crashlytics release evidence.releaseCheck.id');
+    same(crashRelease.releaseCheck?.status, 'passed',
+      'Crashlytics release evidence.releaseCheck.status');
+    same(crashRelease.boundaries?.productionCrashGenerated, false,
+      'Crashlytics release evidence.boundaries.productionCrashGenerated');
+    same(crashRelease.boundaries?.controlledStagingEventGenerated, true,
+      'Crashlytics release evidence.boundaries.controlledStagingEventGenerated');
   }
   if (internalActive) {
     const resolvedInternalReleasePath = internalReleasePath ?? safeEvidencePath(
@@ -258,6 +287,13 @@ export function validateGooglePlayInternalHandoff({
       same(internalEvidence.postReleaseChecks?.stagingFeedLoaded, true,
         'internal release evidence.postReleaseChecks.stagingFeedLoaded');
     }
+    same(
+      internalEvidence.exactCandidateDiagnostics?.controlledCrashDiagnostic,
+      crashAssignment === 'passed-exact-controlled-event'
+        ? 'passed-once-exact-console-assignment'
+        : 'sent-once-console-assignment-pending',
+      'internal release evidence.exactCandidateDiagnostics.controlledCrashDiagnostic',
+    );
     same(internalEvidence.boundaries?.internalReleaseActivated, true,
       'internal release evidence.boundaries.internalReleaseActivated');
     for (const key of [

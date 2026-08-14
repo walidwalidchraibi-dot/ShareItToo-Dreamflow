@@ -91,6 +91,18 @@ function validateRepositoryScaffold(root, overrides) {
   requireIncludes(androidBuild, `applicationId = "${bundleId}"`, 'android/app/build.gradle');
   requireIncludes(androidBuild, 'manifestPlaceholders.facebookAppId', 'android/app/build.gradle');
   requireIncludes(androidBuild, 'manifestPlaceholders.facebookClientToken', 'android/app/build.gradle');
+  requireIncludes(
+    androidBuild,
+    'SIT_CRASHLYTICS_NATIVE_SYMBOL_UPLOAD',
+    'android/app/build.gradle',
+  );
+  requireIncludes(
+    androidBuild,
+    'SIT_CRASHLYTICS_UNSTRIPPED_NATIVE_LIBS_DIR',
+    'android/app/build.gradle',
+  );
+  requireIncludes(androidBuild, 'nativeSymbolUploadEnabled true', 'android/app/build.gradle');
+  requireIncludes(androidBuild, 'symbolGeneratorType "csym"', 'android/app/build.gradle');
 
   const androidManifest = source(root, 'android/app/src/main/AndroidManifest.xml', overrides);
   for (const marker of [

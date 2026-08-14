@@ -26,6 +26,10 @@ def releaseRequested = gradle.startParameter.taskNames.any {
     it.toLowerCase().contains('release')
 }
 def requiredSigningProperties = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword']
+def crashlyticsNativeSymbolUploadRequested =
+        System.getenv('SIT_CRASHLYTICS_NATIVE_SYMBOL_UPLOAD') == '1'
+def crashlyticsUnstrippedNativeLibsDir =
+        System.getenv('SIT_CRASHLYTICS_UNSTRIPPED_NATIVE_LIBS_DIR')?.trim()
 if (releaseRequested) {
     if (!keystorePropertiesFile.exists()) {
         throw new GradleException('Release signing is not configured: android/key.properties is missing.')
@@ -38,6 +42,19 @@ if (releaseRequested) {
     }
     if (!file(keystoreProperties['storeFile']).exists()) {
         throw new GradleException('Release signing is invalid: the configured upload keystore does not exist.')
+    }
+    if (crashlyticsNativeSymbolUploadRequested) {
+        if (!crashlyticsUnstrippedNativeLibsDir) {
+            throw new GradleException(
+                    'Crashlytics native-symbol upload requires '
+                            + 'SIT_CRASHLYTICS_UNSTRIPPED_NATIVE_LIBS_DIR.'
+            )
+        }
+        if (!file(crashlyticsUnstrippedNativeLibsDir).isDirectory()) {
+            throw new GradleException(
+                    'Crashlytics native-symbol upload directory does not exist.'
+            )
+        }
     }
 }
 
@@ -79,6 +96,13 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
+            if (crashlyticsNativeSymbolUploadRequested) {
+                firebaseCrashlytics {
+                    nativeSymbolUploadEnabled true
+                    unstrippedNativeLibsDir file(crashlyticsUnstrippedNativeLibsDir)
+                    symbolGeneratorType "csym"
+                }
+            }
         }
     }
 }

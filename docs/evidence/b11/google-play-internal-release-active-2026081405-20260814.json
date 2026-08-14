@@ -59,7 +59,7 @@
     "foregroundPushCenteredSitPopup": "passed-physical-play-build",
     "backgroundAndTerminatedPush": "passed-physical-play-build",
     "notificationIconVisualFit": "passed-centered-contained-safety-margin",
-    "controlledCrashDiagnostic": "sent-once-console-assignment-pending"
+    "controlledCrashDiagnostic": "passed-once-exact-console-assignment"
   },
   "boundaries": {
     "internalReleaseActivated": true,
