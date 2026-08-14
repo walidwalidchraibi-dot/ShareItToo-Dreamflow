@@ -14,6 +14,11 @@ noch nicht aktiviert.
   verlangt eine erneute Anmeldung des SIT-Geschäftskontos, bevor dessen
   Adresse als öffentliche OAuth-Supportadresse verwendet werden kann. Die
   private Adresse wurde ausdrücklich nicht ersatzweise gespeichert.
+- SHA-1 und SHA-256 des kanonischen Android-Upload-Zertifikats sind im
+  Firebase-Android-App-Eintrag gespeichert und in der Konsole rückgelesen.
+  Die Android-Konfigurationsdatei wird erst nach Aktivierung des Google-
+  Anbieters einmalig neu geladen, damit sie den endgültigen OAuth-Stand
+  enthält.
 - Die vorhandene Apple-Firebase-Datei passt zu Projekt und Bundle-ID, enthält
   aber vor der Google-Aktivierung noch keinen iOS-OAuth-Client, keine
   umgekehrte Client-ID und kein aktiviertes Google Sign-In. Der
@@ -63,9 +68,10 @@ noch nicht aktiviert.
 ## Noch erforderliche externe Einrichtung
 
 1. In Firebase Authentication Google, Apple und Facebook aktivieren.
-2. Android-SHA-1 und SHA-256 des echten Upload-/App-Signing-Zertifikats in
-   Firebase registrieren und die Android-Konfigurationsdatei neu laden.
-   Die kanonischen Fingerabdrücke sind SHA-1
+2. Android-SHA-1 und SHA-256 des echten Upload-Zertifikats sind in Firebase
+   registriert. Nach Aktivierung des Google-Anbieters die Android-
+   Konfigurationsdatei neu laden und validieren. Die kanonischen
+   Fingerabdrücke sind SHA-1
    `6A:79:73:86:14:85:F7:33:0D:57:25:FF:D6:AA:A9:06:6D:78:97:14` und SHA-256
    `09:8F:48:5E:57:16:15:58:E9:11:FC:3C:74:28:45:92:55:84:DB:31:C4:74:CD:BA:08:DD:A0:2F:EB:01:29:A4`.
 3. Apple Developer: „Sign in with Apple“ für `com.shareittoo.app` aktivieren,
