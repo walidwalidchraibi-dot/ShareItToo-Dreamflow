@@ -208,6 +208,21 @@ Offline-Wiederkehr, Übergabe/Rückgabe/Storno, Melden/Blockieren/Bewertung sowi
 Barrierefreiheit/Export/Löschung. Kontrollpunkte sind qualifizierender Start,
 frühe Nutzung, Halbzeit, späte Nutzung und Eligibility-Beobachtung.
 
+Vor dem realen Start bindet der Feedbackplan nur Build `2026081403` als
+reservierten finalen Kandidaten; ein Commit darf in diesem Zustand nicht
+erfunden werden. Erst wenn der exakte Play-Internal-Build installiert und der
+Closed Test tatsächlich gestartet ist, wird der Plan auf Build und Commit des
+Gerätekandidaten umgestellt. Aktive Rückmeldungen mit einer bloßen Reservierung
+werden fail-closed abgelehnt.
+
+Der bestätigte Beobachtungsschritt
+`tool/prepare_google_play_closed_testing_observation.mjs` übernimmt diese
+Umstellung beim ersten qualifizierenden Console-Stand automatisch zusammen
+mit dem Beginn des 14-Tage-Fensters. Ohne mindestens zwölf beobachtete Tester,
+exakten installierten Endkandidaten und den ausdrücklichen Schalter
+`--confirm-console-observation` bleibt der Lauf reine Vorschau und verändert
+keine Datei.
+
 Einzelne Rückmeldungen und die Testerzuordnung bleiben im geschützten Kanal.
 In das Repository dürfen nur aggregierte Anzahlen, bereinigte Themen,
 tatsächlich umgesetzte Änderungen und ein bereinigter Evidenzverweis gelangen.

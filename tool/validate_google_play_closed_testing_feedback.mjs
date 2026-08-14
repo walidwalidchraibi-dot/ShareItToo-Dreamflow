@@ -58,7 +58,12 @@ function sanitized(value, label = 'closed-test feedback plan') {
   }
 }
 
-export function validateGooglePlayClosedTestingFeedback({ plan, closedTestingReadiness, deviceCandidate = null }) {
+export function validateGooglePlayClosedTestingFeedback({
+  plan,
+  closedTestingReadiness,
+  currentCandidate = null,
+  deviceCandidate = null,
+}) {
   const manifest = object(plan, 'closed-test feedback plan');
   sanitized(manifest);
   exactKeys(manifest, [
@@ -79,17 +84,16 @@ export function validateGooglePlayClosedTestingFeedback({ plan, closedTestingRea
   if (!['planned', 'collecting', 'summarized'].includes(manifest.state)) fail('state is not recognized.');
   if (manifest.applicationId !== 'com.shareittoo.app') fail('applicationId must remain com.shareittoo.app.');
   const candidate = object(manifest.candidate, 'candidate');
-  exactKeys(candidate, ['versionName', 'buildNumber', 'commit'], 'candidate');
-  const expectedCandidate = deviceCandidate ?? {
+  exactKeys(candidate, ['versionName', 'buildNumber', 'commit', 'bindingState'], 'candidate');
+  const expectedCurrentCandidate = currentCandidate ?? {
+    versionName: '1.0.0',
+    buildNumber: '2026081403',
+  };
+  const expectedDeviceCandidate = deviceCandidate ?? {
     versionName: '1.0.0',
     buildNumber: '2026081202',
     commit: '72dd8f13b5d3be0e82392a8b28c31292bdc23b53',
   };
-  if (candidate.versionName !== expectedCandidate.versionName
-      || candidate.buildNumber !== expectedCandidate.buildNumber
-      || candidate.commit !== expectedCandidate.commit) {
-    fail('The feedback plan must remain bound to the B11 release candidate.');
-  }
   const rules = object(manifest.rules, 'rules');
   exactKeys(rules, [
     'minimumContinuousTesterCount',
@@ -162,6 +166,12 @@ export function validateGooglePlayClosedTestingFeedback({ plan, closedTestingRea
 
   const readiness = object(closedTestingReadiness, 'closed-testing readiness');
   if (manifest.state === 'planned') {
+    if (candidate.versionName !== expectedCurrentCandidate.versionName
+        || candidate.buildNumber !== expectedCurrentCandidate.buildNumber
+        || candidate.commit !== null
+        || candidate.bindingState !== 'reserved-final-candidate') {
+      fail('A planned feedback run must bind only the reserved final candidate.');
+    }
     if (readiness.status !== 'not-started'
         || aggregate.observedTesterCount !== 0
         || aggregate.completedScenarioRuns !== 0
@@ -173,6 +183,12 @@ export function validateGooglePlayClosedTestingFeedback({ plan, closedTestingRea
       fail('A planned feedback run must remain empty until the real closed test starts.');
     }
   } else {
+    if (candidate.versionName !== expectedDeviceCandidate.versionName
+        || candidate.buildNumber !== expectedDeviceCandidate.buildNumber
+        || candidate.commit !== expectedDeviceCandidate.commit
+        || candidate.bindingState !== 'exact-installed-candidate') {
+      fail('Active feedback must bind the exact installed B11 release candidate.');
+    }
     if (!['running', 'eligible', 'production-access-approved'].includes(readiness.status)) {
       fail('Feedback collection requires an active or completed closed test.');
     }
@@ -205,9 +221,13 @@ function runCli() {
     resolve(root, 'store/device-validation.json'),
     'utf8',
   )).candidate;
+  const pubspec = readFileSync(resolve(root, 'pubspec.yaml'), 'utf8');
+  const version = /^version:\s+([^+\s]+)\+(\d{10})$/mu.exec(pubspec);
+  if (version === null) fail('pubspec candidate version is invalid.');
   const result = validateGooglePlayClosedTestingFeedback({
     plan,
     closedTestingReadiness,
+    currentCandidate: { versionName: version[1], buildNumber: version[2] },
     deviceCandidate,
   });
   process.stdout.write(

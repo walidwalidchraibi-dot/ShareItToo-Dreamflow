@@ -19,6 +19,15 @@ import {
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const base = JSON.parse(readFileSync(resolve(root, 'store/google-play/closed-testing-readiness.json'), 'utf8'));
+const feedbackBase = JSON.parse(readFileSync(
+  resolve(root, 'store/google-play/closed-testing-feedback-plan.json'),
+  'utf8',
+));
+const finalDeviceCandidate = {
+  versionName: '1.0.0',
+  buildNumber: '2026081403',
+  commit: 'b'.repeat(40),
+};
 
 function prepare(overrides = {}) {
   return prepareGooglePlayClosedTestingObservation({
@@ -37,6 +46,26 @@ test('prepares the first qualifying observation with an exact 14-day window', ()
   assert.equal(result.readiness.window.eligibleAt, '2026-08-26T12:00:00Z');
   assert.equal(result.readiness.productionAccessAllowed, false);
   assert.match(result.evidenceRef, /^docs\/evidence\/b11\/google-play-closed-test-observation-/);
+});
+
+test('prepares feedback collection for the exact installed final candidate', () => {
+  const result = prepare({
+    currentFeedbackPlan: structuredClone(feedbackBase),
+    deviceCandidate: finalDeviceCandidate,
+  });
+  assert.equal(result.feedbackPlan.state, 'collecting');
+  assert.deepEqual(result.feedbackPlan.candidate, {
+    ...finalDeviceCandidate,
+    bindingState: 'exact-installed-candidate',
+  });
+  assert.equal(result.feedbackPlan.aggregate.observedTesterCount, 12);
+});
+
+test('rejects starting feedback collection on a build other than the reserved final candidate', () => {
+  assert.throws(() => prepare({
+    currentFeedbackPlan: structuredClone(feedbackBase),
+    deviceCandidate: { ...finalDeviceCandidate, buildNumber: '2026081402' },
+  }), /installed exact reserved final candidate/);
 });
 
 test('refuses to start the qualifying window below twelve testers', () => {
@@ -109,7 +138,14 @@ test('writes repository-readable evidence once and replaces only the readiness s
       resolve(temporaryRoot, 'store/google-play/closed-testing-readiness.json'),
       `${JSON.stringify(base, null, 2)}\n`,
     );
-    const result = prepare();
+    writeFileSync(
+      resolve(temporaryRoot, 'store/google-play/closed-testing-feedback-plan.json'),
+      `${JSON.stringify(feedbackBase, null, 2)}\n`,
+    );
+    const result = prepare({
+      currentFeedbackPlan: structuredClone(feedbackBase),
+      deviceCandidate: finalDeviceCandidate,
+    });
     writeGooglePlayClosedTestingObservation({ root: temporaryRoot, result });
 
     const evidencePath = resolve(temporaryRoot, result.evidenceRef);
@@ -120,6 +156,13 @@ test('writes repository-readable evidence once and replaces only the readiness s
         'utf8',
       )),
       result.readiness,
+    );
+    assert.deepEqual(
+      JSON.parse(readFileSync(
+        resolve(temporaryRoot, 'store/google-play/closed-testing-feedback-plan.json'),
+        'utf8',
+      )),
+      result.feedbackPlan,
     );
     assert.equal(statSync(evidencePath).mode & 0o777, 0o644);
     assert.throws(

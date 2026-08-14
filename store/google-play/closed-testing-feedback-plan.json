@@ -4,8 +4,9 @@
   "applicationId": "com.shareittoo.app",
   "candidate": {
     "versionName": "1.0.0",
-    "buildNumber": "2026081402",
-    "commit": "74702bf3b2d1e2637392d5b5bd6963815df50bb8"
+    "buildNumber": "2026081403",
+    "commit": null,
+    "bindingState": "reserved-final-candidate"
   },
   "rules": {
     "minimumContinuousTesterCount": 12,

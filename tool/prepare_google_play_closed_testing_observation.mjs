@@ -14,6 +14,7 @@ import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { validateGooglePlayClosedTesting } from './validate_google_play_closed_testing.mjs';
+import { validateGooglePlayClosedTestingFeedback } from './validate_google_play_closed_testing_feedback.mjs';
 
 const dayMilliseconds = 24 * 60 * 60 * 1000;
 
@@ -64,6 +65,8 @@ export function prepareGooglePlayClosedTestingObservation({
   applicationSubmitted = false,
   applicationApproved = false,
   decisionObservedAt = null,
+  currentFeedbackPlan = null,
+  deviceCandidate = null,
 }) {
   utc(observedAt, 'observedAt');
   if (!Number.isInteger(continuousTesterCount) || continuousTesterCount < 12) {
@@ -122,7 +125,37 @@ export function prepareGooglePlayClosedTestingObservation({
   readiness.evidenceRef = evidenceRef;
   const evidence = observation(readiness);
   validateGooglePlayClosedTesting({ root, readiness, evidence });
-  return { readiness, evidence, evidenceRef };
+  let feedbackPlan = null;
+  if (currentFeedbackPlan !== null || deviceCandidate !== null) {
+    if (currentFeedbackPlan === null || deviceCandidate === null) {
+      fail('Feedback-plan rebinding requires both the current plan and device candidate.');
+    }
+    feedbackPlan = structuredClone(currentFeedbackPlan);
+    if (firstQualifiedObservation) {
+      if (feedbackPlan.state !== 'planned'
+          || feedbackPlan.candidate?.bindingState !== 'reserved-final-candidate'
+          || feedbackPlan.candidate?.commit !== null
+          || feedbackPlan.candidate?.versionName !== deviceCandidate.versionName
+          || feedbackPlan.candidate?.buildNumber !== deviceCandidate.buildNumber
+          || !/^[a-f0-9]{40}$/u.test(deviceCandidate.commit ?? '')) {
+        fail('Closed-test start requires the installed exact reserved final candidate.');
+      }
+      feedbackPlan.state = 'collecting';
+      feedbackPlan.candidate = {
+        versionName: deviceCandidate.versionName,
+        buildNumber: deviceCandidate.buildNumber,
+        commit: deviceCandidate.commit,
+        bindingState: 'exact-installed-candidate',
+      };
+    }
+    feedbackPlan.aggregate.observedTesterCount = continuousTesterCount;
+    validateGooglePlayClosedTestingFeedback({
+      plan: feedbackPlan,
+      closedTestingReadiness: readiness,
+      deviceCandidate,
+    });
+  }
+  return { readiness, evidence, evidenceRef, feedbackPlan };
 }
 
 function parseArguments(values) {
@@ -183,14 +216,35 @@ export function writeGooglePlayClosedTestingObservation({ root, result }) {
   atomicJson(resolve(root, 'store/google-play/closed-testing-readiness.json'), result.readiness, {
     replace: true,
   });
+  if (result.feedbackPlan !== null) {
+    atomicJson(
+      resolve(root, 'store/google-play/closed-testing-feedback-plan.json'),
+      result.feedbackPlan,
+      { replace: true },
+    );
+  }
 }
 
 function runCli() {
   const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
   const readinessPath = resolve(root, 'store/google-play/closed-testing-readiness.json');
   const currentReadiness = JSON.parse(readFileSync(readinessPath, 'utf8'));
+  const currentFeedbackPlan = JSON.parse(readFileSync(
+    resolve(root, 'store/google-play/closed-testing-feedback-plan.json'),
+    'utf8',
+  ));
+  const deviceCandidate = JSON.parse(readFileSync(
+    resolve(root, 'store/device-validation.json'),
+    'utf8',
+  )).candidate;
   const options = parseArguments(process.argv.slice(2));
-  const result = prepareGooglePlayClosedTestingObservation({ root, currentReadiness, ...options });
+  const result = prepareGooglePlayClosedTestingObservation({
+    root,
+    currentReadiness,
+    currentFeedbackPlan,
+    deviceCandidate,
+    ...options,
+  });
   if (!options.confirm) {
     process.stdout.write(
       `PREVIEW ONLY: status=${result.readiness.status}; startedAt=${result.readiness.window.startedAt}; `

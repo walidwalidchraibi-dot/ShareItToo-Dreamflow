@@ -13,11 +13,13 @@ const deviceCandidate = JSON.parse(readFileSync(
   resolve(root, 'store/device-validation.json'),
   'utf8',
 )).candidate;
+const currentCandidate = { versionName: '1.0.0', buildNumber: '2026081403' };
 
 function validate(planFixture, readinessFixture) {
   return validateGooglePlayClosedTestingFeedback({
     plan: planFixture,
     closedTestingReadiness: readinessFixture,
+    currentCandidate,
     deviceCandidate,
   });
 }
@@ -34,6 +36,24 @@ test('rejects invented feedback before the test starts', () => {
   assert.throws(
     () => validate(fixture, readiness),
     /must remain empty until the real closed test starts/,
+  );
+});
+
+test('rejects inventing an exact commit before the final Store build exists', () => {
+  const fixture = structuredClone(plan);
+  fixture.candidate.commit = 'a'.repeat(40);
+  assert.throws(
+    () => validate(fixture, readiness),
+    /reserved final candidate/,
+  );
+});
+
+test('rejects a reserved plan for the wrong final build number', () => {
+  const fixture = structuredClone(plan);
+  fixture.candidate.buildNumber = '2026081402';
+  assert.throws(
+    () => validate(fixture, readiness),
+    /reserved final candidate/,
   );
 });
 
@@ -58,6 +78,12 @@ test('rejects a device identifier field even without a value', () => {
 test('rejects collecting feedback without an active closed test', () => {
   const fixture = structuredClone(plan);
   fixture.state = 'collecting';
+  fixture.candidate = {
+    versionName: deviceCandidate.versionName,
+    buildNumber: deviceCandidate.buildNumber,
+    commit: deviceCandidate.commit,
+    bindingState: 'exact-installed-candidate',
+  };
   fixture.aggregate.observedTesterCount = 12;
   assert.throws(
     () => validate(fixture, readiness),
@@ -68,6 +94,12 @@ test('rejects collecting feedback without an active closed test', () => {
 test('accepts a sanitized aggregate while the closed test is running', () => {
   const fixture = structuredClone(plan);
   fixture.state = 'collecting';
+  fixture.candidate = {
+    versionName: deviceCandidate.versionName,
+    buildNumber: deviceCandidate.buildNumber,
+    commit: deviceCandidate.commit,
+    bindingState: 'exact-installed-candidate',
+  };
   fixture.aggregate.observedTesterCount = 12;
   fixture.aggregate.completedScenarioRuns = 16;
   fixture.aggregate.feedbackItemCount = 3;
@@ -76,4 +108,16 @@ test('accepts a sanitized aggregate while the closed test is running', () => {
   active.status = 'running';
   const result = validate(fixture, active);
   assert.equal(result.feedbackItemCount, 3);
+});
+
+test('rejects active feedback that was never rebound to the installed candidate', () => {
+  const fixture = structuredClone(plan);
+  fixture.state = 'collecting';
+  fixture.aggregate.observedTesterCount = 12;
+  const active = structuredClone(readiness);
+  active.status = 'running';
+  assert.throws(
+    () => validate(fixture, active),
+    /exact installed B11 release candidate/,
+  );
 });
