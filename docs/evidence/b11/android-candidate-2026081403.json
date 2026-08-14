@@ -58,7 +58,7 @@
     "notificationIconVisualFit": "passed",
     "logoutColdStartGuestPersistence": "passed",
     "postLogoutPushSuppression": "passed",
-    "offlineRealtimeRecovery": "pending-exact-build"
+    "offlineRealtimeRecovery": "passed"
   },
   "googlePlayInternalRelease": {
     "status": "store-install-verified",
@@ -86,6 +86,13 @@
     "postLogoutPushSuppression": "passed",
     "protectedChatAfterLogout": "passed",
     "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081403-20260814T114551Z.json"
+  },
+  "offlineRealtime": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "sameProcessRecovery": "passed",
+    "networkRestoredAfterProbe": true,
+    "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081403-20260814T115006Z.json"
   },
   "staging": {
     "serverCommit": "09c9211e41da75969b9ee59e9954ac7465250e80",
