@@ -18,7 +18,7 @@ const clone = (value) => structuredClone(value);
 test('accepts the complete technical classification while keeping console authority closed', () => {
   assert.deepEqual(validateGooglePlayServiceProviderSharingClassification({ root }), {
     services: 8,
-    activeProcessors: 4,
+    activeProcessors: 5,
     preparedOverallSharingAnswer:
       'no-subject-to-owner-contract-acceptance-and-legal-approval',
     consoleAnswerAllowed: false,
@@ -49,17 +49,17 @@ test('rejects treating Maps as a service provider in the bound candidate', () =>
   );
 });
 
-test('rejects treating disabled social login as an active transfer', () => {
+test('rejects removing the active phone-verification transfer', () => {
   const changed = clone(classification);
   changed.services.find((entry) => entry.id === 'firebaseAuthentication')
-    .actualCandidateTransfers.push('email address');
+    .actualCandidateTransfers = [];
   assert.throws(
     () => validateGooglePlayServiceProviderSharingClassification({
       root,
       classification: changed,
       privacy,
     }),
-    /social login/,
+    /Firebase Authentication/,
   );
 });
 

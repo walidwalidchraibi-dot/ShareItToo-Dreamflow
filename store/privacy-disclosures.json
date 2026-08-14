@@ -6,8 +6,8 @@
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081402",
-    "commit": "74702bf3b2d1e2637392d5b5bd6963815df50bb8"
+    "buildNumber": "2026081403",
+    "commit": "09c9211e41da75969b9ee59e9954ac7465250e80"
   },
   "sourceInventory": [
     {
@@ -72,7 +72,7 @@
     },
     {
       "path": "lib/screens/contact_data_screen.dart",
-      "sha256": "df19ad7c2d75f3ef2e6621fea02c04dfdcf70d7311456112778851ad2e90a814"
+      "sha256": "24a9a0b204f89eca786fab00405f895203248a062a3abd992ff700bd6162cb7d"
     },
     {
       "path": "lib/openai/openai_config.dart",
@@ -108,9 +108,9 @@
     }
   ],
   "binaryEvidence": {
-    "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081402.json",
+    "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081403.json",
     "binaryScan": "passed",
-    "binaryScanReportSha256": "40331238a894a8161ce1aa1962a927485370f30b0b97ad624bd1ecdcc53b4e0a",
+    "binaryScanReportSha256": "5126240c706a9ff4f0067adcc7b11a7b4a52d3eeac1f74af3113b81fb9b8cbf5",
     "releaseCheckStatus": "passed"
   },
   "externalServices": {
@@ -137,8 +137,8 @@
     },
     "firebaseAuthentication": {
       "enabled": true,
-      "enabledInBoundEnvironment": false,
-      "role": "processor-for-firebase-authentication-separate-provider-role-review-if-enabled",
+      "enabledInBoundEnvironment": true,
+      "role": "processor-for-firebase-authentication-phone-active-social-provider-review-if-enabled",
       "providers": ["google", "apple", "facebook", "phone"],
       "dataTypes": ["name", "emailAddress", "phoneNumber", "userId"]
     },

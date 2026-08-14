@@ -40,6 +40,7 @@ void main() {
     expect(find.text('Neue Nachricht'), findsOneWidget);
     expect(find.text('Deine Buchung wurde aktualisiert.'), findsOneWidget);
     expect(find.text('Öffnen'), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
 
     await tester.tap(find.text('Öffnen'));
     await tester.pump();

@@ -153,9 +153,9 @@ test('rejects hiding any implemented Firebase authentication provider', () => {
   );
 });
 
-test('rejects presenting disabled social login as active in the bound environment', () => {
+test('rejects hiding active phone verification in the bound environment', () => {
   const privacyManifest = clone(basePrivacyManifest);
-  privacyManifest.externalServices.firebaseAuthentication.enabledInBoundEnvironment = true;
+  privacyManifest.externalServices.firebaseAuthentication.enabledInBoundEnvironment = false;
   assert.throws(() => validate({ privacyManifest }), /Firebase Authentication/);
 });
 

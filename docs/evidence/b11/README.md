@@ -75,26 +75,26 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Merkmal | Verbindlicher Wert |
 |---|---|
 | App-Identität | `com.shareittoo.app` (Android und iOS) |
-| Version und Build | `1.0.0 (2026081402)` |
-| App-Commit | `74702bf3b2d1e2637392d5b5bd6963815df50bb8` |
+| Version und Build | `1.0.0 (2026081403)` |
+| App-Commit | `09c9211e41da75969b9ee59e9954ac7465250e80` |
 | Kanal und API | `internal`, `https://staging.shareittoo.com/api/v1` |
 | Firebase und Zahlung | vollständig: `true`; `memory`; `stripeLivemode=false` |
-| Android-AAB SHA-256 | `a379fb068e5d747108fa53495229638d1d224ebe2529b5c9ec2ea9d5e8b1f832` |
-| Android-APK SHA-256 | `715a119296044df143d3b5b75d280904a7861bc513889607a5e448d54546d2fd` |
+| Android-AAB SHA-256 | `c933d642cc02417e655d8e7f60960508a0a6ff271e7a684429c14492286b7f0c` |
+| Android-APK SHA-256 | `29386ee981dd895bd2bfa70d4dd4564a1237141dce38a4f33e0f2994c975755b` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
 | Direkte Android-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Kontrollierte Android-FCM-Diagnose | `pending/pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Kontrollierte Android-FCM-Diagnose | `pending-exact-build/pending-exact-build/pending-exact-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Android-Abmeldung und Push-Unterdrückung | `pending-exact-build/pending-exact-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
 | Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Google-Play-Installation | `testing`; noch keine belegte Installation aus dem internen Play-Track |
+| Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081403)` |
 | Play-Signing und öffentliche App-Links | `open`; noch kein kandidatenspezifischer Nachweis |
 | Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
-| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081402.json` |
-| Staging-Servercommit | `32a2dfb9a570fd7a64128bc6ce0ae0faf4f73f88` |
+| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081403.json` |
+| Staging-Servercommit | `09c9211e41da75969b9ee59e9954ac7465250e80` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
 
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Eine bestandene Google-Play-Installation ist nur belegt, wenn der aktuelle Kandidat aus dem internen Track installiert und gestartet wurde. Die früheren direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM-, Abmelde- und Offline-/Realtime-Diagnosen bleiben davon abgegrenzte Vorprüfungen. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.

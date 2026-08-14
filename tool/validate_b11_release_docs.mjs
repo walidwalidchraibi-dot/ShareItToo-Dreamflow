@@ -262,6 +262,7 @@ export function validateB11ReleaseDocs({
   }
   const internalRelease = evidence.googlePlayInternalRelease;
   const uploadedInternalReleaseBound = new Map([
+    ['play-internal', 'store-install-verified'],
     ['google-play-internal-active-store-install-pending',
       'available-to-internal-testers-store-propagation-pending'],
     ['google-play-internal-active-store-install-verified', 'store-install-verified'],

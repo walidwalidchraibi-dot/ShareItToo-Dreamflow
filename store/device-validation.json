@@ -7,17 +7,17 @@
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
     "minimumBuildNumber": "2026080903",
-    "buildNumber": "2026081402",
-    "commit": "74702bf3b2d1e2637392d5b5bd6963815df50bb8",
+    "buildNumber": "2026081403",
+    "commit": "09c9211e41da75969b9ee59e9954ac7465250e80",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
     "paymentMode": "memory",
     "stripeLivemode": false,
     "android": {
-      "delivery": "pending",
-      "aabSha256": "a379fb068e5d747108fa53495229638d1d224ebe2529b5c9ec2ea9d5e8b1f832",
-      "apkSha256": "715a119296044df143d3b5b75d280904a7861bc513889607a5e448d54546d2fd",
+      "delivery": "play-internal",
+      "aabSha256": "c933d642cc02417e655d8e7f60960508a0a6ff271e7a684429c14492286b7f0c",
+      "apkSha256": "29386ee981dd895bd2bfa70d4dd4564a1237141dce38a4f33e0f2994c975755b",
       "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
     },
     "ios": {
@@ -34,14 +34,14 @@
       "network": "wifi",
       "role": "owner",
       "deviceType": "physical",
-      "deviceModel": null,
-      "osVersion": null,
-      "storeInstall": "pending",
+      "deviceModel": "Pixel 7 Pro",
+      "osVersion": "Android 16",
+      "storeInstall": "play-internal",
       "screenReader": "talkback",
       "status": "open",
       "tests": {
-        "installAndFirstStart": "open",
-        "authenticationAndSession": "open",
+        "installAndFirstStart": "passed",
+        "authenticationAndSession": "passed",
         "listingAndBooking": "open",
         "chatAndDeepLink": "open",
         "pushForeground": "open",
@@ -52,7 +52,7 @@
         "offlineRecovery": "open",
         "largeTextAndScreenReader": "open"
       },
-      "evidenceRef": null
+      "evidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081403-20260814.json"
     },
     {
       "id": "android-hotspot-renter",
@@ -136,7 +136,7 @@
   "releaseChecks": {
     "candidateIdentityAndSignatures": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081402.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081403.json"
     },
     "firebaseFcmAndApns": {
       "status": "open",
@@ -144,7 +144,7 @@
     },
     "binaryPrivacyAndNetwork": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081402.json"
+      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081403.json"
     },
     "crashReleaseMapping": {
       "status": "open",
@@ -156,11 +156,11 @@
     },
     "stagingCleanupAndHealth": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081402.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081403.json"
     },
     "productionInvariant": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081402.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081403.json"
     }
   },
   "approvals": {

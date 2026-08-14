@@ -34,8 +34,15 @@ test('accepts the observed nine-of-eleven Play setup while two work areas remain
   assert.deepEqual(result, { taskCount: 12, buildNumber: canonical.candidate.buildNumber });
 });
 
-test('keeps strict candidate binding unless an internal rollover is explicit', () => {
-  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot }),
+test('keeps strict candidate binding unless an internal rollover is explicit', async (t) => {
+  const data = await fixture((handoff) => {
+    handoff.candidate.buildNumber = String(BigInt(canonical.candidate.buildNumber) - 1n);
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayAppContentHandoff({
+    repositoryRoot,
+    handoffPath: data.handoffPath,
+  }),
     /internal Staging candidate/);
 });
 

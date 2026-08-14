@@ -293,15 +293,27 @@ export function validateGooglePlayInternalHandoff({
     fail('pre-upload live readiness.capturedAt must be a UTC RFC 3339 timestamp.');
   }
   const liveCandidate = object(live.candidate, 'pre-upload live readiness.candidate');
-  for (const key of [
-    'applicationId',
-    'versionName',
-    'buildNumber',
-    'commit',
-    'aabSha256',
-    'uploadCertificateSha256',
-  ]) {
+  for (const key of ['applicationId', 'versionName', 'uploadCertificateSha256']) {
     same(liveCandidate[key], candidate[key], `pre-upload live readiness.candidate.${key}`);
+  }
+  const readinessReuse = handoff.preUploadLiveReadinessReuse;
+  if (readinessReuse === undefined) {
+    for (const key of ['buildNumber', 'commit', 'aabSha256']) {
+      same(liveCandidate[key], candidate[key], `pre-upload live readiness.candidate.${key}`);
+    }
+  } else {
+    const reuse = object(readinessReuse, 'preUploadLiveReadinessReuse');
+    same(reuse.sourceBuildNumber, liveCandidate.buildNumber,
+      'preUploadLiveReadinessReuse.sourceBuildNumber');
+    same(reuse.scope, 'account-console-gates-only',
+      'preUploadLiveReadinessReuse.scope');
+    same(reuse.exactCandidateReverified, true,
+      'preUploadLiveReadinessReuse.exactCandidateReverified');
+    if (!internalActive
+        || !/^\d{10}$/u.test(liveCandidate.buildNumber ?? '')
+        || BigInt(liveCandidate.buildNumber) >= BigInt(candidate.buildNumber)) {
+      fail('Pre-upload live readiness may only reuse older account and Console gates for an active exact candidate.');
+    }
   }
   same(
     liveCandidate.playAppSigningCertificateSha256,
@@ -456,7 +468,8 @@ export function validateGooglePlayInternalHandoff({
   same(device.osVersion, '16', 'pre-upload live readiness.connectedAndroidDevice.osVersion');
   same(device.installedVersionName, candidate.versionName,
     'pre-upload live readiness.connectedAndroidDevice.installedVersionName');
-  same(device.installedBuildNumber, candidate.buildNumber,
+  same(device.installedBuildNumber,
+    readinessReuse === undefined ? candidate.buildNumber : liveCandidate.buildNumber,
     'pre-upload live readiness.connectedAndroidDevice.installedBuildNumber');
   same(device.installMethod, 'direct-apk-diagnostic',
     'pre-upload live readiness.connectedAndroidDevice.installMethod');

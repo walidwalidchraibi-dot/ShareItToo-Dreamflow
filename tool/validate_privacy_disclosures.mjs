@@ -462,9 +462,9 @@ export function validatePrivacyDisclosures({
   }
   const socialAuth = object(services.firebaseAuthentication, 'externalServices.firebaseAuthentication');
   if (socialAuth.enabled !== true
-      || socialAuth.enabledInBoundEnvironment !== false
+      || socialAuth.enabledInBoundEnvironment !== true
       || socialAuth.role !==
-        'processor-for-firebase-authentication-separate-provider-role-review-if-enabled'
+        'processor-for-firebase-authentication-phone-active-social-provider-review-if-enabled'
       || !Array.isArray(socialAuth.providers)
       || socialAuth.providers.join(',') !== 'google,apple,facebook,phone'
       || !Array.isArray(socialAuth.dataTypes)

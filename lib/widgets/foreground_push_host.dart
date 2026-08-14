@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter/material.dart';
 import 'package:lendify/services/firebase_runtime.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 class ForegroundPushHost extends StatefulWidget {
   final Widget child;
@@ -23,6 +25,8 @@ class ForegroundPushHost extends StatefulWidget {
 
 class _ForegroundPushHostState extends State<ForegroundPushHost> {
   StreamSubscription<ForegroundPushMessage>? _subscription;
+  final Queue<ForegroundPushMessage> _pendingMessages = Queue();
+  bool _showingMessage = false;
 
   @override
   void initState() {
@@ -43,37 +47,51 @@ class _ForegroundPushHostState extends State<ForegroundPushHost> {
   }
 
   void _showMessage(ForegroundPushMessage message) {
+    _pendingMessages.add(message);
+    _presentNextMessage();
+  }
+
+  void _presentNextMessage() {
+    if (_showingMessage || _pendingMessages.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final messenger = widget.messengerKey?.currentState ??
-          ScaffoldMessenger.maybeOf(context);
-      if (messenger == null) return;
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Semantics(
-            liveRegion: true,
-            label: 'Benachrichtigung: ${message.title}. ${message.body}',
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  message.title,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+      if (!mounted || _showingMessage || _pendingMessages.isEmpty) return;
+      final message = _pendingMessages.removeFirst();
+      _showingMessage = true;
+      unawaited(
+        AppPopup.showCustom<void>(
+          context,
+          icon: Icons.notifications_active_outlined,
+          title: message.title,
+          showCloseIcon: true,
+          showAccentLine: true,
+          body: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Semantics(
+                liveRegion: true,
+                label: 'Benachrichtigung: ${message.title}. ${message.body}',
+                child: Text(message.body),
+              ),
+              if (message.actionUri != null) ...[
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).maybePop();
+                    (widget.onOpen ?? FirebaseRuntime.openForegroundMessage)(
+                      message,
+                    );
+                  },
+                  icon: const Icon(Icons.open_in_new_rounded),
+                  label: const Text('Öffnen'),
                 ),
-                if (message.body.isNotEmpty) Text(message.body),
               ],
-            ),
+            ],
           ),
-          action: message.actionUri == null
-              ? null
-              : SnackBarAction(
-                  label: 'Öffnen',
-                  onPressed: () => (widget.onOpen ??
-                      FirebaseRuntime.openForegroundMessage)(message),
-                ),
-        ),
+        ).whenComplete(() {
+          _showingMessage = false;
+          if (mounted) _presentNextMessage();
+        }),
       );
     });
   }

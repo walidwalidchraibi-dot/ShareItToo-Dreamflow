@@ -6,20 +6,20 @@
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081401",
-    "commit": "5518040d63b72c08d8cd2f72d76d802023b7b055",
-    "aabSha256": "d98c87426f1452c0af67fd56ee72210eb8142f900298c512f7455962d1cca35e",
+    "buildNumber": "2026081403",
+    "commit": "09c9211e41da75969b9ee59e9954ac7465250e80",
+    "aabSha256": "c933d642cc02417e655d8e7f60960508a0a6ff271e7a684429c14492286b7f0c",
     "uploadCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true
   },
   "artifact": {
-    "archiveDirectoryName": "2026081401-5518040d63b72c08d8cd2f72d76d802023b7b055",
-    "fileName": "shareittoo-1.0.0-2026081401-5518040d63b72c08d8cd2f72d76d802023b7b055.aab",
+    "archiveDirectoryName": "2026081403-09c9211e41da75969b9ee59e9954ac7465250e80",
+    "fileName": "shareittoo-1.0.0-2026081403-09c9211e41da75969b9ee59e9954ac7465250e80.aab",
     "ownerOnlyPermissionsRequired": true
   },
   "releaseDraft": {
-    "name": "1.0.0-internal-2026081401",
+    "name": "1.0.0-internal-2026081403",
     "notesPath": "store/google-play/de-DE/internal_release_notes.txt",
     "language": "de-DE",
     "saveOnly": false,
@@ -52,8 +52,13 @@
     "credentialsInRepository": true
   },
   "preUploadLiveReadinessEvidenceRef": "docs/evidence/b11/google-play-pre-upload-live-readiness-2026081401-20260814.json",
-  "internalReleaseEvidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081401-20260814.json",
-  "evidenceRef": "docs/evidence/b11/android-candidate-2026081401.json",
+  "preUploadLiveReadinessReuse": {
+    "sourceBuildNumber": "2026081401",
+    "scope": "account-console-gates-only",
+    "exactCandidateReverified": true
+  },
+  "internalReleaseEvidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081403-20260814.json",
+  "evidenceRef": "docs/evidence/b11/android-candidate-2026081403.json",
   "containsSecrets": false,
   "containsReviewCredentials": false
 }

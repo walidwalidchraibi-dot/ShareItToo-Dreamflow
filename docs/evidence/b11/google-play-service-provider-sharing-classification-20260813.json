@@ -6,8 +6,8 @@
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081402",
-    "commit": "74702bf3b2d1e2637392d5b5bd6963815df50bb8",
+    "buildNumber": "2026081403",
+    "commit": "09c9211e41da75969b9ee59e9954ac7465250e80",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
   },
@@ -64,13 +64,21 @@
     },
     {
       "id": "firebaseAuthentication",
-      "candidateState": "sdk-present-provider-login-disabled",
-      "technicalRole": "processor-for-firebase-authentication-separate-provider-role-review-if-enabled",
+      "candidateState": "phone-active-staging-social-provider-login-disabled",
+      "technicalRole": "processor-for-firebase-authentication-phone-active-separate-social-provider-role-review-if-enabled",
       "officialContractUrl": "https://firebase.google.com/terms/data-processing-terms/",
       "officialFinding": "Firebase identifies Google as processor for covered Firebase Customer Personal Data; the Google, Apple and Facebook provider flows remain externally disabled in the bound candidate environment.",
-      "actualCandidateTransfers": [],
-      "playDataTypes": [],
-      "playTechnicalRecommendation": "not-an-active-transfer-in-bound-candidate-reclassify-before-enabling-any-provider"
+      "actualCandidateTransfers": [
+        "optional phone number supplied for account verification",
+        "Firebase authentication user identifier",
+        "app-verification and abuse-prevention device context"
+      ],
+      "playDataTypes": [
+        "phoneNumber",
+        "userId",
+        "deviceOrOtherIds"
+      ],
+      "playTechnicalRecommendation": "active-processor-transfer-service-provider-sharing-exception-supported-subject-to-account-contract-and-legal-confirmation"
     },
     {
       "id": "googleWorkspaceSmtpRelay",
@@ -130,10 +138,10 @@
       "hostingerVps",
       "firebaseCloudMessaging",
       "firebaseCrashlytics",
+      "firebaseAuthentication",
       "googleWorkspaceSmtpRelay"
     ],
     "disabledOrUnprovenServices": [
-      "firebaseAuthentication",
       "googleMapsPlatform",
       "stripe",
       "openAiHelpers"

@@ -21,6 +21,7 @@ const requiredActiveProcessors = [
   'hostingerVps',
   'firebaseCloudMessaging',
   'firebaseCrashlytics',
+  'firebaseAuthentication',
   'googleWorkspaceSmtpRelay',
 ];
 
@@ -98,7 +99,9 @@ export function validateGooglePlayServiceProviderSharingClassification({
     fail('Provider classification must inventory every active, disabled, and future service exactly once.');
   }
   const byId = new Map(classification.services.map((entry) => [entry.id, object(entry, entry.id)]));
-  for (const processorId of requiredActiveProcessors) {
+  for (const processorId of requiredActiveProcessors.filter(
+    (id) => id !== 'firebaseAuthentication',
+  )) {
     const service = byId.get(processorId);
     if (service.technicalRole !== 'processor'
         || !service.candidateState.startsWith('active')
@@ -124,12 +127,14 @@ export function validateGooglePlayServiceProviderSharingClassification({
     fail('Google Maps must remain inactive/unproven and fail closed before activation.');
   }
   const social = byId.get('firebaseAuthentication');
-  if (social.candidateState !== 'sdk-present-provider-login-disabled'
-      || privacy.externalServices?.firebaseAuthentication?.enabledInBoundEnvironment !== false
-      || social.actualCandidateTransfers.length !== 0
-      || social.playDataTypes.length !== 0
-      || !social.playTechnicalRecommendation.includes('reclassify-before-enabling')) {
-    fail('Prepared social login must not be classified as an active candidate transfer.');
+  if (social.candidateState !== 'phone-active-staging-social-provider-login-disabled'
+      || social.technicalRole !==
+        'processor-for-firebase-authentication-phone-active-separate-social-provider-role-review-if-enabled'
+      || privacy.externalServices?.firebaseAuthentication?.enabledInBoundEnvironment !== true
+      || social.actualCandidateTransfers.length !== 3
+      || social.playDataTypes.join(',') !== 'phoneNumber,userId,deviceOrOtherIds'
+      || !social.playTechnicalRecommendation.includes('active-processor-transfer')) {
+    fail('Firebase Authentication must classify active phone verification while social login remains disabled.');
   }
   for (const disabledId of ['stripe', 'openAiHelpers']) {
     const service = byId.get(disabledId);

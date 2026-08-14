@@ -10,7 +10,7 @@ function fail(message) {
 
 export function validateGooglePlayScreenshotReadiness({
   repositoryRoot,
-  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081402-20260814.json'),
+  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081403-20260814.json'),
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   const exactCandidate = JSON.parse(readFileSync(
@@ -57,9 +57,12 @@ export function validateGooglePlayScreenshotReadiness({
     const expectedChangedFiles = [
       'lib/config/legal_provider_config.dart',
       'lib/screens/legal_cancellation_policy_screen.dart',
+      'lib/screens/legal_community_rules_screen.dart',
       'lib/screens/legal_fees_payments_screen.dart',
       'lib/screens/legal_imprint_screen.dart',
       'lib/screens/legal_privacy_screen.dart',
+      'lib/screens/legal_terms_screen.dart',
+      'lib/screens/payment_checkout_screen.dart',
       'lib/screens/privacy_info_screen.dart',
       'lib/services/backend_realtime_service.dart',
       'lib/services/data_service.dart',
