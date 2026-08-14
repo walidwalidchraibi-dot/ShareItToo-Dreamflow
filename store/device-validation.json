@@ -169,8 +169,8 @@
       "evidenceRef": null
     },
     "storeWarningsLinksAndSigning": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/android-play-store-links-signing-2026081403-20260814.json"
     },
     "stagingCleanupAndHealth": {
       "status": "passed",
