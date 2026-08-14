@@ -18,7 +18,16 @@
       "delivery": "play-internal",
       "aabSha256": "c933d642cc02417e655d8e7f60960508a0a6ff271e7a684429c14492286b7f0c",
       "apkSha256": "29386ee981dd895bd2bfa70d4dd4564a1237141dce38a4f33e0f2994c975755b",
-      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
+      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
+      "authenticatedSession": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-14T10:44:56.790Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081403-20260814T104456Z.json"
+      }
     },
     "ios": {
       "delivery": "pending",
