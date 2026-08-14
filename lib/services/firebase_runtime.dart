@@ -4,6 +4,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'backend_config.dart';
@@ -26,6 +27,21 @@ bool controlledCrashDiagnosticAllowed({
       configuredRunId == requestedRunId &&
       RegExp(r'^b11-[a-z0-9-]{6,64}$').hasMatch(configuredRunId);
 }
+
+@visibleForTesting
+String controlledCrashDiagnosticAttemptKey({
+  required String buildNumber,
+  required String runId,
+}) =>
+    'sit_controlled_crash_diagnostic_attempted_${buildNumber}_$runId';
+
+@visibleForTesting
+bool controlledCrashDiagnosticCanStart({
+  required bool allowed,
+  required bool alreadyAttempted,
+  required bool inFlight,
+}) =>
+    allowed && !alreadyAttempted && !inFlight;
 
 @visibleForTesting
 bool shouldRecordUnhandledErrorAsFatal(Object error) {
@@ -211,6 +227,7 @@ class FirebaseRuntime {
   static StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
   static bool _initialized = false;
   static bool _nativeActionLinkChannelInitialized = false;
+  static final Set<String> _controlledCrashDiagnosticsInFlight = <String>{};
   static Uri? _pendingActionLink;
   static String _locale = 'de-DE';
 
@@ -284,18 +301,42 @@ class FirebaseRuntime {
   static Future<bool> recordControlledStagingCrashDiagnostic(
     String requestedRunId,
   ) async {
-    if (!_initialized ||
-        !controlledCrashDiagnosticAllowed(
+    final allowed = _initialized &&
+        controlledCrashDiagnosticAllowed(
           releaseMode: kReleaseMode,
           enabled: _controlledCrashDiagnosticEnabled,
           apiBaseUrl: BackendConfig.apiBaseUrl,
           releaseChannel: ReleaseIdentity.releaseChannel,
           configuredRunId: _controlledCrashDiagnosticRunId,
           requestedRunId: requestedRunId,
-        )) {
+        );
+    final attemptKey = controlledCrashDiagnosticAttemptKey(
+      buildNumber: ReleaseIdentity.buildNumber,
+      runId: requestedRunId,
+    );
+    if (!controlledCrashDiagnosticCanStart(
+      allowed: allowed,
+      alreadyAttempted: false,
+      inFlight: _controlledCrashDiagnosticsInFlight.contains(attemptKey),
+    )) {
       return false;
     }
+    _controlledCrashDiagnosticsInFlight.add(attemptKey);
     try {
+      final preferences = await SharedPreferences.getInstance();
+      if (!controlledCrashDiagnosticCanStart(
+        allowed: allowed,
+        alreadyAttempted: preferences.getBool(attemptKey) == true,
+        inFlight: false,
+      )) {
+        return false;
+      }
+
+      // Reserve the run before talking to Crashlytics. This deliberately
+      // prefers a missed diagnostic over emitting the same internal event
+      // twice after a retry, relaunch, or duplicate app link.
+      if (!await preferences.setBool(attemptKey, true)) return false;
+
       final crashlytics = FirebaseCrashlytics.instance;
       await crashlytics.setCustomKey(
         'sit_release_commit',
@@ -325,6 +366,8 @@ class FirebaseRuntime {
     } catch (_) {
       debugPrint('[FirebaseRuntime] controlled crash diagnostic unavailable');
       return false;
+    } finally {
+      _controlledCrashDiagnosticsInFlight.remove(attemptKey);
     }
   }
 

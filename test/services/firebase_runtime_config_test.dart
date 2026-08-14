@@ -121,6 +121,43 @@ void main() {
       expect(allowed(requestedRunId: 'b11-other-run'), isFalse);
       expect(allowed(configuredRunId: 'unsafe/value'), isFalse);
     });
+
+    test('allows each exact build diagnostic only once', () {
+      final key = controlledCrashDiagnosticAttemptKey(
+        buildNumber: '2026081404',
+        runId: 'b11-android-2026081404',
+      );
+
+      expect(
+        key,
+        'sit_controlled_crash_diagnostic_attempted_2026081404_'
+        'b11-android-2026081404',
+      );
+      expect(
+        controlledCrashDiagnosticCanStart(
+          allowed: true,
+          alreadyAttempted: false,
+          inFlight: false,
+        ),
+        isTrue,
+      );
+      expect(
+        controlledCrashDiagnosticCanStart(
+          allowed: true,
+          alreadyAttempted: true,
+          inFlight: false,
+        ),
+        isFalse,
+      );
+      expect(
+        controlledCrashDiagnosticCanStart(
+          allowed: true,
+          alreadyAttempted: false,
+          inFlight: true,
+        ),
+        isFalse,
+      );
+    });
   });
 
   group('Crashlytics fatality classification', () {
