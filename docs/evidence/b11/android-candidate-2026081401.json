@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "built-scanned-directly-installed-offline-realtime-passed",
+  "status": "built-scanned-directly-installed-offline-realtime-and-controlled-fcm-passed",
   "generatedAt": "2026-08-14T00:23:32Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -51,10 +51,10 @@
     "authenticatedSessionRestore": "pending",
     "syntheticRoleBooking": "pending",
     "authenticatedDeepLinks": "pending",
-    "foregroundFcm": "pending",
-    "backgroundFcm": "pending",
-    "terminatedProcessFcm": "pending",
-    "notificationIconVisualFit": "pending",
+    "foregroundFcm": "passed",
+    "backgroundFcm": "passed",
+    "terminatedProcessFcm": "passed",
+    "notificationIconVisualFit": "passed",
     "logoutColdStartGuestPersistence": "pending",
     "postLogoutPushSuppression": "pending",
     "offlineRealtimeRecovery": "passed"
@@ -75,7 +75,7 @@
   "boundaries": {
     "uploadedToStore": false,
     "installedOnPhysicalDevice": true,
-    "controlledFcmSentToSyntheticAccount": false,
+    "controlledFcmSentToSyntheticAccount": true,
     "controlledCrashDiagnosticSent": false,
     "productionPushSent": false,
     "productionCrashGenerated": false,
@@ -94,5 +94,9 @@
     "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081401-20260814T002910Z.json",
     "networkRestoredAfterProbe": true,
     "sameProcessRecovery": true
+  },
+  "controlledFcm": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081401-20260814T004122Z.json"
   }
 }

@@ -160,8 +160,8 @@
       "evidenceRef": "docs/evidence/b11/android-candidate-2026081401.json"
     },
     "firebaseFcmAndApns": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "testing",
+      "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081401-20260814T004122Z.json"
     },
     "binaryPrivacyAndNetwork": {
       "status": "passed",
