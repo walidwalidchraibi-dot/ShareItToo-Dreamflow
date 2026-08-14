@@ -33,14 +33,14 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Android-AAB SHA-256 | `d98c87426f1452c0af67fd56ee72210eb8142f900298c512f7455962d1cca35e` |
 | Android-APK SHA-256 | `788f15e1f160ec1e27f2529b34f90061fdef46c82197af93a8cabd9bd085b299` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
-| Direkte Android-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081401-20260814T002619Z.json` |
 | Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Kontrollierte Android-FCM-Diagnose | `pending/pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
 | Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Android-Offline-/Realtime-Wiederherstellung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-offline-realtime-2026081401-20260814T002910Z.json` |
 | Google-Play-Installation | `testing`; noch keine belegte Installation aus dem internen Play-Track |
 | Play-Signing und öffentliche App-Links | `open`; noch kein kandidatenspezifischer Nachweis |
 | Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |

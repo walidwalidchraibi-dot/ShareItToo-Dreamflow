@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "built-scanned-awaiting-direct-device-diagnostic",
+  "status": "built-scanned-directly-installed-offline-realtime-passed",
   "generatedAt": "2026-08-14T00:23:32Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -44,7 +44,7 @@
     "findings": []
   },
   "exactCandidateDiagnostics": {
-    "directInstallAndLaunch": "pending",
+    "directInstallAndLaunch": "passed",
     "searchOverlayAsyncLifecycle": "passed-source-regression",
     "listingSignalTruthfulness": "pending",
     "guestAppLinks": "pending",
@@ -57,7 +57,7 @@
     "notificationIconVisualFit": "pending",
     "logoutColdStartGuestPersistence": "pending",
     "postLogoutPushSuppression": "pending",
-    "offlineRealtimeRecovery": "pending"
+    "offlineRealtimeRecovery": "passed"
   },
   "staging": {
     "serverCommit": "32a2dfb9a570fd7a64128bc6ce0ae0faf4f73f88",
@@ -74,7 +74,7 @@
   },
   "boundaries": {
     "uploadedToStore": false,
-    "installedOnPhysicalDevice": false,
+    "installedOnPhysicalDevice": true,
     "controlledFcmSentToSyntheticAccount": false,
     "controlledCrashDiagnosticSent": false,
     "productionPushSent": false,
@@ -84,5 +84,15 @@
     "containsRawDeviceIdentifiers": false,
     "containsReviewCredentials": false,
     "syntheticAccountsOnly": true
+  },
+  "directDiagnostic": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-direct-smoke-2026081401-20260814T002619Z.json"
+  },
+  "offlineRealtime": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081401-20260814T002910Z.json",
+    "networkRestoredAfterProbe": true,
+    "sameProcessRecovery": true
   }
 }
