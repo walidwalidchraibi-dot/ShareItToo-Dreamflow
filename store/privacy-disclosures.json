@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "c058bfaadb374675aa483842a8c9183309677d8a93a2ed06fcf16e6b7fe3a8cd"
+      "sha256": "1cc8bb298b77b98e420017f97d7339d5c62f6a847ff848909a25770b933e8dcb"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -36,7 +36,7 @@
     },
     {
       "path": "backend/src/account_actions.js",
-      "sha256": "09709487e76dbab21f3f4152741c4a3b0810035634fd780344797f10586bbded"
+      "sha256": "0773aafb4af4b44c8986dcc15f5f2f6e4cd687cc982a7d1815a90e35da1b35f8"
     },
     {
       "path": "backend/src/privacy_export.js",
@@ -104,7 +104,7 @@
     },
     {
       "path": "store/phone-verification-readiness.json",
-      "sha256": "f7ffb695f90fb4f3eae965f24c500aca92c3cf5cc069ce7f220f554eca6e05d4"
+      "sha256": "2293a4c7348d5c57db5af4ba3bd407162f23da388ddb432e683a9f07cac1167f"
     }
   ],
   "binaryEvidence": {

@@ -159,3 +159,19 @@ test('approved public privacy copy covers the evidenced current data flows and d
   assert.match(privacy, /shareittoo\.com\/account-deletion/);
   assert.doesNotMatch(privacy, /OpenAI/);
 });
+
+test('approved public support page exposes a clear electronic notice and complaint route', () => {
+  const support = accountActions.publicSupportPage({
+    compliance: {
+      approved: true,
+      supportEmail: 'support-contact.invalid',
+    },
+  });
+
+  assert.match(support, /data-sit-compliance-status="approved"/);
+  assert.match(support, /mailto:support-contact\.invalid/);
+  assert.match(support, /Rechtswidrige Inhalte melden/);
+  assert.match(support, /Meldung rechtswidriger Inhalt/);
+  assert.match(support, /Beschwerde zu einer Moderationsentscheidung/);
+  assert.match(support, /kein Notruf/);
+});
