@@ -21,6 +21,7 @@ function validate(planFixture, readinessFixture) {
     closedTestingReadiness: readinessFixture,
     currentCandidate,
     deviceCandidate,
+    root,
   });
 }
 
@@ -54,6 +55,24 @@ test('rejects a reserved plan for the wrong final build number', () => {
   assert.throws(
     () => validate(fixture, readiness),
     /reserved final candidate/,
+  );
+});
+
+test('rejects embedding a live opt-in link in the repository plan', () => {
+  const fixture = structuredClone(plan);
+  fixture.testerOnboarding.containsLiveOptInLink = true;
+  assert.throws(
+    () => validate(fixture, readiness),
+    /must remain private, sanitized and bound to the canonical guide/,
+  );
+});
+
+test('rejects detaching the closed test from the canonical tester guide', () => {
+  const fixture = structuredClone(plan);
+  fixture.testerOnboarding.guidePath = 'docs/operations/another-guide.md';
+  assert.throws(
+    () => validate(fixture, readiness),
+    /must remain private, sanitized and bound to the canonical guide/,
   );
 });
 

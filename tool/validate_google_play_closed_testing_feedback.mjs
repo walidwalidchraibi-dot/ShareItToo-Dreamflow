@@ -63,6 +63,7 @@ export function validateGooglePlayClosedTestingFeedback({
   closedTestingReadiness,
   currentCandidate = null,
   deviceCandidate = null,
+  root = null,
 }) {
   const manifest = object(plan, 'closed-test feedback plan');
   sanitized(manifest);
@@ -71,6 +72,7 @@ export function validateGooglePlayClosedTestingFeedback({
     'state',
     'applicationId',
     'candidate',
+    'testerOnboarding',
     'rules',
     'checkpoints',
     'scenarios',
@@ -94,6 +96,39 @@ export function validateGooglePlayClosedTestingFeedback({
     buildNumber: '2026081202',
     commit: '72dd8f13b5d3be0e82392a8b28c31292bdc23b53',
   };
+  const testerOnboarding = object(manifest.testerOnboarding, 'testerOnboarding');
+  exactKeys(testerOnboarding, [
+    'guidePath',
+    'privateOptInLinkInjectedAtSendTime',
+    'privateFeedbackChannelInjectedAtSendTime',
+    'containsTesterPersonalData',
+    'containsLiveOptInLink',
+  ], 'testerOnboarding');
+  if (testerOnboarding.guidePath
+        !== 'docs/operations/B11_GOOGLE_PLAY_CLOSED_TESTER_ONBOARDING_2026-08-14.md'
+      || testerOnboarding.privateOptInLinkInjectedAtSendTime !== true
+      || testerOnboarding.privateFeedbackChannelInjectedAtSendTime !== true
+      || testerOnboarding.containsTesterPersonalData !== false
+      || testerOnboarding.containsLiveOptInLink !== false) {
+    fail('Tester onboarding must remain private, sanitized and bound to the canonical guide.');
+  }
+  if (root !== null) {
+    const guide = readFileSync(resolve(root, testerOnboarding.guidePath), 'utf8');
+    const normalizedGuide = guide.replace(/\s+/gu, ' ');
+    for (const marker of [
+      'mindestens 14 aufeinanderfolgende Tage',
+      'ausschließlich synthetische Inhalte',
+      'keine echten Zahlungen',
+      'privaten Opt-in-Link',
+      'privaten Feedbackkanal',
+    ]) {
+      if (!normalizedGuide.includes(marker)) fail(`Tester onboarding guide is missing: ${marker}`);
+    }
+    if (/https?:\/\//iu.test(guide)
+        || /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/iu.test(guide)) {
+      fail('Tester onboarding guide must not contain a live opt-in link or account address.');
+    }
+  }
   const rules = object(manifest.rules, 'rules');
   exactKeys(rules, [
     'minimumContinuousTesterCount',
@@ -229,6 +264,7 @@ function runCli() {
     closedTestingReadiness,
     currentCandidate: { versionName: version[1], buildNumber: version[2] },
     deviceCandidate,
+    root,
   });
   process.stdout.write(
     `Google Play closed-test feedback: ${result.state}; scenarios=${result.scenarioCount}; `

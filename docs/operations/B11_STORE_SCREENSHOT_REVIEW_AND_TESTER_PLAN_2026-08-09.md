@@ -208,6 +208,13 @@ Offline-Wiederkehr, Übergabe/Rückgabe/Storno, Melden/Blockieren/Bewertung sowi
 Barrierefreiheit/Export/Löschung. Kontrollpunkte sind qualifizierender Start,
 frühe Nutzung, Halbzeit, späte Nutzung und Eligibility-Beobachtung.
 
+Die versandfertige, aber noch linkfreie Anleitung für alle geschlossenen
+Tester liegt in
+`docs/operations/B11_GOOGLE_PLAY_CLOSED_TESTER_ONBOARDING_2026-08-14.md`.
+Der private Opt-in-Link und der private Feedbackkanal werden ausschließlich
+beim persönlichen Versand ergänzt. Weder die Testerzuordnung noch ein aktiver
+Link dürfen in Repository oder Master-Dokument gelangen.
+
 Vor dem realen Start bindet der Feedbackplan nur Build `2026081403` als
 reservierten finalen Kandidaten; ein Commit darf in diesem Zustand nicht
 erfunden werden. Erst wenn der exakte Play-Internal-Build installiert und der

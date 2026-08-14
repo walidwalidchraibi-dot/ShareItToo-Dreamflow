@@ -8,6 +8,13 @@
     "commit": null,
     "bindingState": "reserved-final-candidate"
   },
+  "testerOnboarding": {
+    "guidePath": "docs/operations/B11_GOOGLE_PLAY_CLOSED_TESTER_ONBOARDING_2026-08-14.md",
+    "privateOptInLinkInjectedAtSendTime": true,
+    "privateFeedbackChannelInjectedAtSendTime": true,
+    "containsTesterPersonalData": false,
+    "containsLiveOptInLink": false
+  },
   "rules": {
     "minimumContinuousTesterCount": 12,
     "minimumConsecutiveDays": 14,
