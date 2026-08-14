@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "google-play-internal-release-active",
+  "capturedAt": "2026-08-14T01:18:02Z",
+  "status": "available-store-propagation-pending",
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081401",
+    "commit": "5518040d63b72c08d8cd2f72d76d802023b7b055",
+    "aabSha256": "d98c87426f1452c0af67fd56ee72210eb8142f900298c512f7455962d1cca35e",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
+  },
+  "release": {
+    "track": "internal",
+    "name": "1.0.0-internal-2026081401",
+    "versionCodeObserved": "2026081401",
+    "versionNameObserved": "1.0.0",
+    "minimumApiObserved": 24,
+    "targetSdkObserved": 35,
+    "newInstallSizeMbObserved": 59.2,
+    "updateSizeMbObserved": 3.84,
+    "statusObserved": "available-to-internal-testers",
+    "reviewStatusObserved": "not-reviewed",
+    "releasedAtObserved": "2026-08-14T03:12:00+02:00",
+    "temporaryAppNameObserved": true
+  },
+  "validation": {
+    "uploadAcceptedByGooglePlay": true,
+    "retraceMappingAttached": true,
+    "nativeDebugSymbolsAttached": true,
+    "readyToRelease": true,
+    "supportedPhonesObserved": 12427,
+    "devicesLostComparedWithPreviousRelease": 0
+  },
+  "testers": {
+    "emailListSelected": true,
+    "selectedListCount": 1,
+    "selectedUserCount": 1,
+    "joinLinkAvailable": true,
+    "containsTesterAddress": false
+  },
+  "postReleaseChecks": {
+    "playStoreInstallAttempted": true,
+    "storeVersionDelivered": "2026081303",
+    "expectedStoreVersion": "2026081401",
+    "storePropagationComplete": false,
+    "exactCandidateStoreInstallCompleted": false
+  },
+  "boundaries": {
+    "internalReleaseActivated": true,
+    "closedTestingStarted": false,
+    "openTestingStarted": false,
+    "productionChanged": false,
+    "publicRolloutStarted": false,
+    "sentForProductionReview": false,
+    "containsSecrets": false,
+    "containsEmailAddresses": false,
+    "containsAccountIdentifiers": false
+  }
+}
