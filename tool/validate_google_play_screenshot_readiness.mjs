@@ -10,11 +10,69 @@ function fail(message) {
 
 export function validateGooglePlayScreenshotReadiness({
   repositoryRoot,
-  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-readiness-20260813.json'),
+  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081401-20260814.json'),
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   const exactCandidate = JSON.parse(readFileSync(
     resolve(repositoryRoot, 'store/device-validation.json'), 'utf8')).candidate;
+  if (evidence.kind === 'google-play-feed-screenshot-compatibility') {
+    if (evidence.schemaVersion !== 1 ||
+        evidence.status !== 'verified-compatible-no-visible-product-change') {
+      fail('Screenshot compatibility must preserve the verified compatibility state.');
+    }
+    const current = evidence.currentCandidate ?? {};
+    if (current.applicationId !== 'com.shareittoo.app' ||
+        current.versionName !== exactCandidate?.versionName ||
+        current.buildNumber !== exactCandidate?.buildNumber ||
+        current.commit !== exactCandidate?.commit ||
+        current.apkSha256 !== exactCandidate?.android?.apkSha256) {
+      fail('Screenshot compatibility is not bound to the exact current candidate.');
+    }
+    const safeRef = (ref, label) => {
+      if (typeof ref !== 'string' || ref.includes('..') ||
+          !ref.startsWith('docs/evidence/b11/') || !ref.endsWith('.json')) {
+        fail(`${label} is not a safe B11 evidence reference.`);
+      }
+      return resolve(repositoryRoot, ref);
+    };
+    const source = JSON.parse(readFileSync(safeRef(
+      evidence.sourceScreenshotEvidenceRef, 'sourceScreenshotEvidenceRef'), 'utf8'));
+    const sourceCandidate = JSON.parse(readFileSync(safeRef(
+      evidence.sourceCandidateEvidenceRef, 'sourceCandidateEvidenceRef'), 'utf8'));
+    if (source.kind !== 'google-play-feed-screenshot-readiness' ||
+        source.status !== 'exact-candidate-local-screenshots-validated-not-uploaded' ||
+        source.candidate?.buildNumber !== sourceCandidate.candidate?.buildNumber ||
+        source.candidate?.commit !== sourceCandidate.candidate?.commit ||
+        source.candidate?.apkSha256 !== sourceCandidate.android?.apkSha256 ||
+        BigInt(source.candidate?.buildNumber ?? '0') >= BigInt(current.buildNumber)) {
+      fail('Screenshot compatibility source is stale or not an exact historical candidate.');
+    }
+    const review = evidence.compatibilityReview ?? {};
+    const storeInstall = JSON.parse(readFileSync(safeRef(
+      review.currentStoreInstallEvidenceRef, 'currentStoreInstallEvidenceRef'), 'utf8'));
+    const roleBooking = JSON.parse(readFileSync(safeRef(
+      review.currentRoleBookingEvidenceRef, 'currentRoleBookingEvidenceRef'), 'utf8'));
+    if (review.sourceSnapshotCommit !== '95f3e2e3ca7363f729c6a6d9ecf4170ddda501df' ||
+        JSON.stringify(review.changedAppSourceFilesSinceSourceSnapshot) !==
+          JSON.stringify(['lib/services/backend_realtime_service.dart']) ||
+        review.visibleScreenSourceChanged !== false ||
+        review.storeListingCoreFlowsChanged !== false ||
+        review.screenshotsNeedRecapture !== false ||
+        storeInstall.candidate?.buildNumber !== current.buildNumber ||
+        storeInstall.postReleaseChecks?.playStoreInstallCompleted !== true ||
+        storeInstall.postReleaseChecks?.installedVersionVerified !== true ||
+        roleBooking.candidate?.buildNumber !== current.buildNumber ||
+        roleBooking.status !== 'passed-bounded-synthetic-role-booking-diagnostic') {
+      fail('Screenshot compatibility review is incomplete or contradicts the current Store build.');
+    }
+    const boundaries = evidence.boundaries ?? {};
+    if (Object.keys(boundaries).length !== 7 ||
+        Object.values(boundaries).some((value) => value !== false) ||
+        JSON.stringify(evidence).includes('@')) {
+      fail('Screenshot compatibility must not claim Store changes or contain private data.');
+    }
+    return { status: evidence.status, curatedListingCount: source.fixture.curatedListingCount };
+  }
   if (evidence.schemaVersion !== 1 ||
       evidence.kind !== 'google-play-feed-screenshot-readiness' ||
       evidence.status !== 'exact-candidate-local-screenshots-validated-not-uploaded') {

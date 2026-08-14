@@ -336,8 +336,9 @@ function validateAndroidDirectAppLinks(root, diagnostic, candidate) {
 
 function validateAndroidAuthenticatedSession(root, diagnostic, candidate) {
   const label = 'candidate.android.authenticatedSession';
-  if (diagnostic.status !== 'passed' || diagnostic.installMethod !== 'direct-apk-diagnostic') {
-    fail(`${label} must record a passed direct-apk-diagnostic.`);
+  if (diagnostic.status !== 'passed'
+      || !['direct-apk-diagnostic', 'google-play-split'].includes(diagnostic.installMethod)) {
+    fail(`${label} must record a passed supported Android installation diagnostic.`);
   }
   isoTimestamp(diagnostic.capturedAt, `${label}.capturedAt`, { required: true });
   for (const key of ['manufacturer', 'deviceModel', 'osVersion']) {
@@ -361,9 +362,23 @@ function validateAndroidAuthenticatedSession(root, diagnostic, candidate) {
   const expectedAndroid = object(candidate.android, 'candidate.android');
   if (installed.packageIdentityVerified !== true ||
       installed.versionName !== candidate.versionName ||
-      installed.buildNumber !== candidate.buildNumber ||
-      installed.apkSha256 !== expectedAndroid.apkSha256) {
-    fail(`${label}.evidence must prove the exact installed candidate APK and package identity.`);
+      installed.buildNumber !== candidate.buildNumber) {
+    fail(`${label}.evidence must prove the exact installed candidate version and package identity.`);
+  }
+  const directInstall = installed.delivery === undefined || installed.delivery === 'direct-apk';
+  const playInstall = installed.delivery === 'google-play-split';
+  if (directInstall) {
+    if (installed.apkSha256 !== expectedAndroid.apkSha256
+        || diagnostic.installMethod !== 'direct-apk-diagnostic') {
+      fail(`${label}.evidence must prove the exact installed candidate APK and package identity.`);
+    }
+  } else if (!playInstall
+      || diagnostic.installMethod !== 'google-play-split'
+      || installed.installerPackageName !== 'com.android.vending'
+      || !Number.isInteger(installed.splitCount)
+      || installed.splitCount < 2
+      || installed.apkSha256 !== undefined) {
+    fail(`${label}.evidence must prove an exact-version Google Play split installation.`);
   }
 
   const device = object(evidence.device, `${label}.evidence.device`);
@@ -407,8 +422,8 @@ function validateAndroidAuthenticatedSession(root, diagnostic, candidate) {
   }
 
   const expectedBoundaries = {
-    directDiagnosticOnly: true,
-    storeInstallationGateSatisfied: false,
+    directDiagnosticOnly: directInstall,
+    storeInstallationGateSatisfied: playInstall,
     syntheticRoleMatrixPassed: false,
     bookingFlowPassed: false,
     authenticatedDeepLinksPassed: false,

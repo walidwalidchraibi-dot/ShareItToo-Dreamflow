@@ -154,6 +154,15 @@ test('rejects candidate evidence whose artifact hash differs', () => {
   );
 });
 
+test('rejects a Store-upload boundary without an exact internal-release binding', () => {
+  const changed = structuredClone(candidateEvidence);
+  changed.googlePlayInternalRelease = undefined;
+  assert.throws(
+    () => validateStrict({ candidateEvidence: changed }),
+    /must preserve store, secret, and device-identifier boundaries/,
+  );
+});
+
 test('rejects a device matrix row that points to an older build', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[1];

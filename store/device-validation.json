@@ -15,7 +15,7 @@
     "paymentMode": "memory",
     "stripeLivemode": false,
     "android": {
-      "delivery": "pending",
+      "delivery": "play-internal",
       "aabSha256": "d98c87426f1452c0af67fd56ee72210eb8142f900298c512f7455962d1cca35e",
       "apkSha256": "788f15e1f160ec1e27f2529b34f90061fdef46c82197af93a8cabd9bd085b299",
       "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
@@ -51,21 +51,21 @@
       },
       "authenticatedSession": {
         "status": "passed",
-        "installMethod": "direct-apk-diagnostic",
-        "capturedAt": "2026-08-14T00:47:05.602Z",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-14T01:36:45.406Z",
         "manufacturer": "Google",
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081401-20260814T004705Z.json"
+        "evidenceRef": "docs/evidence/b11/android-store-authenticated-session-2026081401-20260814T013645Z.json"
       },
       "syntheticRoleBooking": {
         "status": "passed",
-        "installMethod": "direct-apk-diagnostic",
-        "capturedAt": "2026-08-14T00:47:44.984Z",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-14T01:37:15.968Z",
         "manufacturer": "Google",
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081401-20260814T004744Z.json"
+        "evidenceRef": "docs/evidence/b11/android-store-synthetic-role-booking-2026081401-20260814T013715Z.json"
       },
       "authenticatedDeepLinks": {
         "status": "passed",
@@ -217,8 +217,8 @@
       "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081401.json"
     },
     "storeWarningsLinksAndSigning": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/android-play-store-links-signing-2026081401-20260814.json"
     },
     "stagingCleanupAndHealth": {
       "status": "passed",

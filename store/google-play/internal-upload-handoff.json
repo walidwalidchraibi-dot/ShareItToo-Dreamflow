@@ -6,20 +6,20 @@
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081303",
-    "commit": "4144d0c0a3a2e19e89b6523594607c14625b0119",
-    "aabSha256": "c900bbf4ad223d9d08f15f931a8fcaca62538c500a480749cb7396a454fddac6",
+    "buildNumber": "2026081401",
+    "commit": "5518040d63b72c08d8cd2f72d76d802023b7b055",
+    "aabSha256": "d98c87426f1452c0af67fd56ee72210eb8142f900298c512f7455962d1cca35e",
     "uploadCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true
   },
   "artifact": {
-    "archiveDirectoryName": "2026081303-4144d0c0a3a2e19e89b6523594607c14625b0119",
-    "fileName": "shareittoo-1.0.0-2026081303-4144d0c0a3a2e19e89b6523594607c14625b0119.aab",
+    "archiveDirectoryName": "2026081401-5518040d63b72c08d8cd2f72d76d802023b7b055",
+    "fileName": "shareittoo-1.0.0-2026081401-5518040d63b72c08d8cd2f72d76d802023b7b055.aab",
     "ownerOnlyPermissionsRequired": true
   },
   "releaseDraft": {
-    "name": "1.0.0-internal-2026081303",
+    "name": "1.0.0-internal-2026081401",
     "notesPath": "store/google-play/de-DE/internal_release_notes.txt",
     "language": "de-DE",
     "saveOnly": false,
@@ -51,9 +51,9 @@
     "differentArtifact": true,
     "credentialsInRepository": true
   },
-  "preUploadLiveReadinessEvidenceRef": "docs/evidence/b11/google-play-pre-upload-live-readiness-20260813.json",
-  "internalReleaseEvidenceRef": "docs/evidence/b11/google-play-internal-release-active-20260813.json",
-  "evidenceRef": "docs/evidence/b11/android-candidate-2026081303.json",
+  "preUploadLiveReadinessEvidenceRef": "docs/evidence/b11/google-play-pre-upload-live-readiness-2026081401-20260814.json",
+  "internalReleaseEvidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081401-20260814.json",
+  "evidenceRef": "docs/evidence/b11/android-candidate-2026081401.json",
   "containsSecrets": false,
   "containsReviewCredentials": false
 }

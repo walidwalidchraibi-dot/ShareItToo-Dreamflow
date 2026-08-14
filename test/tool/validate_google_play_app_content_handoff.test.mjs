@@ -19,9 +19,9 @@ async function fixture(mutate = () => {}) {
   return { root, handoffPath };
 }
 
-test('accepts ten saved Play tasks while two work areas remain stopped', () => {
+test('accepts the observed nine-of-eleven Play setup while two work areas remain stopped', () => {
   const result = validateGooglePlayAppContentHandoff({ repositoryRoot });
-  assert.deepEqual(result, { taskCount: 12, buildNumber: '2026081303' });
+  assert.deepEqual(result, { taskCount: 12, buildNumber: canonical.candidate.buildNumber });
 });
 
 test('rejects losing the completed owner-approved IARC state', async (t) => {

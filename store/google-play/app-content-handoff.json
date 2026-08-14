@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "status": "ten-of-twelve-saved-two-open",
+  "status": "nine-of-eleven-saved-two-open",
   "submissionAllowed": false,
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081303",
+    "buildNumber": "2026081401",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
   },
@@ -84,13 +84,13 @@
       "website": "https://shareittoo.com/"
     },
     "storeListing": {
-      "status": "saved-in-console-exact-candidate-copy-and-assets",
+      "status": "saved-in-console-compatible-copy-and-assets",
       "copyAndGraphicsPrepared": true,
       "phoneScreenshotsValidated": true,
       "validatedPhoneScreenshotCount": 4,
       "recommendedPhoneScreenshotTarget": 4,
       "uploadedToPlayConsole": true,
-      "screenshotReadinessRef": "docs/evidence/b11/google-play-feed-screenshot-readiness-20260813.json",
+      "screenshotReadinessRef": "docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081401-20260814.json",
       "consoleSaveEvidenceRef": "docs/evidence/b11/google-play-store-listing-saved-20260813.json"
     }
   },
@@ -106,7 +106,7 @@
   "evidenceRefs": [
     "docs/operations/B11_GOOGLE_PLAY_CONSOLE_ENTRY_WORKSHEET_2026-08-12.md",
     "store/privacy-disclosures.json",
-    "docs/evidence/b11/android-release-permissions-2026081303.json",
+    "docs/evidence/b11/android-release-permissions-2026081401.json",
     "docs/evidence/b11/google-play-app-content-progress-20260812.json",
     "docs/evidence/b11/google-play-data-safety-step2-20260812.json",
     "docs/evidence/b11/google-play-data-safety-datatypes-20260812.json",

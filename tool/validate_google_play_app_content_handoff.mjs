@@ -34,7 +34,7 @@ export function validateGooglePlayAppContentHandoff({
   );
   const currentCandidate = object(deviceValidation.candidate, 'device validation candidate');
   if (handoff.schemaVersion !== 1 ||
-      handoff.status !== 'ten-of-twelve-saved-two-open' ||
+      handoff.status !== 'nine-of-eleven-saved-two-open' ||
       handoff.submissionAllowed !== false) {
     fail('App-content handoff must remain prepared and fail-closed.');
   }
@@ -125,9 +125,9 @@ export function validateGooglePlayAppContentHandoff({
       tasks.storeListing.recommendedPhoneScreenshotTarget !== 4 ||
       tasks.storeListing.uploadedToPlayConsole !== true ||
       tasks.storeListing.status !==
-        'saved-in-console-exact-candidate-copy-and-assets' ||
+        'saved-in-console-compatible-copy-and-assets' ||
       tasks.storeListing.screenshotReadinessRef !==
-        'docs/evidence/b11/google-play-feed-screenshot-readiness-20260813.json' ||
+        'docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081401-20260814.json' ||
       tasks.storeListing.consoleSaveEvidenceRef !==
         'docs/evidence/b11/google-play-store-listing-saved-20260813.json') {
     fail('One or more prepared Play answers no longer match the bounded product truth.');

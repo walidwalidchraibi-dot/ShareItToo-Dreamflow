@@ -30,18 +30,18 @@ sind ausdrücklich nicht Bestandteil dieser Freigabe.
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
 | Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081401-20260814T002619Z.json` |
 | Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-app-links-2026081401-20260814T004531Z.json` |
-| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081401-20260814T004705Z.json` |
-| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081401-20260814T004744Z.json` |
+| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-store-authenticated-session-2026081401-20260814T013645Z.json` |
+| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-store-synthetic-role-booking-2026081401-20260814T013715Z.json` |
 | Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081401-20260814T004903Z.json` |
 | Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081401-20260814T004122Z.json` |
 | Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081401-20260814T005045Z.json` |
 | Android-Offline-/Realtime-Wiederherstellung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-offline-realtime-2026081401-20260814T002910Z.json` |
 | Google-Play-Installation | `testing`; noch keine belegte Installation aus dem internen Play-Track |
-| Play-Signing und öffentliche App-Links | `open`; noch kein kandidatenspezifischer Nachweis |
+| Play-Signing und öffentliche App-Links | `passed`; `docs/evidence/b11/android-play-store-links-signing-2026081401-20260814.json` |
 | Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081401.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081401.json` |
 | Staging-Servercommit | `32a2dfb9a570fd7a64128bc6ce0ae0faf4f73f88` |
-| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
+| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 5/7 |
 
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Eine bestandene Google-Play-Installation ist nur belegt, wenn der aktuelle Kandidat aus dem internen Track installiert und gestartet wurde. Die früheren direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM-, Abmelde- und Offline-/Realtime-Diagnosen bleiben davon abgegrenzte Vorprüfungen. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
@@ -296,7 +296,7 @@ Container- und Image-IDs; beide blieben gesund.
 | Firebase-Projekt | Android technisch fertig | realen Android-Push auf eigenem Pilotgerät prüfen; iOS/APNs folgt separat |
 | FCM-Service-Account | Staging bestanden | echte Zustellung, Tokenwechsel und Abmeldung auf dem Pilotgerät prüfen |
 | APNs | offen | Apple-ID und Developer-Mitgliedschaft einrichten; danach Team, Push-Key und Provisioning verbinden |
-| Google Play Internal Testing | Build `2026081303` im internen Track aktiv und aus Google Play auf dem Pixel installiert | verbleibende App-Inhalte schließen und den unveränderten Store-Build in der Rollen-/Netzmatrix prüfen |
+| Google Play Internal Testing | Build `2026081401` im internen Track aktiv, aus Google Play auf dem Pixel installiert sowie im Rollen-/Buchungsablauf geprüft | verbleibende App-Inhalte schließen und den unveränderten Store-Build in der Netz-/Barrierefreiheitsmatrix prüfen |
 | App Store Connect/TestFlight | gesperrt | Apple-Anmeldung und 2FA durch Walid; vollständiges Xcode und Team-Signierung einrichten |
 | Reale Android-Geräte | Play-Installation auf Pixel 7 Pro bestanden, Matrix offen | Store-Build funktional über WLAN und Hotspot mit beiden Rollen sowie TalkBack prüfen |
 | Reale iOS-Geräte | offen | TestFlight-Build auf mindestens einem unterstützten Gerät testen |
@@ -306,7 +306,7 @@ Container- und Image-IDs; beide blieben gesund.
 Es ist derzeit kein vollständiges Xcode installiert, kein iOS-Signing-Team
 verbunden und kein physisches iOS-Gerät für TestFlight verfügbar. Für Android
 wurden reale Direktinstallationen auf OnePlus und Pixel nachgewiesen. Der
-aktuelle Kandidat `2026081303` wurde zusätzlich aus Google Play Internal auf
+aktuelle Kandidat `2026081401` wurde zusätzlich aus Google Play Internal auf
 dem Pixel installiert und gestartet. Damit ist das Store-Installationsgate
 bestanden; die Rollen-/Netz-, Push- und Accessibility-Matrix bleibt offen.
 

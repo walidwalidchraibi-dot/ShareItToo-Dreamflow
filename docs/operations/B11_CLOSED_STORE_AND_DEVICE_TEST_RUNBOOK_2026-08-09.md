@@ -35,18 +35,18 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
 | Direkte Android-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-smoke-2026081401-20260814T002619Z.json` |
 | Direkte Android-App-Link-Diagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-direct-app-links-2026081401-20260814T004531Z.json` |
-| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081401-20260814T004705Z.json` |
-| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081401-20260814T004744Z.json` |
+| Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-store-authenticated-session-2026081401-20260814T013645Z.json` |
+| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-store-synthetic-role-booking-2026081401-20260814T013715Z.json` |
 | Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081401-20260814T004903Z.json` |
 | Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081401-20260814T004122Z.json` |
 | Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081401-20260814T005045Z.json` |
 | Android-Offline-/Realtime-Wiederherstellung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-offline-realtime-2026081401-20260814T002910Z.json` |
 | Google-Play-Installation | `testing`; noch keine belegte Installation aus dem internen Play-Track |
-| Play-Signing und öffentliche App-Links | `open`; noch kein kandidatenspezifischer Nachweis |
+| Play-Signing und öffentliche App-Links | `passed`; `docs/evidence/b11/android-play-store-links-signing-2026081401-20260814.json` |
 | Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081401.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081401.json` |
 | Staging-Servercommit | `32a2dfb9a570fd7a64128bc6ce0ae0faf4f73f88` |
-| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
+| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 5/7 |
 
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Eine bestandene Google-Play-Installation ist nur belegt, wenn der aktuelle Kandidat aus dem internen Track installiert und gestartet wurde. Die früheren direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM-, Abmelde- und Offline-/Realtime-Diagnosen bleiben davon abgegrenzte Vorprüfungen. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
@@ -199,7 +199,7 @@ Sie installiert exakt das geprüfte APK, liest die installierte Version zurück
 und startet die App einmal. Das ausgegebene bereinigte JSON kennzeichnet diesen
 Schritt bewusst als `direct-apk-diagnostic`: Er erfüllt weder das
 Play-Internal-Installationsgate noch die manuelle Rollen-, Netzwerk-, Push-
-oder Accessibility-Matrix. Für Kandidat `2026081303` ist der getrennte
+oder Accessibility-Matrix. Für Kandidat `2026081401` ist der getrennte
 Store-Download inzwischen bestanden; eine erneute direkte APK-Installation
 darf diesen Play-Stand nicht ersetzen.
 
@@ -208,7 +208,7 @@ darf diesen Play-Stand nicht ersetzen.
 2. Den bereits aktiven Android-AAB im geschlossenen Internal-Track unverändert
    lassen; Warnungen und Play-App-Signing-Zertifikat dokumentieren.
 3. Android weiterhin über den offiziellen Testlink verwenden. Die
-   Store-Installation von `2026081303` ist belegt; ein direktes APK dient nur
+   Store-Installation von `2026081401` ist belegt; ein direktes APK dient nur
    der Diagnose und zählt nicht als Ersatz.
 4. iOS-Archiv aus dem dokumentierten Commit mit dem ausgewählten Team bauen,
    in TestFlight laden und Verarbeitung ohne kritische Warnung abwarten.

@@ -8,7 +8,7 @@ import { validateGooglePlayScreenshotReadiness } from '../../tool/validate_googl
 
 const repositoryRoot = new URL('../../', import.meta.url).pathname;
 const canonical = JSON.parse(await readFile(
-  new URL('../../docs/evidence/b11/google-play-feed-screenshot-readiness-20260813.json', import.meta.url), 'utf8'));
+  new URL('../../docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081401-20260814.json', import.meta.url), 'utf8'));
 
 async function fixture(mutate) {
   const root = await mkdtemp(join(tmpdir(), 'sit-screenshot-ready-'));
@@ -19,23 +19,23 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts four locally validated exact-candidate screenshots', () => {
+test('accepts four historical screenshots after exact current Store compatibility review', () => {
   assert.deepEqual(validateGooglePlayScreenshotReadiness({ repositoryRoot }), {
-    status: 'exact-candidate-local-screenshots-validated-not-uploaded',
+    status: 'verified-compatible-no-visible-product-change',
     curatedListingCount: 4,
   });
 });
 
-test('rejects claiming a clean feed while technical fixtures remain visible', async (t) => {
-  const data = await fixture((evidence) => { evidence.feedObservation.legacyTechnicalListingsVisible = true; });
+test('rejects compatibility when a visible screen source changed', async (t) => {
+  const data = await fixture((evidence) => { evidence.compatibilityReview.visibleScreenSourceChanged = true; });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayScreenshotReadiness({ repositoryRoot, ...data }),
     /contradicts/);
 });
 
-test('rejects claiming deletion authority', async (t) => {
-  const data = await fixture((evidence) => { evidence.completedRemediation.deletionAuthorized = true; });
+test('rejects claiming a Store change during compatibility review', async (t) => {
+  const data = await fixture((evidence) => { evidence.boundaries.storeListingChangedDuringReview = true; });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayScreenshotReadiness({ repositoryRoot, ...data }),
-    /destructive or production authority/);
+    /must not claim Store changes/);
 });

@@ -762,12 +762,14 @@ function logoutLifecycleFixture() {
 
 test('accepts the honest in-progress B11 evidence state', () => {
   const summary = validate();
+  const expectedPassedReleaseChecks = Object.values(baseDeviceManifest.releaseChecks)
+    .filter((check) => check.status === 'passed').length;
   assert.deepEqual(summary, {
     state: 'testing',
     goNoGo: 'hold',
     matrixPassed: 0,
     matrixTotal: 4,
-    releaseChecksPassed: 4,
+    releaseChecksPassed: expectedPassedReleaseChecks,
     releaseChecksTotal: 7,
     minimumBuild: '2026080903',
   });
@@ -1029,9 +1031,11 @@ test('rejects a premature Store-console or public-route pass claim', () => {
 });
 
 test('strict mode rejects the in-progress evidence state', () => {
+  const expectedPassedReleaseChecks = Object.values(baseDeviceManifest.releaseChecks)
+    .filter((check) => check.status === 'passed').length;
   assert.throws(
     () => validate({ requirePassed: true }),
-    /remains testing: matrix=0\/4, releaseChecks=4\/7/,
+    new RegExp(`remains testing: matrix=0/4, releaseChecks=${expectedPassedReleaseChecks}/7`),
   );
 });
 

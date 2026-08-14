@@ -260,7 +260,18 @@ export function validateB11ReleaseDocs({
   if (evidence.privacyAndNetwork?.binaryScan !== 'passed') {
     fail('The current Android candidate evidence must contain a passed binary privacy scan.');
   }
-  if (evidence.boundaries?.uploadedToStore !== false || evidence.boundaries?.containsSecrets !== false || evidence.boundaries?.containsRawDeviceIdentifiers !== false) {
+  const internalRelease = evidence.googlePlayInternalRelease;
+  const uploadedInternalReleaseBound = new Map([
+    ['google-play-internal-active-store-install-pending',
+      'available-to-internal-testers-store-propagation-pending'],
+    ['google-play-internal-active-store-install-verified', 'store-install-verified'],
+  ]);
+  const uploadedStoreBoundaryValid = evidence.boundaries?.uploadedToStore === false || (
+    evidence.boundaries?.uploadedToStore === true
+    && uploadedInternalReleaseBound.get(evidenceAndroid.delivery) === internalRelease?.status
+    && /^docs\/evidence\/b11\/[a-z0-9._-]+\.json$/.test(internalRelease?.evidenceRef ?? '')
+  );
+  if (!uploadedStoreBoundaryValid || evidence.boundaries?.containsSecrets !== false || evidence.boundaries?.containsRawDeviceIdentifiers !== false) {
     fail('The current candidate evidence must preserve store, secret, and device-identifier boundaries.');
   }
 

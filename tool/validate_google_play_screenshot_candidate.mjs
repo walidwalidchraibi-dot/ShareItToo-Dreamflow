@@ -29,19 +29,26 @@ export function validateGooglePlayScreenshotCandidate({
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   const deviceValidation = JSON.parse(readFileSync(
     resolve(repositoryRoot, 'store/device-validation.json'), 'utf8'));
-  const exactCandidate = deviceValidation.candidate;
+  const currentCandidate = deviceValidation.candidate;
   if (evidence.schemaVersion !== 1 || evidence.kind !== 'google-play-screenshot-candidate' ||
       evidence.status !== 'exact-candidate-local-not-uploaded') fail('Screenshot candidate state is invalid.');
+  const evidenceBuild = evidence.candidate?.buildNumber;
+  if (!/^\d{10}$/u.test(evidenceBuild ?? '') ||
+      BigInt(evidenceBuild) > BigInt(currentCandidate?.buildNumber ?? '0')) {
+    fail('Screenshot candidate build is invalid or newer than the current candidate.');
+  }
+  const exactCandidate = JSON.parse(readFileSync(resolve(
+    repositoryRoot, `docs/evidence/b11/android-candidate-${evidenceBuild}.json`), 'utf8'));
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
-      evidence.candidate?.versionName !== exactCandidate?.versionName ||
-      evidence.candidate?.buildNumber !== exactCandidate?.buildNumber ||
-      evidence.candidate?.commit !== exactCandidate?.commit ||
-      evidence.candidate?.apkSha256 !== exactCandidate?.android?.apkSha256 ||
+      evidence.candidate?.versionName !== exactCandidate.candidate?.versionName ||
+      evidence.candidate?.buildNumber !== exactCandidate.candidate?.buildNumber ||
+      evidence.candidate?.commit !== exactCandidate.candidate?.commit ||
+      evidence.candidate?.apkSha256 !== exactCandidate.android?.apkSha256 ||
       evidence.candidate?.releaseChannel !== 'internal' ||
       evidence.candidate?.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1' ||
       Object.hasOwn(evidence, 'replacementBuildNumber') ||
       Object.hasOwn(evidence, 'supersessionEvidenceRef')) {
-    fail('Screenshot candidate is not bound to the exact installed build.');
+    fail('Screenshot candidate is not bound to its exact archived installed build.');
   }
   const scene = evidence.scene ?? {};
   if (!['feed', 'listing-detail', 'search', 'create-listing'].includes(scene.id) || scene.locale !== 'de-DE' ||

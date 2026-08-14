@@ -58,6 +58,18 @@ function readJson(path, label) {
   }
 }
 
+function safeEvidencePath(repositoryRoot, reference, label) {
+  if (typeof reference !== 'string' ||
+      !/^docs\/evidence\/b11\/[a-zA-Z0-9._-]+\.json$/u.test(reference)) {
+    fail(`${label} must reference a safe B11 evidence JSON file.`);
+  }
+  const path = resolve(repositoryRoot, reference);
+  if (!path.startsWith(`${realpathSync(repositoryRoot)}/`)) {
+    fail(`${label} left the repository.`);
+  }
+  return path;
+}
+
 function sha256File(path) {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
@@ -195,13 +207,13 @@ export function validateGooglePlayInternalHandoff({
     same(postUploadChecks[key], value, `postUploadChecks.${key}`);
   }
   if (internalActive) {
-    if (!internalReleasePath) {
-      same(handoff.internalReleaseEvidenceRef,
-        'docs/evidence/b11/google-play-internal-release-active-20260813.json',
-        'internalReleaseEvidenceRef');
-    }
+    const resolvedInternalReleasePath = internalReleasePath ?? safeEvidencePath(
+      repositoryRoot,
+      handoff.internalReleaseEvidenceRef,
+      'internalReleaseEvidenceRef',
+    );
     const internalEvidence = object(readJson(
-      internalReleasePath ?? resolve(repositoryRoot, handoff.internalReleaseEvidenceRef),
+      resolvedInternalReleasePath,
       'internal release evidence'), 'internal release evidence');
     assertNoCredentials(internalEvidence, 'internal release evidence');
     same(internalEvidence.kind, 'google-play-internal-release-active',
@@ -260,14 +272,10 @@ export function validateGooglePlayInternalHandoff({
   const hardStops = object(handoff.hardStops, 'hardStops');
   for (const key of expectedHardStops) same(hardStops[key], true, `hardStops.${key}`);
 
-  same(
-    handoff.preUploadLiveReadinessEvidenceRef,
-    'docs/evidence/b11/google-play-pre-upload-live-readiness-20260813.json',
-    'preUploadLiveReadinessEvidenceRef',
-  );
-  const resolvedLiveReadinessPath = liveReadinessPath ?? resolve(
+  const resolvedLiveReadinessPath = liveReadinessPath ?? safeEvidencePath(
     repositoryRoot,
     handoff.preUploadLiveReadinessEvidenceRef,
+    'preUploadLiveReadinessEvidenceRef',
   );
   const live = object(readJson(resolvedLiveReadinessPath, 'pre-upload live readiness'),
     'pre-upload live readiness');
@@ -305,7 +313,20 @@ export function validateGooglePlayInternalHandoff({
   same(consoleState.appStatus, 'draft', 'pre-upload live readiness.googlePlayConsole.appStatus');
   const internal = object(consoleState.internalTesting,
     'pre-upload live readiness.googlePlayConsole.internalTesting');
-  const expectedInternal = {
+  const replacementPending = internal.status === 'active-existing-release-replacement-pending';
+  if (!replacementPending && internal.status !== 'inactive-draft-release') {
+    fail('pre-upload live readiness.googlePlayConsole.internalTesting.status is unsupported.');
+  }
+  const expectedInternal = replacementPending ? {
+    status: 'active-existing-release-replacement-pending',
+    draftReleaseShellPresent: true,
+    completedTaskCount: 3,
+    totalTaskCount: 3,
+    maximumTesterCount: 100,
+    emailListCreated: true,
+    publishedJoinLinkAvailable: true,
+    uploadedBundleCount: 1,
+  } : {
     status: 'inactive-draft-release',
     draftReleaseShellPresent: true,
     completedTaskCount: 1,
@@ -317,6 +338,12 @@ export function validateGooglePlayInternalHandoff({
   };
   for (const [key, value] of Object.entries(expectedInternal)) {
     same(internal[key], value, `pre-upload live readiness.googlePlayConsole.internalTesting.${key}`);
+  }
+  if (replacementPending) {
+    if (!/^\d{10}$/u.test(internal.existingReleaseBuildNumber ?? '') ||
+        BigInt(internal.existingReleaseBuildNumber) >= BigInt(candidate.buildNumber)) {
+      fail('pre-upload live readiness existing release must be an older ten-digit build.');
+    }
   }
   const closed = object(consoleState.closedTesting,
     'pre-upload live readiness.googlePlayConsole.closedTesting');
@@ -332,13 +359,14 @@ export function validateGooglePlayInternalHandoff({
   }
   const appContent = object(consoleState.appContent,
     'pre-upload live readiness.googlePlayConsole.appContent');
-  same(appContent.completedTaskCount, 8,
+  same(appContent.completedTaskCount, replacementPending ? 9 : 8,
     'pre-upload live readiness.googlePlayConsole.appContent.completedTaskCount');
   same(appContent.totalTaskCount, 11,
     'pre-upload live readiness.googlePlayConsole.appContent.totalTaskCount');
   same(
     [...(appContent.openTasks ?? [])].sort().join(','),
-    ['privacy-policy', 'data-safety', 'store-listing'].sort().join(','),
+    (replacementPending ? ['privacy-policy', 'data-safety'] :
+      ['privacy-policy', 'data-safety', 'store-listing']).sort().join(','),
     'pre-upload live readiness.googlePlayConsole.appContent.openTasks',
   );
   const privacyPolicy = object(consoleState.privacyPolicy,
@@ -364,7 +392,18 @@ export function validateGooglePlayInternalHandoff({
   }
   const listing = object(consoleState.storeListing,
     'pre-upload live readiness.googlePlayConsole.storeListing');
-  const expectedListing = {
+  const expectedListing = replacementPending ? {
+    language: 'de-DE',
+    textFieldsPresent: true,
+    shortDescriptionConsoleWarning: 'none',
+    shortDescriptionLocalRemediationPrepared: true,
+    appIconUploaded: true,
+    featureGraphicUploaded: true,
+    phoneScreenshotsUploaded: 4,
+    validatedLocalPhoneScreenshots: 4,
+    savedInThisObservation: false,
+    previouslySaved: true,
+  } : {
     language: 'de-DE',
     textFieldsPresent: true,
     shortDescriptionConsoleWarning: 'en-dash-instead-of-em-dash',
@@ -395,7 +434,7 @@ export function validateGooglePlayInternalHandoff({
   const expectedSigning = {
     releasesSignedByPlay: true,
     playAppSigningFingerprintObserved: true,
-    uploadCertificateFingerprintVisibleAfterFirstBundle: false,
+    uploadCertificateFingerprintVisibleAfterFirstBundle: replacementPending,
     automaticProtectionActive: true,
     playIntegrityApiIntegrated: false,
     storeListingDeviceChecksEnabled: false,
@@ -407,7 +446,7 @@ export function validateGooglePlayInternalHandoff({
   const crossChecks = object(live.localCrossChecks, 'pre-upload live readiness.localCrossChecks');
   same(
     crossChecks.assetLinksWithUploadAndPlayFingerprints,
-    'passed-local-not-deployed',
+    replacementPending ? 'passed-deployed' : 'passed-local-not-deployed',
     'pre-upload live readiness.localCrossChecks.assetLinksWithUploadAndPlayFingerprints',
   );
   const device = object(crossChecks.connectedAndroidDevice,
