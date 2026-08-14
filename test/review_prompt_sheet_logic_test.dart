@@ -46,7 +46,7 @@ void main() {
     expect(areAllReviewCriteriaRated(const [5, 4, 5, 5]), isTrue);
   });
 
-  testWidgets('needsReview blockiert prompt-anzeige mit snackbar', (
+  testWidgets('needsReview blockiert prompt-anzeige mit SIT-popup', (
     tester,
   ) async {
     final owner = buildTestUser('owner-review-sheet', name: 'Walid');

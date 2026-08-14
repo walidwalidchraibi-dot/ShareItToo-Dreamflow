@@ -4,6 +4,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/app_popup.dart';
 import 'package:share_plus/share_plus.dart';
 
 class PrivacyInfoScreen extends StatefulWidget {
@@ -36,16 +37,18 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
         ),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Dein Datenexport wurde sicher erstellt.')),
+      AppPopup.success(
+        context,
+        title: 'Datenexport erstellt',
+        message: 'Dein Datenexport wurde sicher erstellt.',
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Der Datenexport konnte gerade nicht erstellt werden. Bitte versuche es erneut.')),
+      AppPopup.error(
+        context,
+        title: 'Datenexport fehlgeschlagen',
+        message:
+            'Der Datenexport konnte gerade nicht erstellt werden. Bitte versuche es erneut.',
       );
     } finally {
       if (mounted) setState(() => _exporting = false);

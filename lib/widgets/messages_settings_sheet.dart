@@ -10,6 +10,7 @@ import 'package:lendify/screens/report_user_screen.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/services/messages_settings_service.dart';
 import 'package:lendify/widgets/translation_language_dialog.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 enum MessagesSettingsPresentation { sheet, page }
 
@@ -92,16 +93,11 @@ class _MessagesSettingsViewState extends State<MessagesSettingsView> {
     } catch (e) {
       debugPrint('MessagesSettingsView._save failed: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: const Text('Einstellungen konnten nicht gespeichert werden. Bitte versuche es erneut.'),
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-          ),
-        );
+      AppPopup.error(
+        context,
+        title: 'Einstellungen nicht gespeichert',
+        message: 'Bitte versuche es erneut.',
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -551,4 +547,3 @@ class _SettingsActionRow extends StatelessWidget {
     );
   }
 }
-

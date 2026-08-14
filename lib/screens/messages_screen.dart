@@ -1202,30 +1202,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
     if (result == true) {
       await _loadData();
       if (!mounted) return;
-      final theme = Theme.of(context);
-      final isDark = theme.brightness == Brightness.dark;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              'Änderungen wurden gespeichert.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: isDark ? Colors.white : AppTheme.textPrimary(context),
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            duration: const Duration(milliseconds: 2500),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 88),
-            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFE2E8F0)),
-            ),
-          ),
-        );
+      AppPopup.success(
+        context,
+        title: 'Änderungen gespeichert',
+      );
     }
   }
 }

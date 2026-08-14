@@ -8,6 +8,7 @@ import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/services/user_reports_service.dart';
 import 'package:lendify/widgets/user_avatar.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 enum ReportReason {
   inappropriate,
@@ -129,9 +130,10 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
     } catch (e) {
       debugPrint('[ReportUserScreen] evidence upload failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Beweis konnte nicht hochgeladen werden.')),
+        AppPopup.error(
+          context,
+          title: 'Beweis nicht hochgeladen',
+          message: 'Bitte prüfe die Datei und versuche es erneut.',
         );
       }
     } finally {
@@ -164,8 +166,11 @@ class _ReportUserScreenState extends State<ReportUserScreen> {
     } catch (e) {
       debugPrint('[ReportUserScreen] submit failed: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Senden fehlgeschlagen. Bitte erneut versuchen.')));
+      AppPopup.error(
+        context,
+        title: 'Meldung nicht gesendet',
+        message: 'Bitte versuche es erneut.',
+      );
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

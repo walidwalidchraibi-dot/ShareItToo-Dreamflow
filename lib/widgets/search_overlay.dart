@@ -12,6 +12,7 @@ import 'package:lendify/screens/search_results_screen.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/all_categories_overlay.dart';
 import 'package:lendify/openai/openai_config.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 class SearchOverlay {
   static Future<void> show(BuildContext context) async {
@@ -420,11 +421,10 @@ class _SearchSheetState extends State<_SearchSheet> {
     if (prompt.trim().isEmpty) return;
     if (!OpenAIConfig.isAvailable) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'KI-Hilfe ist vorübergehend deaktiviert. Bitte suche manuell weiter.'),
-          ),
+        AppPopup.info(
+          context,
+          title: 'KI-Hilfe vorübergehend nicht verfügbar',
+          message: 'Bitte suche in der Zwischenzeit manuell weiter.',
         );
       }
       return;
@@ -722,10 +722,10 @@ class _SearchSheetState extends State<_SearchSheet> {
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Die Suche ist gerade nicht erreichbar. Bitte versuche es erneut.')),
+      AppPopup.error(
+        context,
+        title: 'Suche nicht erreichbar',
+        message: 'Bitte versuche es in einem Moment erneut.',
       );
       return;
     } finally {

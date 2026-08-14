@@ -6,6 +6,45 @@ import 'package:lendify/widgets/login_nudge_sheet.dart';
 /// Unified popup and toast utilities to keep a consistent, modern glass style
 /// across the entire app. Use these instead of SnackBar or small bottom sheets.
 class AppPopup {
+  /// Centered success feedback for short completed actions.
+  static Future<void> success(
+    BuildContext context, {
+    required String title,
+    String? message,
+  }) =>
+      toast(
+        context,
+        icon: Icons.check_circle_outline_rounded,
+        title: title,
+        message: message,
+      );
+
+  /// Centered, persistent feedback for failures that need attention.
+  static Future<void> error(
+    BuildContext context, {
+    required String title,
+    String? message,
+  }) =>
+      show(
+        context,
+        icon: Icons.error_outline_rounded,
+        title: title,
+        message: message,
+      );
+
+  /// Centered informational feedback for blocked or unavailable actions.
+  static Future<void> info(
+    BuildContext context, {
+    required String title,
+    String? message,
+  }) =>
+      show(
+        context,
+        icon: Icons.info_outline_rounded,
+        title: title,
+        message: message,
+      );
+
   /// Shows a lightweight anchored menu near the top-right (SIT style).
   /// Returns the selected value or null when dismissed.
   static Future<String?> showMenuActions(

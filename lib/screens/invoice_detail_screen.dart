@@ -4,6 +4,7 @@ import 'package:lendify/models/invoice.dart';
 import 'package:lendify/services/invoice_pdf_service.dart';
 import 'package:lendify/services/local_artifact_storage_service.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/app_popup.dart';
 import 'package:printing/printing.dart';
 
 class InvoiceDetailScreen extends StatefulWidget {
@@ -46,7 +47,11 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     } catch (e) {
       debugPrint('[InvoiceDetail] download failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PDF konnte nicht erstellt werden.')));
+        AppPopup.error(
+          context,
+          title: 'PDF konnte nicht erstellt werden',
+          message: 'Bitte versuche es erneut.',
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -62,7 +67,11 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     } catch (e) {
       debugPrint('[InvoiceDetail] share failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Teilen fehlgeschlagen.')));
+        AppPopup.error(
+          context,
+          title: 'Teilen fehlgeschlagen',
+          message: 'Bitte versuche es erneut.',
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);

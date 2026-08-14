@@ -3786,14 +3786,10 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
       if (supportThread == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                'Support-Fall vorbereitet. Support-Route fehlt noch.',
-              ),
-              backgroundColor: BrandColors.primary,
-              behavior: SnackBarBehavior.floating,
-            ),
+          AppPopup.info(
+            context,
+            title: 'Support-Fall vorbereitet',
+            message: 'Die Support-Route ist noch nicht verfügbar.',
           );
         }
         return;

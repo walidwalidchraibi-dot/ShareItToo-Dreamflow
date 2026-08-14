@@ -32,7 +32,7 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "7c4ab7b76fc6cc63aed439ce513cdc712da699ae6dff41ef87266308b1e707fa"
+      "sha256": "2738e28f1e26c4b04716b9e2bf6c14699f879a45f73c4a88755fd88236a4db61"
     },
     {
       "path": "backend/src/account_actions.js",
@@ -72,7 +72,7 @@
     },
     {
       "path": "lib/screens/contact_data_screen.dart",
-      "sha256": "24a9a0b204f89eca786fab00405f895203248a062a3abd992ff700bd6162cb7d"
+      "sha256": "d54b36e4e6d93460d17b619e56424633a2f8eb55bad6c9c6b38e0d6281db7fa3"
     },
     {
       "path": "lib/openai/openai_config.dart",
@@ -92,7 +92,7 @@
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "d6c03f73a2a88502f9133ceeecf0f17aa287d1304748612f2cf3148ba991326a"
+      "sha256": "40c540fbfb3d65a4a5256b3877c7cfb60a853a372abb917ea9db819d9a058ade"
     },
     {
       "path": "lib/widgets/return_handover_stepper_sheet.dart",
@@ -100,7 +100,7 @@
     },
     {
       "path": "lib/screens/report_user_screen.dart",
-      "sha256": "0451df1b18e75662a76988cc9ef816073273651731b855e43e06cbe4db722760"
+      "sha256": "fd369a7c88dbbf74bcece902454e0089bbca11b3aadb93648841b5083298dae0"
     },
     {
       "path": "store/phone-verification-readiness.json",

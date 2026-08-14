@@ -20,6 +20,7 @@ import 'package:lendify/services/notification_preferences_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/widgets/identity_verification_unavailable.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 class NotificationsScreen extends StatefulWidget {
   /// Optional: open the notifications screen already filtered to one category.
@@ -161,14 +162,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         break;
       case _MenuAction.markAllRead:
         if (unreadCount == 0) {
-          _showSnack('Alles ist bereits gelesen.');
+          _showNotice('Alles ist bereits gelesen.');
           return;
         }
         await _markAllRead();
         break;
       case _MenuAction.unreadOnly:
         setState(() => _showUnreadOnly = !_showUnreadOnly);
-        _showSnack(_showUnreadOnly ? 'Zeige nur ungelesene Benachrichtigungen.' : 'Zeige wieder alle Benachrichtigungen.');
+        _showNotice(_showUnreadOnly
+            ? 'Zeige nur ungelesene Benachrichtigungen.'
+            : 'Zeige wieder alle Benachrichtigungen.');
         break;
       case _MenuAction.contactSupport:
         await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HelpCenterScreen()));
@@ -179,11 +182,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  void _showSnack(String message) {
+  void _showNotice(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 2)),
+    AppPopup.info(
+      context,
+      title: 'Benachrichtigungen',
+      message: message,
     );
   }
 
@@ -420,7 +424,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return;
       }
 
-      _showSnack('Alles klar.');
+      _showNotice('Alles klar.');
     } catch (e) {
       debugPrint('[NotificationsScreen] CTA handling failed: $e');
     }

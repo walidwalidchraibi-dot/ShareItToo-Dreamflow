@@ -10,6 +10,7 @@ import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
@@ -105,10 +106,12 @@ class _SecurityScreenState extends State<SecurityScreen> {
         );
         await AuthService.clearSession();
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Passwort geändert. Bitte melde dich erneut an.')),
+        await AppPopup.success(
+          context,
+          title: 'Passwort geändert',
+          message: 'Bitte melde dich erneut an.',
         );
+        if (!mounted) return;
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
           (_) => false,
@@ -121,14 +124,14 @@ class _SecurityScreenState extends State<SecurityScreen> {
       _nextCtrl.clear();
       _confirmCtrl.clear();
       setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwort geändert (Demo).')),
-      );
+      AppPopup.success(context, title: 'Passwort geändert');
     } catch (e) {
       debugPrint('[SecurityScreen] changePassword failed: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwort konnte nicht geändert werden.')),
+      AppPopup.error(
+        context,
+        title: 'Passwort nicht geändert',
+        message: 'Bitte prüfe deine Eingaben und versuche es erneut.',
       );
     } finally {
       if (mounted) setState(() => _pwBusy = false);
@@ -146,8 +149,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
     } catch (e) {
       debugPrint('[SecurityScreen] setSecuritySettings failed: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Konnte 2FA nicht speichern.')));
+      AppPopup.error(
+        context,
+        title: 'Zwei-Faktor-Schutz nicht gespeichert',
+        message: 'Bitte versuche es erneut.',
+      );
     } finally {
       if (mounted) setState(() => _twoFactorBusy = false);
     }
@@ -224,8 +230,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
     } catch (e) {
       debugPrint('[SecurityScreen] signOutDevice failed: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Gerät konnte nicht abgemeldet werden.')));
+      AppPopup.error(
+        context,
+        title: 'Gerät nicht abgemeldet',
+        message: 'Bitte versuche es erneut.',
+      );
     } finally {
       if (mounted) setState(() => _devicesBusy = false);
     }
@@ -268,9 +277,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
     } catch (e) {
       debugPrint('[SecurityScreen] logoutAllDevices failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Geräte konnten nicht abgemeldet werden.')),
+        AppPopup.error(
+          context,
+          title: 'Geräte nicht abgemeldet',
+          message: 'Bitte versuche es erneut.',
         );
       }
     } finally {

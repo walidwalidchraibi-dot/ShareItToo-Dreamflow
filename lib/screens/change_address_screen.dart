@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 class ChangeAddressScreen extends StatefulWidget {
   const ChangeAddressScreen({super.key});
@@ -79,8 +80,9 @@ class _ChangeAddressScreenState extends State<ChangeAddressScreen> {
       );
       await DataService.setCurrentUser(updated);
       if (!mounted) return;
+      await AppPopup.success(context, title: 'Adresse gespeichert');
+      if (!mounted) return;
       Navigator.of(context).maybePop();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gespeichert')));
     } catch (e) {
       debugPrint('[ChangeAddress] save failed: $e');
       setState(() => _error = 'Speichern fehlgeschlagen');

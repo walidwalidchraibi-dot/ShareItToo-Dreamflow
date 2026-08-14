@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lendify/models/security.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 /// Optional demo screen for enabling two-factor authentication.
 ///
@@ -58,7 +59,11 @@ class _TwoFactorAuthScreenState extends State<TwoFactorAuthScreen> {
     } catch (e) {
       debugPrint('[TwoFactorAuthScreen] save failed: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Konnte 2FA nicht speichern.')));
+      AppPopup.error(
+        context,
+        title: 'Zwei-Faktor-Schutz nicht gespeichert',
+        message: 'Bitte versuche es erneut.',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }

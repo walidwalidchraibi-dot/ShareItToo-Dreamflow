@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/app_popup.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SelectRentalDurationScreen extends StatefulWidget {
@@ -214,8 +215,10 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
   void _onDayTap(DateTime day) {
     if (day.isBefore(_firstDate)) {
       final label = _formatShortDate(day);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$label liegt in der Vergangenheit 🙂')),
+      AppPopup.info(
+        context,
+        title: 'Datum nicht verfügbar',
+        message: '$label liegt in der Vergangenheit.',
       );
       return;
     }
@@ -353,7 +356,11 @@ class _SelectRentalDurationScreenState extends State<SelectRentalDurationScreen>
         _persistDeliverySelection();
         Navigator.of(context).pop(DateTimeRange(start: start, end: end));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('In diesem Zeitraum bereits gebucht')));
+        AppPopup.info(
+          context,
+          title: 'Zeitraum nicht verfügbar',
+          message: 'Der Artikel ist in diesem Zeitraum bereits gebucht.',
+        );
         setState(() => _overlapsBlocked = true);
       }
     } finally {

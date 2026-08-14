@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 class ModerationAdminScreen extends StatefulWidget {
   final String role;
@@ -112,9 +113,10 @@ class _ModerationAdminScreenState extends State<ModerationAdminScreen> {
       await _load();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Aktion konnte nicht ausgeführt werden.')),
+        AppPopup.error(
+          context,
+          title: 'Aktion fehlgeschlagen',
+          message: 'Die Aktion konnte nicht ausgeführt werden.',
         );
       }
     }
@@ -145,9 +147,10 @@ class _ModerationAdminScreenState extends State<ModerationAdminScreen> {
       await _load();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Maßnahme konnte nicht ausgeführt werden.')),
+        AppPopup.error(
+          context,
+          title: 'Maßnahme fehlgeschlagen',
+          message: 'Die Maßnahme konnte nicht ausgeführt werden.',
         );
       }
     }

@@ -2,6 +2,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 class EditSocialMediaScreen extends StatefulWidget {
   const EditSocialMediaScreen({super.key});
@@ -116,8 +117,9 @@ class _EditSocialMediaScreenState extends State<EditSocialMediaScreen> {
       );
       await DataService.setCurrentUser(updated);
       if (!mounted) return;
+      await AppPopup.success(context, title: 'Social-Media-Profile gespeichert');
+      if (!mounted) return;
       Navigator.of(context).maybePop();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gespeichert')));
     } catch (e) {
       debugPrint('[EditSocialMedia] save failed: $e');
       setState(() => _error = 'Speichern fehlgeschlagen');

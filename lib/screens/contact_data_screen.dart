@@ -331,8 +331,7 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
               'Prüfe $newEmail. Nach der Bestätigung meldest du dich mit der neuen Adresse erneut an.',
         );
       } else {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Gespeichert')));
+        AppPopup.success(context, title: 'Kontaktdaten gespeichert');
       }
     } catch (e) {
       debugPrint('[ContactData] save failed: $e');
@@ -592,19 +591,21 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
   Future<void> _verifyEmailFlow() async {
     final emailError = _validateEmail(_emailCtrl.text);
     if (emailError != null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(emailError)));
+      AppPopup.info(
+        context,
+        title: 'E-Mail-Adresse prüfen',
+        message: emailError,
+      );
       return;
     }
 
     final sent = await AuthService.requestEmailVerification(_emailCtrl.text);
     if (!mounted) return;
     if (!sent) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte versuche es erneut.'),
-        ),
+      AppPopup.error(
+        context,
+        title: 'Bestätigungs-E-Mail nicht gesendet',
+        message: 'Bitte versuche es erneut.',
       );
       return;
     }
@@ -661,11 +662,11 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                                   if (refreshed == null ||
                                       !refreshed.emailVerified) {
                                     if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            'Der Link wurde noch nicht bestätigt.'),
-                                      ),
+                                    AppPopup.info(
+                                      context,
+                                      title: 'Link noch nicht bestätigt',
+                                      message:
+                                          'Öffne zuerst den neuesten Bestätigungslink in deiner E-Mail.',
                                     );
                                     return;
                                   }
@@ -675,19 +676,23 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                                   await DataService.setCurrentUser(updated);
                                 }
                                 if (!context.mounted) return;
+                                if (!mounted) return;
                                 setState(() => _user = updated);
                                 Navigator.of(context).pop();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text('E‑Mail bestätigt')));
+                                AppPopup.success(
+                                  this.context,
+                                  title: 'E-Mail bestätigt',
+                                );
                               } catch (e) {
                                 debugPrint(
                                     '[ContactData] verify email failed: $e');
                                 if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'Bestätigung fehlgeschlagen.')));
+                                AppPopup.error(
+                                  context,
+                                  title: 'Bestätigung fehlgeschlagen',
+                                  message:
+                                      'Bitte prüfe den neuesten Link und versuche es erneut.',
+                                );
                               } finally {
                                 if (context.mounted) {
                                   setLocal(() => confirming = false);
@@ -730,8 +735,11 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
 
   Future<void> _confirmLocationOnMap() async {
     if (!_hasRequiredAddressFields) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Bitte vervollständige zuerst die Adresse.')));
+      AppPopup.info(
+        context,
+        title: 'Adresse noch unvollständig',
+        message: 'Bitte vervollständige zuerst die Adresse.',
+      );
       return;
     }
 
@@ -799,18 +807,19 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                                     }
                                     setState(() => _user = updated);
                                     Navigator.of(sheetContext).pop();
-                                    ScaffoldMessenger.of(this.context)
-                                        .showSnackBar(const SnackBar(
-                                            content:
-                                                Text('Standort gespeichert')));
+                                    AppPopup.success(
+                                      this.context,
+                                      title: 'Standort gespeichert',
+                                    );
                                   } catch (e) {
                                     debugPrint(
                                         '[ContactData] save coords failed: $e');
                                     if (!sheetContext.mounted) return;
-                                    ScaffoldMessenger.of(sheetContext)
-                                        .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Speichern fehlgeschlagen.')));
+                                    AppPopup.error(
+                                      sheetContext,
+                                      title: 'Standort nicht gespeichert',
+                                      message: 'Bitte versuche es erneut.',
+                                    );
                                   } finally {
                                     setLocal(() => saving = false);
                                   }

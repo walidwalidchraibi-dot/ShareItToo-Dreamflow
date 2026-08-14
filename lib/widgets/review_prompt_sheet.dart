@@ -7,6 +7,7 @@ import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/services/review_metrics_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/blur_modal.dart';
+import 'package:lendify/widgets/app_popup.dart';
 
 class ReviewFormCriterionDefinition {
   final String key;
@@ -86,12 +87,11 @@ class ReviewPromptSheet extends StatefulWidget {
     final request = await DataService.getRentalRequestById(requestId);
     if (request?.needsReview == true) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
+        AppPopup.info(
+          context,
+          title: 'Bewertung vorübergehend gesperrt',
+          message:
               'Bewertungen sind blockiert, solange dieser Fall geprüft wird.',
-            ),
-          ),
         );
       }
       return false;
@@ -148,8 +148,10 @@ class _ReviewPromptSheetState extends State<ReviewPromptSheet> {
   Future<void> _submit() async {
     if (_submitting) return;
     if (!_allCriteriaRated) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bitte bewerte alle vier Kriterien.')),
+      AppPopup.info(
+        context,
+        title: 'Bewertung noch unvollständig',
+        message: 'Bitte bewerte alle vier Kriterien.',
       );
       return;
     }
