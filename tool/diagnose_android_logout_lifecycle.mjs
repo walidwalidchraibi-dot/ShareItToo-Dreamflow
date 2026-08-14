@@ -243,14 +243,16 @@ async function waitFor(predicate, { attempts, intervalMs, wait }) {
   return false;
 }
 
-async function sendPair(vaultFile, sender) {
-  for (const senderRole of ['owner', 'renter']) {
-    const result = await sender({ vaultFile, senderRole, diagnosticKind: 'logout' });
-    if (result?.status !== 'synthetic-booking-diagnostic-message-sent'
-        || result?.paymentEndpointCalled !== false
-        || result?.stripeLivemode !== false) {
-      fail('The controlled Staging diagnostic message was not accepted safely.');
-    }
+export async function sendOppositeRoleMessage(vaultFile, signedInRole, sender) {
+  if (!['owner', 'renter'].includes(signedInRole)) {
+    fail('The signed-in synthetic role is invalid.');
+  }
+  const senderRole = signedInRole === 'owner' ? 'renter' : 'owner';
+  const result = await sender({ vaultFile, senderRole, diagnosticKind: 'logout' });
+  if (result?.status !== 'synthetic-booking-diagnostic-message-sent'
+      || result?.paymentEndpointCalled !== false
+      || result?.stripeLivemode !== false) {
+    fail('The controlled Staging diagnostic message was not accepted safely.');
   }
 }
 
@@ -384,7 +386,7 @@ export async function diagnoseAndroidLogoutLifecycle({
     );
     if (!processAbsent) fail('The ShareItToo process did not stop before the post-logout probe.');
     observedNotificationCountBefore = notificationCount(commandRunner, adbPath, device);
-    await sendPair(vaultFile, sender);
+    await sendOppositeRoleMessage(vaultFile, account.role, sender);
     await wait(35_000);
     observedNotificationCountAfter = notificationCount(commandRunner, adbPath, device);
     if (observedNotificationCountAfter !== observedNotificationCountBefore) {

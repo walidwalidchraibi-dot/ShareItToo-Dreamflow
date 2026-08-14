@@ -36,6 +36,15 @@
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
         "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081403-20260814T110817Z.json"
+      },
+      "logoutLifecycle": {
+        "status": "passed",
+        "capturedAt": "2026-08-14T11:45:51.711Z",
+        "installMethod": "google-play-split",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081403-20260814T114551Z.json"
       }
     },
     "ios": {
