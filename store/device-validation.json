@@ -165,8 +165,8 @@
       "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081403.json"
     },
     "crashReleaseMapping": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "testing",
+      "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081403.json"
     },
     "storeWarningsLinksAndSigning": {
       "status": "passed",
