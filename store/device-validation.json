@@ -7,8 +7,8 @@
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
     "minimumBuildNumber": "2026080903",
-    "buildNumber": "2026081406",
-    "commit": "8583ecd40c06df6d8fa7246e931ef5f2ef3ccfd4",
+    "buildNumber": "2026081407",
+    "commit": "de2d1e727ac46f9c7d8957fd5ac7afcf1b46e9b2",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
@@ -16,8 +16,8 @@
     "stripeLivemode": false,
     "android": {
       "delivery": "play-internal",
-      "aabSha256": "7edb50dc36750ce9ff68ec8e36793a9593b543c7e74933057bc1bbc8bf83bf95",
-      "apkSha256": "f9ab4f8bff0abcab4a63bd1b1f91ee2d121295f97b69622c35b9373deb3ae843",
+      "aabSha256": "61de53bd6f8eb0449a0b4a6238fa10e7280669e5078fb6f7f514a596d36d0189",
+      "apkSha256": "3cb4b34cfe1ef125b8f7de6b5dc2bc8b2f7fe36352d94122ef106d87c1c05944",
       "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
     },
     "ios": {
@@ -136,7 +136,7 @@
   "releaseChecks": {
     "candidateIdentityAndSignatures": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081406.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081407.json"
     },
     "firebaseFcmAndApns": {
       "status": "open",
@@ -144,7 +144,7 @@
     },
     "binaryPrivacyAndNetwork": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081406.json"
+      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081407.json"
     },
     "crashReleaseMapping": {
       "status": "open",
@@ -156,11 +156,11 @@
     },
     "stagingCleanupAndHealth": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081406.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081407.json"
     },
     "productionInvariant": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081406.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081407.json"
     }
   },
   "approvals": {

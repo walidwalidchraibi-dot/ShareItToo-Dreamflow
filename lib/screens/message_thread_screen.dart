@@ -166,8 +166,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   bool _showJumpToBottom = false;
   double _lastViewInsetBottom = 0;
   StreamSubscription<String>? _sharedPersistenceSub;
+  Timer? _fallbackRefreshTimer;
   final SharedPersistenceRefreshCoordinator _sharedPersistenceRefresh =
       SharedPersistenceRefreshCoordinator();
+
+  @visibleForTesting
+  static const Duration fallbackRefreshInterval = Duration(seconds: 5);
 
   // Keep these sizes centralized to make the composer compact without breaking touch targets.
   static const double _composerIconSize = 20;
@@ -187,6 +191,12 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         if (mounted) await _load();
       }));
     });
+    _fallbackRefreshTimer = Timer.periodic(fallbackRefreshInterval, (_) {
+      if (!mounted) return;
+      unawaited(
+        _sharedPersistenceRefresh.schedule(_refreshThreadMessagesInBackground),
+      );
+    });
     _listController.addListener(_onScroll);
     _inputFocus.addListener(_onInputFocusChange);
   }
@@ -202,6 +212,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
   @override
   void dispose() {
+    _fallbackRefreshTimer?.cancel();
     _sharedPersistenceSub?.cancel();
     _sharedPersistenceRefresh.dispose();
     _inputFocus.removeListener(_onInputFocusChange);
@@ -209,6 +220,31 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     _inputFocus.dispose();
     _listController.dispose();
     super.dispose();
+  }
+
+  Future<void> _refreshThreadMessagesInBackground() async {
+    final threadId = (_thread?.id ?? widget.threadId ?? '').trim();
+    if (!mounted || threadId.isEmpty) return;
+    final refreshed = await DataService.getMessageThreadById(threadId);
+    if (!mounted || refreshed == null) return;
+
+    final current = _thread;
+    final unchanged = current != null &&
+        current.messages.length == refreshed.messages.length &&
+        current.lastMessageAt == refreshed.lastMessageAt;
+    if (unchanged) return;
+
+    setState(() => _thread = refreshed);
+    final userId = _currentUser?.id;
+    if (userId != null && userId.isNotEmpty) {
+      await DataService.markThreadMessagesAsRead(
+        threadId: refreshed.id,
+        userId: userId,
+      );
+    }
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    }
   }
 
   Future<void> _load() async {

@@ -26,27 +26,27 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Merkmal | Verbindlicher Wert |
 |---|---|
 | App-Identität | `com.shareittoo.app` (Android und iOS) |
-| Version und Build | `1.0.0 (2026081405)` |
-| App-Commit | `a00606f979315930ea6c28c0ce7495ef4ec56368` |
+| Version und Build | `1.0.0 (2026081407)` |
+| App-Commit | `de2d1e727ac46f9c7d8957fd5ac7afcf1b46e9b2` |
 | Kanal und API | `internal`, `https://staging.shareittoo.com/api/v1` |
 | Firebase und Zahlung | vollständig: `true`; `memory`; `stripeLivemode=false` |
-| Android-AAB SHA-256 | `1795e54184a1467f981557cdede8b07821b1a2eeb058786569b519f6d97e6f67` |
-| Android-APK SHA-256 | `565e38ffe5faa7b6f1b367281ee78d59e2e2b52f159b7ea68c439711eb3bef3d` |
+| Android-AAB SHA-256 | `61de53bd6f8eb0449a0b4a6238fa10e7280669e5078fb6f7f514a596d36d0189` |
+| Android-APK SHA-256 | `3cb4b34cfe1ef125b8f7de6b5dc2bc8b2f7fe36352d94122ef106d87c1c05944` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
 | Direkte Android-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081405-20260814T145511Z.json` |
-| Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081405-20260814T145800Z.json` |
-| Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081405-20260814T141032Z.json` |
-| Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081405-20260814T145955Z.json` |
+| Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Kontrollierte Android-FCM-Diagnose | `pending-exact-build/pending-exact-build/pending-exact-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Android-Abmeldung und Push-Unterdrückung | `pending-exact-build/pending-exact-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
 | Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081405)` |
-| Play-Signing und öffentliche App-Links | `passed`; `docs/evidence/b11/android-play-store-links-signing-2026081405-20260814.json` |
-| Crashlytics-Releasezuordnung | `passed`; `docs/evidence/b11/android-crash-release-check-2026081405.json` |
-| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081405.json` |
+| Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081407)` |
+| Play-Signing und öffentliche App-Links | `open`; noch kein kandidatenspezifischer Nachweis |
+| Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
+| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081407.json` |
 | Staging-Servercommit | `09c9211e41da75969b9ee59e9954ac7465250e80` |
-| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 6/7 |
+| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
 
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Eine bestandene Google-Play-Installation ist nur belegt, wenn der aktuelle Kandidat aus dem internen Track installiert und gestartet wurde. Die früheren direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM-, Abmelde- und Offline-/Realtime-Diagnosen bleiben davon abgegrenzte Vorprüfungen. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
@@ -137,10 +137,10 @@ ersetzen.
 
 | Plattform | Gerät/Modell | Betriebssystem | Build | Netz | Rolle | Ergebnis |
 |---|---|---|---|---|---|---|
-| Android real | offen | offen | `2026081405` | WLAN | Vermieter | offen |
-| Android real | offen | offen | `2026081405` | Mobilfunk/Hotspot | Mieter | offen |
-| iOS real | offen | offen | `2026081405` | WLAN | Vermieter | offen |
-| iOS real | offen | offen | `2026081405` | Mobilfunk/Hotspot | Mieter | offen |
+| Android real | offen | offen | `2026081407` | WLAN | Vermieter | offen |
+| Android real | offen | offen | `2026081407` | Mobilfunk/Hotspot | Mieter | offen |
+| iOS real | offen | offen | `2026081407` | WLAN | Vermieter | offen |
+| iOS real | offen | offen | `2026081407` | Mobilfunk/Hotspot | Mieter | offen |
 
 Vor einer manuellen Android-Matrixrunde muss der neue, rein lesende Preflight
 `tool/preflight_android_manual_matrix.mjs` den Status
