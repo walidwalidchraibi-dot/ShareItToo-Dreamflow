@@ -87,7 +87,11 @@ fi
 node --test test/tool/upload_exact_crashlytics_mapping_wiring.test.mjs
 node --check tool/validate_google_play_app_content_handoff.mjs
 node --test test/tool/validate_google_play_app_content_handoff.test.mjs
-node tool/validate_google_play_app_content_handoff.mjs
+if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  node tool/validate_google_play_app_content_handoff.mjs --allow-candidate-rollover
+else
+  node tool/validate_google_play_app_content_handoff.mjs
+fi
 
 node --check tool/validate_google_play_closed_testing.mjs
 node --test test/tool/validate_google_play_closed_testing.test.mjs

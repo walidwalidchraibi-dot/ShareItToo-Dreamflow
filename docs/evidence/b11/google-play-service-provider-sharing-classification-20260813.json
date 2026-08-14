@@ -6,8 +6,8 @@
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081401",
-    "commit": "5518040d63b72c08d8cd2f72d76d802023b7b055",
+    "buildNumber": "2026081402",
+    "commit": "74702bf3b2d1e2637392d5b5bd6963815df50bb8",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
   },
@@ -152,7 +152,7 @@
   },
   "evidenceRefs": [
     "store/privacy-disclosures.json",
-    "docs/evidence/b11/android-binary-privacy-release-check-2026081401.json",
+    "docs/evidence/b11/android-binary-privacy-release-check-2026081402.json",
     "docs/evidence/b11/staging-mail-push-runtime-20260811.json",
     "docs/evidence/b11/google-cloud-android-api-key-restriction-20260813.json",
     "docs/architecture/B4_SOCIAL_AUTH_GOOGLE_APPLE_FACEBOOK_2026-08-12.md"

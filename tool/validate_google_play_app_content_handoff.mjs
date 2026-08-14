@@ -26,6 +26,7 @@ function exactKeys(value, expected, label) {
 export function validateGooglePlayAppContentHandoff({
   repositoryRoot,
   handoffPath = resolve(repositoryRoot, 'store/google-play/app-content-handoff.json'),
+  allowCandidateRollover = false,
 }) {
   const handoff = object(JSON.parse(readFileSync(handoffPath, 'utf8')), 'handoff');
   const deviceValidation = object(
@@ -46,9 +47,18 @@ export function validateGooglePlayAppContentHandoff({
   }
 
   const candidate = object(handoff.candidate, 'candidate');
+  const candidateBuildNumber = String(candidate.buildNumber ?? '');
+  const currentBuildNumber = String(currentCandidate.buildNumber ?? '');
+  const buildNumbersValid = /^\d+$/.test(candidateBuildNumber) &&
+    /^\d+$/.test(currentBuildNumber);
+  const candidateBuild = buildNumbersValid ? BigInt(candidateBuildNumber) : 0n;
+  const currentBuild = buildNumbersValid ? BigInt(currentBuildNumber) : 0n;
+  const buildBindingValid = allowCandidateRollover
+    ? candidateBuild > 0n && candidateBuild <= currentBuild
+    : candidate.buildNumber === currentCandidate.buildNumber;
   if (candidate.applicationId !== 'com.shareittoo.app' ||
       candidate.versionName !== currentCandidate.versionName ||
-      candidate.buildNumber !== currentCandidate.buildNumber ||
+      !buildBindingValid ||
       candidate.releaseChannel !== 'internal' ||
       candidate.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1') {
     fail('App-content handoff is not bound to the internal Staging candidate.');
@@ -127,7 +137,7 @@ export function validateGooglePlayAppContentHandoff({
       tasks.storeListing.status !==
         'saved-in-console-compatible-copy-and-assets' ||
       tasks.storeListing.screenshotReadinessRef !==
-        'docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081401-20260814.json' ||
+        'docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081402-20260814.json' ||
       tasks.storeListing.consoleSaveEvidenceRef !==
         'docs/evidence/b11/google-play-store-listing-saved-20260813.json') {
     fail('One or more prepared Play answers no longer match the bounded product truth.');
@@ -151,8 +161,14 @@ export function validateGooglePlayAppContentHandoff({
 
 function runCli() {
   const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
-  const result = validateGooglePlayAppContentHandoff({ repositoryRoot });
-  process.stdout.write(`Google Play app-content handoff: PASS (${result.taskCount} tasks, build ${result.buildNumber})\n`);
+  const allowCandidateRollover = process.argv.includes('--allow-candidate-rollover');
+  const unknownArgs = process.argv.slice(2).filter((arg) => arg !== '--allow-candidate-rollover');
+  if (unknownArgs.length > 0) fail(`Unknown argument: ${unknownArgs[0]}`);
+  const result = validateGooglePlayAppContentHandoff({ repositoryRoot, allowCandidateRollover });
+  process.stdout.write(
+    `Google Play app-content handoff: PASS (${result.taskCount} tasks, ` +
+      `observed console build ${result.buildNumber})\n`,
+  );
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {

@@ -10,7 +10,7 @@ function fail(message) {
 
 export function validateGooglePlayScreenshotReadiness({
   repositoryRoot,
-  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081401-20260814.json'),
+  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081402-20260814.json'),
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   const exactCandidate = JSON.parse(readFileSync(
@@ -48,20 +48,38 @@ export function validateGooglePlayScreenshotReadiness({
       fail('Screenshot compatibility source is stale or not an exact historical candidate.');
     }
     const review = evidence.compatibilityReview ?? {};
+    const currentCandidateEvidence = JSON.parse(readFileSync(safeRef(
+      review.currentCandidateEvidenceRef, 'currentCandidateEvidenceRef'), 'utf8'));
     const storeInstall = JSON.parse(readFileSync(safeRef(
-      review.currentStoreInstallEvidenceRef, 'currentStoreInstallEvidenceRef'), 'utf8'));
+      review.baselineStoreInstallEvidenceRef, 'baselineStoreInstallEvidenceRef'), 'utf8'));
     const roleBooking = JSON.parse(readFileSync(safeRef(
-      review.currentRoleBookingEvidenceRef, 'currentRoleBookingEvidenceRef'), 'utf8'));
+      review.baselineRoleBookingEvidenceRef, 'baselineRoleBookingEvidenceRef'), 'utf8'));
+    const expectedChangedFiles = [
+      'lib/config/legal_provider_config.dart',
+      'lib/screens/legal_cancellation_policy_screen.dart',
+      'lib/screens/legal_fees_payments_screen.dart',
+      'lib/screens/legal_imprint_screen.dart',
+      'lib/screens/legal_privacy_screen.dart',
+      'lib/screens/privacy_info_screen.dart',
+      'lib/services/backend_realtime_service.dart',
+      'lib/services/data_service.dart',
+    ];
     if (review.sourceSnapshotCommit !== '95f3e2e3ca7363f729c6a6d9ecf4170ddda501df' ||
         JSON.stringify(review.changedAppSourceFilesSinceSourceSnapshot) !==
-          JSON.stringify(['lib/services/backend_realtime_service.dart']) ||
+          JSON.stringify(expectedChangedFiles) ||
+        JSON.stringify(review.changedVisibleScreenshotSourceFiles) !== '[]' ||
         review.visibleScreenSourceChanged !== false ||
         review.storeListingCoreFlowsChanged !== false ||
         review.screenshotsNeedRecapture !== false ||
-        storeInstall.candidate?.buildNumber !== current.buildNumber ||
+        currentCandidateEvidence.candidate?.buildNumber !== current.buildNumber ||
+        currentCandidateEvidence.candidate?.commit !== current.commit ||
+        currentCandidateEvidence.android?.apkSha256 !== current.apkSha256 ||
+        currentCandidateEvidence.android?.signatureVerified !== true ||
+        currentCandidateEvidence.android?.packageIdentityVerified !== true ||
+        BigInt(storeInstall.candidate?.buildNumber ?? '0') > BigInt(current.buildNumber) ||
         storeInstall.postReleaseChecks?.playStoreInstallCompleted !== true ||
         storeInstall.postReleaseChecks?.installedVersionVerified !== true ||
-        roleBooking.candidate?.buildNumber !== current.buildNumber ||
+        roleBooking.candidate?.buildNumber !== storeInstall.candidate?.buildNumber ||
         roleBooking.status !== 'passed-bounded-synthetic-role-booking-diagnostic') {
       fail('Screenshot compatibility review is incomplete or contradicts the current Store build.');
     }

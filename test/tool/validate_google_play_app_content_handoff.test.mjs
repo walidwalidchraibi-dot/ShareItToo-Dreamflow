@@ -9,6 +9,8 @@ import { validateGooglePlayAppContentHandoff } from '../../tool/validate_google_
 const repositoryRoot = new URL('../../', import.meta.url).pathname;
 const canonical = JSON.parse(await readFile(
   new URL('../../store/google-play/app-content-handoff.json', import.meta.url), 'utf8'));
+const technicalRegression = await readFile(
+  new URL('../../scripts/technical_regression_check.sh', import.meta.url), 'utf8');
 
 async function fixture(mutate = () => {}) {
   const root = await mkdtemp(join(tmpdir(), 'sit-play-content-'));
@@ -19,9 +21,29 @@ async function fixture(mutate = () => {}) {
   return { root, handoffPath };
 }
 
+function validate(overrides = {}) {
+  return validateGooglePlayAppContentHandoff({
+    repositoryRoot,
+    allowCandidateRollover: true,
+    ...overrides,
+  });
+}
+
 test('accepts the observed nine-of-eleven Play setup while two work areas remain stopped', () => {
-  const result = validateGooglePlayAppContentHandoff({ repositoryRoot });
+  const result = validate();
   assert.deepEqual(result, { taskCount: 12, buildNumber: canonical.candidate.buildNumber });
+});
+
+test('keeps strict candidate binding unless an internal rollover is explicit', () => {
+  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot }),
+    /internal Staging candidate/);
+});
+
+test('technical regression explicitly enables the bounded internal rollover path', () => {
+  assert.match(
+    technicalRegression,
+    /validate_google_play_app_content_handoff\.mjs --allow-candidate-rollover/u,
+  );
 });
 
 test('rejects losing the completed owner-approved IARC state', async (t) => {
@@ -29,7 +51,7 @@ test('rejects losing the completed owner-approved IARC state', async (t) => {
     handoff.tasks.contentRating.iarcTermsAccepted = false;
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+  assert.throws(() => validate(data),
     /product truth/);
 });
 
@@ -38,7 +60,7 @@ test('rejects omitting the user-controlled precise location share', async (t) =>
     handoff.tasks.contentRating.preciseDeviceLocationSharedByUser = false;
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+  assert.throws(() => validate(data),
     /product truth/);
 });
 
@@ -47,7 +69,7 @@ test('rejects claiming Advertising ID use for the current binary', async (t) => 
     handoff.tasks.advertisingId.proposedAnswer = true;
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+  assert.throws(() => validate(data),
     /product truth/);
 });
 
@@ -56,28 +78,28 @@ test('rejects selecting a social-network category for the rental marketplace', a
     handoff.tasks.contentRating.category = 'social-or-communication';
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+  assert.throws(() => validate(data),
     /product truth/);
 });
 
 test('rejects claiming ads for the current binary', async (t) => {
   const data = await fixture((handoff) => { handoff.tasks.ads.proposedAnswer = true; });
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+  assert.throws(() => validate(data),
     /product truth/);
 });
 
 test('rejects lowering the prepared target audience below eighteen', async (t) => {
   const data = await fixture((handoff) => { handoff.tasks.targetAudience.minimumAge = 13; });
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+  assert.throws(() => validate(data),
     /product truth/);
 });
 
 test('rejects enabling review submission', async (t) => {
   const data = await fixture((handoff) => { handoff.hardStops.sendForReview = false; });
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+  assert.throws(() => validate(data),
     /hardStops.sendForReview/);
 });
 
@@ -86,7 +108,7 @@ test('rejects claiming OAuth support before the providers are available', async 
     handoff.tasks.dataSafety.oauthPreparedButUnavailable = false;
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+  assert.throws(() => validate(data),
     /product truth/);
 });
 
@@ -95,7 +117,7 @@ test('rejects a Data safety type count that includes free documents', async (t) 
     handoff.tasks.dataSafety.dataTypesPrepared = 17;
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+  assert.throws(() => validate(data),
     /product truth/);
 });
 
@@ -105,7 +127,7 @@ test('rejects a stale Data Safety handoff that is not bound to the full answer m
       'docs/evidence/b11/google-play-data-safety-datatypes-20260812.json';
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+  assert.throws(() => validate(data),
     /product truth/);
 });
 
@@ -115,13 +137,13 @@ test('rejects a Data Safety handoff without the provider-role classification', a
       'docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json';
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+  assert.throws(() => validate(data),
     /product truth/);
 });
 
 test('rejects credential or account data', async (t) => {
   const data = await fixture((handoff) => { handoff.account = 'private@example.test'; });
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentHandoff({ repositoryRoot, ...data }),
+  assert.throws(() => validate(data),
     /sanitized/);
 });

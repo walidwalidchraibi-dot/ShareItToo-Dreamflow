@@ -8,7 +8,7 @@ import { validateGooglePlayScreenshotReadiness } from '../../tool/validate_googl
 
 const repositoryRoot = new URL('../../', import.meta.url).pathname;
 const canonical = JSON.parse(await readFile(
-  new URL('../../docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081401-20260814.json', import.meta.url), 'utf8'));
+  new URL('../../docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081402-20260814.json', import.meta.url), 'utf8'));
 
 async function fixture(mutate) {
   const root = await mkdtemp(join(tmpdir(), 'sit-screenshot-ready-'));
