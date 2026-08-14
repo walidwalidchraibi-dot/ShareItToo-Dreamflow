@@ -9,16 +9,20 @@ class LegalFeesPaymentsScreen extends StatelessWidget {
     return LegalDetailScaffold(
       title: 'Gebühren & Zahlungsbedingungen',
       intro:
-          'Hier erklären wir transparent, welche Gebühren anfallen können, wie Zahlungen abgewickelt werden und wie Auszahlungen an Vermieter funktionieren.',
+          'Hier erklären wir transparent das geplante Gebührenmodell und den aktuellen technischen Stand. Im aktuellen Store-Kandidaten werden keine Echtgeldzahlungen oder Auszahlungen ausgeführt.',
       sections: [
         LegalSectionCard(
           icon: Icons.percent_outlined,
           title: 'Plattformgebühr',
-          badge: 'Beispiel',
+          badge: 'Startmodell',
           children: const [
-            LegalParagraph('ShareItToo erhebt eine Plattformgebühr von 10 % auf den Gesamtbetrag einer Buchung.'),
+            LegalParagraph(
+              'ShareItToo berechnet im vorgesehenen Startmodell eine Plattformgebühr von 10 % auf den Mietbetrag einer Buchung.',
+            ),
             SizedBox(height: 10),
-            LegalParagraph('Diese Gebühr wird automatisch bei der Buchung berechnet und dient dem Betrieb, Support und der Weiterentwicklung der Plattform.'),
+            LegalParagraph(
+              'Der aktuelle interne Store-Kandidat zeigt diese Berechnung transparent an, belastet aber kein echtes Zahlungsmittel. Vor Aktivierung wird das Gebührenmodell verbindlich freigegeben.',
+            ),
           ],
         ),
         LegalSectionCard(
@@ -26,9 +30,9 @@ class LegalFeesPaymentsScreen extends StatelessWidget {
           title: 'Zahlungsabwicklung',
           children: const [
             LegalBullets(items: [
-              'Zahlungen werden im Rahmen des Buchungsprozesses abgewickelt.',
-              'Bei späterer Zahlungsintegration kann ein Zahlungsdienstleister eingesetzt werden.',
-              'Transaktionen und Belege werden in der App nachvollziehbar bereitgestellt.',
+              'Der aktuelle Store-Kandidat führt keine Echtgeldzahlung aus.',
+              'Bei einer späteren Aktivierung wird ein gesondert geprüfter Zahlungsdienstleister eingesetzt.',
+              'Preis, Gebühr und Zahlungsstatus werden vor einer verbindlichen Zahlung transparent angezeigt.',
             ]),
           ],
         ),
@@ -37,16 +41,27 @@ class LegalFeesPaymentsScreen extends StatelessWidget {
           title: 'Auszahlungen an Vermieter',
           children: const [
             LegalBullets(items: [
-              'Auszahlungen erfolgen gemäß deiner gewählten Auszahlungsmethode (z.B. SEPA oder Wallet).',
-              'Auszahlungen können aus Sicherheits- oder Prüfgründen verzögert werden (z.B. bei Streitfällen).',
+              'Im aktuellen Store-Kandidaten erfolgen keine Auszahlungen.',
+              'Vor einer späteren Aktivierung werden Auszahlungsweg, Zeitpunkt, Prüfungen und Streitfalllogik verbindlich festgelegt.',
             ]),
+          ],
+        ),
+        const LegalSectionCard(
+          icon: Icons.shield_outlined,
+          title: 'Keine Kaution und kein Schutzprodukt',
+          badge: 'Zum Start',
+          children: [
+            LegalParagraph(
+              'ShareItToo verlangt zum Start keine Kaution und bietet keine Versicherung, Garantie oder eigene Schutzleistung an. Übergabe- und Rückgabefotos unterstützen lediglich die Dokumentation zwischen den Nutzern.',
+            ),
           ],
         ),
         LegalSectionCard(
           icon: Icons.receipt_long_outlined,
           title: 'Steuerliche Hinweise',
           children: const [
-            LegalParagraph('Nutzer sind grundsätzlich selbst dafür verantwortlich, ihre Einnahmen aus Vermietungen steuerlich korrekt anzugeben. Diese Hinweise ersetzen keine Steuerberatung.'),
+            LegalParagraph(
+                'Nutzer sind grundsätzlich selbst dafür verantwortlich, ihre Einnahmen aus Vermietungen steuerlich korrekt anzugeben. Diese Hinweise ersetzen keine Steuerberatung.'),
           ],
         ),
       ],

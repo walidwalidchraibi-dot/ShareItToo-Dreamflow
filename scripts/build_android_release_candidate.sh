@@ -70,6 +70,22 @@ for define_name in "${firebase_define_names[@]}"; do
   fi
 done
 
+legal_define_names=(
+  SIT_LEGAL_PROVIDER_APPROVED
+  SIT_LEGAL_PROVIDER_NAME
+  SIT_LEGAL_PROVIDER_ADDRESS
+  SIT_LEGAL_REPRESENTATIVE
+  SIT_LEGAL_CONTENT_RESPONSIBLE
+  SIT_LEGAL_CONTACT_EMAIL
+  SIT_LEGAL_CONTACT_PHONE
+)
+for define_name in "${legal_define_names[@]}"; do
+  define_value="${!define_name:-}"
+  if [[ -n "$define_value" ]]; then
+    common_args+=("--dart-define=$define_name=$define_value")
+  fi
+done
+
 # A Maps credential belongs only on the backend. Refuse legacy build
 # environments so it cannot accidentally be embedded in a release binary.
 if [[ -n "${GOOGLE_MAPS_API_KEY:-}" ]]; then

@@ -79,6 +79,21 @@ else
   node tool/validate_apple_testflight_handoff.mjs
 fi
 if [[ "${SIT_REQUIRE_STORE_SUBMISSION:-0}" == "1" ]]; then
+  [[ "${SIT_LEGAL_PROVIDER_APPROVED:-false}" == "true" ]] || \
+    fail "Store submission requires an explicitly approved legal provider identity."
+  legal_provider_fields=(
+    SIT_LEGAL_PROVIDER_NAME
+    SIT_LEGAL_PROVIDER_ADDRESS
+    SIT_LEGAL_REPRESENTATIVE
+    SIT_LEGAL_CONTENT_RESPONSIBLE
+    SIT_LEGAL_CONTACT_EMAIL
+  )
+  for field_name in "${legal_provider_fields[@]}"; do
+    [[ -n "${!field_name:-}" ]] || \
+      fail "Store submission requires $field_name."
+  done
+  [[ "${SIT_LEGAL_CONTACT_EMAIL}" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]] || \
+    fail "SIT_LEGAL_CONTACT_EMAIL must be a valid email address."
   [[ "${SIT_FACEBOOK_APP_ID:-}" =~ ^[1-9][0-9]{5,24}$ ]] || \
     fail "Store submission requires the real public Meta App ID."
   [[ -n "${SIT_FACEBOOK_CLIENT_TOKEN:-}" && \

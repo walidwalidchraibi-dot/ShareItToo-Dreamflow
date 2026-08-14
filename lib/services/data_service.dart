@@ -1572,7 +1572,7 @@ class DataService {
           'method': 'manual',
         },
         quotedTotalRenter: 126.0,
-        quotedSubtitle: 'inkl. Schutz & Service',
+        quotedSubtitle: 'inkl. SIT-Servicegebühr',
       );
       final completedRequest = RentalRequest(
         id: 'qa_req_completed_$userId',

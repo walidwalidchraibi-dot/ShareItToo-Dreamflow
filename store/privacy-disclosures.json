@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "38a42b1562dea3f6a1910a6280994320f4eb858216fda780aba01b34d25b5a6a"
+      "sha256": "c058bfaadb374675aa483842a8c9183309677d8a93a2ed06fcf16e6b7fe3a8cd"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -28,15 +28,15 @@
     },
     {
       "path": "lib/screens/legal_privacy_screen.dart",
-      "sha256": "304524ffa08ae93c3a0f3eba1bd9628188466ddfc736debe76aa7d95d5930d08"
+      "sha256": "983e08d647f981036341f3d808688dfa08e348cf55a84f38e1030f63178434a6"
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "4f1fec8328dfd9994481ea7fece2f201b0e40c2a3958515144c69abe83c92bfd"
+      "sha256": "7c4ab7b76fc6cc63aed439ce513cdc712da699ae6dff41ef87266308b1e707fa"
     },
     {
       "path": "backend/src/account_actions.js",
-      "sha256": "1d95932d2761e03ac58bab89769caf27da28d9b078efd9a22b555d519c08e766"
+      "sha256": "09709487e76dbab21f3f4152741c4a3b0810035634fd780344797f10586bbded"
     },
     {
       "path": "backend/src/privacy_export.js",
@@ -104,7 +104,7 @@
     },
     {
       "path": "store/phone-verification-readiness.json",
-      "sha256": "f95a3cd8f690caddefc121b8f35fbce55f9c3067edef6a48ffb3ab00fc727de5"
+      "sha256": "f7ffb695f90fb4f3eae965f24c500aca92c3cf5cc069ce7f220f554eca6e05d4"
     }
   ],
   "binaryEvidence": {

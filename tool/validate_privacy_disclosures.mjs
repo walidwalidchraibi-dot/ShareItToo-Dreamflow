@@ -321,9 +321,11 @@ function assertSourceContracts({ root, sourceTexts }) {
       'Firebase Cloud Messaging',
       'Firebase Crashlytics',
       'Firebase Authentication',
-      'Google, Apple oder Facebook',
+      'freigegebenen externen Anbieter',
       'technische Installationskennung',
       'App-Sitzungsdaten',
+      'keine Ausweisprüfung',
+      'SMS-Verifizierung',
     ]) {
       if (!source.includes(marker)) fail(`The ${label} is missing the truthful disclosure marker: ${marker}.`);
     }

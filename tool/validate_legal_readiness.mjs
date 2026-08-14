@@ -22,6 +22,14 @@ const documentContract = {
     sourceFile: 'lib/screens/legal_fees_payments_screen.dart',
     publicPath: '/fees-and-payments',
   },
+  privacy: {
+    sourceFile: 'lib/screens/legal_privacy_screen.dart',
+    publicPath: '/privacy',
+  },
+  imprint: {
+    sourceFile: 'lib/screens/legal_imprint_screen.dart',
+    publicPath: '/imprint',
+  },
 };
 
 const consentSourceContract = {
@@ -149,6 +157,40 @@ function assertExplicitConsentContract({ root, sourceTexts, consent }) {
   }
 }
 
+function assertProviderIdentityFailsClosed({ root, sourceTexts }) {
+  const config = sourceText(
+    root,
+    sourceTexts,
+    'lib/config/legal_provider_config.dart',
+  );
+  const imprint = sourceText(
+    root,
+    sourceTexts,
+    'lib/screens/legal_imprint_screen.dart',
+  );
+  for (const marker of [
+    'SIT_LEGAL_PROVIDER_APPROVED',
+    'defaultValue: false',
+    'SIT_LEGAL_PROVIDER_NAME',
+    'SIT_LEGAL_PROVIDER_ADDRESS',
+    'SIT_LEGAL_REPRESENTATIVE',
+    'SIT_LEGAL_CONTENT_RESPONSIBLE',
+    'hasCompleteApprovedIdentity',
+  ]) {
+    if (!config.includes(marker)) {
+      fail(`Legal provider configuration is missing: ${marker}`);
+    }
+  }
+  if (!imprint.includes('LegalProviderConfig.hasCompleteApprovedIdentity')) {
+    fail('Imprint must be gated by a complete approved provider identity.');
+  }
+  for (const forbidden of ['ShareItToo GmbH', '+49 176 47105994']) {
+    if (imprint.includes(forbidden)) {
+      fail(`Imprint must not hardcode an unapproved provider value: ${forbidden}`);
+    }
+  }
+}
+
 function assertApprovedDocument(item, contract, label) {
   if (item.status !== 'approved') fail(`${label}.status must be approved.`);
   assertSha256(item.approvedContentSha256, `${label}.approvedContentSha256`);
@@ -196,6 +238,7 @@ export function validateLegalReadiness({
     fail(`consentContract.technicalStatus must be ${expectedTechnicalStatus} for state=${legal.state}.`);
   }
   assertExplicitConsentContract({ root, sourceTexts, consent });
+  assertProviderIdentityFailsClosed({ root, sourceTexts });
 
   const documents = object(legal.documents, 'documents');
   if (Object.keys(documents).sort().join(',') !== Object.keys(documentContract).sort().join(',')) {

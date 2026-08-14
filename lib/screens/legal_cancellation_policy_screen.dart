@@ -9,7 +9,7 @@ class LegalCancellationPolicyScreen extends StatelessWidget {
     return LegalDetailScaffold(
       title: 'Stornierungsbedingungen',
       intro:
-          'Stornierungen sollen fair für beide Seiten sein. Diese Übersicht erklärt, wann storniert werden kann, welche Gebühren entstehen können und wie Rückerstattungen funktionieren.',
+          'Stornierungen sollen fair für beide Seiten sein. Diese Übersicht beschreibt den aktuellen Buchungsablauf. Verbindliche Gebühren- und Erstattungsregeln werden vor der Aktivierung von Echtgeldzahlungen gesondert freigegeben.',
       sections: [
         LegalSectionCard(
           icon: Icons.event_busy_outlined,
@@ -26,7 +26,8 @@ class LegalCancellationPolicyScreen extends StatelessWidget {
           title: 'Mögliche Gebühren',
           children: const [
             LegalBullets(items: [
-              'Je kurzfristiger die Stornierung, desto eher können Gebühren anfallen.',
+              'Der aktuelle Store-Kandidat belastet bei einer Stornierung kein echtes Zahlungsmittel.',
+              'Spätere Stornogebühren müssen vor der Buchung klar angezeigt und verbindlich freigegeben werden.',
               'Bei wiederholtem Missbrauch kann das Konto eingeschränkt werden.',
             ]),
           ],
@@ -36,8 +37,8 @@ class LegalCancellationPolicyScreen extends StatelessWidget {
           title: 'Rückerstattungen',
           children: const [
             LegalBullets(items: [
-              'Erstattungen erfolgen abhängig von Stornozeitpunkt, Gebühren und ggf. Streitfällen.',
-              'Bei späterer Zahlungsabwicklung kann die Bearbeitungszeit vom Zahlungsdienstleister abhängen.',
+              'Ohne aktivierte Echtgeldzahlung gibt es im aktuellen Store-Kandidaten keine reale Rückerstattung.',
+              'Bei späterer Zahlungsabwicklung hängen Erstattungsweg und Bearbeitungszeit von der dann freigegebenen Regel und dem Zahlungsdienstleister ab.',
             ]),
           ],
         ),
@@ -45,7 +46,8 @@ class LegalCancellationPolicyScreen extends StatelessWidget {
           icon: Icons.support_agent_outlined,
           title: 'Probleme zwischen Nutzern',
           children: const [
-            LegalParagraph('Wenn Probleme auftreten (z.B. Artikel nicht wie beschrieben, verspätete Rückgabe, Streit über Schäden), kontaktiere den Support so früh wie möglich. Foto‑Dokumentation bei Übergabe/Rückgabe hilft, Fälle fair zu klären.'),
+            LegalParagraph(
+                'Wenn Probleme auftreten (z.B. Artikel nicht wie beschrieben, verspätete Rückgabe, Streit über Schäden), kontaktiere den Support so früh wie möglich. Foto‑Dokumentation bei Übergabe/Rückgabe hilft, Fälle fair zu klären.'),
           ],
         ),
       ],

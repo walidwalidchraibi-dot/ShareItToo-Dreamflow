@@ -86,17 +86,17 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           'Telefonnummer',
           'vollständige Adresse',
           'genaue Standortkoordinaten',
-          'Zahlungsinformationen',
-          'Verifizierungsdokumente',
+          'Buchungsbeträge und Buchungsstatus',
         ],
         extraTitle: 'Diese Informationen werden ausschließlich verwendet für:',
         extraBullets: [
           'Buchungen',
           'Kommunikation während aktiver Buchungen',
-          'Zahlungen und Auszahlungen',
-          'Sicherheits- und Verifizierungsprozesse',
+          'Berechnung und Darstellung von Buchungsbeträgen',
+          'Sicherheitsprozesse',
         ],
-        note: 'ShareItToo gibt persönliche Daten nicht öffentlich weiter.',
+        note:
+            'Der aktuelle Store-Kandidat erhebt weder Ausweisdokumente noch Karten- oder Bankdaten. ShareItToo gibt persönliche Daten nicht öffentlich weiter.',
       ),
       const _PrivacySectionData(
         icon: Icons.forum_outlined,
@@ -147,9 +147,9 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
         description:
             'Um Vertrauen auf der Plattform zu stärken, können folgende Verifizierungen durchgeführt werden:',
         bullets: [
-          'Telefonnummer‑Verifizierung',
           'E‑Mail‑Bestätigung',
-          'Identitätsprüfung (optional)',
+          'freiwillige Anmeldung über einen freigegebenen externen Anbieter',
+          'Telefonnummer als optionale Kontaktangabe',
         ],
         extraTitle: 'Diese Maßnahmen helfen dabei:',
         extraBullets: [
@@ -157,6 +157,8 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           'sichere Buchungen zu gewährleisten',
           'Vertrauen zwischen Nutzern aufzubauen',
         ],
+        note:
+            'Der aktuelle Store-Kandidat bietet keine Ausweisprüfung und keinen Upload von Identitätsdokumenten an. Die SMS-Verifizierung der Telefonnummer bleibt bis zu einem gesondert geprüften Nachfolger deaktiviert.',
       ),
       const _PrivacySectionData(
         icon: Icons.storage_outlined,
@@ -165,7 +167,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
         bullets: [
           'Buchungen abzuwickeln',
           'Kommunikation zwischen Nutzern zu ermöglichen',
-          'Zahlungen zu verarbeiten',
+          'Buchungsbeträge und Gebühren transparent darzustellen',
           'die Sicherheit der Plattform zu gewährleisten',
           'die Nutzung der Plattform zu verbessern',
         ],
@@ -181,10 +183,10 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           'Google Maps Platform für Adressvorschläge sowie Standort- und Entfernungsfunktionen',
           'Firebase Cloud Messaging für Push‑Benachrichtigungen und technische Installationskennungen',
           'Firebase Crashlytics für Absturz-, Geräte-, Diagnose- und App-Sitzungsdaten',
-          'Firebase Authentication für eine freiwillige Anmeldung mit Google, Apple oder Facebook und die dafür erforderlichen Identitätsdaten',
+          'Firebase Authentication für eine freiwillige Anmeldung mit einem von ShareItToo freigegebenen Anbieter und die dafür erforderlichen Identitätsdaten',
         ],
         note:
-            'Werbe-IDs, Werbeprofile, Werbetracking und Analyse zu Werbezwecken sind im aktuellen App-Kandidaten nicht aktiviert. Facebook wird nur nach ausdrücklichem Antippen der Facebook-Anmeldung verwendet.',
+            'Werbe-IDs, Werbeprofile, Werbetracking und Analyse zu Werbezwecken sind im aktuellen App-Kandidaten nicht aktiviert. Ein externer Anmeldedienst wird nur nach ausdrücklichem Antippen der jeweiligen Anmeldung verwendet.',
       ),
       const _PrivacySectionData(
         icon: Icons.file_download_outlined,

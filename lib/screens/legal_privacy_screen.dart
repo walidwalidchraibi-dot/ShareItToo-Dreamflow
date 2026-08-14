@@ -21,8 +21,11 @@ class LegalPrivacyScreen extends StatelessWidget {
             LegalBullets(items: [
               'Kontodaten (z.B. Name, E‑Mail, ggf. Telefonnummer)',
               'Profilangaben (z.B. Bild, Kurzbeschreibung, Stadt)',
-              'Verifizierungsdaten (nur wenn du eine Verifizierung startest)',
             ]),
+            SizedBox(height: 10),
+            LegalParagraph(
+              'Der aktuelle Store-Kandidat bietet keine Ausweisprüfung und keinen Upload von Identitätsdokumenten an. Eine SMS-Verifizierung der Telefonnummer bleibt bis zu einem gesondert geprüften Nachfolger deaktiviert.',
+            ),
           ],
         ),
         LegalSectionCard(
@@ -35,7 +38,7 @@ class LegalPrivacyScreen extends StatelessWidget {
             LegalBullets(items: [
               'Kontodaten',
               'Buchungsdaten (z.B. Zeitraum, Artikel, Status, Übergabe/Rückgabe)',
-              'Zahlungsdaten (z.B. Buchungsbeträge, Gebühren, Auszahlungen)',
+              'Buchungsbeträge, berechnete Gebühren und Buchungsstatus; keine Karten- oder Bankdaten',
               'Nachrichten zwischen Nutzern (zur Abwicklung der Buchung)',
               'Standortdaten: Stadt/Region sowie – wenn du entsprechende Funktionen nutzt – genaue Adressen und genaue Standortkoordinaten für Inserate, Buchungen, Lieferungen, Übergaben oder Rückgaben',
             ]),
@@ -52,7 +55,7 @@ class LegalPrivacyScreen extends StatelessWidget {
             LegalBullets(items: [
               'um Buchungen zu ermöglichen und abzuwickeln',
               'um Kommunikation zwischen Mietern und Vermietern bereitzustellen',
-              'um Zahlungen/Auszahlungen zu verarbeiten (später auch via Zahlungsdienstleister)',
+              'um Buchungsbeträge und Gebühren transparent darzustellen',
               'um Adressen vorzuschlagen, Entfernungen zu berechnen und ausdrücklich gestartete Standortprüfungen bei Übergaben oder Rückgaben durchzuführen',
               'um Missbrauch, Betrug und Sicherheitsfälle zu verhindern',
               'um Supportfälle bearbeiten zu können',
@@ -73,11 +76,11 @@ class LegalPrivacyScreen extends StatelessWidget {
               'Google Maps Platform für Adressvorschläge sowie Standort- und Entfernungsfunktionen',
               'Firebase Cloud Messaging für Push‑Benachrichtigungen; dabei wird eine technische Installationskennung verarbeitet',
               'Firebase Crashlytics für Absturz-, Geräte-, Diagnose- und App-Sitzungsdaten; es wird keine Werbe-ID verwendet und kein Nutzerprofil für Werbung erstellt',
-              'Firebase Authentication für die freiwillige Anmeldung über Google, Apple oder Facebook; dabei werden Anbieterkennung, E-Mail, E-Mail-Bestätigungsstatus und gegebenenfalls der Anzeigename verarbeitet',
+              'Firebase Authentication für die freiwillige Anmeldung über einen freigegebenen externen Anbieter; dabei werden Anbieterkennung, E-Mail, E-Mail-Bestätigungsstatus und gegebenenfalls der Anzeigename verarbeitet',
             ]),
             SizedBox(height: 10),
             LegalParagraph(
-                'Analyse zu Werbezwecken und Werbe-SDKs sind im aktuellen Kandidaten nicht aktiviert. Die Facebook-Anmeldekomponente dient ausschließlich der ausdrücklich gewählten Anmeldung; automatische Facebook-App-Events und Werbetracking werden nicht verwendet. Eine finale rechtliche Einordnung der technischen Empfänger ist vor der Veröffentlichung noch freizugeben.'),
+                'Analyse zu Werbezwecken und Werbe-SDKs sind im aktuellen Kandidaten nicht aktiviert. Ein externer Anmeldedienst wird nur nach ausdrücklichem Antippen der jeweiligen Anmeldung verwendet; automatische Werbeereignisse und Werbetracking werden nicht verwendet. Eine finale rechtliche Einordnung der technischen Empfänger ist vor der Veröffentlichung noch freizugeben.'),
           ],
         ),
         LegalSectionCard(

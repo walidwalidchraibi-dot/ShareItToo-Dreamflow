@@ -151,6 +151,10 @@ test('approved public privacy copy covers the evidenced current data flows and d
   assert.match(privacy, /90 Tage/);
   assert.match(privacy, /keine dauerhafte Hintergrund- oder Live-Ortung/);
   assert.match(privacy, /keine aktivierte Echtgeld-Zahlungsübertragung an Stripe/);
+  assert.match(privacy, /keine Ausweisprüfung/);
+  assert.match(privacy, /keine Karten- oder Bankdaten/);
+  assert.match(privacy, /Empfänger und Dienstleister/);
+  assert.match(privacy, /Speicherung, Löschung und Rechte/);
   assert.match(privacy, /innerhalb von 14 Tagen/);
   assert.match(privacy, /shareittoo\.com\/account-deletion/);
   assert.doesNotMatch(privacy, /OpenAI/);

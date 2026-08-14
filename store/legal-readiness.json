@@ -34,7 +34,7 @@
     "cancellationPolicy": {
       "status": "draft",
       "sourceFile": "lib/screens/legal_cancellation_policy_screen.dart",
-      "currentContentSha256": "d02c64e26b3b2f424dd20c2b955455264996e96f8be08ebd2cfb65241929ab9f",
+      "currentContentSha256": "e593aa8e473d39cf78cae7011c9821fca2619bd6507bcf9c84bfcb2bfdfde6ee",
       "approvedContentSha256": null,
       "publicUrl": null,
       "approvalEvidenceRef": null
@@ -42,7 +42,23 @@
     "feesAndPayments": {
       "status": "draft",
       "sourceFile": "lib/screens/legal_fees_payments_screen.dart",
-      "currentContentSha256": "a06e35913ec4a9928504a435d8268097fccef5e74e12ccee8f880f6cb0eab00e",
+      "currentContentSha256": "ccf8b06d29d08e3bb0e7c3f00860518038b158979204585cefd38402af8665c2",
+      "approvedContentSha256": null,
+      "publicUrl": null,
+      "approvalEvidenceRef": null
+    },
+    "privacy": {
+      "status": "draft",
+      "sourceFile": "lib/screens/legal_privacy_screen.dart",
+      "currentContentSha256": "983e08d647f981036341f3d808688dfa08e348cf55a84f38e1030f63178434a6",
+      "approvedContentSha256": null,
+      "publicUrl": null,
+      "approvalEvidenceRef": null
+    },
+    "imprint": {
+      "status": "draft",
+      "sourceFile": "lib/screens/legal_imprint_screen.dart",
+      "currentContentSha256": "fbb4170ad04d86aa0feae8ac7bb095d16480caf9e7febb15a80c2c8c60dd2843",
       "approvedContentSha256": null,
       "publicUrl": null,
       "approvalEvidenceRef": null

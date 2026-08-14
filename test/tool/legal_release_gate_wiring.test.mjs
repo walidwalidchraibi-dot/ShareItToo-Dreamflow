@@ -23,6 +23,35 @@ test('release preflight always validates the legal draft and requires approval f
     source.indexOf('node tool/validate_legal_readiness.mjs --require-approved')
       < source.indexOf('dart run tool/validate_store_metadata.dart --require-submittable'),
   );
+  assert.match(
+    source,
+    /Store submission requires an explicitly approved legal provider identity/,
+  );
+  for (const field of [
+    'SIT_LEGAL_PROVIDER_NAME',
+    'SIT_LEGAL_PROVIDER_ADDRESS',
+    'SIT_LEGAL_REPRESENTATIVE',
+    'SIT_LEGAL_CONTENT_RESPONSIBLE',
+    'SIT_LEGAL_CONTACT_EMAIL',
+  ]) {
+    assert.ok(source.includes(field));
+  }
+});
+
+test('Android release builder injects legal identity only through explicit build values', () => {
+  const source = read('scripts/build_android_release_candidate.sh');
+  for (const field of [
+    'SIT_LEGAL_PROVIDER_APPROVED',
+    'SIT_LEGAL_PROVIDER_NAME',
+    'SIT_LEGAL_PROVIDER_ADDRESS',
+    'SIT_LEGAL_REPRESENTATIVE',
+    'SIT_LEGAL_CONTENT_RESPONSIBLE',
+    'SIT_LEGAL_CONTACT_EMAIL',
+    'SIT_LEGAL_CONTACT_PHONE',
+  ]) {
+    assert.ok(source.includes(field));
+  }
+  assert.doesNotMatch(source, /ShareItToo GmbH/);
 });
 
 test('technical regression runs syntax, tests, and the honest legal draft validator', () => {
@@ -38,6 +67,7 @@ test('technical regression runs syntax, tests, and the honest legal draft valida
 
 test('both changed shell entrypoints remain valid Bash', () => {
   for (const path of [
+    'scripts/build_android_release_candidate.sh',
     'scripts/release_candidate_preflight.sh',
     'scripts/technical_regression_check.sh',
   ]) {

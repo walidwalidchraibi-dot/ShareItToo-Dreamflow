@@ -265,11 +265,27 @@ void main() {
       await File('lib/screens/help_center_screen.dart').readAsString(),
       await File('lib/screens/legal_terms_screen.dart').readAsString(),
       await File('lib/screens/payment_methods_screen.dart').readAsString(),
+      await File('lib/services/data_service.dart').readAsString(),
     ].join('\n');
     expect(sources.toLowerCase(), isNot(contains('kaution')));
     expect(sources, isNot(contains('protectionModel:')));
     expect(sources, isNot(contains('createDepositSetup')));
     expect(sources.toLowerCase(), isNot(contains('securitydeposit')));
+    expect(sources, isNot(contains('inkl. Schutz & Service')));
+  });
+
+  test('internal imprint never claims an unverified company identity',
+      () async {
+    final imprint =
+        await File('lib/screens/legal_imprint_screen.dart').readAsString();
+    final providerConfig =
+        await File('lib/config/legal_provider_config.dart').readAsString();
+
+    expect(imprint, isNot(contains('ShareItToo GmbH')));
+    expect(
+        imprint, contains('LegalProviderConfig.hasCompleteApprovedIdentity'));
+    expect(providerConfig, contains('SIT_LEGAL_PROVIDER_APPROVED'));
+    expect(providerConfig, contains('defaultValue: false'));
   });
 
   test('launch item model cannot reintroduce deposit or protection fields',

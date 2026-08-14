@@ -38,7 +38,7 @@ test('accepts the honest fail-closed legal draft', () => {
   assert.equal(result.state, 'draft');
   assert.equal(result.approvalAllowed, false);
   assert.equal(result.storeGate, 'open');
-  assert.equal(result.documentCount, 4);
+  assert.equal(result.documentCount, 6);
   assert.equal(result.explicitConfirmations, 3);
 });
 
@@ -102,6 +102,8 @@ test('accepts a complete internally consistent approved fixture', () => {
       communityRules: 'community-rules',
       cancellationPolicy: 'cancellation-policy',
       feesAndPayments: 'fees-and-payments',
+      privacy: 'privacy',
+      imprint: 'imprint',
     }[key]}`;
     item.approvalEvidenceRef = `docs/evidence/b11/legal-${key}-approval.json`;
   }
