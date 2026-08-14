@@ -92,10 +92,10 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081405)` |
 | Play-Signing und öffentliche App-Links | `passed`; `docs/evidence/b11/android-play-store-links-signing-2026081405-20260814.json` |
-| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081405.json` |
+| Crashlytics-Releasezuordnung | `passed`; `docs/evidence/b11/android-crash-release-check-2026081405.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081405.json` |
 | Staging-Servercommit | `09c9211e41da75969b9ee59e9954ac7465250e80` |
-| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 5/7 |
+| Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 6/7 |
 
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Eine bestandene Google-Play-Installation ist nur belegt, wenn der aktuelle Kandidat aus dem internen Track installiert und gestartet wurde. Die früheren direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM-, Abmelde- und Offline-/Realtime-Diagnosen bleiben davon abgegrenzte Vorprüfungen. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->

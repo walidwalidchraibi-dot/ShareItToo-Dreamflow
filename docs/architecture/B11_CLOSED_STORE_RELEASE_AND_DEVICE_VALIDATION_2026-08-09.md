@@ -38,7 +38,7 @@ sind ausdrücklich nicht Bestandteil dieser Freigabe.
 | Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081405)` |
 | Play-Signing und öffentliche App-Links | `passed`; `docs/evidence/b11/android-play-store-links-signing-2026081405-20260814.json` |
-| Crashlytics-Releasezuordnung | `passed`; nativer Symbol-Upload und genau ein bereinigtes Diagnoseereignis sind in Firebase dem exakten Build zugeordnet; `docs/evidence/b11/android-crash-release-check-2026081405.json` |
+| Crashlytics-Releasezuordnung | `passed`; `docs/evidence/b11/android-crash-release-check-2026081405.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081405.json` |
 | Staging-Servercommit | `09c9211e41da75969b9ee59e9954ac7465250e80` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 6/7 |
