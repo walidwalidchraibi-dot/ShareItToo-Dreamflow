@@ -5,7 +5,7 @@
   "sourceBuild": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081404"
+    "buildNumber": "2026081405"
   },
   "implementation": {
     "provider": "firebase-phone",

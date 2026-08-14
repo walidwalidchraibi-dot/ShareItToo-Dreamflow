@@ -7,8 +7,8 @@
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
     "minimumBuildNumber": "2026080903",
-    "buildNumber": "2026081404",
-    "commit": "79f63e183767563424355407ca52b1c5a62b85ed",
+    "buildNumber": "2026081405",
+    "commit": "a00606f979315930ea6c28c0ce7495ef4ec56368",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
@@ -16,8 +16,8 @@
     "stripeLivemode": false,
     "android": {
       "delivery": "play-internal",
-      "aabSha256": "80844a34939d848211d46c580853e4f201154ab73a7e811aa09d4d7555ed5be1",
-      "apkSha256": "84b98da3a63df18a4fe1fac2b11adfbaef08305b6fbe4aa15cf77393a6e1186f",
+      "aabSha256": "1795e54184a1467f981557cdede8b07821b1a2eeb058786569b519f6d97e6f67",
+      "apkSha256": "565e38ffe5faa7b6f1b367281ee78d59e2e2b52f159b7ea68c439711eb3bef3d",
       "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
     },
     "ios": {
@@ -44,7 +44,7 @@
         "authenticationAndSession": "open",
         "listingAndBooking": "open",
         "chatAndDeepLink": "open",
-        "pushForeground": "failed",
+        "pushForeground": "open",
         "pushBackground": "open",
         "pushTerminated": "open",
         "handoverAndReturn": "open",
@@ -52,7 +52,7 @@
         "offlineRecovery": "open",
         "largeTextAndScreenReader": "open"
       },
-      "evidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081404-20260814.json"
+      "evidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081405-20260814.json"
     },
     {
       "id": "android-hotspot-renter",
@@ -136,31 +136,31 @@
   "releaseChecks": {
     "candidateIdentityAndSignatures": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081404.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081405.json"
     },
     "firebaseFcmAndApns": {
       "status": "testing",
-      "evidenceRef": null
+      "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081405-20260814T141032Z.json"
     },
     "binaryPrivacyAndNetwork": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081404.json"
+      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081405.json"
     },
     "crashReleaseMapping": {
       "status": "testing",
-      "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081404.json"
+      "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081405.json"
     },
     "storeWarningsLinksAndSigning": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-play-store-links-signing-2026081404-20260814.json"
+      "evidenceRef": "docs/evidence/b11/android-play-store-links-signing-2026081405-20260814.json"
     },
     "stagingCleanupAndHealth": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081404.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081405.json"
     },
     "productionInvariant": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081404.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081405.json"
     }
   },
   "approvals": {

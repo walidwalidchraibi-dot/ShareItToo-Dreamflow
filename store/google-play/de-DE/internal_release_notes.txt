@@ -1,1 +1,1 @@
-Stabilerer interner ShareItToo-Test: Inserate, KI-Suche, Buchungen, Chat und Übergabe/Rückgabe. Dieser Build verwendet ausschließlich Staging und Testzahlungen.
+interner ShareItToo-Test: zuverlässig zentriertes SIT-Popup für Nachrichten im Vordergrund, klarere Hinweise und stabilere Diagnose; ausschließlich Staging und Testzahlungen.

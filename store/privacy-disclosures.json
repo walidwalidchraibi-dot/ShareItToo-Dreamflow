@@ -6,8 +6,8 @@
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081404",
-    "commit": "79f63e183767563424355407ca52b1c5a62b85ed"
+    "buildNumber": "2026081405",
+    "commit": "a00606f979315930ea6c28c0ce7495ef4ec56368"
   },
   "sourceInventory": [
     {
@@ -104,13 +104,13 @@
     },
     {
       "path": "store/phone-verification-readiness.json",
-      "sha256": "26da8d5b7033669a14981d414d7d980cba89b3536245e78446e94a1dcfd083af"
+      "sha256": "a9096dd216bb771307660b8b08692313d3de3ea133a425e2f460394a0b059011"
     }
   ],
   "binaryEvidence": {
-    "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081404.json",
+    "candidateEvidenceRef": "docs/evidence/b11/android-candidate-2026081405.json",
     "binaryScan": "passed",
-    "binaryScanReportSha256": "55fc42f13dc77d238977cd74d2a33f363d83497f18fdda844c12ee68ab4aa1fb",
+    "binaryScanReportSha256": "49b887280e35af7305271cdd138634243ebd0a1f48881113d62ae43fe31a52c1",
     "releaseCheckStatus": "passed"
   },
   "externalServices": {
