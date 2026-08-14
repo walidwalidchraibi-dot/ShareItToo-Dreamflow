@@ -3,14 +3,14 @@
   "state": "draft",
   "approvalAllowed": false,
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "6e70f78fb338278473d94b20bf283c4a4338ac4066fe4ea96dbf775eecc8e3d0"},
+    {"path": "backend/src/app.js", "sha256": "56ffb535fe627da5a84db375c765d173ca4365d5e6484ca22a45044a45a432f5"},
     {"path": "backend/src/privacy_export.js", "sha256": "78e76bcc4f19ffcde3270fbbd7cea70cb64de57d14664d10eef44dbe222f80c1"},
     {"path": "backend/src/account_actions.js", "sha256": "d0bd8947185c7b0fd5bdc6ab600e2ffbafd8e89bf7a6b7e51b12706c5965ed37"},
-    {"path": "backend/src/config.js", "sha256": "3d9567524b2a9e24ac85b99bfcfabd85df8da4c6f9b7753eb2a426c9a3505372"},
+    {"path": "backend/src/config.js", "sha256": "75c153e2bda86f7b76c3fcb7d6c9a1a09a728aba2e9600211735a1452669833b"},
     {"path": "backend/sql/schema.sql", "sha256": "8534006cf23be1a3376bc4ea2952a2d0317028aa4c3c8a70f0cba5072ff969a6"},
     {"path": "backend/sql/migrations/006_b7_communications.up.sql", "sha256": "f1452d85f736cc013c33747ec6de71a9d139a1b6f993eb39f591171cc2a1dd83"},
     {"path": "backend/ops/backup.sh", "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"},
-    {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "68d253d42664c615c1e46c06651a37b76153ae7ebe5a2e7c72bb3e60b73046f0"},
+    {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "c84871daf264d9254630292f0c5ef80eb7a3b065308830e68b7f37c2d68ceb36"},
     {"path": "lib/screens/privacy_info_screen.dart", "sha256": "2738e28f1e26c4b04716b9e2bf6c14699f879a45f73c4a88755fd88236a4db61"}
   ],
   "implementedControls": {

@@ -40,7 +40,7 @@ class LegalPrivacyScreen extends StatelessWidget {
               'Buchungsdaten (z.B. Zeitraum, Artikel, Status, Übergabe/Rückgabe)',
               'Buchungsbeträge, berechnete Gebühren und Buchungsstatus; keine Karten- oder Bankdaten',
               'Nachrichten zwischen Nutzern (zur Abwicklung der Buchung)',
-              'Standortdaten: Stadt/Region sowie genaue Adressen und Standortkoordinaten, soweit sie für persönliche Übergabe und Rückgabe erforderlich sind',
+              'Standortdaten: Stadt/Region sowie genaue Adressen und genaue Standortkoordinaten, soweit sie für persönliche Übergabe und Rückgabe erforderlich sind',
               'Rechtserklärungen mit genauem Wortlaut, Dokumentversion, Sprache, Buchungsbezug sowie Datum und Uhrzeit',
               'Übergabe-, Rückgabe- und fallbezogene Fotos mit Buchungszuordnung und Zeitstempel',
             ]),
