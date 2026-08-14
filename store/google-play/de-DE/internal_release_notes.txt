@@ -1,1 +1,1 @@
-interner ShareItToo-Test: zuverlässig zentriertes SIT-Popup für Nachrichten im Vordergrund, klarere Hinweise und stabilere Diagnose; ausschließlich Staging und Testzahlungen.
+Interner ShareItToo-Test: stabilere Chat-Aktualisierung nach einem Netzwechsel sowie weiterhin klare, zentrierte SIT-Hinweise; ausschließlich Staging und Testzahlungen.
