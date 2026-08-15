@@ -63,6 +63,7 @@
     "authenticatedDeepLinks": "passed-physical-play-build",
     "logoutColdStartGuestPersistence": "passed-physical-play-build",
     "postLogoutPushSuppression": "passed-physical-play-build",
+    "offlineRealtimeRecovery": "passed-physical-play-build",
     "twoDevicePrivatePilotAcceptance": "pending"
   },
   "controlledFcm": {
@@ -87,6 +88,14 @@
     "coldStartGuestPersistence": "passed",
     "postLogoutPushSuppression": "passed",
     "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081505-20260815T035502Z.json"
+  },
+  "offlineRealtime": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "offlineWindowSeconds": 15,
+    "sameProcessRecovery": "passed",
+    "networkRestoredAfterProbe": true,
+    "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081505-20260815T040514Z.json"
   },
   "staging": {
     "serverVersion": "1.0.0-2026081502-v4-owner-acceptance",

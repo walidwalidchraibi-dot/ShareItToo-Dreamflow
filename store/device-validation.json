@@ -36,6 +36,18 @@
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
         "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081505-20260815T035502Z.json"
+      },
+      "offlineRealtime": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-15T04:05:14.223Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "offlineWindowSeconds": 15,
+        "sameProcessRecovery": "passed",
+        "originalNetworkRestored": "passed",
+        "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081505-20260815T040514Z.json"
       }
     },
     "ios": {
