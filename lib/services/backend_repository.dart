@@ -344,6 +344,40 @@ class BackendRepository {
     return Map<String, dynamic>.from(response['booking'] as Map);
   }
 
+  static Future<Map<String, dynamic>> getBookingFlowTime(
+    String bookingId,
+  ) async {
+    final response = await _authorized(
+      method: 'GET',
+      path: '/bookings/${Uri.encodeComponent(bookingId)}/flow-time',
+    );
+    return Map<String, dynamic>.from(response['state'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> updateBookingFlowTime({
+    required String bookingId,
+    required String action,
+    required String segment,
+    String? label,
+    DateTime? time,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/bookings/${Uri.encodeComponent(bookingId)}/flow-time',
+      body: {
+        'action': action,
+        'segment': segment,
+        if (label != null) 'label': label,
+        if (time != null) 'timeIso': time.toUtc().toIso8601String(),
+      },
+      additionalHeaders: {
+        'Idempotency-Key':
+            'flow_time_${bookingId}_${action}_${segment}_${DateTime.now().microsecondsSinceEpoch}',
+      },
+    );
+    return Map<String, dynamic>.from(response['state'] as Map);
+  }
+
   static Future<Map<String, dynamic>> transitionBooking({
     required String bookingId,
     required String status,

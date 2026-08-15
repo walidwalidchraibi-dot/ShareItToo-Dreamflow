@@ -44,6 +44,11 @@ import {
   replaceListingAvailability,
   transitionBooking,
 } from './booking_workflow.js';
+import {
+  BookingFlowTimeError,
+  getBookingFlowTime,
+  updateBookingFlowTime,
+} from './booking_flow_time.js';
 import { BookingConfirmationError } from './booking_confirmation_domain.js';
 import {
   issueBookingConfirmationChallenge,
@@ -2660,6 +2665,28 @@ export function createApp({
     res.json(result);
   }));
 
+  app.get('/v1/bookings/:id/flow-time', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const state = await getBookingFlowTime(pool, {
+      actorId: req.auth.userId,
+      bookingId: safeText(req.params.id, 120),
+    });
+    res.json({ state });
+  }));
+
+  app.post('/v1/bookings/:id/flow-time', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => updateBookingFlowTime(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    publishToUsers(result.participantUserIds, {
+      type: 'changed',
+      resource: 'rental_requests',
+    });
+    res.status(result.replayed ? 200 : 201).json({ state: result.state, replayed: result.replayed });
+  }));
+
   app.post('/v1/bookings/:id/confirmation-challenges', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), confirmationLimiter, asyncRoute(async (req, res) => {
     assertBookingPilot(config);
     const challenge = await inTransaction((client) => issueBookingConfirmationChallenge(client, {
@@ -3643,6 +3670,7 @@ export function createApp({
     const invalidProcessedImage = error instanceof ImageProcessingError;
     const bookingConflict = error?.code === '23P01';
     const workflowError = error instanceof BookingWorkflowError;
+    const flowTimeError = error instanceof BookingFlowTimeError;
     const messageWorkflowError = error instanceof MessageWorkflowError;
     const paymentWorkflowError = error instanceof PaymentDomainError;
     const moderationWorkflowError = error instanceof ModerationDomainError;
@@ -3652,14 +3680,14 @@ export function createApp({
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError || bookingConfirmationError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError || bookingConfirmationError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError || bookingConfirmationError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError || bookingConfirmationError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });

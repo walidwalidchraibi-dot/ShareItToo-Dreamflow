@@ -7434,14 +7434,17 @@ class DataService {
   }
 
   static Future<void> _setHandoverReturnStateMap(
-    Map<String, dynamic> map,
-  ) async {
+    Map<String, dynamic> map, {
+    bool announce = true,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_handoverReturnStateKey, jsonEncode(map));
-      SharedPersistenceSync.notify(
-        SharedPersistenceSync.handoverReturnStateKey,
-      );
+      if (announce) {
+        SharedPersistenceSync.notify(
+          SharedPersistenceSync.handoverReturnStateKey,
+        );
+      }
     } catch (e) {
       debugPrint('[DataService] _setHandoverReturnStateMap failed: $e');
     }
@@ -7454,6 +7457,19 @@ class DataService {
     final id = requestId.trim();
     if (id.isEmpty) return const {};
     final map = await _getHandoverReturnStateMap();
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      try {
+        final remote = await BackendRepository.getBookingFlowTime(id);
+        final existing = (map[id] is Map)
+            ? Map<String, dynamic>.from(map[id] as Map)
+            : <String, dynamic>{};
+        existing.addAll(remote);
+        map[id] = existing;
+        await _setHandoverReturnStateMap(map, announce: false);
+      } catch (error) {
+        debugPrint('[DataService] remote flow-time load failed: $error');
+      }
+    }
     final entry = map[id];
     if (entry is Map) {
       final e = entry.map((k, v) => MapEntry(k.toString(), v));
@@ -7719,6 +7735,19 @@ class DataService {
     final existing = (map[id] is Map)
         ? Map<String, dynamic>.from(map[id] as Map)
         : <String, dynamic>{};
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final remote = await BackendRepository.updateBookingFlowTime(
+        bookingId: id,
+        action: 'propose',
+        segment: isReturn ? 'return' : 'pickup',
+        label: label,
+        time: time,
+      );
+      existing.addAll(remote);
+      map[id] = existing;
+      await _setHandoverReturnStateMap(map);
+      return;
+    }
     final prefix = isReturn ? 'return' : 'handover';
     existing['${prefix}TimeRequested'] = label;
     existing['${prefix}TimeIso'] = time.toIso8601String();
@@ -7816,6 +7845,17 @@ class DataService {
     final existing = (map[id] is Map)
         ? Map<String, dynamic>.from(map[id] as Map)
         : <String, dynamic>{};
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final remote = await BackendRepository.updateBookingFlowTime(
+        bookingId: id,
+        action: 'confirm',
+        segment: isReturn ? 'return' : 'pickup',
+      );
+      existing.addAll(remote);
+      map[id] = existing;
+      await _setHandoverReturnStateMap(map);
+      return;
+    }
     final prefix = isReturn ? 'return' : 'handover';
     final iso = (existing['${prefix}TimeIso'] as String?) ?? '';
     final parsed = iso.isNotEmpty ? DateTime.tryParse(iso) : null;
