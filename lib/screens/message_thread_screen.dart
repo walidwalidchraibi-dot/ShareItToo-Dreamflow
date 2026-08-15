@@ -118,6 +118,24 @@ bool canStartPrimaryBookingAction({
 bool shouldSendStartSystemMessage({required bool activationSucceeded}) =>
     activationSucceeded;
 
+/// A read receipt must only be sent when the thread actually contains an
+/// unread message from the other participant. Sending the receipt for an
+/// already-read thread refreshes the shared thread cache again and can create
+/// a self-sustaining load -> read -> reload loop in the chat screen.
+bool shouldMarkThreadMessagesAsRead({
+  required Iterable<Message> messages,
+  required String userId,
+}) {
+  final viewerId = userId.trim();
+  if (viewerId.isEmpty) return false;
+  return messages.any(
+    (message) =>
+        message.senderId != viewerId &&
+        message.senderId != 'system' &&
+        !message.isRead,
+  );
+}
+
 enum _ChatState {
   requestOpen,
   confirmed,
@@ -267,7 +285,11 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
     setState(() => _thread = refreshed);
     final userId = _currentUser?.id;
-    if (userId != null && userId.isNotEmpty) {
+    if (userId != null &&
+        shouldMarkThreadMessagesAsRead(
+          messages: refreshed.messages,
+          userId: userId,
+        )) {
       await DataService.markThreadMessagesAsRead(
         threadId: refreshed.id,
         userId: userId,
@@ -384,11 +406,17 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       });
 
       // Mark as read + initial scroll.
-      if (thread != null) {
+      if (thread != null &&
+          shouldMarkThreadMessagesAsRead(
+            messages: thread.messages,
+            userId: me.id,
+          )) {
         await DataService.markThreadMessagesAsRead(
           threadId: thread.id,
           userId: me.id,
         );
+      }
+      if (thread != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
       }
     } catch (e) {
