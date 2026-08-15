@@ -74,7 +74,8 @@ export function validateAppleTestFlightHandoff({
   const candidate = object(handoff.candidate, 'candidate');
   same(candidate.bundleId, 'com.shareittoo.app', 'candidate.bundleId');
   same(candidate.versionName, '1.0.0', 'candidate.versionName');
-  same(candidate.buildNumber, '2026081403', 'candidate.buildNumber');
+  same(candidate.buildNumber, '2026081509', 'candidate.buildNumber');
+  same(candidate.commit, '3fa045b98897f9551f91da932136c2b100b2d700', 'candidate.commit');
   same(candidate.apiBaseUrl, 'https://staging.shareittoo.com/api/v1', 'candidate.apiBaseUrl');
   same(candidate.firebaseConfigured, true, 'candidate.firebaseConfigured');
   same(candidate.firebaseAnalyticsEnabled, false, 'candidate.firebaseAnalyticsEnabled');
@@ -180,8 +181,9 @@ export function validateAppleTestFlightHandoff({
   if (firebasePresent) {
     const firebase = source(root, firebaseRelativePath, sourceOverrides);
     same(plistScalar(firebase, 'BUNDLE_ID'), candidate.bundleId, 'Firebase BUNDLE_ID');
-    if (!/<key>IS_ANALYTICS_ENABLED<\/key>\s*<false\s*\/>/.test(firebase) ||
-        !/<key>IS_ADS_ENABLED<\/key>\s*<false\s*\/>/.test(firebase)) {
+    const falseBoolean = '<false(?:\\s*\\/|>\\s*<\\/false\\s*)>';
+    if (!new RegExp(`<key>IS_ANALYTICS_ENABLED<\\/key>\\s*${falseBoolean}`).test(firebase) ||
+        !new RegExp(`<key>IS_ADS_ENABLED<\\/key>\\s*${falseBoolean}`).test(firebase)) {
       fail('Apple Firebase Analytics and ads must remain disabled.');
     }
   }
@@ -201,10 +203,14 @@ export function validateAppleTestFlightHandoff({
     same(value, key === 'runnerPrivacyManifestValidated', `toolingGates.${key}`);
   }
   const toolingAudit = object(handoff.toolingAudit, 'toolingAudit');
+  same(toolingAudit.evidenceRef,
+    'docs/evidence/b11/ios-local-tooling-readiness-2026081509-20260815.json',
+    'toolingAudit.evidenceRef');
   same(toolingAudit.fullXcodeApplicationPresent, false,
     'toolingAudit.fullXcodeApplicationPresent');
   same(toolingAudit.activeDeveloperDirectory, 'command-line-tools-only',
     'toolingAudit.activeDeveloperDirectory');
+  same(toolingAudit.xcodebuildAvailable, false, 'toolingAudit.xcodebuildAvailable');
   same(toolingAudit.cocoaPodsAvailable, false, 'toolingAudit.cocoaPodsAvailable');
   same(toolingAudit.flutterDoctorIosReady, false, 'toolingAudit.flutterDoctorIosReady');
   same(toolingAudit.archiveAttempted, false, 'toolingAudit.archiveAttempted');
@@ -214,9 +220,30 @@ export function validateAppleTestFlightHandoff({
   same(toolingAudit.diagnosticCommand,
     'node tool/diagnose_ios_tooling_readiness.mjs',
     'toolingAudit.diagnosticCommand');
-  if (!/^2026-08-14T\d{2}:\d{2}:\d{2}Z$/u.test(toolingAudit.checkedAt ?? '')) {
+  if (toolingAudit.checkedAt !== '2026-08-15T14:35:12Z') {
     fail('toolingAudit.checkedAt must record the current sanitized tooling audit.');
   }
+  const toolingEvidence = object(JSON.parse(source(
+    root, toolingAudit.evidenceRef, sourceOverrides)), 'tooling readiness evidence');
+  same(toolingEvidence.kind, 'ios-local-tooling-readiness', 'tooling evidence.kind');
+  same(toolingEvidence.status, 'pending-local-tooling', 'tooling evidence.status');
+  same(toolingEvidence.capturedAt, toolingAudit.checkedAt, 'tooling evidence.capturedAt');
+  same(toolingEvidence.candidate?.buildNumber, candidate.buildNumber,
+    'tooling evidence.candidate.buildNumber');
+  same(toolingEvidence.observed?.fullXcodeApplicationPresent, false,
+    'tooling evidence.observed.fullXcodeApplicationPresent');
+  same(toolingEvidence.observed?.xcodebuildAvailable, false,
+    'tooling evidence.observed.xcodebuildAvailable');
+  same(toolingEvidence.observed?.cocoaPodsAvailable, false,
+    'tooling evidence.observed.cocoaPodsAvailable');
+  same(toolingEvidence.boundaries?.archiveAttempted, false,
+    'tooling evidence.boundaries.archiveAttempted');
+  same(toolingEvidence.boundaries?.uploadAttempted, false,
+    'tooling evidence.boundaries.uploadAttempted');
+  same(toolingEvidence.boundaries?.containsSecrets, false,
+    'tooling evidence.boundaries.containsSecrets');
+  same(toolingEvidence.boundaries?.containsAccountIdentifiers, false,
+    'tooling evidence.boundaries.containsAccountIdentifiers');
   for (const [key, value] of Object.entries(object(handoff.postUploadChecks, 'postUploadChecks'))) {
     same(value, 'pending', `postUploadChecks.${key}`);
   }

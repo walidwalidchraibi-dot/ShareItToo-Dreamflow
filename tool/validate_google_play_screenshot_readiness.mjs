@@ -10,7 +10,7 @@ function fail(message) {
 
 export function validateGooglePlayScreenshotReadiness({
   repositoryRoot,
-  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-readiness-2026081506-20260815.json'),
+  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081509-20260815.json'),
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   const exactCandidate = JSON.parse(readFileSync(
@@ -40,7 +40,10 @@ export function validateGooglePlayScreenshotReadiness({
     const sourceCandidate = JSON.parse(readFileSync(safeRef(
       evidence.sourceCandidateEvidenceRef, 'sourceCandidateEvidenceRef'), 'utf8'));
     if (source.kind !== 'google-play-feed-screenshot-readiness' ||
-        source.status !== 'exact-candidate-local-screenshots-validated-not-uploaded' ||
+        ![
+          'exact-candidate-local-screenshots-validated-not-uploaded',
+          'exact-candidate-screenshots-byte-identical-existing-draft',
+        ].includes(source.status) ||
         source.candidate?.buildNumber !== sourceCandidate.candidate?.buildNumber ||
         source.candidate?.commit !== sourceCandidate.candidate?.commit ||
         source.candidate?.apkSha256 !== sourceCandidate.android?.apkSha256 ||
@@ -55,40 +58,13 @@ export function validateGooglePlayScreenshotReadiness({
     const roleBooking = JSON.parse(readFileSync(safeRef(
       review.baselineRoleBookingEvidenceRef, 'baselineRoleBookingEvidenceRef'), 'utf8'));
     const expectedChangedFiles = [
-      'lib/config/legal_provider_config.dart',
-      'lib/main.dart',
-      'lib/screens/change_address_screen.dart',
-      'lib/screens/change_password_screen.dart',
-      'lib/screens/check_availability_screen.dart',
-      'lib/screens/contact_data_screen.dart',
-      'lib/screens/edit_social_media_screen.dart',
-      'lib/screens/invoice_detail_screen.dart',
-      'lib/screens/legal_cancellation_policy_screen.dart',
-      'lib/screens/legal_community_rules_screen.dart',
-      'lib/screens/legal_fees_payments_screen.dart',
-      'lib/screens/legal_imprint_screen.dart',
-      'lib/screens/legal_privacy_screen.dart',
-      'lib/screens/legal_terms_screen.dart',
+      'android/app/src/main/AndroidManifest.xml',
       'lib/screens/message_thread_screen.dart',
-      'lib/screens/messages_screen.dart',
-      'lib/screens/moderation_admin_screen.dart',
-      'lib/screens/notifications_screen.dart',
-      'lib/screens/payment_checkout_screen.dart',
-      'lib/screens/privacy_info_screen.dart',
-      'lib/screens/report_user_screen.dart',
-      'lib/screens/security_screen.dart',
-      'lib/screens/select_rental_duration_screen.dart',
-      'lib/screens/two_factor_auth_screen.dart',
-      'lib/services/backend_realtime_service.dart',
+      'lib/services/auth_service.dart',
+      'lib/services/backend_repository.dart',
       'lib/services/data_service.dart',
-      'lib/services/firebase_runtime.dart',
-      'lib/widgets/app_popup.dart',
-      'lib/widgets/foreground_push_host.dart',
-      'lib/widgets/messages_settings_sheet.dart',
-      'lib/widgets/review_prompt_sheet.dart',
-      'lib/widgets/search_overlay.dart',
     ];
-    if (review.sourceSnapshotCommit !== '95f3e2e3ca7363f729c6a6d9ecf4170ddda501df' ||
+    if (review.sourceSnapshotCommit !== 'c6ab5fc143c5d424aece3d8fb7dfe4a351cb02df' ||
         JSON.stringify(review.changedAppSourceFilesSinceSourceSnapshot) !==
           JSON.stringify(expectedChangedFiles) ||
         JSON.stringify(review.changedVisibleScreenshotSourceFiles) !== '[]' ||

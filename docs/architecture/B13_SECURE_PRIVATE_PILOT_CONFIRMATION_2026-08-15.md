@@ -837,3 +837,42 @@ Servernachweis:
 - Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
   blieben unveraendert. Alle sechs V4-Punkte bleiben unter
   `V4-INTERIM-2026-08-15` mit `status: open` aktiv.
+
+## Meilenstein 16.85 – Google-Anmeldung vorbereitet, Kandidat unveraendert gesperrt
+
+- Der Google-Anmeldeanbieter ist im Firebase-Stagingprojekt aktiviert. Der
+  oeffentliche Projektname lautet `ShareItToo`; als Supportkontakt ist die
+  geschaeftliche SIT-Adresse hinterlegt. Der bereinigte Nachweis
+  `docs/evidence/b11/firebase-google-signin-provider-20260815.json` enthaelt
+  weder die Adresse selbst noch Client-IDs, API-Schluessel oder
+  Kontokennungen.
+- Die Android- und Apple-Firebase-Dateien wurden lokal neu geladen, mit Modus
+  `600` geschuetzt und bleiben durch `.gitignore` ausserhalb des Repositorys.
+  Die vorherigen lokalen Dateien wurden wiederherstellbar ausserhalb des
+  Projekts gesichert. Bundle-/Paketkennung, Stagingprojekt, Google-
+  Anmeldekonfiguration sowie ausgeschaltete Analytics- und Werbeschalter sind
+  plattformuebergreifend validiert.
+- Der Parser und die Release-Automation akzeptieren die von Firebase aktuell
+  ausgegebenen kompakten und ausgeschriebenen Boolean-Formate. Bei einer
+  gemeinsamen Android-/Apple-Pruefung werden die oeffentlichen lokalen
+  Buildwerte nun fuer beide Plattformen nur im laufenden Prozess abgeleitet
+  und weder ausgegeben noch gespeichert.
+- Kandidat `1.0.0+2026081509` blieb unveraendert. Seine Google-, Apple- und
+  Facebook-Release-Schalter bleiben geschlossen; Apple und Facebook sind in
+  Firebase weiterhin deaktiviert. Es wurde kein neuer Build erzeugt, kein
+  Sozialkonto angemeldet und kein Benutzerkonto erstellt.
+- Der Staging-Backendpfad fuer soziale Anmeldung ist aktiv und weist ein
+  synthetisch ungueltiges Token korrekt mit `401 invalid_social_token` ab.
+  Ein echtes Token oder eine echte Anmeldung wurde nicht verwendet.
+- Die Apple-/TestFlight-Uebergabe ist jetzt konsistent an denselben Kandidaten
+  `2026081509` und den offenen lokalen Xcode-/CocoaPods-Status gebunden. Ein
+  TestFlight-Archiv oder Upload wurde nicht versucht.
+- Die vier bereits im Google-Play-Entwurf gespeicherten Screenshots bleiben
+  gueltig: Zwischen dem letzten bildgenau geprueften Build und `2026081509`
+  wurde keine der abgebildeten Feed-, Detail-, Such- oder Anzeige-erstellen-
+  Flaechen veraendert. Es wurden keine Bilder oder Store-Daten neu gespeichert.
+- Der vollstaendige technische Gesamtcheck bestand einschliesslich
+  Konfigurations-, Store-, Rechts-, Datenschutz-, Telefon-, Signierungs- und
+  App-Tests sowie Web- und Android-Debug-Build. Produktion, Echtgeld,
+  oeffentliche Tracks, Closed Testing und Review-Versand blieben unveraendert;
+  alle sechs V4-Punkte bleiben unter `V4-INTERIM-2026-08-15` offen.

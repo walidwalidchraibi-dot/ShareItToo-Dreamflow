@@ -189,6 +189,7 @@ firebase_validation_platform="${SIT_FIREBASE_VALIDATION_PLATFORM:-all}"
   exit 1
 }
 firebase_config_path="$ROOT/android/app/google-services.json"
+firebase_ios_config_path="$ROOT/ios/Runner/GoogleService-Info.plist"
 firebase_required_names=(
   SIT_FIREBASE_PROJECT_ID
   SIT_FIREBASE_MESSAGING_SENDER_ID
@@ -203,7 +204,7 @@ for firebase_name in "${firebase_required_names[@]}"; do
     break
   fi
 done
-if [[ "$firebase_validation_platform" == "android" &&
+if [[ "$firebase_validation_platform" =~ ^(android|all)$ &&
       -f "$firebase_config_path" && "$firebase_env_missing" == "true" ]]; then
   firebase_env_lines="$(node --input-type=module - "$firebase_config_path" <<'NODE'
 import { readFileSync } from 'node:fs';
@@ -226,6 +227,38 @@ NODE
         ;;
       *)
         echo "ERROR: Unexpected Firebase environment field." >&2
+        exit 1
+        ;;
+    esac
+  done <<< "$firebase_env_lines"
+  unset firebase_env_lines firebase_value
+fi
+if [[ "$firebase_validation_platform" =~ ^(ios|all)$ &&
+      -f "$firebase_ios_config_path" ]]; then
+  firebase_env_lines="$(node --input-type=module - "$firebase_ios_config_path" <<'NODE'
+import { readFileSync } from 'node:fs';
+import {
+  deriveIosFirebaseReleaseEnvironment,
+  parseGoogleServiceInfoPlist,
+} from './tool/validate_firebase_release_config.mjs';
+
+const config = parseGoogleServiceInfoPlist(readFileSync(process.argv[2], 'utf8'));
+const values = deriveIosFirebaseReleaseEnvironment(config);
+for (const [name, value] of Object.entries(values)) {
+  process.stdout.write(`${name}=${value}\n`);
+}
+NODE
+)"
+  while IFS='=' read -r firebase_name firebase_value; do
+    case "$firebase_name" in
+      SIT_FIREBASE_PROJECT_ID|SIT_FIREBASE_MESSAGING_SENDER_ID|SIT_FIREBASE_STORAGE_BUCKET|SIT_FIREBASE_IOS_APP_ID|SIT_FIREBASE_IOS_API_KEY)
+        if [[ -z "${!firebase_name:-}" ]]; then
+          printf -v "$firebase_name" '%s' "$firebase_value"
+          export "$firebase_name"
+        fi
+        ;;
+      *)
+        echo "ERROR: Unexpected Apple Firebase environment field." >&2
         exit 1
         ;;
     esac

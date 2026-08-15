@@ -198,6 +198,9 @@ export function validateGooglePlayAppContentHandoff({
   const currentBinaryPrivacy = object(JSON.parse(readFileSync(resolve(
     repositoryRoot, currentBinding.currentSources?.binaryPrivacyEvidenceRef ?? ''), 'utf8')),
   'current binary privacy evidence');
+  const providerActivation = object(JSON.parse(readFileSync(resolve(
+    repositoryRoot, currentBinding.review?.providerActivationEvidenceRef ?? ''), 'utf8')),
+  'Firebase Google provider activation evidence');
   const currentProjection = privacyDisclosures.dataTypes.map((entry) => ({
     id: entry.id,
     google: entry.google,
@@ -247,7 +250,41 @@ export function validateGooglePlayAppContentHandoff({
       currentBinding.review?.baselineAnswerProjectionMatchesCurrent !== true ||
       currentBinding.review?.authenticationAndCommunicationChangesReviewed !== true ||
       currentBinding.review?.socialProviderCodeCompiledButReleaseGated !== true ||
-      currentBinding.review?.socialProvidersExternallyEnabled !== false ||
+      currentBinding.review?.googleProviderConfiguredInFirebase !== true ||
+      currentBinding.review?.appleProviderConfiguredInFirebase !== false ||
+      currentBinding.review?.facebookProviderConfiguredInFirebase !== false ||
+      currentBinding.review?.candidateSocialLoginReleaseGatesEnabled !== false ||
+      currentBinding.review?.stagingBackendSocialEndpointEnabled !== true ||
+      currentBinding.review?.stagingBackendInvalidTokenRejected !== true ||
+      currentBinding.review?.providerActivationEvidenceRef !==
+        'docs/evidence/b11/firebase-google-signin-provider-20260815.json' ||
+      providerActivation.kind !== 'firebase-google-signin-provider-configuration' ||
+      providerActivation.status !==
+        'google-provider-enabled-configs-refreshed-release-gates-closed' ||
+      providerActivation.firebase?.projectId !== 'shareittoo-staging' ||
+      providerActivation.firebase?.providerId !== 'google.com' ||
+      providerActivation.firebase?.providerEnabled !== true ||
+      providerActivation.firebase?.appleProviderEnabled !== false ||
+      providerActivation.firebase?.facebookProviderEnabled !== false ||
+      providerActivation.localConfigurations?.crossPlatformValidation !== 'passed' ||
+      providerActivation.localConfigurations?.ios?.googleSignInEnabled !== true ||
+      providerActivation.localConfigurations?.ios?.analyticsEnabled !== false ||
+      providerActivation.localConfigurations?.ios?.advertisingEnabled !== false ||
+      providerActivation.stagingBackendProbe?.syntheticInvalidTokenHttpStatus !== 401 ||
+      providerActivation.stagingBackendProbe?.syntheticInvalidTokenErrorCode !==
+        'invalid_social_token' ||
+      providerActivation.candidate?.buildNumber !== currentCandidate.buildNumber ||
+      providerActivation.candidate?.commit !== currentCandidate.commit ||
+      providerActivation.candidate?.googleLoginReleaseGateEnabled !== false ||
+      providerActivation.candidate?.appleLoginReleaseGateEnabled !== false ||
+      providerActivation.candidate?.facebookLoginReleaseGateEnabled !== false ||
+      providerActivation.boundaries?.newAppCandidateBuilt !== false ||
+      providerActivation.boundaries?.currentPlayCandidateChanged !== false ||
+      providerActivation.boundaries?.productionChanged !== false ||
+      providerActivation.boundaries?.containsSecrets !== false ||
+      providerActivation.boundaries?.containsClientIds !== false ||
+      providerActivation.boundaries?.containsEmailAddresses !== false ||
+      providerActivation.boundaries?.containsAccountIdentifiers !== false ||
       currentBinding.review?.newActiveIndependentControllerTransferProven !== false ||
       currentBinding.review?.mapsTransferActivated !== false ||
       currentBinding.review?.stripeEnabled !== false ||
@@ -283,7 +320,7 @@ export function validateGooglePlayAppContentHandoff({
   if (Object.keys(hardStops).length !== 7) {
     fail('App-content handoff must preserve all seven hard stops.');
   }
-  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 13 ||
+  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 14 ||
       handoff.evidenceRefs.some((ref) => typeof ref !== 'string' ||
         ref.includes('..') || !resolve(repositoryRoot, ref).startsWith(`${resolve(repositoryRoot)}/`))) {
     fail('App-content evidence references are invalid.');

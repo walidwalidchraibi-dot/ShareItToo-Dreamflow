@@ -1,34 +1,46 @@
 # B4 – Social Login mit Google, Apple und Facebook
 
-Status: Code und lokale Prüfungen fertig; Anbieter in den externen Konsolen
-noch nicht aktiviert.
+Status: Code und lokale Prüfungen fertig; Google in Firebase vorbereitet,
+aber im aktuellen App-Kandidaten weiterhin release-seitig gesperrt. Apple und
+Facebook sind extern noch nicht aktiviert.
 
 ## Verifizierter externer Stand am 14. August 2026
 
 - Firebase Authentication ist im Projekt `shareittoo-staging` initialisiert.
-  Noch kein Anbieter ist gespeichert oder für Nutzer freigeschaltet.
+  Telefon und Google sind in Firebase aktiviert. Apple und Facebook bleiben
+  deaktiviert.
 - Das SIT-Geschäftskonto besitzt Projektzugriff und ist zusätzlich zum
   bisherigen privaten Eigentümerkonto als Projekteigentümer eingetragen. Das
   private Konto bleibt als Rückfallzugang bestehen.
-- Der Google-Anbieter ist vorbereitet, aber nicht gespeichert: Die Konsole
-  verlangt eine erneute Anmeldung des SIT-Geschäftskontos, bevor dessen
-  Adresse als öffentliche OAuth-Supportadresse verwendet werden kann. Die
-  private Adresse wurde ausdrücklich nicht ersatzweise gespeichert.
+- Der Google-Anbieter wurde am 15. August 2026 mit dem öffentlichen Namen
+  `ShareItToo` und der geschäftlichen SIT-Supportadresse gespeichert. Die
+  private Adresse wurde ausdrücklich nicht verwendet. Der bereinigte Nachweis
+  liegt unter
+  `docs/evidence/b11/firebase-google-signin-provider-20260815.json`.
 - SHA-1 und SHA-256 des kanonischen Android-Upload-Zertifikats sind im
   Firebase-Android-App-Eintrag gespeichert und in der Konsole rückgelesen.
   Die Android-Konfigurationsdatei wird erst nach Aktivierung des Google-
   Anbieters einmalig neu geladen, damit sie den endgültigen OAuth-Stand
   enthält.
-- Die vorhandene Apple-Firebase-Datei passt zu Projekt und Bundle-ID, enthält
-  aber vor der Google-Aktivierung noch keinen iOS-OAuth-Client, keine
-  umgekehrte Client-ID und kein aktiviertes Google Sign-In. Der
-  Release-Validator lehnt sie deshalb weiterhin geschlossen ab.
+- Beide Firebase-Konfigurationsdateien wurden nach der Google-Aktivierung neu
+  geladen, ausschließlich lokal mit Eigentümerrechten ersetzt und bleiben aus
+  Git ausgeschlossen. Android enthält zwei zertifikatsgebundene und einen
+  Web-OAuth-Client. Die Apple-Datei enthält Google-Client-ID, umgekehrte
+  Client-ID und aktiviertes Google Sign-In; Analytics und Werbung bleiben aus.
+- Der plattformübergreifende Release-Validator akzeptiert die neuen Dateien.
+  Er unterstützt nun auch die von Firebase aktuell ausgegebenen erweiterten
+  XML-Booleschen Werte wie `<true></true>` und `<false></false>`.
 - Auf dem Build-Mac sind nur die Apple Command Line Tools vorhanden.
   Vollständiges Xcode, `xcodebuild` und CocoaPods fehlen; ein iOS-Archiv wurde
   folgerichtig nicht versucht.
-- Es wurden keine OAuth-Schlüssel, Provider-Secrets oder Nutzertokens gelesen,
-  gespeichert oder in das Repository übernommen. `FIREBASE_AUTH_ENABLED`
-  bleibt unverändert aus.
+- Es wurden keine OAuth-Schlüssel, Provider-Secrets, Client-IDs oder
+  Nutzertokens in Nachweise oder das Repository übernommen. Der
+  Staging-Endpunkt lehnt einen rein synthetischen ungültigen Token mit `401`
+  und `invalid_social_token` ab; kein Konto und keine Sitzung wurden erzeugt.
+- Der veröffentlichte Play-Kandidat `2026081509` bleibt unverändert mit
+  deaktivierten Google-, Apple- und Facebook-Release-Schaltern. Die externe
+  Google-Aktivierung allein macht den Weg daher in dieser App noch nicht
+  nutzbar und löst keinen neuen Build aus.
 
 ## Architektur
 
@@ -67,7 +79,10 @@ noch nicht aktiviert.
 
 ## Noch erforderliche externe Einrichtung
 
-1. In Firebase Authentication Google, Apple und Facebook aktivieren.
+1. Google ist in Firebase Authentication aktiviert. Für den nächsten bewusst
+   gebündelten Kandidaten nur Google release-seitig einschalten und anschließend
+   Kontoauswahl, Zustimmung, sichere Kontoverknüpfung und Abmeldung auf einem
+   physischen Staging-Gerät prüfen.
 2. Android-SHA-1 und SHA-256 des echten Upload-Zertifikats sind in Firebase
    registriert. Nach Aktivierung des Google-Anbieters die Android-
    Konfigurationsdatei neu laden und validieren. Die kanonischen
@@ -79,8 +94,9 @@ noch nicht aktiviert.
 4. Meta Developer App anlegen; echte öffentliche App-ID und Client-Token nur
    über die Release-Konfiguration liefern, App Secret ausschließlich in
    Firebase/Meta verwalten.
-5. Erst danach `FIREBASE_AUTH_ENABLED=true` im Backend setzen und die drei
-   Wege auf Staging-Geräten prüfen.
+5. Apple und Facebook erst nach vollständiger externer Einrichtung
+   release-seitig aktivieren und auf Staging-Geräten prüfen. Der aktuelle
+   Kandidat behält für alle drei Anbieter seine geschlossenen Schalter.
 
 Bis diese Schritte vollständig sind, scheitern die Anbieterwege sichtbar und
 geschlossen; E-Mail-Anmeldung bleibt verfügbar.

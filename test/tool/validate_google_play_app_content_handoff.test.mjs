@@ -174,6 +174,16 @@ test('rejects a stale current-candidate Data Safety binding', async (t) => {
   assert.throws(() => validate(data), /product truth/);
 });
 
+test('rejects an app-content handoff that loses the current Google-provider evidence', async (t) => {
+  const data = await fixture((handoff) => {
+    handoff.evidenceRefs = handoff.evidenceRefs.filter(
+      (ref) => ref !== 'docs/evidence/b11/firebase-google-signin-provider-20260815.json',
+    );
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validate(data), /evidence references/i);
+});
+
 test('rejects credential or account data', async (t) => {
   const data = await fixture((handoff) => { handoff.account = 'private@example.test'; });
   t.after(() => rm(data.root, { recursive: true, force: true }));

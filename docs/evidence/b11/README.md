@@ -109,6 +109,23 @@ Nachweis liegt unter
 iOS-/TestFlight-Gate und enthält keine Konto-, Schlüssel- oder
 Zugangsinformationen.
 
+Der bereinigte Firebase-Nachweis
+`firebase-google-signin-provider-20260815.json` belegt die aktivierte
+Google-Konsoleinstellung, den öffentlichen SIT-Projektnamen, eine konfigurierte
+geschäftliche Supportadresse und die lokal erneuerten, git-ignorierten
+Android-/Apple-Konfigurationsdateien. Er enthält weder die Adresse selbst noch
+Client-IDs, API-Schlüssel oder Kontokennungen. Der bereits veröffentlichte
+Play-Kandidat `2026081509` bleibt unverändert mit geschlossenem Google-
+Release-Schalter; Apple und Facebook bleiben extern und im Kandidaten aus.
+
+Der Screenshot-Kompatibilitätsnachweis
+`google-play-feed-screenshot-compatibility-2026081509-20260815.json` bindet die
+vier bereits im Play-Entwurf gespeicherten Bilder an Kandidat `2026081509`.
+Zwischen dem zuletzt bildgenau geprüften Kandidaten und diesem Build wurden
+keine der fotografierten Feed-, Detail-, Such- oder Anzeige-erstellen-Flächen
+geändert. Es wurden deshalb weder neue Bilder hochgeladen noch der Play-
+Entwurf oder eine öffentliche Spur verändert.
+
 Der historische Crash-/Symbolnachweis
 `android-crash-release-mapping-2026081029.json` bindet die im AAB eingebettete
 R8-Zuordnung und alle nativen Android-Symbole per SHA-256 an Build 2026081029.

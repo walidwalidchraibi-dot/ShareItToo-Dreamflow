@@ -6,7 +6,8 @@
   "candidate": {
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081403",
+    "buildNumber": "2026081509",
+    "commit": "3fa045b98897f9551f91da932136c2b100b2d700",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
     "firebaseAnalyticsEnabled": false,
@@ -51,9 +52,11 @@
     "testflightBuildUploaded": false
   },
   "toolingAudit": {
-    "checkedAt": "2026-08-14T05:46:00Z",
+    "checkedAt": "2026-08-15T14:35:12Z",
+    "evidenceRef": "docs/evidence/b11/ios-local-tooling-readiness-2026081509-20260815.json",
     "fullXcodeApplicationPresent": false,
     "activeDeveloperDirectory": "command-line-tools-only",
+    "xcodebuildAvailable": false,
     "cocoaPodsAvailable": false,
     "flutterDoctorIosReady": false,
     "archiveAttempted": false,

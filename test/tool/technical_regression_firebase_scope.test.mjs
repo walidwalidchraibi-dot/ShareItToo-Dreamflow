@@ -16,6 +16,10 @@ test('full regression defaults to all Firebase platforms', () => {
     regression,
     /node tool\/validate_firebase_release_config\.mjs --platform "\$firebase_validation_platform"/,
   );
+  assert.match(
+    regression,
+    /firebase_validation_platform" =~ \^\(android\|all\)\$/,
+  );
 });
 
 test('full regression accepts only explicit android, ios, or all scope', () => {

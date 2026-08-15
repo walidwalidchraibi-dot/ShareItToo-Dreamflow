@@ -47,7 +47,7 @@ export function parseGoogleServiceInfoPlist(contents) {
     fail('GoogleService-Info.plist must be a valid XML property list.');
   }
   const values = {};
-  const entries = /<key>\s*([^<]+?)\s*<\/key>\s*(?:<string>\s*([^<]*?)\s*<\/string>|<(true|false)\s*\/>)/g;
+  const entries = /<key>\s*([^<]+?)\s*<\/key>\s*(?:<string>\s*([^<]*?)\s*<\/string>|<(true|false)\s*(?:\/>|>\s*<\/\3\s*>))/g;
   for (const match of contents.matchAll(entries)) {
     const key = decodeXml(match[1].trim());
     if (Object.hasOwn(values, key)) fail(`GoogleService-Info.plist contains duplicate key ${key}.`);
@@ -238,6 +238,26 @@ export function deriveAndroidFirebaseReleaseEnvironment(config) {
     ),
   };
   validateAndroidConfig(config, values);
+  return values;
+}
+
+export function deriveIosFirebaseReleaseEnvironment(config) {
+  if (config === null || typeof config !== 'object' || Array.isArray(config)) {
+    fail('ios/Runner/GoogleService-Info.plist must contain scalar Firebase configuration values.');
+  }
+  const values = {
+    SIT_FIREBASE_PROJECT_ID: text(config.PROJECT_ID, 'Firebase project ID'),
+    SIT_FIREBASE_MESSAGING_SENDER_ID: text(
+      String(config.GCM_SENDER_ID ?? ''),
+      'Firebase messaging sender ID',
+    ),
+    SIT_FIREBASE_STORAGE_BUCKET: typeof config.STORAGE_BUCKET === 'string'
+      ? config.STORAGE_BUCKET.trim()
+      : '',
+    SIT_FIREBASE_IOS_APP_ID: text(config.GOOGLE_APP_ID, 'Apple Firebase App ID'),
+    SIT_FIREBASE_IOS_API_KEY: text(config.API_KEY, 'Apple Firebase API key'),
+  };
+  validateIosConfig(config, values);
   return values;
 }
 

@@ -26,7 +26,9 @@ außerhalb von Git, Drive und Memory.
 - APNs-Entitlement: Debug `development`, Profile/Release `production`
 - Hintergrundmodi: Remote Notifications und Fetch
 - Kamera-, Foto-, Galerie- und Standorttexte sind vorhanden
-- Apple-Firebase-Datei passt zur Bundle-ID; Analytics und Werbung sind aus
+- Apple-Firebase-Datei passt zur Bundle-ID, enthält die lokale Google-
+  Anmeldekonfiguration und hält Analytics sowie Werbung ausgeschaltet; die
+  Datei bleibt ignoriert und außerhalb von Git
 - Crashlytics-Symbol-Upload ist als Release-Buildphase vorbereitet
 
 ## 3. Persönliche Kontoentscheidung

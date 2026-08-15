@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   deriveAndroidFirebaseReleaseEnvironment,
+  deriveIosFirebaseReleaseEnvironment,
   parseGoogleServiceInfoPlist,
   validateFirebaseReleaseConfig,
 } from '../../tool/validate_firebase_release_config.mjs';
@@ -59,6 +60,18 @@ function validate(options = {}) {
   });
 }
 
+test('parses both compact and expanded Firebase plist booleans', () => {
+  const parsed = parseGoogleServiceInfoPlist(`<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+  <key>IS_ADS_ENABLED</key><false/>
+  <key>IS_ANALYTICS_ENABLED</key><false></false>
+  <key>IS_SIGNIN_ENABLED</key><true></true>
+</dict></plist>`);
+  assert.equal(parsed.IS_ADS_ENABLED, false);
+  assert.equal(parsed.IS_ANALYTICS_ENABLED, false);
+  assert.equal(parsed.IS_SIGNIN_ENABLED, true);
+});
+
 test('accepts the honest pre-Firebase scaffold as planned', () => {
   assert.deepEqual(validate(), {
     state: 'planned',
@@ -102,6 +115,16 @@ test('derives the exact public Android Firebase build environment from the local
     SIT_FIREBASE_STORAGE_BUCKET: environment.SIT_FIREBASE_STORAGE_BUCKET,
     SIT_FIREBASE_ANDROID_APP_ID: environment.SIT_FIREBASE_ANDROID_APP_ID,
     SIT_FIREBASE_ANDROID_API_KEY: environment.SIT_FIREBASE_ANDROID_API_KEY,
+  });
+});
+
+test('derives the exact public Apple Firebase build environment from the local config', () => {
+  assert.deepEqual(deriveIosFirebaseReleaseEnvironment(iosConfig), {
+    SIT_FIREBASE_PROJECT_ID: environment.SIT_FIREBASE_PROJECT_ID,
+    SIT_FIREBASE_MESSAGING_SENDER_ID: environment.SIT_FIREBASE_MESSAGING_SENDER_ID,
+    SIT_FIREBASE_STORAGE_BUCKET: environment.SIT_FIREBASE_STORAGE_BUCKET,
+    SIT_FIREBASE_IOS_APP_ID: environment.SIT_FIREBASE_IOS_APP_ID,
+    SIT_FIREBASE_IOS_API_KEY: environment.SIT_FIREBASE_IOS_API_KEY,
   });
 });
 

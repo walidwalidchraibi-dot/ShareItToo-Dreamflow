@@ -15,12 +15,12 @@ const firebasePlist = `<?xml version="1.0"?><plist><dict>
 </dict></plist>`;
 const configuredSources = {
   'ios/Runner/GoogleService-Info.plist': firebasePlist,
-  'pubspec.yaml': 'version: 1.0.0+2026081403\n',
+  'pubspec.yaml': 'version: 1.0.0+2026081509\n',
 };
 
 test('accepts the truthful static Apple handoff with account and tooling gates open', () => {
   const result = validateAppleTestFlightHandoff({ root, sourceOverrides: configuredSources });
-  assert.deepEqual(result, { bundleId: 'com.shareittoo.app', buildNumber: '2026081403' });
+  assert.deepEqual(result, { bundleId: 'com.shareittoo.app', buildNumber: '2026081509' });
 });
 
 test('accepts CI without copying the intentionally private Apple Firebase file into Git', () => {
@@ -28,10 +28,10 @@ test('accepts CI without copying the intentionally private Apple Firebase file i
     root,
     sourceOverrides: {
       'ios/Runner/GoogleService-Info.plist': null,
-      'pubspec.yaml': 'version: 1.0.0+2026081403\n',
+      'pubspec.yaml': 'version: 1.0.0+2026081509\n',
     },
   });
-  assert.deepEqual(result, { bundleId: 'com.shareittoo.app', buildNumber: '2026081403' });
+  assert.deepEqual(result, { bundleId: 'com.shareittoo.app', buildNumber: '2026081509' });
 });
 
 test('accepts the same final cross-platform candidate in rollover mode', () => {
@@ -40,7 +40,7 @@ test('accepts the same final cross-platform candidate in rollover mode', () => {
     sourceOverrides: configuredSources,
     allowAndroidCandidateRollover: true,
   });
-  assert.deepEqual(result, { bundleId: 'com.shareittoo.app', buildNumber: '2026081403' });
+  assert.deepEqual(result, { bundleId: 'com.shareittoo.app', buildNumber: '2026081509' });
 });
 
 test('accepts a newer Android-only build while the unchanged Apple handoff stays pending', () => {
@@ -48,11 +48,11 @@ test('accepts a newer Android-only build while the unchanged Apple handoff stays
     root,
     sourceOverrides: {
       ...configuredSources,
-      'pubspec.yaml': 'version: 1.0.0+2026081404\n',
+      'pubspec.yaml': 'version: 1.0.0+2026081510\n',
     },
     allowAndroidCandidateRollover: true,
   });
-  assert.deepEqual(result, { bundleId: 'com.shareittoo.app', buildNumber: '2026081403' });
+  assert.deepEqual(result, { bundleId: 'com.shareittoo.app', buildNumber: '2026081509' });
 });
 
 test('rejects an Apple handoff newer than the current shared candidate', () => {
@@ -60,7 +60,7 @@ test('rejects an Apple handoff newer than the current shared candidate', () => {
     root,
     sourceOverrides: {
       ...configuredSources,
-      'pubspec.yaml': 'version: 1.0.0+2026081402\n',
+      'pubspec.yaml': 'version: 1.0.0+2026081508\n',
     },
     allowAndroidCandidateRollover: true,
   }), /Android-only rollover/);
