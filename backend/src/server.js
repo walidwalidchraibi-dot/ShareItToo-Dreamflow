@@ -2,6 +2,7 @@ import http from 'node:http';
 
 import { createApp } from './app.js';
 import { config } from './config.js';
+import { startCredentialCleanupWorker } from './credential_cleanup.js';
 import { initializeDatabase, pool } from './db.js';
 import { attachRealtime } from './realtime.js';
 import { verifyMailer } from './mailer.js';
@@ -37,11 +38,13 @@ async function main() {
   void reconcilePaymentLifecycle().catch((error) => {
     console.error('[payments] startup reconciliation failed', error?.code ?? error?.message ?? error);
   });
+  const stopCredentialCleanup = startCredentialCleanupWorker({ client: pool });
 
   const shutdown = async (signal) => {
     console.log(`[shareittoo-api] ${signal}, shutting down`);
     clearInterval(notificationTimer);
     clearInterval(paymentTimer);
+    stopCredentialCleanup();
     server.close(async () => {
       await pool.end();
       process.exit(0);

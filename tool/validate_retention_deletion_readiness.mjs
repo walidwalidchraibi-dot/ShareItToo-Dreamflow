@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 
 const sourcePaths = [
   'backend/src/app.js',
+  'backend/src/server.js',
+  'backend/src/credential_cleanup.js',
   'backend/src/privacy_export.js',
   'backend/src/account_actions.js',
   'backend/src/config.js',
@@ -30,6 +32,7 @@ const decisionKeys = [
 ];
 
 const providerEvidencePath = 'docs/evidence/b11/privacy-provider-retention-sources-20260812.json';
+const credentialCleanupEvidencePath = 'docs/evidence/b11/expired-credential-cleanup-20260815.json';
 
 const requiredOfficialSources = [
   ['Firebase Cloud Messaging', 'https://firebase.google.com/support/privacy/', 'within 180 days'],
@@ -100,6 +103,22 @@ function assertSourceContracts(root, sourceTexts) {
   if (!communications.includes('notification_delivery_attempts_append_only')) {
     fail('Notification delivery audit must remain append-only.');
   }
+  const cleanup = text(root, sourceTexts, 'backend/src/credential_cleanup.js');
+  for (const marker of [
+    'DELETE FROM auth_action_tokens',
+    'DELETE FROM refresh_tokens',
+    'DELETE FROM staff_elevations',
+    'UPDATE booking_confirmation_challenges',
+    "code_digest = repeat('0', 64)",
+    'credentialCleanupIntervalMs = 6 * 60 * 60 * 1000',
+  ]) {
+    if (!cleanup.includes(marker)) fail(`Expired credential cleanup is missing the contract: ${marker}.`);
+  }
+  const server = text(root, sourceTexts, 'backend/src/server.js');
+  if (!server.includes('startCredentialCleanupWorker({ client: pool })')
+      || !server.includes('stopCredentialCleanup()')) {
+    fail('The expired credential cleanup worker must start and stop with the API process.');
+  }
   const backup = text(root, sourceTexts, 'backend/ops/backup.sh');
   if (!backup.includes('-mtime +14 -delete')) fail('The observed 14-day backup rotation contract is missing.');
   const privacy = `${text(root, sourceTexts, 'lib/screens/legal_privacy_screen.dart')}\n${text(root, sourceTexts, 'lib/screens/privacy_info_screen.dart')}`;
@@ -139,6 +158,60 @@ function assertProviderEvidence(root, evidenceTexts) {
   }
 }
 
+function assertCredentialCleanupEvidence(root, evidenceTexts) {
+  let evidence;
+  try {
+    evidence = JSON.parse(text(root, evidenceTexts, credentialCleanupEvidencePath));
+  } catch (error) {
+    fail(`Expired credential cleanup evidence must be valid JSON: ${error.message}`);
+  }
+  assertNoSensitiveData(evidence, 'expired credential cleanup evidence');
+  if (evidence.schemaVersion !== 1
+      || evidence.kind !== 'expired-credential-cleanup'
+      || ![
+        'implemented-full-regression-passed-staging-deployment-pending',
+        'staging-runtime-verified',
+      ].includes(evidence.status)
+      || evidence.scope?.expiredOrConsumedActionTokensDeleted !== true
+      || evidence.scope?.expiredRefreshTokensDeleted !== true
+      || evidence.scope?.expiredOrRevokedStaffElevationsDeleted !== true
+      || evidence.scope?.expiredConsumedOrRevokedBookingChallengeDigestsScrubbed !== true
+      || evidence.scope?.bookingAndAuditRowsRetained !== true
+      || evidence.scope?.startupRun !== true
+      || evidence.scope?.workerIntervalHours !== 6
+      || evidence.scope?.maximumAllowedWorkerIntervalHours !== 24
+      || evidence.verification?.syntaxCheck !== 'passed'
+      || evidence.verification?.unitTests !== 'passed'
+      || !String(evidence.verification?.fullBackendSuite ?? '').startsWith('passed-')
+      || evidence.verification?.fullTechnicalRegression !== 'passed-candidate-rollover-mode'
+      || evidence.policyBoundary?.legalRetentionPeriodsInvented !== false
+      || evidence.policyBoundary?.requiredRetentionDecisionsClosed !== false
+      || evidence.policyBoundary?.categoryPurgeEnabled !== false
+      || evidence.policyBoundary?.legalHoldEnabled !== false
+      || evidence.policyBoundary?.backupPolicyChanged !== false
+      || evidence.boundaries?.productionChanged !== false
+      || evidence.boundaries?.storeSubmissionChanged !== false
+      || evidence.boundaries?.containsSecrets !== false
+      || evidence.boundaries?.containsAccountData !== false) {
+    fail('Expired credential cleanup evidence is incomplete or exceeds its technical boundary.');
+  }
+  const deployment = object(evidence.deployment, 'expired credential cleanup deployment');
+  if (evidence.status === 'implemented-full-regression-passed-staging-deployment-pending') {
+    if (evidence.verification.stagingRuntime !== 'pending'
+        || deployment.status !== 'pending'
+        || deployment.commit !== null
+        || deployment.evidenceRef !== null) {
+      fail('Pending credential cleanup evidence must not claim a Staging deployment.');
+    }
+  } else if (evidence.verification.stagingRuntime !== 'passed'
+      || deployment.status !== 'verified'
+      || !/^[a-f0-9]{40}$/.test(deployment.commit ?? '')
+      || typeof deployment.evidenceRef !== 'string'
+      || !deployment.evidenceRef.startsWith('/docker/shareittoo/releases/staging-')) {
+    fail('Verified credential cleanup evidence requires the exact Staging deployment proof.');
+  }
+}
+
 export function validateRetentionDeletionReadiness({
   root,
   retentionManifest,
@@ -170,16 +243,24 @@ export function validateRetentionDeletionReadiness({
   }
   assertSourceContracts(root, sourceTexts);
   assertProviderEvidence(root, evidenceTexts);
+  assertCredentialCleanupEvidence(root, evidenceTexts);
 
   const controls = object(retention.implementedControls, 'implementedControls');
   if (controls.accountErasure?.status !== 'implemented-integration-covered'
       || controls.accountErasure?.notificationResidue !== 'deleted-or-scrubbed') {
     fail('Account erasure residual-data coverage must be recorded.');
   }
-  if (controls.credentialExpiry?.automaticExpiredRowPurge !== false
+  if (controls.credentialExpiry?.status !== 'lifetime-enforced-and-automatic-purge'
+      || controls.credentialExpiry?.automaticExpiredRowPurge !== true
+      || controls.credentialExpiry?.startupPurge !== true
+      || controls.credentialExpiry?.workerIntervalHours !== 6
+      || controls.credentialExpiry?.maximumAllowedWorkerIntervalHours !== 24
+      || controls.credentialExpiry?.bookingChallengeDigestScrubbed !== true
+      || controls.credentialExpiry?.technicalEvidenceRef !==
+        'docs/evidence/b11/expired-credential-cleanup-20260815.json'
       || controls.categoryPurge?.status !== 'not-implemented'
       || controls.legalHold?.status !== 'not-implemented') {
-    fail('Unimplemented retention controls must stay fail-closed.');
+    fail('Credential cleanup and unimplemented retention controls must stay fail-closed.');
   }
   if (controls.backups?.observedRotationDays !== 14
       || controls.backups?.accountSpecificEraseFromExistingBackups !== false) {

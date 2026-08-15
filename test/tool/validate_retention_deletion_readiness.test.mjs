@@ -37,6 +37,30 @@ test('rejects account erasure that leaves notification payloads behind', () => {
   assert.throws(() => validate({ retentionManifest, sourceTexts: {[path]: changed} }), /residual-data control/);
 });
 
+test('rejects expired credential cleanup that leaves booking confirmation digests behind', () => {
+  const path = 'backend/src/credential_cleanup.js';
+  const retentionManifest = clone(baseRetention);
+  const changed = readFileSync(resolve(root, path), 'utf8')
+    .replace("code_digest = repeat('0', 64)", 'code_digest = code_digest');
+  retentionManifest.sourceInventory.find((entry) => entry.path === path).sha256 = sha256(changed);
+  assert.throws(
+    () => validate({ retentionManifest, sourceTexts: {[path]: changed} }),
+    /Expired credential cleanup is missing the contract/u,
+  );
+});
+
+test('rejects claiming automatic credential purge when the API worker is disconnected', () => {
+  const path = 'backend/src/server.js';
+  const retentionManifest = clone(baseRetention);
+  const changed = readFileSync(resolve(root, path), 'utf8')
+    .replace('startCredentialCleanupWorker({ client: pool })', 'null');
+  retentionManifest.sourceInventory.find((entry) => entry.path === path).sha256 = sha256(changed);
+  assert.throws(
+    () => validate({ retentionManifest, sourceTexts: {[path]: changed} }),
+    /cleanup worker must start and stop/u,
+  );
+});
+
 test('rejects invented legal periods in an open decision', () => {
   const retentionManifest = clone(baseRetention);
   retentionManifest.requiredDecisions.transactionalRecordPeriod.value = 'ten years';
@@ -71,6 +95,18 @@ test('rejects provider evidence that prematurely claims owner approval', () => {
   assert.throws(
     () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
     /reviewed-but-unapproved release boundary/,
+  );
+});
+
+test('rejects credential cleanup evidence that claims deployment without proof', () => {
+  const path = 'docs/evidence/b11/expired-credential-cleanup-20260815.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.status = 'staging-runtime-verified';
+  evidence.verification.stagingRuntime = 'passed';
+  evidence.deployment.status = 'verified';
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /exact Staging deployment proof/u,
   );
 });
 
