@@ -136,6 +136,18 @@ bool shouldMarkThreadMessagesAsRead({
   );
 }
 
+/// A load reads and refreshes several shared booking caches. Those cache
+/// writes can emit the same persistence events that normally tell this screen
+/// about external changes. Reloading while the current load is still running
+/// would therefore turn one remote fetch into an endless fetch -> event ->
+/// fetch loop. The current load already observes the newest cache state, so
+/// events emitted during that load are safely ignored.
+bool shouldReloadMessageThreadForPersistenceChange({
+  required String key,
+  required bool loadInProgress,
+}) =>
+    !loadInProgress && SharedPersistenceSync.affectsBookingSync(key);
+
 enum _ChatState {
   requestOpen,
   confirmed,
@@ -213,6 +225,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   double _lastViewInsetBottom = 0;
   StreamSubscription<String>? _sharedPersistenceSub;
   Timer? _fallbackRefreshTimer;
+  bool _loadInProgress = false;
   final SharedPersistenceRefreshCoordinator _sharedPersistenceRefresh =
       SharedPersistenceRefreshCoordinator();
 
@@ -231,7 +244,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     super.initState();
     _load();
     _sharedPersistenceSub = SharedPersistenceSync.changes.listen((key) {
-      if (!mounted || !SharedPersistenceSync.affectsBookingSync(key)) return;
+      if (!mounted ||
+          !shouldReloadMessageThreadForPersistenceChange(
+            key: key,
+            loadInProgress: _loadInProgress,
+          )) {
+        return;
+      }
       unawaited(_sharedPersistenceRefresh.schedule(() async {
         await SharedPersistenceSync.reloadPreferences();
         if (mounted) await _load();
@@ -301,6 +320,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   }
 
   Future<void> _load() async {
+    if (_loadInProgress) return;
+    _loadInProgress = true;
     setState(() => _isLoading = true);
     try {
       final requestedThreadId = (widget.threadId ?? '').trim();
@@ -423,6 +444,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       debugPrint('[MessageThreadScreen] _load failed: $e');
       if (!mounted) return;
       setState(() => _isLoading = false);
+    } finally {
+      _loadInProgress = false;
     }
   }
 

@@ -106,4 +106,37 @@ void main() {
       isTrue,
     );
   });
+
+  test('message thread ignores self-generated cache events during load', () {
+    for (final key in <String>[
+      'rental_requests',
+      'message_threads_v1',
+      'handover_return_state_v1',
+    ]) {
+      expect(
+        shouldReloadMessageThreadForPersistenceChange(
+          key: key,
+          loadInProgress: true,
+        ),
+        isFalse,
+      );
+    }
+  });
+
+  test('message thread reloads only for relevant events after load', () {
+    expect(
+      shouldReloadMessageThreadForPersistenceChange(
+        key: 'message_threads_v1',
+        loadInProgress: false,
+      ),
+      isTrue,
+    );
+    expect(
+      shouldReloadMessageThreadForPersistenceChange(
+        key: 'unrelated-key',
+        loadInProgress: false,
+      ),
+      isFalse,
+    );
+  });
 }
