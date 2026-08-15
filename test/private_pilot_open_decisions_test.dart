@@ -17,6 +17,7 @@ void main() {
       ]),
     );
     for (final entry in PrivatePilotConfig.openDecisions) {
+      expect(entry.status, 'open');
       expect(entry.interimRule, isNotEmpty);
       expect(entry.updateAuthority, isNotEmpty);
       expect(entry.activeForInternalTesting, isTrue);

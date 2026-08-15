@@ -332,6 +332,14 @@ function assertInterimPilotContract({ root, sourceTexts, legal }) {
       fail(`Backend open decision is missing: ${sourceId}`);
     }
   }
+  const flutterOpenStatuses = dartConfig.match(/status: 'open'/g) ?? [];
+  if (flutterOpenStatuses.length !== interimPilotDecisionContract.length) {
+    fail('Flutter must keep all six V4 decisions explicitly status=open.');
+  }
+  const backendOpenStatuses = backendDomain.match(/status: 'open'/g) ?? [];
+  if (backendOpenStatuses.length !== interimPilotDecisionContract.length) {
+    fail('Backend must keep all six V4 decisions explicitly status=open.');
+  }
 }
 
 function assertApprovedDocument(item, contract, label) {

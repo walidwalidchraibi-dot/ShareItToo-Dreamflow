@@ -44,6 +44,7 @@ test('all six V4 open decisions have an explicit interim rule and owner', () => 
     ],
   );
   for (const entry of privatePilotOpenDecisions) {
+    assert.equal(entry.status, 'open');
     assert.ok(entry.interimRule.length > 0);
     assert.ok(entry.updateAuthority.length > 0);
     assert.equal(typeof entry.blocksLiveActivation, 'boolean');

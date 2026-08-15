@@ -15,6 +15,7 @@ export const privatePilotInterimPolicy = Object.freeze({
 export const privatePilotOpenDecisions = Object.freeze([
   Object.freeze({
     id: 'platform_contract_and_withdrawal_timing',
+    status: 'open',
     interimRule: 'versioned_separate_declarations_at_booking_request',
     updateAuthority: 'legal_review_question_1',
     blocksLiveActivation: true,
@@ -22,6 +23,7 @@ export const privatePilotOpenDecisions = Object.freeze([
   }),
   Object.freeze({
     id: 'withdrawal_effect_on_private_rental',
+    status: 'open',
     interimRule: 'record_and_confirm_without_automatic_booking_or_money_effect',
     updateAuthority: 'legal_review_question_2',
     blocksLiveActivation: true,
@@ -29,6 +31,7 @@ export const privatePilotOpenDecisions = Object.freeze([
   }),
   Object.freeze({
     id: 'cancellation_50_100_or_30_50',
+    status: 'open',
     interimRule: 'retain_50_percent_under_24h_and_100_percent_after_start',
     updateAuthority: 'legal_and_product_question_3',
     blocksLiveActivation: true,
@@ -36,6 +39,7 @@ export const privatePilotOpenDecisions = Object.freeze([
   }),
   Object.freeze({
     id: 'marketplace_psp_mechanics',
+    status: 'open',
     interimRule: 'test_and_mock_only_no_real_money_movement',
     updateAuthority: 'psp_contract_and_payment_legal_review_question_4',
     blocksLiveActivation: true,
@@ -43,6 +47,7 @@ export const privatePilotOpenDecisions = Object.freeze([
   }),
   Object.freeze({
     id: 'missing_return_confirmation_window',
+    status: 'open',
     interimRule: 'awaiting_return_confirmation_until_t0_plus_5_calendar_days',
     updateAuthority: 'product_and_psp',
     blocksLiveActivation: false,
@@ -50,6 +55,7 @@ export const privatePilotOpenDecisions = Object.freeze([
   }),
   Object.freeze({
     id: 'handover_photo_workflow',
+    status: 'open',
     interimRule: 'four_photos_each_direction_counter_confirmation_or_deviation_photo',
     updateAuthority: 'pilot_usability_test',
     blocksLiveActivation: false,

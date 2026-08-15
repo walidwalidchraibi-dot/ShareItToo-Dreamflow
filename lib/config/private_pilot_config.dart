@@ -1,5 +1,6 @@
 class PilotOpenDecision {
   final String id;
+  final String status;
   final String title;
   final String interimRule;
   final String updateAuthority;
@@ -8,6 +9,7 @@ class PilotOpenDecision {
 
   const PilotOpenDecision({
     required this.id,
+    required this.status,
     required this.title,
     required this.interimRule,
     required this.updateAuthority,
@@ -73,6 +75,7 @@ class PrivatePilotConfig {
   static const List<PilotOpenDecision> openDecisions = [
     PilotOpenDecision(
       id: 'platform_contract_and_withdrawal_timing',
+      status: 'open',
       title: 'Plattformvertrag und Widerrufserklärungen',
       interimRule:
           'Getrennte, nicht vorausgewählte Erklärungen werden bei der Buchungsanfrage versioniert protokolliert; das V4-Zwischenmodell ordnet die SIT-Annahme der Buchungsbestätigung zu.',
@@ -81,6 +84,7 @@ class PrivatePilotConfig {
     ),
     PilotOpenDecision(
       id: 'withdrawal_effect_on_private_rental',
+      status: 'open',
       title: 'Wirkung des Widerrufs auf den privaten Mietvertrag',
       interimRule:
           'Der Eingang wird bestätigt und protokolliert; Buchung, privater Mietvertrag und Geldfluss werden nicht automatisch verändert.',
@@ -89,6 +93,7 @@ class PrivatePilotConfig {
     ),
     PilotOpenDecision(
       id: 'cancellation_50_100_or_30_50',
+      status: 'open',
       title: 'Stornoparameter 50/100 oder 30/50',
       interimRule:
           'Für geschlossene Tests gelten konfigurierbar 50 % verbleibend unter 24 Stunden und 100 % ab Mietbeginn oder Mieter-No-Show.',
@@ -97,6 +102,7 @@ class PrivatePilotConfig {
     ),
     PilotOpenDecision(
       id: 'marketplace_psp_mechanics',
+      status: 'open',
       title: 'PSP- und Geldflussmechanik',
       interimRule:
           'Nur Test- und Mockzustände; keine echte Autorisierung, Belastung, Auszahlung, Erstattung oder Schadensverrechnung.',
@@ -106,6 +112,7 @@ class PrivatePilotConfig {
     ),
     PilotOpenDecision(
       id: 'missing_return_confirmation_window',
+      status: 'open',
       title: 'Klärungsfenster bei fehlender Rückgabebestätigung',
       interimRule:
           'Neutraler Zustand awaitingReturnConfirmation bis T0 plus 5 Kalendertage; keine automatische needsReview-Eskalation.',
@@ -114,6 +121,7 @@ class PrivatePilotConfig {
     ),
     PilotOpenDecision(
       id: 'handover_photo_workflow',
+      status: 'open',
       title: 'Fotoablauf bei Übergabe und Rückgabe',
       interimRule:
           'Vier aktuelle Basisfotos je Richtung, Gegenbestätigung oder mindestens ein Abweichungsfoto, danach getrennte QR- oder Fallback-Code-Bestätigung.',

@@ -351,6 +351,24 @@ Servernachweis:
   `V4-INTERIM-2026-08-15` gesetzt. Sie werden erst nach einer neuen Mitteilung
   des Nutzers aktualisiert und sind weder entfernt noch finalisiert.
 
+## Meilenstein 16.69 – Offen-Status in App und Backend verriegelt
+
+- Alle sechs V4-Entscheidungen tragen jetzt nicht nur im Store-Manifest,
+  sondern auch in der Flutter-App und im Backend-Domainmodell ausdruecklich
+  den maschinenlesbaren Status `open`.
+- Die Zwischenregeln bleiben gleichzeitig fuer interne und geschlossene Tests
+  aktiv. `open` bedeutet deshalb bewusst "noch nicht final entschieden" und
+  nicht "funktionslos".
+- Der Rechtsvalidator verlangt exakt sechs `status: 'open'`-Eintraege in App
+  und Backend. Ein stilles Entfernen, Schliessen oder Umdeuten stoppt den
+  Release-Vorcheck fail-closed.
+- 19 gezielte Backend-/Rechtsvalidator-Tests und der Flutter-Vertragstest
+  bestanden. Es wurden weder Echtgeld, Produktion noch Store-Ausrollung
+  aktiviert.
+- Eine spaetere Aenderung erfolgt erst nach einer ausdruecklichen Mitteilung
+  des Nutzers und muss dann Manifest, App, Backend, Rechtstexte und Tests
+  gemeinsam aktualisieren.
+
 ## Meilenstein 16.68 – Android-WLAN-Matrix 9/11 und Zugänglichkeits-Vorlauf
 
 - Die zuvor pauschal offene Android-WLAN-/Owner-Zelle ist jetzt an die bereits
