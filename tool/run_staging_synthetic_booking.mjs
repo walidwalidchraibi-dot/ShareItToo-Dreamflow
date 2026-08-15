@@ -12,6 +12,7 @@ import { isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import {
+  privatePilotDeclarations,
   privatePilotDocument,
   privatePilotRequiredCheckoutDeclarations,
 } from '../backend/src/private_pilot_domain.js';
@@ -378,11 +379,24 @@ export async function transitionSyntheticBookingFixture({
     fail(`The synthetic booking is not ready for the ${status} transition.`);
   }
   const token = await login(fetchImpl, accounts.get(transition.role));
+  const body = { status };
+  if (status === 'accepted') {
+    body.legalDeclarations = [{
+      type: 'owner_booking_acceptance',
+      exactWording: privatePilotDeclarations.ownerAcceptance,
+      documentName: privatePilotDocument.name,
+      documentVersion: privatePilotDocument.version,
+      appVersion: 'synthetic-review-tool',
+      language: privatePilotDocument.language,
+      accepted: true,
+      acceptedAt: now.toISOString(),
+    }];
+  }
   const result = await request(fetchImpl, `/bookings/${encodeURIComponent(fixture.bookingId)}/transitions`, {
     method: 'POST',
     token,
     headers: { 'Idempotency-Key': `${fixture.bookingId}-${status}` },
-    body: { status },
+    body,
   });
   if (result?.booking?.workflowStatus !== transition.result) {
     fail(`The synthetic booking did not reach ${transition.result}.`);

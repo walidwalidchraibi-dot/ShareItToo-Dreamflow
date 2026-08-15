@@ -68,6 +68,17 @@ function idempotencyKey(value) {
   return candidate;
 }
 
+function requiredPrivatePilotOwnerAcceptance(candidate) {
+  try {
+    return assertPrivatePilotOwnerAcceptance(candidate);
+  } catch (error) {
+    if (error instanceof PrivatePilotValidationError) {
+      throw new BookingWorkflowError(400, error.code);
+    }
+    throw error;
+  }
+}
+
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
   if (!value || typeof value !== 'object') return value;
@@ -883,7 +894,7 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
       throw new BookingWorkflowError(409, 'booking_request_expired');
     }
     if (config.privatePilotV4Enabled) {
-      assertPrivatePilotOwnerAcceptance(candidate);
+      requiredPrivatePilotOwnerAcceptance(candidate);
     }
     const listing = await listingForBooking(client, row.listing_id);
     const dates = parseRentalDates(
@@ -936,7 +947,7 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
       [bookingId, legacyStatus, next, holdExpiresAt],
     );
     if (next === 'accepted' && config.privatePilotV4Enabled) {
-      const declaration = assertPrivatePilotOwnerAcceptance(candidate);
+      const declaration = requiredPrivatePilotOwnerAcceptance(candidate);
       await client.query(
         `INSERT INTO legal_declarations (
            user_id, booking_id, declaration_type, exact_wording, document_name,

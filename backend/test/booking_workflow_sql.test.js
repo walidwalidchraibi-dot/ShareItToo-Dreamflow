@@ -18,3 +18,16 @@ test('booking creation binds its shared creation instant as timestamptz everywhe
   );
   assert.doesNotMatch(insert, /\$24::jsonb, \$25, \$25,/u);
 });
+
+test('missing owner pilot acceptance is translated into a client error', async () => {
+  const source = await readFile(workflowPath, 'utf8');
+
+  assert.match(
+    source,
+    /function requiredPrivatePilotOwnerAcceptance[\s\S]*error instanceof PrivatePilotValidationError[\s\S]*new BookingWorkflowError\(400, error\.code\)/u,
+  );
+  assert.equal(
+    source.match(/requiredPrivatePilotOwnerAcceptance\(candidate\)/gu)?.length,
+    3,
+  );
+});
