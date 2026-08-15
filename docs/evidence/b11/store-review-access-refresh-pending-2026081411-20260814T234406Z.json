@@ -25,8 +25,19 @@
     "bookingQuotePassed": true,
     "bookingCreationPassed": false,
     "partialSyntheticListingPrepared": true,
+    "partialSyntheticListingReusedWithoutNewUpload": true,
+    "safeFailureCorrelationCaptured": true,
     "liveAccessPassed": false,
     "fixtureRefreshRequired": true
+  },
+  "latestBookingFailure": {
+    "observedAt": "2026-08-15T00:01:59.000Z",
+    "error": "internal_error",
+    "requestId": "cacd5a0f-f85f-4c92-9dc9-af2497186f6c",
+    "reusedExistingListing": true,
+    "newUploadCreated": false,
+    "newListingCreated": false,
+    "paymentEndpointCalled": false
   },
   "environment": {
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",

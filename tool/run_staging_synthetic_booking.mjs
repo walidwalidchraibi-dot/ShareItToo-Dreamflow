@@ -126,7 +126,19 @@ async function request(fetchImpl, path, {
     value = null;
   }
   if (!expected.includes(response.status)) {
-    fail(`Staging ${method} request failed with HTTP ${response.status}.`);
+    const errorCode = typeof value?.error === 'string'
+      && /^[A-Za-z0-9_.:-]{1,120}$/.test(value.error)
+      ? value.error
+      : null;
+    const requestId = typeof value?.requestId === 'string'
+      && /^[A-Za-z0-9_.:-]{1,120}$/.test(value.requestId)
+      ? value.requestId
+      : null;
+    fail(
+      `Staging ${method} request failed with HTTP ${response.status}`
+      + `${errorCode ? ` (${errorCode})` : ''}`
+      + `${requestId ? ` [request ${requestId}]` : ''}.`,
+    );
   }
   return value;
 }
@@ -206,82 +218,87 @@ export async function createSyntheticBookingFixture({
       containsTokens: false,
     });
   }
-  if (matchingListings.length !== 0 || matchingRequests.length !== 0) {
+  if (matchingListings.length > 1 || matchingRequests.length > 1
+      || (matchingListings.length === 0 && matchingRequests.length !== 0)) {
     fail('A partial synthetic booking fixture requires controlled cleanup before retry.');
   }
-
-  const imageBytes = readFileSync(resolve(imagePath));
-  if (imageBytes.length < 100) fail('The synthetic listing image is invalid.');
-  const form = new FormData();
-  form.append('purpose', 'listing_image');
-  form.append('file', new Blob([imageBytes], { type: 'image/png' }), 'sit-role-fixture.png');
-  const upload = await request(fetchImpl, '/uploads', {
-    method: 'POST',
-    token: ownerToken,
-    body: form,
-    expected: [201],
-  });
-  if (typeof upload?.url !== 'string' || !upload.url.startsWith('https://')) {
-    fail('The synthetic listing upload did not return a safe URL.');
-  }
-
+  const recoveredListing = matchingListings.length === 1;
   const suffix = random(4).toString('hex');
-  const listingId = `sit-${vault.runId}-${suffix}-listing`;
-  const bookingId = `sit-${vault.runId}-${suffix}-booking`;
+  const listingId = recoveredListing
+    ? safeFixtureIdentifier(matchingListings[0].id, 'recovered listing id')
+    : `sit-${vault.runId}-${suffix}-listing`;
+  const bookingId = recoveredListing && listingId.endsWith('-listing')
+    ? `${listingId.slice(0, -'-listing'.length)}-booking`
+    : `sit-${vault.runId}-${suffix}-booking`;
   const title = expectedTitle;
   const startDate = dateOnly(now, 60);
   const endDate = dateOnly(now, 62);
-
-  await request(fetchImpl, '/listings', {
-    method: 'POST',
-    token: ownerToken,
-    expected: [201],
-    body: {
-      id: listingId,
-      title,
-      description: 'Isoliertes Staging-Inserat für die ShareItToo Rollen- und Buchungsprüfung ohne Echtgeld.',
-      categoryId: 'cat1',
-      subcategory: 'Kameras',
-      tags: ['sit', 'role-fixture'],
-      pricePerDay: 12,
-      priceRaw: 12,
-      priceUnit: 'day',
-      currency: 'EUR',
-      deposit: null,
-      photos: [upload.url],
-      locationText: 'Staging Testadresse',
-      city: 'Berlin',
-      country: 'Deutschland',
-      lat: 52.52,
-      lng: 13.405,
-      geohash: 'private',
-      condition: 'good',
-      minDays: 1,
-      maxDays: 14,
-      protectionModel: 'none',
-      privateStatusConfirmed: true,
-      status: 'active',
-      isActive: true,
-    },
-  });
-  await request(fetchImpl, `/listings/${encodeURIComponent(listingId)}/availability`, {
-    method: 'PUT',
-    token: ownerToken,
-    body: {
-      timezone: 'Europe/Berlin',
-      minimumDays: 1,
-      maximumDays: 14,
-      noticeHours: 0,
-      acceptanceWindowMinutes: 30,
-      rules: Array.from({ length: 7 }, (_, weekday) => ({
-        weekday,
-        localStart: '00:00',
-        localEnd: '23:59',
-        isAvailable: true,
-      })),
-      blocks: [],
-    },
-  });
+  if (!recoveredListing) {
+    const imageBytes = readFileSync(resolve(imagePath));
+    if (imageBytes.length < 100) fail('The synthetic listing image is invalid.');
+    const form = new FormData();
+    form.append('purpose', 'listing_image');
+    form.append('file', new Blob([imageBytes], { type: 'image/png' }), 'sit-role-fixture.png');
+    const upload = await request(fetchImpl, '/uploads', {
+      method: 'POST',
+      token: ownerToken,
+      body: form,
+      expected: [201],
+    });
+    if (typeof upload?.url !== 'string' || !upload.url.startsWith('https://')) {
+      fail('The synthetic listing upload did not return a safe URL.');
+    }
+    await request(fetchImpl, '/listings', {
+      method: 'POST',
+      token: ownerToken,
+      expected: [201],
+      body: {
+        id: listingId,
+        title,
+        description: 'Isoliertes Staging-Inserat für die ShareItToo Rollen- und Buchungsprüfung ohne Echtgeld.',
+        categoryId: 'cat1',
+        subcategory: 'Kameras',
+        tags: ['sit', 'role-fixture'],
+        pricePerDay: 12,
+        priceRaw: 12,
+        priceUnit: 'day',
+        currency: 'EUR',
+        deposit: null,
+        photos: [upload.url],
+        locationText: 'Staging Testadresse',
+        city: 'Berlin',
+        country: 'Deutschland',
+        lat: 52.52,
+        lng: 13.405,
+        geohash: 'private',
+        condition: 'good',
+        minDays: 1,
+        maxDays: 14,
+        protectionModel: 'none',
+        privateStatusConfirmed: true,
+        status: 'active',
+        isActive: true,
+      },
+    });
+    await request(fetchImpl, `/listings/${encodeURIComponent(listingId)}/availability`, {
+      method: 'PUT',
+      token: ownerToken,
+      body: {
+        timezone: 'Europe/Berlin',
+        minimumDays: 1,
+        maximumDays: 14,
+        noticeHours: 0,
+        acceptanceWindowMinutes: 30,
+        rules: Array.from({ length: 7 }, (_, weekday) => ({
+          weekday,
+          localStart: '00:00',
+          localEnd: '23:59',
+          isAvailable: true,
+        })),
+        blocks: [],
+      },
+    });
+  }
   const acceptedAt = now.toISOString();
   const legalDeclarations = privatePilotRequiredCheckoutDeclarations.map(
     ({ type, wording }) => ({
@@ -333,7 +350,7 @@ export async function createSyntheticBookingFixture({
     rolesLoggedIn: ['owner', 'renter'],
     listingCreated: true,
     bookingCreated: true,
-    fixtureRecovered: false,
+    fixtureRecovered: recoveredListing,
     workflowStatus: 'requested',
     paymentMode: 'memory',
     stripeLivemode: false,

@@ -292,6 +292,81 @@ test('recovers one already-created requested fixture without creating a duplicat
   assert.equal(calls.includes('/bookings'), false);
 });
 
+test('reuses one prepared listing after a failed booking request', async () => {
+  const fixture = vaultFixture();
+  const calls = [];
+  let login = 0;
+  const existingListingId = 'sit-20260810t065907z-a6b6f407-a1b2c3d4-listing';
+  const result = await createSyntheticBookingFixture({
+    ...fixture,
+    now: new Date('2026-08-10T08:00:00.000Z'),
+    fetchImpl: async (url, options = {}) => {
+      const path = new URL(url).pathname.replace('/api/v1', '');
+      calls.push({ path, body: typeof options.body === 'string' ? JSON.parse(options.body) : null });
+      if (path === '/auth/login') {
+        login += 1;
+        return response(200, { accessToken: `synthetic-token-${login}-${'x'.repeat(30)}` });
+      }
+      if (path === '/listings/mine') {
+        return response(200, { listings: [{
+          id: existingListingId,
+          title: 'SIT Rollenprüfung 20260810t065907z-a6b6f407',
+        }] });
+      }
+      if (path === '/rental-requests') return response(200, { requests: [] });
+      if (path === '/bookings') {
+        return response(201, { booking: { workflowStatus: 'requested' } });
+      }
+      throw new Error(`Unexpected path ${path}`);
+    },
+  });
+  assert.equal(result.fixtureRecovered, true);
+  assert.equal(result.bookingCreated, true);
+  assert.equal(calls.some(({ path }) => path === '/uploads'), false);
+  assert.equal(calls.some(({ path }) => path === '/listings'), false);
+  assert.equal(calls.some(({ path }) => path.endsWith('/availability')), false);
+  assert.equal(
+    calls.find(({ path }) => path === '/bookings').body.id,
+    'sit-20260810t065907z-a6b6f407-a1b2c3d4-booking',
+  );
+});
+
+test('reports only a safe API error code and request id for a failed booking', async () => {
+  const fixture = vaultFixture();
+  let login = 0;
+  await assert.rejects(
+    () => createSyntheticBookingFixture({
+      ...fixture,
+      now: new Date('2026-08-10T08:00:00.000Z'),
+      fetchImpl: async (url, options = {}) => {
+        const path = new URL(url).pathname.replace('/api/v1', '');
+        if (path === '/auth/login') {
+          login += 1;
+          return response(200, { accessToken: `synthetic-token-${login}-${'x'.repeat(30)}` });
+        }
+        if (path === '/listings/mine') return response(200, { listings: [] });
+        if (path === '/rental-requests') return response(200, { requests: [] });
+        if (path === '/uploads') return response(201, { url: 'https://staging.shareittoo.com/api/v1/uploads/fixture.webp' });
+        if (path === '/listings') return response(201, { listing: { id: 'fixture' } });
+        if (path.endsWith('/availability')) return response(200, { availability: {} });
+        if (path === '/bookings') {
+          return response(500, {
+            error: 'internal_error',
+            requestId: 'safe-request-123',
+            details: 'must never be surfaced',
+          });
+        }
+        throw new Error(`Unexpected path ${path} ${options.method ?? 'GET'}`);
+      },
+    }),
+    (error) => {
+      assert.match(error.message, /HTTP 500 \(internal_error\) \[request safe-request-123\]/);
+      assert.doesNotMatch(error.message, /must never be surfaced/);
+      return true;
+    },
+  );
+});
+
 test('archives only a completed payment-free fixture without returning private identifiers', async () => {
   const fixture = vaultFixture();
   await createSyntheticBookingFixture({

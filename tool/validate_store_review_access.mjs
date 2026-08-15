@@ -205,9 +205,21 @@ export function validateStoreReviewAccess({
         || evidence.checks?.bookingQuotePassed !== true
         || evidence.checks?.bookingCreationPassed !== false
         || evidence.checks?.partialSyntheticListingPrepared !== true
+        || evidence.checks?.partialSyntheticListingReusedWithoutNewUpload !== true
+        || evidence.checks?.safeFailureCorrelationCaptured !== true
         || evidence.checks?.liveAccessPassed !== false
         || evidence.checks?.fixtureRefreshRequired !== true) {
       fail('fixture-refresh evidence must preserve only the bounded owner login and renter refresh blocker.');
+    }
+    if (evidence.latestBookingFailure?.error !== 'internal_error'
+        || !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,119}$/.test(
+          evidence.latestBookingFailure?.requestId ?? '',
+        )
+        || evidence.latestBookingFailure?.reusedExistingListing !== true
+        || evidence.latestBookingFailure?.newUploadCreated !== false
+        || evidence.latestBookingFailure?.newListingCreated !== false
+        || evidence.latestBookingFailure?.paymentEndpointCalled !== false) {
+      fail('fixture-refresh evidence must contain a safe, bounded failure correlation.');
     }
   } else if (evidence.checks?.privateVaultCreated !== true
       || evidence.checks?.registrationsAccepted !== true

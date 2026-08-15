@@ -180,6 +180,11 @@ Servernachweis:
 - Das Werkzeug fuer synthetische Review-Buchungen sendet jetzt die
   Privatstatus-Bestaetigung, die erlaubte Kategorie und alle fuenf getrennten,
   versionierten V4-Erklaerungen.
+- Ein begrenzter Wiederholungsversuch verwendete das bereits vorbereitete
+  Inserat ohne neuen Upload und ohne weiteres Inserat. Der Fehler blieb
+  `internal_error`; als sicherer Serverbezug wurde die Korrelationsnummer
+  `cacd5a0f-f85f-4c92-9dc9-af2497186f6c` erfasst. Es wurde kein Zahlungsweg
+  aufgerufen.
 - Vollstaendige App-Suite: 262 bestanden, 0 fehlgeschlagen.
 - Vollstaendige Backend-Suite: 120 bestanden, 0 fehlgeschlagen, 1 lokaler
   PostgreSQL-Test mangels `TEST_DATABASE_URL` uebersprungen.
