@@ -507,3 +507,37 @@ Servernachweis:
 - Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
   blieben unveraendert. Alle sechs V4-Punkte bleiben unter
   `V4-INTERIM-2026-08-15` mit `status: open` aktiv.
+
+## Meilenstein 16.73 – Gemeinsame Uebergabezeit serverseitig synchronisiert
+
+- Beim realen Zwei-Konten-Test wurde ein echter Ablaufblocker gefunden: Die
+  vorgeschlagene Uebergabe- und Rueckgabezeit lag bisher nur lokal auf dem
+  jeweiligen Geraet. Zwei getrennte Personen konnten denselben Vorschlag
+  deshalb nach Neuinstallation oder Kontowechsel nicht verlaesslich gemeinsam
+  sehen und bestaetigen.
+- Das Staging-Backend besitzt nun einen autorisierten, idempotenten
+  Buchungszustand fuer Vorschlag und Bestaetigung von Uebergabe- und
+  Rueckgabezeit. Nur Buchungsteilnehmer duerfen lesen oder schreiben; die
+  Bestaetigung ist ausschliesslich durch die jeweilige Gegenpartei moeglich.
+- Der exakte Backend-Commit `36f9145e67be30fd01ffb61ad38e99361d391479`
+  wurde als unveraenderliches Staging-Image ausgerollt. Datenbank, Mail und API
+  sind gesund; Zahlungen bleiben im Speichermodus und Produktion blieb
+  unveraendert.
+- Der signierte Android-Kandidat `1.0.0+2026081508` wurde aus Commit
+  `21645ba02bcfb8056bdeae2d4d97d7835723b30f` erstellt. AAB, APK, Signatur und
+  binaerer Datenschutzscan wurden geprueft. Er wurde noch nicht zu Google Play
+  hochgeladen.
+- Auf dem Pixel 7 Pro schlug das synthetische Vermieter-Konto 22:00 Uhr vor.
+  Nach vollstaendigem Leeren der App-Daten und Wiederherstellung des getrennten
+  Mieter-Kontos erschien derselbe Vorschlag mit `Annehmen`; die Gegenpartei
+  bestaetigte erfolgreich. Nach erneutem Leeren der App-Daten erschien beim
+  Vermieter weiterhin die korrekte Hauptaktion `Uebergabe starten`.
+- Der Backendzustand bestaetigte den gemeinsamen Vorschlag und die
+  Gegenpartei-Bestaetigung mit Revision 2. Der zentrale Nachweis liegt unter
+  `docs/evidence/b11/android-two-account-flow-time-2026081508-20260815T111637Z.json`.
+- 126 Backend-Tests (ein externer Integrationstest uebersprungen), 53 gezielte
+  Flutter-Tests, zwei Android-Fotoauswaehler-Tests und der binaere
+  Datenschutzscan bestanden.
+- Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
+  blieben unveraendert. Alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` mit `status: open` aktiv.
