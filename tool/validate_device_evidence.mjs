@@ -1104,6 +1104,7 @@ function validateAndroidReleasePermissionInventory(root, ref, candidate, label) 
   }
 
   const analysis = object(evidence.analysis, `${label}.analysis`);
+  const usesSystemPhotoPicker = BigInt(candidate.buildNumber) >= 2026081506n;
   const expectedDeclaredPermissions = [
     'android.permission.ACCESS_COARSE_LOCATION',
     'android.permission.ACCESS_FINE_LOCATION',
@@ -1112,7 +1113,7 @@ function validateAndroidReleasePermissionInventory(root, ref, candidate, label) 
     'android.permission.INTERNET',
     'android.permission.POST_NOTIFICATIONS',
     'android.permission.READ_EXTERNAL_STORAGE:maxSdkVersion=32',
-    'android.permission.READ_MEDIA_IMAGES',
+    ...(!usesSystemPhotoPicker ? ['android.permission.READ_MEDIA_IMAGES'] : []),
     'android.permission.USE_BIOMETRIC',
     'android.permission.USE_FINGERPRINT',
     'android.permission.WAKE_LOCK',
@@ -1128,6 +1129,10 @@ function validateAndroidReleasePermissionInventory(root, ref, candidate, label) 
     'android.permission.READ_CALL_LOG',
     'android.permission.READ_CONTACTS',
     'android.permission.READ_SMS',
+    ...(usesSystemPhotoPicker ? [
+      'android.permission.READ_MEDIA_IMAGES',
+      'android.permission.READ_MEDIA_VIDEO',
+    ] : []),
     'android.permission.RECORD_AUDIO',
     'android.permission.REQUEST_INSTALL_PACKAGES',
     'android.permission.SEND_SMS',

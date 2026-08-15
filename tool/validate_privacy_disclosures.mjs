@@ -186,12 +186,19 @@ function assertSourceContracts({ root, sourceTexts }) {
   const android = sourceText(root, sourceTexts, 'android/app/src/main/AndroidManifest.xml');
   for (const permission of [
     'android.permission.CAMERA',
-    'android.permission.READ_MEDIA_IMAGES',
     'android.permission.ACCESS_COARSE_LOCATION',
     'android.permission.ACCESS_FINE_LOCATION',
     'android.permission.POST_NOTIFICATIONS',
   ]) {
     if (!android.includes(permission)) fail(`Android disclosure inventory is missing permission ${permission}.`);
+  }
+  for (const broadMediaPermission of [
+    'android.permission.READ_MEDIA_IMAGES',
+    'android.permission.READ_MEDIA_VIDEO',
+  ]) {
+    if (android.includes(broadMediaPermission)) {
+      fail(`Android must use the system photo picker instead of broad media permission ${broadMediaPermission}.`);
+    }
   }
 
   const ios = sourceText(root, sourceTexts, 'ios/Runner/Info.plist');
