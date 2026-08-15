@@ -1,8 +1,9 @@
 {
   "schemaVersion": 1,
   "kind": "google-play-feed-screenshot-readiness",
-  "status": "exact-candidate-local-screenshots-validated-not-uploaded",
+  "status": "exact-candidate-screenshots-uploaded-draft-saved",
   "capturedAt": "2026-08-15T04:46:59Z",
+  "uploadedAt": "2026-08-15T05:29:36Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
@@ -48,8 +49,9 @@
     "docs/evidence/b11/google-play-screenshot-candidate-search-2026081505.json",
     "docs/evidence/b11/google-play-screenshot-candidate-create-listing-2026081505.json"
   ],
+  "consoleSaveEvidenceRef": "docs/evidence/b11/google-play-store-listing-saved-2026081505-20260815.json",
   "boundaries": {
-    "screenshotUploaded": false,
+    "screenshotUploaded": true,
     "listingDeleted": false,
     "listingPaused": true,
     "productionChanged": false,

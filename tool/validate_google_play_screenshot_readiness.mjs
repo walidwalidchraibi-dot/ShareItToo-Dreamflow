@@ -117,8 +117,8 @@ export function validateGooglePlayScreenshotReadiness({
   }
   if (evidence.schemaVersion !== 1 ||
       evidence.kind !== 'google-play-feed-screenshot-readiness' ||
-      evidence.status !== 'exact-candidate-local-screenshots-validated-not-uploaded') {
-    fail('Feed screenshot readiness must preserve the exact local candidate state.');
+      evidence.status !== 'exact-candidate-screenshots-uploaded-draft-saved') {
+    fail('Feed screenshot readiness must preserve the exact saved Console draft state.');
   }
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
       evidence.candidate?.versionName !== exactCandidate?.versionName ||
@@ -164,12 +164,36 @@ export function validateGooglePlayScreenshotReadiness({
       fail('Screenshot readiness references a stale or unvalidated local candidate.');
     }
   }
+  const consoleSaveRef = evidence.consoleSaveEvidenceRef;
+  if (typeof consoleSaveRef !== 'string' || consoleSaveRef.includes('..') ||
+      !consoleSaveRef.startsWith('docs/evidence/b11/') || !consoleSaveRef.endsWith('.json')) {
+    fail('Screenshot readiness must reference bounded Console save evidence.');
+  }
+  const consoleSave = JSON.parse(readFileSync(resolve(repositoryRoot, consoleSaveRef), 'utf8'));
+  if (consoleSave.kind !== 'google-play-store-listing-saved' ||
+      consoleSave.status !== 'exact-candidate-screenshots-draft-saved' ||
+      consoleSave.candidate?.buildNumber !== evidence.candidate.buildNumber ||
+      consoleSave.candidate?.commit !== evidence.candidate.commit ||
+      consoleSave.observedConsoleState?.phoneScreenshotCount !== 4 ||
+      consoleSave.observedConsoleState?.newAssetsUploaded !== 4 ||
+      consoleSave.observedConsoleState?.supersededAssetsRemoved !== 4 ||
+      consoleSave.observedConsoleState?.draftSavedConfirmationObserved !== true ||
+      consoleSave.observedConsoleState?.sentForReview !== false ||
+      !Array.isArray(consoleSave.phoneScreenshots) || consoleSave.phoneScreenshots.length !== 4 ||
+      consoleSave.boundaries?.listingDraftChanged !== true ||
+      consoleSave.boundaries?.assetsUploaded !== true ||
+      Object.entries(consoleSave.boundaries ?? {}).some(([key, value]) =>
+        ['listingDraftChanged', 'assetsUploaded'].includes(key) ? value !== true : value !== false) ||
+      JSON.stringify(consoleSave).includes('@')) {
+    fail('Screenshot Console save evidence is incomplete or unsafe.');
+  }
   const boundaries = evidence.boundaries ?? {};
-  if (Object.keys(boundaries).length !== 9 || boundaries.screenshotUploaded !== false ||
+  if (Object.keys(boundaries).length !== 9 || boundaries.screenshotUploaded !== true ||
       boundaries.listingDeleted !== false || boundaries.listingPaused !== true ||
-      Object.entries(boundaries).some(([key, value]) => key !== 'listingPaused' && value !== false) ||
+      Object.entries(boundaries).some(([key, value]) =>
+        ['listingPaused', 'screenshotUploaded'].includes(key) ? value !== true : value !== false) ||
       JSON.stringify(evidence).includes('@')) {
-    fail('Screenshot readiness must remain sanitized and report only the bounded Staging pause.');
+    fail('Screenshot readiness must remain sanitized and report only the bounded draft upload and Staging pause.');
   }
   return { status: evidence.status, curatedListingCount: evidence.fixture.curatedListingCount };
 }

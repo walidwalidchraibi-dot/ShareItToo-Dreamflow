@@ -25,7 +25,7 @@ async function fixture(mutate) {
 
 test('accepts four visually approved screenshots from the exact current candidate', () => {
   assert.deepEqual(validateGooglePlayScreenshotReadiness({ repositoryRoot }), {
-    status: 'exact-candidate-local-screenshots-validated-not-uploaded',
+    status: 'exact-candidate-screenshots-uploaded-draft-saved',
     curatedListingCount: 4,
   });
 });
@@ -44,9 +44,9 @@ test('rejects exact-candidate readiness when visual acceptance is missing', asyn
     /incomplete/);
 });
 
-test('rejects claiming an upload for local exact-candidate readiness', async (t) => {
-  const data = await fixture((evidence) => { evidence.boundaries.screenshotUploaded = true; });
+test('rejects losing the exact Console draft upload', async (t) => {
+  const data = await fixture((evidence) => { evidence.boundaries.screenshotUploaded = false; });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayScreenshotReadiness({ repositoryRoot, ...data }),
-    /sanitized/);
+    /bounded draft upload/);
 });

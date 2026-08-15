@@ -135,12 +135,26 @@ export function validateGooglePlayAppContentHandoff({
       tasks.storeListing.recommendedPhoneScreenshotTarget !== 4 ||
       tasks.storeListing.uploadedToPlayConsole !== true ||
       tasks.storeListing.status !==
-        'saved-in-console-compatible-copy-and-assets' ||
+        'saved-in-console-exact-candidate-copy-and-assets' ||
       tasks.storeListing.screenshotReadinessRef !==
-        'docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081405-20260814.json' ||
+        'docs/evidence/b11/google-play-feed-screenshot-readiness-2026081505-20260815.json' ||
       tasks.storeListing.consoleSaveEvidenceRef !==
-        'docs/evidence/b11/google-play-store-listing-saved-20260813.json') {
+        'docs/evidence/b11/google-play-store-listing-saved-2026081505-20260815.json') {
     fail('One or more prepared Play answers no longer match the bounded product truth.');
+  }
+
+  const listingEvidence = object(JSON.parse(readFileSync(resolve(
+    repositoryRoot, tasks.storeListing.consoleSaveEvidenceRef), 'utf8')), 'store listing evidence');
+  if (listingEvidence.kind !== 'google-play-store-listing-saved' ||
+      listingEvidence.status !== 'exact-candidate-screenshots-draft-saved' ||
+      listingEvidence.candidate?.buildNumber !== candidate.buildNumber ||
+      listingEvidence.observedConsoleState?.phoneScreenshotCount !== 4 ||
+      listingEvidence.observedConsoleState?.draftSavedConfirmationObserved !== true ||
+      listingEvidence.observedConsoleState?.sentForReview !== false ||
+      listingEvidence.boundaries?.listingDraftChanged !== true ||
+      listingEvidence.boundaries?.assetsUploaded !== true ||
+      listingEvidence.boundaries?.productionChanged !== false) {
+    fail('Exact-candidate Store screenshot evidence is invalid or unsafe.');
   }
 
   const hardStops = object(handoff.hardStops, 'hardStops');
