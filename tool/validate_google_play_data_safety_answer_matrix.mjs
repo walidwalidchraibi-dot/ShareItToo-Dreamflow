@@ -4,11 +4,12 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const matrixPath = 'docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json';
+const matrixPath =
+  'docs/evidence/b11/google-play-data-safety-answer-matrix-2026081505-20260815.json';
 const privacyPath = 'store/privacy-disclosures.json';
 const expectedEvidenceRefs = [
   privacyPath,
-  'docs/evidence/b11/android-binary-privacy-release-check-2026081501.json',
+  'docs/evidence/b11/android-binary-privacy-release-check-2026081505.json',
   'docs/evidence/b11/google-play-data-safety-step2-20260812.json',
   'docs/evidence/b11/google-play-data-safety-datatypes-20260812.json',
   'docs/evidence/b11/privacy-provider-retention-sources-20260812.json',

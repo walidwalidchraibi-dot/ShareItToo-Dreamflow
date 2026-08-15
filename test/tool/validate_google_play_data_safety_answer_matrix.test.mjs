@@ -9,7 +9,7 @@ import { validateGooglePlayDataSafetyAnswerMatrix } from '../../tool/validate_go
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const matrix = JSON.parse(readFileSync(resolve(
   root,
-  'docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json',
+  'docs/evidence/b11/google-play-data-safety-answer-matrix-2026081505-20260815.json',
 ), 'utf8'));
 const privacy = JSON.parse(readFileSync(resolve(root, 'store/privacy-disclosures.json'), 'utf8'));
 const clone = (value) => structuredClone(value);

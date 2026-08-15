@@ -61,7 +61,7 @@ export function validateGooglePlayAppContentProgress({
       dataSafety.dataTypesEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-datatypes-20260812.json' ||
       dataSafety.answerMatrixEvidenceRef !==
-        'docs/evidence/b11/google-play-data-safety-answer-matrix-20260813.json' ||
+        'docs/evidence/b11/google-play-data-safety-answer-matrix-2026081505-20260815.json' ||
       dataSafety.providerClassificationEvidenceRef !==
         'docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json' ||
       dataSafety.dataTypesSaved !== false ||
