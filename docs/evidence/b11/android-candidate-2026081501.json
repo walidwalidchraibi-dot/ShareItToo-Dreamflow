@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "built-scanned-play-internal-available-install-pending",
+  "status": "built-scanned-play-internal-installed-chat-regression",
   "generatedAt": "2026-08-15T00:46:21Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -44,16 +44,16 @@
     "findings": []
   },
   "exactCandidateDiagnostics": {
-    "playInternalInstallAndLaunch": "pending-exact-build",
-    "playInstallerVerified": "pending-exact-build",
-    "authenticatedSession": "pending-exact-build",
-    "stagingFeedLoaded": "pending-exact-build",
-    "acceptedBookingSharedChat": "pending-exact-build",
+    "playInternalInstallAndLaunch": "passed-exact-build",
+    "playInstallerVerified": "passed-com-android-vending",
+    "authenticatedSession": "passed-session-preserved",
+    "stagingFeedLoaded": "passed-exact-build",
+    "acceptedBookingSharedChat": "failed-self-refresh-loop-superseded-by-2026081502",
     "chatReadReceiptLoop": "passed-source-and-regression-suite",
     "twoDevicePrivatePilotAcceptance": "pending"
   },
   "googlePlayInternalRelease": {
-    "status": "available-store-install-pending",
+    "status": "store-install-verified",
     "evidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081501-20260815.json"
   },
   "staging": {
@@ -66,7 +66,7 @@
   },
   "boundaries": {
     "uploadedToStore": true,
-    "installedOnPhysicalDevice": false,
+    "installedOnPhysicalDevice": true,
     "controlledFcmSentToSyntheticAccount": false,
     "controlledCrashDiagnosticSent": false,
     "productionPushSent": false,
