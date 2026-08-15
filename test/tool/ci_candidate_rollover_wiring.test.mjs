@@ -72,6 +72,16 @@ test('local Android regression derives the same exact Firebase client values wit
   assert.doesNotMatch(technicalRegression, /echo "\$firebase_env_lines"/);
 });
 
+test('direct Android preflight derives the same exact Firebase client values without logging them', () => {
+  assert.match(releasePreflight, /deriveAndroidFirebaseReleaseEnvironment/);
+  assert.match(releasePreflight, /android\/app\/google-services\.json/);
+  assert.ok(
+    releasePreflight.indexOf('deriveAndroidFirebaseReleaseEnvironment')
+      < releasePreflight.indexOf('validate_firebase_release_config.mjs --platform'),
+  );
+  assert.doesNotMatch(releasePreflight, /echo "\$firebase_env_lines"/);
+});
+
 test('Android packaging exposes a preflight-only path before either binary build', () => {
   assert.match(androidBuild, /SIT_BUILD_PREFLIGHT_ONLY/);
   const preflightOnly = androidBuild.indexOf('Android release build preflight passed without creating artifacts.');

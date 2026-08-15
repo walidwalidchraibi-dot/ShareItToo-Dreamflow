@@ -76,6 +76,54 @@ fi
 firebase_validation_platform="${SIT_FIREBASE_VALIDATION_PLATFORM:-all}"
 [[ "$firebase_validation_platform" =~ ^(android|ios|all)$ ]] || \
   fail "SIT_FIREBASE_VALIDATION_PLATFORM must be android, ios, or all."
+
+# Keep direct preflight runs aligned with the release builder and the full
+# regression check. The Android Firebase file is local, permission-restricted
+# and git-ignored; derive its public client values only in this process and do
+# not print or persist them in another file.
+firebase_config_path="$ROOT/android/app/google-services.json"
+firebase_required_names=(
+  SIT_FIREBASE_PROJECT_ID
+  SIT_FIREBASE_MESSAGING_SENDER_ID
+  SIT_FIREBASE_STORAGE_BUCKET
+  SIT_FIREBASE_ANDROID_APP_ID
+  SIT_FIREBASE_ANDROID_API_KEY
+)
+firebase_env_missing=false
+for firebase_name in "${firebase_required_names[@]}"; do
+  if [[ -z "${!firebase_name:-}" ]]; then
+    firebase_env_missing=true
+    break
+  fi
+done
+if [[ "$firebase_validation_platform" == "android" &&
+      -f "$firebase_config_path" && "$firebase_env_missing" == "true" ]]; then
+  firebase_env_lines="$(node --input-type=module - "$firebase_config_path" <<'NODE'
+import { readFileSync } from 'node:fs';
+import { deriveAndroidFirebaseReleaseEnvironment } from './tool/validate_firebase_release_config.mjs';
+
+const config = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+const values = deriveAndroidFirebaseReleaseEnvironment(config);
+for (const [name, value] of Object.entries(values)) {
+  process.stdout.write(`${name}=${value}\n`);
+}
+NODE
+)"
+  while IFS='=' read -r firebase_name firebase_value; do
+    case "$firebase_name" in
+      SIT_FIREBASE_PROJECT_ID|SIT_FIREBASE_MESSAGING_SENDER_ID|SIT_FIREBASE_STORAGE_BUCKET|SIT_FIREBASE_ANDROID_APP_ID|SIT_FIREBASE_ANDROID_API_KEY)
+        if [[ -z "${!firebase_name:-}" ]]; then
+          printf -v "$firebase_name" '%s' "$firebase_value"
+          export "$firebase_name"
+        fi
+        ;;
+      *)
+        fail "Unexpected Firebase environment field."
+        ;;
+    esac
+  done <<< "$firebase_env_lines"
+  unset firebase_env_lines firebase_value
+fi
 node tool/validate_firebase_release_config.mjs --platform "$firebase_validation_platform"
 if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
   node tool/validate_apple_testflight_handoff.mjs --allow-android-candidate-rollover
