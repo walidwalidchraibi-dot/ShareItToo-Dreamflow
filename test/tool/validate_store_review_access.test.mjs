@@ -14,6 +14,10 @@ const currentEvidence = JSON.parse(readFileSync(resolve(
   repositoryRoot,
   baseReview.technicalAccess.evidenceRef,
 )));
+const currentRolloverEvidence = JSON.parse(readFileSync(resolve(
+  repositoryRoot,
+  'docs/evidence/b11/store-review-access-rollover-2026081509-20260815T125014Z.json',
+)));
 const pendingEvidence = JSON.parse(readFileSync(resolve(
   repositoryRoot,
   'docs/evidence/b11/store-review-access-refresh-pending-2026081411-20260814T234406Z.json',
@@ -91,7 +95,7 @@ const passedDeletionEvidence = {
 
 function clone(value) { return structuredClone(value); }
 function propagationEvidence() {
-  const evidence = clone(currentEvidence);
+  const evidence = clone(currentRolloverEvidence);
   evidence.status = 'review-candidate-rollover-store-propagation-pending';
   evidence.checks.exactLocalCandidateInstalled = true;
   evidence.checks.twoAccountFlowTimePassed = true;
@@ -130,19 +134,21 @@ function validate({
   });
 }
 
-test('accepts the honest current rollover candidate with every review scenario pending', () => {
+test('accepts the honest current partial review readiness with two scenarios pending', () => {
   const result = validate();
   assert.equal(result.state, 'testing');
   assert.equal(result.readyForStore, false);
-  assert.equal(result.passedScenarios, 0);
+  assert.equal(result.passedScenarios, 8);
   assert.equal(result.storeGate, 'open');
 });
 
 test('rejects a propagation candidate that claims the exact Play build was installed', () => {
+  const review = clone(baseReview);
+  review.technicalAccess.status = 'testing';
   const evidence = propagationEvidence();
   evidence.checks.exactPlayCandidateInstalled = true;
   assert.throws(
-    () => validate({ evidence }),
+    () => validate({ review, evidence }),
     /must preserve the local candidate checks and keep the exact Play installation pending/,
   );
 });

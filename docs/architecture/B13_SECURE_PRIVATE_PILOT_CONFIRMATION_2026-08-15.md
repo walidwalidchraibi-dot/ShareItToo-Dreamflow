@@ -705,3 +705,28 @@ Servernachweis:
 - Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
   blieben unveraendert. Alle sechs V4-Punkte bleiben unter
   `V4-INTERIM-2026-08-15` mit `status: open` aktiv.
+
+## Meilenstein 16.80 – Geschuetzter Store-Review-Datensatz erneuert
+
+- Der zuvor lokal als aktiv markierte Review-Datensatz war serverseitig
+  inzwischen storniert. Dieser Widerspruch wurde nicht uebergangen: Der alte
+  synthetische Staging-Datensatz wurde abgeglichen und archiviert.
+- Fuer dieselben beiden geschuetzten synthetischen Rollen wurde ein neues,
+  klar gekennzeichnetes Staging-Inserat mit angefragter und anschliessend
+  angenommener Buchung sowie gemeinsamem Buchungs-Chat erzeugt. Zahlungsmodus
+  blieb `memory`; kein Zahlungsendpunkt wurde aufgerufen.
+- Vermieter und Mieter koennen sich ohne interaktive OTP-Abfrage anmelden. Das
+  aktive Inserat, die angenommene Buchung und der Chat sind fuer die jeweils
+  berechtigte Rolle sichtbar und lesbar.
+- Melden, voruebergehendes Blockieren mit vollstaendiger Ruecknahme,
+  Wiederherstellung des Chats und privater `no-store`-Datenexport bestanden.
+  Die Reviewer-Konten blieben erhalten; die frueher isoliert bewiesene
+  Loeschung eines anderen, entbehrlichen synthetischen Kontos bleibt als
+  separater Nachweis gebunden.
+- Der technische Review-Zugang steht damit bei 8/10 Szenarien. Offen bleiben
+  nur der frische Start nach Zuruecksetzen der exakten Play-Installation und
+  das zweite Netzwerk. 21 gezielte Review-Zugangs- und Sicherheitspruefungen
+  bestanden.
+- Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
+  blieben unveraendert. Alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` mit `status: open` aktiv.

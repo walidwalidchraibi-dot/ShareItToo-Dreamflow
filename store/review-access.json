@@ -27,20 +27,20 @@
     }
   ],
   "technicalAccess": {
-    "status": "testing",
-    "evidenceRef": "docs/evidence/b11/store-review-access-rollover-2026081509-20260815T125014Z.json"
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/store-review-access-refresh-2026081509-20260815T142057Z.json"
   },
   "reviewScenarios": {
-    "ownerLogin": "pending",
-    "renterLogin": "pending",
-    "activeListing": "pending",
-    "acceptedBooking": "pending",
-    "sharedChat": "pending",
+    "ownerLogin": "passed",
+    "renterLogin": "passed",
+    "activeListing": "passed",
+    "acceptedBooking": "passed",
+    "sharedChat": "passed",
     "freshInstall": "pending",
     "secondNetwork": "pending",
-    "reportAndBlock": "pending",
-    "accountExport": "pending",
-    "accountDeletion": "pending"
+    "reportAndBlock": "passed",
+    "accountExport": "passed",
+    "accountDeletion": "passed"
   },
   "scenarioEvidence": {
     "freshInstall": {
@@ -48,12 +48,12 @@
       "evidenceRef": null
     },
     "safetyActions": {
-      "status": "pending",
-      "evidenceRef": null
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/store-review-safety-actions-2026081509-20260815T142110Z.json"
     },
     "accountDeletion": {
-      "status": "pending",
-      "evidenceRef": null
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/store-review-disposable-deletion-20260811.json"
     }
   },
   "protectedStoreFields": {
