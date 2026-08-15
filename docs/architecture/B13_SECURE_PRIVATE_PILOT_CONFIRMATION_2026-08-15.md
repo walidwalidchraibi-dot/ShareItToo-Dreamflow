@@ -251,3 +251,39 @@ Servernachweis:
   geschlossen beziehungsweise offen.
 - Maschinenlesbarer Nachweis:
   `docs/evidence/b11/v4-interim-contract-enforcement-20260815T042919Z.json`.
+
+## Meilenstein 16.65 – exakter Play-Review-, Screenshot- und Technikstand
+
+- Der bereits aktive Google-Play-Internal-Kandidat `2026081505` wurde als
+  exakte Play-Split-Installation mit Installer `com.android.vending`
+  kontrolliert. Es wurde kein neuer Store-Kandidat hochgeladen und kein
+  oeffentlicher Track veraendert.
+- Die vier vorgesehenen Telefon-Screenshots wurden direkt aus diesem exakten
+  Kandidaten neu aufgenommen und visuell freigegeben: Feed, Inseratdetail,
+  Suche und Anzeige erstellen. Alle Bilder sind 1080 x 1920 Pixel, enthalten
+  keine Kontodaten oder Zugangsdaten und sind noch nicht in die Play Console
+  hochgeladen.
+- Der geschuetzte Staging-Reviewbestand ist fuer Build `2026081505` erneut
+  geprueft: technische Zugaenglichkeit sowie acht von zehn Szenarien bestehen.
+  Frische Installation und zweites Netz bleiben ehrlich offen.
+- Die Google-Play-Datensicherheitsmatrix ist an denselben Kandidaten gebunden:
+  16 von 17 Antworten sind technisch vorbereitet, aber nicht in der Console
+  gespeichert. Die Dienstleister-/Sharing-Einstufung umfasst fuenf aktive
+  Auftragsverarbeiter; ihre rechtliche und nutzerseitige Freigabe bleibt offen
+  und blockiert das Speichern fail-closed.
+- Die Analyse-Regressionssperre wurde ohne Erhoehung der Toleranz repariert.
+  Nach Korrektur der neuen asynchronen UI-Stellen sank der Gesamtstand von 640
+  auf 611 Meldungen; die neue feste Obergrenze ist 611. Commit: `5e5677b`.
+- Der vollstaendige technische Pruefpfad bestand: alle Repository- und
+  Store-Validatoren, alle 266 Flutter-Tests, Web-Debug-Build und
+  Android-Debug-Build. Der Datenschutz-Quellnachweis wurde ausschliesslich
+  fuer die technisch geaenderte Standortdatei auf deren neuen SHA-256
+  aktualisiert; die Datennutzung selbst wurde nicht erweitert.
+- Alle sechs offenen V4-Punkte bleiben unveraendert als aktive
+  `V4-INTERIM-2026-08-15`-Regeln gesetzt. Sie sind weder entfernt noch als
+  final beschlossen markiert und werden erst nach einer neuen Mitteilung des
+  Nutzers zentral aktualisiert.
+- Weiterhin offen: manuelle TalkBack-/Grossschrift-Abnahme, zweites Netz,
+  frische Installation, Closed Testing, Apple-Tooling/-Mitgliedschaft,
+  finale Rechts- und Datenschutzentscheidungen sowie echte Zahlungsfreigabe.
+  Produktion, Echtgeld und oeffentliche Store-Tracks blieben unveraendert.
