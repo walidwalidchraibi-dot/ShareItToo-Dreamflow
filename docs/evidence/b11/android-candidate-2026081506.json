@@ -59,6 +59,7 @@
     "logoutColdStartGuestPersistence": "passed-physical-play-build",
     "postLogoutPushSuppression": "passed-physical-play-build",
     "offlineRealtimeRecovery": "passed-physical-play-build",
+    "crashlyticsMappingAndNativeSymbols": "passed-exact-mapping-upload-controlled-event-pending",
     "photoPickerListingChatHandover": "pending-exact-build",
     "closedTrackDraft": "passed-ready-review-blocked-data-safety",
     "twoDevicePrivatePilotAcceptance": "pending"
@@ -81,6 +82,10 @@
     "sameProcessRecovery": "passed",
     "networkRestoredAfterProbe": true,
     "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081506-20260815T084316Z.json"
+  },
+  "crashlyticsReleaseMapping": {
+    "status": "mapping-and-native-symbols-uploaded-controlled-event-pending",
+    "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081506.json"
   },
   "googlePlayInternalRelease": {
     "status": "store-install-verified",

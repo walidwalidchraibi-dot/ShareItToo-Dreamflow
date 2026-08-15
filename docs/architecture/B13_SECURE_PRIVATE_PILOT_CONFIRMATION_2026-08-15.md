@@ -477,3 +477,33 @@ Servernachweis:
   unveraendert offen. Alle sechs V4-Zwischenregeln tragen weiterhin
   `status: open` unter `V4-INTERIM-2026-08-15` und werden erst nach einer neuen
   Mitteilung des Nutzers zentral aktualisiert.
+
+## Meilenstein 16.72 – Crashlytics-Zuordnung fuer Play-Build 1506 gesichert
+
+- Die im archivierten AAB enthaltene R8-/ProGuard-Zuordnung wurde bytegenau an
+  den exakten Google-Play-Kandidaten `1.0.0+2026081506` gebunden. AAB, APK,
+  Zuordnungsdatei und die im APK eingebettete Crashlytics-ID sind jeweils per
+  SHA-256 nachgewiesen.
+- Die Zuordnung wurde mit genau der build-spezifischen Crashlytics-ID von
+  `2026081506` erfolgreich hochgeladen. Es wurde keine neue Ersatz-ID erzeugt
+  und keine Zuordnung eines aelteren Kandidaten als gleich ausgegeben.
+- Die nativen Symboldateien fuer `armeabi-v7a`, `arm64-v8a` und `x86_64` sind
+  bytegenau identisch mit dem bereits erfolgreich uebertragenen Symbolsatz;
+  ZIP und alle drei Einzeldateien wurden erneut gegen das AAB geprueft.
+- Eine Nachpruefung fand dabei einen historischen Dokumentationsfehler bei
+  Build `2026081505`: Dessen APK besitzt eine eigene Crashlytics-ID. Der alte
+  Wiederverwendungsnachweis wurde deshalb korrigiert und der unbelegte exakte
+  Mapping-Upload-Anspruch ausdruecklich zurueckgezogen.
+- Der bereinigte kontrollierte Crash-Event und die sichtbare Zuordnung des
+  Builds in der Firebase-Konsole bleiben fuer `2026081506` bewusst offen. Die
+  Crashlytics-Releasepruefung steht deshalb weiterhin auf `testing`, nicht auf
+  `passed`.
+- 79 gezielte Nachweis-, Dokument- und Upload-Verdrahtungstests sowie der
+  vollstaendige technische Regressionslauf bestanden. Dieser umfasste alle
+  Validatoren, den unveraenderten Analyse-Bestand von 611 Hinweisen, alle 266
+  Flutter-Tests, den Web-Debug-Build und den Android-Debug-Build. Die B11-
+  Snapshots wurden neu erzeugt; Gesamtstatus bleibt `hold`, Matrix 0/4 und
+  Releasepruefungen 5/7.
+- Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
+  blieben unveraendert. Alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` mit `status: open` aktiv.

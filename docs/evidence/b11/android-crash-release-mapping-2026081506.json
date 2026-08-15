@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "kind": "android-crash-release-mapping",
-  "status": "historical-exact-mapping-upload-not-proven",
-  "capturedAt": "2026-08-15T03:50:29Z",
+  "status": "mapping-and-native-symbols-uploaded-controlled-event-pending",
+  "capturedAt": "2026-08-15T09:04:34Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081505",
-    "commit": "3908f5a3c300c1125c120c832f3050eea7a0a762",
+    "buildNumber": "2026081506",
+    "commit": "c6ab5fc143c5d424aece3d8fb7dfe4a351cb02df",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
@@ -16,10 +16,10 @@
     "stripeLivemode": false
   },
   "artifacts": {
-    "aabSha256": "28fe6751ab928bbb2a52aa93239deabbefec25b7c209b67a75d5cb33123a2191",
-    "apkSha256": "0e701dbca162c764cdcdf79e4d1c70eb8d18e97d06e155cfe787bc5164323f69",
+    "aabSha256": "ec56a4031294b94d101d7faec8a4fbab28a7a3a22907b17f6351da9764753a4b",
+    "apkSha256": "8e391b1f3ffd10a6e78bf3a2abda3c7a3eb69b8998c47b3109b750b4ad237368",
     "embeddedProguardMappingSha256": "fd86807e0533eedbae78052979920bcd8f40124e8e6a1db1a3f76eee92286651",
-    "embeddedMappingIdSha256": "2ee74d3476324bde1c148b4532b7f02ed49d337a3a20fe4eb727723f88d00f47",
+    "embeddedMappingIdSha256": "7951c70b6e68e93f5acaa931817ed8e294d6cd127d43deb851e91f98ffc1161c",
     "nativeDebugSymbolsZipSha256": "b5964d753ff1193a77f3c9de4bf56c832c72cc5807d25e25478b411cb90f5c51",
     "nativeSymbolMembers": [
       {
@@ -48,34 +48,20 @@
     "nativeSymbolUploadToCrashlytics": "passed",
     "nativeSymbolUploadBuildResult": "successful",
     "nativeSymbolCacheDrainedAfterUpload": "passed",
-    "originalAabMappingUploadedToCrashlytics": "pending",
-    "uploadBuildResult": "not-run-for-exact-mapping-id",
+    "originalAabMappingUploadedToCrashlytics": "passed",
+    "uploadBuildResult": "successful",
     "controlledSanitizedCrashEvent": "pending",
-    "consoleReleaseAssignment": "passed",
-    "consoleObservedVersion": "1.0.0 (2026081505)"
+    "consoleReleaseAssignment": "pending"
   },
-  "uploadReuseProof": {
-    "sourceBuildNumber": "2026081405",
-    "embeddedProguardMappingSha256Matches": true,
-    "embeddedMappingIdSha256Matches": false,
+  "uploadProof": {
+    "mappingUpload": "exact-build-2026081506-mapping-and-id",
+    "mappingUploadTaskResult": "successful",
+    "mappingIdMatchesArchivedApk": true,
+    "mappingFileMatchesArchivedAab": true,
+    "nativeSymbolUploadSourceBuildNumber": "2026081405",
+    "nativeDebugSymbolsZipSha256Matches": true,
     "allNativeSymbolMemberHashesMatch": true,
-    "differentArtifactClaimed": false,
-    "mappingReuseAllowed": false
-  },
-  "auditCorrection": {
-    "correctedAt": "2026-08-15T09:04:34Z",
-    "reason": "The archived APK carries a build-specific Crashlytics mapping ID. The earlier evidence copied the source-build ID hash and therefore did not prove an exact mapping upload for build 2026081505.",
-    "consoleReleaseObservationPreserved": true,
-    "nativeSymbolReuseProofPreserved": true,
-    "exactMappingUploadClaimWithdrawn": true
-  },
-  "consoleObservation": {
-    "source": "firebase-console-read-only",
-    "latestReleaseMatchesExactCandidate": true,
-    "issueCountsUsedAsCandidateProof": false,
-    "activeUsersLastHour": 4,
-    "settingsChanged": false,
-    "eventGenerated": false
+    "differentMappingIdReused": false
   },
   "boundaries": {
     "uploadedToStore": true,
