@@ -49,14 +49,16 @@ class AppPopup {
   /// Returns the selected value or null when dismissed.
   static Future<String?> showMenuActions(
     BuildContext context, {
-    required List<({String value, IconData icon, String label, Color? color})> items,
+    required List<({String value, IconData icon, String label, Color? color})>
+        items,
   }) async {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
     // Anchor roughly to the top-right under the app bar
-    final position = RelativeRect.fromLTRB(size.width - 8, kToolbarHeight + 8, 8, size.height - kToolbarHeight - 8);
+    final position = RelativeRect.fromLTRB(size.width - 8, kToolbarHeight + 8,
+        8, size.height - kToolbarHeight - 8);
 
     return await showMenu<String>(
       context: context,
@@ -105,7 +107,8 @@ class AppPopup {
                 child: Text(
                   it.label,
                   style: TextStyle(
-                    color: isDark ? Colors.white : AppTheme.textPrimary(context),
+                    color:
+                        isDark ? Colors.white : AppTheme.textPrimary(context),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -115,13 +118,15 @@ class AppPopup {
       ],
     );
   }
+
   /// Shows a centered glass dialog with optional actions.
   ///
   /// - icon: leading icon shown in a subtle circular badge
   /// - title: bold title
   /// - message: secondary text below the title
   /// - actions: optional row of action buttons (aligned to full width)
-  static Future<void> show(BuildContext context, {
+  static Future<void> show(
+    BuildContext context, {
     required IconData icon,
     required String title,
     String? message,
@@ -216,12 +221,14 @@ class AppPopup {
 
   static Future<void> showLoginRequired(BuildContext context) async {
     // Replaced legacy centered dialog with the standard premium bottom sheet.
-    await showGuestRestrictionSheet(context, gateContext: GuestGateContext.generic);
+    await showGuestRestrictionSheet(context,
+        gateContext: GuestGateContext.generic);
   }
 
   /// Lightweight variant that auto dismisses after [duration].
   /// Shows the same centered glass card but without actions and with no close icon.
-  static Future<void> toast(BuildContext context, {
+  static Future<void> toast(
+    BuildContext context, {
     required IconData icon,
     required String title,
     String? message,
@@ -303,7 +310,8 @@ class AppPopup {
 
   /// Shows a centered glass dialog with arbitrary [body] content.
   /// Use for selection popups (e.g., Wunschlisten) that need custom widgets.
-  static Future<T?> showCustom<T>(BuildContext context, {
+  static Future<T?> showCustom<T>(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required Widget body,
@@ -357,7 +365,10 @@ class AppPopup {
                       accentGradient: showAccentLine
                           ? LinearGradient(colors: [
                               Theme.of(ctx).colorScheme.primary,
-                              Theme.of(ctx).colorScheme.primary.withValues(alpha: 0.85),
+                              Theme.of(ctx)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.85),
                             ])
                           : null,
                       // Default custom dialogs to light surfaces in light theme and dark glass in dark theme
@@ -394,7 +405,11 @@ class _GlassActionButton extends StatelessWidget {
   final VoidCallback onTap;
   final Gradient? gradient;
 
-  const _GlassActionButton({required this.icon, required this.label, required this.onTap, this.gradient});
+  const _GlassActionButton(
+      {required this.icon,
+      required this.label,
+      required this.onTap,
+      this.gradient});
 
   @override
   Widget build(BuildContext context) {
@@ -414,7 +429,11 @@ class _GlassActionButton extends StatelessWidget {
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(icon, size: 18, color: Colors.white),
           const SizedBox(width: 8),
-          Flexible(child: Text(label, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w900))),
+          Flexible(
+              child: Text(label,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white, fontWeight: FontWeight.w900))),
         ]),
       ),
     );
@@ -458,10 +477,16 @@ class _GlassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(20);
     // Make the glass card itself more opaque for better readability on busy backdrops
-    final baseColor = backgroundColor ?? (useExploreBackground ? Colors.black.withValues(alpha: 0.28) : Colors.black.withValues(alpha: 0.58));
-    final isLightCard = ThemeData.estimateBrightnessForColor(baseColor) == Brightness.light;
-    final titleColor = isLightCard ? AppTheme.textPrimary(context) : Colors.white;
-    final secondaryColor = isLightCard ? AppTheme.textSecondary(context) : Colors.white70;
+    final baseColor = backgroundColor ??
+        (useExploreBackground
+            ? Colors.black.withValues(alpha: 0.28)
+            : Colors.black.withValues(alpha: 0.58));
+    final isLightCard =
+        ThemeData.estimateBrightnessForColor(baseColor) == Brightness.light;
+    final titleColor =
+        isLightCard ? AppTheme.textPrimary(context) : Colors.white;
+    final secondaryColor =
+        isLightCard ? AppTheme.textSecondary(context) : Colors.white70;
     final borderClr = borderColor ??
         (isLightCard
             ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.10)
@@ -474,7 +499,8 @@ class _GlassCard extends StatelessWidget {
           Positioned.fill(
             child: ImageFiltered(
               imageFilter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-              child: Image.asset('assets/images/fulllogo.jpg', fit: BoxFit.cover),
+              child:
+                  Image.asset('assets/images/fulllogo.jpg', fit: BoxFit.cover),
             ),
           ),
           // Keep light cards bright; only darken dark cards for contrast
@@ -506,7 +532,10 @@ class _GlassCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       title,
-                      style: TextStyle(color: titleColor, fontWeight: FontWeight.w800, fontSize: 16),
+                      style: TextStyle(
+                          color: titleColor,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -514,29 +543,36 @@ class _GlassCard extends StatelessWidget {
                     (plainCloseIcon
                         ? IconButton(
                             onPressed: onClose,
-                            icon: Icon(Icons.close, size: 20, color: secondaryColor),
+                            tooltip: 'Schließen',
+                            icon: Icon(Icons.close,
+                                size: 20, color: secondaryColor),
                             padding: const EdgeInsets.all(4),
                             splashRadius: 18,
                           )
-                        : InkResponse(
-                            onTap: onClose,
-                            radius: 18,
-                            child: Container(
-                              width: 30,
-                              height: 30,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: danger,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: danger.withValues(alpha: 0.35),
-                                    blurRadius: 12,
-                                    spreadRadius: 0,
-                                  ),
-                                ],
-                              ),
-                              child: const Center(
-                                child: Icon(Icons.close, color: Colors.white, size: 16),
+                        : Semantics(
+                            button: true,
+                            label: 'Schließen',
+                            child: InkResponse(
+                              onTap: onClose,
+                              radius: 18,
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: danger,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: danger.withValues(alpha: 0.35),
+                                      blurRadius: 12,
+                                      spreadRadius: 0,
+                                    ),
+                                  ],
+                                ),
+                                child: const Center(
+                                  child: Icon(Icons.close,
+                                      color: Colors.white, size: 16),
+                                ),
                               ),
                             ),
                           )),
@@ -554,7 +590,8 @@ class _GlassCard extends StatelessWidget {
               ],
               if (message != null) ...[
                 const SizedBox(height: 6),
-                Text(message!, style: TextStyle(color: secondaryColor, fontSize: 13)),
+                Text(message!,
+                    style: TextStyle(color: secondaryColor, fontSize: 13)),
               ],
               if (body != null) ...[
                 const SizedBox(height: 12),
@@ -577,12 +614,17 @@ class _GlassCard extends StatelessWidget {
   }
 
   Widget _buildLeading(BuildContext context) {
-    final baseColor = backgroundColor ?? (useExploreBackground ? Colors.black.withValues(alpha: 0.28) : Colors.black.withValues(alpha: 0.58));
-    final isLightCard = ThemeData.estimateBrightnessForColor(baseColor) == Brightness.light;
+    final baseColor = backgroundColor ??
+        (useExploreBackground
+            ? Colors.black.withValues(alpha: 0.28)
+            : Colors.black.withValues(alpha: 0.58));
+    final isLightCard =
+        ThemeData.estimateBrightnessForColor(baseColor) == Brightness.light;
     final leadingBg = isLightCard
         ? AppTheme.surfaceSecondary(context)
         : Colors.white.withValues(alpha: 0.10);
-    final leadingFg = isLightCard ? AppTheme.textPrimary(context) : Colors.white;
+    final leadingFg =
+        isLightCard ? AppTheme.textPrimary(context) : Colors.white;
     if (leadingWidget != null) return leadingWidget!;
     return Container(
       width: 36,
