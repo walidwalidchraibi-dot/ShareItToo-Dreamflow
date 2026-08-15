@@ -89,7 +89,7 @@
         "handoverAndReturn": "passed",
         "moderationAndAccount": "testing",
         "offlineRecovery": "passed",
-        "largeTextAndScreenReader": "open"
+      "largeTextAndScreenReader": "testing"
       },
       "evidenceRef": "docs/evidence/b11/android-wifi-owner-progress-2026081509-20260815T133200Z.json"
     },

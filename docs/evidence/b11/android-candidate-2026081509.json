@@ -72,6 +72,7 @@
     "postLogoutPushSuppression": "passed-physical-play-build",
     "offlineRealtimeRecovery": "passed-physical-play-build",
     "crashlyticsMappingAndNativeSymbols": "passed-exact-mapping-upload-controlled-event-pending",
+    "largeTextAndSemanticsAutomation": "passed-manual-talkback-and-physical-visual-pass-pending",
     "photoPickerListingChatHandover": "pending-device-flow",
     "closedTrackDraft": "not-started-boundary",
     "twoDevicePrivatePilotAcceptance": "pending"

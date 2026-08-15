@@ -1,9 +1,9 @@
 # B13 – Sicherer Privat-Pilot-Bestaetigungsfluss
 
-Stand: 2026-08-15  
-Kandidat: `1.0.0+2026081411`  
-Commit: `7f86ffd1a2c18a41a8b0479c5deba5251fb3a911`  
-Backend-Staging: `1.0.0-2026081412-v4` / `0761f938241476d5b6ba7988c873f81a57fb63f0`
+Stand: 2026-08-15
+Kandidat: `1.0.0+2026081509`
+Commit: `3fa045b98897f9551f91da932136c2b100b2d700`
+Backend-Staging: `0.1.0-36f9145e67be` / `36f9145e67be30fd01ffb61ad38e99361d391479`
 Umgebung: internes Android-Staging, kein Echtgeld, Google-Play-Internal-Test
 
 ## Ergebnis
@@ -727,6 +727,29 @@ Servernachweis:
   nur der frische Start nach Zuruecksetzen der exakten Play-Installation und
   das zweite Netzwerk. 21 gezielte Review-Zugangs- und Sicherheitspruefungen
   bestanden.
+- Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
+  blieben unveraendert. Alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` mit `status: open` aktiv.
+
+## Meilenstein 16.81 – Automatische Barrierefreiheitsbasis fuer Build 1509 bestaetigt
+
+- Seit dem Build-Commit `3fa045b98897f9551f91da932136c2b100b2d700`
+  wurden unter `lib`, `pubspec.yaml`, `android` und `ios` keine
+  Anwendungsquellen veraendert. Die automatischen Pruefungen bleiben deshalb
+  an denselben App-Quellstand wie der exakte Play-Build `2026081509` gebunden.
+- 23 gezielte Flutter-Widgettests fuer 200-Prozent-Text, Fokusreihenfolge,
+  semantische Feld- und Aktionsnamen, getrennte Passwortsichtbarkeit und den
+  schliessbaren Vordergrund-Push-Hinweis bestanden.
+- Der Kategorie-Header blieb bei 200 Prozent Text ohne Clipping; der
+  Datenschutzexport blieb per Tastatur erreichbar, und die Hauptaktionen der
+  Suche besitzen sinnvolle Screenreader-Namen.
+- Die Android-WLAN-/Vermieter-Zelle bleibt ehrlich `testing`: Die automatische
+  Basis ist bestanden, aber die physische Sichtpruefung mit grosser Schrift und
+  die manuelle TalkBack-Traversierung sind noch offen. Der Nachweis liegt unter
+  `docs/evidence/b11/android-accessibility-source-2026081509-20260815T142808Z.json`.
+- Die Moderations-/Kontopruefung bindet nun zusaetzlich die bestandenen
+  serverseitigen Melden-, Blockieren-/Entblockieren-, Export- und isolierten
+  Loeschtests ein; die vollstaendige physische Oberflaechenabnahme bleibt offen.
 - Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
   blieben unveraendert. Alle sechs V4-Punkte bleiben unter
   `V4-INTERIM-2026-08-15` mit `status: open` aktiv.

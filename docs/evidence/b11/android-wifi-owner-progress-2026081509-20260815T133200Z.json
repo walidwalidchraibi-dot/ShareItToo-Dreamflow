@@ -93,10 +93,12 @@
       },
       "moderationAndAccount": {
         "status": "testing",
-        "checkedAt": "2026-08-15T13:17:01.598Z",
-        "summary": "Abmeldung, Kaltstart als Gast, Schutz privater Chats und Push-Unterdrückung nach Logout sind bestanden; Melden, Blockieren, Export und Wegwerf-Kontolöschung bleiben kandidatenspezifisch offen.",
+        "checkedAt": "2026-08-15T14:21:10.656Z",
+        "summary": "Abmeldung und Push-Unterdrückung bestanden auf dem exakten Play-Build; Melden, Blockieren mit Rücknahme, privater Export und isolierte Wegwerf-Kontolöschung bestanden serverseitig. Die vollständige Geräteoberfläche bleibt offen.",
         "evidenceRefs": [
-          "docs/evidence/b11/android-logout-lifecycle-2026081509-20260815T131701Z.json"
+          "docs/evidence/b11/android-logout-lifecycle-2026081509-20260815T131701Z.json",
+          "docs/evidence/b11/store-review-safety-actions-2026081509-20260815T142110Z.json",
+          "docs/evidence/b11/store-review-disposable-deletion-20260811.json"
         ]
       },
       "offlineRecovery": {
@@ -108,10 +110,12 @@
         ]
       },
       "largeTextAndScreenReader": {
-        "status": "open",
-        "checkedAt": null,
-        "summary": "Die manuelle App-Traversierung mit TalkBack und großer Schrift bleibt offen.",
-        "evidenceRefs": []
+        "status": "testing",
+        "checkedAt": "2026-08-15T14:28:08Z",
+        "summary": "23 kandidatengleiche Widget-Prüfungen für 200-Prozent-Text, Fokus und semantische Namen bestanden; die physische Sichtprüfung und manuelle TalkBack-Traversierung bleiben offen.",
+        "evidenceRefs": [
+          "docs/evidence/b11/android-accessibility-source-2026081509-20260815T142808Z.json"
+        ]
       }
     }
   },
