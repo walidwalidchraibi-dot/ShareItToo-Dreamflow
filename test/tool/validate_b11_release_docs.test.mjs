@@ -64,6 +64,18 @@ test('repository B11 release documentation matches the current candidate', () =>
   assert.equal(result.passedReleaseChecks, expectedPassedReleaseChecks);
 });
 
+test('documents the exact verified Play installation without prematurely passing a device cell', () => {
+  assert.equal(deviceManifest.deviceMatrix.some((cell) => cell.status === 'passed'), false);
+  for (const content of Object.values(documents)) {
+    assert.equal(
+      content.includes(
+        `| Google-Play-Installation | \`passed\`; interner Track, exakte Version \`1.0.0 (${deviceManifest.candidate.buildNumber})\` |`,
+      ),
+      true,
+    );
+  }
+});
+
 test('rejects a stale build number in a snapshot', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[0];

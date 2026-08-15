@@ -804,7 +804,34 @@ test('rejects a restricted permission added to the exact release inventory', () 
   writeEvidence(root, ref, evidence);
   assert.throws(
     () => validate({ root }),
-    /must preserve the exact expected permissions while keeping Console warnings pending/,
+    /must preserve the exact expected permissions and avoid permission-form preclaims/,
+  );
+});
+
+test('accepts an exact permission inventory after Store upload when Console warnings are resolved', () => {
+  const root = progressEvidenceRoot();
+  const candidateRef = baseDeviceManifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef;
+  const candidateEvidence = JSON.parse(readFileSync(resolve(root, candidateRef), 'utf8'));
+  const ref = candidateEvidence.privacyAndNetwork.permissionInventoryEvidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
+  evidence.analysis.consoleWarningsPendingAfterAabUpload = false;
+  evidence.boundaries.storeUploadPerformed = true;
+  writeEvidence(root, ref, evidence);
+  assert.equal(validate({ root }).state, 'testing');
+});
+
+test('rejects a permission inventory whose Store-upload and Console-warning states conflict', () => {
+  const root = progressEvidenceRoot();
+  const candidateRef = baseDeviceManifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef;
+  const candidateEvidence = JSON.parse(readFileSync(resolve(root, candidateRef), 'utf8'));
+  const ref = candidateEvidence.privacyAndNetwork.permissionInventoryEvidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
+  evidence.analysis.consoleWarningsPendingAfterAabUpload = true;
+  evidence.boundaries.storeUploadPerformed = true;
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root }),
+    /must consistently bind the Store-upload phase to the Console-warning state/,
   );
 });
 

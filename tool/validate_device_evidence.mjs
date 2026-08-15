@@ -1031,26 +1031,31 @@ function validateAndroidReleasePermissionInventory(root, ref, candidate, label) 
     'android.permission.WRITE_CALL_LOG',
     'android.permission.WRITE_CONTACTS',
   ];
+  const boundaries = object(evidence.boundaries, `${label}.boundaries`);
+  const storeUploadPerformed = boundaries.storeUploadPerformed;
+  const consoleWarningsPending = analysis.consoleWarningsPendingAfterAabUpload;
+  if (typeof storeUploadPerformed !== 'boolean' ||
+      typeof consoleWarningsPending !== 'boolean' ||
+      consoleWarningsPending === storeUploadPerformed) {
+    fail(`${label} must consistently bind the Store-upload phase to the Console-warning state.`);
+  }
   if (analysis.source !== 'merged-release-apk' ||
       JSON.stringify(analysis.declaredPermissions) !== JSON.stringify(expectedDeclaredPermissions) ||
       JSON.stringify(analysis.restrictedOrUnrequestedPermissionsAbsent) !== JSON.stringify(expectedAbsent) ||
       !Array.isArray(analysis.unexpectedPermissions) || analysis.unexpectedPermissions.length !== 0 ||
-      analysis.permissionDeclarationFormPreclaim !== false ||
-      analysis.consoleWarningsPendingAfterAabUpload !== true) {
-    fail(`${label}.analysis must preserve the exact expected permissions while keeping Console warnings pending.`);
+      analysis.permissionDeclarationFormPreclaim !== false) {
+    fail(`${label}.analysis must preserve the exact expected permissions and avoid permission-form preclaims.`);
   }
   const expectedBoundaries = {
-    storeUploadPerformed: false,
     productionChanged: false,
     containsSecrets: false,
     containsPersonalAccountData: false,
     containsRawDeviceIdentifiers: false,
     containsReviewCredentials: false,
   };
-  const boundaries = object(evidence.boundaries, `${label}.boundaries`);
-  if (Object.keys(boundaries).length !== Object.keys(expectedBoundaries).length ||
+  if (Object.keys(boundaries).length !== Object.keys(expectedBoundaries).length + 1 ||
       Object.entries(expectedBoundaries).some(([key, value]) => boundaries[key] !== value)) {
-    fail(`${label}.boundaries must remain sanitized and must not claim a Store upload.`);
+    fail(`${label}.boundaries must remain sanitized and keep production, identity and secret gates closed.`);
   }
 }
 

@@ -138,6 +138,12 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
         && cell?.tests?.installAndFirstStart === 'passed'
       ))
     : null;
+  const playStoreInstallVerified = evidence.googlePlayInternalRelease?.status === 'store-install-verified'
+    && /^passed-version-\d{10}-installer-com\.android\.vending$/.test(
+      exactDiagnostics.googlePlayStoreInstall ?? '',
+    )
+    && evidence.boundaries?.uploadedToStore === true
+    && evidence.boundaries?.installedOnPhysicalDevice === true;
   const fcmPassed = exactDiagnostics.foregroundFcm === 'passed'
     && exactDiagnostics.backgroundFcm === 'passed'
     && exactDiagnostics.terminatedProcessFcm === 'passed'
@@ -180,7 +186,7 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
 | Kontrollierte Android-FCM-Diagnose | ${fcmSummary} |
 | Android-Abmeldung und Push-Unterdrückung | ${logoutSummary} |
 | Android-Offline-/Realtime-Wiederherstellung | ${renderAndroidDiagnostic(android.offlineRealtime, 'candidate.android.offlineRealtime')} |
-| Google-Play-Installation | ${playInstalledCell ? `\`passed\`; interner Track, exakte Version \`${nonEmptyString(candidate.versionName, 'candidate.versionName')} (${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')})\`` : '`testing`; noch keine belegte Installation aus dem internen Play-Track'} |
+| Google-Play-Installation | ${playInstalledCell || playStoreInstallVerified ? `\`passed\`; interner Track, exakte Version \`${nonEmptyString(candidate.versionName, 'candidate.versionName')} (${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')})\`` : '`testing`; noch keine belegte Installation aus dem internen Play-Track'} |
 | Play-Signing und öffentliche App-Links | \`${nonEmptyString(storeLinksAndSigning.status, 'releaseChecks.storeWarningsLinksAndSigning.status')}\`${storeLinksAndSigning.evidenceRef ? `; \`${nonEmptyString(storeLinksAndSigning.evidenceRef, 'releaseChecks.storeWarningsLinksAndSigning.evidenceRef')}\`` : '; noch kein kandidatenspezifischer Nachweis'} |
 | Crashlytics-Releasezuordnung | \`${nonEmptyString(crashReleaseMapping.status, 'releaseChecks.crashReleaseMapping.status')}\`${crashEvidence} |
 | Kandidatenbeleg | \`${nonEmptyString(manifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef, 'releaseChecks.candidateIdentityAndSignatures.evidenceRef')}\` |
