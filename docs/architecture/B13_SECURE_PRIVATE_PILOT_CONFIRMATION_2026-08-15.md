@@ -1,9 +1,9 @@
 # B13 – Sicherer Privat-Pilot-Bestaetigungsfluss
 
-Stand: 2026-08-15
+Stand: 2026-08-16
 Kandidat: `1.0.0+2026081509`
 Commit: `3fa045b98897f9551f91da932136c2b100b2d700`
-Backend-Staging: `0.1.0-36f9145e67be` / `36f9145e67be30fd01ffb61ad38e99361d391479`
+Backend-Staging: `0.1.0-cedc5ecfd65a` / `cedc5ecfd65a9f2bcf731b5ac10dfd66a8a8160b`
 Umgebung: internes Android-Staging, kein Echtgeld, Google-Play-Internal-Test
 
 ## Ergebnis
