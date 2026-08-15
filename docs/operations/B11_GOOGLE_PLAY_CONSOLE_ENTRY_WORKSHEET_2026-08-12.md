@@ -25,6 +25,13 @@ Verbindlicher Kandidat:
   keine Store-Einreichung erlaubt und keine Review-, Closed-, Open- oder
   Production-Freigabe zulässig
 
+Aktueller interner Verlauf: Build `2026081501` wurde am 15. August 2026 im
+Internal Testing aktiviert und vom Play Store auf dem Pixel installiert. Der
+physische Chat-Test zeigte anschließend eine zweite, rein interne
+Selbstaktualisierungsschleife. Daher bleibt dieser Build ohne weitere
+Freigabestufe; der korrigierte Ersatzkandidat `2026081502` ist ausschließlich
+für einen erneuten internen Staging-Test vorgesehen.
+
 ## 2. Persönliches Entwicklerkonto und App-Datensatz
 
 Erledigt:
