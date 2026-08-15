@@ -6422,13 +6422,11 @@ class _TransactionComposerState extends State<_TransactionComposer> {
                           showHandoverTimeButton: showHandoverTimeButton &&
                               !widget.handoverConfirmed,
                           showReturnTimeButton: showReturnTimeButton,
-                          showPrimaryAction: showActions &&
-                              !((widget.chatState == _ChatState.confirmed &&
-                                      widget.handoverConfirmed) ||
-                                  ((widget.chatState == _ChatState.running ||
-                                          widget.chatState ==
-                                              _ChatState.returnPlanned) &&
-                                      widget.returnConfirmed)),
+                          // `showActions` already contains the complete role,
+                          // booking-state and confirmed-time gate. Hiding the
+                          // button again once the time was confirmed made the
+                          // enabled start action unreachable.
+                          showPrimaryAction: showActions,
                           handoverTimeRequested: widget.handoverTimeRequested,
                           returnTimeRequested: widget.returnTimeRequested,
                           handoverConfirmed: widget.handoverConfirmed,
