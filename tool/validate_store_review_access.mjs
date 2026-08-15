@@ -167,6 +167,7 @@ export function validateStoreReviewAccess({
   const testingEvidenceStatuses = new Set([
     'review-accounts-refresh-pending-email-verification',
     'review-fixture-refresh-pending',
+    'review-candidate-built-play-upload-pending',
     'review-candidate-rollover-revalidation-pending',
   ]);
   const evidenceStatusValid = technical.status === 'passed'
@@ -182,11 +183,16 @@ export function validateStoreReviewAccess({
   const refreshPending = evidence.status === 'review-fixture-refresh-pending';
   const rolloverPending =
     evidence.status === 'review-candidate-rollover-revalidation-pending';
+  const prePlayPending =
+    evidence.status === 'review-candidate-built-play-upload-pending';
   const expectedRoleStatus = technical.status === 'passed'
     || (refreshPending
       && evidence.checks?.ownerLoginPassed === true
       && evidence.checks?.renterLoginPassed === true)
     || (rolloverPending
+      && evidence.checks?.privateVaultCreated === true
+      && evidence.checks?.priorVerificationEvidenceAvailable === true)
+    || (prePlayPending
       && evidence.checks?.privateVaultCreated === true
       && evidence.checks?.priorVerificationEvidenceAvailable === true)
     ? 'verified'
@@ -226,6 +232,18 @@ export function validateStoreReviewAccess({
         || evidence.latestBookingFailure?.newListingCreated !== false
         || evidence.latestBookingFailure?.paymentEndpointCalled !== false) {
       fail('fixture-refresh evidence must contain a safe, bounded failure correlation.');
+    }
+  } else if (prePlayPending) {
+    if (evidence.checks?.privateVaultCreated !== true
+        || evidence.checks?.priorVerificationEvidenceAvailable !== true
+        || evidence.checks?.exactPlayCandidateInstalled !== false
+        || evidence.checks?.playInstallerVerified !== false
+        || evidence.checks?.completeTechnicalAccessPassed !== false
+        || evidence.checks?.playInternalUploadRequired !== true
+        || evidence.checks?.freshInstallRevalidationRequired !== true
+        || evidence.checks?.secondRoleRevalidationRequired !== true
+        || evidence.checks?.secondNetworkRevalidationRequired !== true) {
+      fail('pre-Play candidate evidence must keep upload and exact review revalidation pending.');
     }
   } else if (rolloverPending) {
     if (evidence.checks?.privateVaultCreated !== true
@@ -282,7 +300,9 @@ export function validateStoreReviewAccess({
     fail('passed review evidence must disclose that authentication sessions were created.');
   }
   if (technical.status === 'testing') {
-    const expectedRegistrationsCreated = refreshPending || rolloverPending ? false : true;
+    const expectedRegistrationsCreated = refreshPending || rolloverPending || prePlayPending
+      ? false
+      : true;
     if (evidence.boundaries.syntheticAccountRegistrationsCreated !== expectedRegistrationsCreated) {
       fail('testing review evidence must disclose whether synthetic account registrations were created.');
     }
@@ -293,6 +313,11 @@ export function validateStoreReviewAccess({
         && (evidence.boundaries.authenticationSessionsCreated !== false
           || evidence.boundaries.authenticationSessionObserved !== true)) {
       fail('candidate-rollover evidence must distinguish an observed session from a newly created one.');
+    }
+    if (prePlayPending
+        && (evidence.boundaries.authenticationSessionsCreated !== false
+          || evidence.boundaries.authenticationSessionObserved !== false)) {
+      fail('pre-Play candidate evidence must not claim a candidate authentication session.');
     }
   }
   const scenarios = object(review.reviewScenarios, 'reviewScenarios');

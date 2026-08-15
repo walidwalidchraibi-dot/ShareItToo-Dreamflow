@@ -119,7 +119,7 @@ function validate({
   });
 }
 
-test('accepts the honest exact-candidate rollover with every review scenario pending', () => {
+test('accepts the honest pre-Play candidate with every review scenario pending', () => {
   const result = validate();
   assert.equal(result.state, 'testing');
   assert.equal(result.readyForStore, false);

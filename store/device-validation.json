@@ -7,66 +7,18 @@
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
     "minimumBuildNumber": "2026080903",
-    "buildNumber": "2026081506",
-    "commit": "c6ab5fc143c5d424aece3d8fb7dfe4a351cb02df",
+    "buildNumber": "2026081507",
+    "commit": "0707e3091f8e3f47c327488b82e8b9765e794f01",
     "releaseChannel": "internal",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true,
     "paymentMode": "memory",
     "stripeLivemode": false,
     "android": {
-      "delivery": "play-internal",
-      "aabSha256": "ec56a4031294b94d101d7faec8a4fbab28a7a3a22907b17f6351da9764753a4b",
-      "apkSha256": "8e391b1f3ffd10a6e78bf3a2abda3c7a3eb69b8998c47b3109b750b4ad237368",
-      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
-      "authenticatedSession": {
-        "status": "passed",
-        "installMethod": "google-play-split",
-        "capturedAt": "2026-08-15T07:47:03.608Z",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081506-20260815T074703Z.json"
-      },
-      "syntheticRoleBooking": {
-        "status": "passed",
-        "installMethod": "google-play-split",
-        "capturedAt": "2026-08-15T08:23:04.284Z",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081506-20260815T082304Z.json"
-      },
-      "authenticatedDeepLinks": {
-        "status": "passed",
-        "installMethod": "google-play-split",
-        "capturedAt": "2026-08-15T08:35:45.802Z",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081506-20260815T083545Z.json"
-      },
-      "logoutLifecycle": {
-        "status": "passed",
-        "installMethod": "google-play-split",
-        "capturedAt": "2026-08-15T08:40:36.161Z",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081506-20260815T084036Z.json"
-      },
-      "offlineRealtime": {
-        "status": "passed",
-        "installMethod": "google-play-split",
-        "offlineWindowSeconds": 15,
-        "sameProcessRecovery": "passed",
-        "originalNetworkRestored": "passed",
-        "capturedAt": "2026-08-15T08:43:16.614Z",
-        "manufacturer": "Google",
-        "deviceModel": "Pixel 7 Pro",
-        "osVersion": "16",
-        "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081506-20260815T084316Z.json"
-      }
+      "delivery": "pending",
+      "aabSha256": "f84f96a9edc705c5a3444e7d283009ecb9d0f8bfd6d42fecb9841b1bcc8b4296",
+      "apkSha256": "00b4d5ddbf0c89ac331bb013b24ec20eeffc4e798a09f9e784bec32cb3e783e6",
+      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
     },
     "ios": {
       "delivery": "pending",
@@ -184,31 +136,31 @@
   "releaseChecks": {
     "candidateIdentityAndSignatures": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081506.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081507.json"
     },
     "firebaseFcmAndApns": {
-      "status": "testing",
-      "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081506-20260815T083829Z.json"
+      "status": "open",
+      "evidenceRef": null
     },
     "binaryPrivacyAndNetwork": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081506.json"
+      "evidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081507.json"
     },
     "crashReleaseMapping": {
-      "status": "testing",
-      "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081506.json"
+      "status": "open",
+      "evidenceRef": null
     },
     "storeWarningsLinksAndSigning": {
-      "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-play-store-links-signing-2026081506-20260815.json"
+      "status": "open",
+      "evidenceRef": null
     },
     "stagingCleanupAndHealth": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081506.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081507.json"
     },
     "productionInvariant": {
       "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-candidate-2026081506.json"
+      "evidenceRef": "docs/evidence/b11/android-candidate-2026081507.json"
     }
   },
   "approvals": {

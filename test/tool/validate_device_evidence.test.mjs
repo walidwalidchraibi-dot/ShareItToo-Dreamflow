@@ -1195,7 +1195,7 @@ test('accepts an exact-candidate rollover with historical matrix progress reset'
     0,
   );
   assert.equal(baseDeviceManifest.deviceMatrix[0].evidenceRef, null);
-  assert.equal(baseDeviceManifest.candidate.android.authenticatedSession.status, 'passed');
+  assert.equal(baseDeviceManifest.candidate.android.authenticatedSession, undefined);
 });
 
 test('rejects partial matrix evidence that overstates a manifest test status', () => {
