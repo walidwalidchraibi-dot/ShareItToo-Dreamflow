@@ -988,3 +988,29 @@ Servernachweis:
 - `Data Safety` bleibt bis zu den ausstehenden Anbieter-, Aufbewahrungs- und
   rechtlichen Entscheidungen bewusst fail-closed. Die sechs V4-Punkte bleiben
   unter `V4-INTERIM-2026-08-15` offen.
+
+## Meilenstein 16.90 – aggregiertes Retention-Inventar auf Staging bestaetigt
+
+- Der exakte Backend-Commit
+  `cedc5ecfd65a9f2bcf731b5ac10dfd66a8a8160b` wurde aus einer sauberen,
+  abgetrennten Quelle als unveraenderlich beschriftetes Docker-Abbild gebaut
+  und ausschliesslich auf Staging ausgerollt. Version und Commit stimmen im
+  oeffentlichen Versionsendpunkt ueberein.
+- Readiness bestaetigt Datenbank und Mail als gesund. Zahlungen bleiben im
+  Memory-Testmodus und `livemode=false`; FCM bleibt nur fuer Staging aktiv. Der
+  serverseitige Rolloutnachweis liegt unter
+  `/docker/shareittoo/releases/staging-20260815T220613Z-cedc5ecfd65a.json`.
+- Der neue Adminpfad weist einen nicht angemeldeten Zugriff mit `401` ab. Die
+  eigentliche Inventarabfrage wurde innerhalb einer vollstaendig
+  zurueckgerollten Datenbanktransaktion ausgefuehrt und bestaetigte sieben
+  Kategorien, 21 Datenbestaende und 16.755 aggregierte Zeilen. Es wurden keine
+  Kennungen ausgegeben und kein Audit- oder Fachdatenbestand dauerhaft
+  veraendert.
+- Die Laufzeitantwort bleibt bewusst rein informativ:
+  `containsIdentifiers=false`, `executionEnabled=false`,
+  `retentionPeriodsApplied=false` und `eligibleRowsCalculated=false`. Es wurde
+  weder eine Aufbewahrungsfrist erfunden noch eine Loeschberechtigung
+  berechnet oder eine Kategorie-Loeschung aktiviert.
+- Produktion, Echtgeld, App-Kandidat `1.0.0+2026081509`, Google-Play-Tracks und
+  Review-Versand blieben unveraendert. Alle neun Aufbewahrungsentscheidungen
+  und alle sechs V4-Punkte bleiben offen.
