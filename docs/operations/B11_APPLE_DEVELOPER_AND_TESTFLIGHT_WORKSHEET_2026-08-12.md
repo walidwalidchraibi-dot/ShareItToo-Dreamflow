@@ -1,8 +1,8 @@
 # B11 – Apple Developer und TestFlight: vorbereitete Übergabe
 
-Stand: 14. August 2026
+Stand: 15. August 2026
 
-Gebundener gemeinsamer Endkandidat: `ShareItToo 1.0.0 (2026081403)`
+Gebundener gemeinsamer Endkandidat: `ShareItToo 1.0.0 (2026081509)`
 
 Bundle-ID: `com.shareittoo.app`
 
@@ -73,9 +73,9 @@ es keine Werbung, kein Werbetracking, keine Abonnements und keine käuflichen
 digitalen App-Funktionen. Live-Zahlungen und KI-Helfer sind im Staging-
 Kandidaten deaktiviert.
 
-Öffentliche Datenschutz-, Support- und Löschseiten bleiben vor App Review
-offen. Geschützte Prüfzugänge dürfen später nur in die geschützten App-Store-
-Connect-Felder eingetragen werden.
+Öffentliche Datenschutz-, Support- und Löschseiten sind erreichbar und wurden
+für den gebundenen Kandidaten erneut geprüft. Geschützte Prüfzugänge dürfen
+später nur in die geschützten App-Store-Connect-Felder eingetragen werden.
 
 ## 6. Lokale Tooling-Gates
 
@@ -83,7 +83,9 @@ Auf dem aktuellen Mac sind nur die Apple Command Line Tools aktiv; die
 vollständige Xcode-App und ihre iOS-SDKs fehlen. Deshalb sind Archiv,
 Codesigning, Simulator, Geräteinstallation und Upload noch nicht möglich.
 CocoaPods ist ebenfalls noch nicht verfügbar. Diese lokale Prüfung wurde am
-14. August erneut durchgeführt und endet bewusst vor jedem Buildversuch.
+15. August für Kandidat `2026081509` erneut durchgeführt und endet bewusst vor
+jedem Buildversuch. Der maschinenlesbare Nachweis liegt unter
+`docs/evidence/b11/ios-local-tooling-readiness-2026081509-20260815.json`.
 Der wiederholbare, rein lesende Status kann künftig ohne Konto- oder
 Schlüsselzugriff mit `node tool/diagnose_ios_tooling_readiness.mjs` geprüft
 werden. Erst der getrennte strenge Modus `--require-ready` darf die lokale

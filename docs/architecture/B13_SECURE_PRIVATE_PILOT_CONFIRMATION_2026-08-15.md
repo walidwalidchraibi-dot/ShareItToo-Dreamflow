@@ -753,3 +753,29 @@ Servernachweis:
 - Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
   blieben unveraendert. Alle sechs V4-Punkte bleiben unter
   `V4-INTERIM-2026-08-15` mit `status: open` aktiv.
+
+## Meilenstein 16.82 – iOS-Werkzeugstatus und B0-Baseline auf Kandidat 1509 nachgefuehrt
+
+- Die rein lesende iOS-Diagnose wurde fuer den gebundenen Staging-Kandidaten
+  `1.0.0+2026081509` auf dem aktuellen Mac wiederholt. Bundle-ID und API-Ziel
+  bleiben `com.shareittoo.app` und `https://staging.shareittoo.com/api/v1`.
+- Der Mac stellt derzeit nur die Apple Command Line Tools bereit. Die
+  vollstaendige Xcode-App, ein ausgewaehltes Xcode-Developer-Verzeichnis,
+  `xcodebuild` und CocoaPods fehlen. Der Status lautet deshalb ehrlich
+  `pending-local-tooling`; Archiv, Signierung, Installation und Upload wurden
+  nicht versucht.
+- Der bereinigte Nachweis unter
+  `docs/evidence/b11/ios-local-tooling-readiness-2026081509-20260815.json`
+  enthaelt weder Kontokennungen noch Zugangsdaten, Schluessel oder lokale
+  Dateipfade. Apple-Mitgliedschaft, Vereinbarungen und Teamstatus wurden nicht
+  abgeleitet.
+- Das Apple-/TestFlight-Arbeitsblatt ist auf Kandidat `2026081509` und den
+  aktuellen Tooling-Befund aktualisiert. Die B11-Uebersichten weisen denselben
+  offenen iOS-Zustand jetzt explizit aus.
+- Die B0-Baseline widerspricht dem bereits belegten Betriebsstand nicht mehr:
+  taegliches Backup, Health-Timer, Restore-Check, isolierter Restore und
+  externe Alarmzustellung sind als bestanden vermerkt; SPF, DKIM und DMARC
+  sowie die kanonische `.com`-Kontaktadresse sind nachgefuehrt.
+- Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
+  blieben unveraendert. Alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` mit `status: open` aktiv.

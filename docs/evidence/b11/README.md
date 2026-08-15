@@ -101,6 +101,14 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Eine bestandene Google-Play-Installation ist nur belegt, wenn der aktuelle Kandidat aus dem internen Track installiert und gestartet wurde. Die früheren direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM-, Abmelde- und Offline-/Realtime-Diagnosen bleiben davon abgegrenzte Vorprüfungen. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
 
+Der lokal wiederholte iOS-Werkzeugcheck für denselben Kandidaten steht auf
+`pending-local-tooling`: Die vollständige Xcode-App, das ausgewählte
+Xcode-Developer-Verzeichnis, `xcodebuild` und CocoaPods fehlen. Der bereinigte
+Nachweis liegt unter
+`ios-local-tooling-readiness-2026081509-20260815.json`. Er schließt kein
+iOS-/TestFlight-Gate und enthält keine Konto-, Schlüssel- oder
+Zugangsinformationen.
+
 Der historische Crash-/Symbolnachweis
 `android-crash-release-mapping-2026081029.json` bindet die im AAB eingebettete
 R8-Zuordnung und alle nativen Android-Symbole per SHA-256 an Build 2026081029.

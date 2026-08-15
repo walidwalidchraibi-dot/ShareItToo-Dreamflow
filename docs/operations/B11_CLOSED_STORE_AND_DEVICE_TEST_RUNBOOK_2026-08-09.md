@@ -52,6 +52,13 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 Dieser Block wird aus den verbindlichen JSON-Nachweisen geprüft. Eine bestandene Google-Play-Installation ist nur belegt, wenn der aktuelle Kandidat aus dem internen Track installiert und gestartet wurde. Die früheren direkten APK-, App-Link-, Sitzungs-, Rollenbuchungs-, Deep-Link-, FCM-, Abmelde- und Offline-/Realtime-Diagnosen bleiben davon abgegrenzte Vorprüfungen. Die kontrollierten synthetischen WLAN-Nachweise schließen weder Hotspot und die vollständige Rollen-/Netzmatrix noch TalkBack, iOS/TestFlight, Produktion oder Echtgeld.
 <!-- SIT_CURRENT_RELEASE_SNAPSHOT_END -->
 
+Der lokale iOS-Werkzeugcheck für denselben Kandidaten steht auf
+`pending-local-tooling`: Die vollständige Xcode-App, das ausgewählte
+Xcode-Developer-Verzeichnis, `xcodebuild` und CocoaPods fehlen. Der bereinigte
+Nachweis liegt unter
+`docs/evidence/b11/ios-local-tooling-readiness-2026081509-20260815.json`.
+Archiv, Signierung, Geräteinstallation und Upload wurden nicht versucht.
+
 Der chronologisch erhaltene historische Logout-/Push-Lebenszyklusnachweis für Build
 `2026081026` liegt unter
 `docs/evidence/b11/android-logout-push-lifecycle-2026081026-20260810T140200Z.json`.

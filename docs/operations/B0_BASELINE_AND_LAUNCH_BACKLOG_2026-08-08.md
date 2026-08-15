@@ -1,6 +1,7 @@
 # ShareItToo (SIT) – B0-Baseline und Launch-Backlog
 
 Stand: 8. August 2026, 20:30 Uhr (Europe/Berlin)
+Fortgeschrieben: 15. August 2026
 
 ## Zweck und Status
 
@@ -9,14 +10,13 @@ SIT-Master-Workflows. Es verändert keine Produktfunktion. Es hält den gesunden
 Quellstand, die laufende Produktion, bekannte Lücken und eindeutige
 Abnahmekriterien fest.
 
-B0 ist technisch weitgehend aufgenommen. Für den formalen Abschluss fehlen
-noch:
-
-- Walids Entscheidung, ob iOS und Android gleichzeitig öffentlich starten.
-- Verifikation auf dem VPS, dass die projektseitige tägliche
-  PostgreSQL-Sicherung und der Health-Timer tatsächlich aktiv sind.
-- Ein maschinenlesbarer Versionsnachweis im Live-Backend, damit der laufende
-  API-Container künftig eindeutig einem Git-Commit zugeordnet werden kann.
+B0 ist technisch aufgenommen. Tägliche PostgreSQL-Sicherung, isolierter
+Restore und Health-Timer wurden inzwischen verifiziert; Staging liefert einen
+maschinenlesbaren Versions- und Commitnachweis. Der erste kontrollierte
+Store-Pilot läuft auf Android im internen Google-Play-Track. Für den formalen
+Gesamtabschluss bleiben die Reihenfolge eines späteren öffentlichen iOS- und
+Android-Starts, die final belegten Geschäftsangaben sowie der erste
+commit-markierte Produktionsrollout offen.
 
 ## 1. Gesunder und geschützter Quellstand
 
@@ -160,10 +160,10 @@ Im Repository existieren zusätzlich:
   Backup-Alter
 - systemd-Service- und Timerdateien für Backup und Healthcheck
 
-Die Aktivierung dieser beiden Timer auf dem VPS konnte ohne bestehenden
-SSH-Schlüssel noch nicht direkt bestätigt werden. Bis zu dieser Prüfung gilt
-die tägliche Datenbanksicherung als **nicht verifiziert**. Ein Restore-Test ist
-ebenfalls noch offen.
+Die tägliche Sicherung, der Health-Timer und der zusätzliche Restore-Check sind
+auf dem VPS aktiviert. Ein isolierter Restore mit Prüfsummen- und Tabellencheck
+sowie die externe Alarmzustellung wurden bestanden. Der genaue Nachweis und
+die sichere Wiederholungsanleitung stehen im B2-Release-/Restore-Runbook.
 
 ## 4. E-Mail-Inventar
 
@@ -175,12 +175,12 @@ ebenfalls noch offen.
 | Reply-To | `contact@shareittoo.com` |
 | SPF | `v=spf1 include:_spf.google.com ~all` sichtbar |
 | DKIM | 2048-Bit-Google-DKIM, Selektor `google`, sichtbar |
-| DMARC | noch nicht vorhanden |
+| DMARC | `v=DMARC1; p=none; rua=mailto:dmarc@shareittoo.com; pct=100` sichtbar |
 
-Bekannte Inkonsistenz: Die App zeigt an mehreren Stellen noch
-`contact@shareittoo.de`, während Backend und produktive Domain `.com`
-verwenden. Vor dem Pilotbetrieb muss eine einzige kanonische Kontaktadresse
-gelten.
+Die frühere `.de`-Inkonsistenz ist bereinigt. App, Backend, Mailkonfiguration
+und Rechtstexte verwenden als kanonische Kontaktadresse
+`contact@shareittoo.com`; `dmarc@shareittoo.com` ist als kontrollierter
+Google-Workspace-Alias fuer Berichte eingerichtet.
 
 ## 5. Architektur: tatsächlich vorhandener Stand
 
@@ -217,12 +217,15 @@ Architekturquelle.
 
 ## 6. Release- und Konfigurationsrisiken
 
-- Android-Namespace und Application ID sind noch
-  `com.mycompany.CounterApp`.
-- iOS Bundle ID ist noch `com.mycompany.CounterApp`; ein Development Team ist
-  nicht fest eingetragen.
-- App-Version ist erst `1.0.0` ohne abgestimmte Store-Buildnummern.
-- Produktionssignierung und Store-Zugänge sind noch nicht nachgewiesen.
+- Android Application ID und iOS Bundle ID sind einheitlich
+  `com.shareittoo.app`.
+- Android-Uploadsignatur, Google-Play-App-Signing und die interne
+  Store-Installation sind für `1.0.0+2026081509` nachgewiesen.
+- Auf diesem Mac fehlen weiterhin die vollständige Xcode-Anwendung,
+  `xcodebuild`, CocoaPods und ein nachgewiesenes Apple Development Team;
+  TestFlight bleibt deshalb offen.
+- Die App verwendet abgestimmte zehnstellige Store-Buildnummern; der aktuelle
+  Android-Kandidat ist `1.0.0+2026081509`.
 - Keine echten Stripe-Schlüssel wurden im Repository gefunden; Stripe ist aber
   auch noch nicht integriert.
 - Keine Klartext-Private-Keys oder offensichtlichen Google-/Stripe-API-Schlüssel
