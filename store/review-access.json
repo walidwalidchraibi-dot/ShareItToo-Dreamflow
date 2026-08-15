@@ -6,8 +6,8 @@
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081505",
-    "commit": "3908f5a3c300c1125c120c832f3050eea7a0a762"
+    "buildNumber": "2026081506",
+    "commit": "c6ab5fc143c5d424aece3d8fb7dfe4a351cb02df"
   },
   "environment": {
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
@@ -27,33 +27,33 @@
     }
   ],
   "technicalAccess": {
-    "status": "passed",
-    "evidenceRef": "docs/evidence/b11/store-review-access-refresh-2026081505-20260815T043846Z.json"
+    "status": "testing",
+    "evidenceRef": "docs/evidence/b11/store-review-access-rollover-2026081506-20260815T074703Z.json"
   },
   "reviewScenarios": {
-    "ownerLogin": "passed",
-    "renterLogin": "passed",
-    "activeListing": "passed",
-    "acceptedBooking": "passed",
-    "sharedChat": "passed",
-    "freshInstall": "passed",
+    "ownerLogin": "pending",
+    "renterLogin": "pending",
+    "activeListing": "pending",
+    "acceptedBooking": "pending",
+    "sharedChat": "pending",
+    "freshInstall": "pending",
     "secondNetwork": "pending",
-    "reportAndBlock": "passed",
-    "accountExport": "passed",
-    "accountDeletion": "passed"
+    "reportAndBlock": "pending",
+    "accountExport": "pending",
+    "accountDeletion": "pending"
   },
   "scenarioEvidence": {
     "freshInstall": {
-      "status": "passed",
-      "evidenceRef": "docs/evidence/b11/android-fresh-install-2026081505-20260815T054742Z.json"
+      "status": "pending",
+      "evidenceRef": null
     },
     "safetyActions": {
-      "status": "passed",
-      "evidenceRef": "docs/evidence/b11/store-review-safety-actions-2026081505-20260815T043857Z.json"
+      "status": "pending",
+      "evidenceRef": null
     },
     "accountDeletion": {
-      "status": "passed",
-      "evidenceRef": "docs/evidence/b11/store-review-disposable-deletion-20260811.json"
+      "status": "pending",
+      "evidenceRef": null
     }
   },
   "protectedStoreFields": {

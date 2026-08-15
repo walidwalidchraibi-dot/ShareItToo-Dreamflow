@@ -1182,27 +1182,61 @@ test('strict mode rejects the in-progress evidence state', () => {
   );
 });
 
-test('accepts the evidence-backed partial Android Wi-Fi matrix progress', () => {
+test('accepts an exact-candidate rollover with historical matrix progress reset', () => {
   const summary = validate();
   assert.equal(summary.state, 'testing');
-  assert.equal(baseDeviceManifest.deviceMatrix[0].status, 'testing');
+  assert.equal(baseDeviceManifest.deviceMatrix[0].status, 'open');
   assert.equal(
     Object.values(baseDeviceManifest.deviceMatrix[0].tests)
       .filter((status) => status === 'passed').length,
-    9,
+    0,
   );
+  assert.equal(baseDeviceManifest.deviceMatrix[0].evidenceRef, null);
+  assert.equal(baseDeviceManifest.candidate.android.authenticatedSession.status, 'passed');
 });
 
 test('rejects partial matrix evidence that overstates a manifest test status', () => {
   const root = progressEvidenceRoot();
   const deviceManifest = clone(baseDeviceManifest);
-  const ref = deviceManifest.deviceMatrix[0].evidenceRef;
-  const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
+  const ref = 'docs/evidence/b11/android-wifi-owner-progress-test.json';
+  const cell = deviceManifest.deviceMatrix[0];
+  cell.status = 'testing';
+  cell.deviceModel = 'Pixel 7 Pro';
+  cell.osVersion = 'Android 16';
+  cell.storeInstall = 'play-internal';
+  cell.tests.largeTextAndScreenReader = 'testing';
+  cell.evidenceRef = ref;
+  const evidence = {
+    schemaVersion: 1,
+    kind: 'device-matrix-cell-progress',
+    status: 'testing',
+    capturedAt: '2026-08-15T08:00:00Z',
+    candidate: evidenceCandidate(deviceManifest.candidate),
+    cell: {
+      id: cell.id,
+      platform: cell.platform,
+      network: cell.network,
+      role: cell.role,
+      deviceType: cell.deviceType,
+      deviceModel: cell.deviceModel,
+      osVersion: cell.osVersion,
+      storeInstall: cell.storeInstall,
+      screenReader: cell.screenReader,
+      tests: Object.fromEntries(Object.entries(cell.tests).map(([key, status]) => [key, {
+        status,
+        checkedAt: status === 'open' ? null : '2026-08-15T08:00:00Z',
+        summary: `${key} remains bounded in the test fixture.`,
+        evidenceRefs: [],
+      }])),
+    },
+    boundaries: {
+      containsSecrets: false,
+      containsRawDeviceIdentifiers: false,
+      containsReviewCredentials: false,
+      syntheticAccountsOnly: true,
+    },
+  };
   evidence.cell.tests.largeTextAndScreenReader.status = 'passed';
-  evidence.cell.tests.largeTextAndScreenReader.checkedAt = evidence.capturedAt;
-  evidence.cell.tests.largeTextAndScreenReader.evidenceRefs = [
-    'docs/evidence/b11/android-fresh-install-2026081505-20260815T054742Z.json',
-  ];
   writeEvidence(root, ref, evidence);
   assert.throws(
     () => validate({ root, deviceManifest }),

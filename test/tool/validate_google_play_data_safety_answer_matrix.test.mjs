@@ -15,7 +15,10 @@ const privacy = JSON.parse(readFileSync(resolve(root, 'store/privacy-disclosures
 const clone = (value) => structuredClone(value);
 
 test('accepts the complete but unsaved Data Safety answer matrix', () => {
-  assert.deepEqual(validateGooglePlayDataSafetyAnswerMatrix({ root }), {
+  assert.deepEqual(validateGooglePlayDataSafetyAnswerMatrix({
+    root,
+    allowCandidateRollover: true,
+  }), {
     evaluated: 17,
     selected: 16,
     consoleSaved: false,
@@ -28,10 +31,17 @@ test('keeps the Data Safety matrix in the permanent technical regression gate', 
   for (const command of [
     'node --check tool/validate_google_play_data_safety_answer_matrix.mjs',
     'node --test test/tool/validate_google_play_data_safety_answer_matrix.test.mjs',
-    'node tool/validate_google_play_data_safety_answer_matrix.mjs',
+    'node tool/validate_google_play_data_safety_answer_matrix.mjs --allow-candidate-rollover',
   ]) {
     assert.ok(regression.includes(command), `missing regression command: ${command}`);
   }
+});
+
+test('keeps strict candidate binding unless rollover is explicit', () => {
+  assert.throws(
+    () => validateGooglePlayDataSafetyAnswerMatrix({ root }),
+    /not bound to the reviewed internal candidate/,
+  );
 });
 
 test('rejects pretending user payment information is collected', () => {
@@ -40,7 +50,9 @@ test('rejects pretending user payment information is collected', () => {
   payment.selected = true;
   payment.collected = true;
   assert.throws(
-    () => validateGooglePlayDataSafetyAnswerMatrix({ root, matrix: changed, privacy }),
+    () => validateGooglePlayDataSafetyAnswerMatrix({
+      root, matrix: changed, privacy, allowCandidateRollover: true,
+    }),
     /reviewed disclosure/,
   );
 });
@@ -49,7 +61,9 @@ test('rejects prematurely claiming that provider transfers are not sharing', () 
   const changed = clone(matrix);
   changed.dataTypes.find((entry) => entry.id === 'emailAddress').shared = false;
   assert.throws(
-    () => validateGooglePlayDataSafetyAnswerMatrix({ root, matrix: changed, privacy }),
+    () => validateGooglePlayDataSafetyAnswerMatrix({
+      root, matrix: changed, privacy, allowCandidateRollover: true,
+    }),
     /sharing must remain unresolved/,
   );
 });
@@ -58,7 +72,9 @@ test('rejects treating persisted data as ephemeral', () => {
   const changed = clone(matrix);
   changed.dataTypes.find((entry) => entry.id === 'crashData').ephemeral = true;
   assert.throws(
-    () => validateGooglePlayDataSafetyAnswerMatrix({ root, matrix: changed, privacy }),
+    () => validateGooglePlayDataSafetyAnswerMatrix({
+      root, matrix: changed, privacy, allowCandidateRollover: true,
+    }),
     /reviewed disclosure/,
   );
 });
@@ -67,7 +83,9 @@ test('rejects opening the console save boundary before provider and legal gates'
   const changed = clone(matrix);
   changed.blockingGates.consoleDraftSaveAllowed = true;
   assert.throws(
-    () => validateGooglePlayDataSafetyAnswerMatrix({ root, matrix: changed, privacy }),
+    () => validateGooglePlayDataSafetyAnswerMatrix({
+      root, matrix: changed, privacy, allowCandidateRollover: true,
+    }),
     /must remain closed/,
   );
 });
@@ -76,7 +94,9 @@ test('rejects account data in the sanitized matrix', () => {
   const changed = clone(matrix);
   changed.privateContact = 'private@example.test';
   assert.throws(
-    () => validateGooglePlayDataSafetyAnswerMatrix({ root, matrix: changed, privacy }),
+    () => validateGooglePlayDataSafetyAnswerMatrix({
+      root, matrix: changed, privacy, allowCandidateRollover: true,
+    }),
     /sanitized/,
   );
 });

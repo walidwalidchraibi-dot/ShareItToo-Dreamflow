@@ -29,9 +29,17 @@ function validate(overrides = {}) {
   });
 }
 
-test('accepts the observed nine-of-eleven Play setup while two work areas remain stopped', () => {
+test('accepts eleven saved Play tasks while Data Safety alone remains stopped', () => {
   const result = validate();
   assert.deepEqual(result, { taskCount: 12, buildNumber: canonical.candidate.buildNumber });
+});
+
+test('rejects losing the saved privacy-policy proof', async (t) => {
+  const data = await fixture((handoff) => {
+    handoff.tasks.privacyPolicy.status = 'blocked-public-route-approval';
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validate(data), /product truth/);
 });
 
 test('keeps strict candidate binding unless an internal rollover is explicit', async (t) => {

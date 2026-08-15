@@ -167,6 +167,7 @@ export function validateStoreReviewAccess({
   const testingEvidenceStatuses = new Set([
     'review-accounts-refresh-pending-email-verification',
     'review-fixture-refresh-pending',
+    'review-candidate-rollover-revalidation-pending',
   ]);
   const evidenceStatusValid = technical.status === 'passed'
     ? evidence.status === 'technical-review-access-passed-store-fields-pending'
@@ -179,10 +180,15 @@ export function validateStoreReviewAccess({
   }
   assertSameCandidate(evidence.candidate, device.candidate, 'review evidence.candidate');
   const refreshPending = evidence.status === 'review-fixture-refresh-pending';
+  const rolloverPending =
+    evidence.status === 'review-candidate-rollover-revalidation-pending';
   const expectedRoleStatus = technical.status === 'passed'
     || (refreshPending
       && evidence.checks?.ownerLoginPassed === true
       && evidence.checks?.renterLoginPassed === true)
+    || (rolloverPending
+      && evidence.checks?.privateVaultCreated === true
+      && evidence.checks?.priorVerificationEvidenceAvailable === true)
     ? 'verified'
     : 'pending-verification';
   for (const role of review.roles) {
@@ -220,6 +226,19 @@ export function validateStoreReviewAccess({
         || evidence.latestBookingFailure?.newListingCreated !== false
         || evidence.latestBookingFailure?.paymentEndpointCalled !== false) {
       fail('fixture-refresh evidence must contain a safe, bounded failure correlation.');
+    }
+  } else if (rolloverPending) {
+    if (evidence.checks?.privateVaultCreated !== true
+        || evidence.checks?.priorVerificationEvidenceAvailable !== true
+        || evidence.checks?.exactPlayCandidateInstalled !== true
+        || evidence.checks?.playInstallerVerified !== true
+        || evidence.checks?.authenticatedSessionRestorePassed !== true
+        || evidence.checks?.stagingFeedPassed !== true
+        || evidence.checks?.completeTechnicalAccessPassed !== false
+        || evidence.checks?.freshInstallRevalidationRequired !== true
+        || evidence.checks?.secondRoleRevalidationRequired !== true
+        || evidence.checks?.secondNetworkRevalidationRequired !== true) {
+      fail('candidate-rollover evidence must keep exact review revalidation pending.');
     }
   } else if (evidence.checks?.privateVaultCreated !== true
       || evidence.checks?.registrationsAccepted !== true
@@ -263,12 +282,17 @@ export function validateStoreReviewAccess({
     fail('passed review evidence must disclose that authentication sessions were created.');
   }
   if (technical.status === 'testing') {
-    const expectedRegistrationsCreated = refreshPending ? false : true;
+    const expectedRegistrationsCreated = refreshPending || rolloverPending ? false : true;
     if (evidence.boundaries.syntheticAccountRegistrationsCreated !== expectedRegistrationsCreated) {
       fail('testing review evidence must disclose whether synthetic account registrations were created.');
     }
     if (refreshPending && evidence.boundaries.authenticationSessionsCreated !== true) {
       fail('fixture-refresh evidence must disclose the bounded owner authentication session.');
+    }
+    if (rolloverPending
+        && (evidence.boundaries.authenticationSessionsCreated !== false
+          || evidence.boundaries.authenticationSessionObserved !== true)) {
+      fail('candidate-rollover evidence must distinguish an observed session from a newly created one.');
     }
   }
   const scenarios = object(review.reviewScenarios, 'reviewScenarios');

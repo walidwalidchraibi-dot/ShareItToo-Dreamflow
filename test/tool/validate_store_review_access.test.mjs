@@ -119,18 +119,17 @@ function validate({
   });
 }
 
-test('accepts the honest testing state with only second network pending', () => {
+test('accepts the honest exact-candidate rollover with every review scenario pending', () => {
   const result = validate();
   assert.equal(result.state, 'testing');
   assert.equal(result.readyForStore, false);
-  assert.equal(result.passedScenarios, 9);
+  assert.equal(result.passedScenarios, 0);
   assert.equal(result.storeGate, 'open');
 });
 
 test('rejects a fresh-install pass without matching evidence', () => {
   const review = clone(baseReview);
-  review.scenarioEvidence.freshInstall.status = 'pending';
-  review.scenarioEvidence.freshInstall.evidenceRef = null;
+  review.reviewScenarios.freshInstall = 'passed';
   assert.throws(() => validate({ review }), /must match the review scenario/);
 });
 
@@ -177,17 +176,33 @@ test('requires bounded mutations to be disclosed while a fixture is refreshed', 
 });
 
 test('rejects incomplete safety action evidence', () => {
+  const review = clone(baseReview);
+  review.reviewScenarios.reportAndBlock = 'passed';
+  review.reviewScenarios.accountExport = 'passed';
+  review.scenarioEvidence.safetyActions.status = 'passed';
+  review.scenarioEvidence.safetyActions.evidenceRef =
+    'docs/evidence/b11/store-review-safety-actions-20260811.json';
   const safetyEvidence = clone(JSON.parse(readFileSync(resolve(
     repositoryRoot,
     'docs/evidence/b11/store-review-safety-actions-20260811.json',
   ))));
   safetyEvidence.checks.sharedChatRestored = false;
-  assert.throws(() => validate({ safetyEvidence }), /must be true/);
+  assert.throws(() => validate({ review, safetyEvidence }), /must be true/);
 });
 
 test('accepts a complete internally consistent ready fixture', () => {
   const review = clone(baseReview);
+  const device = clone(baseDevice);
   const submission = clone(baseSubmission);
+  const historicalCandidate = {
+    applicationId: 'com.shareittoo.app',
+    bundleId: 'com.shareittoo.app',
+    versionName: '1.0.0',
+    buildNumber: '2026081505',
+    commit: '3908f5a3c300c1125c120c832f3050eea7a0a762',
+  };
+  Object.assign(review.candidate, historicalCandidate);
+  Object.assign(device.candidate, historicalCandidate);
   review.state = 'passed';
   review.readyForStore = true;
   for (const key of Object.keys(review.reviewScenarios)) review.reviewScenarios[key] = 'passed';
@@ -195,12 +210,21 @@ test('accepts a complete internally consistent ready fixture', () => {
   review.protectedStoreFields.appStoreConnect = 'passed';
   review.scenarioEvidence.accountDeletion.status = 'passed';
   review.scenarioEvidence.accountDeletion.evidenceRef = 'docs/evidence/b11/store-review-disposable-deletion-20260811.json';
+  review.scenarioEvidence.freshInstall.status = 'passed';
+  review.scenarioEvidence.freshInstall.evidenceRef =
+    'docs/evidence/b11/android-fresh-install-2026081505-20260815T054742Z.json';
+  review.scenarioEvidence.safetyActions.status = 'passed';
+  review.scenarioEvidence.safetyActions.evidenceRef =
+    'docs/evidence/b11/store-review-safety-actions-2026081505-20260815T043857Z.json';
   review.storeGate.status = 'closed';
   submission.blockingGates.reviewAccounts = 'closed';
+  const technicalEvidence = clone(passedEvidence);
+  technicalEvidence.candidate = historicalCandidate;
   const result = validate({
     review,
+    device,
     submission,
-    evidence: clone(passedEvidence),
+    evidence: technicalEvidence,
     deletionEvidence: clone(passedDeletionEvidence),
     technicalPass: true,
     requireReady: true,

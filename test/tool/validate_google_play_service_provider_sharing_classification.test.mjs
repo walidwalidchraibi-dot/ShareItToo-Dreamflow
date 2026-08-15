@@ -16,7 +16,10 @@ const privacy = JSON.parse(readFileSync(resolve(root, 'store/privacy-disclosures
 const clone = (value) => structuredClone(value);
 
 test('accepts the complete technical classification while keeping console authority closed', () => {
-  assert.deepEqual(validateGooglePlayServiceProviderSharingClassification({ root }), {
+  assert.deepEqual(validateGooglePlayServiceProviderSharingClassification({
+    root,
+    allowCandidateRollover: true,
+  }), {
     services: 8,
     activeProcessors: 5,
     preparedOverallSharingAnswer:
@@ -30,10 +33,17 @@ test('keeps provider classification in the permanent regression gate', () => {
   for (const command of [
     'node --check tool/validate_google_play_service_provider_sharing_classification.mjs',
     'node --test test/tool/validate_google_play_service_provider_sharing_classification.test.mjs',
-    'node tool/validate_google_play_service_provider_sharing_classification.mjs',
+    'node tool/validate_google_play_service_provider_sharing_classification.mjs --allow-candidate-rollover',
   ]) {
     assert.ok(regression.includes(command), `missing regression command: ${command}`);
   }
+});
+
+test('keeps strict candidate binding unless rollover is explicit', () => {
+  assert.throws(
+    () => validateGooglePlayServiceProviderSharingClassification({ root }),
+    /not bound to the exact candidate/,
+  );
 });
 
 test('rejects treating Maps as a service provider in the bound candidate', () => {
@@ -44,6 +54,7 @@ test('rejects treating Maps as a service provider in the bound candidate', () =>
       root,
       classification: changed,
       privacy,
+      allowCandidateRollover: true,
     }),
     /Google Maps/,
   );
@@ -58,6 +69,7 @@ test('rejects removing the active phone-verification transfer', () => {
       root,
       classification: changed,
       privacy,
+      allowCandidateRollover: true,
     }),
     /Firebase Authentication/,
   );
@@ -72,6 +84,7 @@ test('rejects opening the Play answer without owner and legal approval', () => {
       root,
       classification: changed,
       privacy,
+      allowCandidateRollover: true,
     }),
     /never authorize|must remain closed/,
   );
@@ -85,6 +98,7 @@ test('rejects private account details in the sanitized classification', () => {
       root,
       classification: changed,
       privacy,
+      allowCandidateRollover: true,
     }),
     /sanitized/,
   );

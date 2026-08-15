@@ -400,3 +400,43 @@ Servernachweis:
 - Alle sechs offenen V4-Punkte bleiben unveraendert als aktive Zwischenregeln
   `V4-INTERIM-2026-08-15` gesetzt. Sie werden erst nach einer neuen Mitteilung
   des Nutzers aktualisiert und sind weder entfernt noch finalisiert.
+
+## Meilenstein 16.70 – Google-Play-Kandidat 1506 intern aktiv und geschlossen vorbereitet
+
+- Der exakte Android-Kandidat `1.0.0+2026081506` ist im Google-Play-Internal-
+  Track aktiv. Die Auslieferung wurde auf dem Pixel 7 Pro als vierteiliges
+  Play-Split-Paket mit Installer `com.android.vending` nachgewiesen; Version,
+  Play-App-Signing-Zertifikat und verifizierte App-Links stimmen.
+- Kaltstart, Wiederherstellung der bereits vorhandenen Anmeldung und der
+  authentifizierte Staging-Feed bestanden auf genau diesem Play-Build. Der
+  Nachweis enthaelt weder Identitaetsdaten noch Zugangsdaten oder rohe
+  Geraete-IDs.
+- Der Closed-Alpha-Entwurf enthaelt ausschliesslich Build `2026081506`, meldet
+  keine technischen Releasefehler und ist als Entwurf gespeichert. Er wurde
+  weder zur Pruefung gesendet noch gestartet.
+- Die oeffentlichen Seiten Datenschutz, Support und Kontoloeschung antworten
+  erfolgreich. `https://shareittoo.com/privacy` ist in Google Play gespeichert
+  und erscheint in der Veroeffentlichungsuebersicht. Die Datensicherheits-
+  erklaerung bleibt der einzige offene App-Content-Bereich und wird wegen der
+  offenen Dienstleister-, Aufbewahrungs- und Rechtsentscheidungen nicht
+  geraten, gespeichert oder eingereicht.
+- Android nutzt fuer neue Fotos den systemeigenen Fotoauswaehler und fordert
+  keine breite Medienbibliothek-Berechtigung mehr an. Die vier Store-Bilder
+  wurden erneut direkt aus Build `2026081506` aufgenommen, visuell geprueft
+  und sind bytegenau identisch zu den vier bereits gespeicherten Bildern.
+  Deshalb war kein erneutes Hochladen oder Aendern des Play-Listings noetig.
+- Die bestandene Geraetematrix von Build `2026081505` wurde nicht auf den neuen
+  Kandidaten uebertragen. Fuer `2026081506` stehen die vier Matrixzellen wieder
+  ehrlich auf offen; bestaetigt sind bisher nur die exakt neu beobachteten
+  Installations-, Signatur-, Link-, Feed- und Sitzungsmerkmale. Frische
+  Installation, zweites Konto, Chat-/Bildfluss, Push, Crashlytics, Offline-
+  Wiederherstellung und zweites Netz werden separat neu geprueft.
+- Der vollstaendige Android-Regressionslauf bestand alle Validatoren, alle 266
+  Flutter-Tests, Web-Debug-Build und Android-Debug-Build. Auch der lokale
+  Release-Vorcheck bestand fuer `com.shareittoo.app` in Version
+  `1.0.0+2026081506`; der Status bleibt bewusst `hold` mit 0/4 Geraetezellen
+  und 5/7 Releasepruefungen.
+- Produktion, Echtgeld, oeffentliche Store-Tracks, Review-Versand und Closed-
+  Test-Rollout blieben unveraendert. Alle sechs V4-Punkte bleiben mit
+  `status: open` unter `V4-INTERIM-2026-08-15` aktiv und werden erst nach einer
+  neuen Mitteilung des Nutzers zentral aktualisiert.

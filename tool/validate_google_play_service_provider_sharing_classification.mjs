@@ -52,6 +52,7 @@ export function validateGooglePlayServiceProviderSharingClassification({
   root,
   classification: classificationOverride,
   privacy: privacyOverride,
+  allowCandidateRollover = false,
 } = {}) {
   const repositoryRoot = root ?? resolve(fileURLToPath(new URL('..', import.meta.url)));
   const overrides = {};
@@ -79,10 +80,16 @@ export function validateGooglePlayServiceProviderSharingClassification({
 
   const candidate = object(classification.candidate, 'candidate');
   const expectedCandidate = object(privacy.candidate, 'privacy candidate');
+  const candidateBuildNumber = String(candidate.buildNumber ?? '');
+  const expectedBuildNumber = String(expectedCandidate.buildNumber ?? '');
+  const buildNumbersValid = /^\d+$/.test(candidateBuildNumber) && /^\d+$/.test(expectedBuildNumber);
+  const buildBindingValid = allowCandidateRollover
+    ? buildNumbersValid && BigInt(candidateBuildNumber) <= BigInt(expectedBuildNumber)
+    : candidate.buildNumber === expectedCandidate.buildNumber;
   if (candidate.applicationId !== expectedCandidate.applicationId
       || candidate.versionName !== expectedCandidate.versionName
-      || candidate.buildNumber !== expectedCandidate.buildNumber
-      || candidate.commit !== expectedCandidate.commit
+      || !buildBindingValid
+      || (!allowCandidateRollover && candidate.commit !== expectedCandidate.commit)
       || candidate.releaseChannel !== 'internal'
       || candidate.apiBaseUrl !== 'https://staging.shareittoo.com/api/v1') {
     fail('Provider sharing classification is not bound to the exact candidate.');
@@ -188,7 +195,10 @@ export function validateGooglePlayServiceProviderSharingClassification({
 }
 
 function runCli() {
-  const result = validateGooglePlayServiceProviderSharingClassification();
+  const allowCandidateRollover = process.argv.includes('--allow-candidate-rollover');
+  const unknownArgs = process.argv.slice(2).filter((arg) => arg !== '--allow-candidate-rollover');
+  if (unknownArgs.length > 0) fail(`Unknown argument: ${unknownArgs[0]}`);
+  const result = validateGooglePlayServiceProviderSharingClassification({ allowCandidateRollover });
   process.stdout.write(
     `Google Play provider sharing classification: PASS (${result.activeProcessors} active processors, console blocked)\n`,
   );

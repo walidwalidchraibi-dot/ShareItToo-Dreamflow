@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "built-scanned-awaiting-play-internal-upload",
+  "status": "built-scanned-play-internal-and-closed-draft-ready",
   "generatedAt": "2026-08-15T07:14:31Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -16,7 +16,7 @@
     "stripeLivemode": false
   },
   "android": {
-    "delivery": "play-internal-pending",
+    "delivery": "google-play-internal-active-store-install-verified",
     "aabSha256": "ec56a4031294b94d101d7faec8a4fbab28a7a3a22907b17f6351da9764753a4b",
     "apkSha256": "8e391b1f3ffd10a6e78bf3a2abda3c7a3eb69b8998c47b3109b750b4ad237368",
     "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
@@ -45,13 +45,31 @@
     "findings": []
   },
   "exactCandidateDiagnostics": {
-    "playInternalInstallAndLaunch": "pending-exact-build",
-    "playInstallerVerified": "pending-exact-build",
-    "authenticatedSession": "pending-exact-build",
-    "stagingFeedLoaded": "pending-exact-build",
+    "playInternalInstallAndLaunch": "passed",
+    "playInstallerVerified": "passed-com.android.vending-four-splits",
+    "playAppSigningCertificate": "passed",
+    "googlePlayStoreInstall": "passed-version-2026081506-installer-com.android.vending",
+    "authenticatedSession": "passed-physical-play-build-session-restore",
+    "stagingFeedLoaded": "passed",
+    "syntheticRoleBooking": "pending-exact-build",
+    "authenticatedDeepLinks": "pending-exact-build",
+    "foregroundFcm": "pending-exact-build",
+    "backgroundFcm": "pending-exact-build",
+    "terminatedProcessFcm": "pending-exact-build",
+    "logoutColdStartGuestPersistence": "pending-exact-build",
+    "postLogoutPushSuppression": "pending-exact-build",
+    "offlineRealtimeRecovery": "pending-exact-build",
     "photoPickerListingChatHandover": "pending-exact-build",
-    "closedTrackDraft": "blocked-until-exact-build-upload",
+    "closedTrackDraft": "passed-ready-review-blocked-data-safety",
     "twoDevicePrivatePilotAcceptance": "pending"
+  },
+  "googlePlayInternalRelease": {
+    "status": "store-install-verified",
+    "evidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081506-20260815.json"
+  },
+  "googlePlayClosedTestingDraft": {
+    "status": "ready-review-blocked",
+    "evidenceRef": "docs/evidence/b11/google-play-closed-testing-draft-2026081506-20260815.json"
   },
   "staging": {
     "serverVersion": "1.0.0-2026081502-v4-owner-acceptance",
@@ -63,8 +81,9 @@
     "productionVersion": "1.0.0-2026081403"
   },
   "boundaries": {
-    "uploadedToStore": false,
-    "installedOnPhysicalDevice": false,
+    "uploadedToStore": true,
+    "internalReleaseActivated": true,
+    "installedOnPhysicalDevice": true,
     "controlledFcmSentToSyntheticAccount": false,
     "controlledCrashDiagnosticSent": false,
     "productionPushSent": false,

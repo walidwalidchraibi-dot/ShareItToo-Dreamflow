@@ -28,15 +28,15 @@
       "url": "https://shareittoo.com/"
     },
     "support": {
-      "status": "draft",
+      "status": "verified",
       "url": "https://shareittoo.com/support"
     },
     "privacy": {
-      "status": "draft",
+      "status": "verified",
       "url": "https://shareittoo.com/privacy"
     },
     "accountDeletion": {
-      "status": "draft",
+      "status": "verified",
       "url": "https://shareittoo.com/account-deletion",
       "stagingEvidenceUrl": "https://staging.shareittoo.com/api/v1/account-deletion"
     }

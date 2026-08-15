@@ -35,7 +35,7 @@ export function validateGooglePlayAppContentHandoff({
   );
   const currentCandidate = object(deviceValidation.candidate, 'device validation candidate');
   if (handoff.schemaVersion !== 1 ||
-      handoff.status !== 'nine-of-eleven-saved-two-open' ||
+      handoff.status !== 'eleven-of-twelve-saved-one-open' ||
       handoff.submissionAllowed !== false) {
     fail('App-content handoff must remain prepared and fail-closed.');
   }
@@ -71,8 +71,11 @@ export function validateGooglePlayAppContentHandoff({
     'categoryAndContact', 'storeListing',
   ];
   exactKeys(tasks, taskNames, 'tasks');
-  if (tasks.privacyPolicy.status !== 'blocked-public-route-approval' ||
+  if (tasks.privacyPolicy.status !== 'saved-approved-public-route' ||
       tasks.privacyPolicy.proposedUrl !== 'https://shareittoo.com/privacy' ||
+      tasks.privacyPolicy.savedUrl !== 'https://shareittoo.com/privacy' ||
+      tasks.privacyPolicy.evidenceRef !==
+        'docs/evidence/b11/google-play-privacy-policy-saved-20260815.json' ||
       tasks.appAccess.status !== 'saved-protected-console-entry' ||
       tasks.appAccess.loginRequired !== true ||
       tasks.appAccess.credentialsInRepository !== false ||
@@ -143,6 +146,22 @@ export function validateGooglePlayAppContentHandoff({
     fail('One or more prepared Play answers no longer match the bounded product truth.');
   }
 
+  const privacyEvidence = object(JSON.parse(readFileSync(resolve(
+    repositoryRoot, tasks.privacyPolicy.evidenceRef), 'utf8')), 'privacy policy evidence');
+  if (privacyEvidence.kind !== 'google-play-privacy-policy-saved' ||
+      privacyEvidence.status !== 'saved-awaiting-review-with-other-changes' ||
+      privacyEvidence.publicPage?.url !== tasks.privacyPolicy.savedUrl ||
+      privacyEvidence.publicPage?.httpStatus !== 200 ||
+      privacyEvidence.publicPage?.complianceStatus !== 'approved' ||
+      privacyEvidence.googlePlayConsole?.changeSavedConfirmationObserved !== true ||
+      privacyEvidence.googlePlayConsole?.publishingOverviewChangeObserved !== true ||
+      privacyEvidence.googlePlayConsole?.sentForReview !== false ||
+      privacyEvidence.boundaries?.dataSafetyDeclarationChanged !== false ||
+      privacyEvidence.boundaries?.openLegalDecisionsChanged !== false ||
+      privacyEvidence.boundaries?.productionChanged !== false) {
+    fail('Saved Play privacy-policy evidence is invalid or unsafe.');
+  }
+
   const listingEvidence = object(JSON.parse(readFileSync(resolve(
     repositoryRoot, tasks.storeListing.consoleSaveEvidenceRef), 'utf8')), 'store listing evidence');
   if (listingEvidence.kind !== 'google-play-store-listing-saved' ||
@@ -164,7 +183,7 @@ export function validateGooglePlayAppContentHandoff({
   if (Object.keys(hardStops).length !== 7) {
     fail('App-content handoff must preserve all seven hard stops.');
   }
-  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 11 ||
+  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 12 ||
       handoff.evidenceRefs.some((ref) => typeof ref !== 'string' ||
         ref.includes('..') || !resolve(repositoryRoot, ref).startsWith(`${resolve(repositoryRoot)}/`))) {
     fail('App-content evidence references are invalid.');

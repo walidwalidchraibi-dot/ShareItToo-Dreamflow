@@ -175,7 +175,7 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
     .map(([id, status]) => `${id}=${status}`)
     .join(', ');
   const androidWifiOwnerSummary = androidWifiOwnerCell
-    ? `\`${nonEmptyString(androidWifiOwnerCell.status, 'android-wifi-owner.status')}\`; Teilpruefungen ${androidWifiOwnerPassedTests}/${androidWifiOwnerTests.length} bestanden; ${androidWifiOwnerOpenTests}; \`${nonEmptyString(androidWifiOwnerCell.evidenceRef, 'android-wifi-owner.evidenceRef')}\``
+    ? `\`${nonEmptyString(androidWifiOwnerCell.status, 'android-wifi-owner.status')}\`; Teilpruefungen ${androidWifiOwnerPassedTests}/${androidWifiOwnerTests.length} bestanden; ${androidWifiOwnerOpenTests}; ${androidWifiOwnerCell.evidenceRef ? `\`${nonEmptyString(androidWifiOwnerCell.evidenceRef, 'android-wifi-owner.evidenceRef')}\`` : 'noch kein kandidatenspezifischer Fortschrittsnachweis'}`
     : '`open`; noch kein kandidatenspezifischer Fortschrittsnachweis';
   const releaseChecks = Object.values(object(manifest.releaseChecks, 'releaseChecks'));
   const passedReleaseChecks = releaseChecks.filter((check) => check?.status === 'passed').length;

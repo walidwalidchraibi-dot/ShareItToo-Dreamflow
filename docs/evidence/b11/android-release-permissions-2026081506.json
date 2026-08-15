@@ -56,10 +56,10 @@
     ],
     "unexpectedPermissions": [],
     "permissionDeclarationFormPreclaim": false,
-    "consoleWarningsPendingAfterAabUpload": true
+    "consoleWarningsPendingAfterAabUpload": false
   },
   "boundaries": {
-    "storeUploadPerformed": false,
+    "storeUploadPerformed": true,
     "productionChanged": false,
     "containsSecrets": false,
     "containsPersonalAccountData": false,

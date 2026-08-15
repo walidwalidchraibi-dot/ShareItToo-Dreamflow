@@ -10,7 +10,7 @@ function fail(message) {
 
 export function validateGooglePlayScreenshotReadiness({
   repositoryRoot,
-  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-readiness-2026081505-20260815.json'),
+  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-readiness-2026081506-20260815.json'),
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   const exactCandidate = JSON.parse(readFileSync(
@@ -115,9 +115,12 @@ export function validateGooglePlayScreenshotReadiness({
     }
     return { status: evidence.status, curatedListingCount: source.fixture.curatedListingCount };
   }
+  const existingDraftReconciled =
+    evidence.status === 'exact-candidate-screenshots-byte-identical-existing-draft';
   if (evidence.schemaVersion !== 1 ||
       evidence.kind !== 'google-play-feed-screenshot-readiness' ||
-      evidence.status !== 'exact-candidate-screenshots-uploaded-draft-saved') {
+      (!existingDraftReconciled &&
+       evidence.status !== 'exact-candidate-screenshots-uploaded-draft-saved')) {
     fail('Feed screenshot readiness must preserve the exact saved Console draft state.');
   }
   if (evidence.candidate?.applicationId !== 'com.shareittoo.app' ||
@@ -146,8 +149,10 @@ export function validateGooglePlayScreenshotReadiness({
       evidence.feedObservation?.validatedLocalCandidates !== 4) {
     fail('Feed screenshot observation is incomplete or contradicts the verified cleanup.');
   }
-  if (evidence.completedRemediation?.method !==
-        'pause-unreferenced-and-neutralize-protected-staging-listings' ||
+  const expectedRemediation = existingDraftReconciled
+    ? 'reuse-previous-bounded-staging-cleanup'
+    : 'pause-unreferenced-and-neutralize-protected-staging-listings';
+  if (evidence.completedRemediation?.method !== expectedRemediation ||
       evidence.completedRemediation?.deletionPerformed !== false ||
       evidence.completedRemediation?.protectedBookingsPreserved !== true ||
       evidence.completedRemediation?.deletionAuthorized !== false ||
@@ -164,16 +169,56 @@ export function validateGooglePlayScreenshotReadiness({
       fail('Screenshot readiness references a stale or unvalidated local candidate.');
     }
   }
+  let sourceScreenshotEvidence = null;
+  if (existingDraftReconciled) {
+    const sourceRef = evidence.sourceScreenshotEvidenceRef;
+    if (typeof sourceRef !== 'string' || sourceRef.includes('..') ||
+        !sourceRef.startsWith('docs/evidence/b11/') || !sourceRef.endsWith('.json')) {
+      fail('Screenshot reconciliation must reference safe historical screenshot evidence.');
+    }
+    sourceScreenshotEvidence = JSON.parse(readFileSync(resolve(repositoryRoot, sourceRef), 'utf8'));
+    const reconciliation = evidence.consoleReconciliation ?? {};
+    if (sourceScreenshotEvidence.kind !== 'google-play-feed-screenshot-readiness' ||
+        sourceScreenshotEvidence.status !== 'exact-candidate-screenshots-uploaded-draft-saved' ||
+        sourceScreenshotEvidence.candidate?.buildNumber !== reconciliation.sourceBuildNumber ||
+        BigInt(reconciliation.sourceBuildNumber ?? '0') >= BigInt(evidence.candidate.buildNumber) ||
+        reconciliation.allFourAssetsByteIdentical !== true ||
+        reconciliation.uploadRequired !== false ||
+        reconciliation.consoleDraftRetained !== true ||
+        reconciliation.visualInspectionPassed !== true ||
+        !Array.isArray(sourceScreenshotEvidence.candidateEvidenceRefs) ||
+        sourceScreenshotEvidence.candidateEvidenceRefs.length !== 4) {
+      fail('Screenshot reconciliation is incomplete or does not preserve the existing Console draft.');
+    }
+    for (let index = 0; index < evidence.candidateEvidenceRefs.length; index += 1) {
+      const currentScene = JSON.parse(readFileSync(
+        resolve(repositoryRoot, evidence.candidateEvidenceRefs[index]), 'utf8'));
+      const sourceScene = JSON.parse(readFileSync(
+        resolve(repositoryRoot, sourceScreenshotEvidence.candidateEvidenceRefs[index]), 'utf8'));
+      if (currentScene.scene?.id !== sourceScene.scene?.id ||
+          currentScene.scene?.storeFile !== sourceScene.scene?.storeFile ||
+          currentScene.scene?.sha256 !== sourceScene.scene?.sha256 ||
+          currentScene.scene?.byteSize !== sourceScene.scene?.byteSize) {
+        fail('Exact candidate screenshots are not byte-identical to the saved Console assets.');
+      }
+    }
+  }
   const consoleSaveRef = evidence.consoleSaveEvidenceRef;
   if (typeof consoleSaveRef !== 'string' || consoleSaveRef.includes('..') ||
       !consoleSaveRef.startsWith('docs/evidence/b11/') || !consoleSaveRef.endsWith('.json')) {
     fail('Screenshot readiness must reference bounded Console save evidence.');
   }
   const consoleSave = JSON.parse(readFileSync(resolve(repositoryRoot, consoleSaveRef), 'utf8'));
+  const expectedConsoleBuild = existingDraftReconciled
+    ? sourceScreenshotEvidence?.candidate?.buildNumber
+    : evidence.candidate.buildNumber;
+  const expectedConsoleCommit = existingDraftReconciled
+    ? sourceScreenshotEvidence?.candidate?.commit
+    : evidence.candidate.commit;
   if (consoleSave.kind !== 'google-play-store-listing-saved' ||
       consoleSave.status !== 'exact-candidate-screenshots-draft-saved' ||
-      consoleSave.candidate?.buildNumber !== evidence.candidate.buildNumber ||
-      consoleSave.candidate?.commit !== evidence.candidate.commit ||
+      consoleSave.candidate?.buildNumber !== expectedConsoleBuild ||
+      consoleSave.candidate?.commit !== expectedConsoleCommit ||
       consoleSave.observedConsoleState?.phoneScreenshotCount !== 4 ||
       consoleSave.observedConsoleState?.newAssetsUploaded !== 4 ||
       consoleSave.observedConsoleState?.supersededAssetsRemoved !== 4 ||
@@ -188,10 +233,12 @@ export function validateGooglePlayScreenshotReadiness({
     fail('Screenshot Console save evidence is incomplete or unsafe.');
   }
   const boundaries = evidence.boundaries ?? {};
-  if (Object.keys(boundaries).length !== 9 || boundaries.screenshotUploaded !== true ||
-      boundaries.listingDeleted !== false || boundaries.listingPaused !== true ||
+  const mutableTrueKeys = existingDraftReconciled ? [] : ['listingPaused', 'screenshotUploaded'];
+  const expectedBoundaryCount = existingDraftReconciled ? 11 : 9;
+  if (Object.keys(boundaries).length !== expectedBoundaryCount ||
+      boundaries.listingDeleted !== false ||
       Object.entries(boundaries).some(([key, value]) =>
-        ['listingPaused', 'screenshotUploaded'].includes(key) ? value !== true : value !== false) ||
+        mutableTrueKeys.includes(key) ? value !== true : value !== false) ||
       JSON.stringify(evidence).includes('@')) {
     fail('Screenshot readiness must remain sanitized and report only the bounded draft upload and Staging pause.');
   }

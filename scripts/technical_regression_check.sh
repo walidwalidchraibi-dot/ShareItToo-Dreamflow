@@ -162,10 +162,18 @@ node --check tool/validate_google_play_app_content_progress.mjs
 node --test test/tool/validate_google_play_app_content_progress.test.mjs
 node --check tool/validate_google_play_data_safety_answer_matrix.mjs
 node --test test/tool/validate_google_play_data_safety_answer_matrix.test.mjs
-node tool/validate_google_play_data_safety_answer_matrix.mjs
+if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  node tool/validate_google_play_data_safety_answer_matrix.mjs --allow-candidate-rollover
+else
+  node tool/validate_google_play_data_safety_answer_matrix.mjs
+fi
 node --check tool/validate_google_play_service_provider_sharing_classification.mjs
 node --test test/tool/validate_google_play_service_provider_sharing_classification.test.mjs
-node tool/validate_google_play_service_provider_sharing_classification.mjs
+if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
+  node tool/validate_google_play_service_provider_sharing_classification.mjs --allow-candidate-rollover
+else
+  node tool/validate_google_play_service_provider_sharing_classification.mjs
+fi
 node --check tool/run_staging_synthetic_booking.mjs
 node --test test/tool/run_staging_synthetic_booking.test.mjs
 node --check tool/run_isolated_android_role_booking_diagnostic.mjs
