@@ -6354,6 +6354,17 @@ class _TransactionComposerState extends State<_TransactionComposer> {
     final focused = widget.focusNode.hasFocus;
     if (focused != _inputFocused) {
       setState(() => _inputFocused = focused);
+      if (focused) {
+        // Re-assert the keyboard after the focus-driven composer rebuild so
+        // Android keeps the active text-input connection visible.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          widget.focusNode.requestFocus();
+          unawaited(
+            SystemChannels.textInput.invokeMethod<void>('TextInput.show'),
+          );
+        });
+      }
     }
   }
 
@@ -6385,30 +6396,16 @@ class _TransactionComposerState extends State<_TransactionComposer> {
         final isWebKeyboardWorkaround =
             kIsWeb && viewInsets == 0 && _inputFocused;
 
-        // Beim Schreiben: Minimale UI ohne äußere Card
-        // Sonst: Normale Composer-UI mit Glass-Effekt
-
-        if (isComposing) {
-          // Minimaler Composer: nur Textfeld + Icons + Send-Button, keine äußere Card
-          return Padding(
-            padding: EdgeInsets.fromLTRB(14, 8, 14, 8 + viewPadding),
-            child: _GlassInputBar(
-              controller: widget.controller,
-              focusNode: widget.focusNode,
-              onSend: widget.onSend,
-              onShareLocation: widget.onShareLocation,
-              onSendPhoto: widget.onSendPhoto,
-              onPickFile: widget.onPickFile,
-              onChangeTime: widget.onChangeTime,
-              isComposing: isComposing,
-              chatState: widget.chatState,
-            ),
-          );
-        }
-
-        // Kein äußerer Wrapper mehr - nur Padding + Column
+        // Keep the same input widget mounted while focus changes. Replacing
+        // the TextField here used to tear down Android's input connection just
+        // after the tap, leaving a focused composer without a keyboard.
         return Padding(
-          padding: EdgeInsets.fromLTRB(14, 12, 14, 10 + viewPadding),
+          padding: EdgeInsets.fromLTRB(
+            14,
+            isComposing ? 8 : 12,
+            14,
+            (isComposing ? 8 : 10) + viewPadding,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -6453,17 +6450,24 @@ class _TransactionComposerState extends State<_TransactionComposer> {
                       )
                     : const SizedBox.shrink(),
               ),
-              // Countdown anzeigen wenn Übergabezeit bestätigt
-              if (widget.handoverConfirmed &&
-                  widget.confirmedHandoverTime != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _HandoverCountdown(
-                    confirmedTime: widget.confirmedHandoverTime!,
-                    onStartNow: widget.onPrimary,
-                  ),
-                ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: !isComposing &&
+                        widget.handoverConfirmed &&
+                        widget.confirmedHandoverTime != null
+                    ? Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _HandoverCountdown(
+                          confirmedTime: widget.confirmedHandoverTime!,
+                          onStartNow: widget.onPrimary,
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
               _GlassInputBar(
+                key: const ValueKey('message-composer-input'),
                 controller: widget.controller,
                 focusNode: widget.focusNode,
                 onSend: widget.onSend,
@@ -7324,6 +7328,7 @@ class _GlassInputBar extends StatefulWidget {
   final _ChatState chatState;
 
   const _GlassInputBar({
+    super.key,
     required this.controller,
     required this.focusNode,
     required this.onSend,
@@ -7356,13 +7361,13 @@ class _GlassInputBarState extends State<_GlassInputBar>
       FocusScope.of(context).requestFocus(widget.focusNode);
     }
     widget.focusNode.requestFocus();
-    SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+    unawaited(SystemChannels.textInput.invokeMethod<void>('TextInput.show'));
     final textLength = widget.controller.text.length;
     widget.controller.selection = TextSelection.collapsed(offset: textLength);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       widget.focusNode.requestFocus();
-      SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+      unawaited(SystemChannels.textInput.invokeMethod<void>('TextInput.show'));
       final len = widget.controller.text.length;
       widget.controller.selection = TextSelection.collapsed(offset: len);
     });
