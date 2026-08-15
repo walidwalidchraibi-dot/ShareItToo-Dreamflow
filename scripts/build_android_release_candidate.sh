@@ -85,6 +85,30 @@ common_args=(
   "--dart-define=SIT_BUNDLE_ID=com.shareittoo.app"
 )
 
+social_google_enabled=false
+if [[ "${SIT_SOCIAL_GOOGLE_ENABLED:-0}" == "1" ||
+      "${SIT_SOCIAL_GOOGLE_ENABLED:-}" == "true" ]]; then
+  social_google_enabled=true
+fi
+social_apple_enabled=false
+if [[ "${SIT_SOCIAL_APPLE_ENABLED:-0}" == "1" ||
+      "${SIT_SOCIAL_APPLE_ENABLED:-}" == "true" ]]; then
+  social_apple_enabled=true
+fi
+social_facebook_enabled=false
+if [[ "${SIT_FACEBOOK_APP_ID:-}" =~ ^[1-9][0-9]{5,24}$ &&
+      -n "${SIT_FACEBOOK_CLIENT_TOKEN:-}" &&
+      "${SIT_FACEBOOK_CLIENT_TOKEN}" != "not-configured" &&
+      "${SIT_SOCIAL_FACEBOOK_ENABLED:-1}" != "0" &&
+      "${SIT_SOCIAL_FACEBOOK_ENABLED:-true}" != "false" ]]; then
+  social_facebook_enabled=true
+fi
+common_args+=(
+  "--dart-define=SIT_SOCIAL_GOOGLE_ENABLED=$social_google_enabled"
+  "--dart-define=SIT_SOCIAL_APPLE_ENABLED=$social_apple_enabled"
+  "--dart-define=SIT_SOCIAL_FACEBOOK_ENABLED=$social_facebook_enabled"
+)
+
 if [[ -n "${SIT_FACEBOOK_APP_ID:-}" ]]; then
   export SIT_FACEBOOK_APP_ID
 fi

@@ -16,7 +16,7 @@
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
-      "sha256": "9422e16f281f785d403b6decf6d159a13fbf73e7e18107437309101167df7f87"
+      "sha256": "03f559adee0b8c69888a2b0a6be806bbb28aaf0e7fea5df8994709a3b1e44956"
     },
     {
       "path": "ios/Runner/Info.plist",
@@ -68,7 +68,7 @@
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "9d0a7e9797bf2f498a99f0786480e28866b6c431d5f95c39c9ab48dabf2b0b97"
+      "sha256": "92b6f5905d358586ad6fc5c98afd31547b386d539bdf0cc6858e2b4c5004ee92"
     },
     {
       "path": "lib/screens/contact_data_screen.dart",

@@ -32,6 +32,26 @@ class AuthService {
   static int _sessionGeneration = 0;
   static bool _sessionClearing = false;
   static Future<void>? _googleInitialization;
+  static const bool _googleSocialAuthEnabled = bool.fromEnvironment(
+    'SIT_SOCIAL_GOOGLE_ENABLED',
+    defaultValue: false,
+  );
+  static const bool _appleSocialAuthEnabled = bool.fromEnvironment(
+    'SIT_SOCIAL_APPLE_ENABLED',
+    defaultValue: false,
+  );
+  static const bool _facebookSocialAuthEnabled = bool.fromEnvironment(
+    'SIT_SOCIAL_FACEBOOK_ENABLED',
+    defaultValue: false,
+  );
+
+  @visibleForTesting
+  static bool socialProviderEnabled(AuthSocialProvider provider) =>
+      switch (provider) {
+        AuthSocialProvider.google => _googleSocialAuthEnabled,
+        AuthSocialProvider.apple => _appleSocialAuthEnabled,
+        AuthSocialProvider.facebook => _facebookSocialAuthEnabled,
+      };
 
   static Future<void> ensureSeeded() async {
     if (BackendConfig.enabled) return;
@@ -740,6 +760,11 @@ class AuthService {
   static Future<String> _firebaseSocialIdToken(
     AuthSocialProvider provider,
   ) async {
+    if (!socialProviderEnabled(provider)) {
+      throw const _SocialProviderUnavailable(
+        'provider is disabled in this release candidate',
+      );
+    }
     await FirebaseRuntime.ensureFirebaseApp();
     if (Firebase.apps.isEmpty) throw const _SocialProviderUnavailable();
     try {

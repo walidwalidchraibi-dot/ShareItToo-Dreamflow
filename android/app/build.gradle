@@ -30,6 +30,9 @@ def crashlyticsNativeSymbolUploadRequested =
         System.getenv('SIT_CRASHLYTICS_NATIVE_SYMBOL_UPLOAD') == '1'
 def crashlyticsUnstrippedNativeLibsDir =
         System.getenv('SIT_CRASHLYTICS_UNSTRIPPED_NATIVE_LIBS_DIR')?.trim()
+def facebookAppId = System.getenv('SIT_FACEBOOK_APP_ID')?.trim() ?: '0'
+def facebookClientToken =
+        System.getenv('SIT_FACEBOOK_CLIENT_TOKEN')?.trim() ?: 'not-configured'
 if (releaseRequested) {
     if (!keystorePropertiesFile.exists()) {
         throw new GradleException('Release signing is not configured: android/key.properties is missing.')
@@ -83,8 +86,11 @@ android {
 
     defaultConfig {
         applicationId = "com.shareittoo.app"
-        manifestPlaceholders.facebookAppId = System.getenv('SIT_FACEBOOK_APP_ID') ?: '0'
-        manifestPlaceholders.facebookClientToken = System.getenv('SIT_FACEBOOK_CLIENT_TOKEN') ?: 'not-configured'
+        // Meta requires both values to be Android string resources. Direct
+        // numeric manifest values are decoded as integers and prevent the
+        // Facebook SDK (and therefore later Flutter plugins) from registering.
+        resValue "string", "facebook_app_id", facebookAppId
+        resValue "string", "facebook_client_token", facebookClientToken
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

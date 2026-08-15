@@ -33,15 +33,15 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Android-AAB SHA-256 | `a1471524b2f3a22487bb1d4a4acea32445b4fed0fdc99f67dec7dbfc10a2b340` |
 | Android-APK SHA-256 | `c7ce4e3b37bcc8d84b9ba15726d75317a0c2b23fe732a47d4d09f43a6ecc7b98` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
-| Direkte Android-Diagnose | `passed`; exakter lokaler signierter Kandidat auf Pixel 7 Pro |
+| Direkte Android-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Angemeldete Android-Sitzungsdiagnose | `passed`; beide synthetischen Rollen wiederhergestellt |
-| Synthetische Android-Rollenbuchung | `passed`; Vermieter schlägt Zeit vor, Mieter bestätigt, Vermieter kann Übergabe starten |
+| Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Kontrollierte Android-FCM-Diagnose | `pending-exact-build/pending-exact-build/pending-exact-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Android-Abmeldung und Push-Unterdrückung | `pending-exact-build/pending-exact-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Kontrollierte Android-FCM-Diagnose | `pending-exact-store-build/pending-exact-store-build/pending-exact-store-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Android-Abmeldung und Push-Unterdrückung | `pending-exact-store-build/pending-exact-store-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
 | Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Google-Play-Installation | `passed`; nach kurzer Propagation exakte Version `1.0.0 (2026081508)`, vier Store-Splits, Installer `com.android.vending` und Play-Signatur geprüft |
+| Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081508)` |
 | Android-WLAN-/Owner-Matrix | `open`; Teilpruefungen 0/11 bestanden; installAndFirstStart=open, authenticationAndSession=open, listingAndBooking=open, chatAndDeepLink=open, pushForeground=open, pushBackground=open, pushTerminated=open, handoverAndReturn=open, moderationAndAccount=open, offlineRecovery=open, largeTextAndScreenReader=open; noch kein kandidatenspezifischer Fortschrittsnachweis |
 | Play-Signing und öffentliche App-Links | `open`; noch kein kandidatenspezifischer Nachweis |
 | Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |

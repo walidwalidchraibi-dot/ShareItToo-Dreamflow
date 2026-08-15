@@ -89,8 +89,8 @@ function validateRepositoryScaffold(root, overrides) {
   requireIncludes(androidBuild, 'pluginManager.apply("com.google.gms.google-services")', 'android/app/build.gradle');
   requireIncludes(androidBuild, 'pluginManager.apply("com.google.firebase.crashlytics")', 'android/app/build.gradle');
   requireIncludes(androidBuild, `applicationId = "${bundleId}"`, 'android/app/build.gradle');
-  requireIncludes(androidBuild, 'manifestPlaceholders.facebookAppId', 'android/app/build.gradle');
-  requireIncludes(androidBuild, 'manifestPlaceholders.facebookClientToken', 'android/app/build.gradle');
+  requireIncludes(androidBuild, 'resValue "string", "facebook_app_id"', 'android/app/build.gradle');
+  requireIncludes(androidBuild, 'resValue "string", "facebook_client_token"', 'android/app/build.gradle');
   requireIncludes(
     androidBuild,
     'SIT_CRASHLYTICS_NATIVE_SYMBOL_UPLOAD',
@@ -113,6 +113,16 @@ function validateRepositoryScaffold(root, overrides) {
   ]) {
     requireIncludes(androidManifest, marker, 'android/app/src/main/AndroidManifest.xml');
   }
+  requireIncludes(
+    androidManifest,
+    'android:value="@string/facebook_app_id"',
+    'android/app/src/main/AndroidManifest.xml',
+  );
+  requireIncludes(
+    androidManifest,
+    'android:value="@string/facebook_client_token"',
+    'android/app/src/main/AndroidManifest.xml',
+  );
   requireIncludes(
     androidManifest,
     'android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"',
