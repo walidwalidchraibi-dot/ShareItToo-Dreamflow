@@ -127,7 +127,15 @@ export async function diagnoseAndroidSyntheticRoleBooking({
   const lifecycle = await lifecycleRunner({ vaultFile });
   if (lifecycle?.status !== 'passed-bounded-synthetic-role-booking-lifecycle'
       || lifecycle?.paymentEndpointCalled !== false
-      || lifecycle?.stripeLivemode !== false) {
+      || lifecycle?.stripeLivemode !== false
+      || lifecycle?.confirmations?.pickup?.status !== 'passed'
+      || lifecycle.confirmations.pickup.presenterRole !== 'owner'
+      || lifecycle.confirmations.pickup.verifierRole !== 'renter'
+      || lifecycle.confirmations.pickup.verificationVersion !== 3
+      || lifecycle?.confirmations?.return?.status !== 'passed'
+      || lifecycle.confirmations.return.presenterRole !== 'renter'
+      || lifecycle.confirmations.return.verifierRole !== 'owner'
+      || lifecycle.confirmations.return.verificationVersion !== 3) {
     fail('The bounded Staging role-booking lifecycle did not pass safely.');
   }
   return {
@@ -168,6 +176,20 @@ export async function diagnoseAndroidSyntheticRoleBooking({
       verification: 'isolated-staging-fixture',
       listingStatus: 'active',
       workflow: [...lifecycle.workflow],
+      confirmations: {
+        pickup: {
+          status: 'passed',
+          presenterRole: 'owner',
+          verifierRole: 'renter',
+          verificationVersion: 3,
+        },
+        return: {
+          status: 'passed',
+          presenterRole: 'renter',
+          verifierRole: 'owner',
+          verificationVersion: 3,
+        },
+      },
       paymentMode: 'memory',
       stripeLivemode: false,
       paymentEndpointCalled: false,

@@ -576,6 +576,14 @@ function syntheticRoleBookingFixture() {
       verification: 'isolated-staging-fixture',
       listingStatus: 'active',
       workflow: ['requested', 'accepted', 'active', 'completed'],
+      confirmations: {
+        pickup: {
+          status: 'passed', presenterRole: 'owner', verifierRole: 'renter', verificationVersion: 3,
+        },
+        return: {
+          status: 'passed', presenterRole: 'renter', verifierRole: 'owner', verificationVersion: 3,
+        },
+      },
       paymentMode: 'memory',
       stripeLivemode: false,
       paymentEndpointCalled: false,
@@ -589,6 +597,8 @@ function syntheticRoleBookingFixture() {
     isolation: {
       protectedReviewFixtureUnchanged: true,
       temporaryVaultRemovedAfterProbe: true,
+      temporaryBookingCompleted: true,
+      temporaryListingPaused: true,
       containsReviewCredentials: false,
     },
     boundaries: {

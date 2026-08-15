@@ -61,6 +61,7 @@
     "backgroundFcm": "passed",
     "terminatedProcessFcm": "passed",
     "authenticatedSession": "passed-physical-play-build",
+    "syntheticRoleBooking": "passed-physical-play-build-v4-confirmations",
     "authenticatedDeepLinks": "passed-physical-play-build",
     "logoutColdStartGuestPersistence": "passed-physical-play-build",
     "postLogoutPushSuppression": "passed-physical-play-build",
@@ -82,6 +83,17 @@
     "booking": "passed",
     "chat": "passed",
     "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081505-20260815T040158Z.json"
+  },
+  "syntheticRoleBooking": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "workflow": "requested-accepted-active-completed",
+    "pickupCounterpartyConfirmationV3": "passed",
+    "returnCounterpartyConfirmationV3": "passed",
+    "temporaryBookingCompleted": true,
+    "temporaryListingPaused": true,
+    "protectedReviewFixtureUnchanged": true,
+    "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081505-20260815T042214Z.json"
   },
   "authenticatedSession": {
     "status": "passed",

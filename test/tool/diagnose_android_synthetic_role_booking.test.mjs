@@ -37,6 +37,14 @@ const lifecycle = {
     renterRunningVisibility: { status: 'passed', result: 'active-visible-to-renter' },
     renterCompletedVisibility: { status: 'passed', result: 'completed-visible-to-renter' },
   },
+  confirmations: {
+    pickup: {
+      status: 'passed', presenterRole: 'owner', verifierRole: 'renter', verificationVersion: 3,
+    },
+    return: {
+      status: 'passed', presenterRole: 'renter', verifierRole: 'owner', verificationVersion: 3,
+    },
+  },
 };
 
 function fakeRunner({ playSplit = false, playInstaller = 'com.android.vending', locked = false } = {}) {
@@ -78,6 +86,8 @@ test('accepts the exact Google Play split for the two-role booking lifecycle', a
   assert.equal(evidence.boundaries.directDiagnosticOnly, false);
   assert.equal(evidence.boundaries.storeInstallationGateSatisfied, true);
   assert.deepEqual(evidence.backendFixture.workflow, ['requested', 'accepted', 'active', 'completed']);
+  assert.equal(evidence.backendFixture.confirmations.pickup.verifierRole, 'renter');
+  assert.equal(evidence.backendFixture.confirmations.return.verifierRole, 'owner');
   assert.equal(JSON.stringify(evidence).includes(device.serial), false);
 });
 

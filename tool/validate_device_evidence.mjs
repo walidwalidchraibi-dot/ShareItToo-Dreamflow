@@ -515,6 +515,24 @@ function validateAndroidSyntheticRoleBooking(root, diagnostic, candidate) {
       fixture.paymentEndpointCalled !== false) {
     fail(`${label}.evidence must prove the isolated two-role Staging lifecycle without payment.`);
   }
+  const confirmations = object(fixture.confirmations, `${label}.evidence.backendFixture.confirmations`);
+  const expectedConfirmations = {
+    pickup: { presenterRole: 'owner', verifierRole: 'renter' },
+    return: { presenterRole: 'renter', verifierRole: 'owner' },
+  };
+  for (const [segment, roles] of Object.entries(expectedConfirmations)) {
+    const confirmation = object(
+      confirmations[segment],
+      `${label}.evidence.backendFixture.confirmations.${segment}`,
+    );
+    if (confirmation.status !== 'passed'
+        || confirmation.presenterRole !== roles.presenterRole
+        || confirmation.verifierRole !== roles.verifierRole
+        || confirmation.verificationVersion !== 3
+        || Object.keys(confirmation).length !== 4) {
+      fail(`${label}.evidence must prove the V4 ${segment} counterparty confirmation.`);
+    }
+  }
 
   const expectedTests = new Map([
     ['ownerRequestVisibility', 'requested-visible-to-owner'],
@@ -536,8 +554,10 @@ function validateAndroidSyntheticRoleBooking(root, diagnostic, candidate) {
   const isolation = object(evidence.isolation, `${label}.evidence.isolation`);
   if (isolation.protectedReviewFixtureUnchanged !== true ||
       isolation.temporaryVaultRemovedAfterProbe !== true ||
+      isolation.temporaryBookingCompleted !== true ||
+      isolation.temporaryListingPaused !== true ||
       isolation.containsReviewCredentials !== false ||
-      Object.keys(isolation).length !== 3) {
+      Object.keys(isolation).length !== 5) {
     fail(`${label}.evidence must preserve the active protected review fixture through an isolated temporary vault.`);
   }
 

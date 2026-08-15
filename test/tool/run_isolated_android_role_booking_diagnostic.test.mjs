@@ -53,6 +53,17 @@ test('uses an isolated vault and preserves the active protected review fixture',
         boundaries: { containsSecrets: false },
       };
     },
+    retirementRunner: async ({ vaultFile: isolatedVaultFile }) => {
+      const isolated = JSON.parse(readFileSync(isolatedVaultFile, 'utf8'));
+      assert.equal(isolated.consumed, true);
+      return {
+        status: 'synthetic-booking-retired',
+        bookingCompleted: true,
+        listingPaused: true,
+        paymentEndpointCalled: false,
+        stripeLivemode: false,
+      };
+    },
   });
 
   assert.equal(observedIsolatedVault.syntheticBooking, undefined);
@@ -61,9 +72,64 @@ test('uses an isolated vault and preserves the active protected review fixture',
   assert.deepEqual(result.isolation, {
     protectedReviewFixtureUnchanged: true,
     temporaryVaultRemovedAfterProbe: true,
+    temporaryBookingCompleted: true,
+    temporaryListingPaused: true,
     containsReviewCredentials: false,
   });
   assert.equal(JSON.stringify(result).includes(syntheticCredential('owner')), false);
+});
+
+test('fails closed when the temporary role-booking fixture is not retired', async () => {
+  const vaultFile = fixture();
+  await assert.rejects(
+    runIsolatedAndroidRoleBookingDiagnostic({
+      vaultFile,
+      runner: async () => ({
+        status: 'passed-bounded-synthetic-role-booking-diagnostic',
+      }),
+      retirementRunner: async () => ({
+        status: 'synthetic-booking-retired',
+        bookingCompleted: true,
+        listingPaused: false,
+        paymentEndpointCalled: false,
+        stripeLivemode: false,
+      }),
+    }),
+    /not retired safely/,
+  );
+});
+
+test('retires a partially created fixture after the child diagnostic fails', async () => {
+  const vaultFile = fixture();
+  let retired = false;
+  await assert.rejects(
+    runIsolatedAndroidRoleBookingDiagnostic({
+      vaultFile,
+      runner: async (isolatedVaultFile) => {
+        const isolated = JSON.parse(readFileSync(isolatedVaultFile, 'utf8'));
+        isolated.syntheticBooking = {
+          workflowStatus: 'requested',
+          paymentMode: 'memory',
+          stripeLivemode: false,
+          paymentEndpointCalled: false,
+        };
+        writeFileSync(isolatedVaultFile, `${JSON.stringify(isolated, null, 2)}\n`, { mode: 0o600 });
+        throw new Error('sanitized child failure');
+      },
+      retirementRunner: async () => {
+        retired = true;
+        return {
+          status: 'synthetic-booking-retired',
+          bookingCompleted: true,
+          listingPaused: true,
+          paymentEndpointCalled: false,
+          stripeLivemode: false,
+        };
+      },
+    }),
+    /sanitized child failure/,
+  );
+  assert.equal(retired, true);
 });
 
 test('rejects an unsafe or terminal protected fixture before running', async () => {

@@ -155,6 +155,56 @@ async function login(fetchImpl, account) {
   return session.accessToken;
 }
 
+async function verifySyntheticBookingConfirmation({
+  fetchImpl,
+  accounts,
+  fixture,
+  segment,
+}) {
+  const presenterRole = segment === 'pickup' ? 'owner' : 'renter';
+  const verifierRole = presenterRole === 'owner' ? 'renter' : 'owner';
+  const presenterToken = await login(fetchImpl, accounts.get(presenterRole));
+  const issued = await request(
+    fetchImpl,
+    `/bookings/${encodeURIComponent(fixture.bookingId)}/confirmation-challenges`,
+    {
+      method: 'POST',
+      token: presenterToken,
+      body: { segment },
+      expected: [201],
+    },
+  );
+  const qrPayload = issued?.challenge?.qrPayload;
+  if (typeof qrPayload !== 'string'
+      || !qrPayload.startsWith(`shareittoo:v3:${segment}:${presenterRole}:`)) {
+    fail(`The synthetic ${segment} confirmation challenge is invalid.`);
+  }
+  const verifierToken = await login(fetchImpl, accounts.get(verifierRole));
+  const verified = await request(
+    fetchImpl,
+    `/bookings/${encodeURIComponent(fixture.bookingId)}/confirmation-challenges/verify`,
+    {
+      method: 'POST',
+      token: verifierToken,
+      body: { qrPayload },
+    },
+  );
+  if (verified?.confirmation?.verificationVersion !== 3
+      || verified.confirmation.presenterRole !== presenterRole
+      || verified.confirmation.confirmedByRole !== verifierRole) {
+    fail(`The synthetic ${segment} confirmation was not verified safely.`);
+  }
+  return Object.freeze({
+    status: 'passed',
+    segment,
+    presenterRole,
+    verifierRole,
+    verificationVersion: 3,
+    containsConfirmationCode: false,
+    containsFixtureIdentifiers: false,
+  });
+}
+
 export async function createSyntheticBookingFixture({
   vaultFile,
   imagePath = resolve(repositoryRoot, 'assets/images/shareittoo_app_icon_master.png'),
@@ -376,6 +426,22 @@ export async function transitionSyntheticBookingFixture({
   if (fixture.workflowStatus !== transition.previous) {
     fail(`The synthetic booking is not ready for the ${status} transition.`);
   }
+  let confirmation = null;
+  if (status === 'running') {
+    confirmation = await verifySyntheticBookingConfirmation({
+      fetchImpl,
+      accounts,
+      fixture,
+      segment: 'pickup',
+    });
+  } else if (status === 'completed') {
+    confirmation = await verifySyntheticBookingConfirmation({
+      fetchImpl,
+      accounts,
+      fixture,
+      segment: 'return',
+    });
+  }
   const token = await login(fetchImpl, accounts.get(transition.role));
   const body = { status };
   if (status === 'accepted') {
@@ -413,6 +479,7 @@ export async function transitionSyntheticBookingFixture({
     containsSecrets: false,
     containsEmailAddresses: false,
     containsTokens: false,
+    ...(confirmation === null ? {} : { confirmation }),
   });
 }
 
@@ -543,13 +610,17 @@ export async function runSyntheticRoleBookingLifecycle({
     expectedStatus: 'accepted',
     fetchImpl,
   });
-  await transitionSyntheticBookingFixture({ vaultFile, status: 'running', fetchImpl, now });
+  const pickupTransition = await transitionSyntheticBookingFixture({
+    vaultFile, status: 'running', fetchImpl, now,
+  });
   const renterRunningVisibility = await inspectSyntheticBookingRoleVisibility({
     vaultFile,
     expectedStatus: 'active',
     fetchImpl,
   });
-  await transitionSyntheticBookingFixture({ vaultFile, status: 'completed', fetchImpl, now });
+  const returnTransition = await transitionSyntheticBookingFixture({
+    vaultFile, status: 'completed', fetchImpl, now,
+  });
   const renterCompletedVisibility = await inspectSyntheticBookingRoleVisibility({
     vaultFile,
     expectedStatus: 'completed',
@@ -563,6 +634,10 @@ export async function runSyntheticRoleBookingLifecycle({
       renterUpcomingVisibility,
       renterRunningVisibility,
       renterCompletedVisibility,
+    }),
+    confirmations: Object.freeze({
+      pickup: pickupTransition.confirmation,
+      return: returnTransition.confirmation,
     }),
     paymentMode: 'memory',
     stripeLivemode: false,

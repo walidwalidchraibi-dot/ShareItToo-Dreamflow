@@ -13,6 +13,8 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { retireSyntheticBookingFixture } from './run_staging_synthetic_booking.mjs';
+
 function fail(message) {
   throw new Error(message);
 }
@@ -24,6 +26,34 @@ function nonEmptyString(value, label) {
 
 function sha256(contents) {
   return createHash('sha256').update(contents).digest('hex');
+}
+
+function sanitizedChildFailure(error) {
+  const stderr = Buffer.isBuffer(error?.stderr)
+    ? error.stderr.toString('utf8')
+    : typeof error?.stderr === 'string'
+      ? error.stderr
+      : '';
+  const line = stderr.split(/\r?\n/u).map((entry) => entry.trim())
+    .filter((entry) => entry.startsWith('ERROR: ')).at(-1);
+  if (line === undefined) return null;
+  const detail = line.slice('ERROR: '.length).trim();
+  if (detail.length === 0 || detail.length > 240
+      || /(?:@|https?:\/\/|\/Users\/|password|passcode|secret|token|credential|private.?key|api.?key|otp|pin)/iu.test(detail)
+      || !/^[A-Za-z0-9_ .,:()[\]'/-]+$/u.test(detail)) {
+    return null;
+  }
+  return detail;
+}
+
+function sanitizedLocalFailure(error) {
+  const detail = typeof error?.message === 'string' ? error.message.trim() : '';
+  if (detail.length === 0 || detail.length > 300
+      || /(?:@|https?:\/\/|\/Users\/|password|passcode|secret|token|credential|private.?key|api.?key|otp|pin)/iu.test(detail)
+      || !/^[A-Za-z0-9_ .,:()[\]'/-]+$/u.test(detail)) {
+    return 'safe cleanup reason unavailable';
+  }
+  return detail;
 }
 
 function readProtectedVault(vaultFile) {
@@ -48,6 +78,7 @@ function readProtectedVault(vaultFile) {
 export async function runIsolatedAndroidRoleBookingDiagnostic({
   vaultFile,
   runner,
+  retirementRunner = retireSyntheticBookingFixture,
 }) {
   const protectedVaultFile = resolve(nonEmptyString(vaultFile, 'vaultFile'));
   const { raw: originalRaw, vault } = readProtectedVault(protectedVaultFile);
@@ -63,25 +94,65 @@ export async function runIsolatedAndroidRoleBookingDiagnostic({
   writeFileSync(isolatedVaultFile, `${JSON.stringify(isolatedVault, null, 2)}\n`, { mode: 0o600 });
   chmodSync(isolatedVaultFile, 0o600);
 
+  let result = null;
+  let primaryFailure = null;
+  let retirementFailure = null;
   try {
-    const result = await runner(isolatedVaultFile);
-    if (sha256(readFileSync(protectedVaultFile)) !== originalSha256) {
-      fail('The protected review vault changed during the isolated role-booking diagnostic.');
-    }
-    if (result?.status !== 'passed-bounded-synthetic-role-booking-diagnostic') {
-      fail('The isolated Android role-booking diagnostic did not pass safely.');
-    }
-    return {
-      ...result,
-      isolation: {
-        protectedReviewFixtureUnchanged: true,
-        temporaryVaultRemovedAfterProbe: true,
-        containsReviewCredentials: false,
-      },
-    };
+    result = await runner(isolatedVaultFile);
+  } catch (error) {
+    primaryFailure = error;
   } finally {
+    let shouldRetire = primaryFailure === null;
+    if (!shouldRetire) {
+      try {
+        const current = JSON.parse(readFileSync(isolatedVaultFile, 'utf8'));
+        shouldRetire = current.syntheticBooking !== undefined;
+      } catch {
+        shouldRetire = false;
+      }
+    }
+    if (shouldRetire) {
+      try {
+        const retirement = await retirementRunner({ vaultFile: isolatedVaultFile });
+        if (retirement?.status !== 'synthetic-booking-retired'
+            || retirement?.bookingCompleted !== true
+            || retirement?.listingPaused !== true
+            || retirement?.paymentEndpointCalled !== false
+            || retirement?.stripeLivemode !== false) {
+          fail('The isolated role-booking fixture was not retired safely.');
+        }
+      } catch (error) {
+        retirementFailure = new Error(sanitizedLocalFailure(error));
+      }
+    }
+    if (sha256(readFileSync(protectedVaultFile)) !== originalSha256) {
+      primaryFailure = new Error(
+        'The protected review vault changed during the isolated role-booking diagnostic.',
+      );
+    }
     rmSync(temporaryDirectory, { recursive: true, force: true });
   }
+
+  if (primaryFailure !== null) {
+    if (retirementFailure !== null) {
+      fail(`${sanitizedLocalFailure(primaryFailure)} Cleanup also failed safely: ${retirementFailure.message}`);
+    }
+    throw primaryFailure;
+  }
+  if (retirementFailure !== null) throw retirementFailure;
+  if (result?.status !== 'passed-bounded-synthetic-role-booking-diagnostic') {
+    fail('The isolated Android role-booking diagnostic did not pass safely.');
+  }
+  return {
+    ...result,
+    isolation: {
+      protectedReviewFixtureUnchanged: true,
+      temporaryVaultRemovedAfterProbe: true,
+      temporaryBookingCompleted: true,
+      temporaryListingPaused: true,
+      containsReviewCredentials: false,
+    },
+  };
 }
 
 function argumentValue(args, flag) {
@@ -111,8 +182,11 @@ async function run() {
           maxBuffer: 512 * 1024 * 1024,
           stdio: ['ignore', 'pipe', 'pipe'],
         });
-      } catch {
-        fail('The isolated Android role-booking child diagnostic failed without exposing private state.');
+      } catch (error) {
+        const detail = sanitizedChildFailure(error);
+        fail(detail === null
+          ? 'The isolated Android role-booking child diagnostic failed without exposing private state.'
+          : `The isolated Android role-booking child diagnostic failed safely: ${detail}`);
       }
       return JSON.parse(output);
     },

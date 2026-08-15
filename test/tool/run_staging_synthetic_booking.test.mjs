@@ -50,6 +50,30 @@ function response(status, value) {
   });
 }
 
+function bookingConfirmationResponse(path, options = {}) {
+  if (path.endsWith('/confirmation-challenges')) {
+    const segment = JSON.parse(options.body).segment;
+    const presenterRole = segment === 'pickup' ? 'owner' : 'renter';
+    return response(201, {
+      challenge: {
+        qrPayload: `shareittoo:v3:${segment}:${presenterRole}:00000000-0000-0000-0000-000000000000:123456:private-booking-id`,
+      },
+    });
+  }
+  if (path.endsWith('/confirmation-challenges/verify')) {
+    const [, , segment, presenterRole] = JSON.parse(options.body).qrPayload.split(':');
+    return response(200, {
+      confirmation: {
+        verificationVersion: 3,
+        presenterRole,
+        confirmedByRole: presenterRole === 'owner' ? 'renter' : 'owner',
+        segment,
+      },
+    });
+  }
+  return null;
+}
+
 function createFetch(log) {
   let login = 0;
   return async (url, options = {}) => {
@@ -138,10 +162,12 @@ test('transitions the synthetic booking with the correct roles and no payment en
     ['running', 'renter', 'active'],
     ['completed', 'owner', 'completed'],
   ]) {
-    const fetchImpl = async (url) => {
+    const fetchImpl = async (url, options = {}) => {
       const path = new URL(url).pathname.replace('/api/v1', '');
       calls.push(path);
       if (path === '/auth/login') return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+      const confirmation = bookingConfirmationResponse(path, options);
+      if (confirmation !== null) return confirmation;
       if (path.endsWith('/transitions')) return response(200, { booking: { workflowStatus } });
       throw new Error(`Unexpected path ${path}`);
     };
@@ -179,6 +205,8 @@ test('retires a temporary fixture by completing its booking and pausing, never d
         return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
       }
       operations.push({ path, method: options.method, body: JSON.parse(options.body) });
+      const confirmation = bookingConfirmationResponse(path, options);
+      if (confirmation !== null) return confirmation;
       if (path.endsWith('/transitions')) {
         const requested = operations.at(-1).body.status;
         return response(200, {
@@ -204,7 +232,15 @@ test('retires a temporary fixture by completing its booking and pausing, never d
         acceptedAt: '2026-08-12T12:30:00.000Z',
       }],
     }],
+    ['POST', { segment: 'pickup' }],
+    ['POST', {
+      qrPayload: 'shareittoo:v3:pickup:owner:00000000-0000-0000-0000-000000000000:123456:private-booking-id',
+    }],
     ['POST', { status: 'running' }],
+    ['POST', { segment: 'return' }],
+    ['POST', {
+      qrPayload: 'shareittoo:v3:return:renter:00000000-0000-0000-0000-000000000000:123456:private-booking-id',
+    }],
     ['POST', { status: 'completed' }],
     ['PATCH', { status: 'paused' }],
   ]);
@@ -233,6 +269,8 @@ test('runs the complete role-visible lifecycle without returning private fixture
         login += 1;
         return response(200, { accessToken: `synthetic-token-${login}-${'x'.repeat(30)}` });
       }
+      const confirmation = bookingConfirmationResponse(path, options);
+      if (confirmation !== null) return confirmation;
       if (path === '/listings/mine') return response(200, { listings: [] });
       if (path === '/rental-requests') {
         if (workflowStatus === null) return response(200, { requests: [] });
@@ -259,6 +297,10 @@ test('runs the complete role-visible lifecycle without returning private fixture
   assert.equal(result.tests.renterUpcomingVisibility.result, 'accepted-visible-to-renter');
   assert.equal(result.tests.renterRunningVisibility.result, 'active-visible-to-renter');
   assert.equal(result.tests.renterCompletedVisibility.result, 'completed-visible-to-renter');
+  assert.equal(result.confirmations.pickup.presenterRole, 'owner');
+  assert.equal(result.confirmations.pickup.verifierRole, 'renter');
+  assert.equal(result.confirmations.return.presenterRole, 'renter');
+  assert.equal(result.confirmations.return.verifierRole, 'owner');
   assert.equal(result.paymentEndpointCalled, false);
   assert.equal(result.containsSecrets, false);
   assert.equal(result.containsFixtureIdentifiers, false);
@@ -395,9 +437,11 @@ test('archives only a completed payment-free fixture without returning private i
     await transitionSyntheticBookingFixture({
       ...fixture,
       status,
-      fetchImpl: async (url) => {
+      fetchImpl: async (url, options = {}) => {
         const path = new URL(url).pathname.replace('/api/v1', '');
         if (path === '/auth/login') return response(200, { accessToken: `synthetic-token-${'x'.repeat(40)}` });
+        const confirmation = bookingConfirmationResponse(path, options);
+        if (confirmation !== null) return confirmation;
         if (path.endsWith('/transitions')) return response(200, { booking: { workflowStatus } });
         throw new Error(`Unexpected path ${path}`);
       },
