@@ -965,3 +965,26 @@ Servernachweis:
 - Die neun fachlichen Aufbewahrungsentscheidungen und alle sechs V4-Punkte
   bleiben offen. Produktion, Echtgeld, App-Kandidat `1.0.0+2026081509`,
   Store-Tracks und Review-Versand blieben unveraendert.
+
+## Meilenstein 16.89 – Google-Play-App-Content auf eine Wahrheit konsolidiert
+
+- Der aktuelle Google-Play-App-Content-Stand ist jetzt eindeutig mit elf von
+  zwoelf gespeicherten Aufgaben dokumentiert. Die Datenschutzerklaerung ist
+  gespeichert; ausschliesslich `Data Safety` bleibt offen und weder gespeichert
+  noch eingereicht.
+- Der Nachweis bindet den in Google Play beobachteten Ausgangsstand
+  `2026081505` an den aktuellen internen Kandidaten `1.0.0+2026081509` sowie an
+  dessen bestehenden Internal-Release-, Datenschutz- und Data-Safety-
+  Nachweise. Der fruehere Stand zehn von zwoelf bleibt nur historische Evidenz
+  und ist nicht mehr die aktuelle Wahrheit.
+- Der Fortschrittsvalidator verwendet fuer die fachliche Tiefenpruefung jetzt
+  den zentralen App-Content-Handoff-Validator. Dadurch werden doppelte
+  Kandidatenfestlegungen und widerspruechliche Zaehler vermieden; acht gezielte
+  Fortschrittstests sowie 42 angrenzende App-Content-, Kandidaten- und Data-
+  Safety-Tests bestanden.
+- Es wurde kein neuer App-Kandidat gebaut, hochgeladen oder installiert und
+  keine Google-Play-Einstellung veraendert. Closed Testing, Open Testing,
+  Produktion und Review-Versand bleiben unberuehrt.
+- `Data Safety` bleibt bis zu den ausstehenden Anbieter-, Aufbewahrungs- und
+  rechtlichen Entscheidungen bewusst fail-closed. Die sechs V4-Punkte bleiben
+  unter `V4-INTERIM-2026-08-15` offen.

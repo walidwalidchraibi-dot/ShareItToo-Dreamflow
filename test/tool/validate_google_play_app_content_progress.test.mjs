@@ -8,7 +8,8 @@ import { validateGooglePlayAppContentProgress } from '../../tool/validate_google
 
 const repositoryRoot = new URL('../../', import.meta.url).pathname;
 const canonical = JSON.parse(await readFile(new URL(
-  '../../docs/evidence/b11/google-play-app-content-progress-20260812.json', import.meta.url), 'utf8'));
+  '../../docs/evidence/b11/google-play-app-content-progress-2026081509-20260815.json',
+  import.meta.url), 'utf8'));
 
 async function fixture(mutate) {
   const root = await mkdtemp(join(tmpdir(), 'sit-play-progress-'));
@@ -19,89 +20,75 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts ten saved and two fail-closed Play work areas', () => {
+test('accepts eleven saved and one fail-closed Play work area', () => {
   assert.deepEqual(validateGooglePlayAppContentProgress({ repositoryRoot }), {
-    status: 'ten-of-twelve-saved-two-open', totalTasks: 12,
-    savedTasks: 10, openTasks: 2,
+    status: 'eleven-of-twelve-saved-one-open', totalTasks: 12,
+    savedTasks: 11, openTasks: 1,
   });
 });
 
-test('rejects claiming Advertising ID use for the exact candidate', async (t) => {
+test('rejects losing the saved privacy-policy task', async (t) => {
   const data = await fixture((evidence) => {
-    evidence.advertisingIdDraft.usesAdvertisingId = true;
+    evidence.consoleState.privacyPolicyUrlSaved = false;
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
-    /Advertising ID draft/);
+    /console state/);
 });
 
-test('rejects losing the completed IARC terms acceptance', async (t) => {
+test('rejects claiming the Data Safety draft was saved', async (t) => {
   const data = await fixture((evidence) => {
-    evidence.contentRatingDraft.iarcTermsAccepted = false;
+    evidence.consoleState.dataSafetyDraftSaved = true;
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
-    /IARC content-rating completion/);
+    /console state/);
 });
 
-test('rejects losing the protected IARC contact entry', async (t) => {
+test('rejects claiming the Data Safety form was submitted', async (t) => {
   const data = await fixture((evidence) => {
-    evidence.contentRatingDraft.protectedContactAddressEntered = false;
+    evidence.consoleState.dataSafetySubmitted = true;
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
-    /IARC content-rating completion/);
+    /console state/);
 });
 
-test('rejects an IARC completion that omits precise location sharing', async (t) => {
+test('rejects hiding the single open Data Safety task', async (t) => {
   const data = await fixture((evidence) => {
-    evidence.contentRatingDraft.preciseDeviceLocationSharedByUser = false;
+    evidence.counts.savedTasks = 12;
+    evidence.counts.openTasks = 0;
+    evidence.openTasks = {};
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
-    /IARC content-rating completion/);
+    /task counts|Data Safety/);
 });
 
-test('rejects claiming OAuth account creation before provider activation', async (t) => {
+test('rejects a stale current Internal candidate binding', async (t) => {
   const data = await fixture((evidence) => {
-    evidence.dataSafetyDraft.oauthPreparedButUnavailable = false;
+    evidence.candidate.currentInternalBuildNumber = '2026081508';
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
-    /data-safety partial draft/);
+    /stale or not bound/);
 });
 
-test('rejects losing the accepted AAB upload', async (t) => {
-  const data = await fixture((evidence) => { evidence.storeDraft.appBundleUploaded = false; });
-  t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }), /draft state/);
-});
-
-test('rejects losing the validated screenshots', async (t) => {
+test('rejects replacing an authoritative evidence reference', async (t) => {
   const data = await fixture((evidence) => {
-    evidence.storeDraft.phoneScreenshotsValidatedLocal = 0;
-  });
-  t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }), /draft state/);
-});
-
-test('rejects claiming the partial Data safety draft was submitted', async (t) => {
-  const data = await fixture((evidence) => { evidence.dataSafetyDraft.submitted = true; });
-  t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }), /data-safety partial draft/);
-});
-
-test('rejects preparing free documents for the image-only candidate', async (t) => {
-  const data = await fixture((evidence) => {
-    evidence.dataSafetyDraft.dataTypesPrepared = 17;
+    evidence.authoritativeSources.currentCandidateBindingRef = 'store/device-validation.json';
   });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
-    /data-safety partial draft/);
+    /authoritative sources/);
 });
 
-test('rejects an email address or review credential in evidence', async (t) => {
-  const data = await fixture((evidence) => { evidence.note = 'private@example.invalid'; });
+test('rejects external side effects or unsanitized account data', async (t) => {
+  const data = await fixture((evidence) => {
+    evidence.boundaries.reviewSubmitted = true;
+    evidence.note = 'private@example.invalid';
+  });
   t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }), /unsafe or unsanitized/);
+  assert.throws(() => validateGooglePlayAppContentProgress({ repositoryRoot, ...data }),
+    /unsafe or unsanitized/);
 });
