@@ -223,3 +223,31 @@ Servernachweis:
   Zahlungsendpunkt wurde aufgerufen, Produktion blieb auf Commit
   `09c9211e41da75969b9ee59e9954ac7465250e80`, und kein oeffentlicher
   Store-Track wurde veraendert.
+
+## Meilenstein 16.64 – sechs offene V4-Punkte releasefest aktiv
+
+- Alle sechs offenen Punkte bleiben mit Status `open` als aktive
+  Zwischenregeln gesetzt. Sie werden erst nach einer neuen Mitteilung des
+  Nutzers zentral aktualisiert; keine Regel wurde als juristisch final
+  bezeichnet.
+- Der Legal-Readiness-Validator prueft jetzt nicht nur die Rechtstext-Hashes,
+  sondern auch Version, Testumfang, Echtgeldsperre und alle sechs
+  Zwischenentscheidungen gemeinsam in Manifest, Flutter-App und Backend.
+- Ein Pausieren der Zwischenregel, stilles Schliessen eines offenen Punkts,
+  Aktivieren echter Zahlungen in der App oder Entfernen eines Punkts im
+  Backend stoppt den Release fail-closed.
+- Die sechs Funktionswege wurden gemeinsam erneut geprueft: getrennte
+  Buchungserklaerungen, neutraler Plattformwiderruf, 50/100-Storno,
+  Test-/Mock-Geldfluss, neutrales Rueckgabefenster T0 plus fuenf Tage sowie
+  vier Fotos je Richtung mit Gegenbestaetigung und QR-/Code-Ablauf.
+- Ergebnis: 11 Legal-Validator-Tests, 12 Backend-Tests und 60 Flutter-Tests
+  bestanden; kein Fehler.
+- Der bereits aus Google Play installierte Android-Kandidat 2026081505 bleibt
+  unveraendert. Die neue Aenderung ist eine Repository- und Release-Sperre und
+  erfordert allein keinen neuen Store-Kandidaten. Der physische V4-Rollenlauf
+  auf 2026081505 war bereits bestanden.
+- Produktion, oeffentliche Store-Tracks, Echtgeld, juristische Live-Freigabe,
+  manuelle TalkBack-Abnahme und Zwei-Geraete-Matrix blieben unveraendert
+  geschlossen beziehungsweise offen.
+- Maschinenlesbarer Nachweis:
+  `docs/evidence/b11/v4-interim-contract-enforcement-20260815T042919Z.json`.
