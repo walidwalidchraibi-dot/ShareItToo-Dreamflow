@@ -631,3 +631,55 @@ Servernachweis:
   Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
   blieben unveraendert. Alle sechs V4-Punkte bleiben unter
   `V4-INTERIM-2026-08-15` mit `status: open` aktiv.
+
+## Meilenstein 16.77 – Play-Build 1509: Kernablaeufe auf echtem Geraet bestanden
+
+- Auf dem exakten, von Google Play installierten Build `2026081509` bestanden
+  Vordergrund-, Hintergrund- und Beendet-Prozess-Push. Das SIT-Symbol blieb in
+  der Android-Benachrichtigung mittig, vollstaendig im Systemkreis und mit
+  sichtbarem Sicherheitsabstand.
+- Abmeldung, Gastzustand nach Kaltstart, erneute Schutzsperre privater Chats und
+  Push-Unterdrueckung nach der Abmeldung bestanden. Die Diagnosesitzung wird
+  nun vor jedem Lauf ausdruecklich an die angeforderte synthetische Rolle
+  gebunden.
+- Der Offline-/Realtime-Test hielt eine neue Chatnachricht waehrend eines
+  15-sekuendigen Offlinefensters zurueck und zeigte sie nach
+  Netzwerkwiederherstellung im selben Prozess. Der urspruengliche Netzwerkstand
+  wurde wiederhergestellt; es gab keinen Absturz.
+- Authentifizierte Links zu Anzeige, Buchung und Buchungs-Chat bestanden. Die
+  synthetische Zwei-Rollen-Buchung durchlief angefragt, akzeptiert, aktiv und
+  abgeschlossen sowie QR-Uebergabe und QR-Rueckgabe ohne Zahlung.
+- Die Android-WLAN-/Vermieter-Matrix steht damit ehrlich bei 9/11
+  Teilpruefungen. Moderation/Konto bleibt `testing`, grosse Schrift und
+  Screenreader bleiben `open`; die vollstaendige Geraetematrix bleibt 0/4.
+- Die Belege sind kandidatengenau, frei von Kontodaten, Nachrichteninhalten,
+  Adressen, Geheimnissen und rohen Geraetebezeichnern. 77 relevante
+  Nachweis- und Dokumenttests bestanden.
+- Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
+  blieben unveraendert. Alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` mit `status: open` aktiv.
+
+## Meilenstein 16.78 – Crashlytics-Zuordnung fuer Play-Build 1509 gesichert
+
+- Die R8-Zuordnung im unveraenderten AAB von Build `2026081509` stimmt
+  bytegenau mit der archivierten Originaldatei ueberein. Auch die im APK
+  eingebettete build-spezifische Crashlytics-ID wurde separat ausgelesen,
+  gehasht und gegen die automatisch erzeugte Build-ID geprueft.
+- Die exakte R8-Zuordnung wurde mit genau dieser Build-ID erfolgreich zu
+  Firebase Crashlytics geladen. Es wurde weder ein Ersatz-Build erzeugt noch
+  eine fremde Zuordnungs-ID wiederverwendet.
+- Alle drei im AAB enthaltenen nativen Symbolgruppen fuer `armeabi-v7a`,
+  `arm64-v8a` und `x86_64` stimmen bytegenau mit dem bereits erfolgreich
+  hochgeladenen und vollstaendig geleerten Symbolpaket ueberein. Der
+  kandidatenspezifische Nachweis liegt unter
+  `docs/evidence/b11/android-crash-release-mapping-2026081509.json`.
+- Ein bereinigtes kontrolliertes Absturzereignis war in diesem exakten
+  Store-Build absichtlich nicht einkompiliert. Deshalb bleiben das Ereignis
+  und seine sichtbare Zuordnung in der Firebase-Konsole ehrlich offen; die
+  Releasepruefung steht auf `testing`, nicht auf `passed`.
+- 79 gezielte Validator-, Dokument- und Upload-Verdrahtungstests bestanden.
+  Der Gesamtstatus bleibt `testing/hold`, die Geraetematrix 0/4 und die
+  Releasepruefungen 4/7.
+- Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
+  blieben unveraendert. Alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` mit `status: open` aktiv.

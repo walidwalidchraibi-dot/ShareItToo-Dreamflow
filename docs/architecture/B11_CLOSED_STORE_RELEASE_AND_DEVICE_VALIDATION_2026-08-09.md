@@ -39,7 +39,7 @@ sind ausdrücklich nicht Bestandteil dieser Freigabe.
 | Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081509)` |
 | Android-WLAN-/Owner-Matrix | `testing`; Teilpruefungen 9/11 bestanden; moderationAndAccount=testing, largeTextAndScreenReader=open; `docs/evidence/b11/android-wifi-owner-progress-2026081509-20260815T133200Z.json` |
 | Play-Signing und öffentliche App-Links | `open`; noch kein kandidatenspezifischer Nachweis |
-| Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
+| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081509.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081509.json` |
 | Staging-Servercommit | `36f9145e67be30fd01ffb61ad38e99361d391479` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
