@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "built-scanned-awaiting-play-internal-upload",
+  "status": "built-scanned-play-internal-available-install-pending",
   "generatedAt": "2026-08-15T00:46:21Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -16,7 +16,7 @@
     "stripeLivemode": false
   },
   "android": {
-    "delivery": "play-internal-pending",
+    "delivery": "play-internal",
     "aabSha256": "79ada273c08753974dbefb8bb576afa14f2edcf1f250144524c37e62eb665e3c",
     "apkSha256": "628e71da5b9b32e5f076a78a4ca94e23c6da01dec9e82ab56e16a258258afe06",
     "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
@@ -52,6 +52,10 @@
     "chatReadReceiptLoop": "passed-source-and-regression-suite",
     "twoDevicePrivatePilotAcceptance": "pending"
   },
+  "googlePlayInternalRelease": {
+    "status": "available-store-install-pending",
+    "evidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081501-20260815.json"
+  },
   "staging": {
     "serverVersion": "1.0.0-2026081502-v4-owner-acceptance",
     "liveHttpStatus": 200,
@@ -61,7 +65,7 @@
     "productionVersion": "1.0.0-2026081403"
   },
   "boundaries": {
-    "uploadedToStore": false,
+    "uploadedToStore": true,
     "installedOnPhysicalDevice": false,
     "controlledFcmSentToSyntheticAccount": false,
     "controlledCrashDiagnosticSent": false,

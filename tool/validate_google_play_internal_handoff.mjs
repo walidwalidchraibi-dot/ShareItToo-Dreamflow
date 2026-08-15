@@ -287,13 +287,19 @@ export function validateGooglePlayInternalHandoff({
       same(internalEvidence.postReleaseChecks?.stagingFeedLoaded, true,
         'internal release evidence.postReleaseChecks.stagingFeedLoaded');
     }
-    same(
-      internalEvidence.exactCandidateDiagnostics?.controlledCrashDiagnostic,
-      crashAssignment === 'passed-exact-controlled-event'
-        ? 'passed-once-exact-console-assignment'
-        : 'sent-once-console-assignment-pending',
-      'internal release evidence.exactCandidateDiagnostics.controlledCrashDiagnostic',
-    );
+    const controlledCrashDiagnostic =
+      internalEvidence.exactCandidateDiagnostics?.controlledCrashDiagnostic;
+    if (crashAssignment === 'passed-exact-controlled-event') {
+      same(
+        controlledCrashDiagnostic,
+        'passed-once-exact-console-assignment',
+        'internal release evidence.exactCandidateDiagnostics.controlledCrashDiagnostic',
+      );
+    } else if (!['not-sent', 'sent-once-console-assignment-pending'].includes(
+      controlledCrashDiagnostic,
+    )) {
+      fail('Pending Crashlytics assignment must truthfully record whether the diagnostic was sent.');
+    }
     same(internalEvidence.boundaries?.internalReleaseActivated, true,
       'internal release evidence.boundaries.internalReleaseActivated');
     for (const key of [
