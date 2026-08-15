@@ -119,12 +119,19 @@ function validate({
   });
 }
 
-test('accepts the honest testing state with fresh install and second network pending', () => {
+test('accepts the honest testing state with only second network pending', () => {
   const result = validate();
   assert.equal(result.state, 'testing');
   assert.equal(result.readyForStore, false);
-  assert.equal(result.passedScenarios, 8);
+  assert.equal(result.passedScenarios, 9);
   assert.equal(result.storeGate, 'open');
+});
+
+test('rejects a fresh-install pass without matching evidence', () => {
+  const review = clone(baseReview);
+  review.scenarioEvidence.freshInstall.status = 'pending';
+  review.scenarioEvidence.freshInstall.evidenceRef = null;
+  assert.throws(() => validate({ review }), /must match the review scenario/);
 });
 
 test('strict readiness rejects the current testing state', () => {

@@ -175,6 +175,20 @@ async function waitForHierarchy({ commandRunner, adbPath, device, predicate, wai
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     await wait(650);
     const hierarchy = dumpUi(commandRunner, adbPath, device);
+    const notificationPermissionPrompt = hierarchy.includes(
+      'resource-id="com.android.permissioncontroller:id/permission_allow_button"',
+    ) && hierarchy.includes('text="ShareItToo erlauben, dir Benachrichtigungen zu senden?"');
+    if (notificationPermissionPrompt) {
+      tapNamedNode(commandRunner, adbPath, device, hierarchy, 'Erlauben');
+      // Android 16 can return to the launcher after the permission controller
+      // closes. Relaunch only the verified ShareItToo package before resuming.
+      launchCandidate(commandRunner, adbPath, device);
+      continue;
+    }
+    if (hierarchy.includes('content-desc="Benachrichtigung:')) {
+      adb(commandRunner, adbPath, device, ['shell', 'input', 'keyevent', '4']);
+      continue;
+    }
     if (predicate(hierarchy)) return hierarchy;
   }
   fail('The expected sanitized ShareItToo surface did not appear.');

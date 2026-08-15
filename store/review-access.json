@@ -36,13 +36,17 @@
     "activeListing": "passed",
     "acceptedBooking": "passed",
     "sharedChat": "passed",
-    "freshInstall": "pending",
+    "freshInstall": "passed",
     "secondNetwork": "pending",
     "reportAndBlock": "passed",
     "accountExport": "passed",
     "accountDeletion": "passed"
   },
   "scenarioEvidence": {
+    "freshInstall": {
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/android-fresh-install-2026081505-20260815T054742Z.json"
+    },
     "safetyActions": {
       "status": "passed",
       "evidenceRef": "docs/evidence/b11/store-review-safety-actions-2026081505-20260815T043857Z.json"

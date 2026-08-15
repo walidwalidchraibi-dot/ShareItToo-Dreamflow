@@ -279,8 +279,63 @@ export function validateStoreReviewAccess({
     if (!['pending', 'passed'].includes(scenarios[key])) fail(`reviewScenarios.${key} is invalid.`);
   }
   const scenarioEvidence = object(review.scenarioEvidence, 'scenarioEvidence');
-  if (Object.keys(scenarioEvidence).sort().join(',') !== 'accountDeletion,safetyActions') {
-    fail('scenarioEvidence must contain exactly safetyActions and accountDeletion.');
+  if (Object.keys(scenarioEvidence).sort().join(',') !== 'accountDeletion,freshInstall,safetyActions') {
+    fail('scenarioEvidence must contain exactly freshInstall, safetyActions, and accountDeletion.');
+  }
+  const freshInstall = object(scenarioEvidence.freshInstall, 'scenarioEvidence.freshInstall');
+  const freshInstallShouldPass = scenarios.freshInstall === 'passed';
+  if (freshInstall.status !== (freshInstallShouldPass ? 'passed' : 'pending')) {
+    fail('freshInstall evidence status must match the review scenario.');
+  }
+  if (freshInstallShouldPass) {
+    const freshInstallEvidence = readEvidence(root, freshInstall.evidenceRef);
+    assertSanitized(freshInstallEvidence, 'fresh install evidence');
+    if (freshInstallEvidence.schemaVersion !== 1
+        || freshInstallEvidence.kind !== 'android-fresh-install-diagnostic'
+        || freshInstallEvidence.status !== 'passed-play-install-fresh-app-data-and-session-restore'
+        || freshInstallEvidence.scenario !== 'freshInstall'
+        || Number.isNaN(Date.parse(freshInstallEvidence.capturedAt))) {
+      fail('freshInstall evidence must prove a fresh Google Play app-data start.');
+    }
+    assertSameCandidate(freshInstallEvidence.candidate, device.candidate, 'fresh install evidence.candidate');
+    if (freshInstallEvidence.installed?.delivery !== 'google-play-split'
+        || freshInstallEvidence.installed?.installerPackageName !== 'com.android.vending'
+        || freshInstallEvidence.installed?.packageIdentityVerifiedBeforeAndAfterReset !== true
+        || freshInstallEvidence.checks?.isolatedAppDataResetConfirmed !== true
+        || freshInstallEvidence.checks?.signedOutFirstStartConfirmed !== true
+        || freshInstallEvidence.checks?.syntheticReviewLoginRestored !== true
+        || freshInstallEvidence.checks?.authenticatedProfileConfirmed !== true
+        || freshInstallEvidence.checks?.coldStartSessionRestoreConfirmed !== true) {
+      fail('freshInstall evidence must prove the exact Play candidate and restored synthetic session.');
+    }
+    if (freshInstallEvidence.environment?.apiBaseUrl !== environment.apiBaseUrl
+        || freshInstallEvidence.environment?.paymentMode !== 'memory'
+        || freshInstallEvidence.environment?.stripeLivemode !== false
+        || freshInstallEvidence.environment?.paymentEndpointCalled !== false) {
+      fail('freshInstall evidence must remain on non-live Staging without payment calls.');
+    }
+    assertFalseBoundaries(
+      object(freshInstallEvidence.boundaries, 'fresh install evidence.boundaries'),
+      'fresh install evidence.boundaries',
+      [
+        'appPackageUninstalled',
+        'playTrackChanged',
+        'publicStoreChanged',
+        'productionChanged',
+        'containsSecrets',
+        'containsEmailAddresses',
+        'containsTokens',
+        'containsAccountIdentifiers',
+        'containsFixtureIdentifiers',
+        'rawDeviceIdentifierPrinted',
+        'lockCodeUsed',
+      ],
+    );
+    if (freshInstallEvidence.boundaries.syntheticAccountsOnly !== true) {
+      fail('freshInstall evidence must prove synthetic-only scope.');
+    }
+  } else if (freshInstall.evidenceRef !== null) {
+    fail('Pending freshInstall must not reference passed evidence.');
   }
   const safety = object(scenarioEvidence.safetyActions, 'scenarioEvidence.safetyActions');
   const safetyShouldPass = scenarios.reportAndBlock === 'passed' && scenarios.accountExport === 'passed';

@@ -249,6 +249,13 @@ async function waitForHierarchy({
   for (let attempt = 0; attempt < 8; attempt += 1) {
     await wait(750);
     const hierarchy = dumpUi(commandRunner, adbPath, device);
+    if (hierarchy.includes('content-desc="Benachrichtigung:')) {
+      // A queued foreground push can legitimately cover the navigation after
+      // launch. Dismiss only that explicitly labelled transient SIT dialog;
+      // never guess at arbitrary dialogs or record its message content.
+      adb(commandRunner, adbPath, device, ['shell', 'input', 'keyevent', '4']);
+      continue;
+    }
     if (predicate(hierarchy)) return hierarchy;
     // A valid persisted session can briefly render the guest profile while
     // the remote profile hydration finishes after a cold start. Only treat a
