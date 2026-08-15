@@ -161,6 +161,7 @@ test('requires bounded mutations to be disclosed while a fixture is refreshed', 
   review.reviewScenarios.acceptedBooking = 'pending';
   review.reviewScenarios.sharedChat = 'pending';
   const evidence = clone(pendingEvidence);
+  evidence.candidate = clone(baseReview.candidate);
   evidence.boundaries.businessDataMutations = false;
   assert.throws(
     () => validate({ review, evidence }),
