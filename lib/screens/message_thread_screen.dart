@@ -253,7 +253,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       }
       unawaited(_sharedPersistenceRefresh.schedule(() async {
         await SharedPersistenceSync.reloadPreferences();
-        if (mounted) await _load();
+        if (mounted) await _refreshThreadMessagesInBackground();
       }));
     });
     _fallbackRefreshTimer = Timer.periodic(fallbackRefreshInterval, (_) {
@@ -298,8 +298,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
 
     final current = _thread;
     final unchanged = current != null &&
-        current.messages.length == refreshed.messages.length &&
-        current.lastMessageAt == refreshed.lastMessageAt;
+        jsonEncode(current.toJson()) == jsonEncode(refreshed.toJson());
     if (unchanged) return;
 
     setState(() => _thread = refreshed);

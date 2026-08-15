@@ -10,6 +10,21 @@ import 'support/test_builders.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('read-only remote thread cache refresh stays silent', () {
+    expect(
+      DataService.shouldAnnounceMessageThreadCacheWrite(
+        readOnlyRemoteRefresh: true,
+      ),
+      isFalse,
+    );
+    expect(
+      DataService.shouldAnnounceMessageThreadCacheWrite(
+        readOnlyRemoteRefresh: false,
+      ),
+      isTrue,
+    );
+  });
+
   final owner = buildTestUser('u1', name: 'Walid Chraibi');
   final renter = buildTestUser('u2', name: 'Max Mustermann');
   final outsider = buildTestUser('u3', name: 'Sarah Schmidt');

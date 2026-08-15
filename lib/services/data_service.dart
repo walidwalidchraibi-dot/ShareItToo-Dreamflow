@@ -83,6 +83,15 @@ class DataService {
       'qa_messages_notifs_seeded_v3_for_';
   static final Set<String> _qaSeedUsersInProgress = <String>{};
 
+  /// Read-only backend refreshes update the local cache but must not announce
+  /// another logical data change. Announcing those cache writes makes every
+  /// listening screen fetch again, which can create a refresh feedback loop.
+  @visibleForTesting
+  static bool shouldAnnounceMessageThreadCacheWrite({
+    required bool readOnlyRemoteRefresh,
+  }) =>
+      !readOnlyRemoteRefresh;
+
   @visibleForTesting
   static bool canExposeCachedCurrentUser({
     required bool backendEnabled,
@@ -131,14 +140,17 @@ class DataService {
 
   static Future<void> _persistMessageThreads(
     SharedPreferences prefs,
-    List<dynamic> threads,
-  ) async {
+    List<dynamic> threads, {
+    bool announceChange = true,
+  }) async {
     final payload = threads
         .whereType<Map>()
         .map((entry) => Map<String, dynamic>.from(entry))
         .toList();
     await prefs.setString(_messageThreadsKey, jsonEncode(payload));
-    SharedPersistenceSync.notify(SharedPersistenceSync.messageThreadsKey);
+    if (announceChange) {
+      SharedPersistenceSync.notify(SharedPersistenceSync.messageThreadsKey);
+    }
   }
 
   static Future<String?> _readMessageThreads(
@@ -8102,7 +8114,13 @@ class DataService {
         final remote = await BackendRepository.getMessageThreads(
           includeArchived: true,
         );
-        await _persistMessageThreads(prefs, remote);
+        await _persistMessageThreads(
+          prefs,
+          remote,
+          announceChange: shouldAnnounceMessageThreadCacheWrite(
+            readOnlyRemoteRefresh: true,
+          ),
+        );
       }
       final raw = BackendConfig.enabled && !QaRuntimeService.isEnabled
           ? prefs.getString(_messageThreadsKey)
