@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "kind": "android-release-candidate",
+  "status": "built-scanned-physical-signed-install-verified",
+  "generatedAt": "2026-08-15T12:32:36Z",
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "bundleId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081509",
+    "commit": "3fa045b98897f9551f91da932136c2b100b2d700",
+    "releaseChannel": "internal",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
+    "firebaseConfigured": true,
+    "paymentMode": "memory",
+    "stripeLivemode": false
+  },
+  "android": {
+    "delivery": "private-signed-archive-direct-device-verification",
+    "aabSha256": "8295b7cef0de1061acdf4179080deda0fb13133c4d7fd306da0d51062312fcc5",
+    "apkSha256": "517e1e15b8bbb4409444d29aa5094feedba590078fadaba3293142ab62f1593f",
+    "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
+    "signatureVerified": true,
+    "packageIdentityVerified": true,
+    "privateArchivePermissionsVerified": true
+  },
+  "privacyAndNetwork": {
+    "binaryScan": "passed",
+    "binaryScanReportSha256": "2b684fa0a4eb1784403027793f384e8875a4b1bd8790d5b4eaab04ee0398017f",
+    "targetSdkVersion": 35,
+    "backupDisabled": true,
+    "cleartextTrafficDisabled": true,
+    "analyticsSdkPresent": false,
+    "advertisingSdkPresent": false,
+    "permissionInventoryStatus": "passed",
+    "permissionInventoryEvidenceRef": "docs/evidence/b11/android-release-permissions-2026081509.json",
+    "systemPhotoPicker": "passed-broad-photo-and-video-library-permissions-absent",
+    "disclosedSdks": [
+      "Firebase Cloud Messaging",
+      "Firebase Crashlytics",
+      "Firebase Authentication",
+      "Facebook Login",
+      "Google Maps Platform"
+    ],
+    "findings": []
+  },
+  "exactCandidateDiagnostics": {
+    "localSignedInstallAndLaunch": "passed-physical-pixel-cold-launch",
+    "facebookManifestValueTypes": "passed-resource-string-references",
+    "facebookAuthPluginInitialization": "passed-no-sdk-initialization-or-plugin-registration-error",
+    "socialProviderReleaseGating": "passed-google-apple-facebook-disabled-fail-closed",
+    "centeredProviderUnavailablePopup": "passed-private-screenshot-outside-repository",
+    "stagingFeedLoaded": "passed-physical-signed-build",
+    "fatalRuntimeErrors": "none-observed",
+    "googlePlayInternalUpload": "not-performed",
+    "googlePlayStoreInstall": "pending-exact-build",
+    "authenticatedDeepLinks": "pending-exact-store-build",
+    "controlledFcm": "pending-exact-store-build",
+    "logoutColdStartGuestPersistence": "pending-exact-store-build",
+    "offlineRealtimeRecovery": "pending-exact-store-build",
+    "crashlyticsMappingAndNativeSymbols": "pending-exact-store-build",
+    "closedTrackDraft": "not-started-boundary",
+    "twoDevicePrivatePilotAcceptance": "pending"
+  },
+  "deviceRestoration": {
+    "status": "passed",
+    "restoredBuildNumber": "2026081508",
+    "installerPackageName": "com.android.vending",
+    "syntheticOwnerSessionRestored": true,
+    "fatalRuntimeErrors": "none-observed"
+  },
+  "boundaries": {
+    "uploadedToStore": false,
+    "internalReleaseActivated": false,
+    "installedOnPhysicalDevice": true,
+    "exactStoreBuildInstalledOnPhysicalDevice": false,
+    "productionChanged": false,
+    "realPaymentPerformed": false,
+    "closedTestingChanged": false,
+    "publicTrackChanged": false,
+    "iosValidated": false,
+    "containsSecrets": false,
+    "containsRawDeviceIdentifiers": false,
+    "containsReviewCredentials": false,
+    "syntheticAccountsOnly": true
+  }
+}
