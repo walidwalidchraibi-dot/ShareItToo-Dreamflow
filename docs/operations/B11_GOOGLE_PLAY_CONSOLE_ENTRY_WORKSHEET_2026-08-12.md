@@ -16,12 +16,12 @@ Verbindlicher Kandidat:
 - App: `ShareItToo`
 - Paket: `com.shareittoo.app`
 - Version: `1.0.0`
-- Build: `2026081507` (gebaut, archiviert, binär geprüft und intern veröffentlicht; Play-Store-Installation auf dem physischen Android-Gerät steht noch aus)
+- Build: `2026081507` (gebaut, archiviert, binär geprüft, intern veröffentlicht und als Play-Store-Split auf dem physischen Android-Gerät validiert)
 - App-Commit: `0707e3091f8e3f47c327488b82e8b9765e794f01`
 - Kanal: ausschließlich Internal Testing
 - Umgebung: ausschließlich Staging
 - Zahlung: `paymentMode=memory`, `stripeLivemode=false`
-- Freigabezustand: AAB im Internal Testing aktiv und als exakter Upload geprüft; die Store-Installation steht noch aus; weiterhin
+- Freigabezustand: AAB im Internal Testing aktiv und als exakter Store-Build geprüft; weiterhin
   keine Store-Einreichung erlaubt und keine Review-, Closed-, Open- oder
   Production-Freigabe zulässig
 
@@ -35,10 +35,10 @@ V4-Rollen-/Buchungsablauf. Build `2026081506` ergänzte die
 Android-Systemfotoauswahl ohne pauschalen Galerie-Zugriff und bestand den
 Chat-Fotoablauf. Der aktuelle Build `2026081507` korrigiert zusätzlich die
 Sichtbarkeit der bestätigten Übergabe- und Rückgabeaktionen. Er ist im
-internen Play-Track aktiv; Installation, Play-Identität, Kaltstart, Anmeldung,
-Staging-Feed und weitere Geräteabläufe werden für `2026081507` neu geprüft
-und nicht aus älteren Builds übernommen. Keine höhere Freigabestufe wurde
-geöffnet.
+internen Play-Track aktiv; Play-Installation, Play-Identität, Kaltstart,
+bestehende Anmeldung und Staging-Feed sind kandidatengenau bestanden. Die
+weiteren Geräteabläufe werden für `2026081507` neu geprüft und nicht aus
+älteren Builds übernommen. Keine höhere Freigabestufe wurde geöffnet.
 
 ## 2. Persönliches Entwicklerkonto und App-Datensatz
 
@@ -269,11 +269,10 @@ entdeckte Kontextfehler des mittigen Vordergrund-Push-Popups wurde ab Kandidat
 2026081405 behoben. Kandidat 2026081505 bestand anschließend Vordergrund-,
 Hintergrund- und Beendet-Push sowie das mittige, vollständig im Systemkreis
 enthaltene SIT-Symbol. Der aktuelle Kandidat 2026081507 wurde neu gebaut,
-privat archiviert, binär geprüft und intern veröffentlicht. Die Aktualisierung
-über Google Play auf dem physischen Android-Gerät steht noch aus. Er verwendet
-für Fotos die Android-Systemauswahl, enthält keine pauschale Berechtigung für
-die Bild- oder Videobibliothek und hält bestätigte Übergabe- und
-Rückgabeaktionen sichtbar.
+privat archiviert, binär geprüft, intern veröffentlicht und über Google Play
+auf dem physischen Android-Gerät aktualisiert. Er verwendet für Fotos die
+Android-Systemauswahl, enthält keine pauschale Berechtigung für die Bild- oder
+Videobibliothek und hält bestätigte Übergabe- und Rückgabeaktionen sichtbar.
 Er enthält nur die erwarteten Funktions-,
 Netzwerk- und Firebase-Berechtigungen für Kamera, nutzergewählte Bilder, groben/präzisen
 Standort, Benachrichtigungen, Internet/Netzstatus, Wake Lock und FCM. Nicht
@@ -303,8 +302,8 @@ Nach dem ersten Internal-AAB-Upload:
 ## 8. Internal Testing – Freigabereihenfolge
 
 1. ausschließlich den gebundenen AAB-Kandidaten 2026081507 nach unmittelbarer
-   Hash-Prüfung verwenden – Upload und interne Aktivierung sind abgeschlossen,
-   die Store-Installation steht noch aus;
+   Hash-Prüfung verwenden – Upload, interne Aktivierung und Store-Installation
+   sind abgeschlossen;
 2. Store-Haupteintrag und App-Inhalte weiter als Entwurf vervollständigen;
 3. Uploadwarnungen, App-Signing-Fingerprint und Artefaktidentität prüfen;
 4. geschützte Review-Zugangsdaten eintragen;
@@ -400,10 +399,9 @@ App-Datensatz ist erstellt und die drei rechtlichen Erklärungen wurden mit
 ausdrücklicher Zustimmung bestätigt. Play App Signing ist aktiv; sein
 bereinigter Zertifikat-Fingerprint wurde zusätzlich zum Uploadzertifikat in
 der lokalen `assetlinks.json`-Vorbereitung hinterlegt. `submissionAllowed`
-bleibt dennoch `false`: Die unmittelbare Artefaktprüfung, der interne Upload
-und die Aktivierung sind abgeschlossen; die Installation über Google Play
-steht noch aus. Alle öffentlichen, Review-, Open- und Closed-Aktionen bleiben
-harte Stopps.
+bleibt dennoch `false`: Die unmittelbare Artefaktprüfung, der interne Upload,
+die Aktivierung und die Installation über Google Play sind abgeschlossen.
+Alle öffentlichen, Review-, Open- und Closed-Aktionen bleiben harte Stopps.
 
 ## 11. Quellen
 

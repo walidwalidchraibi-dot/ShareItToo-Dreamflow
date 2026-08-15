@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "internal-release-active-store-install-pending",
+  "status": "internal-release-active-store-install-verified",
   "submissionAllowed": false,
   "track": "internal",
   "candidate": {
@@ -40,7 +40,7 @@
     "playAppSigningFingerprintRecorded": "passed-pre-upload-console",
     "uploadWarningsReviewed": "passed-only-missing-testers-warning-resolved",
     "crashlyticsCandidateAssignmentVerified": "pending",
-    "internalStoreInstallCompleted": "pending",
+    "internalStoreInstallCompleted": "passed-google-play-installer",
     "sharedChatStability": "pending-exact-build",
     "messageComposerKeyboard": "pending-exact-build",
     "messageSendPersistence": "pending-exact-build",
