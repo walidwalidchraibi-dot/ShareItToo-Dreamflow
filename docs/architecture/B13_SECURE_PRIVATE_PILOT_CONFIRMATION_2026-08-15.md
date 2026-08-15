@@ -541,3 +541,35 @@ Servernachweis:
 - Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
   blieben unveraendert. Alle sechs V4-Punkte bleiben unter
   `V4-INTERIM-2026-08-15` mit `status: open` aktiv.
+
+## Meilenstein 16.74 – Play-Internal-Build 1508 kandidatengenau installiert
+
+- Der in Meilenstein 16.73 noch nicht hochgeladene Android-Kandidat
+  `1.0.0+2026081508` wurde unveraendert in Google Play Internal Testing
+  hochgeladen und als Release `1.0.0-internal-2026081508` aktiviert.
+- Google Play akzeptierte den AAB ohne Fehler: Mindest-API 24, Ziel-SDK 35,
+  12.427 unterstuetzte Telefone und kein verlorenes Geraet gegenueber dem
+  vorherigen Release. Die Release-Notiz beschreibt ausschliesslich Staging,
+  Systemfotoauswahl und Testzahlungen.
+- Der erste Download unmittelbar nach Aktivierung lieferte waehrend der
+  Store-Propagation noch Build `2026081507`. Dieser Zustand wurde nicht als
+  bestanden ausgegeben. Nach kurzer Propagation bot Play das Update an und
+  installierte exakt Build `2026081508`.
+- Auf dem Pixel 7 Pro wurden Version, Installer `com.android.vending`, vier
+  Store-Splits und der Play-App-Signing-Fingerabdruck
+  `36488abf86c51da07ab2258f31b00e2f1ba8a36d076107b9f006376ade80b956`
+  zurueckgelesen. Der Kaltstart blieb absturzfrei; die geschuetzte
+  synthetische Vermieter-Sitzung, der Staging-Feed und der vorhandene
+  `flow1508`-Buchungs-Chat waren sichtbar.
+- Beim Kaltstart wurde ein separater offener Punkt sichtbar: Das Android-
+  Facebook-Login-Plugin meldet, dass das Facebook-SDK noch nicht initialisiert
+  ist. Die App selbst startet weiter, aber Facebook-Anmeldung gilt fuer diesen
+  Kandidaten ausdruecklich nicht als bestanden und wird vor dem naechsten
+  Kandidaten korrigiert.
+- Der Store-Nachweis, Kandidatenbeleg, Berechtigungsinventar,
+  Datenschutz-Binaernachweis und die maschinengeprueften Handoffs wurden auf
+  Build `2026081508` umgestellt. Die Validatoren bleiben fail-closed, und der
+  Store-Gesamtstatus bleibt `testing/hold`.
+- Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
+  blieben unveraendert. Alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` mit `status: open` aktiv.

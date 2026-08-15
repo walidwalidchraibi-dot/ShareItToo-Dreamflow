@@ -90,6 +90,17 @@ const passedDeletionEvidence = {
 };
 
 function clone(value) { return structuredClone(value); }
+function propagationEvidence() {
+  const evidence = clone(currentEvidence);
+  evidence.status = 'review-candidate-rollover-store-propagation-pending';
+  evidence.checks.exactLocalCandidateInstalled = true;
+  evidence.checks.twoAccountFlowTimePassed = true;
+  evidence.checks.exactPlayCandidateInstalled = false;
+  evidence.checks.playInstallerObservedOnSupersededBuild = true;
+  evidence.checks.authenticatedSessionRestorePassedOnLocalCandidate = true;
+  evidence.checks.stagingFeedPassedOnLocalCandidate = true;
+  return evidence;
+}
 function validate({
   review = clone(baseReview),
   device = clone(baseDevice),
@@ -119,12 +130,21 @@ function validate({
   });
 }
 
-test('accepts the honest pre-Play candidate with every review scenario pending', () => {
+test('accepts the honest current rollover candidate with every review scenario pending', () => {
   const result = validate();
   assert.equal(result.state, 'testing');
   assert.equal(result.readyForStore, false);
   assert.equal(result.passedScenarios, 0);
   assert.equal(result.storeGate, 'open');
+});
+
+test('rejects a propagation candidate that claims the exact Play build was installed', () => {
+  const evidence = propagationEvidence();
+  evidence.checks.exactPlayCandidateInstalled = true;
+  assert.throws(
+    () => validate({ evidence }),
+    /must preserve the local candidate checks and keep the exact Play installation pending/,
+  );
 });
 
 test('rejects a fresh-install pass without matching evidence', () => {

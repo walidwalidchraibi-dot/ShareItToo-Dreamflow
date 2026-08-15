@@ -169,6 +169,7 @@ export function validateStoreReviewAccess({
     'review-fixture-refresh-pending',
     'review-candidate-built-play-upload-pending',
     'review-candidate-rollover-revalidation-pending',
+    'review-candidate-rollover-store-propagation-pending',
   ]);
   const evidenceStatusValid = technical.status === 'passed'
     ? evidence.status === 'technical-review-access-passed-store-fields-pending'
@@ -183,6 +184,8 @@ export function validateStoreReviewAccess({
   const refreshPending = evidence.status === 'review-fixture-refresh-pending';
   const rolloverPending =
     evidence.status === 'review-candidate-rollover-revalidation-pending';
+  const storePropagationPending =
+    evidence.status === 'review-candidate-rollover-store-propagation-pending';
   const prePlayPending =
     evidence.status === 'review-candidate-built-play-upload-pending';
   const expectedRoleStatus = technical.status === 'passed'
@@ -193,6 +196,9 @@ export function validateStoreReviewAccess({
       && evidence.checks?.privateVaultCreated === true
       && evidence.checks?.priorVerificationEvidenceAvailable === true)
     || (prePlayPending
+      && evidence.checks?.privateVaultCreated === true
+      && evidence.checks?.priorVerificationEvidenceAvailable === true)
+    || (storePropagationPending
       && evidence.checks?.privateVaultCreated === true
       && evidence.checks?.priorVerificationEvidenceAvailable === true)
     ? 'verified'
@@ -258,6 +264,21 @@ export function validateStoreReviewAccess({
         || evidence.checks?.secondNetworkRevalidationRequired !== true) {
       fail('candidate-rollover evidence must keep exact review revalidation pending.');
     }
+  } else if (storePropagationPending) {
+    if (evidence.checks?.privateVaultCreated !== true
+        || evidence.checks?.priorVerificationEvidenceAvailable !== true
+        || evidence.checks?.exactLocalCandidateInstalled !== true
+        || evidence.checks?.twoAccountFlowTimePassed !== true
+        || evidence.checks?.exactPlayCandidateInstalled !== false
+        || evidence.checks?.playInstallerObservedOnSupersededBuild !== true
+        || evidence.checks?.authenticatedSessionRestorePassedOnLocalCandidate !== true
+        || evidence.checks?.stagingFeedPassedOnLocalCandidate !== true
+        || evidence.checks?.completeTechnicalAccessPassed !== false
+        || evidence.checks?.freshPlayInstallRevalidationRequired !== true
+        || evidence.checks?.secondRoleRevalidationRequired !== true
+        || evidence.checks?.secondNetworkRevalidationRequired !== true) {
+      fail('store-propagation evidence must preserve the local candidate checks and keep the exact Play installation pending.');
+    }
   } else if (evidence.checks?.privateVaultCreated !== true
       || evidence.checks?.registrationsAccepted !== true
       || evidence.checks?.emailVerificationPending !== true
@@ -301,6 +322,7 @@ export function validateStoreReviewAccess({
   }
   if (technical.status === 'testing') {
     const expectedRegistrationsCreated = refreshPending || rolloverPending || prePlayPending
+      || storePropagationPending
       ? false
       : true;
     if (evidence.boundaries.syntheticAccountRegistrationsCreated !== expectedRegistrationsCreated) {
@@ -313,6 +335,11 @@ export function validateStoreReviewAccess({
         && (evidence.boundaries.authenticationSessionsCreated !== false
           || evidence.boundaries.authenticationSessionObserved !== true)) {
       fail('candidate-rollover evidence must distinguish an observed session from a newly created one.');
+    }
+    if (storePropagationPending
+        && (evidence.boundaries.authenticationSessionsCreated !== false
+          || evidence.boundaries.authenticationSessionObserved !== true)) {
+      fail('store-propagation evidence must distinguish an observed local session from a newly created one.');
     }
     if (prePlayPending
         && (evidence.boundaries.authenticationSessionsCreated !== false
