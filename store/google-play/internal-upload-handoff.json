@@ -41,10 +41,15 @@
     "uploadWarningsReviewed": "passed-only-missing-testers-warning-resolved",
     "crashlyticsCandidateAssignmentVerified": "pending",
     "internalStoreInstallCompleted": "passed-google-play-installer",
-    "sharedChatStability": "pending-exact-build",
+    "sharedChatStability": "passed-exact-build",
     "messageComposerKeyboard": "pending-exact-build",
-    "messageSendPersistence": "pending-exact-build",
-    "messageRefreshPattern": "pending-exact-build"
+    "messageSendPersistence": "passed-exact-build",
+    "messageRefreshPattern": "passed-exact-build"
+  },
+  "postUploadEvidenceRefs": {
+    "sharedChatReviewAccess": "docs/evidence/b11/store-review-access-refresh-2026081509-20260815T142057Z.json",
+    "sharedChatDeepLink": "docs/evidence/b11/android-authenticated-deep-links-2026081509-20260815T132509Z.json",
+    "messagePersistenceAndRefresh": "docs/evidence/b11/android-offline-realtime-2026081509-20260815T132209Z.json"
   },
   "hardStops": {
     "productionRelease": true,

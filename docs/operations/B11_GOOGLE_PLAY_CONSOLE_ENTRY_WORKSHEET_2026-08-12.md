@@ -414,6 +414,17 @@ bleibt dennoch `false`: Die unmittelbare Artefaktprüfung, der interne Upload,
 die Aktivierung und die exakte Installation über Google Play sind abgeschlossen.
 Alle öffentlichen, Review-, Open- und Closed-Aktionen bleiben harte Stopps.
 
+Die Nachkontrollen des exakten Play-Builds sind jetzt genauer gebunden:
+Gemeinsamer Chat ist für beide synthetischen Rollen sichtbar und lesbar und
+öffnet über den authentifizierten Chat-Link. Eine während des kontrollierten
+Offlinefensters erzeugte Nachricht blieb zunächst verborgen und erschien nach
+der Netzwiederherstellung im selben laufenden Prozess; Prozess und Netz wurden
+sauber wiederhergestellt. Damit stehen `sharedChatStability`,
+`messageSendPersistence` und `messageRefreshPattern` auf
+`passed-exact-build`. `messageComposerKeyboard` bleibt bewusst
+`pending-exact-build`, bis die Tastatur im physischen Store-Build manuell
+geprüft wurde.
+
 ## 11. Quellen
 
 - Google Play: App erstellen und einrichten –

@@ -779,3 +779,34 @@ Servernachweis:
 - Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
   blieben unveraendert. Alle sechs V4-Punkte bleiben unter
   `V4-INTERIM-2026-08-15` mit `status: open` aktiv.
+
+## Meilenstein 16.83 – Play-Nachkontrollen fuer Chat und Nachrichten an Build 1509 gebunden
+
+- Die bestehende Google-Play-Uebergabe enthielt noch vier pauschal offene
+  Chat-/Nachrichtenfelder. Sie wurden nicht gemeinsam geschlossen, sondern
+  einzeln gegen die kandidatengenauen Nachweise fuer Build `2026081509`
+  geprueft.
+- Der geschuetzte Review-Datensatz belegt, dass der gemeinsame Buchungs-Chat
+  fuer Vermieter und Mieter sichtbar und lesbar ist. Der physische
+  authentifizierte Deep-Link-Lauf oeffnete denselben geschuetzten Chat aus dem
+  exakten Google-Play-Split.
+- Der physische Offline-/Realtime-Lauf belegt eine neue Nachricht, die waehrend
+  des 15-sekuendigen Offlinefensters verborgen blieb und nach
+  Netzwiederherstellung im selben Prozess erschien. App-Prozess und
+  urspruenglicher Netzwerkzustand wurden erhalten beziehungsweise
+  wiederhergestellt.
+- Damit stehen `sharedChatStability`, `messageSendPersistence` und
+  `messageRefreshPattern` jetzt auf `passed-exact-build`. Die manuelle
+  `messageComposerKeyboard`-Pruefung bleibt mangels physischem Sichtnachweis
+  ehrlich `pending-exact-build`.
+- Der Validator verlangt fuer jeden bestandenen Punkt Buildnummer, Commit,
+  Play-Installation, sichere Grenzen und die passenden Einzelergebnisse. Ein
+  aelterer oder unvollstaendiger Nachweis schliesst die Uebergabe fail-closed.
+- Data Safety wurde nicht pauschal von Build 1505 uebernommen: Zwischen den
+  Kandidaten haben sich Authentifizierungs- und Kommunikationsquellen
+  geaendert. Die Console-Erklaerung bleibt deshalb offen und ungespeichert,
+  bis die aktuelle Datenmatrix gesondert aktualisiert und fachlich freigegeben
+  ist.
+- Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
+  blieben unveraendert. Alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` mit `status: open` aktiv.

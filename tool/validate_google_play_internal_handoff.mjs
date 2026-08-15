@@ -235,6 +235,82 @@ export function validateGooglePlayInternalHandoff({
     same(crashRelease.boundaries?.controlledStagingEventGenerated, true,
       'Crashlytics release evidence.boundaries.controlledStagingEventGenerated');
   }
+  same(postUploadChecks.sharedChatStability, 'passed-exact-build',
+    'postUploadChecks.sharedChatStability');
+  same(postUploadChecks.messageComposerKeyboard, 'pending-exact-build',
+    'postUploadChecks.messageComposerKeyboard');
+  same(postUploadChecks.messageSendPersistence, 'passed-exact-build',
+    'postUploadChecks.messageSendPersistence');
+  same(postUploadChecks.messageRefreshPattern, 'passed-exact-build',
+    'postUploadChecks.messageRefreshPattern');
+
+  const postUploadEvidenceRefs = object(
+    handoff.postUploadEvidenceRefs,
+    'postUploadEvidenceRefs',
+  );
+  const sharedChatReview = object(readJson(safeEvidencePath(
+    repositoryRoot,
+    postUploadEvidenceRefs.sharedChatReviewAccess,
+    'postUploadEvidenceRefs.sharedChatReviewAccess',
+  ), 'shared Chat review evidence'), 'shared Chat review evidence');
+  same(sharedChatReview.kind, 'store-review-access-diagnostic',
+    'shared Chat review evidence.kind');
+  same(sharedChatReview.candidate?.buildNumber, candidate.buildNumber,
+    'shared Chat review evidence.candidate.buildNumber');
+  same(sharedChatReview.candidate?.commit, candidate.commit,
+    'shared Chat review evidence.candidate.commit');
+  same(sharedChatReview.checks?.sharedChatVisibleToBothRoles, true,
+    'shared Chat review evidence.checks.sharedChatVisibleToBothRoles');
+  same(sharedChatReview.checks?.sharedChatReadableByBothRoles, true,
+    'shared Chat review evidence.checks.sharedChatReadableByBothRoles');
+  same(sharedChatReview.boundaries?.containsSecrets, false,
+    'shared Chat review evidence.boundaries.containsSecrets');
+  same(sharedChatReview.boundaries?.containsEmailAddresses, false,
+    'shared Chat review evidence.boundaries.containsEmailAddresses');
+  same(sharedChatReview.boundaries?.containsTokens, false,
+    'shared Chat review evidence.boundaries.containsTokens');
+
+  const sharedChatDeepLink = object(readJson(safeEvidencePath(
+    repositoryRoot,
+    postUploadEvidenceRefs.sharedChatDeepLink,
+    'postUploadEvidenceRefs.sharedChatDeepLink',
+  ), 'shared Chat deep-link evidence'), 'shared Chat deep-link evidence');
+  assertNoCredentials(sharedChatDeepLink, 'shared Chat deep-link evidence');
+  same(sharedChatDeepLink.kind, 'android-authenticated-deep-link-diagnostic',
+    'shared Chat deep-link evidence.kind');
+  same(sharedChatDeepLink.candidate?.buildNumber, candidate.buildNumber,
+    'shared Chat deep-link evidence.candidate.buildNumber');
+  same(sharedChatDeepLink.candidate?.commit, candidate.commit,
+    'shared Chat deep-link evidence.candidate.commit');
+  same(sharedChatDeepLink.installed?.delivery, 'google-play-split',
+    'shared Chat deep-link evidence.installed.delivery');
+  same(sharedChatDeepLink.tests?.authenticatedCustomSchemeChat?.status, 'passed',
+    'shared Chat deep-link evidence.tests.authenticatedCustomSchemeChat.status');
+
+  const messageRecovery = object(readJson(safeEvidencePath(
+    repositoryRoot,
+    postUploadEvidenceRefs.messagePersistenceAndRefresh,
+    'postUploadEvidenceRefs.messagePersistenceAndRefresh',
+  ), 'message persistence evidence'), 'message persistence evidence');
+  assertNoCredentials(messageRecovery, 'message persistence evidence');
+  same(messageRecovery.kind, 'android-offline-realtime-diagnostic',
+    'message persistence evidence.kind');
+  same(messageRecovery.candidate?.buildNumber, candidate.buildNumber,
+    'message persistence evidence.candidate.buildNumber');
+  same(messageRecovery.candidate?.commit, candidate.commit,
+    'message persistence evidence.candidate.commit');
+  same(messageRecovery.installed?.delivery, 'google-play-split',
+    'message persistence evidence.installed.delivery');
+  same(messageRecovery.tests?.messageHiddenWhileOffline?.status, 'passed',
+    'message persistence evidence.tests.messageHiddenWhileOffline.status');
+  same(messageRecovery.tests?.sameProcessRealtimeRecovery?.status, 'passed',
+    'message persistence evidence.tests.sameProcessRealtimeRecovery.status');
+  same(messageRecovery.diagnostic?.appProcessSurvived, true,
+    'message persistence evidence.diagnostic.appProcessSurvived');
+  same(messageRecovery.diagnostic?.networkRestored, true,
+    'message persistence evidence.diagnostic.networkRestored');
+  same(messageRecovery.boundaries?.messageSent, true,
+    'message persistence evidence.boundaries.messageSent');
   if (internalActive) {
     const resolvedInternalReleasePath = internalReleasePath ?? safeEvidencePath(
       repositoryRoot,

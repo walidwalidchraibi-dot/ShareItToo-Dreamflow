@@ -187,6 +187,41 @@ test('rejects a completed Crashlytics assignment without exact release evidence'
     /could not be read as JSON/);
 });
 
+test('binds exact-build Chat and message recovery without claiming keyboard completion', () => {
+  const result = validateGooglePlayInternalHandoff({
+    repositoryRoot,
+    allowMissingPrivateArtifact: true,
+  });
+  assert.equal(result.buildNumber, canonicalHandoff.candidate.buildNumber);
+  assert.equal(canonicalHandoff.postUploadChecks.sharedChatStability, 'passed-exact-build');
+  assert.equal(canonicalHandoff.postUploadChecks.messageComposerKeyboard, 'pending-exact-build');
+  assert.equal(canonicalHandoff.postUploadChecks.messageSendPersistence, 'passed-exact-build');
+  assert.equal(canonicalHandoff.postUploadChecks.messageRefreshPattern, 'passed-exact-build');
+});
+
+test('rejects a message pass that is not backed by exact candidate evidence', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  data.handoff.postUploadEvidenceRefs.messagePersistenceAndRefresh =
+    'docs/evidence/b11/android-offline-realtime-2026081508-20260815T111637Z.json';
+  await writeFile(data.handoffPath, JSON.stringify(data.handoff));
+  assert.throws(() => validateGooglePlayInternalHandoff({
+    repositoryRoot,
+    ...data,
+  }), /message persistence evidence/);
+});
+
+test('keeps the manual message composer keyboard check open', async (t) => {
+  const data = await fixture();
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  data.handoff.postUploadChecks.messageComposerKeyboard = 'passed-exact-build';
+  await writeFile(data.handoffPath, JSON.stringify(data.handoff));
+  assert.throws(() => validateGooglePlayInternalHandoff({
+    repositoryRoot,
+    ...data,
+  }), /messageComposerKeyboard/);
+});
+
 test('rejects a different observed Play app signing certificate', async (t) => {
   const data = await fixture();
   t.after(() => rm(data.root, { recursive: true, force: true }));
