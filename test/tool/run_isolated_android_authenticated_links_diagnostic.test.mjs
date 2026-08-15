@@ -10,7 +10,7 @@ function syntheticCredential(role) {
   return ['private', role, 'fixture'].join('-');
 }
 
-function fixture() {
+function fixture({ completedHistory = false } = {}) {
   const root = mkdtempSync(resolve(tmpdir(), 'sit-protected-authenticated-links-'));
   const vaultFile = resolve(root, 'accounts.json');
   writeFileSync(vaultFile, `${JSON.stringify({
@@ -30,6 +30,17 @@ function fixture() {
       stripeLivemode: false,
       paymentEndpointCalled: false,
     },
+    ...(completedHistory ? {
+      syntheticBookingHistory: [{
+        workflowStatus: 'completed',
+        paymentMode: 'memory',
+        stripeLivemode: false,
+        paymentEndpointCalled: false,
+        listingId: 'completed-listing',
+        bookingId: 'completed-booking',
+        title: 'Abgeschlossene Testbuchung',
+      }],
+    } : {}),
   }, null, 2)}\n`, { mode: 0o600 });
   chmodSync(vaultFile, 0o600);
   return vaultFile;
@@ -93,6 +104,36 @@ test('isolates completed deep-link fixture and restores the protected review ses
   assert.deepEqual(calls, ['guest', 'restore-owner', 'links', 'guest', 'restore-owner']);
   assert.equal(result.isolation.protectedReviewFixtureUnchanged, true);
   assert.equal(result.isolation.protectedReviewSessionRestored, true);
+  assert.equal(readFileSync(vaultFile, 'utf8'), before);
+});
+
+test('reuses a safe completed history fixture without creating another booking', async () => {
+  const vaultFile = fixture({ completedHistory: true });
+  const before = readFileSync(vaultFile, 'utf8');
+  let lifecycleCalls = 0;
+  const result = await runIsolatedAndroidAuthenticatedLinksDiagnostic({
+    vaultFile,
+    lifecycleRunner: async () => { lifecycleCalls += 1; throw new Error('must not create'); },
+    threadRunner: async (isolatedVaultFile) => {
+      const isolated = JSON.parse(readFileSync(isolatedVaultFile, 'utf8'));
+      assert.equal(isolated.status, 'synthetic-booking-completed');
+      assert.equal(isolated.syntheticBooking.bookingId, 'completed-booking');
+      isolated.syntheticBooking.threadId = 'completed-thread';
+      writeFileSync(isolatedVaultFile, `${JSON.stringify(isolated, null, 2)}\n`, { mode: 0o600 });
+      return {
+        status: 'synthetic-booking-thread-ready',
+        workflowStatus: 'completed',
+        paymentEndpointCalled: false,
+        stripeLivemode: false,
+      };
+    },
+    ensureGuestRunner: async () => true,
+    restoreSessionRunner: async () => true,
+    deepLinkRunner: async () => passedEvidence,
+  });
+
+  assert.equal(lifecycleCalls, 0);
+  assert.equal(result.isolation.protectedReviewFixtureUnchanged, true);
   assert.equal(readFileSync(vaultFile, 'utf8'), before);
 });
 

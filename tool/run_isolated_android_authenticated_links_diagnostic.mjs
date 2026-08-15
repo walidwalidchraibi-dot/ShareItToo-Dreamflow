@@ -72,6 +72,24 @@ function accountForRole(vault, role) {
   return account;
 }
 
+function reusableCompletedFixture(vault) {
+  const history = Array.isArray(vault.syntheticBookingHistory)
+    ? vault.syntheticBookingHistory
+    : [];
+  return history.findLast((fixture) => (
+    fixture?.workflowStatus === 'completed'
+    && fixture?.paymentMode === 'memory'
+    && fixture?.stripeLivemode === false
+    && fixture?.paymentEndpointCalled === false
+    && typeof fixture?.listingId === 'string'
+    && fixture.listingId.length > 0
+    && typeof fixture?.bookingId === 'string'
+    && fixture.bookingId.length > 0
+    && typeof fixture?.title === 'string'
+    && fixture.title.length > 0
+  )) ?? null;
+}
+
 export async function runIsolatedAndroidAuthenticatedLinksDiagnostic({
   vaultFile,
   lifecycleRunner,
@@ -87,8 +105,14 @@ export async function runIsolatedAndroidAuthenticatedLinksDiagnostic({
   chmodSync(temporaryDirectory, 0o700);
   const isolatedVaultFile = resolve(temporaryDirectory, 'accounts.json');
   const isolatedVault = structuredClone(vault);
-  delete isolatedVault.syntheticBooking;
-  isolatedVault.status = 'fixture-verified-ready-for-login';
+  const recoveredCompletedFixture = reusableCompletedFixture(isolatedVault);
+  if (recoveredCompletedFixture === null) {
+    delete isolatedVault.syntheticBooking;
+    isolatedVault.status = 'fixture-verified-ready-for-login';
+  } else {
+    isolatedVault.syntheticBooking = structuredClone(recoveredCompletedFixture);
+    isolatedVault.status = 'synthetic-booking-completed';
+  }
   nonEmptyString(vault.runId, 'runId');
   isolatedVault.runId = `auth-links-${randomBytes(8).toString('hex')}`;
   writeFileSync(isolatedVaultFile, `${JSON.stringify(isolatedVault, null, 2)}\n`, { mode: 0o600 });
@@ -101,11 +125,13 @@ export async function runIsolatedAndroidAuthenticatedLinksDiagnostic({
   let sessionMutationStarted = false;
 
   try {
-    const lifecycle = await lifecycleRunner(isolatedVaultFile);
-    if (lifecycle?.status !== 'passed-bounded-synthetic-role-booking-lifecycle'
-        || lifecycle?.paymentEndpointCalled !== false
-        || lifecycle?.stripeLivemode !== false) {
-      fail('The isolated Staging lifecycle did not reach a safe completed fixture.');
+    if (recoveredCompletedFixture === null) {
+      const lifecycle = await lifecycleRunner(isolatedVaultFile);
+      if (lifecycle?.status !== 'passed-bounded-synthetic-role-booking-lifecycle'
+          || lifecycle?.paymentEndpointCalled !== false
+          || lifecycle?.stripeLivemode !== false) {
+        fail('The isolated Staging lifecycle did not reach a safe completed fixture.');
+      }
     }
     const thread = await threadRunner(isolatedVaultFile);
     if (thread?.status !== 'synthetic-booking-thread-ready'

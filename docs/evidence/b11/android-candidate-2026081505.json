@@ -60,6 +60,7 @@
     "foregroundFcm": "passed",
     "backgroundFcm": "passed",
     "terminatedProcessFcm": "passed",
+    "authenticatedDeepLinks": "passed-physical-play-build",
     "logoutColdStartGuestPersistence": "passed-physical-play-build",
     "postLogoutPushSuppression": "passed-physical-play-build",
     "twoDevicePrivatePilotAcceptance": "pending"
@@ -71,6 +72,14 @@
   "googlePlayInternalRelease": {
     "status": "store-install-verified",
     "evidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081505-20260815.json"
+  },
+  "authenticatedDeepLinks": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "listing": "passed",
+    "booking": "passed",
+    "chat": "passed",
+    "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081505-20260815T040158Z.json"
   },
   "logoutLifecycle": {
     "status": "passed",
