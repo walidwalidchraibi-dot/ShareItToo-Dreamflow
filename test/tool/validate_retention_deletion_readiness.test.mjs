@@ -61,6 +61,17 @@ test('rejects claiming automatic credential purge when the API worker is disconn
   );
 });
 
+test('rejects legal-hold readiness when account deletion no longer checks active holds', () => {
+  const path = 'backend/src/app.js';
+  const changed = readFileSync(resolve(root, path), 'utf8').replaceAll('active_legal_holds', 'removed_legal_hold_gate');
+  const retentionManifest = clone(baseRetention);
+  retentionManifest.sourceInventory.find((entry) => entry.path === path).sha256 = sha256(changed);
+  assert.throws(
+    () => validate({ retentionManifest, sourceTexts: { [path]: changed } }),
+    /legal-hold contract: active_legal_holds/u,
+  );
+});
+
 test('rejects invented legal periods in an open decision', () => {
   const retentionManifest = clone(baseRetention);
   retentionManifest.requiredDecisions.transactionalRecordPeriod.value = 'ten years';
@@ -106,6 +117,20 @@ test('rejects credential cleanup evidence that claims deployment without proof',
   evidence.deployment.status = 'verified';
   evidence.deployment.commit = null;
   evidence.deployment.evidenceRef = null;
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /exact Staging deployment proof/u,
+  );
+});
+
+test('rejects legal-hold evidence that claims deployment without proof', () => {
+  const path = 'docs/evidence/b11/account-legal-hold-20260815.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.status = 'staging-runtime-verified';
+  evidence.verification.fullBackendSuite = 'passed-example';
+  evidence.verification.fullTechnicalRegression = 'passed-candidate-rollover-mode';
+  evidence.verification.stagingRuntime = 'passed';
+  evidence.deployment.status = 'verified';
   assert.throws(
     () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
     /exact Staging deployment proof/u,

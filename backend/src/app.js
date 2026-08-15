@@ -92,6 +92,7 @@ import {
 import { PaymentDomainError } from './payment_domain.js';
 import { ModerationDomainError } from './moderation_domain.js';
 import {
+  createAccountLegalHold,
   createBookingReview,
   createReport,
   createStaffElevation,
@@ -99,6 +100,7 @@ import {
   getStaffReport,
   liftUserSuspension,
   listMyReports,
+  listAccountLegalHolds,
   listPublishedReviews,
   listStaffAudit,
   listStaffBookings,
@@ -107,6 +109,7 @@ import {
   listStaffReports,
   listStaffUsers,
   ModerationWorkflowError,
+  releaseAccountLegalHold,
   setListingModeration,
   setUserSuspension,
   staffOverview,
@@ -833,7 +836,9 @@ async function accountDeletionPreflight(client, userId) {
             OR (report.target_type = 'booking' AND EXISTS (
               SELECT 1 FROM bookings WHERE id = report.target_id AND (owner_id = $1 OR renter_id = $1)
             ))
-          )) AS open_reports`,
+          )) AS open_reports,
+       (SELECT count(*)::int FROM account_legal_holds
+        WHERE user_id = $1 AND released_at IS NULL) AS active_legal_holds`,
     [userId],
   );
   const counts = result.rows[0] ?? {};
@@ -843,6 +848,7 @@ async function accountDeletionPreflight(client, userId) {
     ['active_payments', 'Laufende Zahlungsabwicklung'],
     ['open_disputes', 'Offene Streitfälle'],
     ['open_reports', 'Offene Moderationsfälle'],
+    ['active_legal_holds', 'Rechtliche Aufbewahrungssperre'],
   ];
   const blockers = definitions
     .map(([id, label]) => ({ id, label, count: Number(counts[id] ?? 0) }))
@@ -2301,7 +2307,7 @@ export function createApp({
       if (error instanceof HttpError && error.code === 'account_deletion_blocked') {
         return sendHtml(res, 409, accountDeletionConfirmForm({
           token,
-          error: 'Die Löschung ist aktuell wegen einer offenen Buchung, Zahlung, Auszahlung oder eines Streitfalls blockiert. Bitte kläre den Vorgang zuerst in der App oder mit dem Support.',
+          error: 'Die Löschung ist aktuell wegen einer offenen Buchung, Zahlung, Auszahlung, eines Streitfalls, Moderationsfalls oder einer rechtlichen Aufbewahrungssperre blockiert. Bitte kläre den Vorgang zuerst in der App oder mit dem Support.',
         }));
       }
       if (!(error instanceof HttpError)) throw error;
@@ -3434,6 +3440,30 @@ export function createApp({
 
   app.get('/v1/admin/audit', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
     res.json({ audit: await listStaffAudit(pool, req.query) });
+  }));
+
+  app.get('/v1/admin/legal-holds', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    res.json({ legalHolds: await listAccountLegalHolds(pool, { actor: req.actor, ...req.query }) });
+  }));
+
+  app.post('/v1/admin/users/:id/legal-holds', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => createAccountLegalHold(client, {
+      actor: req.actor,
+      userId: safeText(req.params.id, 120),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/admin/legal-holds/:id/release', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => releaseAccountLegalHold(client, {
+      actor: req.actor,
+      legalHoldId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.json(result);
   }));
 
   app.post('/v1/admin/users/:id/suspensions', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {

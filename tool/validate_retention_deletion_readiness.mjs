@@ -9,11 +9,13 @@ const sourcePaths = [
   'backend/src/app.js',
   'backend/src/server.js',
   'backend/src/credential_cleanup.js',
+  'backend/src/moderation_workflow.js',
   'backend/src/privacy_export.js',
   'backend/src/account_actions.js',
   'backend/src/config.js',
   'backend/sql/schema.sql',
   'backend/sql/migrations/006_b7_communications.up.sql',
+  'backend/sql/migrations/014_account_legal_holds.up.sql',
   'backend/ops/backup.sh',
   'lib/screens/legal_privacy_screen.dart',
   'lib/screens/privacy_info_screen.dart',
@@ -33,6 +35,7 @@ const decisionKeys = [
 
 const providerEvidencePath = 'docs/evidence/b11/privacy-provider-retention-sources-20260812.json';
 const credentialCleanupEvidencePath = 'docs/evidence/b11/expired-credential-cleanup-20260815.json';
+const legalHoldEvidencePath = 'docs/evidence/b11/account-legal-hold-20260815.json';
 
 const requiredOfficialSources = [
   ['Firebase Cloud Messaging', 'https://firebase.google.com/support/privacy/', 'within 180 days'],
@@ -118,6 +121,33 @@ function assertSourceContracts(root, sourceTexts) {
   if (!server.includes('startCredentialCleanupWorker({ client: pool })')
       || !server.includes('stopCredentialCleanup()')) {
     fail('The expired credential cleanup worker must start and stop with the API process.');
+  }
+  const moderation = text(root, sourceTexts, 'backend/src/moderation_workflow.js');
+  for (const marker of [
+    'createAccountLegalHold',
+    'releaseAccountLegalHold',
+    'listAccountLegalHolds',
+    "actor.role !== 'admin'",
+    'privacy.account_legal_hold_created',
+    'privacy.account_legal_hold_released',
+  ]) {
+    if (!moderation.includes(marker)) fail(`Account legal-hold enforcement is missing the contract: ${marker}.`);
+  }
+  const legalHoldMigration = text(root, sourceTexts, 'backend/sql/migrations/014_account_legal_holds.up.sql');
+  for (const marker of [
+    'CREATE TABLE IF NOT EXISTS account_legal_holds',
+    'account_legal_holds_one_active_per_user_idx',
+    'WHERE released_at IS NULL',
+    'release_idempotency_key TEXT UNIQUE',
+  ]) {
+    if (!legalHoldMigration.includes(marker)) fail(`Account legal-hold migration is missing the contract: ${marker}.`);
+  }
+  for (const marker of [
+    'active_legal_holds',
+    '/v1/admin/users/:id/legal-holds',
+    '/v1/admin/legal-holds/:id/release',
+  ]) {
+    if (!app.includes(marker)) fail(`Account deletion or admin routing is missing the legal-hold contract: ${marker}.`);
   }
   const backup = text(root, sourceTexts, 'backend/ops/backup.sh');
   if (!backup.includes('-mtime +14 -delete')) fail('The observed 14-day backup rotation contract is missing.');
@@ -212,6 +242,61 @@ function assertCredentialCleanupEvidence(root, evidenceTexts) {
   }
 }
 
+function assertLegalHoldEvidence(root, evidenceTexts) {
+  let evidence;
+  try {
+    evidence = JSON.parse(text(root, evidenceTexts, legalHoldEvidencePath));
+  } catch (error) {
+    fail(`Account legal-hold evidence must be valid JSON: ${error.message}`);
+  }
+  assertNoSensitiveData(evidence, 'account legal-hold evidence');
+  if (evidence.schemaVersion !== 1
+      || evidence.kind !== 'account-legal-hold-enforcement'
+      || ![
+        'implemented-tests-passed-staging-deployment-pending',
+        'staging-runtime-verified',
+      ].includes(evidence.status)
+      || evidence.scope?.oneActiveHoldPerAccount !== true
+      || evidence.scope?.accountDeletionPreflightBlocked !== true
+      || evidence.scope?.appAndWebDeletionBlocked !== true
+      || evidence.scope?.adminStepUpRequired !== true
+      || evidence.scope?.supportRoleDenied !== true
+      || evidence.scope?.createAndReleaseIdempotent !== true
+      || evidence.scope?.createAndReleaseAudited !== true
+      || evidence.scope?.privateNoteExcludedFromResponseAndAudit !== true
+      || evidence.verification?.syntaxCheck !== 'passed'
+      || evidence.verification?.unitTests !== 'passed'
+      || evidence.policyBoundary?.legalHoldProcessApproved !== false
+      || evidence.policyBoundary?.legalRetentionPeriodsInvented !== false
+      || evidence.policyBoundary?.automaticHoldCreationEnabled !== false
+      || evidence.policyBoundary?.existingAccountPlacedOnHold !== false
+      || evidence.boundaries?.productionChanged !== false
+      || evidence.boundaries?.storeSubmissionChanged !== false
+      || evidence.boundaries?.containsSecrets !== false
+      || evidence.boundaries?.containsAccountData !== false) {
+    fail('Account legal-hold evidence is incomplete or exceeds its technical boundary.');
+  }
+  const deployment = object(evidence.deployment, 'account legal-hold deployment');
+  if (evidence.status === 'implemented-tests-passed-staging-deployment-pending') {
+    if (!String(evidence.verification.fullBackendSuite ?? '').startsWith('passed-')
+        || evidence.verification.fullTechnicalRegression !== 'passed-candidate-rollover-mode'
+        || evidence.verification.stagingRuntime !== 'pending'
+        || deployment.status !== 'pending'
+        || deployment.commit !== null
+        || deployment.evidenceRef !== null) {
+      fail('Pending legal-hold evidence requires full tests without claiming a Staging deployment.');
+    }
+  } else if (!String(evidence.verification.fullBackendSuite ?? '').startsWith('passed-')
+      || evidence.verification.fullTechnicalRegression !== 'passed-candidate-rollover-mode'
+      || evidence.verification.stagingRuntime !== 'passed'
+      || deployment.status !== 'verified'
+      || !/^[a-f0-9]{40}$/.test(deployment.commit ?? '')
+      || typeof deployment.evidenceRef !== 'string'
+      || !deployment.evidenceRef.startsWith('/docker/shareittoo/releases/staging-')) {
+    fail('Verified legal-hold evidence requires full tests and the exact Staging deployment proof.');
+  }
+}
+
 export function validateRetentionDeletionReadiness({
   root,
   retentionManifest,
@@ -244,6 +329,7 @@ export function validateRetentionDeletionReadiness({
   assertSourceContracts(root, sourceTexts);
   assertProviderEvidence(root, evidenceTexts);
   assertCredentialCleanupEvidence(root, evidenceTexts);
+  assertLegalHoldEvidence(root, evidenceTexts);
 
   const controls = object(retention.implementedControls, 'implementedControls');
   if (controls.accountErasure?.status !== 'implemented-integration-covered'
@@ -259,8 +345,13 @@ export function validateRetentionDeletionReadiness({
       || controls.credentialExpiry?.technicalEvidenceRef !==
         'docs/evidence/b11/expired-credential-cleanup-20260815.json'
       || controls.categoryPurge?.status !== 'not-implemented'
-      || controls.legalHold?.status !== 'not-implemented') {
-    fail('Credential cleanup and unimplemented retention controls must stay fail-closed.');
+      || controls.legalHold?.status !== 'technical-enforcement-implemented-policy-process-open'
+      || controls.legalHold?.accountDeletionPreflightBlocked !== true
+      || controls.legalHold?.adminStepUpRequired !== true
+      || controls.legalHold?.supportRoleDenied !== true
+      || controls.legalHold?.idempotentLifecycle !== true
+      || controls.legalHold?.technicalEvidenceRef !== legalHoldEvidencePath) {
+    fail('Credential cleanup and retention controls must stay technically enforced and policy-fail-closed.');
   }
   if (controls.backups?.observedRotationDays !== 14
       || controls.backups?.accountSpecificEraseFromExistingBackups !== false) {

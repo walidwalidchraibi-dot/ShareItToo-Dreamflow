@@ -61,6 +61,19 @@ function reportShape(row) {
   };
 }
 
+function legalHoldShape(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    reasonCode: row.reason_code,
+    placedBy: row.placed_by,
+    createdAt: new Date(row.created_at).toISOString(),
+    releasedAt: row.released_at ? new Date(row.released_at).toISOString() : null,
+    releasedBy: row.released_by ?? null,
+    releaseReasonCode: row.release_reason_code ?? null,
+  };
+}
+
 async function assertReportTarget(client, actorId, report) {
   if (report.targetType === 'user') {
     const result = await client.query('SELECT id FROM users WHERE id = $1 AND deactivated_at IS NULL', [report.targetId]);
@@ -594,6 +607,114 @@ export async function liftUserSuspension(client, { actor, suspensionId, raw, ide
     metadata: { suspensionId: row.id, scope: row.scope },
   });
   return { suspension: { ...row, lifted_at: new Date(), lifted_by: actor.id }, replayed: false };
+}
+
+export async function createAccountLegalHold(client, { actor, userId, raw, idempotencyKey }) {
+  if (actor.role !== 'admin') throw new ModerationWorkflowError(403, 'admin_role_required');
+  const candidate = object(raw, 'invalid_legal_hold');
+  const reasonCode = text(candidate.reasonCode, 120).toLowerCase();
+  if (!reasonCode || !/^[a-z0-9_.:-]+$/.test(reasonCode)) {
+    throw new ModerationWorkflowError(400, 'legal_hold_reason_required');
+  }
+  const key = moderationIdempotencyKey(idempotencyKey, 'account.legal_hold');
+  const replay = await client.query(
+    'SELECT * FROM account_legal_holds WHERE idempotency_key = $1',
+    [key],
+  );
+  if (replay.rowCount) return { legalHold: legalHoldShape(replay.rows[0]), replayed: true };
+
+  const target = await client.query(
+    'SELECT id, role, deactivated_at FROM users WHERE id = $1 FOR UPDATE',
+    [userId],
+  );
+  if (!target.rowCount || target.rows[0].deactivated_at) {
+    throw new ModerationWorkflowError(404, 'user_not_found');
+  }
+  if (target.rows[0].role !== 'user') {
+    throw new ModerationWorkflowError(409, 'staff_legal_hold_requires_emergency_process');
+  }
+  const active = await client.query(
+    'SELECT id FROM account_legal_holds WHERE user_id = $1 AND released_at IS NULL FOR UPDATE',
+    [userId],
+  );
+  if (active.rowCount) throw new ModerationWorkflowError(409, 'active_legal_hold_exists');
+
+  const inserted = await client.query(
+    `INSERT INTO account_legal_holds (
+       user_id, reason_code, note, placed_by, idempotency_key
+     ) VALUES ($1, $2, $3, $4, $5)
+     RETURNING *`,
+    [userId, reasonCode, text(candidate.note, 8000) || null, actor.id, key],
+  );
+  await audit(client, {
+    actor,
+    action: 'privacy.account_legal_hold_created',
+    resourceType: 'user',
+    resourceId: userId,
+    metadata: { legalHoldId: inserted.rows[0].id, reasonCode },
+  });
+  return { legalHold: legalHoldShape(inserted.rows[0]), replayed: false };
+}
+
+export async function releaseAccountLegalHold(client, { actor, legalHoldId, raw, idempotencyKey }) {
+  if (actor.role !== 'admin') throw new ModerationWorkflowError(403, 'admin_role_required');
+  const candidate = object(raw, 'invalid_legal_hold_release');
+  const reasonCode = text(candidate.reasonCode, 120).toLowerCase();
+  if (!reasonCode || !/^[a-z0-9_.:-]+$/.test(reasonCode)) {
+    throw new ModerationWorkflowError(400, 'legal_hold_release_reason_required');
+  }
+  const key = moderationIdempotencyKey(idempotencyKey, 'account.legal_hold.release');
+  const locked = await client.query(
+    'SELECT * FROM account_legal_holds WHERE id::text = $1 FOR UPDATE',
+    [legalHoldId],
+  );
+  if (!locked.rowCount) throw new ModerationWorkflowError(404, 'legal_hold_not_found');
+  const row = locked.rows[0];
+  if (row.released_at) {
+    if (row.release_idempotency_key === key) {
+      return { legalHold: legalHoldShape(row), replayed: true };
+    }
+    throw new ModerationWorkflowError(409, 'legal_hold_already_released');
+  }
+
+  const updated = await client.query(
+    `UPDATE account_legal_holds
+     SET released_at = now(), released_by = $2, release_reason_code = $3,
+         release_idempotency_key = $4
+     WHERE id = $1
+     RETURNING *`,
+    [row.id, actor.id, reasonCode, key],
+  );
+  await audit(client, {
+    actor,
+    action: 'privacy.account_legal_hold_released',
+    resourceType: 'user',
+    resourceId: row.user_id,
+    metadata: { legalHoldId: row.id, reasonCode },
+  });
+  return { legalHold: legalHoldShape(updated.rows[0]), replayed: false };
+}
+
+export async function listAccountLegalHolds(client, { actor, userId = null, active = null, limit, offset }) {
+  if (actor.role !== 'admin') throw new ModerationWorkflowError(403, 'admin_role_required');
+  const normalizedUserId = text(userId, 120) || null;
+  const activeOnly = active === true || active === 'true';
+  const releasedOnly = active === false || active === 'false';
+  const result = await client.query(
+    `SELECT * FROM account_legal_holds
+     WHERE ($1::text IS NULL OR user_id = $1)
+       AND (NOT $2::boolean OR released_at IS NULL)
+       AND (NOT $3::boolean OR released_at IS NOT NULL)
+     ORDER BY created_at DESC, id DESC LIMIT $4 OFFSET $5`,
+    [
+      normalizedUserId,
+      activeOnly,
+      releasedOnly,
+      integer(limit, 50, { minimum: 1, maximum: 200 }),
+      integer(offset, 0, { minimum: 0, maximum: 100_000 }),
+    ],
+  );
+  return result.rows.map(legalHoldShape);
 }
 
 export async function setListingModeration(client, { actor, listingId, raw, idempotencyKey }) {

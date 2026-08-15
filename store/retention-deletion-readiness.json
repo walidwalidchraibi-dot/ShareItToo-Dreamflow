@@ -3,14 +3,16 @@
   "state": "draft",
   "approvalAllowed": false,
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "465b8c7d7ba2075c201db9449cb06ca2fbe4d3538163bc8f19c96c038c72eda3"},
+    {"path": "backend/src/app.js", "sha256": "976adbbc4ec33990c51ebe8d2ee7c1970e2d2d66ec66f946af0875f443e3d08b"},
     {"path": "backend/src/server.js", "sha256": "dfde3b267be22261de2fd101618b5efa0cdfe6d65cdec88a1d08f42bbd27e5f7"},
     {"path": "backend/src/credential_cleanup.js", "sha256": "53386748f6a9cf2869c2fc98bacdd367270b4d97f5b044fffcf58dab12a2b18b"},
+    {"path": "backend/src/moderation_workflow.js", "sha256": "acdc6f8158d2acdf7cd0b5e53ff125a44e0286fca7db1bbf5569ba0de271cafc"},
     {"path": "backend/src/privacy_export.js", "sha256": "78e76bcc4f19ffcde3270fbbd7cea70cb64de57d14664d10eef44dbe222f80c1"},
     {"path": "backend/src/account_actions.js", "sha256": "d0bd8947185c7b0fd5bdc6ab600e2ffbafd8e89bf7a6b7e51b12706c5965ed37"},
     {"path": "backend/src/config.js", "sha256": "75c153e2bda86f7b76c3fcb7d6c9a1a09a728aba2e9600211735a1452669833b"},
-    {"path": "backend/sql/schema.sql", "sha256": "8534006cf23be1a3376bc4ea2952a2d0317028aa4c3c8a70f0cba5072ff969a6"},
+    {"path": "backend/sql/schema.sql", "sha256": "cfefe358462fa0ee01f14b9e439b300eb2366ee7a02a7d8584fdf52b396227f0"},
     {"path": "backend/sql/migrations/006_b7_communications.up.sql", "sha256": "f1452d85f736cc013c33747ec6de71a9d139a1b6f993eb39f591171cc2a1dd83"},
+    {"path": "backend/sql/migrations/014_account_legal_holds.up.sql", "sha256": "6daf3bf2433be6468399058dce5edeac35027fb211003a30c77ade4a95164123"},
     {"path": "backend/ops/backup.sh", "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"},
     {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "c84871daf264d9254630292f0c5ef80eb7a3b065308830e68b7f37c2d68ceb36"},
     {"path": "lib/screens/privacy_info_screen.dart", "sha256": "2738e28f1e26c4b04716b9e2bf6c14699f879a45f73c4a88755fd88236a4db61"}
@@ -36,7 +38,12 @@
       "status": "not-implemented"
     },
     "legalHold": {
-      "status": "not-implemented"
+      "status": "technical-enforcement-implemented-policy-process-open",
+      "accountDeletionPreflightBlocked": true,
+      "adminStepUpRequired": true,
+      "supportRoleDenied": true,
+      "idempotentLifecycle": true,
+      "technicalEvidenceRef": "docs/evidence/b11/account-legal-hold-20260815.json"
     },
     "backups": {
       "status": "operational-rotation-only",
