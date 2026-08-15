@@ -936,3 +936,32 @@ Servernachweis:
   Echtgeld, App-Kandidat `1.0.0+2026081509`, Store-Tracks und Review-Versand
   blieben unveraendert; alle sechs V4-Punkte bleiben unter
   `V4-INTERIM-2026-08-15` offen.
+
+## Meilenstein 16.88 – technische Legal-Hold-Sperre auf Staging bestaetigt
+
+- Eine aktive rechtliche Aufbewahrungssperre verhindert jetzt sowohl die
+  Loeschung in der App als auch den Web-Loeschpfad. Pro Konto kann hoechstens
+  eine aktive Sperre bestehen; Anlegen und Aufheben sind wiederholbar sicher
+  und werden nachvollziehbar protokolliert.
+- Nur Administratoren mit aktueller Step-up-Freigabe duerfen Sperren anzeigen,
+  anlegen oder aufheben. Die Supportrolle wird ausdruecklich abgewiesen.
+  Freitextnotizen bleiben privat und erscheinen weder in Antworten noch im
+  Auditprotokoll.
+- 132 Backendtests bestanden; nur der separate PostgreSQL-Integrationstest
+  blieb lokal mangels `TEST_DATABASE_URL` korrekt uebersprungen. Der
+  vollstaendige technische Regressionslauf bestand einschliesslich 267 App-
+  Tests sowie Web- und Android-Debug-Bau. Es wurde kein Release-Kandidat
+  erzeugt.
+- Der exakte Commit `d7c472f20e1b0a4d86c72e053ceb5d8bb3c74275`
+  wurde als unveraenderliches Backend-Abbild ausschliesslich auf Staging
+  ausgerollt. Oeffentlicher Versionsendpunkt und Readiness bestaetigen Version
+  `0.1.0-d7c472f20e1b`; der serverseitige Nachweis liegt unter
+  `/docker/shareittoo/releases/staging-20260815T165642Z-d7c472f20e1b.json`.
+- Die Laufzeitpruefung bestaetigte die neue Tabelle, den eindeutigen Index fuer
+  genau eine aktive Sperre je Konto und null aktive Sperren. Es wurde kein
+  bestehendes Konto gesperrt und weder eine Aufbewahrungsfrist noch eine
+  automatische Sperrregel erfunden. Der bereinigte Nachweis liegt unter
+  `docs/evidence/b11/account-legal-hold-20260815.json`.
+- Die neun fachlichen Aufbewahrungsentscheidungen und alle sechs V4-Punkte
+  bleiben offen. Produktion, Echtgeld, App-Kandidat `1.0.0+2026081509`,
+  Store-Tracks und Review-Versand blieben unveraendert.
