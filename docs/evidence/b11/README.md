@@ -92,7 +92,7 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081505)` |
 | Play-Signing und öffentliche App-Links | `passed`; `docs/evidence/b11/android-play-store-links-signing-2026081505-20260815.json` |
-| Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
+| Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081505.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081505.json` |
 | Staging-Servercommit | `25af918304abb13b9959d5f1e8cc35f186ecec56` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 5/7 |
