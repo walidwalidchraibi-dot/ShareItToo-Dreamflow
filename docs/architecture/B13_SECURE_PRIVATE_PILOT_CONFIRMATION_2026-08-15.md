@@ -350,3 +350,35 @@ Servernachweis:
 - Alle sechs offenen V4-Punkte bleiben unveraendert als aktive Zwischenregeln
   `V4-INTERIM-2026-08-15` gesetzt. Sie werden erst nach einer neuen Mitteilung
   des Nutzers aktualisiert und sind weder entfernt noch finalisiert.
+
+## Meilenstein 16.68 – Android-WLAN-Matrix 9/11 und Zugänglichkeits-Vorlauf
+
+- Die zuvor pauschal offene Android-WLAN-/Owner-Zelle ist jetzt an die bereits
+  vorhandenen exakten Nachweise des Google-Play-Builds `2026081505` gebunden.
+  Neun von elf Teilpruefungen stehen belegt auf `passed`: frischer Start,
+  Anmeldung/Sitzung, Inserat/Buchung, Chat/Deep-Link, Push im Vordergrund,
+  Push im Hintergrund, Push bei beendetem Prozess, Uebergabe/Rueckgabe und
+  Offline-Wiederherstellung.
+- `moderationAndAccount` bleibt ehrlich auf `testing`: Melden, Blockieren,
+  Datenexport und sichere Abmeldung sind belegt; die irreversible Loeschung
+  eines gesonderten Wegwerf-Testkontos wurde nicht ungefragt ausgefuehrt.
+- `largeTextAndScreenReader` bleibt ebenfalls auf `testing`. Auf dem realen
+  Pixel 7 Pro wurden der exakte Play-Kandidat, Play-Installer, WLAN, TalkBack
+  und mindestens 200 Prozent Schrift gleichzeitig ohne Vorbedingungsblocker
+  erkannt. Die eigentliche SIT-Traversierung wurde jedoch vom erstmaligen
+  Android-TalkBack-Einfuehrungsbildschirm abgefangen und deshalb nicht als
+  App-Abnahme gewertet.
+- Nach dem Vorlauf wurden Schriftgroesse exakt auf 85 Prozent,
+  Zugänglichkeitsdienste auf aus und `accessibility_enabled` auf 0
+  wiederhergestellt; ShareItToo wurde wieder in den Vordergrund gebracht.
+- Der Gerätevalidator prueft nun auch nicht abgeschlossene
+  `device-matrix-cell-progress`-Belege: Kandidat, Zelle, jeder Teilstatus,
+  Zeitstempel, Zusammenfassung und alle referenzierten bereinigten Nachweise
+  muessen uebereinstimmen. Ein vorgezogener Pass stoppt fail-closed.
+- 62 Geräte-Nachweistests und 15 B11-Dokumenttests bestanden. Der gesamte
+  lokale Release-Vorcheck bestand erneut bis zum externen Firebase-Projektwert
+  dieser Sitzung. Keine externe Konfiguration, Produktion, Zahlung oder
+  Store-Ausrollung wurde veraendert.
+- Alle sechs offenen V4-Punkte bleiben unveraendert als aktive Zwischenregeln
+  `V4-INTERIM-2026-08-15` gesetzt. Sie werden erst nach einer neuen Mitteilung
+  des Nutzers aktualisiert und sind weder entfernt noch finalisiert.

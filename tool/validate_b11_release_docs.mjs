@@ -162,6 +162,21 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
     ? manifest.deviceMatrix.filter((cell) => cell?.status === 'passed').length
     : 0;
   const totalCells = Array.isArray(manifest.deviceMatrix) ? manifest.deviceMatrix.length : 0;
+  const androidWifiOwnerCell = Array.isArray(manifest.deviceMatrix)
+    ? manifest.deviceMatrix.find((cell) => cell?.id === 'android-wifi-owner')
+    : null;
+  const androidWifiOwnerTests = androidWifiOwnerCell?.tests
+    ? Object.entries(androidWifiOwnerCell.tests)
+    : [];
+  const androidWifiOwnerPassedTests = androidWifiOwnerTests
+    .filter(([, status]) => status === 'passed').length;
+  const androidWifiOwnerOpenTests = androidWifiOwnerTests
+    .filter(([, status]) => status !== 'passed')
+    .map(([id, status]) => `${id}=${status}`)
+    .join(', ');
+  const androidWifiOwnerSummary = androidWifiOwnerCell
+    ? `\`${nonEmptyString(androidWifiOwnerCell.status, 'android-wifi-owner.status')}\`; Teilpruefungen ${androidWifiOwnerPassedTests}/${androidWifiOwnerTests.length} bestanden; ${androidWifiOwnerOpenTests}; \`${nonEmptyString(androidWifiOwnerCell.evidenceRef, 'android-wifi-owner.evidenceRef')}\``
+    : '`open`; noch kein kandidatenspezifischer Fortschrittsnachweis';
   const releaseChecks = Object.values(object(manifest.releaseChecks, 'releaseChecks'));
   const passedReleaseChecks = releaseChecks.filter((check) => check?.status === 'passed').length;
 
@@ -187,6 +202,7 @@ export function renderB11ReleaseSnapshot({ deviceManifest, candidateEvidence }) 
 | Android-Abmeldung und Push-Unterdrückung | ${logoutSummary} |
 | Android-Offline-/Realtime-Wiederherstellung | ${renderAndroidDiagnostic(android.offlineRealtime, 'candidate.android.offlineRealtime')} |
 | Google-Play-Installation | ${playInstalledCell || playStoreInstallVerified ? `\`passed\`; interner Track, exakte Version \`${nonEmptyString(candidate.versionName, 'candidate.versionName')} (${nonEmptyString(candidate.buildNumber, 'candidate.buildNumber')})\`` : '`testing`; noch keine belegte Installation aus dem internen Play-Track'} |
+| Android-WLAN-/Owner-Matrix | ${androidWifiOwnerSummary} |
 | Play-Signing und öffentliche App-Links | \`${nonEmptyString(storeLinksAndSigning.status, 'releaseChecks.storeWarningsLinksAndSigning.status')}\`${storeLinksAndSigning.evidenceRef ? `; \`${nonEmptyString(storeLinksAndSigning.evidenceRef, 'releaseChecks.storeWarningsLinksAndSigning.evidenceRef')}\`` : '; noch kein kandidatenspezifischer Nachweis'} |
 | Crashlytics-Releasezuordnung | \`${nonEmptyString(crashReleaseMapping.status, 'releaseChecks.crashReleaseMapping.status')}\`${crashEvidence} |
 | Kandidatenbeleg | \`${nonEmptyString(manifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef, 'releaseChecks.candidateIdentityAndSignatures.evidenceRef')}\` |

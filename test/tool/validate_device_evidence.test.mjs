@@ -1182,6 +1182,34 @@ test('strict mode rejects the in-progress evidence state', () => {
   );
 });
 
+test('accepts the evidence-backed partial Android Wi-Fi matrix progress', () => {
+  const summary = validate();
+  assert.equal(summary.state, 'testing');
+  assert.equal(baseDeviceManifest.deviceMatrix[0].status, 'testing');
+  assert.equal(
+    Object.values(baseDeviceManifest.deviceMatrix[0].tests)
+      .filter((status) => status === 'passed').length,
+    9,
+  );
+});
+
+test('rejects partial matrix evidence that overstates a manifest test status', () => {
+  const root = progressEvidenceRoot();
+  const deviceManifest = clone(baseDeviceManifest);
+  const ref = deviceManifest.deviceMatrix[0].evidenceRef;
+  const evidence = JSON.parse(readFileSync(resolve(root, ref), 'utf8'));
+  evidence.cell.tests.largeTextAndScreenReader.status = 'passed';
+  evidence.cell.tests.largeTextAndScreenReader.checkedAt = evidence.capturedAt;
+  evidence.cell.tests.largeTextAndScreenReader.evidenceRefs = [
+    'docs/evidence/b11/android-fresh-install-2026081505-20260815T054742Z.json',
+  ];
+  writeEvidence(root, ref, evidence);
+  assert.throws(
+    () => validate({ root, deviceManifest }),
+    /largeTextAndScreenReader.status must match the device matrix progress/,
+  );
+});
+
 test('rejects a premature go decision', () => {
   const deviceManifest = clone(baseDeviceManifest);
   deviceManifest.goNoGo = 'go';

@@ -76,6 +76,17 @@ test('documents the exact verified Play installation without prematurely passing
   }
 });
 
+test('documents partial Android Wi-Fi progress without claiming the cell passed', () => {
+  for (const content of Object.values(documents)) {
+    assert.equal(
+      content.includes(
+        '| Android-WLAN-/Owner-Matrix | `testing`; Teilpruefungen 9/11 bestanden; moderationAndAccount=testing, largeTextAndScreenReader=testing;',
+      ),
+      true,
+    );
+  }
+});
+
 test('rejects a stale build number in a snapshot', () => {
   const changed = structuredClone(documents);
   const path = documentPaths[0];

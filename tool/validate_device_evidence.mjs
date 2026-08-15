@@ -211,6 +211,73 @@ function validateDeviceCellEvidence(root, ref, cell, candidate, label) {
   }
 }
 
+function validateDeviceCellProgressEvidence(root, ref, cell, candidate, label) {
+  const evidence = readEvidenceJson(root, ref, label);
+  if (evidence.schemaVersion !== 1 ||
+      evidence.kind !== 'device-matrix-cell-progress' ||
+      evidence.status !== cell.status ||
+      !['open', 'testing'].includes(evidence.status)) {
+    fail(`${label} must be an open or testing device-matrix-cell-progress document.`);
+  }
+  isoTimestamp(evidence.capturedAt, `${label}.capturedAt`, { required: true });
+  assertEvidenceCandidate(evidence, candidate, label);
+  assertEvidenceBoundaries(evidence, label);
+
+  const recordedCell = object(evidence.cell, `${label}.cell`);
+  for (const key of [
+    'id',
+    'platform',
+    'network',
+    'role',
+    'deviceType',
+    'deviceModel',
+    'osVersion',
+    'storeInstall',
+    'screenReader',
+  ]) {
+    if (recordedCell[key] !== cell[key]) {
+      fail(`${label}.cell.${key} must match its device matrix entry.`);
+    }
+  }
+  const tests = object(recordedCell.tests, `${label}.cell.tests`);
+  if (Object.keys(tests).length !== requiredDeviceTests.length) {
+    fail(`${label}.cell.tests must contain exactly the required B11 device checks.`);
+  }
+  for (const key of requiredDeviceTests) {
+    const result = object(tests[key], `${label}.cell.tests.${key}`);
+    if (result.status !== cell.tests[key]) {
+      fail(`${label}.cell.tests.${key}.status must match the device matrix progress.`);
+    }
+    nonEmptyString(result.summary, `${label}.cell.tests.${key}.summary`);
+    if (!Array.isArray(result.evidenceRefs)) {
+      fail(`${label}.cell.tests.${key}.evidenceRefs must be an array.`);
+    }
+    if (result.status === 'passed' || result.status === 'testing') {
+      isoTimestamp(result.checkedAt, `${label}.cell.tests.${key}.checkedAt`, { required: true });
+      if (result.evidenceRefs.length === 0) {
+        fail(`${label}.cell.tests.${key} requires at least one evidence reference.`);
+      }
+      for (const [index, sourceRef] of result.evidenceRefs.entries()) {
+        const verifiedRef = evidenceRef(
+          root,
+          sourceRef,
+          `${label}.cell.tests.${key}.evidenceRefs[${index}]`,
+          { required: true },
+        );
+        readEvidenceJson(
+          root,
+          verifiedRef,
+          `${label}.cell.tests.${key}.sourceEvidence[${index}]`,
+        );
+      }
+    } else {
+      if (result.checkedAt !== null || result.evidenceRefs.length !== 0) {
+        fail(`${label}.cell.tests.${key} must remain without passed evidence while open.`);
+      }
+    }
+  }
+}
+
 function validateAndroidDirectDiagnostic(root, diagnostic, candidate) {
   const label = 'candidate.android.directDiagnostic';
   if (diagnostic.status !== 'passed' || diagnostic.installMethod !== 'direct-apk-diagnostic') {
@@ -1664,7 +1731,16 @@ export function validateDeviceEvidence({
       if (!['pending', 'play-internal', 'testflight-internal'].includes(cell.storeInstall)) {
         fail(`${id}.storeInstall is invalid.`);
       }
-      evidenceRef(root, cell.evidenceRef, `${id}.evidenceRef`, { required: false });
+      const progressRef = evidenceRef(root, cell.evidenceRef, `${id}.evidenceRef`, { required: false });
+      if (progressRef !== null) {
+        validateDeviceCellProgressEvidence(
+          root,
+          progressRef,
+          cell,
+          candidate,
+          `${id}.progressEvidence`,
+        );
+      }
     }
   }
   if (cells.size !== requiredCells.size) {

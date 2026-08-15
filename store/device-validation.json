@@ -86,21 +86,21 @@
       "osVersion": "Android 16",
       "storeInstall": "play-internal",
       "screenReader": "talkback",
-      "status": "open",
+      "status": "testing",
       "tests": {
-        "installAndFirstStart": "open",
-        "authenticationAndSession": "open",
-        "listingAndBooking": "open",
-        "chatAndDeepLink": "open",
-        "pushForeground": "open",
-        "pushBackground": "open",
-        "pushTerminated": "open",
-        "handoverAndReturn": "open",
-        "moderationAndAccount": "open",
-        "offlineRecovery": "open",
-        "largeTextAndScreenReader": "open"
+        "installAndFirstStart": "passed",
+        "authenticationAndSession": "passed",
+        "listingAndBooking": "passed",
+        "chatAndDeepLink": "passed",
+        "pushForeground": "passed",
+        "pushBackground": "passed",
+        "pushTerminated": "passed",
+        "handoverAndReturn": "passed",
+        "moderationAndAccount": "testing",
+        "offlineRecovery": "passed",
+        "largeTextAndScreenReader": "testing"
       },
-      "evidenceRef": null
+      "evidenceRef": "docs/evidence/b11/android-wifi-owner-progress-2026081505-20260815T061831Z.json"
     },
     {
       "id": "android-hotspot-renter",
