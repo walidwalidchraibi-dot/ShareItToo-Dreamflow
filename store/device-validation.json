@@ -18,7 +18,46 @@
       "delivery": "play-internal",
       "aabSha256": "8295b7cef0de1061acdf4179080deda0fb13133c4d7fd306da0d51062312fcc5",
       "apkSha256": "517e1e15b8bbb4409444d29aa5094feedba590078fadaba3293142ab62f1593f",
-      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4"
+      "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
+      "syntheticRoleBooking": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-15T13:30:48.422Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081509-20260815T133048Z.json"
+      },
+      "authenticatedDeepLinks": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-15T13:25:09.003Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081509-20260815T132509Z.json"
+      },
+      "logoutLifecycle": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-15T13:17:01.598Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081509-20260815T131701Z.json"
+      },
+      "offlineRealtime": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "offlineWindowSeconds": 15,
+        "sameProcessRecovery": "passed",
+        "originalNetworkRestored": "passed",
+        "capturedAt": "2026-08-15T13:22:09.753Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081509-20260815T132209Z.json"
+      }
     },
     "ios": {
       "delivery": "pending",
@@ -34,25 +73,25 @@
       "network": "wifi",
       "role": "owner",
       "deviceType": "physical",
-      "deviceModel": null,
-      "osVersion": null,
-      "storeInstall": "pending",
+      "deviceModel": "Pixel 7 Pro",
+      "osVersion": "Android 16",
+      "storeInstall": "play-internal",
       "screenReader": "talkback",
-      "status": "open",
+      "status": "testing",
       "tests": {
-        "installAndFirstStart": "open",
-        "authenticationAndSession": "open",
-        "listingAndBooking": "open",
-        "chatAndDeepLink": "open",
-        "pushForeground": "open",
-        "pushBackground": "open",
-        "pushTerminated": "open",
-        "handoverAndReturn": "open",
-        "moderationAndAccount": "open",
-        "offlineRecovery": "open",
+        "installAndFirstStart": "passed",
+        "authenticationAndSession": "passed",
+        "listingAndBooking": "passed",
+        "chatAndDeepLink": "passed",
+        "pushForeground": "passed",
+        "pushBackground": "passed",
+        "pushTerminated": "passed",
+        "handoverAndReturn": "passed",
+        "moderationAndAccount": "testing",
+        "offlineRecovery": "passed",
         "largeTextAndScreenReader": "open"
       },
-      "evidenceRef": null
+      "evidenceRef": "docs/evidence/b11/android-wifi-owner-progress-2026081509-20260815T133200Z.json"
     },
     {
       "id": "android-hotspot-renter",
@@ -139,8 +178,8 @@
       "evidenceRef": "docs/evidence/b11/android-candidate-2026081509.json"
     },
     "firebaseFcmAndApns": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "testing",
+      "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081509-20260815T131855Z.json"
     },
     "binaryPrivacyAndNetwork": {
       "status": "passed",

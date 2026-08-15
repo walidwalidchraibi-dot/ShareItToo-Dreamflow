@@ -10,7 +10,10 @@ import {
   parseAdbDevices,
   selectSinglePhysicalDevice,
 } from './prepare_android_device_test.mjs';
-import { restoreSyntheticSession } from './diagnose_android_logout_lifecycle.mjs';
+import {
+  ensureAndroidGuestSession,
+  restoreSyntheticSession,
+} from './diagnose_android_logout_lifecycle.mjs';
 
 const repositoryRoot = realpathSync(resolve(fileURLToPath(new URL('..', import.meta.url))));
 
@@ -54,6 +57,20 @@ function argumentValue(args, flag) {
   return index >= 0 ? args[index + 1] : null;
 }
 
+export async function rebindSyntheticSession({
+  commandRunner,
+  adbPath,
+  device,
+  wait,
+  account,
+  ensureGuest = ensureAndroidGuestSession,
+  restore = restoreSyntheticSession,
+}) {
+  const guestReady = await ensureGuest({ commandRunner, adbPath, device, wait });
+  if (!guestReady) return false;
+  return restore({ commandRunner, adbPath, device, wait, account });
+}
+
 async function run() {
   const args = process.argv.slice(2);
   const vaultFile = resolve(argumentValue(args, '--vault-file') ?? fail('--vault-file is required.'));
@@ -63,7 +80,7 @@ async function run() {
   const devices = parseAdbDevices(defaultCommandRunner(adbPath, ['devices', '-l']));
   const device = selectSinglePhysicalDevice(devices);
   const deviceSummary = inspectPhysicalDevice({ adbPath, device });
-  const restored = await restoreSyntheticSession({
+  const restored = await rebindSyntheticSession({
     commandRunner: defaultCommandRunner,
     adbPath,
     device,

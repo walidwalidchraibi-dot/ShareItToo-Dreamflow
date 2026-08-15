@@ -76,11 +76,11 @@ test('documents the exact verified Play installation without prematurely passing
   }
 });
 
-test('documents the exact-candidate Android Wi-Fi reset without claiming a pass', () => {
+test('documents exact-candidate Android Wi-Fi progress without claiming the full cell passed', () => {
   for (const content of Object.values(documents)) {
     assert.equal(
       content.includes(
-        '| Android-WLAN-/Owner-Matrix | `open`; Teilpruefungen 0/11 bestanden;',
+        '| Android-WLAN-/Owner-Matrix | `testing`; Teilpruefungen 9/11 bestanden;',
       ),
       true,
     );

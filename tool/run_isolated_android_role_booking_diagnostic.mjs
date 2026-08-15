@@ -67,10 +67,15 @@ function readProtectedVault(vaultFile) {
     fail('The protected review vault is not a safe two-role Staging fixture.');
   }
   const fixture = vault.syntheticBooking;
-  if (!fixture || !['accepted', 'active'].includes(fixture.workflowStatus) ||
-      fixture.paymentMode !== 'memory' || fixture.stripeLivemode !== false ||
-      fixture.paymentEndpointCalled !== false) {
-    fail('The protected review fixture must remain active and payment-free during the isolated probe.');
+  const readyWithoutBooking = fixture === undefined
+    && vault.status === 'fixture-verified-ready-for-login';
+  const safeActiveBooking = fixture !== undefined
+    && ['accepted', 'active'].includes(fixture.workflowStatus)
+    && fixture.paymentMode === 'memory'
+    && fixture.stripeLivemode === false
+    && fixture.paymentEndpointCalled === false;
+  if (!readyWithoutBooking && !safeActiveBooking) {
+    fail('The protected review vault must be login-ready or hold an active payment-free fixture.');
   }
   return { raw, vault };
 }

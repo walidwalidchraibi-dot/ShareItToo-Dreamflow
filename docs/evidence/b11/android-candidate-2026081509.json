@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "android-release-candidate",
-  "status": "built-scanned-play-internal-store-install-verified",
+  "status": "built-scanned-play-internal-store-install-and-bounded-device-diagnostics-verified",
   "generatedAt": "2026-08-15T12:32:36Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -62,17 +62,49 @@
     "authenticatedSessionAcrossPlayUpdate": "passed",
     "stagingFeedAfterPlayUpdate": "passed",
     "facebookAuthPluginAfterPlayUpdate": "passed-no-sdk-initialization-or-plugin-registration-error",
-    "authenticatedDeepLinks": "pending-exact-store-build",
-    "foregroundFcm": "pending-exact-store-build",
-    "backgroundFcm": "pending-exact-store-build",
-    "terminatedProcessFcm": "pending-exact-store-build",
-    "logoutColdStartGuestPersistence": "pending-exact-store-build",
-    "postLogoutPushSuppression": "pending-exact-store-build",
-    "offlineRealtimeRecovery": "pending-exact-store-build",
+    "syntheticRoleBooking": "passed-bounded-google-play-split-two-role-lifecycle",
+    "authenticatedDeepLinks": "passed-bounded-google-play-split-listing-booking-chat",
+    "foregroundFcm": "passed",
+    "backgroundFcm": "passed",
+    "terminatedProcessFcm": "passed",
+    "notificationIconVisualFit": "passed-centered-contained-safety-margin",
+    "logoutColdStartGuestPersistence": "passed-physical-play-build",
+    "postLogoutPushSuppression": "passed-physical-play-build",
+    "offlineRealtimeRecovery": "passed-physical-play-build",
     "crashlyticsMappingAndNativeSymbols": "pending-exact-store-build",
     "photoPickerListingChatHandover": "pending-device-flow",
     "closedTrackDraft": "not-started-boundary",
     "twoDevicePrivatePilotAcceptance": "pending"
+  },
+  "syntheticRoleBooking": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081509-20260815T133048Z.json"
+  },
+  "authenticatedDeepLinks": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081509-20260815T132509Z.json"
+  },
+  "controlledFcm": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081509-20260815T131855Z.json"
+  },
+  "logoutLifecycle": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "coldStartGuestPersistence": "passed",
+    "postLogoutPushSuppression": "passed",
+    "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081509-20260815T131701Z.json"
+  },
+  "offlineRealtime": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "offlineWindowSeconds": 15,
+    "sameProcessRecovery": "passed",
+    "networkRestoredAfterProbe": true,
+    "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081509-20260815T132209Z.json"
   },
   "deviceRestoration": {
     "status": "passed",

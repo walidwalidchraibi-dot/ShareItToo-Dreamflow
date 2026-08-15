@@ -47,11 +47,17 @@ export function sanitizedChildFailure(error) {
     .map((entry) => entry.trim())
     .filter((entry) => entry.startsWith('ERROR: '))
     .at(-1);
-  if (line === undefined) return null;
-  const detail = line.slice('ERROR: '.length).trim();
-  if (detail.length === 0 || detail.length > 240 || unsafeFailureDetail.test(detail)) return null;
-  if (!/^[A-Za-z0-9 .,()'/-]+$/u.test(detail)) return null;
-  return detail;
+  const candidates = [
+    line === undefined ? null : line.slice('ERROR: '.length).trim(),
+    typeof error?.message === 'string' ? error.message.trim() : null,
+  ];
+  for (const detail of candidates) {
+    if (detail === null || detail.length === 0 || detail.length > 240) continue;
+    if (unsafeFailureDetail.test(detail)) continue;
+    if (!/^[A-Za-z0-9 .,()'/-]+$/u.test(detail)) continue;
+    return detail;
+  }
+  return null;
 }
 
 function argumentValue(args, flag) {
@@ -96,11 +102,30 @@ async function run() {
   let primaryFailure = null;
   let fixtureCreated = false;
   let retirement = null;
+  let failureStage = 'create-fixture';
   try {
     await createSyntheticBookingFixture({ vaultFile: isolatedVaultFile });
     fixtureCreated = true;
+    failureStage = 'accept-fixture';
     await transitionSyntheticBookingFixture({ vaultFile: isolatedVaultFile, status: 'accepted' });
+    failureStage = 'prepare-thread';
     await prepareSyntheticBookingThread({ vaultFile: isolatedVaultFile, actorRole: 'owner' });
+    failureStage = 'bind-device-session';
+    const sessionBindingPath = fileURLToPath(new URL(
+      './restore_android_synthetic_session.mjs',
+      import.meta.url,
+    ));
+    execFileSync(process.execPath, [
+      sessionBindingPath,
+      '--vault-file', isolatedVaultFile,
+      '--role', 'owner',
+      '--adb', adbPath,
+    ], {
+      encoding: 'utf8',
+      maxBuffer: 512 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    failureStage = 'device-diagnostic';
     const diagnosticPath = fileURLToPath(new URL(diagnosticRelativePath, import.meta.url));
     const childArgs = [
       diagnosticPath,
@@ -138,7 +163,7 @@ async function run() {
   if (primaryFailure !== null) {
     const detail = sanitizedChildFailure(primaryFailure);
     fail(detail === null
-      ? `The isolated ${kind} diagnostic failed without exposing private state.`
+      ? `The isolated ${kind} diagnostic failed safely during ${failureStage}.`
       : `The isolated ${kind} diagnostic failed safely: ${detail}`);
   }
   const evidence = result?.evidence ?? result;

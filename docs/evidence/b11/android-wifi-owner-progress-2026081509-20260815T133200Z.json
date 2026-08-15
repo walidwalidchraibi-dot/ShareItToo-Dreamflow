@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "kind": "device-matrix-cell-progress",
+  "status": "testing",
+  "capturedAt": "2026-08-15T13:32:00.000Z",
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "bundleId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081509",
+    "commit": "3fa045b98897f9551f91da932136c2b100b2d700",
+    "releaseChannel": "internal",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
+    "firebaseConfigured": true,
+    "paymentMode": "memory",
+    "stripeLivemode": false
+  },
+  "cell": {
+    "id": "android-wifi-owner",
+    "platform": "android",
+    "network": "wifi",
+    "role": "owner",
+    "deviceType": "physical",
+    "deviceModel": "Pixel 7 Pro",
+    "osVersion": "Android 16",
+    "storeInstall": "play-internal",
+    "screenReader": "talkback",
+    "tests": {
+      "installAndFirstStart": {
+        "status": "passed",
+        "checkedAt": "2026-08-15T14:50:14+02:00",
+        "summary": "Google Play lieferte den exakten internen Build 2026081509 als vier Splits; Installation, Start und Paketquelle wurden verifiziert.",
+        "evidenceRefs": [
+          "docs/evidence/b11/google-play-internal-release-active-2026081509-20260815.json"
+        ]
+      },
+      "authenticationAndSession": {
+        "status": "passed",
+        "checkedAt": "2026-08-15T13:25:09.003Z",
+        "summary": "Die synthetische Owner-Sitzung wurde eindeutig wiederhergestellt; geschützte Ziele waren angemeldet erreichbar und die sichere Abmeldung blieb wirksam.",
+        "evidenceRefs": [
+          "docs/evidence/b11/android-authenticated-deep-links-2026081509-20260815T132509Z.json",
+          "docs/evidence/b11/android-logout-lifecycle-2026081509-20260815T131701Z.json"
+        ]
+      },
+      "listingAndBooking": {
+        "status": "passed",
+        "checkedAt": "2026-08-15T13:30:48.422Z",
+        "summary": "Die isolierte Zwei-Rollen-Buchung durchlief Anfrage, Annahme, aktive Miete und Abschluss ohne Zahlungsaufruf.",
+        "evidenceRefs": [
+          "docs/evidence/b11/android-synthetic-role-booking-2026081509-20260815T133048Z.json"
+        ]
+      },
+      "chatAndDeepLink": {
+        "status": "passed",
+        "checkedAt": "2026-08-15T13:25:09.003Z",
+        "summary": "Authentifizierte Links öffneten das synthetische Inserat, die abgeschlossene Buchung und den zugehörigen privaten Chat.",
+        "evidenceRefs": [
+          "docs/evidence/b11/android-authenticated-deep-links-2026081509-20260815T132509Z.json"
+        ]
+      },
+      "pushForeground": {
+        "status": "passed",
+        "checkedAt": "2026-08-15T13:18:55.479Z",
+        "summary": "Die kontrollierte FCM-Nachricht erschien bei geöffneter App als SIT-Banner.",
+        "evidenceRefs": [
+          "docs/evidence/b11/android-controlled-fcm-2026081509-20260815T131855Z.json"
+        ]
+      },
+      "pushBackground": {
+        "status": "passed",
+        "checkedAt": "2026-08-15T13:18:55.479Z",
+        "summary": "Die kontrollierte FCM-Nachricht erschien im Hintergrund als Android-Systembenachrichtigung.",
+        "evidenceRefs": [
+          "docs/evidence/b11/android-controlled-fcm-2026081509-20260815T131855Z.json"
+        ]
+      },
+      "pushTerminated": {
+        "status": "passed",
+        "checkedAt": "2026-08-15T13:18:55.479Z",
+        "summary": "Die kontrollierte FCM-Nachricht erschien auch bei vollständig beendetem App-Prozess; das Symbol blieb zentriert und vollständig im Systemkreis.",
+        "evidenceRefs": [
+          "docs/evidence/b11/android-controlled-fcm-2026081509-20260815T131855Z.json"
+        ]
+      },
+      "handoverAndReturn": {
+        "status": "passed",
+        "checkedAt": "2026-08-15T13:30:48.422Z",
+        "summary": "Übergabe und Rückgabe wurden mit den vorgesehenen Rollen und Verifikationsversion 3 gegenseitig bestätigt.",
+        "evidenceRefs": [
+          "docs/evidence/b11/android-synthetic-role-booking-2026081509-20260815T133048Z.json"
+        ]
+      },
+      "moderationAndAccount": {
+        "status": "testing",
+        "checkedAt": "2026-08-15T13:17:01.598Z",
+        "summary": "Abmeldung, Kaltstart als Gast, Schutz privater Chats und Push-Unterdrückung nach Logout sind bestanden; Melden, Blockieren, Export und Wegwerf-Kontolöschung bleiben kandidatenspezifisch offen.",
+        "evidenceRefs": [
+          "docs/evidence/b11/android-logout-lifecycle-2026081509-20260815T131701Z.json"
+        ]
+      },
+      "offlineRecovery": {
+        "status": "passed",
+        "checkedAt": "2026-08-15T13:22:09.753Z",
+        "summary": "Eine neue Chatnachricht blieb offline verborgen und erschien nach Netzrückkehr im selben laufenden Prozess; der ursprüngliche Netzwerkzustand wurde wiederhergestellt.",
+        "evidenceRefs": [
+          "docs/evidence/b11/android-offline-realtime-2026081509-20260815T132209Z.json"
+        ]
+      },
+      "largeTextAndScreenReader": {
+        "status": "open",
+        "checkedAt": null,
+        "summary": "Die manuelle App-Traversierung mit TalkBack und großer Schrift bleibt offen.",
+        "evidenceRefs": []
+      }
+    }
+  },
+  "boundaries": {
+    "fullCellPassed": false,
+    "manualTalkBackTraversalPassed": false,
+    "largeTextPassed": false,
+    "disposableAccountDeleted": false,
+    "hotspotPassed": false,
+    "iosValidated": false,
+    "productionChanged": false,
+    "paymentEndpointCalled": false,
+    "containsSecrets": false,
+    "containsRawDeviceIdentifiers": false,
+    "containsReviewCredentials": false,
+    "syntheticAccountsOnly": true
+  }
+}

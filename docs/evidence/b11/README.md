@@ -85,13 +85,13 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Direkte Android-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Angemeldete Android-Sitzungsdiagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Kontrollierte Android-FCM-Diagnose | `pending-exact-store-build/pending-exact-store-build/pending-exact-store-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Android-Abmeldung und Push-Unterdrückung | `pending-exact-store-build/pending-exact-store-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081509-20260815T133048Z.json` |
+| Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081509-20260815T132509Z.json` |
+| Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081509-20260815T131855Z.json` |
+| Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081509-20260815T131701Z.json` |
+| Android-Offline-/Realtime-Wiederherstellung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-offline-realtime-2026081509-20260815T132209Z.json` |
 | Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081509)` |
-| Android-WLAN-/Owner-Matrix | `open`; Teilpruefungen 0/11 bestanden; installAndFirstStart=open, authenticationAndSession=open, listingAndBooking=open, chatAndDeepLink=open, pushForeground=open, pushBackground=open, pushTerminated=open, handoverAndReturn=open, moderationAndAccount=open, offlineRecovery=open, largeTextAndScreenReader=open; noch kein kandidatenspezifischer Fortschrittsnachweis |
+| Android-WLAN-/Owner-Matrix | `testing`; Teilpruefungen 9/11 bestanden; moderationAndAccount=testing, largeTextAndScreenReader=open; `docs/evidence/b11/android-wifi-owner-progress-2026081509-20260815T133200Z.json` |
 | Play-Signing und öffentliche App-Links | `open`; noch kein kandidatenspezifischer Nachweis |
 | Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081509.json` |

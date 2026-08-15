@@ -11,7 +11,7 @@ function syntheticCredential(role) {
   return ['private', role, 'fixture'].join('-');
 }
 
-function fixture() {
+function fixture({ withoutBooking = false } = {}) {
   const root = mkdtempSync(resolve(tmpdir(), 'sit-protected-role-booking-'));
   chmodSync(root, 0o700);
   const vaultFile = resolve(root, 'accounts.json');
@@ -19,19 +19,21 @@ function fixture() {
     schemaVersion: 1,
     kind: 'sit-staging-synthetic-account-vault',
     runId: 'protected-review-fixture',
-    status: 'synthetic-booking-active',
+    status: withoutBooking ? 'fixture-verified-ready-for-login' : 'synthetic-booking-active',
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
     stripeLivemode: false,
     accounts: [
       { role: 'owner', email: 'owner@example.invalid', password: syntheticCredential('owner') },
       { role: 'renter', email: 'renter@example.invalid', password: syntheticCredential('renter') },
     ],
-    syntheticBooking: {
-      workflowStatus: 'accepted',
-      paymentMode: 'memory',
-      stripeLivemode: false,
-      paymentEndpointCalled: false,
-    },
+    ...(withoutBooking ? {} : {
+      syntheticBooking: {
+        workflowStatus: 'accepted',
+        paymentMode: 'memory',
+        stripeLivemode: false,
+        paymentEndpointCalled: false,
+      },
+    }),
   }, null, 2)}\n`, { mode: 0o600 });
   chmodSync(vaultFile, 0o600);
   return vaultFile;
@@ -77,6 +79,27 @@ test('uses an isolated vault and preserves the active protected review fixture',
     containsReviewCredentials: false,
   });
   assert.equal(JSON.stringify(result).includes(syntheticCredential('owner')), false);
+});
+
+test('accepts a login-ready protected vault without an active booking', async () => {
+  const vaultFile = fixture({ withoutBooking: true });
+  const before = readFileSync(vaultFile, 'utf8');
+  const result = await runIsolatedAndroidRoleBookingDiagnostic({
+    vaultFile,
+    runner: async () => ({
+      status: 'passed-bounded-synthetic-role-booking-diagnostic',
+    }),
+    retirementRunner: async () => ({
+      status: 'synthetic-booking-retired',
+      bookingCompleted: true,
+      listingPaused: true,
+      paymentEndpointCalled: false,
+      stripeLivemode: false,
+    }),
+  });
+
+  assert.equal(result.isolation.protectedReviewFixtureUnchanged, true);
+  assert.equal(readFileSync(vaultFile, 'utf8'), before);
 });
 
 test('fails closed when the temporary role-booking fixture is not retired', async () => {
@@ -145,7 +168,7 @@ test('rejects an unsafe or terminal protected fixture before running', async () 
         called = true;
       },
     }),
-    /must remain active and payment-free/,
+    /must be login-ready or hold an active payment-free fixture/,
   );
   assert.equal(called, false);
 });

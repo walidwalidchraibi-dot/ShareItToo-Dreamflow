@@ -1185,17 +1185,18 @@ test('strict mode rejects the in-progress evidence state', () => {
   );
 });
 
-test('accepts an exact-candidate rollover with historical matrix progress reset', () => {
+test('accepts the current exact-candidate bounded Android Wi-Fi progress', () => {
   const summary = validate();
   assert.equal(summary.state, 'testing');
-  assert.equal(baseDeviceManifest.deviceMatrix[0].status, 'open');
+  assert.equal(baseDeviceManifest.deviceMatrix[0].status, 'testing');
   assert.equal(
     Object.values(baseDeviceManifest.deviceMatrix[0].tests)
       .filter((status) => status === 'passed').length,
-    0,
+    9,
   );
-  assert.equal(baseDeviceManifest.deviceMatrix[0].evidenceRef, null);
+  assert.match(baseDeviceManifest.deviceMatrix[0].evidenceRef, /android-wifi-owner-progress-2026081509/);
   assert.equal(baseDeviceManifest.candidate.android.authenticatedSession, undefined);
+  assert.equal(baseDeviceManifest.candidate.android.syntheticRoleBooking.status, 'passed');
 });
 
 test('rejects partial matrix evidence that overstates a manifest test status', () => {
@@ -1229,7 +1230,9 @@ test('rejects partial matrix evidence that overstates a manifest test status', (
         status,
         checkedAt: status === 'open' ? null : '2026-08-15T08:00:00Z',
         summary: `${key} remains bounded in the test fixture.`,
-        evidenceRefs: [],
+        evidenceRefs: status === 'open' ? [] : [
+          deviceManifest.releaseChecks.candidateIdentityAndSignatures.evidenceRef,
+        ],
       }])),
     },
     boundaries: {

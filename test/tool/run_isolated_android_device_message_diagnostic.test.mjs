@@ -26,3 +26,10 @@ test('rejects child failure details containing private-looking values', () => {
 test('rejects unstructured child stderr', () => {
   assert.equal(sanitizedChildFailure({ stderr: 'unexpected stack trace\n' }), null);
 });
+
+test('preserves a bounded generic parent-stage failure', () => {
+  assert.equal(
+    sanitizedChildFailure({ message: 'The protected fixture is not ready.' }),
+    'The protected fixture is not ready.',
+  );
+});

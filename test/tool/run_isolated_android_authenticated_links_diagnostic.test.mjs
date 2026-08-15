@@ -10,7 +10,7 @@ function syntheticCredential(role) {
   return ['private', role, 'fixture'].join('-');
 }
 
-function fixture({ completedHistory = false, archivedHistory = false } = {}) {
+function fixture({ completedHistory = false, archivedHistory = false, withoutBooking = false } = {}) {
   const root = mkdtempSync(resolve(tmpdir(), 'sit-protected-authenticated-links-'));
   const vaultFile = resolve(root, 'accounts.json');
   writeFileSync(vaultFile, `${JSON.stringify({
@@ -18,18 +18,20 @@ function fixture({ completedHistory = false, archivedHistory = false } = {}) {
     kind: 'sit-staging-synthetic-account-vault',
     apiBaseUrl: 'https://staging.shareittoo.com/api/v1',
     stripeLivemode: false,
-    status: 'synthetic-booking-active',
+    status: withoutBooking ? 'fixture-verified-ready-for-login' : 'synthetic-booking-active',
     runId: 'private-review-run',
     accounts: [
       { role: 'owner', email: 'owner@example.invalid', password: syntheticCredential('owner') },
       { role: 'renter', email: 'renter@example.invalid', password: syntheticCredential('renter') },
     ],
-    syntheticBooking: {
-      workflowStatus: 'active',
-      paymentMode: 'memory',
-      stripeLivemode: false,
-      paymentEndpointCalled: false,
-    },
+    ...(withoutBooking ? {} : {
+      syntheticBooking: {
+        workflowStatus: 'active',
+        paymentMode: 'memory',
+        stripeLivemode: false,
+        paymentEndpointCalled: false,
+      },
+    }),
     ...(completedHistory ? {
       syntheticBookingHistory: [{
         workflowStatus: 'completed',
@@ -121,6 +123,52 @@ test('isolates completed deep-link fixture and restores the protected review ses
   assert.equal(result.isolation.temporaryBookingCompleted, true);
   assert.equal(result.isolation.temporaryListingPaused, true);
   assert.equal(result.isolation.temporaryListingDeleted, false);
+  assert.equal(readFileSync(vaultFile, 'utf8'), before);
+});
+
+test('accepts a login-ready protected vault without mutating it or requiring an active booking', async () => {
+  const vaultFile = fixture({ withoutBooking: true });
+  const before = readFileSync(vaultFile, 'utf8');
+  let lifecycleCalls = 0;
+  await runIsolatedAndroidAuthenticatedLinksDiagnostic({
+    vaultFile,
+    lifecycleRunner: async (isolatedVaultFile) => {
+      lifecycleCalls += 1;
+      const isolated = JSON.parse(readFileSync(isolatedVaultFile, 'utf8'));
+      isolated.status = 'synthetic-booking-completed';
+      isolated.syntheticBooking = {
+        workflowStatus: 'completed',
+        paymentMode: 'memory',
+        stripeLivemode: false,
+        paymentEndpointCalled: false,
+      };
+      writeFileSync(isolatedVaultFile, `${JSON.stringify(isolated, null, 2)}\n`, { mode: 0o600 });
+      return {
+        status: 'passed-bounded-synthetic-role-booking-lifecycle',
+        paymentEndpointCalled: false,
+        stripeLivemode: false,
+      };
+    },
+    threadRunner: async () => ({
+      status: 'synthetic-booking-thread-ready',
+      workflowStatus: 'completed',
+      paymentEndpointCalled: false,
+      stripeLivemode: false,
+    }),
+    retirementRunner: async () => ({
+      status: 'synthetic-booking-retired',
+      bookingCompleted: true,
+      listingPaused: true,
+      listingDeleted: false,
+      paymentEndpointCalled: false,
+      stripeLivemode: false,
+    }),
+    ensureGuestRunner: async () => true,
+    restoreSessionRunner: async () => true,
+    deepLinkRunner: async () => passedEvidence,
+  });
+
+  assert.equal(lifecycleCalls, 1);
   assert.equal(readFileSync(vaultFile, 'utf8'), before);
 });
 
