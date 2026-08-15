@@ -27,6 +27,45 @@
         "deviceModel": "Pixel 7 Pro",
         "osVersion": "16",
         "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081506-20260815T074703Z.json"
+      },
+      "syntheticRoleBooking": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-15T08:23:04.284Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-synthetic-role-booking-2026081506-20260815T082304Z.json"
+      },
+      "authenticatedDeepLinks": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-15T08:35:45.802Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081506-20260815T083545Z.json"
+      },
+      "logoutLifecycle": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-15T08:40:36.161Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081506-20260815T084036Z.json"
+      },
+      "offlineRealtime": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "offlineWindowSeconds": 15,
+        "sameProcessRecovery": "passed",
+        "originalNetworkRestored": "passed",
+        "capturedAt": "2026-08-15T08:43:16.614Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081506-20260815T084316Z.json"
       }
     },
     "ios": {
@@ -148,8 +187,8 @@
       "evidenceRef": "docs/evidence/b11/android-candidate-2026081506.json"
     },
     "firebaseFcmAndApns": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "testing",
+      "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081506-20260815T083829Z.json"
     },
     "binaryPrivacyAndNetwork": {
       "status": "passed",

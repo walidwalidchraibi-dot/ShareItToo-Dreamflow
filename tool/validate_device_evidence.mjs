@@ -746,12 +746,15 @@ function validateAndroidAuthenticatedDeepLinks(root, diagnostic, candidate) {
     fail(`${label}.evidence must prove only the three identity-free Staging links while keeping store, matrix, hotspot, push, TalkBack, iOS, payment, and message gates open.`);
   }
   const isolation = object(evidence.isolation, `${label}.evidence.isolation`);
-  if (Object.keys(isolation).length !== 4
+  if (Object.keys(isolation).length !== 7
       || isolation.protectedReviewFixtureUnchanged !== true
       || isolation.protectedReviewSessionRestored !== true
+      || isolation.temporaryBookingCompleted !== true
+      || isolation.temporaryListingPaused !== true
+      || isolation.temporaryListingDeleted !== false
       || isolation.temporaryVaultRemovedAfterProbe !== true
       || isolation.containsReviewCredentials !== false) {
-    fail(`${label}.evidence must preserve and restore the protected review fixture through an isolated temporary vault.`);
+    fail(`${label}.evidence must preserve and restore the protected review fixture while completing and pausing the isolated temporary fixture.`);
   }
 }
 

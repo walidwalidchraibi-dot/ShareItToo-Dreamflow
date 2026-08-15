@@ -687,6 +687,9 @@ function authenticatedDeepLinksFixture() {
     isolation: {
       protectedReviewFixtureUnchanged: true,
       protectedReviewSessionRestored: true,
+      temporaryBookingCompleted: true,
+      temporaryListingPaused: true,
+      temporaryListingDeleted: false,
       temporaryVaultRemovedAfterProbe: true,
       containsReviewCredentials: false,
     },
@@ -1580,7 +1583,7 @@ test('authenticated deep-link evidence must restore the protected review fixture
   writeEvidence(fixture.root, ref, evidence);
   assert.throws(
     () => validate(fixture),
-    /must preserve and restore the protected review fixture through an isolated temporary vault/,
+    /must preserve and restore the protected review fixture while completing and pausing the isolated temporary fixture/,
   );
 });
 

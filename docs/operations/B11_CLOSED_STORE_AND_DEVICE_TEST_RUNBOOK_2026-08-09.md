@@ -36,11 +36,11 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Direkte Android-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Angemeldete Android-Sitzungsdiagnose | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-session-2026081506-20260815T074703Z.json` |
-| Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Kontrollierte Android-FCM-Diagnose | `pending-exact-build/pending-exact-build/pending-exact-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Android-Abmeldung und Push-Unterdrückung | `pending-exact-build/pending-exact-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
-| Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
+| Synthetische Android-Rollenbuchung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-synthetic-role-booking-2026081506-20260815T082304Z.json` |
+| Authentifizierte Android-Deep-Links | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-authenticated-deep-links-2026081506-20260815T083545Z.json` |
+| Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081506-20260815T083829Z.json` |
+| Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081506-20260815T084036Z.json` |
+| Android-Offline-/Realtime-Wiederherstellung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-offline-realtime-2026081506-20260815T084316Z.json` |
 | Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081506)` |
 | Android-WLAN-/Owner-Matrix | `open`; Teilpruefungen 0/11 bestanden; installAndFirstStart=open, authenticationAndSession=open, listingAndBooking=open, chatAndDeepLink=open, pushForeground=open, pushBackground=open, pushTerminated=open, handoverAndReturn=open, moderationAndAccount=open, offlineRecovery=open, largeTextAndScreenReader=open; noch kein kandidatenspezifischer Fortschrittsnachweis |
 | Play-Signing und öffentliche App-Links | `passed`; `docs/evidence/b11/android-play-store-links-signing-2026081506-20260815.json` |

@@ -51,17 +51,36 @@
     "googlePlayStoreInstall": "passed-version-2026081506-installer-com.android.vending",
     "authenticatedSession": "passed-physical-play-build-session-restore",
     "stagingFeedLoaded": "passed",
-    "syntheticRoleBooking": "pending-exact-build",
-    "authenticatedDeepLinks": "pending-exact-build",
-    "foregroundFcm": "pending-exact-build",
-    "backgroundFcm": "pending-exact-build",
-    "terminatedProcessFcm": "pending-exact-build",
-    "logoutColdStartGuestPersistence": "pending-exact-build",
-    "postLogoutPushSuppression": "pending-exact-build",
-    "offlineRealtimeRecovery": "pending-exact-build",
+    "syntheticRoleBooking": "passed-bounded-google-play-split-two-role-lifecycle",
+    "authenticatedDeepLinks": "passed-bounded-google-play-split-listing-booking-chat",
+    "foregroundFcm": "passed",
+    "backgroundFcm": "passed",
+    "terminatedProcessFcm": "passed",
+    "logoutColdStartGuestPersistence": "passed-physical-play-build",
+    "postLogoutPushSuppression": "passed-physical-play-build",
+    "offlineRealtimeRecovery": "passed-physical-play-build",
     "photoPickerListingChatHandover": "pending-exact-build",
     "closedTrackDraft": "passed-ready-review-blocked-data-safety",
     "twoDevicePrivatePilotAcceptance": "pending"
+  },
+  "controlledFcm": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081506-20260815T083829Z.json"
+  },
+  "logoutLifecycle": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "coldStartGuestPersistence": "passed",
+    "postLogoutPushSuppression": "passed",
+    "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081506-20260815T084036Z.json"
+  },
+  "offlineRealtime": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "offlineWindowSeconds": 15,
+    "sameProcessRecovery": "passed",
+    "networkRestoredAfterProbe": true,
+    "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081506-20260815T084316Z.json"
   },
   "googlePlayInternalRelease": {
     "status": "store-install-verified",

@@ -440,3 +440,40 @@ Servernachweis:
   Test-Rollout blieben unveraendert. Alle sechs V4-Punkte bleiben mit
   `status: open` unter `V4-INTERIM-2026-08-15` aktiv und werden erst nach einer
   neuen Mitteilung des Nutzers zentral aktualisiert.
+
+## Meilenstein 16.71 – Play-Build 1506: Buchung, Links, Push, Logout und Offline bestanden
+
+- Der exakte Google-Play-Internal-Build `1.0.0+2026081506` bestand auf dem
+  Pixel 7 Pro den isolierten Zwei-Rollen-Ablauf `requested -> accepted ->
+  active -> completed`, einschliesslich gegenseitiger QR-Bestaetigungen bei
+  Uebergabe und Rueckgabe. Die temporaere Anzeige wurde danach pausiert; der
+  geschuetzte Reviewbestand blieb unveraendert.
+- Drei authentifizierte Einstiegswege wurden auf demselben vierteiligen
+  Play-Split-Paket nachgewiesen: HTTPS-Anzeige, HTTPS-Buchung und App-Chatlink.
+  Das Diagnosewerkzeug ignoriert jetzt archivierte, ausgemusterte oder bereits
+  pausierte Altdaten, erzeugt bei Bedarf eine frische isolierte Buchung und
+  pausiert deren Anzeige nach jedem erfolgreichen oder fehlgeschlagenen Lauf.
+- Kontrollierte Staging-Push-Mitteilungen bestanden im Vordergrund, im
+  Hintergrund und bei beendetem App-Prozess. Der private Bildnachweis zeigt
+  das SIT-Symbol mittig, vollstaendig innerhalb des Android-Kreises und mit
+  sichtbarem Sicherheitsabstand; der Bildnachweis bleibt ausserhalb des
+  Repositorys.
+- Der Abmeldeablauf bestand: Sitzung geloescht, Gastmodus nach Kaltstart,
+  privater Chat nach Abmeldung verborgen und keine neue Systembenachrichtigung
+  an die abgemeldete App. Anschliessend wurde die geschuetzte synthetische
+  Sitzung automatisch wiederhergestellt.
+- Der 15-sekuendige Offline-/Realtime-Test bestand ohne Prozesswechsel oder
+  Absturz. Die kontrollierte Nachricht blieb waehrend der Netztrennung
+  unsichtbar, erschien nach Wiederherstellung im bestehenden Chat, und der
+  urspruengliche WLAN-/Mobilfunkzustand wurde wiederhergestellt.
+- Alle Laeufe nutzten nur synthetische Staging-Konten, `paymentMode: memory`
+  und `stripeLivemode: false`. Es wurden weder Echtgeld noch Produktion,
+  oeffentliche Store-Tracks, Closed Testing oder Review-Versand aktiviert.
+- Die vier vollstaendigen Geraetematrix-Zellen bleiben dennoch ehrlich bei
+  0/4: Hotspot, manuelle TalkBack-/Grossschrift-Abnahme, der vollstaendige
+  Fotoablauf, zweites physisches Geraet und iOS/TestFlight sind separate offene
+  Gates. Apple/APNs bleibt innerhalb der kombinierten Push-Pruefung offen.
+- Google Plays Datensicherheit und die sechs V4-Entscheidungen bleiben
+  unveraendert offen. Alle sechs V4-Zwischenregeln tragen weiterhin
+  `status: open` unter `V4-INTERIM-2026-08-15` und werden erst nach einer neuen
+  Mitteilung des Nutzers zentral aktualisiert.

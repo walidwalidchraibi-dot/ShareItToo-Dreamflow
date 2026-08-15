@@ -10,7 +10,7 @@ function syntheticCredential(role) {
   return ['private', role, 'fixture'].join('-');
 }
 
-function fixture({ completedHistory = false } = {}) {
+function fixture({ completedHistory = false, archivedHistory = false } = {}) {
   const root = mkdtempSync(resolve(tmpdir(), 'sit-protected-authenticated-links-'));
   const vaultFile = resolve(root, 'accounts.json');
   writeFileSync(vaultFile, `${JSON.stringify({
@@ -39,6 +39,7 @@ function fixture({ completedHistory = false } = {}) {
         listingId: 'completed-listing',
         bookingId: 'completed-booking',
         title: 'Abgeschlossene Testbuchung',
+        ...(archivedHistory ? { archivedAt: '2026-08-15T08:00:00.000Z' } : {}),
       }],
     } : {}),
   }, null, 2)}\n`, { mode: 0o600 });
@@ -91,6 +92,19 @@ test('isolates completed deep-link fixture and restores the protected review ses
         stripeLivemode: false,
       };
     },
+    retirementRunner: async (isolatedVaultFile) => {
+      const isolated = JSON.parse(readFileSync(isolatedVaultFile, 'utf8'));
+      assert.equal(isolated.syntheticBooking.workflowStatus, 'completed');
+      calls.push('retire');
+      return {
+        status: 'synthetic-booking-retired',
+        bookingCompleted: true,
+        listingPaused: true,
+        listingDeleted: false,
+        paymentEndpointCalled: false,
+        stripeLivemode: false,
+      };
+    },
     ensureGuestRunner: async () => { calls.push('guest'); return true; },
     restoreSessionRunner: async (account) => { calls.push(`restore-${account.role}`); return true; },
     deepLinkRunner: async (isolatedVaultFile) => {
@@ -101,9 +115,12 @@ test('isolates completed deep-link fixture and restores the protected review ses
     },
   });
 
-  assert.deepEqual(calls, ['guest', 'restore-owner', 'links', 'guest', 'restore-owner']);
+  assert.deepEqual(calls, ['guest', 'restore-owner', 'links', 'guest', 'restore-owner', 'retire']);
   assert.equal(result.isolation.protectedReviewFixtureUnchanged, true);
   assert.equal(result.isolation.protectedReviewSessionRestored, true);
+  assert.equal(result.isolation.temporaryBookingCompleted, true);
+  assert.equal(result.isolation.temporaryListingPaused, true);
+  assert.equal(result.isolation.temporaryListingDeleted, false);
   assert.equal(readFileSync(vaultFile, 'utf8'), before);
 });
 
@@ -127,6 +144,14 @@ test('reuses a safe completed history fixture without creating another booking',
         stripeLivemode: false,
       };
     },
+    retirementRunner: async () => ({
+      status: 'synthetic-booking-retired',
+      bookingCompleted: true,
+      listingPaused: true,
+      listingDeleted: false,
+      paymentEndpointCalled: false,
+      stripeLivemode: false,
+    }),
     ensureGuestRunner: async () => true,
     restoreSessionRunner: async () => true,
     deepLinkRunner: async () => passedEvidence,
@@ -135,6 +160,50 @@ test('reuses a safe completed history fixture without creating another booking',
   assert.equal(lifecycleCalls, 0);
   assert.equal(result.isolation.protectedReviewFixtureUnchanged, true);
   assert.equal(readFileSync(vaultFile, 'utf8'), before);
+});
+
+test('does not reuse an archived completed history fixture', async () => {
+  const vaultFile = fixture({ completedHistory: true, archivedHistory: true });
+  let lifecycleCalls = 0;
+  await runIsolatedAndroidAuthenticatedLinksDiagnostic({
+    vaultFile,
+    lifecycleRunner: async (isolatedVaultFile) => {
+      lifecycleCalls += 1;
+      const isolated = JSON.parse(readFileSync(isolatedVaultFile, 'utf8'));
+      assert.equal(isolated.syntheticBooking, undefined);
+      isolated.status = 'synthetic-booking-completed';
+      isolated.syntheticBooking = {
+        workflowStatus: 'completed',
+        paymentMode: 'memory',
+        stripeLivemode: false,
+        paymentEndpointCalled: false,
+      };
+      writeFileSync(isolatedVaultFile, `${JSON.stringify(isolated, null, 2)}\n`, { mode: 0o600 });
+      return {
+        status: 'passed-bounded-synthetic-role-booking-lifecycle',
+        paymentEndpointCalled: false,
+        stripeLivemode: false,
+      };
+    },
+    threadRunner: async () => ({
+      status: 'synthetic-booking-thread-ready',
+      workflowStatus: 'completed',
+      paymentEndpointCalled: false,
+      stripeLivemode: false,
+    }),
+    retirementRunner: async () => ({
+      status: 'synthetic-booking-retired',
+      bookingCompleted: true,
+      listingPaused: true,
+      listingDeleted: false,
+      paymentEndpointCalled: false,
+      stripeLivemode: false,
+    }),
+    ensureGuestRunner: async () => true,
+    restoreSessionRunner: async () => true,
+    deepLinkRunner: async () => passedEvidence,
+  });
+  assert.equal(lifecycleCalls, 1);
 });
 
 test('restores the protected session after a failed isolated deep-link probe', async () => {
@@ -152,6 +221,14 @@ test('restores the protected session after a failed isolated deep-link probe', a
       threadRunner: async () => ({
         status: 'synthetic-booking-thread-ready',
         workflowStatus: 'completed',
+        paymentEndpointCalled: false,
+        stripeLivemode: false,
+      }),
+      retirementRunner: async () => ({
+        status: 'synthetic-booking-retired',
+        bookingCompleted: true,
+        listingPaused: true,
+        listingDeleted: false,
         paymentEndpointCalled: false,
         stripeLivemode: false,
       }),

@@ -190,7 +190,7 @@ test('does not misclassify the guest chat surface as authenticated', async () =>
       archive,
       wait: async () => {},
     }),
-    /authenticated ShareItToo link surface did not appear/,
+    /authenticated ShareItToo chat link surface did not appear/,
   );
 });
 

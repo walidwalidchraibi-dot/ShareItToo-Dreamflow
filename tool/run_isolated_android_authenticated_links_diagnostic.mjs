@@ -26,6 +26,7 @@ import {
 } from './prepare_android_device_test.mjs';
 import {
   prepareSyntheticBookingThread,
+  retireSyntheticBookingFixture,
   runSyntheticRoleBookingLifecycle,
 } from './run_staging_synthetic_booking.mjs';
 
@@ -81,6 +82,9 @@ function reusableCompletedFixture(vault) {
     && fixture?.paymentMode === 'memory'
     && fixture?.stripeLivemode === false
     && fixture?.paymentEndpointCalled === false
+    && fixture?.archivedAt == null
+    && fixture?.retiredAt == null
+    && fixture?.listingStatus !== 'paused'
     && typeof fixture?.listingId === 'string'
     && fixture.listingId.length > 0
     && typeof fixture?.bookingId === 'string'
@@ -94,6 +98,7 @@ export async function runIsolatedAndroidAuthenticatedLinksDiagnostic({
   vaultFile,
   lifecycleRunner,
   threadRunner,
+  retirementRunner,
   ensureGuestRunner,
   restoreSessionRunner,
   deepLinkRunner,
@@ -123,6 +128,7 @@ export async function runIsolatedAndroidAuthenticatedLinksDiagnostic({
   let result;
   let primaryFailure = null;
   let sessionMutationStarted = false;
+  let fixtureReadyForRetirement = recoveredCompletedFixture !== null;
 
   try {
     if (recoveredCompletedFixture === null) {
@@ -132,6 +138,7 @@ export async function runIsolatedAndroidAuthenticatedLinksDiagnostic({
           || lifecycle?.stripeLivemode !== false) {
         fail('The isolated Staging lifecycle did not reach a safe completed fixture.');
       }
+      fixtureReadyForRetirement = true;
     }
     const thread = await threadRunner(isolatedVaultFile);
     if (thread?.status !== 'synthetic-booking-thread-ready'
@@ -157,6 +164,9 @@ export async function runIsolatedAndroidAuthenticatedLinksDiagnostic({
       isolation: {
         protectedReviewFixtureUnchanged: true,
         protectedReviewSessionRestored: true,
+        temporaryBookingCompleted: true,
+        temporaryListingPaused: true,
+        temporaryListingDeleted: false,
         temporaryVaultRemovedAfterProbe: true,
         containsReviewCredentials: false,
       },
@@ -165,6 +175,7 @@ export async function runIsolatedAndroidAuthenticatedLinksDiagnostic({
     primaryFailure = error;
   } finally {
     let restorationFailure = null;
+    let retirementFailure = null;
     if (sessionMutationStarted) {
       try {
         if (await ensureGuestRunner() !== true || await restoreSessionRunner(protectedAccount) !== true) {
@@ -176,12 +187,30 @@ export async function runIsolatedAndroidAuthenticatedLinksDiagnostic({
         );
       }
     }
+    if (fixtureReadyForRetirement) {
+      try {
+        const retirement = await retirementRunner(isolatedVaultFile);
+        if (retirement?.status !== 'synthetic-booking-retired'
+            || retirement?.bookingCompleted !== true
+            || retirement?.listingPaused !== true
+            || retirement?.listingDeleted !== false
+            || retirement?.paymentEndpointCalled !== false
+            || retirement?.stripeLivemode !== false) {
+          fail('The isolated completed fixture was not retired safely.');
+        }
+      } catch {
+        retirementFailure = new Error(
+          'The isolated completed fixture could not be retired safely after the authenticated-link probe.',
+        );
+      }
+    }
     const protectedUnchanged = sha256(readFileSync(protectedVaultFile)) === originalSha256;
     rmSync(temporaryDirectory, { recursive: true, force: true });
     if (!protectedUnchanged) {
       throw new Error('The protected review vault changed during the isolated authenticated-link probe.');
     }
     if (restorationFailure !== null) throw restorationFailure;
+    if (retirementFailure !== null) throw retirementFailure;
   }
 
   if (primaryFailure !== null) throw primaryFailure;
@@ -233,6 +262,9 @@ async function run() {
       vaultFile: isolatedVaultFile,
     }),
     threadRunner: async (isolatedVaultFile) => prepareSyntheticBookingThread({
+      vaultFile: isolatedVaultFile,
+    }),
+    retirementRunner: async (isolatedVaultFile) => retireSyntheticBookingFixture({
       vaultFile: isolatedVaultFile,
     }),
     ensureGuestRunner: async () => ensureAndroidGuestSession({

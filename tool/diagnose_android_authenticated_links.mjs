@@ -187,13 +187,13 @@ function dumpUi(commandRunner, adbPath, device) {
   }
 }
 
-async function waitForPrivateSurface({ commandRunner, adbPath, device, predicate, wait }) {
+async function waitForPrivateSurface({ commandRunner, adbPath, device, predicate, wait, label }) {
   for (let attempt = 0; attempt < 10; attempt += 1) {
     await wait(800);
     const hierarchy = dumpUi(commandRunner, adbPath, device);
     if (predicate(hierarchy)) return;
   }
-  fail('The expected authenticated ShareItToo link surface did not appear.');
+  fail(`The expected authenticated ShareItToo ${label} link surface did not appear.`);
 }
 
 function containsAny(value, expected) {
@@ -236,6 +236,7 @@ export async function diagnoseAndroidAuthenticatedLinks({
       predicate: (hierarchy) => hierarchy.includes(fixture.title)
         && !containsAny(hierarchy, ['Anzeige nicht verfügbar', 'Bitte zuerst anmelden']),
       wait,
+      label: 'listing',
     });
 
     startLink(commandRunner, adbPath, device,
@@ -246,6 +247,7 @@ export async function diagnoseAndroidAuthenticatedLinks({
         && containsAny(hierarchy, ['Abgeschlossen', 'Buchungsdetails', 'Mietdetails', 'Buchung'])
         && !containsAny(hierarchy, ['Buchung nicht verfügbar', 'Bitte zuerst anmelden']),
       wait,
+      label: 'booking',
     });
 
     startLink(commandRunner, adbPath, device,
@@ -256,6 +258,7 @@ export async function diagnoseAndroidAuthenticatedLinks({
         && containsAny(hierarchy, ['Der Buchungs-Chat ist geöffnet', 'Nachricht', 'Chat', 'Abgeschlossen'])
         && !containsAny(hierarchy, ['Bitte zuerst anmelden', 'Nach der Anmeldung öffnen wir']),
       wait,
+      label: 'chat',
     });
   } finally {
     restoreCandidate(commandRunner, adbPath, device);
