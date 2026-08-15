@@ -288,3 +288,35 @@ Servernachweis:
   frische Installation, Closed Testing, Apple-Tooling/-Mitgliedschaft,
   finale Rechts- und Datenschutzentscheidungen sowie echte Zahlungsfreigabe.
   Produktion, Echtgeld und oeffentliche Store-Tracks blieben unveraendert.
+
+## Meilenstein 16.66 – Fresh-Install-Nachweis und SIT-Popup-Zugaenglichkeit
+
+- Der exakte Google-Play-Internal-Kandidat `2026081505` blieb als vierteiliges
+  Play-Split-Paket mit Installer `com.android.vending` unveraendert installiert.
+- Die isolierten SIT-App-Daten wurden kontrolliert geleert. Der erste Start
+  erschien korrekt abgemeldet; die Android-16-Benachrichtigungsfreigabe wurde
+  durchlaufen, das geschuetzte synthetische Staging-Konto automatisch
+  wiederhergestellt und der Login ueberstand den anschliessenden Kaltstart.
+- Der Store-Review-Zugang steht dadurch bei 9 von 10 bestandenen Szenarien.
+  Nur der Nachweis ueber ein zweites wirklich getrenntes Netz bleibt offen und
+  wird nicht vorweggenommen.
+- Maschinenlesbarer Nachweis:
+  `docs/evidence/b11/android-fresh-install-2026081505-20260815T054742Z.json`.
+  Repository-Commit: `814a64e`.
+- Beim Lauf wurde sichtbar, dass das rote Schliessen-Symbol der zentrierten
+  SIT-Popups noch keinen Screenreader-Namen hatte. Die gemeinsame
+  Popup-Komponente benennt diese Aktion jetzt eindeutig mit `Schliessen`.
+  Repository-Commit: `8f60af5`. Diese UI-Verbesserung gehoert erst zum
+  naechsten App-Kandidaten und wird dem unveraenderten Play-Build `2026081505`
+  nicht rueckwirkend zugeschrieben.
+- Der vollstaendige technische Pruefpfad bestand: saemtliche Repository-,
+  Store-, Rechts-, Datenschutz-, Review- und Geraetepruefer, 266 Flutter-Tests,
+  Web-Debug-Build und Android-Debug-Build. Apple blieb im ausdruecklich offenen
+  Android-Rollover-Modus.
+- Alle sechs offenen V4-Punkte bleiben unveraendert als aktive Zwischenregeln
+  `V4-INTERIM-2026-08-15` gesetzt. Sie sind weder entfernt noch finalisiert und
+  werden erst nach einer neuen Mitteilung des Nutzers zentral aktualisiert.
+- Produktion, Echtgeld, oeffentliche Store-Tracks, Closed Testing,
+  Apple-Tooling/-Mitgliedschaft, TalkBack-/Grossschrift-Geraetematrix sowie
+  finale Rechts- und Datenschutzfreigaben blieben unveraendert geschlossen
+  beziehungsweise offen.
