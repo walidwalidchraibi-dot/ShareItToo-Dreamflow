@@ -261,8 +261,9 @@ Servernachweis:
 - Die vier vorgesehenen Telefon-Screenshots wurden direkt aus diesem exakten
   Kandidaten neu aufgenommen und visuell freigegeben: Feed, Inseratdetail,
   Suche und Anzeige erstellen. Alle Bilder sind 1080 x 1920 Pixel, enthalten
-  keine Kontodaten oder Zugangsdaten und sind noch nicht in die Play Console
-  hochgeladen.
+  keine Kontodaten oder Zugangsdaten. Die vier alten Fassungen wurden am
+  15. August durch diese vier exakten Bilder ersetzt und als Play-Listing-
+  Entwurf gespeichert; es wurde nichts zur Pruefung eingereicht.
 - Der geschuetzte Staging-Reviewbestand ist fuer Build `2026081505` erneut
   geprueft: technische Zugaenglichkeit sowie acht von zehn Szenarien bestehen.
   Frische Installation und zweites Netz bleiben ehrlich offen.
