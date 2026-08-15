@@ -60,6 +60,7 @@
     "foregroundFcm": "passed",
     "backgroundFcm": "passed",
     "terminatedProcessFcm": "passed",
+    "authenticatedSession": "passed-physical-play-build",
     "authenticatedDeepLinks": "passed-physical-play-build",
     "logoutColdStartGuestPersistence": "passed-physical-play-build",
     "postLogoutPushSuppression": "passed-physical-play-build",
@@ -81,6 +82,13 @@
     "booking": "passed",
     "chat": "passed",
     "evidenceRef": "docs/evidence/b11/android-authenticated-deep-links-2026081505-20260815T040158Z.json"
+  },
+  "authenticatedSession": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "profileAccess": "passed",
+    "coldStartSessionRestore": "passed",
+    "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081505-20260815T040808Z.json"
   },
   "logoutLifecycle": {
     "status": "passed",

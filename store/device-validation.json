@@ -19,6 +19,15 @@
       "aabSha256": "28fe6751ab928bbb2a52aa93239deabbefec25b7c209b67a75d5cb33123a2191",
       "apkSha256": "0e701dbca162c764cdcdf79e4d1c70eb8d18e97d06e155cfe787bc5164323f69",
       "signingCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
+      "authenticatedSession": {
+        "status": "passed",
+        "installMethod": "google-play-split",
+        "capturedAt": "2026-08-15T04:08:08.258Z",
+        "manufacturer": "Google",
+        "deviceModel": "Pixel 7 Pro",
+        "osVersion": "16",
+        "evidenceRef": "docs/evidence/b11/android-authenticated-session-2026081505-20260815T040808Z.json"
+      },
       "authenticatedDeepLinks": {
         "status": "passed",
         "installMethod": "google-play-split",
