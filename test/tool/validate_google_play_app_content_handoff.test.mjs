@@ -156,6 +156,24 @@ test('rejects a Data Safety handoff without the provider-role classification', a
     /product truth/);
 });
 
+test('binds the unchanged answer projection to the current internal candidate', () => {
+  const result = validate();
+  assert.equal(result.buildNumber, canonical.candidate.buildNumber);
+  assert.match(
+    canonical.tasks.dataSafety.currentCandidateBindingEvidenceRef,
+    /2026081509/u,
+  );
+});
+
+test('rejects a stale current-candidate Data Safety binding', async (t) => {
+  const data = await fixture((handoff) => {
+    handoff.tasks.dataSafety.currentCandidateBindingEvidenceRef =
+      'docs/evidence/b11/google-play-data-safety-answer-matrix-2026081505-20260815.json';
+  });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validate(data), /product truth/);
+});
+
 test('rejects credential or account data', async (t) => {
   const data = await fixture((handoff) => { handoff.account = 'private@example.test'; });
   t.after(() => rm(data.root, { recursive: true, force: true }));

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "kind": "google-play-data-safety-current-candidate-binding",
+  "capturedAt": "2026-08-15T14:51:39Z",
+  "status": "current-candidate-technically-bound-console-save-and-approval-open",
+  "candidate": {
+    "applicationId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081509",
+    "commit": "3fa045b98897f9551f91da932136c2b100b2d700",
+    "releaseChannel": "internal",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
+  },
+  "baseline": {
+    "buildNumber": "2026081505",
+    "answerMatrixRef": "docs/evidence/b11/google-play-data-safety-answer-matrix-2026081505-20260815.json",
+    "providerClassificationRef": "docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json"
+  },
+  "currentSources": {
+    "privacyDisclosuresRef": "store/privacy-disclosures.json",
+    "binaryPrivacyEvidenceRef": "docs/evidence/b11/android-binary-privacy-release-check-2026081509.json",
+    "selectedDataTypeProjectionSha256": "4c311ae39cfc70509e2f32567994e26971cb82394cdb97b18a95eddf27954389",
+    "selectedDataTypeCount": 16,
+    "declaredDataTypeCount": 17
+  },
+  "review": {
+    "baselineAnswerProjectionMatchesCurrent": true,
+    "authenticationAndCommunicationChangesReviewed": true,
+    "socialProviderCodeCompiledButReleaseGated": true,
+    "socialProvidersExternallyEnabled": false,
+    "newActiveIndependentControllerTransferProven": false,
+    "mapsTransferActivated": false,
+    "stripeEnabled": false,
+    "openAiHelpersEnabled": false,
+    "advertisingEnabled": false,
+    "trackingEnabled": false,
+    "consoleAnswersMayBeCopiedWithoutOwnerApproval": false
+  },
+  "openDecisions": [
+    "current-provider-contract-acceptance",
+    "owner-provider-role-confirmation",
+    "legal-approval",
+    "retention-and-deletion-schedule",
+    "google-maps-activation-and-sharing-reclassification",
+    "console-draft-save"
+  ],
+  "boundaries": {
+    "technicalBindingOnly": true,
+    "legalAdviceProvided": false,
+    "providerContractAcceptedByAgent": false,
+    "consoleAnswersChanged": false,
+    "draftSaved": false,
+    "formSubmitted": false,
+    "productionChanged": false,
+    "containsSecrets": false,
+    "containsEmailAddresses": false,
+    "containsAccountIdentifiers": false
+  }
+}

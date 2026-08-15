@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -21,6 +22,10 @@ function exactKeys(value, expected, label) {
   if (JSON.stringify(keys) !== JSON.stringify(wanted)) {
     fail(`${label} must contain exactly the approved keys.`);
   }
+}
+
+function sha256Json(value) {
+  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
 
 export function validateGooglePlayAppContentHandoff({
@@ -113,6 +118,8 @@ export function validateGooglePlayAppContentHandoff({
         'docs/evidence/b11/google-play-data-safety-answer-matrix-2026081505-20260815.json' ||
       tasks.dataSafety.providerClassificationEvidenceRef !==
         'docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json' ||
+      tasks.dataSafety.currentCandidateBindingEvidenceRef !==
+        'docs/evidence/b11/google-play-data-safety-current-candidate-binding-2026081509-20260815.json' ||
       tasks.dataSafety.stepTwoEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-step2-20260812.json' ||
       tasks.dataSafety.sellsData !== false ||
@@ -176,6 +183,99 @@ export function validateGooglePlayAppContentHandoff({
     fail('Exact-candidate Store screenshot evidence is invalid or unsafe.');
   }
 
+  const currentBinding = object(JSON.parse(readFileSync(resolve(
+    repositoryRoot, tasks.dataSafety.currentCandidateBindingEvidenceRef), 'utf8')),
+  'current Data Safety candidate binding');
+  const privacyDisclosures = object(JSON.parse(readFileSync(resolve(
+    repositoryRoot, currentBinding.currentSources?.privacyDisclosuresRef ?? ''), 'utf8')),
+  'current privacy disclosures');
+  const baselineMatrix = object(JSON.parse(readFileSync(resolve(
+    repositoryRoot, currentBinding.baseline?.answerMatrixRef ?? ''), 'utf8')),
+  'baseline Data Safety matrix');
+  const baselineProvider = object(JSON.parse(readFileSync(resolve(
+    repositoryRoot, currentBinding.baseline?.providerClassificationRef ?? ''), 'utf8')),
+  'baseline provider classification');
+  const currentBinaryPrivacy = object(JSON.parse(readFileSync(resolve(
+    repositoryRoot, currentBinding.currentSources?.binaryPrivacyEvidenceRef ?? ''), 'utf8')),
+  'current binary privacy evidence');
+  const currentProjection = privacyDisclosures.dataTypes.map((entry) => ({
+    id: entry.id,
+    google: entry.google,
+    selected: entry.collected,
+    collected: entry.collected,
+    required: !entry.optional,
+    purposes: entry.collected ? entry.purposes : [],
+  }));
+  const baselineProjection = baselineMatrix.dataTypes.map((entry) => ({
+    id: entry.id,
+    google: entry.google,
+    selected: entry.selected,
+    collected: entry.collected,
+    required: entry.required,
+    purposes: entry.collected ? entry.purposes : [],
+  }));
+  const projectionHash = sha256Json(currentProjection);
+  if (currentBinding.kind !== 'google-play-data-safety-current-candidate-binding' ||
+      currentBinding.status !==
+        'current-candidate-technically-bound-console-save-and-approval-open' ||
+      currentBinding.candidate?.applicationId !== currentCandidate.applicationId ||
+      currentBinding.candidate?.versionName !== currentCandidate.versionName ||
+      currentBinding.candidate?.buildNumber !== currentCandidate.buildNumber ||
+      currentBinding.candidate?.commit !== currentCandidate.commit ||
+      currentBinding.baseline?.buildNumber !== candidate.buildNumber ||
+      currentBinding.baseline?.answerMatrixRef !==
+        tasks.dataSafety.answerMatrixEvidenceRef ||
+      currentBinding.baseline?.providerClassificationRef !==
+        tasks.dataSafety.providerClassificationEvidenceRef ||
+      baselineMatrix.candidate?.buildNumber !== candidate.buildNumber ||
+      baselineProvider.candidate?.buildNumber !== candidate.buildNumber ||
+      privacyDisclosures.candidate?.buildNumber !== currentCandidate.buildNumber ||
+      privacyDisclosures.candidate?.commit !== currentCandidate.commit ||
+      currentBinding.currentSources?.binaryPrivacyEvidenceRef !==
+        'docs/evidence/b11/android-binary-privacy-release-check-2026081509.json' ||
+      currentBinaryPrivacy.kind !== 'release-check' ||
+      currentBinaryPrivacy.status !== 'passed' ||
+      currentBinaryPrivacy.candidate?.buildNumber !== currentCandidate.buildNumber ||
+      currentBinaryPrivacy.candidate?.commit !== currentCandidate.commit ||
+      currentBinaryPrivacy.releaseCheck?.id !== 'binaryPrivacyAndNetwork' ||
+      currentBinaryPrivacy.releaseCheck?.status !== 'passed' ||
+      currentBinding.currentSources?.selectedDataTypeProjectionSha256 !== projectionHash ||
+      currentBinding.currentSources?.selectedDataTypeCount !==
+        currentProjection.filter((entry) => entry.selected).length ||
+      currentBinding.currentSources?.declaredDataTypeCount !== currentProjection.length ||
+      JSON.stringify(currentProjection) !== JSON.stringify(baselineProjection) ||
+      currentBinding.review?.baselineAnswerProjectionMatchesCurrent !== true ||
+      currentBinding.review?.authenticationAndCommunicationChangesReviewed !== true ||
+      currentBinding.review?.socialProviderCodeCompiledButReleaseGated !== true ||
+      currentBinding.review?.socialProvidersExternallyEnabled !== false ||
+      currentBinding.review?.newActiveIndependentControllerTransferProven !== false ||
+      currentBinding.review?.mapsTransferActivated !== false ||
+      currentBinding.review?.stripeEnabled !== false ||
+      currentBinding.review?.openAiHelpersEnabled !== false ||
+      currentBinding.review?.advertisingEnabled !== false ||
+      currentBinding.review?.trackingEnabled !== false ||
+      currentBinding.review?.consoleAnswersMayBeCopiedWithoutOwnerApproval !== false ||
+      JSON.stringify(currentBinding.openDecisions) !== JSON.stringify([
+        'current-provider-contract-acceptance',
+        'owner-provider-role-confirmation',
+        'legal-approval',
+        'retention-and-deletion-schedule',
+        'google-maps-activation-and-sharing-reclassification',
+        'console-draft-save',
+      ]) ||
+      currentBinding.boundaries?.technicalBindingOnly !== true ||
+      currentBinding.boundaries?.legalAdviceProvided !== false ||
+      currentBinding.boundaries?.providerContractAcceptedByAgent !== false ||
+      currentBinding.boundaries?.consoleAnswersChanged !== false ||
+      currentBinding.boundaries?.draftSaved !== false ||
+      currentBinding.boundaries?.formSubmitted !== false ||
+      currentBinding.boundaries?.productionChanged !== false ||
+      currentBinding.boundaries?.containsSecrets !== false ||
+      currentBinding.boundaries?.containsEmailAddresses !== false ||
+      currentBinding.boundaries?.containsAccountIdentifiers !== false) {
+    fail('Current Data Safety candidate binding is stale, incomplete, or unsafe.');
+  }
+
   const hardStops = object(handoff.hardStops, 'hardStops');
   for (const [key, value] of Object.entries(hardStops)) {
     if (value !== true) fail(`hardStops.${key} must remain enabled.`);
@@ -183,7 +283,7 @@ export function validateGooglePlayAppContentHandoff({
   if (Object.keys(hardStops).length !== 7) {
     fail('App-content handoff must preserve all seven hard stops.');
   }
-  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 12 ||
+  if (!Array.isArray(handoff.evidenceRefs) || handoff.evidenceRefs.length !== 13 ||
       handoff.evidenceRefs.some((ref) => typeof ref !== 'string' ||
         ref.includes('..') || !resolve(repositoryRoot, ref).startsWith(`${resolve(repositoryRoot)}/`))) {
     fail('App-content evidence references are invalid.');

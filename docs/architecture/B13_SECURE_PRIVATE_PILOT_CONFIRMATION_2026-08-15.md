@@ -810,3 +810,30 @@ Servernachweis:
 - Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
   blieben unveraendert. Alle sechs V4-Punkte bleiben unter
   `V4-INTERIM-2026-08-15` mit `status: open` aktiv.
+
+## Meilenstein 16.84 – Data-Safety-Entwurf technisch an Build 1509 gebunden
+
+- Die bestehende Data-Safety-Matrix des Console-Kandidaten `2026081505` wurde
+  nicht ungeprueft auf den aktuellen internen Build uebertragen. Die seitdem
+  veraenderten Authentifizierungs- und Kommunikationsquellen wurden gegen die
+  aktuelle Datenschutzdeklaration und den bestandenen Binary-Privacy-Check
+  von `2026081509` geprueft.
+- Die kanonische Projektion aus Datentyp, Auswahl, Erforderlichkeit und Zweck
+  ist fuer beide Kandidaten identisch. Der aktuelle Stand umfasst 16
+  ausgewaehlte von 17 deklarierten Datentypen; Zahlungsinformationen bleiben
+  ungesammelt.
+- Google-/Apple-/Facebook-Code ist zwar gebaut, bleibt aber release-seitig
+  gesperrt und extern deaktiviert. Google Maps, Stripe, OpenAI-Helfer, Werbung
+  und Tracking sind im gebundenen Kandidaten ebenfalls nicht aktiviert.
+- Der neue Nachweis unter
+  `docs/evidence/b11/google-play-data-safety-current-candidate-binding-2026081509-20260815.json`
+  wird vom App-Content-Validator gegen Buildnummer, Commit, Privacy-Quelle,
+  Binary-Nachweis und die unveraenderte Antwortprojektion geprueft. Ein
+  veralteter oder unvollstaendiger Nachweis schliesst fail-closed.
+- Offen bleiben Provider-Vertragsannahme, Rollenbestaetigung durch den Owner,
+  rechtliche Freigabe, Aufbewahrungs-/Loeschfristen, eine moegliche
+  Google-Maps-Neueinstufung und das Speichern des Console-Entwurfs. In Google
+  Play wurde nichts geaendert, gespeichert oder abgesendet.
+- Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
+  blieben unveraendert. Alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` mit `status: open` aktiv.

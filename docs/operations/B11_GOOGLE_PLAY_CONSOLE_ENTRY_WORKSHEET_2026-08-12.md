@@ -268,6 +268,17 @@ Zahlungsinformationen bleiben für diesen Kandidaten ungewählt. Die
 maschinengeprüfte Liste liegt in
 `docs/evidence/b11/google-play-data-safety-datatypes-20260812.json`.
 
+Die technische Bindung an den aktuell installierten internen Kandidaten
+`1.0.0+2026081509` ist unter
+`docs/evidence/b11/google-play-data-safety-current-candidate-binding-2026081509-20260815.json`
+gesichert. Die 16 ausgewaehlten von insgesamt 17 deklarierten Datentypen und
+ihre Zwecke entsprechen nach der gesonderten Authentifizierungs- und
+Kommunikationspruefung weiterhin der vorbereiteten Matrix von Build
+`2026081505`. Das ist nur eine technische Kandidatenbindung: Die
+Provider-Rollen, Aufbewahrungs-/Loeschfristen, eine spaetere
+Google-Maps-Aktivierung und die rechtliche Freigabe bleiben offen. Im Play
+Console-Formular wurde nichts geaendert, gespeichert oder abgesendet.
+
 ## 7. Berechtigungen und SDK-Prüfung nach AAB-Upload
 
 Der Release-APK von Kandidat 2026081201 wurde geprüft, anschließend aber wegen
