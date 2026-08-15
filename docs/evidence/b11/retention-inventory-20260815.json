@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "kind": "retention-inventory",
+  "capturedAt": "2026-08-15T18:02:00Z",
+  "status": "implemented-full-regression-passed-staging-deployment-pending",
+  "scope": {
+    "aggregatedCountsOnly": true,
+    "identifiersExcluded": true,
+    "adminStepUpRequired": true,
+    "supportRoleDenied": true,
+    "readOnly": true,
+    "categoryCount": 7,
+    "datasetCount": 21,
+    "localPolicyDecisionKeysCovered": 6,
+    "retentionPeriodsApplied": false,
+    "eligibleRowsCalculated": false,
+    "executionEnabled": false
+  },
+  "verification": {
+    "syntaxCheck": "passed",
+    "unitTests": "passed-3",
+    "fullBackendSuite": "passed-135-one-postgres-integration-skipped-without-test-database",
+    "fullTechnicalRegression": "passed-candidate-rollover-mode",
+    "stagingRuntime": "pending"
+  },
+  "deployment": {
+    "status": "pending",
+    "commit": null,
+    "evidenceRef": null
+  },
+  "policyBoundary": {
+    "legalRetentionPeriodsInvented": false,
+    "requiredRetentionDecisionsClosed": false,
+    "categoryPurgeEnabled": false,
+    "existingRowsDeletedOrChanged": false
+  },
+  "boundaries": {
+    "productionChanged": false,
+    "storeSubmissionChanged": false,
+    "appCandidateChanged": false,
+    "containsSecrets": false,
+    "containsAccountData": false
+  }
+}

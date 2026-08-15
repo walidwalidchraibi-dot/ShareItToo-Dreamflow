@@ -10,6 +10,7 @@ const sourcePaths = [
   'backend/src/server.js',
   'backend/src/credential_cleanup.js',
   'backend/src/moderation_workflow.js',
+  'backend/src/retention_inventory.js',
   'backend/src/privacy_export.js',
   'backend/src/account_actions.js',
   'backend/src/config.js',
@@ -36,6 +37,7 @@ const decisionKeys = [
 const providerEvidencePath = 'docs/evidence/b11/privacy-provider-retention-sources-20260812.json';
 const credentialCleanupEvidencePath = 'docs/evidence/b11/expired-credential-cleanup-20260815.json';
 const legalHoldEvidencePath = 'docs/evidence/b11/account-legal-hold-20260815.json';
+const retentionInventoryEvidencePath = 'docs/evidence/b11/retention-inventory-20260815.json';
 
 const requiredOfficialSources = [
   ['Firebase Cloud Messaging', 'https://firebase.google.com/support/privacy/', 'within 180 days'],
@@ -148,6 +150,29 @@ function assertSourceContracts(root, sourceTexts) {
     '/v1/admin/legal-holds/:id/release',
   ]) {
     if (!app.includes(marker)) fail(`Account deletion or admin routing is missing the legal-hold contract: ${marker}.`);
+  }
+  const inventory = text(root, sourceTexts, 'backend/src/retention_inventory.js');
+  for (const marker of [
+    "accounts: 'inactiveAccountPeriod'",
+    "transactions: 'transactionalRecordPeriod'",
+    "communications: 'communicationPeriod'",
+    "moderation: 'moderationEvidencePeriod'",
+    "securityAudit: 'auditSecurityLogPeriod'",
+    "legalHold: 'legalHoldProcess'",
+    "status: 'policy-open-inventory-only'",
+    'containsIdentifiers: false',
+    'executionEnabled: false',
+    'retentionPeriodsApplied: false',
+    'eligibleRowsCalculated: false',
+  ]) {
+    if (!inventory.includes(marker)) fail(`Retention inventory is missing the fail-closed contract: ${marker}.`);
+  }
+  if (/DELETE\s+FROM|UPDATE\s+[a-z_]+\s+SET/iu.test(inventory)) {
+    fail('Retention inventory must remain read-only.');
+  }
+  if (!app.includes('/v1/admin/privacy/retention-inventory')
+      || !app.includes('inspectRetentionInventory(client, { actor: req.actor })')) {
+    fail('The admin retention-inventory route is missing.');
   }
   const backup = text(root, sourceTexts, 'backend/ops/backup.sh');
   if (!backup.includes('-mtime +14 -delete')) fail('The observed 14-day backup rotation contract is missing.');
@@ -297,6 +322,75 @@ function assertLegalHoldEvidence(root, evidenceTexts) {
   }
 }
 
+function assertRetentionInventoryEvidence(root, evidenceTexts) {
+  let evidence;
+  try {
+    evidence = JSON.parse(text(root, evidenceTexts, retentionInventoryEvidencePath));
+  } catch (error) {
+    fail(`Retention-inventory evidence must be valid JSON: ${error.message}`);
+  }
+  assertNoSensitiveData(evidence, 'retention-inventory evidence');
+  if (evidence.schemaVersion !== 1
+      || evidence.kind !== 'retention-inventory'
+      || ![
+        'implemented-targeted-tests-passed-full-regression-pending',
+        'implemented-full-regression-passed-staging-deployment-pending',
+        'staging-runtime-verified',
+      ].includes(evidence.status)
+      || evidence.scope?.aggregatedCountsOnly !== true
+      || evidence.scope?.identifiersExcluded !== true
+      || evidence.scope?.adminStepUpRequired !== true
+      || evidence.scope?.supportRoleDenied !== true
+      || evidence.scope?.readOnly !== true
+      || evidence.scope?.categoryCount !== 7
+      || evidence.scope?.datasetCount !== 21
+      || evidence.scope?.localPolicyDecisionKeysCovered !== 6
+      || evidence.scope?.retentionPeriodsApplied !== false
+      || evidence.scope?.eligibleRowsCalculated !== false
+      || evidence.scope?.executionEnabled !== false
+      || evidence.verification?.syntaxCheck !== 'passed'
+      || evidence.verification?.unitTests !== 'passed-3'
+      || evidence.policyBoundary?.legalRetentionPeriodsInvented !== false
+      || evidence.policyBoundary?.requiredRetentionDecisionsClosed !== false
+      || evidence.policyBoundary?.categoryPurgeEnabled !== false
+      || evidence.policyBoundary?.existingRowsDeletedOrChanged !== false
+      || evidence.boundaries?.productionChanged !== false
+      || evidence.boundaries?.storeSubmissionChanged !== false
+      || evidence.boundaries?.appCandidateChanged !== false
+      || evidence.boundaries?.containsSecrets !== false
+      || evidence.boundaries?.containsAccountData !== false) {
+    fail('Retention-inventory evidence is incomplete or exceeds its read-only policy boundary.');
+  }
+  const deployment = object(evidence.deployment, 'retention-inventory deployment');
+  if (evidence.status === 'implemented-targeted-tests-passed-full-regression-pending') {
+    if (evidence.verification.fullBackendSuite !== 'pending'
+        || evidence.verification.fullTechnicalRegression !== 'pending'
+        || evidence.verification.stagingRuntime !== 'pending'
+        || deployment.status !== 'pending'
+        || deployment.commit !== null
+        || deployment.evidenceRef !== null) {
+      fail('Targeted retention-inventory evidence must keep full regression and deployment pending.');
+    }
+  } else if (evidence.status === 'implemented-full-regression-passed-staging-deployment-pending') {
+    if (!String(evidence.verification.fullBackendSuite ?? '').startsWith('passed-')
+        || evidence.verification.fullTechnicalRegression !== 'passed-candidate-rollover-mode'
+        || evidence.verification.stagingRuntime !== 'pending'
+        || deployment.status !== 'pending'
+        || deployment.commit !== null
+        || deployment.evidenceRef !== null) {
+      fail('Full-regression retention-inventory evidence must keep Staging deployment pending.');
+    }
+  } else if (!String(evidence.verification.fullBackendSuite ?? '').startsWith('passed-')
+      || evidence.verification.fullTechnicalRegression !== 'passed-candidate-rollover-mode'
+      || evidence.verification.stagingRuntime !== 'passed'
+      || deployment.status !== 'verified'
+      || !/^[a-f0-9]{40}$/.test(deployment.commit ?? '')
+      || typeof deployment.evidenceRef !== 'string'
+      || !deployment.evidenceRef.startsWith('/docker/shareittoo/releases/staging-')) {
+    fail('Verified retention-inventory evidence requires full tests and exact Staging deployment proof.');
+  }
+}
+
 export function validateRetentionDeletionReadiness({
   root,
   retentionManifest,
@@ -330,6 +424,7 @@ export function validateRetentionDeletionReadiness({
   assertProviderEvidence(root, evidenceTexts);
   assertCredentialCleanupEvidence(root, evidenceTexts);
   assertLegalHoldEvidence(root, evidenceTexts);
+  assertRetentionInventoryEvidence(root, evidenceTexts);
 
   const controls = object(retention.implementedControls, 'implementedControls');
   if (controls.accountErasure?.status !== 'implemented-integration-covered'
@@ -345,6 +440,15 @@ export function validateRetentionDeletionReadiness({
       || controls.credentialExpiry?.technicalEvidenceRef !==
         'docs/evidence/b11/expired-credential-cleanup-20260815.json'
       || controls.categoryPurge?.status !== 'not-implemented'
+      || controls.retentionInventory?.status !== 'read-only-counts-implemented-policy-open'
+      || controls.retentionInventory?.aggregatedCountsOnly !== true
+      || controls.retentionInventory?.identifiersExcluded !== true
+      || controls.retentionInventory?.adminStepUpRequired !== true
+      || controls.retentionInventory?.supportRoleDenied !== true
+      || controls.retentionInventory?.retentionPeriodsApplied !== false
+      || controls.retentionInventory?.eligibleRowsCalculated !== false
+      || controls.retentionInventory?.executionEnabled !== false
+      || controls.retentionInventory?.technicalEvidenceRef !== retentionInventoryEvidencePath
       || controls.legalHold?.status !== 'technical-enforcement-implemented-policy-process-open'
       || controls.legalHold?.accountDeletionPreflightBlocked !== true
       || controls.legalHold?.adminStepUpRequired !== true

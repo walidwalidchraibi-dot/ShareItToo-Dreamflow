@@ -3,10 +3,11 @@
   "state": "draft",
   "approvalAllowed": false,
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "976adbbc4ec33990c51ebe8d2ee7c1970e2d2d66ec66f946af0875f443e3d08b"},
+    {"path": "backend/src/app.js", "sha256": "52403c3ad2c4dbfe7a6d3c99a0c4ae730ee2855a4e639015e7467315410cf3da"},
     {"path": "backend/src/server.js", "sha256": "dfde3b267be22261de2fd101618b5efa0cdfe6d65cdec88a1d08f42bbd27e5f7"},
     {"path": "backend/src/credential_cleanup.js", "sha256": "53386748f6a9cf2869c2fc98bacdd367270b4d97f5b044fffcf58dab12a2b18b"},
     {"path": "backend/src/moderation_workflow.js", "sha256": "acdc6f8158d2acdf7cd0b5e53ff125a44e0286fca7db1bbf5569ba0de271cafc"},
+    {"path": "backend/src/retention_inventory.js", "sha256": "7a90466e9e49468f02d3b6f16f12892152f8d172f885f8dd739d97af70a930ab"},
     {"path": "backend/src/privacy_export.js", "sha256": "78e76bcc4f19ffcde3270fbbd7cea70cb64de57d14664d10eef44dbe222f80c1"},
     {"path": "backend/src/account_actions.js", "sha256": "d0bd8947185c7b0fd5bdc6ab600e2ffbafd8e89bf7a6b7e51b12706c5965ed37"},
     {"path": "backend/src/config.js", "sha256": "75c153e2bda86f7b76c3fcb7d6c9a1a09a728aba2e9600211735a1452669833b"},
@@ -36,6 +37,17 @@
     },
     "categoryPurge": {
       "status": "not-implemented"
+    },
+    "retentionInventory": {
+      "status": "read-only-counts-implemented-policy-open",
+      "aggregatedCountsOnly": true,
+      "identifiersExcluded": true,
+      "adminStepUpRequired": true,
+      "supportRoleDenied": true,
+      "retentionPeriodsApplied": false,
+      "eligibleRowsCalculated": false,
+      "executionEnabled": false,
+      "technicalEvidenceRef": "docs/evidence/b11/retention-inventory-20260815.json"
     },
     "legalHold": {
       "status": "technical-enforcement-implemented-policy-process-open",

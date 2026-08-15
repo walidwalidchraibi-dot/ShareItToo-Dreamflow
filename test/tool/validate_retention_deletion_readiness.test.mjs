@@ -131,6 +131,8 @@ test('rejects legal-hold evidence that claims deployment without proof', () => {
   evidence.verification.fullTechnicalRegression = 'passed-candidate-rollover-mode';
   evidence.verification.stagingRuntime = 'passed';
   evidence.deployment.status = 'verified';
+  evidence.deployment.commit = null;
+  evidence.deployment.evidenceRef = null;
   assert.throws(
     () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
     /exact Staging deployment proof/u,
@@ -165,6 +167,33 @@ test('rejects owner verification without a separate owner evidence reference', (
   assert.throws(
     () => validate({ retentionManifest, privacyManifest }),
     /requires separate owner evidence/,
+  );
+});
+
+test('rejects a retention inventory that gains a destructive statement', () => {
+  const path = 'backend/src/retention_inventory.js';
+  const retentionManifest = clone(baseRetention);
+  const changed = `${readFileSync(resolve(root, path), 'utf8')}\n// DELETE FROM messages\n`;
+  retentionManifest.sourceInventory.find((entry) => entry.path === path).sha256 = sha256(changed);
+  assert.throws(
+    () => validate({ retentionManifest, sourceTexts: { [path]: changed } }),
+    /Retention inventory must remain read-only/u,
+  );
+});
+
+test('rejects retention-inventory evidence that claims deployment without proof', () => {
+  const path = 'docs/evidence/b11/retention-inventory-20260815.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.status = 'staging-runtime-verified';
+  evidence.verification.fullBackendSuite = 'passed-example';
+  evidence.verification.fullTechnicalRegression = 'passed-candidate-rollover-mode';
+  evidence.verification.stagingRuntime = 'passed';
+  evidence.deployment.status = 'verified';
+  evidence.deployment.commit = null;
+  evidence.deployment.evidenceRef = null;
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /exact Staging deployment proof/u,
   );
 });
 

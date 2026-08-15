@@ -117,6 +117,10 @@ import {
   verifyStaffElevation,
 } from './moderation_workflow.js';
 import { publishToAll, publishToUsers } from './realtime.js';
+import {
+  inspectRetentionInventory,
+  RetentionInventoryError,
+} from './retention_inventory.js';
 import { releaseMetadata } from './release.js';
 import {
   privatePilotDeclarations,
@@ -3442,6 +3446,11 @@ export function createApp({
     res.json({ audit: await listStaffAudit(pool, req.query) });
   }));
 
+  app.get('/v1/admin/privacy/retention-inventory', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const inventory = await inTransaction((client) => inspectRetentionInventory(client, { actor: req.actor }));
+    res.json({ inventory });
+  }));
+
   app.get('/v1/admin/legal-holds', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
     res.json({ legalHolds: await listAccountLegalHolds(pool, { actor: req.actor, ...req.query }) });
   }));
@@ -3704,20 +3713,21 @@ export function createApp({
     const messageWorkflowError = error instanceof MessageWorkflowError;
     const paymentWorkflowError = error instanceof PaymentDomainError;
     const moderationWorkflowError = error instanceof ModerationDomainError;
+    const retentionInventoryError = error instanceof RetentionInventoryError;
     const mapsProxyError = error instanceof MapsProxyError;
     const bookingConfirmationError = error instanceof BookingConfirmationError;
     const status = bookingConflict
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError || bookingConfirmationError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || mapsProxyError || bookingConfirmationError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });
