@@ -5,7 +5,7 @@ set -euo pipefail
 # Keep this in sync with the accepted repository baseline until the backlog is reduced.
 # Re-measured on Flutter 3.41.7 / Dart 3.11.5 on 2026-08-12 after the secure
 # Maps proxy migration removed one legacy client-side finding.
-ANALYZER_BASELINE=615
+ANALYZER_BASELINE=611
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$ROOT"

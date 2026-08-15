@@ -4059,6 +4059,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           presenterRole: HandoverCodeService.presenterOwner,
           qrPayload: scanned!.trim(),
         );
+        if (!mounted) return;
         if (!matches) {
           AppPopup.toast(
             context,
@@ -4199,6 +4200,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           presenterRole: HandoverCodeService.presenterRenter,
           qrPayload: scanned!.trim(),
         );
+        if (!mounted) return;
         if (!matches) {
           AppPopup.toast(
             context,
@@ -4307,6 +4309,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           presenterRole: HandoverCodeService.presenterRenter,
           code: entered,
         );
+        if (!mounted) return;
         if (!matches) {
           AppPopup.toast(
             context,
@@ -4608,6 +4611,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           presenterRole: HandoverCodeService.presenterOwner,
           code: entered,
         );
+        if (!mounted) return;
         if (!matches) {
           AppPopup.toast(
             context,

@@ -148,11 +148,12 @@ class _PrivatePilotCheckoutScreenState
       final stored = await DataService.addRentalRequest(request);
       if (!mounted) return;
       final rootNavigator = Navigator.of(context, rootNavigator: true);
+      final rootContext = rootNavigator.context;
       rootNavigator.popUntil((route) => route.isFirst);
       await Future<void>.delayed(const Duration(milliseconds: 120));
-      if (!rootNavigator.context.mounted) return;
+      if (!rootContext.mounted) return;
       await AppPopup.success(
-        rootNavigator.context,
+        rootContext,
         title: 'Buchungsanfrage gesendet',
         message:
             'Anfrage ${stored.id}: Der Vermieter kann sie jetzt prüfen. Es wurde noch kein echtes Zahlungsmittel belastet.',

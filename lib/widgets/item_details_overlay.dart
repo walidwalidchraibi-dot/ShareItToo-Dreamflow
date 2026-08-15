@@ -233,8 +233,8 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
       return;
     }
     final current = await DataService.getCurrentUser();
+    if (!mounted) return;
     if (current == null) {
-      if (!mounted) return;
       await showGuestRestrictionSheet(context,
           gateContext: GuestGateContext.rentalRequest);
       return;
@@ -820,8 +820,8 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
       return;
     }
     final current = await DataService.getCurrentUser();
+    if (!mounted) return;
     if (current == null) {
-      if (!mounted) return;
       await showGuestRestrictionSheet(context,
           gateContext: GuestGateContext.rentalRequest);
       return;
@@ -2373,8 +2373,6 @@ class _BottomActionBarState extends State<_BottomActionBar> {
         PrivatePilotConfig.deliveryEnabled && item.offersDeliveryAtDropoff;
     final canOfferRueckweg =
         PrivatePilotConfig.deliveryEnabled && item.offersPickupAtReturn;
-    final showDeliveryOptions =
-        range != null && PrivatePilotConfig.deliveryEnabled;
     final theme = Theme.of(context);
 
     final deliverySum = (_feeHinweg + _feeRueckweg);
@@ -3364,6 +3362,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
     }
 
     if (PrivatePilotConfig.enabled) {
+      if (!mounted) return;
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
           builder: (_) => PrivatePilotCheckoutScreen(

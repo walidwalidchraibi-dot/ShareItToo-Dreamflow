@@ -672,6 +672,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
                 await DataService.markRequestAsRead(
                     userId: _ownerId!, requestId: e.r.id);
               }
+              if (!mounted) return;
               await Navigator.of(context).push(MaterialPageRoute(
                   builder: (_) => OngoingOwnerDetailScreen(
                       requestId: e.r.id, titleOverride: titleForCategory)));
@@ -832,8 +833,9 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
     if (s == 'pending') return 'requests';
     if (s == 'accepted') return 'upcoming';
     if (s == 'running') return 'ongoing';
-    if (s == 'completed' || s == 'cancelled' || s == 'declined')
+    if (s == 'completed' || s == 'cancelled' || s == 'declined') {
       return 'completed';
+    }
     // Fallback to upcoming to avoid misrouting unknown states
     return 'upcoming';
   }
@@ -977,6 +979,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
               );
               if (!mounted) return;
               await _load();
+              if (!mounted) return;
               // Success popup (keeps overlay on top for 10 seconds, does not auto-navigate underlying page)
               // ignore: unawaited_futures
               AppPopup.show(
@@ -1056,8 +1059,9 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
                       await _load();
                       // Auto-close after 3 seconds
                       Future.delayed(const Duration(seconds: 3), () {
-                        if (mounted)
+                        if (mounted) {
                           Navigator.of(context, rootNavigator: true).maybePop();
+                        }
                       });
                       // Result popup
                       // ignore: unawaited_futures
@@ -1188,13 +1192,11 @@ class _TinyTextButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
   final Color? color;
-  final Color? iconColor;
   const _TinyTextButton(
       {required this.icon,
       required this.label,
       required this.onPressed,
-      this.color,
-      this.iconColor});
+      this.color});
   @override
   Widget build(BuildContext context) {
     final fg = color ?? Theme.of(context).colorScheme.primary;
@@ -1207,7 +1209,7 @@ class _TinyTextButton extends StatelessWidget {
         visualDensity: const VisualDensity(horizontal: -3, vertical: -3),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 16, color: iconColor ?? fg),
+        Icon(icon, size: 16, color: fg),
         const SizedBox(width: 4),
         Text(label,
             style: TextStyle(
@@ -1227,7 +1229,6 @@ class _ThumbnailWithSkeleton extends StatefulWidget {
 class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  bool _done = false;
   @override
   void initState() {
     super.initState();
@@ -1253,7 +1254,6 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton>
           fit: BoxFit.cover,
           loadingBuilder: (c, child, progress) {
             if (progress == null) {
-              _done = true;
               return child;
             }
             return _skeleton();

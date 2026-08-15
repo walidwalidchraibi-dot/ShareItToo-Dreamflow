@@ -315,7 +315,9 @@ class _SelectRentalDurationScreenState
 
   List<_ThresholdChip> get _thresholdChips {
     if (!widget.item.autoApplyDiscounts ||
-        widget.item.longRentalDiscounts.isEmpty) return const [];
+        widget.item.longRentalDiscounts.isEmpty) {
+      return const [];
+    }
     final tiers = List.of(widget.item.longRentalDiscounts)
       ..removeWhere((t) => t.days <= 1)
       ..sort((a, b) => a.days.compareTo(b.days));
@@ -791,8 +793,9 @@ class _SelectRentalDurationScreenState
                               selected: _hinwegLandlord,
                               enabled: widget.item.offersDeliveryAtDropoff,
                               onTap: () {
-                                if (!widget.item.offersDeliveryAtDropoff)
+                                if (!widget.item.offersDeliveryAtDropoff) {
                                   return;
+                                }
                                 setState(() => _hinwegLandlord = true);
                                 _persistDeliverySelection();
                               },

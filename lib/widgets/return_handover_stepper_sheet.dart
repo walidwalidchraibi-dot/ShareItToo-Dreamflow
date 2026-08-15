@@ -597,12 +597,16 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
       }
       if (perm == LocationPermission.deniedForever ||
           perm == LocationPermission.denied) {
+        if (!mounted) return;
         await AppPopup.toast(context,
             icon: Icons.location_off, title: 'Standortzugriff verweigert.');
         return;
       }
       final pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      if (!mounted) return;
       final dLat = widget.request.deliveryLat;
       final dLng = widget.request.deliveryLng;
       if (dLat == null || dLng == null) {
@@ -624,6 +628,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
           title: grant ? 'Vergütung wird freigegeben' : 'Keine Vergütung');
     } catch (e) {
       debugPrint('[handover] location resolve failed: $e');
+      if (!mounted) return;
       await AppPopup.toast(context,
           icon: Icons.location_disabled,
           title: 'Standort konnte nicht ermittelt werden.');
@@ -664,8 +669,6 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
 
   Widget _stepRideConfirm() {
     final isReturn = widget.mode == ReturnFlowMode.returnFlow;
-    final title =
-        isReturn ? 'Rückgabe – Fahrtvergütung' : 'Übergabe – Fahrtvergütung';
     final forRenterQ = isReturn
         ? 'Hat der Vermieter den Artikel bei dir abgeholt?'
         : 'Hat der Vermieter den Artikel zu dir geliefert?';
@@ -882,6 +885,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
       }
     } catch (e) {
       debugPrint('[handover] camera pick failed: $e');
+      if (!mounted) return;
       await AppPopup.toast(context,
           icon: Icons.error_outline, title: 'Kamera nicht verfügbar');
     }
@@ -1112,6 +1116,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
                             if (entered.isEmpty) return;
                             final verified =
                                 await _verifyCounterpartyCode(entered);
+                            if (!mounted) return;
                             if (verified) {
                               setState(() => _otherPartyConfirmed = true);
                               await AppPopup.toast(context,
@@ -1328,6 +1333,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
                         final entered = _manualCodeCtrl.text.trim();
                         if (entered.isEmpty) return;
                         final verified = await _verifyCounterpartyCode(entered);
+                        if (!mounted) return;
                         if (verified) {
                           setState(() => _otherPartyConfirmed = true);
                           await AppPopup.toast(context,
@@ -1426,6 +1432,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
               code: widget.handoverCode,
               bookingId: _computeBookingSeed(widget.item, widget.request),
             );
+      if (!mounted) return;
       if (!matches) {
         await AppPopup.toast(context,
             icon: Icons.error_outline,
@@ -1441,6 +1448,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
               '${widget.mode == ReturnFlowMode.returnFlow ? 'Rückgabe' : 'Abholung'} per QR bestätigt');
     } catch (e) {
       debugPrint('[handover] scan failed: $e');
+      if (!mounted) return;
       await AppPopup.toast(context,
           icon: Icons.error_outline, title: 'Bestätigung fehlgeschlagen');
     }
