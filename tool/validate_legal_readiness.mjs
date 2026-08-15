@@ -46,6 +46,45 @@ const requiredApprovalKeys = [
   'cancellationRefundNoDepositConsistency',
 ];
 
+const interimPilotDecisionContract = [
+  {
+    manifestKey: 'platformContractAndWithdrawalTiming',
+    sourceId: 'platform_contract_and_withdrawal_timing',
+    interimRule: 'versioned-separate-declarations-at-booking-request',
+    blocksLiveActivation: true,
+  },
+  {
+    manifestKey: 'withdrawalEffectOnPrivateRental',
+    sourceId: 'withdrawal_effect_on_private_rental',
+    interimRule: 'record-and-confirm-without-automatic-booking-or-money-effect',
+    blocksLiveActivation: true,
+  },
+  {
+    manifestKey: 'cancellationParameters',
+    sourceId: 'cancellation_50_100_or_30_50',
+    interimRule: '50-percent-retained-under-24h-and-100-percent-after-start',
+    blocksLiveActivation: true,
+  },
+  {
+    manifestKey: 'marketplacePspMechanics',
+    sourceId: 'marketplace_psp_mechanics',
+    interimRule: 'test-and-mock-only-no-real-money-movement',
+    blocksLiveActivation: true,
+  },
+  {
+    manifestKey: 'missingReturnConfirmationWindow',
+    sourceId: 'missing_return_confirmation_window',
+    interimRule: 'awaiting-return-confirmation-until-t0-plus-5-calendar-days',
+    blocksLiveActivation: false,
+  },
+  {
+    manifestKey: 'handoverPhotoWorkflow',
+    sourceId: 'handover_photo_workflow',
+    interimRule: 'four-photos-each-direction-with-counter-confirmation-or-deviation-photo',
+    blocksLiveActivation: false,
+  },
+];
+
 const forbiddenSensitiveKeys = /^(password|secret|token|apiKey|privateKey|serviceAccount|credential|reviewAccount)$/i;
 
 function fail(message) {
@@ -200,6 +239,101 @@ function assertProviderIdentityFailsClosed({ root, sourceTexts }) {
   }
 }
 
+function assertInterimPilotContract({ root, sourceTexts, legal }) {
+  const policy = object(legal.interimPilotRules, 'interimPilotRules');
+  const expectedPolicyKeys = [
+    'realPaymentsEnabled',
+    'replaceOnUserInstruction',
+    'status',
+    'version',
+  ];
+  if (Object.keys(policy).sort().join(',') !== expectedPolicyKeys.sort().join(',')) {
+    fail('interimPilotRules must contain exactly the versioned active test policy.');
+  }
+  if (policy.version !== 'V4-INTERIM-2026-08-15') {
+    fail('interimPilotRules.version must remain V4-INTERIM-2026-08-15 until the user supplies an update.');
+  }
+  if (policy.status !== 'active-for-internal-and-closed-testing') {
+    fail('interimPilotRules.status must remain active for internal and closed testing.');
+  }
+  if (policy.realPaymentsEnabled !== false) {
+    fail('interimPilotRules.realPaymentsEnabled must remain false.');
+  }
+  if (policy.replaceOnUserInstruction !== true) {
+    fail('interimPilotRules.replaceOnUserInstruction must remain true.');
+  }
+
+  const decisions = object(legal.openPilotDecisions, 'openPilotDecisions');
+  const expectedKeys = interimPilotDecisionContract.map(({ manifestKey }) => manifestKey);
+  if (Object.keys(decisions).sort().join(',') !== expectedKeys.sort().join(',')) {
+    fail('openPilotDecisions must contain exactly all six V4 interim decisions.');
+  }
+  for (const expected of interimPilotDecisionContract) {
+    const decision = object(
+      decisions[expected.manifestKey],
+      `openPilotDecisions.${expected.manifestKey}`,
+    );
+    if (decision.status !== 'open') {
+      fail(`openPilotDecisions.${expected.manifestKey}.status must remain open until the user supplies an update.`);
+    }
+    if (decision.interimRule !== expected.interimRule) {
+      fail(`openPilotDecisions.${expected.manifestKey}.interimRule does not match the active V4 rule.`);
+    }
+    nonEmptyString(
+      decision.decisionBy,
+      `openPilotDecisions.${expected.manifestKey}.decisionBy`,
+    );
+    if (decision.activeForInternalTesting !== true) {
+      fail(`openPilotDecisions.${expected.manifestKey} must remain active for internal testing.`);
+    }
+    if (decision.blocksLiveActivation !== expected.blocksLiveActivation) {
+      fail(`openPilotDecisions.${expected.manifestKey}.blocksLiveActivation is inconsistent.`);
+    }
+  }
+
+  const dartConfig = sourceText(
+    root,
+    sourceTexts,
+    'lib/config/private_pilot_config.dart',
+  );
+  const backendDomain = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/private_pilot_domain.js',
+  );
+  for (const marker of [
+    "interimPolicyVersion = 'V4-INTERIM-2026-08-15'",
+    "interimPolicyScope = 'internal-and-closed-testing-only'",
+    'interimLegalModelEnabled = true',
+    'replaceInterimRulesOnUserInstruction = true',
+    'realPaymentsEnabled = false',
+  ]) {
+    if (!dartConfig.includes(marker)) {
+      fail(`Flutter interim policy is missing or inactive: ${marker}`);
+    }
+  }
+  for (const marker of [
+    "version: 'V4-INTERIM-2026-08-15'",
+    "scope: 'internal-and-closed-testing-only'",
+    'active: true',
+    'realPaymentsEnabled: false',
+    'replaceOnUserInstruction: true',
+  ]) {
+    if (!backendDomain.includes(marker)) {
+      fail(`Backend interim policy is missing or inactive: ${marker}`);
+    }
+  }
+  for (const { sourceId } of interimPilotDecisionContract) {
+    const marker = `id: '${sourceId}'`;
+    if (!dartConfig.includes(marker)) {
+      fail(`Flutter open decision is missing: ${sourceId}`);
+    }
+    if (!backendDomain.includes(marker)) {
+      fail(`Backend open decision is missing: ${sourceId}`);
+    }
+  }
+}
+
 function assertApprovedDocument(item, contract, label) {
   if (item.status !== 'approved') fail(`${label}.status must be approved.`);
   assertSha256(item.approvedContentSha256, `${label}.approvedContentSha256`);
@@ -249,6 +383,7 @@ export function validateLegalReadiness({
   }
   assertExplicitConsentContract({ root, sourceTexts, consent });
   assertProviderIdentityFailsClosed({ root, sourceTexts });
+  assertInterimPilotContract({ root, sourceTexts, legal });
 
   const documents = object(legal.documents, 'documents');
   if (Object.keys(documents).sort().join(',') !== Object.keys(documentContract).sort().join(',')) {
@@ -363,6 +498,8 @@ export function validateLegalReadiness({
     storeGate: storeGate.status,
     documentCount: Object.keys(documents).length,
     explicitConfirmations: confirmations.length,
+    interimPolicyVersion: legal.interimPilotRules.version,
+    activeOpenPilotDecisions: interimPilotDecisionContract.length,
   };
 }
 
@@ -386,7 +523,8 @@ function main() {
   });
   console.log(
     `Legal readiness valid: state=${result.state}, approvalAllowed=${result.approvalAllowed}, `
-      + `termsAndUserContentRules=${result.storeGate}.`,
+      + `termsAndUserContentRules=${result.storeGate}, interimPolicy=${result.interimPolicyVersion}, `
+      + `activeOpenPilotDecisions=${result.activeOpenPilotDecisions}.`,
   );
 }
 

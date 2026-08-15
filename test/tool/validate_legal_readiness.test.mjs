@@ -40,6 +40,46 @@ test('accepts the honest fail-closed legal draft', () => {
   assert.equal(result.storeGate, 'open');
   assert.equal(result.documentCount, 6);
   assert.equal(result.explicitConfirmations, 4);
+  assert.equal(result.interimPolicyVersion, 'V4-INTERIM-2026-08-15');
+  assert.equal(result.activeOpenPilotDecisions, 6);
+});
+
+test('rejects disabling the active V4 interim policy', () => {
+  const legalManifest = clone(baseLegalManifest);
+  legalManifest.interimPilotRules.status = 'paused';
+  assert.throws(
+    () => validate({ legalManifest }),
+    /must remain active for internal and closed testing/,
+  );
+});
+
+test('rejects silently closing an open V4 decision', () => {
+  const legalManifest = clone(baseLegalManifest);
+  legalManifest.openPilotDecisions.cancellationParameters.status = 'closed';
+  assert.throws(
+    () => validate({ legalManifest }),
+    /status must remain open until the user supplies an update/,
+  );
+});
+
+test('rejects disabling a V4 interim decision in the app', () => {
+  const configPath = 'lib/config/private_pilot_config.dart';
+  const config = readFileSync(resolve(repositoryRoot, configPath), 'utf8')
+    .replace('realPaymentsEnabled = false', 'realPaymentsEnabled = true');
+  assert.throws(
+    () => validate({ sourceTexts: { [configPath]: config } }),
+    /Flutter interim policy is missing or inactive/,
+  );
+});
+
+test('rejects removing a V4 interim decision from the backend', () => {
+  const domainPath = 'backend/src/private_pilot_domain.js';
+  const domain = readFileSync(resolve(repositoryRoot, domainPath), 'utf8')
+    .replace("id: 'handover_photo_workflow'", "id: 'handover_photo_workflow_removed'");
+  assert.throws(
+    () => validate({ sourceTexts: { [domainPath]: domain } }),
+    /Backend open decision is missing: handover_photo_workflow/,
+  );
 });
 
 test('strict approval rejects the current draft', () => {
