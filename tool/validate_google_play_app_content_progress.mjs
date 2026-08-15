@@ -63,7 +63,7 @@ export function validateGooglePlayAppContentProgress({
       dataSafety.answerMatrixEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-answer-matrix-2026081505-20260815.json' ||
       dataSafety.providerClassificationEvidenceRef !==
-        'docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json' ||
+        'docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json' ||
       dataSafety.dataTypesSaved !== false ||
       dataSafety.submitted !== false) {
     fail('Play data-safety partial draft state is invalid.');

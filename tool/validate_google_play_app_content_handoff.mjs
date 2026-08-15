@@ -109,7 +109,7 @@ export function validateGooglePlayAppContentHandoff({
       tasks.dataSafety.answerMatrixEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-answer-matrix-2026081505-20260815.json' ||
       tasks.dataSafety.providerClassificationEvidenceRef !==
-        'docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json' ||
+        'docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json' ||
       tasks.dataSafety.stepTwoEvidenceRef !==
         'docs/evidence/b11/google-play-data-safety-step2-20260812.json' ||
       tasks.dataSafety.sellsData !== false ||

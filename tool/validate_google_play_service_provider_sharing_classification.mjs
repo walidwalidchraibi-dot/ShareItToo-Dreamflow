@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const classificationPath =
-  'docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json';
+  'docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json';
 const privacyPath = 'store/privacy-disclosures.json';
 const requiredServiceIds = [
   'hostingerVps',

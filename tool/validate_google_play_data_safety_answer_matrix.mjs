@@ -13,7 +13,7 @@ const expectedEvidenceRefs = [
   'docs/evidence/b11/google-play-data-safety-step2-20260812.json',
   'docs/evidence/b11/google-play-data-safety-datatypes-20260812.json',
   'docs/evidence/b11/privacy-provider-retention-sources-20260812.json',
-  'docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json',
+  'docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json',
 ];
 const expectedGuidance = [
   'https://support.google.com/googleplay/android-developer/answer/10787469?hl=en',
@@ -161,7 +161,7 @@ export function validateGooglePlayDataSafetyAnswerMatrix({
   }
   const sharingClassification = object(
     load(repositoryRoot,
-      'docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json',
+      'docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json',
       overrides),
     'sharingClassification',
   );

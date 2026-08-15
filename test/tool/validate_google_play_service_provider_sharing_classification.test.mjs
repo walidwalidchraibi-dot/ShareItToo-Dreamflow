@@ -10,7 +10,7 @@ import { validateGooglePlayServiceProviderSharingClassification } from
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const classification = JSON.parse(readFileSync(resolve(
   root,
-  'docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json',
+  'docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json',
 ), 'utf8'));
 const privacy = JSON.parse(readFileSync(resolve(root, 'store/privacy-disclosures.json'), 'utf8'));
 const clone = (value) => structuredClone(value);

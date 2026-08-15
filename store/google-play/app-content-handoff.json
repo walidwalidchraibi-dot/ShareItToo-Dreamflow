@@ -54,7 +54,7 @@
       "dataTypesPrepared": 16,
       "dataTypesEvidenceRef": "docs/evidence/b11/google-play-data-safety-datatypes-20260812.json",
       "answerMatrixEvidenceRef": "docs/evidence/b11/google-play-data-safety-answer-matrix-2026081505-20260815.json",
-      "providerClassificationEvidenceRef": "docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json",
+      "providerClassificationEvidenceRef": "docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json",
       "sellsData": false,
       "advertisingTracking": false,
       "stepTwoEvidenceRef": "docs/evidence/b11/google-play-data-safety-step2-20260812.json"
@@ -111,7 +111,7 @@
     "docs/evidence/b11/google-play-data-safety-step2-20260812.json",
     "docs/evidence/b11/google-play-data-safety-datatypes-20260812.json",
     "docs/evidence/b11/google-play-data-safety-answer-matrix-2026081505-20260815.json",
-    "docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json",
+    "docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json",
     "docs/evidence/b11/google-play-advertising-id-declaration-20260812.json",
     "docs/evidence/b11/google-play-iarc-content-rating-completion-20260813.json",
     "docs/evidence/b11/google-play-store-listing-saved-20260813.json"

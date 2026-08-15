@@ -267,7 +267,7 @@
     "docs/evidence/b11/google-play-data-safety-step2-20260812.json",
     "docs/evidence/b11/google-play-data-safety-datatypes-20260812.json",
     "docs/evidence/b11/privacy-provider-retention-sources-20260812.json",
-    "docs/evidence/b11/google-play-service-provider-sharing-classification-20260813.json"
+    "docs/evidence/b11/google-play-service-provider-sharing-classification-2026081505-20260815.json"
   ],
   "blockingGates": {
     "serviceProviderContractClassificationComplete": false,
