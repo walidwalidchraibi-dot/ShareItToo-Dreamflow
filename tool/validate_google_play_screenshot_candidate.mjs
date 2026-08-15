@@ -24,7 +24,7 @@ function pngMetadata(bytes) {
 export function validateGooglePlayScreenshotCandidate({
   repositoryRoot,
   evidencePath = resolve(repositoryRoot,
-    'docs/evidence/b11/google-play-screenshot-candidate-feed-20260813.json'),
+    'docs/evidence/b11/google-play-screenshot-candidate-feed-2026081505.json'),
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   const deviceValidation = JSON.parse(readFileSync(

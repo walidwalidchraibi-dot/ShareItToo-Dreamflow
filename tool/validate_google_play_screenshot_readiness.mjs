@@ -10,7 +10,7 @@ function fail(message) {
 
 export function validateGooglePlayScreenshotReadiness({
   repositoryRoot,
-  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081405-20260814.json'),
+  evidencePath = resolve(repositoryRoot, 'docs/evidence/b11/google-play-feed-screenshot-readiness-2026081505-20260815.json'),
 } = {}) {
   const evidence = JSON.parse(readFileSync(evidencePath, 'utf8'));
   const exactCandidate = JSON.parse(readFileSync(

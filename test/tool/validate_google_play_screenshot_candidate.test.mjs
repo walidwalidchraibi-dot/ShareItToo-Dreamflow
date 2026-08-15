@@ -8,7 +8,7 @@ import { validateGooglePlayScreenshotCandidate } from '../../tool/validate_googl
 
 const repositoryRoot = new URL('../../', import.meta.url).pathname;
 const canonical = JSON.parse(await readFile(new URL(
-  '../../docs/evidence/b11/google-play-screenshot-candidate-feed-20260813.json', import.meta.url), 'utf8'));
+  '../../docs/evidence/b11/google-play-screenshot-candidate-feed-2026081505.json', import.meta.url), 'utf8'));
 
 async function fixture(mutate) {
   const root = await mkdtemp(join(tmpdir(), 'sit-screenshot-candidate-'));
@@ -29,15 +29,15 @@ test('accepts the visually approved exact-candidate local listing detail image',
   assert.deepEqual(validateGooglePlayScreenshotCandidate({
     repositoryRoot,
     evidencePath: new URL(
-      '../../docs/evidence/b11/google-play-screenshot-candidate-listing-detail-20260813.json', import.meta.url).pathname,
+      '../../docs/evidence/b11/google-play-screenshot-candidate-listing-detail-2026081505.json', import.meta.url).pathname,
   }), {
     status: 'exact-candidate-local-not-uploaded', scene: 'listing-detail', width: 1080, height: 1920,
   });
 });
 
 for (const [scene, file] of [
-  ['search', 'google-play-screenshot-candidate-search-20260813.json'],
-  ['create-listing', 'google-play-screenshot-candidate-create-listing-20260813.json'],
+  ['search', 'google-play-screenshot-candidate-search-2026081505.json'],
+  ['create-listing', 'google-play-screenshot-candidate-create-listing-2026081505.json'],
 ]) {
   test(`accepts the visually approved exact-candidate local ${scene} image`, () => {
     assert.equal(validateGooglePlayScreenshotCandidate({

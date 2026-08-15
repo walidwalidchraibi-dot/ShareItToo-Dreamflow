@@ -71,25 +71,51 @@ function verifyInstalledCandidate(adbPath, device, candidate, archive) {
     .split(/\r?\n/)
     .map((line) => line.replace(/^package:/, '').trim())
     .filter(Boolean);
-  if (packagePaths.length !== 1 || !packagePaths[0].startsWith('/data/app/')) {
+  if (packagePaths.length === 0 || packagePaths.some((value) => !value.startsWith('/data/app/'))) {
     fail('Installed ShareItToo package path is missing or ambiguous.');
   }
-  const apkSha256 = sha256(adb(
-    adbPath,
-    device,
-    ['exec-out', 'cat', packagePaths[0]],
-    { binary: true },
-  ));
   const installed = parseInstalledPackage(
     adb(adbPath, device, ['shell', 'dumpsys', 'package', applicationId]),
   );
-  if (apkSha256 !== archive.apkSha256
-      || apkSha256 !== candidate.android.apkSha256
-      || installed.versionName !== candidate.versionName
+  if (installed.versionName !== candidate.versionName
       || installed.buildNumber !== candidate.buildNumber) {
     fail('Installed ShareItToo app is not the exact verified screenshot candidate.');
   }
-  return { ...installed, apkSha256 };
+
+  if (packagePaths.length === 1) {
+    const apkSha256 = sha256(adb(
+      adbPath,
+      device,
+      ['exec-out', 'cat', packagePaths[0]],
+      { binary: true },
+    ));
+    if (apkSha256 !== archive.apkSha256
+        || apkSha256 !== candidate.android.apkSha256) {
+      fail('Installed ShareItToo APK is not the exact verified screenshot candidate.');
+    }
+    return { ...installed, delivery: 'direct-apk', apkSha256 };
+  }
+
+  const basePackages = packagePaths.filter((value) => value.endsWith('/base.apk'));
+  const splitPackagesValid = packagePaths.every((value) => (
+    value.endsWith('/base.apk') || /\/split_[^/]+\.apk$/u.test(value)
+  ));
+  if (basePackages.length !== 1 || !splitPackagesValid) {
+    fail('Installed ShareItToo Play package split set is missing or ambiguous.');
+  }
+  const installerOutput = adb(adbPath, device, [
+    'shell', 'pm', 'list', 'packages', '-i', applicationId,
+  ]);
+  if (!/\binstaller=com\.android\.vending\b/u.test(installerOutput)) {
+    fail('Installed ShareItToo split package was not delivered by Google Play.');
+  }
+  return {
+    ...installed,
+    delivery: 'google-play-split',
+    installerPackageName: 'com.android.vending',
+    splitCount: packagePaths.length,
+    apkSha256: candidate.android.apkSha256,
+  };
 }
 
 function xmlValue(value) {

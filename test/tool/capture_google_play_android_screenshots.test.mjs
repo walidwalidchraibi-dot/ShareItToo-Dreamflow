@@ -15,6 +15,16 @@ test('fails closed unless the installed APK is the exact archived release candid
   ]) assert.ok(source.includes(marker), `missing exact-candidate guard: ${marker}`);
 });
 
+test('accepts Play splits only with one base package and the Play installer', () => {
+  for (const marker of [
+    "value.endsWith('/base.apk')",
+    '/\\/split_[^/]+\\.apk$/u',
+    'basePackages.length !== 1',
+    "installer=com\\.android\\.vending",
+    "delivery: 'google-play-split'",
+  ]) assert.ok(source.includes(marker), `missing Play split guard: ${marker}`);
+});
+
 test('never enters the Android lock code', () => {
   assert.ok(source.includes('Unlock it manually; this tool never enters a passcode.'));
   assert.equal(source.includes('KEYCODE_0'), false);

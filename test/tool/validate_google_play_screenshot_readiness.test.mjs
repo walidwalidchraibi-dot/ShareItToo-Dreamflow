@@ -8,7 +8,11 @@ import { validateGooglePlayScreenshotReadiness } from '../../tool/validate_googl
 
 const repositoryRoot = new URL('../../', import.meta.url).pathname;
 const canonical = JSON.parse(await readFile(
-  new URL('../../docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081405-20260814.json', import.meta.url), 'utf8'));
+  new URL('../../docs/evidence/b11/google-play-feed-screenshot-readiness-2026081505-20260815.json', import.meta.url), 'utf8'));
+const historicalCompatibility = new URL(
+  '../../docs/evidence/b11/google-play-feed-screenshot-compatibility-2026081405-20260814.json',
+  import.meta.url,
+).pathname;
 
 async function fixture(mutate) {
   const root = await mkdtemp(join(tmpdir(), 'sit-screenshot-ready-'));
@@ -19,23 +23,30 @@ async function fixture(mutate) {
   return { root, evidencePath };
 }
 
-test('accepts four historical screenshots after exact current Store compatibility review', () => {
+test('accepts four visually approved screenshots from the exact current candidate', () => {
   assert.deepEqual(validateGooglePlayScreenshotReadiness({ repositoryRoot }), {
-    status: 'verified-compatible-no-visible-product-change',
+    status: 'exact-candidate-local-screenshots-validated-not-uploaded',
     curatedListingCount: 4,
   });
 });
 
-test('rejects compatibility when a visible screen source changed', async (t) => {
-  const data = await fixture((evidence) => { evidence.compatibilityReview.visibleScreenSourceChanged = true; });
-  t.after(() => rm(data.root, { recursive: true, force: true }));
-  assert.throws(() => validateGooglePlayScreenshotReadiness({ repositoryRoot, ...data }),
-    /contradicts/);
+test('rejects preserved compatibility evidence once the exact candidate advances', () => {
+  assert.throws(() => validateGooglePlayScreenshotReadiness({
+    repositoryRoot,
+    evidencePath: historicalCompatibility,
+  }), /not bound to the exact current candidate/);
 });
 
-test('rejects claiming a Store change during compatibility review', async (t) => {
-  const data = await fixture((evidence) => { evidence.boundaries.storeListingChangedDuringReview = true; });
+test('rejects exact-candidate readiness when visual acceptance is missing', async (t) => {
+  const data = await fixture((evidence) => { evidence.feedObservation.storeScreenshotAccepted = false; });
   t.after(() => rm(data.root, { recursive: true, force: true }));
   assert.throws(() => validateGooglePlayScreenshotReadiness({ repositoryRoot, ...data }),
-    /must not claim Store changes/);
+    /incomplete/);
+});
+
+test('rejects claiming an upload for local exact-candidate readiness', async (t) => {
+  const data = await fixture((evidence) => { evidence.boundaries.screenshotUploaded = true; });
+  t.after(() => rm(data.root, { recursive: true, force: true }));
+  assert.throws(() => validateGooglePlayScreenshotReadiness({ repositoryRoot, ...data }),
+    /sanitized/);
 });
