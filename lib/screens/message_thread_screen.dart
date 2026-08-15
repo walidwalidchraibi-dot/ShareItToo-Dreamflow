@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7355,11 +7356,13 @@ class _GlassInputBarState extends State<_GlassInputBar>
       FocusScope.of(context).requestFocus(widget.focusNode);
     }
     widget.focusNode.requestFocus();
+    SystemChannels.textInput.invokeMethod<void>('TextInput.show');
     final textLength = widget.controller.text.length;
     widget.controller.selection = TextSelection.collapsed(offset: textLength);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       widget.focusNode.requestFocus();
+      SystemChannels.textInput.invokeMethod<void>('TextInput.show');
       final len = widget.controller.text.length;
       widget.controller.selection = TextSelection.collapsed(offset: len);
     });
