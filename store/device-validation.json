@@ -190,8 +190,8 @@
       "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081509.json"
     },
     "storeWarningsLinksAndSigning": {
-      "status": "open",
-      "evidenceRef": null
+      "status": "passed",
+      "evidenceRef": "docs/evidence/b11/android-play-store-links-signing-2026081509-20260815.json"
     },
     "stagingCleanupAndHealth": {
       "status": "passed",

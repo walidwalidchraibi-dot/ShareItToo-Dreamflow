@@ -683,3 +683,25 @@ Servernachweis:
 - Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
   blieben unveraendert. Alle sechs V4-Punkte bleiben unter
   `V4-INTERIM-2026-08-15` mit `status: open` aktiv.
+
+## Meilenstein 16.79 – Play-Signatur, App Links und Pflichtseiten bestaetigt
+
+- Der exakte interne Play-Build `1.0.0+2026081509` ist mit null
+  Releasefehlern fuer interne Tester verfuegbar. Die physische
+  Store-Installation ist als vierteiliges Paket von `com.android.vending` an
+  den Kandidaten und den erwarteten Play-App-Signing-Fingerabdruck gebunden.
+- `shareittoo.com`, `www.shareittoo.com` und `staging.shareittoo.com` liefern
+  weiterhin bytegenau dasselbe gueltige `assetlinks.json` fuer
+  `com.shareittoo.app` und beide erforderlichen Signaturzertifikate.
+- Die oeffentlichen Seiten fuer Support, Datenschutz und Kontoloeschung
+  liefern HTTP 200 und stimmen weiterhin bytegenau mit den bereits
+  freigegebenen SIT-Seiten ueberein.
+- Der kandidatenspezifische Nachweis liegt unter
+  `docs/evidence/b11/android-play-store-links-signing-2026081509-20260815.json`.
+  Die Releasepruefung `storeWarningsLinksAndSigning` ist damit bestanden.
+- 77 relevante Nachweis- und Dokumenttests bestanden. Der ehrliche
+  Gesamtstatus bleibt `testing/hold`, die Geraetematrix 0/4; die
+  Releasepruefungen steigen auf 5/7.
+- Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
+  blieben unveraendert. Alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` mit `status: open` aktiv.

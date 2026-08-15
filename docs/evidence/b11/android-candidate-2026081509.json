@@ -110,6 +110,10 @@
     "status": "mapping-and-native-symbols-uploaded-controlled-event-pending",
     "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081509.json"
   },
+  "storeLinksAndSigning": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-play-store-links-signing-2026081509-20260815.json"
+  },
   "deviceRestoration": {
     "status": "passed",
     "restoredBuildNumber": "2026081508",
