@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "af8a5b7d75a51b41961cf37f68b39265eca3f6c74078fcfc4701499c9cf76aa4"
+      "sha256": "f989b53882cde848ea226c31082d876fddf00da3c35b987793a7213e9b399b2d"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -92,7 +92,7 @@
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "86fe7103ca7f4ecff95e16c71283bd973a1b5890e67dba328924efd023c44064"
+      "sha256": "d35614c5369e51828be386f425a39bdd9988192cde7edd42a4eefdfe6a50c8fc"
     },
     {
       "path": "lib/widgets/return_handover_stepper_sheet.dart",
