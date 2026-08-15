@@ -194,3 +194,32 @@ Servernachweis:
 - Google Play bleibt ausschliesslich beim internen Kandidaten
   `1.0.0-internal-2026081411`; Closed, Open, Produktion und Echtgeld wurden
   nicht veraendert.
+
+## Meilenstein 16.53 – Review-Buchung und gemeinsamer Chat repariert
+
+- Die Korrelationsnummer `cacd5a0f-f85f-4c92-9dc9-af2497186f6c` fuehrte zum
+  exakten PostgreSQL-Fehler: Der gemeinsame Erstellungszeitpunkt der Buchung
+  wurde gleichzeitig als Text und `TIMESTAMPTZ` abgeleitet. Commit `904b1c2`
+  bindet alle drei Verwendungen explizit als `TIMESTAMPTZ`.
+- Der naechste Annahmeversuch zeigte getrennt, dass das synthetische Werkzeug
+  die vorgeschriebene versionierte Vermietererklaerung noch nicht mitsendete.
+  Commit `25af918` sendet sie jetzt vollstaendig und uebersetzt fehlende oder
+  ungueltige Erklaerungen in einen fachlichen 400er statt eines generischen
+  500ers.
+- Vor beiden Staging-Rollouts wurden Datenbank und Uploads getrennt gesichert
+  und per SHA-256 geprueft. Beide Images waren unveraenderlich an ihren Commit
+  gebunden; FCM-Secret-Gate, Container-Health und automatischer Rollback-Pfad
+  waren aktiv.
+- Aktives Staging: `1.0.0-2026081502-v4-owner-acceptance`, Commit
+  `25af918304abb13b9959d5f1e8cc35f186ecec56`.
+- Reale Staging-Abnahme: vorhandenes synthetisches Inserat wiederverwendet,
+  Buchung angefragt, Vermieterannahme gespeichert, Buchung fuer beide Rollen
+  sichtbar, gemeinsamer Thread fuer beide Rollen sichtbar und lesbar sowie je
+  eine Nachricht aus Vermieter- und Mieterrolle angenommen.
+- Der Store-Review-Nachweis steht deshalb fuer Login, Inserat, akzeptierte
+  Buchung und gemeinsamen Chat wieder auf bestanden. Frische Installation und
+  zweites Netz bleiben weiterhin offen und werden nicht vorweggenommen.
+- Grenzen: Zahlung blieb `memory`, Stripe blieb nicht live, kein
+  Zahlungsendpunkt wurde aufgerufen, Produktion blieb auf Commit
+  `09c9211e41da75969b9ee59e9954ac7465250e80`, und kein oeffentlicher
+  Store-Track wurde veraendert.

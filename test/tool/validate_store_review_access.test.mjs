@@ -14,6 +14,10 @@ const currentEvidence = JSON.parse(readFileSync(resolve(
   repositoryRoot,
   baseReview.technicalAccess.evidenceRef,
 )));
+const pendingEvidence = JSON.parse(readFileSync(resolve(
+  repositoryRoot,
+  'docs/evidence/b11/store-review-access-refresh-pending-2026081411-20260814T234406Z.json',
+)));
 const passedEvidence = {
   schemaVersion: 1,
   kind: 'store-review-access-diagnostic',
@@ -115,11 +119,11 @@ function validate({
   });
 }
 
-test('accepts the honest fail-closed testing state with device and network checks pending', () => {
+test('accepts the honest testing state with fresh install and second network pending', () => {
   const result = validate();
   assert.equal(result.state, 'testing');
   assert.equal(result.readyForStore, false);
-  assert.equal(result.passedScenarios, 6);
+  assert.equal(result.passedScenarios, 8);
   assert.equal(result.storeGate, 'open');
 });
 
@@ -152,10 +156,14 @@ test('rejects incomplete technical evidence', () => {
 });
 
 test('requires bounded mutations to be disclosed while a fixture is refreshed', () => {
-  const evidence = clone(currentEvidence);
+  const review = clone(baseReview);
+  review.technicalAccess.status = 'testing';
+  review.reviewScenarios.acceptedBooking = 'pending';
+  review.reviewScenarios.sharedChat = 'pending';
+  const evidence = clone(pendingEvidence);
   evidence.boundaries.businessDataMutations = false;
   assert.throws(
-    () => validate({ evidence }),
+    () => validate({ review, evidence }),
     /must disclose its bounded synthetic Staging mutations/,
   );
 });

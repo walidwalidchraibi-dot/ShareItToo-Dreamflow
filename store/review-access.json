@@ -27,15 +27,15 @@
     }
   ],
   "technicalAccess": {
-    "status": "testing",
-    "evidenceRef": "docs/evidence/b11/store-review-access-refresh-pending-2026081411-20260814T234406Z.json"
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/store-review-access-refresh-2026081411-20260815T001610Z.json"
   },
   "reviewScenarios": {
     "ownerLogin": "passed",
     "renterLogin": "passed",
     "activeListing": "passed",
-    "acceptedBooking": "pending",
-    "sharedChat": "pending",
+    "acceptedBooking": "passed",
+    "sharedChat": "passed",
     "freshInstall": "pending",
     "secondNetwork": "pending",
     "reportAndBlock": "passed",
