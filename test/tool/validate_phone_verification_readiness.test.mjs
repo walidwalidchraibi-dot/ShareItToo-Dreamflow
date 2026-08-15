@@ -24,18 +24,18 @@ function validateReadiness(options = {}) {
   });
 }
 
-test('accepts the owner-authorized Firebase console activation while the real-device test remains closed', () => {
+test('accepts the evidenced Android real-device SMS pass while Apple and store gates remain closed', () => {
   assert.deepEqual(validateReadiness(), {
-    state: 'firebase-console-activated-staging-test-pending',
+    state: 'android-real-device-sms-passed',
     buildNumber: canonical.sourceBuild.buildNumber,
-    openGates: 6,
-    activationAllowed: false,
+    openGates: 3,
+    activationAllowed: true,
   });
 });
 
-test('rejects claiming activation before every external gate is evidenced', () => {
+test('rejects store submission while Apple and disclosure gates remain open', () => {
   const readiness = structuredClone(canonical);
-  readiness.activationAllowed = true;
+  readiness.storeSubmissionAllowed = true;
   assert.throws(
     () => validateReadiness({ readiness }),
     /external gates must remain fail-closed/,
@@ -96,11 +96,35 @@ test('permits an older passed phone check only during an explicit internal candi
       allowCandidateRollover: true,
     }),
     {
-      state: 'firebase-console-activated-staging-test-pending',
+      state: 'android-real-device-sms-passed',
       buildNumber: canonical.sourceBuild.buildNumber,
-      openGates: 6,
-      activationAllowed: false,
+      openGates: 3,
+      activationAllowed: true,
     },
+  );
+});
+
+test('rejects a claimed Android pass when the real SMS evidence is weakened', () => {
+  const smsRef = canonical.androidRealDeviceEvidence.evidenceRefs[1];
+  const sms = JSON.parse(readFileSync(new URL(`../../${smsRef}`, import.meta.url), 'utf8'));
+  sms.realDeviceResults.invalidCodeRejected = false;
+  assert.throws(
+    () => validateReadiness({
+      sourceOverrides: { [smsRef]: JSON.stringify(sms) },
+    }),
+    /does not prove the declared Android result/,
+  );
+});
+
+test('rejects binding the phone readiness to a different current Play candidate', () => {
+  const candidateRef = canonical.androidRealDeviceEvidence.evidenceRefs[2];
+  const candidate = JSON.parse(readFileSync(new URL(`../../${candidateRef}`, import.meta.url), 'utf8'));
+  candidate.candidate.buildNumber = '2026081504';
+  assert.throws(
+    () => validateReadiness({
+      sourceOverrides: { [candidateRef]: JSON.stringify(candidate) },
+    }),
+    /not bound to the current Play candidate/,
   );
 });
 

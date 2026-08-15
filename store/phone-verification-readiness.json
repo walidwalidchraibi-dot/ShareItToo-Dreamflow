@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "kind": "firebase-phone-verification-readiness",
-  "state": "firebase-console-activated-staging-test-pending",
+  "state": "android-real-device-sms-passed",
   "sourceBuild": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081405"
+    "buildNumber": "2026081505"
   },
   "implementation": {
     "provider": "firebase-phone",
@@ -31,23 +31,39 @@
     "smsRegionPolicy": "allow-only-de",
     "evidenceRef": "docs/evidence/b11/firebase-phone-console-activation-20260814.json"
   },
+  "androidRealDeviceEvidence": {
+    "testedBuildNumber": "2026081403",
+    "delivery": "google-play-internal",
+    "playSigningAllowlistPassed": true,
+    "realSmsDelivered": true,
+    "validLatestCodeAccepted": true,
+    "verifiedStatePersistedAfterFreshLogin": true,
+    "invalidCodeRejected": true,
+    "accountRemainedUnverifiedAfterInvalidCode": true,
+    "currentSourceHasCenteredReasonSpecificErrors": true,
+    "evidenceRefs": [
+      "docs/evidence/b11/firebase-phone-play-signing-allowlist-20260814.json",
+      "docs/evidence/b11/firebase-phone-real-sms-verification-2026081403-20260814.json",
+      "docs/evidence/b11/android-candidate-2026081505.json"
+    ]
+  },
   "externalGates": {
     "firebasePhoneProvider": "enabled-owner-authorized",
     "smsRegionPolicy": "germany-only-saved",
-    "androidAppVerification": "signing-fingerprints-registered-successor-build-check-pending",
-    "androidRealDeviceSms": "pending",
+    "androidAppVerification": "play-signing-passed",
+    "androidRealDeviceSms": "passed",
     "appleApnsConfiguration": "pending-apple-account-and-apns",
     "appleRealDeviceSms": "pending",
     "privacyAndProviderClassification": "successor-candidate-copy-updated-play-form-pending",
-    "abuseAndQuotaObservation": "pending-staging-observation"
+    "abuseAndQuotaObservation": "initial-real-device-observation-passed"
   },
-  "activationAllowed": false,
+  "activationAllowed": true,
   "storeSubmissionAllowed": false,
   "boundaries": {
     "googleProviderEnabled": false,
     "firebasePhoneProviderEnabled": true,
     "smsRegionPolicySaved": true,
-    "smsSent": false,
+    "smsSent": true,
     "productionChanged": false,
     "storeSubmissionChanged": false,
     "externalConsoleChanged": true,

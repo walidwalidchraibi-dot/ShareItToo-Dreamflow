@@ -18,6 +18,14 @@ function includes(text, marker, label) {
   if (!text.includes(marker)) fail(`${label} is missing: ${marker}`);
 }
 
+function evidence(root, path, overrides) {
+  try {
+    return JSON.parse(source(root, path, overrides));
+  } catch {
+    fail(`Phone verification evidence is missing or invalid: ${path}`);
+  }
+}
+
 export function validatePhoneVerificationReadiness({
   root,
   readiness = JSON.parse(readFileSync(resolve(root, 'store/phone-verification-readiness.json'), 'utf8')),
@@ -89,11 +97,64 @@ export function validatePhoneVerificationReadiness({
     fail('Phone verification console evidence is incomplete or unsafe.');
   }
 
+  const realDeviceEvidence = readiness.androidRealDeviceEvidence;
+  if (devicePassed) {
+    const expectedEvidence = {
+      testedBuildNumber: '2026081403',
+      delivery: 'google-play-internal',
+      playSigningAllowlistPassed: true,
+      realSmsDelivered: true,
+      validLatestCodeAccepted: true,
+      verifiedStatePersistedAfterFreshLogin: true,
+      invalidCodeRejected: true,
+      accountRemainedUnverifiedAfterInvalidCode: true,
+      currentSourceHasCenteredReasonSpecificErrors: true,
+      evidenceRefs: [
+        'docs/evidence/b11/firebase-phone-play-signing-allowlist-20260814.json',
+        'docs/evidence/b11/firebase-phone-real-sms-verification-2026081403-20260814.json',
+        'docs/evidence/b11/android-candidate-2026081505.json',
+      ],
+    };
+    if (JSON.stringify(realDeviceEvidence) !== JSON.stringify(expectedEvidence)) {
+      fail('Android real-device SMS evidence binding is incomplete or stale.');
+    }
+
+    const signing = evidence(root, realDeviceEvidence.evidenceRefs[0], sourceOverrides);
+    const sms = evidence(root, realDeviceEvidence.evidenceRefs[1], sourceOverrides);
+    const currentCandidate = evidence(root, realDeviceEvidence.evidenceRefs[2], sourceOverrides);
+    if (signing.kind !== 'firebase-phone-play-signing-allowlist'
+        || signing.candidate?.buildNumber !== realDeviceEvidence.testedBuildNumber
+        || signing.candidate?.delivery !== realDeviceEvidence.delivery
+        || signing.realDeviceObservation?.playStoreInstallVerified !== true
+        || signing.realDeviceObservation?.firebaseResult !== 'REAL_SMS_VERIFICATION_PASSED'
+        || signing.realDeviceObservation?.smsSent !== true
+        || signing.realDeviceObservation?.finalRetest !== 'valid-code-accepted-invalid-code-rejected') {
+      fail('Play-signing SMS evidence does not prove the declared Android result.');
+    }
+    if (sms.kind !== 'firebase-phone-real-sms-verification'
+        || sms.candidate?.buildNumber !== realDeviceEvidence.testedBuildNumber
+        || sms.candidate?.delivery !== realDeviceEvidence.delivery
+        || sms.realDeviceResults?.realSmsDelivered !== true
+        || sms.realDeviceResults?.validLatestCodeAccepted !== true
+        || sms.realDeviceResults?.verifiedStatePersistedAfterFreshLogin !== true
+        || sms.realDeviceResults?.invalidCodeRejected !== true
+        || sms.realDeviceResults?.accountRemainedUnverifiedAfterInvalidCode !== true) {
+      fail('Real-device SMS evidence does not prove the declared Android result.');
+    }
+    if (currentCandidate.kind !== 'android-release-candidate'
+        || currentCandidate.candidate?.buildNumber !== sourceBuild.buildNumber
+        || currentCandidate.googlePlayInternalRelease?.status !== 'store-install-verified') {
+      fail('Phone verification readiness is not bound to the current Play candidate.');
+    }
+  } else if (realDeviceEvidence !== undefined) {
+    fail('Pending phone verification readiness must not include passed device evidence.');
+  }
+
   const externalGates = readiness.externalGates ?? {};
   const expectedGates = {
     firebasePhoneProvider: activated ? 'enabled-owner-authorized' : 'pending-explicit-owner-acceptance-and-enable',
     smsRegionPolicy: activated ? 'germany-only-saved' : 'pending-germany-only-owner-approval',
-    androidAppVerification: devicePassed ? 'successor-build-passed' : 'signing-fingerprints-registered-successor-build-check-pending',
+    androidAppVerification: devicePassed ? 'play-signing-passed' : 'signing-fingerprints-registered-successor-build-check-pending',
     androidRealDeviceSms: devicePassed ? 'passed' : 'pending',
     appleApnsConfiguration: 'pending-apple-account-and-apns',
     appleRealDeviceSms: 'pending',

@@ -320,3 +320,33 @@ Servernachweis:
   Apple-Tooling/-Mitgliedschaft, TalkBack-/Grossschrift-Geraetematrix sowie
   finale Rechts- und Datenschutzfreigaben blieben unveraendert geschlossen
   beziehungsweise offen.
+
+## Meilenstein 16.67 – Android-SMS-Nachweis korrekt gebunden
+
+- Der bereits vorhandene anonymisierte Realgeraete-Nachweis fuer Firebase-
+  Telefonverifizierung wurde aus dem veralteten Zwischenstatus uebernommen:
+  Der Google-Play-Internal-Build `2026081403` erhielt eine echte SMS, nahm den
+  neuesten gueltigen Code an, behielt den verifizierten Zustand nach frischem
+  Login und lehnte einen falschen Code ab, ohne das Konto zu verifizieren.
+- Der aktuelle Play-Kandidat `2026081505` ist getrennt als derzeitige
+  Quell- und Store-Bindung dokumentiert. Er enthaelt die anschliessend
+  eingefuehrten zentrierten SIT-Dialoge mit spezifischen Erklaerungen fuer
+  ungueltige Telefonnummer, falschen oder abgelaufenen Code und technische
+  Verbindungsfehler. Dem aktuellen Kandidaten wird kein neuer SMS-Versand
+  zugeschrieben.
+- Der Validator liest nun die drei konkreten, bereinigten Nachweise selbst,
+  prueft Build, Play-Auslieferung, Signing-Ergebnis, reale SMS-Ergebnisse und
+  die Bindung an den aktuellen Store-Kandidaten. Geschwaechte oder fehlende
+  Belege stoppen den Release fail-closed.
+- Android-App-Verifizierung und Android-Realgeraete-SMS stehen damit auf
+  `passed`. Weiterhin offen bleiben Apple/APNs, ein realer Apple-SMS-Test und
+  die noch nicht final gespeicherte Store-/Dienstleister-Einstufung.
+- Zehn gezielte Validator-Tests und zwei Flutter-Vertragstests bestanden. Der
+  Release-Vorcheck bestand alle lokalen Stufen bis zum externen Firebase-
+  Projektwert, der in dieser lokalen Sitzung nicht gesetzt war; es wurde keine
+  Firebase-, Produktions-, Zahlungs- oder Store-Aenderung ausgefuehrt.
+- Telefonnummern, SMS-Codes, Firebase-Token, Kontodaten und Geraete-IDs sind
+  aus allen Nachweisen ausgeschlossen.
+- Alle sechs offenen V4-Punkte bleiben unveraendert als aktive Zwischenregeln
+  `V4-INTERIM-2026-08-15` gesetzt. Sie werden erst nach einer neuen Mitteilung
+  des Nutzers aktualisiert und sind weder entfernt noch finalisiert.
