@@ -112,7 +112,7 @@ export function validatePhoneVerificationReadiness({
       evidenceRefs: [
         'docs/evidence/b11/firebase-phone-play-signing-allowlist-20260814.json',
         'docs/evidence/b11/firebase-phone-real-sms-verification-2026081403-20260814.json',
-        'docs/evidence/b11/android-candidate-2026081505.json',
+        `docs/evidence/b11/android-candidate-${sourceBuild.buildNumber}.json`,
       ],
     };
     if (JSON.stringify(realDeviceEvidence) !== JSON.stringify(expectedEvidence)) {

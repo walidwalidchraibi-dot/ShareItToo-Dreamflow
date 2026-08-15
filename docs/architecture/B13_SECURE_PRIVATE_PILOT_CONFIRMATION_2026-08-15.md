@@ -603,3 +603,31 @@ Servernachweis:
   aktiviert. Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und
   Review-Versand blieben unveraendert. Alle sechs V4-Punkte bleiben unter
   `V4-INTERIM-2026-08-15` mit `status: open` aktiv.
+
+## Meilenstein 16.76 – Play-Internal-Build 1509 exakt ausgeliefert
+
+- Der in Meilenstein 16.75 lokal gepruefte Android-Kandidat
+  `1.0.0+2026081509` wurde unveraendert in Google Play Internal Testing
+  hochgeladen und als Release `1.0.0-internal-2026081509` aktiviert. Google
+  Play zeigt ihn als `Available to internal testers`; er wurde nicht fuer
+  Closed Testing, Open Testing, Produktion oder Review freigegeben.
+- Google Play akzeptierte den AAB mit Mindest-API 24 und Ziel-SDK 35. Mapping-
+  Datei und native Symbole wurden erkannt. 12.427 Telefone werden unterstuetzt;
+  gegenueber dem vorherigen Release ging kein Geraet verloren.
+- Der Play Store bot dem Pixel 7 Pro das Update unmittelbar an und installierte
+  exakt Version `1.0.0+2026081509`. Paket-Installer `com.android.vending`, vier
+  Store-Splits und der Play-App-Signing-Fingerabdruck
+  `36488abf86c51da07ab2258f31b00e2f1ba8a36d076107b9f006376ade80b956`
+  wurden direkt aus dem installierten Paket zurueckgelesen.
+- Nach erzwungenem Kaltstart blieben die geschuetzte synthetische Sitzung und
+  der Staging-Feed erhalten. Es gab weder einen Android-Absturz noch den
+  frueheren Facebook-SDK- oder Plugin-Registrierungsfehler.
+- Kandidatenbeleg, Berechtigungsinventar, Datenschutz-Binaernachweis, Play-
+  Handoff, Geraetevalidierung und Review-Zugriff wurden auf den exakten Build
+  `2026081509` umgestellt. Der zentrale Store-Nachweis liegt unter
+  `docs/evidence/b11/google-play-internal-release-active-2026081509-20260815.json`.
+- Die noch offenen Chat-, Push-, Offline-, Crashlytics- und Zwei-Geraete-
+  Abnahmen bleiben offen und werden nicht aus diesem Update abgeleitet.
+  Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
+  blieben unveraendert. Alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` mit `status: open` aktiv.

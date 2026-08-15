@@ -5,7 +5,7 @@
   "sourceBuild": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081505"
+    "buildNumber": "2026081509"
   },
   "implementation": {
     "provider": "firebase-phone",
@@ -44,7 +44,7 @@
     "evidenceRefs": [
       "docs/evidence/b11/firebase-phone-play-signing-allowlist-20260814.json",
       "docs/evidence/b11/firebase-phone-real-sms-verification-2026081403-20260814.json",
-      "docs/evidence/b11/android-candidate-2026081505.json"
+      "docs/evidence/b11/android-candidate-2026081509.json"
     ]
   },
   "externalGates": {

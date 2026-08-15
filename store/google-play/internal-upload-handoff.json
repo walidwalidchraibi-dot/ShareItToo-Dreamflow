@@ -6,20 +6,20 @@
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081508",
-    "commit": "21645ba02bcfb8056bdeae2d4d97d7835723b30f",
-    "aabSha256": "a1471524b2f3a22487bb1d4a4acea32445b4fed0fdc99f67dec7dbfc10a2b340",
+    "buildNumber": "2026081509",
+    "commit": "3fa045b98897f9551f91da932136c2b100b2d700",
+    "aabSha256": "8295b7cef0de1061acdf4179080deda0fb13133c4d7fd306da0d51062312fcc5",
     "uploadCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true
   },
   "artifact": {
-    "archiveDirectoryName": "2026081508-21645ba02bcfb8056bdeae2d4d97d7835723b30f",
-    "fileName": "shareittoo-1.0.0-2026081508-21645ba02bcfb8056bdeae2d4d97d7835723b30f.aab",
+    "archiveDirectoryName": "2026081509-3fa045b98897f9551f91da932136c2b100b2d700",
+    "fileName": "shareittoo-1.0.0-2026081509-3fa045b98897f9551f91da932136c2b100b2d700.aab",
     "ownerOnlyPermissionsRequired": true
   },
   "releaseDraft": {
-    "name": "1.0.0-internal-2026081508",
+    "name": "1.0.0-internal-2026081509",
     "notesPath": "store/google-play/de-DE/internal_release_notes.txt",
     "language": "de-DE",
     "saveOnly": false,
@@ -61,9 +61,9 @@
     "scope": "account-console-gates-only",
     "exactCandidateReverified": true
   },
-  "internalReleaseEvidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081508-20260815.json",
+  "internalReleaseEvidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081509-20260815.json",
   "crashReleaseEvidenceRef": null,
-  "evidenceRef": "docs/evidence/b11/android-candidate-2026081508.json",
+  "evidenceRef": "docs/evidence/b11/android-candidate-2026081509.json",
   "containsSecrets": false,
   "containsReviewCredentials": false
 }

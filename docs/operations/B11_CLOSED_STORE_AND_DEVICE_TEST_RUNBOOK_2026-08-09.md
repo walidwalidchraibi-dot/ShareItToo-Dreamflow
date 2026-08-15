@@ -26,12 +26,12 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Merkmal | Verbindlicher Wert |
 |---|---|
 | App-Identität | `com.shareittoo.app` (Android und iOS) |
-| Version und Build | `1.0.0 (2026081508)` |
-| App-Commit | `21645ba02bcfb8056bdeae2d4d97d7835723b30f` |
+| Version und Build | `1.0.0 (2026081509)` |
+| App-Commit | `3fa045b98897f9551f91da932136c2b100b2d700` |
 | Kanal und API | `internal`, `https://staging.shareittoo.com/api/v1` |
 | Firebase und Zahlung | vollständig: `true`; `memory`; `stripeLivemode=false` |
-| Android-AAB SHA-256 | `a1471524b2f3a22487bb1d4a4acea32445b4fed0fdc99f67dec7dbfc10a2b340` |
-| Android-APK SHA-256 | `c7ce4e3b37bcc8d84b9ba15726d75317a0c2b23fe732a47d4d09f43a6ecc7b98` |
+| Android-AAB SHA-256 | `8295b7cef0de1061acdf4179080deda0fb13133c4d7fd306da0d51062312fcc5` |
+| Android-APK SHA-256 | `517e1e15b8bbb4409444d29aa5094feedba590078fadaba3293142ab62f1593f` |
 | Uploadzertifikat SHA-256 | `098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4` |
 | Direkte Android-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Direkte Android-App-Link-Diagnose | `pending`; noch kein kandidatenspezifischer Nachweis |
@@ -41,11 +41,11 @@ betroffene Abnahme mit einem neuen Eintrag von vorn.
 | Kontrollierte Android-FCM-Diagnose | `pending-exact-store-build/pending-exact-store-build/pending-exact-store-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
 | Android-Abmeldung und Push-Unterdrückung | `pending-exact-store-build/pending-exact-store-build`; noch kein vollständiger kandidatenspezifischer Nachweis |
 | Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
-| Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081508)` |
+| Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081509)` |
 | Android-WLAN-/Owner-Matrix | `open`; Teilpruefungen 0/11 bestanden; installAndFirstStart=open, authenticationAndSession=open, listingAndBooking=open, chatAndDeepLink=open, pushForeground=open, pushBackground=open, pushTerminated=open, handoverAndReturn=open, moderationAndAccount=open, offlineRecovery=open, largeTextAndScreenReader=open; noch kein kandidatenspezifischer Fortschrittsnachweis |
 | Play-Signing und öffentliche App-Links | `open`; noch kein kandidatenspezifischer Nachweis |
 | Crashlytics-Releasezuordnung | `open`; noch kein kandidatenspezifischer Nachweis |
-| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081508.json` |
+| Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081509.json` |
 | Staging-Servercommit | `36f9145e67be30fd01ffb61ad38e99361d391479` |
 | Ehrlicher Freigabestand | `testing/hold`; Gerätezellen 0/4; Releaseprüfungen 4/7 |
 
@@ -138,10 +138,10 @@ ersetzen.
 
 | Plattform | Gerät/Modell | Betriebssystem | Build | Netz | Rolle | Ergebnis |
 |---|---|---|---|---|---|---|
-| Android real | offen | offen | `2026081508` | WLAN | Vermieter | offen |
-| Android real | offen | offen | `2026081508` | Mobilfunk/Hotspot | Mieter | offen |
-| iOS real | offen | offen | `2026081508` | WLAN | Vermieter | offen |
-| iOS real | offen | offen | `2026081508` | Mobilfunk/Hotspot | Mieter | offen |
+| Android real | offen | offen | `2026081509` | WLAN | Vermieter | offen |
+| Android real | offen | offen | `2026081509` | Mobilfunk/Hotspot | Mieter | offen |
+| iOS real | offen | offen | `2026081509` | WLAN | Vermieter | offen |
+| iOS real | offen | offen | `2026081509` | Mobilfunk/Hotspot | Mieter | offen |
 
 Vor einer manuellen Android-Matrixrunde muss der neue, rein lesende Preflight
 `tool/preflight_android_manual_matrix.mjs` den Status
