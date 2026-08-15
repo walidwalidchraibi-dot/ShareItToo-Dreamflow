@@ -88,7 +88,7 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Synthetische Android-Rollenbuchung | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Authentifizierte Android-Deep-Links | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Kontrollierte Android-FCM-Diagnose | `passed` in Vordergrund, Hintergrund und bei beendetem Prozess; `docs/evidence/b11/android-controlled-fcm-2026081505-20260815T034412Z.json` |
-| Android-Abmeldung und Push-Unterdrückung | `pending/pending`; noch kein vollständiger kandidatenspezifischer Nachweis |
+| Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081505-20260815T035502Z.json` |
 | Android-Offline-/Realtime-Wiederherstellung | `pending`; noch kein kandidatenspezifischer Nachweis |
 | Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081505)` |
 | Play-Signing und öffentliche App-Links | `passed`; `docs/evidence/b11/android-play-store-links-signing-2026081505-20260815.json` |

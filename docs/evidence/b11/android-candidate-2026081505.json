@@ -60,8 +60,8 @@
     "foregroundFcm": "passed",
     "backgroundFcm": "passed",
     "terminatedProcessFcm": "passed",
-    "logoutColdStartGuestPersistence": "pending",
-    "postLogoutPushSuppression": "pending",
+    "logoutColdStartGuestPersistence": "passed-physical-play-build",
+    "postLogoutPushSuppression": "passed-physical-play-build",
     "twoDevicePrivatePilotAcceptance": "pending"
   },
   "controlledFcm": {
@@ -71,6 +71,13 @@
   "googlePlayInternalRelease": {
     "status": "store-install-verified",
     "evidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081505-20260815.json"
+  },
+  "logoutLifecycle": {
+    "status": "passed",
+    "installation": "google-play-split",
+    "coldStartGuestPersistence": "passed",
+    "postLogoutPushSuppression": "passed",
+    "evidenceRef": "docs/evidence/b11/android-logout-lifecycle-2026081505-20260815T035502Z.json"
   },
   "staging": {
     "serverVersion": "1.0.0-2026081502-v4-owner-acceptance",
