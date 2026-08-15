@@ -312,6 +312,7 @@ test('reuses one prepared listing after a failed booking request', async () => {
   const result = await createSyntheticBookingFixture({
     ...fixture,
     now: new Date('2026-08-10T08:00:00.000Z'),
+    random: () => Buffer.from('d4c3b2a1', 'hex'),
     fetchImpl: async (url, options = {}) => {
       const path = new URL(url).pathname.replace('/api/v1', '');
       calls.push({ path, body: typeof options.body === 'string' ? JSON.parse(options.body) : null });
@@ -339,7 +340,7 @@ test('reuses one prepared listing after a failed booking request', async () => {
   assert.equal(calls.some(({ path }) => path.endsWith('/availability')), false);
   assert.equal(
     calls.find(({ path }) => path === '/bookings').body.id,
-    'sit-20260810t065907z-a6b6f407-a1b2c3d4-booking',
+    'sit-20260810t065907z-a6b6f407-d4c3b2a1-booking',
   );
 });
 

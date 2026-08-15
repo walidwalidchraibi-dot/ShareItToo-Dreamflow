@@ -228,9 +228,7 @@ export async function createSyntheticBookingFixture({
   const listingId = recoveredListing
     ? safeFixtureIdentifier(matchingListings[0].id, 'recovered listing id')
     : `sit-${vault.runId}-${suffix}-listing`;
-  const bookingId = recoveredListing && listingId.endsWith('-listing')
-    ? `${listingId.slice(0, -'-listing'.length)}-booking`
-    : `sit-${vault.runId}-${suffix}-booking`;
+  const bookingId = `sit-${safeFixtureIdentifier(vault.runId, 'synthetic run id')}-${suffix}-booking`;
   const title = expectedTitle;
   const startDate = dateOnly(now, 60);
   const endDate = dateOnly(now, 62);

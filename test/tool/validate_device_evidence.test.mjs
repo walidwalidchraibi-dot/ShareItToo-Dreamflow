@@ -875,6 +875,93 @@ test('Android FCM progress evidence must match the exact candidate APK', () => {
   );
 });
 
+test('accepts exact Play FCM evidence that preserves and reconciles an existing protected fixture', () => {
+  const root = progressEvidenceRoot();
+  const deviceManifest = clone(baseDeviceManifest);
+  const ref = 'docs/evidence/b11/android-controlled-fcm-protected-fixture.json';
+  const evidence = JSON.parse(readFileSync(
+    resolve(repositoryRoot, 'docs/evidence/b11/android-controlled-fcm-2026081302-20260813T151533Z.json'),
+    'utf8',
+  ));
+  evidence.candidate = {
+    applicationId: deviceManifest.candidate.applicationId,
+    versionName: deviceManifest.candidate.versionName,
+    buildNumber: deviceManifest.candidate.buildNumber,
+    commit: deviceManifest.candidate.commit,
+    apkSha256: deviceManifest.candidate.android.apkSha256,
+    apiBaseUrl: deviceManifest.candidate.apiBaseUrl,
+    stripeLivemode: false,
+  };
+  evidence.installed = {
+    applicationId: deviceManifest.candidate.applicationId,
+    versionName: deviceManifest.candidate.versionName,
+    buildNumber: deviceManifest.candidate.buildNumber,
+    delivery: 'google-play-split',
+    installerPackageName: 'com.android.vending',
+    splitCount: 4,
+  };
+  evidence.boundaries.directDiagnosticOnly = false;
+  evidence.boundaries.storeInstallationGateSatisfied = true;
+  evidence.isolation = {
+    mode: 'existing-protected-synthetic-fixture',
+    protectedReviewFixturePreserved: true,
+    fixtureReconciledActiveAfterProbe: true,
+    diagnosticMessagesOnly: true,
+    temporaryVaultCreated: false,
+    listingCreatedDuringProbe: false,
+    listingDeleted: false,
+    containsReviewCredentials: false,
+  };
+  writeEvidence(root, ref, evidence);
+  deviceManifest.releaseChecks.firebaseFcmAndApns = { status: 'testing', evidenceRef: ref };
+  assert.equal(validate({ root, deviceManifest }).state, 'testing');
+});
+
+test('rejects protected-fixture FCM evidence without active post-probe reconciliation', () => {
+  const root = progressEvidenceRoot();
+  const deviceManifest = clone(baseDeviceManifest);
+  const ref = 'docs/evidence/b11/android-controlled-fcm-protected-fixture-invalid.json';
+  const evidence = JSON.parse(readFileSync(
+    resolve(repositoryRoot, 'docs/evidence/b11/android-controlled-fcm-2026081302-20260813T151533Z.json'),
+    'utf8',
+  ));
+  evidence.candidate = {
+    applicationId: deviceManifest.candidate.applicationId,
+    versionName: deviceManifest.candidate.versionName,
+    buildNumber: deviceManifest.candidate.buildNumber,
+    commit: deviceManifest.candidate.commit,
+    apkSha256: deviceManifest.candidate.android.apkSha256,
+    apiBaseUrl: deviceManifest.candidate.apiBaseUrl,
+    stripeLivemode: false,
+  };
+  evidence.installed = {
+    applicationId: deviceManifest.candidate.applicationId,
+    versionName: deviceManifest.candidate.versionName,
+    buildNumber: deviceManifest.candidate.buildNumber,
+    delivery: 'google-play-split',
+    installerPackageName: 'com.android.vending',
+    splitCount: 4,
+  };
+  evidence.boundaries.directDiagnosticOnly = false;
+  evidence.boundaries.storeInstallationGateSatisfied = true;
+  evidence.isolation = {
+    mode: 'existing-protected-synthetic-fixture',
+    protectedReviewFixturePreserved: true,
+    fixtureReconciledActiveAfterProbe: false,
+    diagnosticMessagesOnly: true,
+    temporaryVaultCreated: false,
+    listingCreatedDuringProbe: false,
+    listingDeleted: false,
+    containsReviewCredentials: false,
+  };
+  writeEvidence(root, ref, evidence);
+  deviceManifest.releaseChecks.firebaseFcmAndApns = { status: 'testing', evidenceRef: ref };
+  assert.throws(
+    () => validate({ root, deviceManifest }),
+    /must prove either a retired temporary fixture or a preserved active protected fixture/,
+  );
+});
+
 test('accepts the exact bounded offline realtime recovery evidence', () => {
   assert.equal(validate().state, 'testing');
 });

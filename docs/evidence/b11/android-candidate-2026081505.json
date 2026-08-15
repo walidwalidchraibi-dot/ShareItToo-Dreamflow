@@ -57,12 +57,16 @@
     "storeMessageComposerKeyboard": "passed-input-shown-and-served-input-connection",
     "storeMessageSend": "passed-visible-persisted",
     "storeServerRequestPattern": "passed-four-thread-refreshes-in-20-seconds",
-    "foregroundFcm": "pending",
-    "backgroundFcm": "pending",
-    "terminatedProcessFcm": "pending",
+    "foregroundFcm": "passed",
+    "backgroundFcm": "passed",
+    "terminatedProcessFcm": "passed",
     "logoutColdStartGuestPersistence": "pending",
     "postLogoutPushSuppression": "pending",
     "twoDevicePrivatePilotAcceptance": "pending"
+  },
+  "controlledFcm": {
+    "status": "passed",
+    "evidenceRef": "docs/evidence/b11/android-controlled-fcm-2026081505-20260815T034412Z.json"
   },
   "googlePlayInternalRelease": {
     "status": "store-install-verified",

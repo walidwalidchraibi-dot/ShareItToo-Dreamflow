@@ -972,13 +972,30 @@ function validateAndroidControlledFcmProgressEvidence(root, ref, candidate, labe
     fail(`${label}.boundaries must keep Store, production, payment, identity and secret gates closed.`);
   }
   const isolation = object(evidence.isolation, `${label}.isolation`);
-  if (isolation.protectedReviewFixtureUnchanged !== true
-      || isolation.temporaryVaultRemovedAfterProbe !== true
-      || isolation.temporaryBookingCompleted !== true
-      || isolation.temporaryListingPaused !== true
-      || isolation.listingDeleted !== false
-      || isolation.containsReviewCredentials !== false) {
-    fail(`${label}.isolation must prove a retired isolated fixture and an unchanged protected review fixture.`);
+  const retiredTemporaryFixture = {
+    protectedReviewFixtureUnchanged: true,
+    temporaryVaultRemovedAfterProbe: true,
+    temporaryBookingCompleted: true,
+    temporaryListingPaused: true,
+    listingDeleted: false,
+    containsReviewCredentials: false,
+  };
+  const reusedProtectedFixture = {
+    mode: 'existing-protected-synthetic-fixture',
+    protectedReviewFixturePreserved: true,
+    fixtureReconciledActiveAfterProbe: true,
+    diagnosticMessagesOnly: true,
+    temporaryVaultCreated: false,
+    listingCreatedDuringProbe: false,
+    listingDeleted: false,
+    containsReviewCredentials: false,
+  };
+  const matchesIsolation = (expected) => (
+    Object.keys(isolation).length === Object.keys(expected).length
+    && Object.entries(expected).every(([key, value]) => isolation[key] === value)
+  );
+  if (!matchesIsolation(retiredTemporaryFixture) && !matchesIsolation(reusedProtectedFixture)) {
+    fail(`${label}.isolation must prove either a retired temporary fixture or a preserved active protected fixture.`);
   }
 }
 
