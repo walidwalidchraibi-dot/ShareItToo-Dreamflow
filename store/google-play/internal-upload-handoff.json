@@ -6,20 +6,20 @@
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "versionName": "1.0.0",
-    "buildNumber": "2026081502",
-    "commit": "e2e7bf5d738d950d18ee199416f85c578ffea2d7",
-    "aabSha256": "05032b863af00716d994cedc891485dab3f1c5bc1b0051b91e2d841ccdf4505f",
+    "buildNumber": "2026081505",
+    "commit": "3908f5a3c300c1125c120c832f3050eea7a0a762",
+    "aabSha256": "28fe6751ab928bbb2a52aa93239deabbefec25b7c209b67a75d5cb33123a2191",
     "uploadCertificateSha256": "098f485e57161558e911fc3c742845925584db31c474cdba08dda02feb0129a4",
     "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
     "firebaseConfigured": true
   },
   "artifact": {
-    "archiveDirectoryName": "2026081502-e2e7bf5d738d950d18ee199416f85c578ffea2d7",
-    "fileName": "shareittoo-1.0.0-2026081502-e2e7bf5d738d950d18ee199416f85c578ffea2d7.aab",
+    "archiveDirectoryName": "2026081505-3908f5a3c300c1125c120c832f3050eea7a0a762",
+    "fileName": "shareittoo-1.0.0-2026081505-3908f5a3c300c1125c120c832f3050eea7a0a762.aab",
     "ownerOnlyPermissionsRequired": true
   },
   "releaseDraft": {
-    "name": "1.0.0-internal-2026081502",
+    "name": "1.0.0-internal-2026081505",
     "notesPath": "store/google-play/de-DE/internal_release_notes.txt",
     "language": "de-DE",
     "saveOnly": false,
@@ -40,7 +40,11 @@
     "playAppSigningFingerprintRecorded": "passed-pre-upload-console",
     "uploadWarningsReviewed": "passed-only-missing-testers-warning-resolved",
     "crashlyticsCandidateAssignmentVerified": "pending",
-    "internalStoreInstallCompleted": "passed-google-play-installer"
+    "internalStoreInstallCompleted": "passed-google-play-installer",
+    "sharedChatStability": "passed-after-22-seconds",
+    "messageComposerKeyboard": "passed-served-input-connection",
+    "messageSendPersistence": "passed",
+    "messageRefreshPattern": "passed-four-thread-refreshes-in-20-seconds"
   },
   "hardStops": {
     "productionRelease": true,
@@ -57,9 +61,9 @@
     "scope": "account-console-gates-only",
     "exactCandidateReverified": true
   },
-  "internalReleaseEvidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081502-20260815.json",
+  "internalReleaseEvidenceRef": "docs/evidence/b11/google-play-internal-release-active-2026081505-20260815.json",
   "crashReleaseEvidenceRef": null,
-  "evidenceRef": "docs/evidence/b11/android-candidate-2026081502.json",
+  "evidenceRef": "docs/evidence/b11/android-candidate-2026081505.json",
   "containsSecrets": false,
   "containsReviewCredentials": false
 }
