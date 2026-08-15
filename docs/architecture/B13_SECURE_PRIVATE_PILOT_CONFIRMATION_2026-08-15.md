@@ -905,3 +905,34 @@ Servernachweis:
   Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
   bleiben unveraendert gesperrt. Alle sechs V4-Punkte bleiben unter
   `V4-INTERIM-2026-08-15` offen.
+
+## Meilenstein 16.87 – abgelaufenes Zugangsmaterial automatisch bereinigt
+
+- Das Backend loescht abgelaufene oder bereits verbrauchte Aktions-Tokens,
+  abgelaufene Refresh-Tokens sowie abgelaufene oder widerrufene temporaere
+  Mitarbeiterfreigaben. Abgelaufene, verbrauchte oder widerrufene
+  Buchungs-Bestaetigungscodes werden irreversibel ueberschrieben, waehrend die
+  Buchungs- und Auditzeilen fuer Nachvollziehbarkeit erhalten bleiben.
+- Die Bereinigung startet sofort mit dem Backend und danach alle sechs Stunden.
+  Der konfigurierbare Abstand ist technisch auf hoechstens 24 Stunden begrenzt;
+  Fehler beenden den Dienst nicht unkontrolliert, sondern werden protokolliert.
+- 128 Backendtests bestanden; ein separater PostgreSQL-Integrationstest blieb
+  lokal mangels `TEST_DATABASE_URL` korrekt uebersprungen. Der vollstaendige
+  technische Regressionslauf bestand im ausdruecklichen Kandidaten-
+  Fortschreibungsmodus, ohne einen neuen App-Build zu erzeugen.
+- Der exakte Commit `88c08f0a4d71b6755f22134e2d6304e14860253e`
+  wurde als unveraenderliches Backend-Abbild gebaut und ausschliesslich auf
+  Staging ausgerollt. Interner und oeffentlicher Versionsendpunkt zeigen
+  denselben Commit; Readiness meldet Datenbank und Mail gesund, Zahlungen
+  bleiben im Memory-Testmodus und FCM bleibt nur fuer Staging aktiviert.
+- Die Laufzeitpruefung fand null verbliebene abgelaufene Aktions- oder Refresh-
+  Tokens, null abgelaufene beziehungsweise widerrufene Mitarbeiterfreigaben
+  und null unbereinigte alte Buchungs-Code-Digests. Der bereinigte Nachweis
+  liegt unter `docs/evidence/b11/expired-credential-cleanup-20260815.json`;
+  der serverseitige Rolloutnachweis unter
+  `/docker/shareittoo/releases/staging-20260815T163204Z-88c08f0a4d71.json`.
+- Die neun fachlichen Aufbewahrungsentscheidungen, rechtliche Freigaben,
+  Kategorie-Loeschung und Legal Hold bleiben bewusst offen. Produktion,
+  Echtgeld, App-Kandidat `1.0.0+2026081509`, Store-Tracks und Review-Versand
+  blieben unveraendert; alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` offen.

@@ -104,6 +104,8 @@ test('rejects credential cleanup evidence that claims deployment without proof',
   evidence.status = 'staging-runtime-verified';
   evidence.verification.stagingRuntime = 'passed';
   evidence.deployment.status = 'verified';
+  evidence.deployment.commit = null;
+  evidence.deployment.evidenceRef = null;
   assert.throws(
     () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
     /exact Staging deployment proof/u,
