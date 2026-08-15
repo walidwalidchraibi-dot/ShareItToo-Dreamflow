@@ -20,7 +20,11 @@
       "projectAndPackageVerified": true,
       "oauthClientCount": 3,
       "certificateBoundClientCount": 2,
+      "distinctCertificateHashCount": 2,
+      "uploadSigningSha1ClientPresent": true,
+      "playAppSigningSha1ClientPresent": true,
       "webClientCount": 1,
+      "playSigningCoverageEvidenceRef": "docs/evidence/b11/firebase-phone-play-signing-allowlist-20260814.json",
       "gitIgnored": true,
       "ownerOnlyPermissions": true
     },
@@ -37,7 +41,7 @@
       "ownerOnlyPermissions": true
     },
     "previousFilesBackedUpOutsideRepository": true,
-    "crossPlatformValidation": "passed"
+    "crossPlatformValidation": "passed-google-oauth-upload-and-play-signing-covered"
   },
   "stagingBackendProbe": {
     "route": "/v1/auth/social",

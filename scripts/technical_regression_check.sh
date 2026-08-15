@@ -267,6 +267,10 @@ NODE
 fi
 node tool/validate_firebase_release_config.mjs --platform "$firebase_validation_platform"
 
+node --check tool/validate_google_only_next_candidate.mjs
+node --test test/tool/validate_google_only_next_candidate.test.mjs
+node tool/validate_google_only_next_candidate.mjs
+
 node --check tool/validate_phone_verification_readiness.mjs
 node --test test/tool/validate_phone_verification_readiness.test.mjs
 if [[ "${SIT_ALLOW_CANDIDATE_ROLLOVER:-0}" == "1" ]]; then
@@ -320,6 +324,15 @@ if (( analyze_status != 0 )) && (( issue_count == 0 )); then
 fi
 
 flutter test --reporter expanded
+
+# Compile and execute the exact next social-auth profile without producing a
+# release artifact: Google is opt-in, while Apple and Facebook remain closed.
+flutter test --reporter expanded \
+  --dart-define=SIT_TEST_GOOGLE_ONLY_PROFILE=true \
+  --dart-define=SIT_SOCIAL_GOOGLE_ENABLED=true \
+  --dart-define=SIT_SOCIAL_APPLE_ENABLED=false \
+  --dart-define=SIT_SOCIAL_FACEBOOK_ENABLED=false \
+  test/social_auth_google_only_profile_test.dart
 
 flutter build web --debug
 

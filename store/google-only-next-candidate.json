@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "google-only-next-consolidated-candidate",
+  "state": "prepared-not-built",
+  "baselineCandidate": {
+    "applicationId": "com.shareittoo.app",
+    "versionName": "1.0.0",
+    "buildNumber": "2026081509",
+    "commit": "3fa045b98897f9551f91da932136c2b100b2d700",
+    "releaseChannel": "internal",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1"
+  },
+  "nextCandidatePolicy": {
+    "versionName": "1.0.0",
+    "buildNumberRule": "strictly-higher-than-baseline",
+    "releaseChannel": "internal",
+    "apiBaseUrl": "https://staging.shareittoo.com/api/v1",
+    "googleLoginEnabled": true,
+    "appleLoginEnabled": false,
+    "facebookLoginEnabled": false,
+    "providerEvidenceRef": "docs/evidence/b11/firebase-google-signin-provider-20260815.json"
+  },
+  "requiredBeforeBuild": [
+    "all intended source changes are consolidated and committed",
+    "pubspec build number is strictly higher than 2026081509",
+    "Google-only release profile test passes",
+    "Firebase upload and Play App Signing OAuth clients validate",
+    "release preflight passes against internal Staging"
+  ],
+  "hardStops": {
+    "sameOrOlderBuildNumber": true,
+    "appleWithoutAppleDeveloperConfiguration": true,
+    "facebookWithoutMetaConfiguration": true,
+    "productionApi": true,
+    "storeSubmission": true,
+    "realPayments": true,
+    "containsSecrets": false,
+    "containsEmailAddresses": false,
+    "containsAccountIdentifiers": false
+  }
+}

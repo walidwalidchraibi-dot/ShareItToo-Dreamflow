@@ -25,3 +25,11 @@ test('full regression defaults to all Firebase platforms', () => {
 test('full regression accepts only explicit android, ios, or all scope', () => {
   assert.match(regression, /\^\(android\|ios\|all\)\$/);
 });
+
+test('full regression compiles the exact Google-only social profile', () => {
+  assert.match(regression, /SIT_TEST_GOOGLE_ONLY_PROFILE=true/);
+  assert.match(regression, /SIT_SOCIAL_GOOGLE_ENABLED=true/);
+  assert.match(regression, /SIT_SOCIAL_APPLE_ENABLED=false/);
+  assert.match(regression, /SIT_SOCIAL_FACEBOOK_ENABLED=false/);
+  assert.match(regression, /test\/social_auth_google_only_profile_test\.dart/);
+});

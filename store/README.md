@@ -88,6 +88,17 @@ Der Store-Modus ruft zusätzlich
 auf. Die interne Testspur bleibt davon getrennt und kann vorher genutzt werden,
 ersetzt die Pflicht aber nicht.
 
+`store/google-only-next-candidate.json` reserviert keinen Build und erzeugt
+kein Artefakt. Die Datei hält ausschließlich den nächsten gebündelten
+Social-Auth-Schritt fest: Google wird explizit eingeschaltet, Apple und
+Facebook bleiben aus, Kanal und API bleiben Internal/Staging. Der Validator
+verweigert denselben oder einen älteren Build, einen weiteren Provider,
+Produktion oder Store-Einreichung. Erst wenn alle beabsichtigten Änderungen
+gemeinsam committed und die Buildnummer wirklich erhöht wurden, darf
+`scripts/build_google_only_android_candidate.sh` nach der ausdrücklichen
+lokalen Bestätigung genau einen neuen Kandidaten an den normalen signierten
+Releasepfad übergeben.
+
 `store/privacy-disclosures.json` ist die maschinenlesbare, quell- und
 binärgebundene Grundlage für Google Play Data Safety und Apple App Privacy.
 Sie bewertet aktuell 17 Datentypen (davon 16 tatsächlich erhoben) und neun

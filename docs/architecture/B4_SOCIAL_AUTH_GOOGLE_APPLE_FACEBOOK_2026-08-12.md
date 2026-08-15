@@ -30,6 +30,11 @@ Facebook sind extern noch nicht aktiviert.
 - Der plattformübergreifende Release-Validator akzeptiert die neuen Dateien.
   Er unterstützt nun auch die von Firebase aktuell ausgegebenen erweiterten
   XML-Booleschen Werte wie `<true></true>` und `<false></false>`.
+- Der Android-Validator verlangt zusätzlich exakt zwei verschiedene
+  zertifikatsgebundene OAuth-Clients für Upload- und Play-App-Signing sowie
+  genau einen gültigen Web-OAuth-Client. Dadurch kann ein lokaler Direktbuild
+  nicht mehr fälschlich als ausreichende Vorbereitung für den aus Google Play
+  installierten Build gelten.
 - Auf dem Build-Mac sind nur die Apple Command Line Tools vorhanden.
   Vollständiges Xcode, `xcodebuild` und CocoaPods fehlen; ein iOS-Archiv wurde
   folgerichtig nicht versucht.
@@ -82,11 +87,15 @@ Facebook sind extern noch nicht aktiviert.
 1. Google ist in Firebase Authentication aktiviert. Für den nächsten bewusst
    gebündelten Kandidaten nur Google release-seitig einschalten und anschließend
    Kontoauswahl, Zustimmung, sichere Kontoverknüpfung und Abmeldung auf einem
-   physischen Staging-Gerät prüfen.
-2. Android-SHA-1 und SHA-256 des echten Upload-Zertifikats sind in Firebase
-   registriert. Nach Aktivierung des Google-Anbieters die Android-
-   Konfigurationsdatei neu laden und validieren. Die kanonischen
-   Fingerabdrücke sind SHA-1
+   physischen Staging-Gerät prüfen. Das Google-only-Profil ist ohne Artefakt im
+   App-Code getestet. Der vorbereitete Einmal-Baupfad verweigert eine nicht
+   erhöhte Buildnummer, Apple/Facebook, Produktion und Store-Einreichung.
+2. Android-SHA-1 und SHA-256 des echten Upload-Zertifikats sowie der SHA-1 des
+   Play-App-Signing-Zertifikats sind in Firebase registriert. Die nach
+   Aktivierung des Google-Anbieters neu geladene Android-Konfigurationsdatei
+   enthält zwei verschiedene zertifikatsgebundene OAuth-Clients und einen
+   Web-Client; der Release-Vorcheck validiert dies fail-closed. Der kanonische
+   Upload-Fingerabdruck ist SHA-1
    `6A:79:73:86:14:85:F7:33:0D:57:25:FF:D6:AA:A9:06:6D:78:97:14` und SHA-256
    `09:8F:48:5E:57:16:15:58:E9:11:FC:3C:74:28:45:92:55:84:DB:31:C4:74:CD:BA:08:DD:A0:2F:EB:01:29:A4`.
 3. Apple Developer: „Sign in with Apple“ für `com.shareittoo.app` aktivieren,

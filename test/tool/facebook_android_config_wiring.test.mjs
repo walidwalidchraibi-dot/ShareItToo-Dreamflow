@@ -29,4 +29,10 @@ test('release builds bind explicit fail-closed social-provider flags', () => {
   }
   assert.match(buildScript, /SIT_FACEBOOK_APP_ID[\s\S]*\^\[1-9\]\[0-9\]\{5,24\}\$/);
   assert.match(buildScript, /SIT_FACEBOOK_CLIENT_TOKEN/);
+  assert.match(
+    buildScript,
+    /SIT_SOCIAL_FACEBOOK_ENABLED:-0[\s\S]*SIT_FACEBOOK_APP_ID/,
+  );
+  assert.doesNotMatch(buildScript, /SIT_SOCIAL_FACEBOOK_ENABLED:-1/);
+  assert.doesNotMatch(buildScript, /SIT_SOCIAL_FACEBOOK_ENABLED:-true/);
 });

@@ -96,11 +96,11 @@ if [[ "${SIT_SOCIAL_APPLE_ENABLED:-0}" == "1" ||
   social_apple_enabled=true
 fi
 social_facebook_enabled=false
-if [[ "${SIT_FACEBOOK_APP_ID:-}" =~ ^[1-9][0-9]{5,24}$ &&
+if [[ ("${SIT_SOCIAL_FACEBOOK_ENABLED:-0}" == "1" ||
+       "${SIT_SOCIAL_FACEBOOK_ENABLED:-}" == "true") &&
+      "${SIT_FACEBOOK_APP_ID:-}" =~ ^[1-9][0-9]{5,24}$ &&
       -n "${SIT_FACEBOOK_CLIENT_TOKEN:-}" &&
-      "${SIT_FACEBOOK_CLIENT_TOKEN}" != "not-configured" &&
-      "${SIT_SOCIAL_FACEBOOK_ENABLED:-1}" != "0" &&
-      "${SIT_SOCIAL_FACEBOOK_ENABLED:-true}" != "false" ]]; then
+      "${SIT_FACEBOOK_CLIENT_TOKEN}" != "not-configured" ]]; then
   social_facebook_enabled=true
 fi
 common_args+=(

@@ -876,3 +876,32 @@ Servernachweis:
   App-Tests sowie Web- und Android-Debug-Build. Produktion, Echtgeld,
   oeffentliche Tracks, Closed Testing und Review-Versand blieben unveraendert;
   alle sechs V4-Punkte bleiben unter `V4-INTERIM-2026-08-15` offen.
+
+## Meilenstein 16.86 – naechsten Google-only-Kandidaten ohne Wiederholungsbau abgesichert
+
+- Die erneuerte Android-Firebase-Konfiguration enthaelt genau zwei
+  verschiedene zertifikatsgebundene OAuth-Clients fuer Upload- und Play-App-
+  Signing sowie genau einen gueltigen Web-OAuth-Client. Der Release-Validator
+  prueft diesen Zustand jetzt fail-closed gegen den bereits bereinigten
+  Play-Signing-Nachweis, ohne Fingerabdruecke oder Client-IDs neu offenzulegen.
+- Facebook kann nicht mehr allein durch vorhandene Meta-Werte eingeschaltet
+  werden. Google, Apple und Facebook benoetigen jeweils einen ausdruecklichen
+  Release-Schalter; fehlende Schalter bedeuten immer `false`.
+- Das geplante App-Profil wurde ohne APK, AAB oder Versionsaenderung kompiliert
+  und ausgefuehrt: Google ist an, Apple und Facebook sind aus. Derselbe
+  Profiltest ist jetzt Bestandteil des vollstaendigen technischen
+  Regressionslaufs.
+- `store/google-only-next-candidate.json` bindet den naechsten gebuendelten
+  Schritt an den aktuellen Play-Baselinekandidaten `2026081509`, Internal,
+  Staging und die vorhandene Google-Provider-Evidenz. Es reserviert keine neue
+  Buildnummer und behauptet keinen erzeugten Kandidaten.
+- Der vorbereitete Einmal-Baupfad verweigert eine gleiche oder kleinere
+  Buildnummer, Apple/Facebook, Production-API oder Store-Einreichung. Er darf
+  erst nach gemeinsamem Commit aller beabsichtigten Aenderungen und einer
+  ausdruecklichen lokalen Bestaetigung den normalen signierten Releasepfad
+  aufrufen.
+- Damit bleibt der aktuelle Play-Kandidat `1.0.0+2026081509` unveraendert. Es
+  wurde weder gebaut noch hochgeladen, installiert oder angemeldet;
+  Produktion, Echtgeld, oeffentliche Tracks, Closed Testing und Review-Versand
+  bleiben unveraendert gesperrt. Alle sechs V4-Punkte bleiben unter
+  `V4-INTERIM-2026-08-15` offen.

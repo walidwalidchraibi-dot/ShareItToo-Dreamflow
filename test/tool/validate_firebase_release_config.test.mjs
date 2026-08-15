@@ -34,6 +34,28 @@ const androidConfig = {
         android_client_info: { package_name: 'com.shareittoo.app' },
       },
       api_key: [{ current_key: environment.SIT_FIREBASE_ANDROID_API_KEY }],
+      oauth_client: [
+        {
+          client_id: '123456789012-upload.apps.googleusercontent.com',
+          client_type: 1,
+          android_info: {
+            package_name: 'com.shareittoo.app',
+            certificate_hash: '6A7973861485F7330D5725FFD6AAA9066D789714',
+          },
+        },
+        {
+          client_id: '123456789012-play.apps.googleusercontent.com',
+          client_type: 1,
+          android_info: {
+            package_name: 'com.shareittoo.app',
+            certificate_hash: '11223344556677889900AABBCCDDEEFF00112233',
+          },
+        },
+        {
+          client_id: '123456789012-web.apps.googleusercontent.com',
+          client_type: 3,
+        },
+      ],
     },
   ],
 };
@@ -134,6 +156,29 @@ test('refuses an ambiguous local Android Firebase client', () => {
   assert.throws(
     () => deriveAndroidFirebaseReleaseEnvironment(ambiguous),
     /exactly one Android client/,
+  );
+});
+
+test('rejects Google Sign-In without a distinct Play App Signing client', () => {
+  const incomplete = structuredClone(androidConfig);
+  incomplete.client[0].oauth_client = incomplete.client[0].oauth_client.filter(
+    (entry) => entry.client_type !== 1 ||
+      entry.android_info.certificate_hash === '6A7973861485F7330D5725FFD6AAA9066D789714',
+  );
+  assert.throws(
+    () => deriveAndroidFirebaseReleaseEnvironment(incomplete),
+    /upload and Play App Signing SHA-1 clients/,
+  );
+});
+
+test('rejects Google Sign-In without one valid Web OAuth client', () => {
+  const incomplete = structuredClone(androidConfig);
+  incomplete.client[0].oauth_client = incomplete.client[0].oauth_client.filter(
+    (entry) => entry.client_type !== 3,
+  );
+  assert.throws(
+    () => deriveAndroidFirebaseReleaseEnvironment(incomplete),
+    /exactly one valid Web OAuth client/,
   );
 });
 

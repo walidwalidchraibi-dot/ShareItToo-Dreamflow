@@ -201,6 +201,10 @@ export function validateGooglePlayAppContentHandoff({
   const providerActivation = object(JSON.parse(readFileSync(resolve(
     repositoryRoot, currentBinding.review?.providerActivationEvidenceRef ?? ''), 'utf8')),
   'Firebase Google provider activation evidence');
+  const playSigningCoverage = object(JSON.parse(readFileSync(resolve(
+    repositoryRoot,
+    providerActivation.localConfigurations?.android?.playSigningCoverageEvidenceRef ?? '',
+  ), 'utf8')), 'Firebase Play signing coverage evidence');
   const currentProjection = privacyDisclosures.dataTypes.map((entry) => ({
     id: entry.id,
     google: entry.google,
@@ -266,7 +270,22 @@ export function validateGooglePlayAppContentHandoff({
       providerActivation.firebase?.providerEnabled !== true ||
       providerActivation.firebase?.appleProviderEnabled !== false ||
       providerActivation.firebase?.facebookProviderEnabled !== false ||
-      providerActivation.localConfigurations?.crossPlatformValidation !== 'passed' ||
+      providerActivation.localConfigurations?.crossPlatformValidation !==
+        'passed-google-oauth-upload-and-play-signing-covered' ||
+      providerActivation.localConfigurations?.android?.oauthClientCount !== 3 ||
+      providerActivation.localConfigurations?.android?.certificateBoundClientCount !== 2 ||
+      providerActivation.localConfigurations?.android?.distinctCertificateHashCount !== 2 ||
+      providerActivation.localConfigurations?.android?.uploadSigningSha1ClientPresent !== true ||
+      providerActivation.localConfigurations?.android?.playAppSigningSha1ClientPresent !== true ||
+      providerActivation.localConfigurations?.android?.webClientCount !== 1 ||
+      providerActivation.localConfigurations?.android?.playSigningCoverageEvidenceRef !==
+        'docs/evidence/b11/firebase-phone-play-signing-allowlist-20260814.json' ||
+      playSigningCoverage.kind !== 'firebase-phone-play-signing-allowlist' ||
+      playSigningCoverage.firebase?.uploadSigningSha1Registered !== true ||
+      playSigningCoverage.firebase?.playAppSigningSha1Registered !== true ||
+      playSigningCoverage.googleCloudApiKey?.uploadSigningSha1Allowed !== true ||
+      playSigningCoverage.googleCloudApiKey?.playAppSigningSha1Allowed !== true ||
+      playSigningCoverage.boundaries?.containsSecrets !== false ||
       providerActivation.localConfigurations?.ios?.googleSignInEnabled !== true ||
       providerActivation.localConfigurations?.ios?.analyticsEnabled !== false ||
       providerActivation.localConfigurations?.ios?.advertisingEnabled !== false ||

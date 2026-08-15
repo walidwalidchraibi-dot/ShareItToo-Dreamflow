@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const bundleId = 'com.shareittoo.app';
+const uploadSigningSha1 = '6A7973861485F7330D5725FFD6AAA9066D789714';
 const firebaseNames = [
   'SIT_FIREBASE_PROJECT_ID',
   'SIT_FIREBASE_MESSAGING_SENDER_ID',
@@ -281,6 +282,24 @@ function validateAndroidConfig(config, values) {
   const apiKey = validateApiKey(values.SIT_FIREBASE_ANDROID_API_KEY, 'SIT_FIREBASE_ANDROID_API_KEY');
   if (!(client.api_key ?? []).some((entry) => entry?.current_key === apiKey)) {
     fail('Android Firebase API key does not match google-services.json.');
+  }
+  const oauthClients = Array.isArray(client.oauth_client) ? client.oauth_client : [];
+  const androidOauthClients = oauthClients.filter(
+    (entry) => entry?.client_type === 1 && entry?.android_info?.package_name === bundleId,
+  );
+  const certificateHashes = androidOauthClients.map(
+    (entry) => String(entry?.android_info?.certificate_hash ?? '').toUpperCase(),
+  );
+  if (androidOauthClients.length !== 2 ||
+      certificateHashes.some((hash) => !/^[0-9A-F]{40}$/.test(hash)) ||
+      new Set(certificateHashes).size !== 2 ||
+      !certificateHashes.includes(uploadSigningSha1)) {
+    fail('Android Google Sign-In must contain distinct upload and Play App Signing SHA-1 clients.');
+  }
+  const webOauthClients = oauthClients.filter((entry) => entry?.client_type === 3);
+  if (webOauthClients.length !== 1 ||
+      !/^\d+-[0-9a-z]+\.apps\.googleusercontent\.com$/i.test(webOauthClients[0]?.client_id ?? '')) {
+    fail('Android Google Sign-In must contain exactly one valid Web OAuth client.');
   }
   const bucket = values.SIT_FIREBASE_STORAGE_BUCKET;
   if (bucket && projectInfo.storage_bucket && bucket !== projectInfo.storage_bucket) {
