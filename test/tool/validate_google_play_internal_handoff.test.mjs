@@ -65,14 +65,14 @@ async function fixture() {
   };
 }
 
-test('accepts the exact active internal candidate after verified store installation', async (t) => {
+test('accepts the exact active internal candidate while store installation is pending', async (t) => {
   const data = await fixture();
   t.after(() => rm(data.root, { recursive: true, force: true }));
   const result = validateGooglePlayInternalHandoff({ repositoryRoot, ...data });
   assert.equal(result.buildNumber, canonicalHandoff.candidate.buildNumber);
   assert.equal(result.artifactPath, data.artifactPath);
   assert.equal(result.releaseName, canonicalHandoff.releaseDraft.name);
-  assert.equal(result.status, 'internal-release-active-store-install-verified');
+  assert.equal(result.status, 'internal-release-active-store-install-pending');
   assert.equal(result.artifactVerified, true);
   assert.match(result.releaseNotes, /ausschließlich Staging und Testzahlungen/u);
 });

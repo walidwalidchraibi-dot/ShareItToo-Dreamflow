@@ -16,12 +16,12 @@ Verbindlicher Kandidat:
 - App: `ShareItToo`
 - Paket: `com.shareittoo.app`
 - Version: `1.0.0`
-- Build: `2026081506` (gebaut, archiviert, binär geprüft, intern veröffentlicht und als Play-Store-Split auf dem physischen Android-Gerät validiert)
-- App-Commit: `c6ab5fc143c5d424aece3d8fb7dfe4a351cb02df`
+- Build: `2026081507` (gebaut, archiviert, binär geprüft und intern veröffentlicht; Play-Store-Installation auf dem physischen Android-Gerät steht noch aus)
+- App-Commit: `0707e3091f8e3f47c327488b82e8b9765e794f01`
 - Kanal: ausschließlich Internal Testing
 - Umgebung: ausschließlich Staging
 - Zahlung: `paymentMode=memory`, `stripeLivemode=false`
-- Freigabezustand: AAB im Internal Testing aktiv und als exakter Store-Build geprüft; weiterhin
+- Freigabezustand: AAB im Internal Testing aktiv und als exakter Upload geprüft; die Store-Installation steht noch aus; weiterhin
   keine Store-Einreichung erlaubt und keine Review-, Closed-, Open- oder
   Production-Freigabe zulässig
 
@@ -31,12 +31,14 @@ physische Chat-Test zeigte anschließend eine zweite, rein interne
 Selbstaktualisierungsschleife. Build `2026081502` ersetzte diesen Stand für
 weitere Staging-Tests. Build `2026081505` bestand Anmeldung/Sitzung, Chat,
 Deep Links, alle drei Push-Zustände, Abmeldung, Offline-Wiederkehr und den
-V4-Rollen-/Buchungsablauf. Der aktuelle Build `2026081506` ersetzt diesen Stand
-mit Android-Systemfotoauswahl ohne pauschalen Galerie-Zugriff. Er ist über
-Google Play installiert; Play-Identität, Signatur, Kaltstart, bestehende
-Anmeldung und Staging-Inseratsfeed sind kandidatengenau bestanden. Die
-weiteren Geräteabläufe werden für `2026081506` neu geprüft und nicht aus
-`2026081505` übernommen. Keine höhere Freigabestufe wurde geöffnet.
+V4-Rollen-/Buchungsablauf. Build `2026081506` ergänzte die
+Android-Systemfotoauswahl ohne pauschalen Galerie-Zugriff und bestand den
+Chat-Fotoablauf. Der aktuelle Build `2026081507` korrigiert zusätzlich die
+Sichtbarkeit der bestätigten Übergabe- und Rückgabeaktionen. Er ist im
+internen Play-Track aktiv; Installation, Play-Identität, Kaltstart, Anmeldung,
+Staging-Feed und weitere Geräteabläufe werden für `2026081507` neu geprüft
+und nicht aus älteren Builds übernommen. Keine höhere Freigabestufe wurde
+geöffnet.
 
 ## 2. Persönliches Entwicklerkonto und App-Datensatz
 
@@ -70,7 +72,7 @@ Zahlungsdaten oder Google-Konto-IDs in Git, Drive, Telegram oder Evidenz
 Die App vermittelt die zeitweise Nutzung physischer Gegenstände außerhalb der
 App. Für diese Mietzahlungen wird kein Google Play Billing eingerichtet.
 Digitale Abonnements, Credits, Funktionsfreischaltungen oder werbefreie
-Premiumstufen sind auch im aktuellen Kandidaten 2026081506 nicht enthalten.
+Premiumstufen sind auch im aktuellen Kandidaten 2026081507 nicht enthalten.
 
 Falls die Kontoregistrierung allgemein nach geplanten Einnahmequellen fragt,
 ist eine mögliche spätere Provision auf die Miete physischer Gegenstände als
@@ -103,7 +105,7 @@ Arbeitswerte:
 | Support-URL | `https://shareittoo.com/support` – öffentlich verifiziert |
 | Datenschutz-URL | `https://shareittoo.com/privacy` – öffentlich verifiziert und in Google Play gespeichert |
 | öffentliche Kontolöschung | `https://shareittoo.com/account-deletion` – öffentlich verifiziert und operativ |
-| Telefon-Screenshots | vier bereinigte Aufnahmen lokal validiert und in der Console gespeichert; die sichtbaren Kernabläufe bleiben für Kandidat 2026081506 unverändert, die neue Systemfotoauswahl wird separat auf dem Gerät geprüft |
+| Telefon-Screenshots | vier bereinigte Aufnahmen lokal validiert und in der Console gespeichert; die sichtbaren Kernabläufe bleiben für Kandidat 2026081507 unverändert, die Systemfotoauswahl wird separat auf dem Gerät geprüft |
 
 Support-, Datenschutz- und Löschseite sind als getrennte öffentliche Seiten
 ohne Login erreichbar und maschinenlesbar verifiziert. Die Datenschutz-URL
@@ -115,7 +117,7 @@ Nachweis gelten.
 
 ### 5.1 Werbung
 
-- Antwort für Kandidat 2026081506: **Nein, die App enthält keine Werbung.**
+- Antwort für Kandidat 2026081507: **Nein, die App enthält keine Werbung.**
 - Beleg: kein Werbe-SDK, kein Firebase Analytics, kein Advertising Tracking.
 - Eine im Entwicklerprofil genannte mögliche spätere Werbefinanzierung ändert
   die Antwort für diesen konkreten App-Build nicht.
@@ -140,7 +142,7 @@ Englischer Review-Text ist im Abschnitt „App-Zugriff für Google Review“ von
 
 - Google Play zeigt eine zusätzliche verpflichtende Erklärung an: **„Does
   your app use advertising ID?“**
-- Arbeitsantwort für Kandidat 2026081506: **Nein.**
+- Arbeitsantwort für Kandidat 2026081507: **Nein.**
 - Der signierte Build mit Ziel-Android 35 enthält weder
   `com.google.android.gms.permission.AD_ID` noch
   `android.permission.ACCESS_ADSERVICES_AD_ID`, kein Werbe-, Analytics- oder
@@ -235,7 +237,7 @@ einzeln belegt. Dazu gehören insbesondere:
 - User-ID;
 - grober und optional präziser Standort;
 - Fotos, Nachrichten und sonstige Nutzerinhalte; keine freien Dokument-,
-  Video- oder Audio-Uploads im Kandidaten 2026081506;
+  Video- oder Audio-Uploads im Kandidaten 2026081507;
 - Buchungs-/Kaufhistorie und sonstige Finanzinformationen;
 - Push-/Installationskennungen;
 - Crashdaten und sonstige Diagnostik.
@@ -266,11 +268,12 @@ internen Play-Track veröffentlicht und als Store-Split geprüft; der dabei
 entdeckte Kontextfehler des mittigen Vordergrund-Push-Popups wurde ab Kandidat
 2026081405 behoben. Kandidat 2026081505 bestand anschließend Vordergrund-,
 Hintergrund- und Beendet-Push sowie das mittige, vollständig im Systemkreis
-enthaltene SIT-Symbol. Der aktuelle Kandidat 2026081506 wurde neu gebaut,
-privat archiviert, binär geprüft, intern veröffentlicht und über Google Play
-auf dem physischen Android-Gerät aktualisiert. Er verwendet für Fotos die
-Android-Systemauswahl und enthält keine pauschale Berechtigung für die
-Bild- oder Videobibliothek.
+enthaltene SIT-Symbol. Der aktuelle Kandidat 2026081507 wurde neu gebaut,
+privat archiviert, binär geprüft und intern veröffentlicht. Die Aktualisierung
+über Google Play auf dem physischen Android-Gerät steht noch aus. Er verwendet
+für Fotos die Android-Systemauswahl, enthält keine pauschale Berechtigung für
+die Bild- oder Videobibliothek und hält bestätigte Übergabe- und
+Rückgabeaktionen sichtbar.
 Er enthält nur die erwarteten Funktions-,
 Netzwerk- und Firebase-Berechtigungen für Kamera, nutzergewählte Bilder, groben/präzisen
 Standort, Benachrichtigungen, Internet/Netzstatus, Wake Lock und FCM. Nicht
@@ -278,7 +281,7 @@ enthalten sind unter anderem SMS-/Anruflisten-/Kontakte-, Mikrofon-,
 Accessibility-Service-, Vollspeicher-, Paketinstallations-,
 Alle-Pakete-Abfrage- oder Overlay-Berechtigungen. Der bereinigte,
 artefaktgebundene Nachweis liegt in
-`docs/evidence/b11/android-release-permissions-2026081506.json`.
+`docs/evidence/b11/android-release-permissions-2026081507.json`.
 
 Diese Vorprüfung nimmt keine Console-Antwort vorweg. Der AAB-Upload wurde von
 Google ohne Fehler angenommen; zukünftige kandidatenspezifische Hinweise
@@ -299,9 +302,9 @@ Nach dem ersten Internal-AAB-Upload:
 
 ## 8. Internal Testing – Freigabereihenfolge
 
-1. ausschließlich den gebundenen AAB-Kandidaten 2026081506 nach unmittelbarer
-   Hash-Prüfung verwenden – Upload, interne Aktivierung und Store-Installation
-   sind abgeschlossen;
+1. ausschließlich den gebundenen AAB-Kandidaten 2026081507 nach unmittelbarer
+   Hash-Prüfung verwenden – Upload und interne Aktivierung sind abgeschlossen,
+   die Store-Installation steht noch aus;
 2. Store-Haupteintrag und App-Inhalte weiter als Entwurf vervollständigen;
 3. Uploadwarnungen, App-Signing-Fingerprint und Artefaktidentität prüfen;
 4. geschützte Review-Zugangsdaten eintragen;
@@ -387,7 +390,7 @@ einer dieser Punkte offen ist:
 ## 10. Maschinengeprüfte Upload-Übergabe
 
 Die Datei `store/google-play/internal-upload-handoff.json` bindet jede weitere
-Play-Aktion ausschließlich an Build `2026081506`. AAB-Hash,
+Play-Aktion ausschließlich an Build `2026081507`. AAB-Hash,
 Upload-Zertifikat und privater Archivname sind eingetragen und geprüft. Das Prüfwerkzeug
 `tool/validate_google_play_internal_handoff.mjs` bricht ab, wenn sich Datei,
 Hash, Kandidatenidentität oder Dateirechte unterscheiden.
@@ -397,9 +400,10 @@ App-Datensatz ist erstellt und die drei rechtlichen Erklärungen wurden mit
 ausdrücklicher Zustimmung bestätigt. Play App Signing ist aktiv; sein
 bereinigter Zertifikat-Fingerprint wurde zusätzlich zum Uploadzertifikat in
 der lokalen `assetlinks.json`-Vorbereitung hinterlegt. `submissionAllowed`
-bleibt dennoch `false`: Die unmittelbare Artefaktprüfung, der interne Upload,
-die Aktivierung und die Installation über Google Play sind abgeschlossen.
-Alle öffentlichen, Review-, Open- und Closed-Aktionen bleiben harte Stopps.
+bleibt dennoch `false`: Die unmittelbare Artefaktprüfung, der interne Upload
+und die Aktivierung sind abgeschlossen; die Installation über Google Play
+steht noch aus. Alle öffentlichen, Review-, Open- und Closed-Aktionen bleiben
+harte Stopps.
 
 ## 11. Quellen
 
