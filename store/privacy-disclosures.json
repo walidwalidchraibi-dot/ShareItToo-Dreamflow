@@ -92,7 +92,7 @@
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "c43144f3dcbc175d72365a249d8730cedf273fcf5f170b427029f0b0ed0ec516"
+      "sha256": "83c2a219f876a0f60c1c2e6955c266dfe25783faa9655243c157512cdf982209"
     },
     {
       "path": "lib/widgets/return_handover_stepper_sheet.dart",

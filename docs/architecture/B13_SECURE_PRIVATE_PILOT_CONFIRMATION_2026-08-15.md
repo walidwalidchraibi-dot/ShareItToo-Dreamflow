@@ -1332,3 +1332,29 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.102 – Standortaufrufe auf aktuelle Einstellungen migriert
+
+- Der Flutter-Analysebestand wurde von 313 auf 311 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 300 Hinweise abgebaut.
+- Die automatische Ortssuche und das bewusste Standortteilen verwenden jetzt
+  `LocationSettings` statt des veralteten Genauigkeitsparameters. Die bisherige
+  hohe beziehungsweise mittlere Genauigkeit bleibt exakt erhalten.
+- Berechtigungsabfrage, Standortdienst-Pruefung, Stadtableitung, Koordinaten-
+  Rundung, Kartenlink und Nachrichteninhalt bleiben unveraendert. Zwei
+  Laufzeitdateien erhielten zusammen fuenf neue und verloren zwei alte Zeilen.
+- Der Nachrichtenpfad ist an die Datenschutz-Inventur gebunden. Sein SHA-256-
+  Wert wurde exakt aktualisiert; alle 16 Datenschutzpruefungen sind gruen und
+  der offengelegte praezise Standortfluss blieb fachlich unveraendert.
+- Die CI-Analyseschranke steht jetzt fail-closed bei 311. P1-01 bleibt fuer
+  311 Resthinweise offen. Nachweis:
+  `docs/evidence/b11/flutter-analysis-location-settings-20260816.json`.
+- 35 gezielte Standort- und Wahrheitspruefungen, zwei Wiring-Tests sowie 268
+  App-Tests bei einem bewussten Skip sind gruen. Der vollstaendige technische
+  Regressionslauf bestand einschliesslich aller Schutzvalidatoren sowie Web-
+  und Android-Debug-Bau.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.

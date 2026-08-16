@@ -2998,7 +2998,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       }
 
       final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium,
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.medium),
       );
       final lat = pos.latitude.toStringAsFixed(6);
       final lng = pos.longitude.toStringAsFixed(6);

@@ -504,7 +504,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
         return;
       }
       final pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      );
       final nearest = DataService.nearestCityName(pos.latitude, pos.longitude);
       await _persistCity(nearest);
     } catch (e) {
