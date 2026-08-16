@@ -1043,3 +1043,29 @@ Servernachweis:
   kein App-Kandidat gebaut. Produktion, Echtgeld, Store-Tracks und Review-
   Versand blieben unveraendert; alle neun Aufbewahrungsentscheidungen und alle
   sechs V4-Punkte bleiben offen.
+
+## Meilenstein 16.92 – GitHub-Pruefungen entdoppelt und Kandidatenbau explizit abgesichert
+
+- Feature-Branches werden jetzt genau einmal ueber den Pull Request geprueft;
+  der bisher parallel ausgeloeste Branch-Push-Lauf entfaellt. Neuere Commits
+  brechen ueberholte Laeufe desselben Pull Requests automatisch ab. Reine
+  Dokumentationsaenderungen starten keinen weiteren technischen Volltest.
+- Der signierte Android-Kandidatenbau ist kein Bestandteil normaler Push- oder
+  Pull-Request-Pruefungen mehr. Er kann nur noch bewusst manuell mit dem
+  ausdruecklichen Schalter `build_release_candidate=true` gestartet werden.
+  Damit bleiben normale Pruefungen vollstaendig, ohne bei jeder kleinen
+  Aenderung eine neue App-Datei zu erzeugen.
+- Die veraltete PostgreSQL-Migrationserwartung wurde um Migration 014 fuer
+  rechtliche Kontosperren ergaenzt. GitHub-Lauf 31929053929 bestaetigte danach
+  Backend, echte PostgreSQL-Integration, Git-Historien-Secret-Scan, Compose-
+  Plaene, commit-markiertes API-Abbild und die vollstaendige Flutter-Regression
+  als gruen.
+- Lokal bestanden acht gezielte Workflow-Tests, YAML-Pruefung, 138 Backendtests
+  bei einem mangels lokaler Testdatenbank uebersprungenen Integrationstest, 267
+  App-Tests bei einem Skip sowie Web- und Android-Debug-Bau. GitHub fuehrte den
+  dort vorhandenen PostgreSQL-Test zusaetzlich erfolgreich aus.
+- Der bereinigte Nachweis liegt unter
+  `docs/evidence/b11/github-regression-dedup-and-manual-candidate-20260816.json`.
+  Es wurde kein neuer App-Kandidat gebaut oder hochgeladen. Produktion,
+  Echtgeld, Store-Tracks und Review-Versand blieben unveraendert; alle neun
+  Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben offen.
