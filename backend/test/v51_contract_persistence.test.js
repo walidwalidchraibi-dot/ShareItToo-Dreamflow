@@ -1,0 +1,60 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+
+const migration = readFileSync(
+  new URL('../sql/migrations/015_v51_contract_persistence.up.sql', import.meta.url),
+  'utf8',
+);
+
+test('V5.1 contract evidence is separated into immutable snapshots, acceptances and receipts', () => {
+  for (const table of [
+    'legal_document_snapshots',
+    'platform_contracts',
+    'platform_contract_declarations',
+    'platform_contract_receipt_events',
+  ]) {
+    assert.match(migration, new RegExp(`CREATE TABLE IF NOT EXISTS ${table}`, 'u'));
+    assert.match(
+      migration,
+      new RegExp(`CREATE TRIGGER ${table}_append_only[\\s\\S]*?ON ${table}`, 'u'),
+    );
+  }
+});
+
+test('legal snapshots and every accepted wording are hash-bound', () => {
+  assert.match(migration, /content_sha256 TEXT NOT NULL CHECK \(content_sha256 ~ '\^\[0-9a-f\]\{64\}\$'\)/u);
+  assert.match(migration, /wording_sha256 TEXT NOT NULL CHECK \(wording_sha256 ~ '\^\[0-9a-f\]\{64\}\$'\)/u);
+  assert.match(migration, /artifact_sha256 TEXT NOT NULL CHECK \(artifact_sha256 ~ '\^\[0-9a-f\]\{64\}\$'\)/u);
+  assert.match(migration, /UNIQUE \(document_key, document_version, locale, content_sha256\)/u);
+});
+
+test('a platform contract is bound to one user, booking, quote and both document snapshots', () => {
+  assert.match(migration, /user_id TEXT NOT NULL REFERENCES users\(id\) ON DELETE RESTRICT/u);
+  assert.match(
+    migration,
+    /booking_id TEXT NOT NULL UNIQUE[\s\S]*REFERENCES bookings\(id\) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED/u,
+  );
+  assert.match(migration, /quote_id TEXT NOT NULL/u);
+  assert.match(migration, /quote_hash TEXT NOT NULL CHECK \(quote_hash ~ '\^\[0-9a-f\]\{64\}\$'\)/u);
+  assert.match(migration, /platform_terms_snapshot_id UUID NOT NULL/u);
+  assert.match(migration, /private_rental_terms_snapshot_id UUID NOT NULL/u);
+  assert.match(migration, /client_build TEXT NOT NULL/u);
+  assert.match(migration, /idempotency_key TEXT NOT NULL UNIQUE/u);
+});
+
+test('exactly the two V5.1 checkout declarations are accepted', () => {
+  assert.match(migration, /'private_terms_and_platform_terms'/u);
+  assert.match(migration, /'early_performance_and_withdrawal'/u);
+  assert.match(migration, /UNIQUE \(contract_id, declaration_type\)/u);
+  assert.doesNotMatch(migration, /'binding_booking_request'/u);
+  assert.doesNotMatch(migration, /'withdrawal_knowledge'/u);
+});
+
+test('receipt evidence is token-free, hash-bound and idempotent', () => {
+  assert.match(migration, /recipient_hash TEXT CHECK/u);
+  assert.match(migration, /recipient_hash ~ '\^\[0-9a-f\]\{64\}\$'/u);
+  assert.doesNotMatch(migration, /recipient_email/u);
+  assert.match(migration, /delivery_channel IN \('email', 'in_app', 'download'\)/u);
+  assert.match(migration, /idempotency_key TEXT NOT NULL UNIQUE/u);
+});

@@ -75,6 +75,7 @@ if (!databaseUrl) {
         '012_private_pilot_v4_foundation.up.sql',
         '013_secure_booking_confirmation_challenges.up.sql',
         '014_account_legal_holds.up.sql',
+        '015_v51_contract_persistence.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
