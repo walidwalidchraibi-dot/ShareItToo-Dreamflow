@@ -1549,3 +1549,35 @@ Servernachweis:
   Kandidat `1.0.0+2026081509`, Produktion, Echtgeld, Store-Tracks, Testkonten
   und Review-Versand blieben unveraendert. Alle neun Aufbewahrungsentscheidungen,
   alle sechs V4-Punkte und die vier offenen Geraetematrix-Zellen bleiben offen.
+
+## Meilenstein 16.110 – tote Nachrichtenlisten-Helfer entfernt
+
+- Der Flutter-Analysebestand wurde von 239 auf 235 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 376 Hinweise abgebaut.
+- Ausschliesslich vier projektweit unreferenzierte Elemente wurden aus der
+  Nachrichtenliste entfernt: eine alte vollstaendige Demo-Zustandsfabrik, eine
+  nie verwendete Tab-Zaehlung sowie zwei nie gerenderte Praesenz- und
+  Uebergabe-/Rueckgabe-Textformatierer. Die Laufzeitdatei verlor 419 tote Zeilen
+  ohne neue Laufzeitzeile.
+- Das Laden aktiver und archivierter Threads, die eng begrenzte QA-
+  Uebersetzungsdemo, Filter und Suche, Oeffnen und Ungelesen-Status,
+  Nachrichten-Einstellungen sowie Archivieren, Entarchivieren, Loeschen,
+  Blockieren, Entblockieren und Stummschalten bleiben erhalten.
+- Sechs neue Wiring-Tests verriegeln sowohl die entfernten Symbole als auch die
+  konkreten erreichbaren UI-Callbacks. Nach unabhaengiger Review wurden die
+  Swipe-Archivierungs- und Loeschpfade callback-begrenzt gehaertet; die
+  Abschlussreview meldet keine Findings.
+- `messages_screen.dart` ist nicht als Datenschutz-Quellbindung hinterlegt.
+  Datenerhebung, Speicherung, Uebertragung, Berechtigungen, Store-Metadaten und
+  Offenlegungen bleiben unveraendert. Die CI-Analyseschranke steht jetzt
+  fail-closed bei 235. Nachweis:
+  `docs/evidence/b11/flutter-analysis-messages-dead-helpers-20260816.json`.
+- 110 gezielte Flutter-Tests und 29 gezielte Struktur-/Datenschutztests sind
+  gruen. Die vollstaendige Regression bestand mit 268 App-Tests bei einem
+  bewussten Skip, dem separaten Google-Profiltest, allen Schutzvalidatoren sowie
+  Web- und Android-Debug-Bau.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Der bestehende
+  Kandidat `1.0.0+2026081509`, Produktion, Echtgeld, Store-Tracks, Testkonten
+  und Review-Versand blieben unveraendert. Alle neun Aufbewahrungsentscheidungen,
+  alle sechs V4-Punkte und die vier offenen Geraetematrix-Zellen bleiben offen.
