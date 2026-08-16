@@ -313,7 +313,6 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       'deliveryCity': r.deliveryCity ?? (deliverySel?['city'] as String?) ?? '',
       'deliveryLat': r.deliveryLat ?? (deliverySel?['lat'] as num?)?.toDouble(),
       'deliveryLng': r.deliveryLng ?? (deliverySel?['lng'] as num?)?.toDouble(),
-      'hasSubmittedReview': reviewSubmitted,
       'handoverLocationLabel': (flowState['handoverLocationLabel'] as String?) ?? '',
       'handoverLocationMapsUrl': (flowState['handoverLocationMapsUrl'] as String?) ?? '',
       'handoverLocationSharedByName': (flowState['handoverLocationSharedByName'] as String?) ?? '',

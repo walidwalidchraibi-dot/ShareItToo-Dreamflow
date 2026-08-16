@@ -480,6 +480,18 @@ void main() {
     expect(securityScreen, contains("rawName == 'Unbekanntes Gerät'"));
   });
 
+  test('normal startup cannot seed showcase data or clear user data', () async {
+    final appRoot = await File('lib/main.dart').readAsString();
+
+    expect(appRoot, isNot(contains('ensureListingsSeededIfEmpty')));
+    expect(appRoot, isNot(contains('clearAllRentalsAndBookings')));
+    expect(
+      appRoot,
+      contains(
+          'Release startup must never seed showcase data or clear user data.'),
+    );
+  });
+
   testWidgets(
       'privacy export remains usable with large text and keyboard focus',
       (tester) async {

@@ -743,13 +743,17 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
       if (!mounted) return;
       try {
         _sc.jumpTo(0);
-      } catch (_) {}
+      } catch (_) {
+        // The scroll controller may not have clients during the first frame.
+      }
     });
     () async {
       try {
         final id = await DataService.getWishlistForItem(widget.item.id);
         if (mounted) setState(() => _wishlistId = id);
-      } catch (e) {}
+      } catch (_) {
+        debugPrint('[ItemDetails] Wishlist-Zuordnung konnte nicht geladen werden.');
+      }
     }();
     if (widget.fresh == true) {
       // Clear any previously saved selection so page opens as if brand new

@@ -1123,3 +1123,34 @@ Servernachweis:
 - Produktion, Echtgeld, App-Kandidat `1.0.0+2026081509`, Store-Tracks und
   Review-Versand blieben unveraendert; alle neun Aufbewahrungsentscheidungen
   und alle sechs V4-Punkte bleiben offen.
+
+## Meilenstein 16.95 – Korrektheitswarnungen und Startdatenpfade abgesichert
+
+- Der Flutter-Analysebestand wurde von 435 auf 428 Hinweise reduziert. Alle
+  sieben gezielt bearbeiteten Korrektheitsklassen sind jetzt aus dem
+  Analyseergebnis verschwunden: ein doppelter Map-Schluessel, eine leere
+  Fehlerbehandlung, zwei unerreichbare Switch-Standardzweige und drei tote
+  Codepfade. Analysefehler bleiben bei null.
+- Der normale App-Start enthaelt weder einen Aufruf zum Einspielen von
+  Showcase-Anzeigen noch einen Aufruf zum Loeschen von Miet- oder
+  Buchungsdaten. Ein eigener Truthfulness-Test verriegelt diese beiden
+  Bedingungen gegen spaetere Regressionen.
+- Die CI-Analyseschranke wurde vom historischen Wert 611 auf den jetzt
+  verifizierten Stand 428 abgesenkt. Der zugehoerige Wiring-Test ist erstmals
+  Bestandteil jedes technischen Regressionslaufs; bereits ein zusaetzlicher
+  Analysehinweis laesst die Pruefung damit fehlschlagen.
+- 268 App-Tests bestanden bei einem bewusst uebersprungenen Test. Der
+  vollstaendige technische Regressionslauf bestand mit der begrenzten,
+  verifizierten internen Kandidatenfortschreibung sowie Web- und Android-
+  Debug-Bau. Der App-Content-Ausgangsstand `2026081505` bleibt dabei separat
+  an den unveraenderten internen Kandidaten `2026081509` gebunden.
+- P1-01 bleibt fuer 428 Resthinweise offen. Der naechste sichere Block trennt
+  ungenutzte Symbole nach nachgewiesen toten und weiterhin erreichbaren
+  Produktpfaden; asynchrone Context-Nutzung und veraltete Framework-APIs
+  werden weiterhin nur in gezielten UI-Batches migriert. Der bereinigte
+  Nachweis liegt unter
+  `docs/evidence/b11/flutter-analysis-correctness-and-startup-safety-20260816.json`.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.

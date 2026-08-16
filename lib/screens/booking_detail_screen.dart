@@ -2190,9 +2190,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           height:
               (isCancelled || isDeclined || isPending || isUpcoming) ? 6 : 12,
         ),
-        // Header chip row removed (status chip now overlays the image)
-        if (false) const SizedBox.shrink(),
-
         SizedBox(height: isCancelled ? 8 : 12),
         Text(
           (widget.booking['title'] as String?) ?? '-',
@@ -6006,7 +6003,6 @@ class _StepChip extends StatelessWidget {
         icon = Icons.error_outline;
         break;
       case _StepState.todo:
-      default:
         border = Colors.white12;
         fg = Colors.white70;
         bg = Colors.white.withValues(alpha: 0.05);

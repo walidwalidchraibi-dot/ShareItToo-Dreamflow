@@ -3,9 +3,9 @@ set -euo pipefail
 
 # Transitional analyzer baseline for the existing legacy issue backlog.
 # Keep this in sync with the accepted repository baseline until the backlog is reduced.
-# Re-measured on Flutter 3.41.7 / Dart 3.11.5 on 2026-08-12 after the secure
-# Maps proxy migration removed one legacy client-side finding.
-ANALYZER_BASELINE=611
+# Re-measured on Flutter 3.41.7 / Dart 3.11.5 on 2026-08-16 after the first
+# safe mechanical cleanup and the targeted correctness/startup-safety batch.
+ANALYZER_BASELINE=428
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$ROOT"
@@ -284,6 +284,7 @@ node --test test/tool/validate_android_signing_config.test.mjs
 
 node --check tool/verify_brand_assets.mjs
 node tool/verify_brand_assets.mjs
+node --test test/tool/analyzer_baseline_wiring.test.mjs
 
 analyze_log="$(mktemp)"
 trap 'rm -f "$analyze_log"' EXIT

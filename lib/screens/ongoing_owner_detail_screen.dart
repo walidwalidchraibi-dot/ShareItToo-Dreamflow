@@ -2997,7 +2997,6 @@ class _StepChip extends StatelessWidget {
         icon = Icons.error_outline;
         break;
       case _StepState.todo:
-      default:
         border = Colors.white12;
         fg = Colors.white70;
         bg = Colors.white.withValues(alpha: 0.05);

@@ -6,7 +6,6 @@ import 'package:lendify/navigation/main_navigation.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/services/localization_service.dart';
-import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/developer_preview_service.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_config.dart';
@@ -46,36 +45,8 @@ Future<void> main() async {
     return true; // handled
   };
 
-  const bool enableShowcaseSeedOnStartup = false;
-  if (enableShowcaseSeedOnStartup) {
-    try {
-      debugPrint('[Main] ensureListingsSeededIfEmpty start');
-      await DataService.ensureListingsSeededIfEmpty();
-      debugPrint('[Main] ensureListingsSeededIfEmpty done');
-    } catch (e, st) {
-      debugPrint('[Main] ensureListingsSeededIfEmpty failed: $e');
-      debugPrint(st.toString());
-    }
-  } else {
-    debugPrint('[Main] ensureListingsSeededIfEmpty skipped (disabled)');
-  }
-
-  // Destructive startup reset is disabled by default on normal startup.
-  // Only an explicit developer/debug toggle should enable this path.
-  const bool shouldRunDestructiveStartupReset = false;
-  if (shouldRunDestructiveStartupReset) {
-    try {
-      debugPrint('[Main] destructive startup reset enabled');
-      debugPrint('[Main] Clear rentals/bookings start');
-      await DataService.clearAllRentalsAndBookings();
-      debugPrint('[Main] Clear rentals/bookings done');
-    } catch (e, st) {
-      debugPrint('[Main] Clear rentals/bookings failed: $e');
-      debugPrint(st.toString());
-    }
-  } else {
-    debugPrint('[Main] destructive startup reset skipped (disabled)');
-  }
+  // Release startup must never seed showcase data or clear user data.
+  debugPrint('[Main] showcase seed and destructive reset disabled');
 
   debugPrint('[Main] runApp(MyApp)');
   DeveloperUserState? initialPreview;
