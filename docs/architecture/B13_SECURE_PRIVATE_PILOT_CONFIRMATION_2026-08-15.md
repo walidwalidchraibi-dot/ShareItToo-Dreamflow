@@ -1383,3 +1383,33 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.104 – Zurueck-Navigation und Web-Download modernisiert
+
+- Der Flutter-Analysebestand wurde von 307 auf 304 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 307 Hinweise abgebaut.
+- Die Hauptnavigation verwendet jetzt `PopScope`. Auf einem anderen Tab wird
+  ein System-Zurueck weiterhin abgefangen und auf Erkunden gewechselt; erst auf
+  Erkunden darf die Route geschlossen werden. Android Predictive Back wird
+  damit von der aktuellen Flutter-API unterstuetzt.
+- Der Web-Download verwendet jetzt `package:web` und JavaScript-Interop statt
+  `dart:html`. Bytes, MIME-Typ, Dateiname, temporaerer Link, Klick, Entfernen
+  und Freigabe der Objekt-URL bleiben in derselben Reihenfolge erhalten.
+- `package:web` ist als direkte Laufzeitabhaengigkeit mit unveraenderter
+  aufgeloester Version 1.1.1 festgeschrieben. Der an die Datenschutz-Inventur
+  gebundene `pubspec.yaml`-Hash wurde exakt aktualisiert; Datenfluesse und
+  Offenlegungen bleiben unveraendert.
+- Drei gezielte Wiring-Tests verriegeln Zurueck-Regel, Download-Lebenszyklus und
+  direkte Abhaengigkeit. Die CI-Analyseschranke steht jetzt fail-closed bei 304.
+  P1-01 bleibt fuer 304 Resthinweise offen. Nachweis:
+  `docs/evidence/b11/flutter-analysis-navigation-and-web-download-20260816.json`.
+- 16 Datenschutzpruefungen, 24 gezielte Navigations-, Export-, Wahrheits- und
+  Barrierefreiheitspruefungen, fuenf Wiring-Tests sowie 268 App-Tests bei einem
+  bewussten Skip sind gruen. Der vollstaendige technische Regressionslauf
+  bestand einschliesslich aller Schutzvalidatoren sowie Web- und
+  Android-Debug-Bau.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.

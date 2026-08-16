@@ -111,13 +111,12 @@ class _MainNavigationState extends State<MainNavigation> {
       // Keep internal state in sync with the global controller.
       _currentIndex = nav.index;
     }
-    return WillPopScope(
-      onWillPop: () async {
-        if (_currentIndex != 0) {
+    return PopScope(
+      canPop: _currentIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _currentIndex != 0) {
           context.read<MainNavController>().setIndex(0);
-          return false;
         }
-        return true;
       },
       child: AppGradientBackground(
         child: Scaffold(
