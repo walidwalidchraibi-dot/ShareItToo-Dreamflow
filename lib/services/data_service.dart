@@ -5468,7 +5468,10 @@ class DataService {
     }
   }
 
-  static Future<RentalRequest> addRentalRequest(RentalRequest req) async {
+  static Future<RentalRequest> addRentalRequest(
+    RentalRequest req, {
+    Map<String, dynamic>? checkoutQuote,
+  }) async {
     final all = await _getAllRentalRequests();
     final nextId = BackendConfig.enabled && !QaRuntimeService.isEnabled
         ? 'request_${DateTime.now().microsecondsSinceEpoch}'
@@ -5566,10 +5569,18 @@ class DataService {
     );
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
       final createPayload = toStore.toJson();
-      final freshQuote = await BackendRepository.quoteBooking(createPayload);
+      final freshQuote = checkoutQuote == null
+          ? await BackendRepository.quoteBooking(createPayload)
+          : Map<String, dynamic>.from(checkoutQuote);
       final quoteId = freshQuote['quoteId'] as String?;
       final quoteHash = freshQuote['quoteHash'] as String?;
-      if (quoteId == null || quoteHash == null) {
+      final expiresAt = DateTime.tryParse(
+        freshQuote['expiresAt']?.toString() ?? '',
+      );
+      if (quoteId == null ||
+          quoteHash == null ||
+          expiresAt == null ||
+          !expiresAt.isAfter(DateTime.now().toUtc())) {
         throw StateError('Der Server hat kein bindendes Angebot geliefert.');
       }
       createPayload['quoteId'] = quoteId;
@@ -7195,8 +7206,7 @@ class DataService {
 
   // ===== Cancellation policy helpers (Unified) =====
   /// Human-readable policy title (DE) – unified across the app
-  static String policyName([String? ignored]) =>
-      'Einheitliche Stornobedingung';
+  static String policyName([String? ignored]) => 'Einheitliche Stornobedingung';
 
   /// Exact V4 deadline. For a normal booking the free deadline is 24 hours
   /// before start. A short-notice booking receives the centrally configured

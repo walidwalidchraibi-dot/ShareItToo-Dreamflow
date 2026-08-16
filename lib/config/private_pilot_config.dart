@@ -51,7 +51,13 @@ class PrivatePilotConfig {
       'Ich nehme die zahlungspflichtige Buchungsanfrage zu den angezeigten Bedingungen und Dokumentversionen an.';
   static const String platformWithdrawalDeclaration =
       'Ich widerrufe die kostenpflichtige Plattformleistung von ShareItToo für die ausgewählte Buchung.';
-  static const int bookingRequestBindingHours = 24;
+  static const String v51DocumentName = 'ShareItToo Rechtsmappe Privat-Launch';
+  static const String v51DocumentVersion = 'V5.1-2026-08-16';
+  static const String v51PrivateAndPlatformTermsDeclaration =
+      'Ich handle bei dieser Buchung ausschließlich privat und akzeptiere die SIT-Plattformbedingungen sowie die Privat-Mietbedingungen einschließlich Storno-, Übergabe- und Schadenregeln.';
+  static const String v51EarlyPerformanceAndWithdrawalDeclaration =
+      'Ich verlange ausdrücklich, dass ShareItToo unmittelbar nach Abschluss des Plattformvertrags und vor Ablauf der 14-tägigen Widerrufsfrist mit der Plattformleistung beginnt. Mir ist bekannt, dass mein gesetzliches Widerrufsrecht erlischt, sobald SIT die vereinbarte Plattformleistung vollständig erbracht hat. Mein zusätzliches vertragliches 14-Tage-Lösungsrecht bleibt unberührt.';
+  static const int bookingRequestBindingMinutes = 30;
 
   static const int platformFeeBasisPoints = 1000; // 10.00%
   static const int returnReportWindowHours = 48;

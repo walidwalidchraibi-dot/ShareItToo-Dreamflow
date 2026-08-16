@@ -8,7 +8,12 @@ const migrationPath = resolve(
   '../sql/migrations/016_v51_booking_quotes.up.sql',
 );
 const workflowPath = resolve(import.meta.dirname, '../src/booking_workflow.js');
+const appPath = resolve(import.meta.dirname, '../src/app.js');
 const dataServicePath = resolve(import.meta.dirname, '../../lib/services/data_service.dart');
+const checkoutScreenPath = resolve(
+  import.meta.dirname,
+  '../../lib/screens/private_pilot_checkout_screen.dart',
+);
 const privacyExportPath = resolve(import.meta.dirname, '../src/privacy_export.js');
 const retentionInventoryPath = resolve(import.meta.dirname, '../src/retention_inventory.js');
 
@@ -61,6 +66,24 @@ test('the app fetches a fresh quote immediately before remote creation', async (
   assert.match(remoteBlock, /createPayload\['quoteId'\] = quoteId/u);
   assert.match(remoteBlock, /createPayload\['quoteHash'\] = quoteHash/u);
   assert.match(remoteBlock, /BackendRepository\.createBooking\([\s\S]*createPayload/u);
+});
+
+test('checkout renders the server quote and stays locked without real payment transport', async () => {
+  const [app, checkout] = await Promise.all([
+    readFile(appPath, 'utf8'),
+    readFile(checkoutScreenPath, 'utf8'),
+  ]);
+
+  assert.match(
+    app,
+    /paymentMethodAvailable: config\.payments\.transport === 'stripe'/u,
+  );
+  assert.match(checkout, /PrivatePilotQuote\.fromServerJson/u);
+  assert.match(checkout, /_checkoutQuote = Map<String, dynamic>\.from\(envelope\)/u);
+  assert.match(checkout, /_freshQuoteAvailable/u);
+  assert.match(checkout, /_paymentMethodAvailable/u);
+  assert.match(checkout, /checkoutQuote: _checkoutQuote/u);
+  assert.match(checkout, /Bestätigen und bezahlen/u);
 });
 
 test('user export and retention inventory include the new quote records', async () => {

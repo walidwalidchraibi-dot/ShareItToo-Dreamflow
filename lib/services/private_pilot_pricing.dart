@@ -23,6 +23,40 @@ class PrivatePilotQuote {
     required this.totalMinor,
     this.currency = 'EUR',
   });
+
+  factory PrivatePilotQuote.fromServerJson(Map<String, dynamic> json) {
+    int requiredMinor(String key) {
+      final value = json[key];
+      if (value is! num || value < 0 || value.toInt() != value) {
+        throw FormatException('Ungültiger Serverpreis: $key');
+      }
+      return value.toInt();
+    }
+
+    final days = requiredMinor('days');
+    final discountPercent = json['discountPercent'];
+    if (discountPercent is! num ||
+        !discountPercent.isFinite ||
+        discountPercent < 0 ||
+        discountPercent > 90) {
+      throw const FormatException('Ungültiger Serverpreis: discountPercent');
+    }
+    final currency = json['currency'];
+    if (currency is! String || !RegExp(r'^[A-Z]{3}$').hasMatch(currency)) {
+      throw const FormatException('Ungültiger Serverpreis: currency');
+    }
+    return PrivatePilotQuote(
+      days: days,
+      ownerPricePerDayMinor: requiredMinor('pricePerDayMinor'),
+      baseRentalMinor: requiredMinor('baseRentalMinor'),
+      discountBasisPoints: (discountPercent * 100).round(),
+      discountMinor: requiredMinor('discountMinor'),
+      rentalSubtotalMinor: requiredMinor('rentalSubtotalMinor'),
+      platformFeeMinor: requiredMinor('platformFeeMinor'),
+      totalMinor: requiredMinor('totalMinor'),
+      currency: currency,
+    );
+  }
 }
 
 class PrivatePilotPricing {

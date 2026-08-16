@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/screens/private_pilot_checkout_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -43,44 +42,36 @@ void main() {
 
     final scrollable = find.byType(Scrollable).first;
     await tester.scrollUntilVisible(
-      find.text('Zahlungspflichtige Buchungsanfrage senden'),
+      find.text('Bestätigen und bezahlen'),
       300,
       scrollable: scrollable,
     );
     final submit = tester.widget<FilledButton>(
       find.widgetWithText(
         FilledButton,
-        'Zahlungspflichtige Buchungsanfrage senden',
+        'Bestätigen und bezahlen',
       ),
     );
     expect(submit.onPressed, isNull);
+    expect(find.byType(CheckboxListTile), findsNWidgets(2));
 
-    for (final wording in <String>[
-      PrivatePilotConfig.bookingPrivateDeclaration,
-      PrivatePilotConfig.bindingRequestDeclaration,
-      PrivatePilotConfig.platformTermsDeclaration,
-      PrivatePilotConfig.earlyPerformanceDeclaration,
-      PrivatePilotConfig.withdrawalKnowledgeDeclaration,
-    ].reversed) {
-      final text = find.text(wording);
-      await tester.scrollUntilVisible(
-        text,
-        -260,
-        scrollable: scrollable,
-      );
-      await tester.tap(text);
+    for (var index = 0; index < 2; index += 1) {
+      final checkbox = find.byType(Checkbox).at(index);
+      await tester.ensureVisible(checkbox);
+      await tester.pumpAndSettle();
+      await tester.tap(checkbox);
       await tester.pump();
     }
 
     await tester.scrollUntilVisible(
-      find.text('Zahlungspflichtige Buchungsanfrage senden'),
+      find.text('Bestätigen und bezahlen'),
       300,
       scrollable: scrollable,
     );
     final enabledSubmit = tester.widget<FilledButton>(
       find.widgetWithText(
         FilledButton,
-        'Zahlungspflichtige Buchungsanfrage senden',
+        'Bestätigen und bezahlen',
       ),
     );
     expect(enabledSubmit.onPressed, isNotNull);

@@ -52,7 +52,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "b8c4f332accd531977edef407f874599441a1313051600381bdc5a2c48014ff4"
+      "sha256": "e4fdb24472526f68ef5c72c74c543c39584d7c2410819af1f88b5b35ffc53fb4"
     },
     {
       "path": "backend/src/security.js",
@@ -108,7 +108,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "800e5615d2c496b170f9f13124e91349d62f0e14890f307040ee79bf64204c2e"
+      "sha256": "41cf776685a4be285ad9f241449a7992755bd8d80405115949256a53f78a6d85"
     },
     {
       "path": "lib/screens/create_listing_screen.dart",

@@ -38,4 +38,41 @@ void main() {
     expect(PrivatePilotPricing.customerUnitPriceMinor(10), 1100);
     expect(PrivatePilotPricing.formatMinor(1100), '11,00 €');
   });
+
+  test('checkout renders the authoritative server quote without recomputing',
+      () {
+    final quote = PrivatePilotQuote.fromServerJson({
+      'days': 3,
+      'pricePerDayMinor': 2000,
+      'baseRentalMinor': 6000,
+      'discountPercent': 10,
+      'discountMinor': 600,
+      'rentalSubtotalMinor': 5400,
+      'platformFeeMinor': 540,
+      'totalMinor': 5940,
+      'currency': 'EUR',
+    });
+
+    expect(quote.discountBasisPoints, 1000);
+    expect(quote.rentalSubtotalMinor, 5400);
+    expect(quote.platformFeeMinor, 540);
+    expect(quote.totalMinor, 5940);
+  });
+
+  test('malformed server money is rejected', () {
+    expect(
+      () => PrivatePilotQuote.fromServerJson({
+        'days': 3,
+        'pricePerDayMinor': 2000,
+        'baseRentalMinor': 6000,
+        'discountPercent': 10,
+        'discountMinor': 600,
+        'rentalSubtotalMinor': 5400,
+        'platformFeeMinor': 540,
+        'totalMinor': 59.4,
+        'currency': 'EUR',
+      }),
+      throwsFormatException,
+    );
+  });
 }

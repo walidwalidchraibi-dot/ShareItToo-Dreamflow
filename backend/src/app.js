@@ -2660,7 +2660,10 @@ export function createApp({
       raw: req.body,
       privatePilot: config.privatePilotV4Enabled,
     }));
-    res.json(quote);
+    res.json({
+      ...quote,
+      paymentMethodAvailable: config.payments.transport === 'stripe',
+    });
   }));
 
   app.post('/v1/bookings', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {

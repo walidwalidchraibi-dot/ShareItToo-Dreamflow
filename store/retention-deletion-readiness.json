@@ -3,7 +3,7 @@
   "state": "draft",
   "approvalAllowed": false,
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "800e5615d2c496b170f9f13124e91349d62f0e14890f307040ee79bf64204c2e"},
+    {"path": "backend/src/app.js", "sha256": "41cf776685a4be285ad9f241449a7992755bd8d80405115949256a53f78a6d85"},
     {"path": "backend/src/server.js", "sha256": "dfde3b267be22261de2fd101618b5efa0cdfe6d65cdec88a1d08f42bbd27e5f7"},
     {"path": "backend/src/credential_cleanup.js", "sha256": "53386748f6a9cf2869c2fc98bacdd367270b4d97f5b044fffcf58dab12a2b18b"},
     {"path": "backend/src/moderation_workflow.js", "sha256": "acdc6f8158d2acdf7cd0b5e53ff125a44e0286fca7db1bbf5569ba0de271cafc"},
