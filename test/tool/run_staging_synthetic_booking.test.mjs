@@ -222,8 +222,8 @@ test('retires a temporary fixture by completing its booking and pausing, never d
       legalDeclarations: [{
         type: 'owner_booking_acceptance',
         exactWording: 'Ich nehme die zahlungspflichtige Buchungsanfrage zu den angezeigten Bedingungen und Dokumentversionen an.',
-        documentName: 'ShareItToo Rechtsmappe Privat-Pilot',
-        documentVersion: 'V4-2026-08-14',
+        documentName: 'ShareItToo Rechtsmappe Privat-Launch',
+        documentVersion: 'V5.1-2026-08-16',
         appVersion: 'synthetic-review-tool',
         language: 'de',
         accepted: true,

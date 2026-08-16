@@ -5773,11 +5773,49 @@ class DataService {
             actor: actor,
             contractConfirmedAt: current.acceptedAt,
           );
-          final totalMinor = current.quotedTotalMinor ?? 0;
+          final rentalSubtotalMinor = current.quotedRentalSubtotalMinor ?? 0;
+          final platformFeeMinor = current.quotedPlatformFeeMinor ?? 0;
+          final basisPoints = outcome.refundBasisPoints;
+          final rentRefundMinor = basisPoints == null
+              ? null
+              : ((rentalSubtotalMinor * basisPoints) + 5000) ~/ 10000;
+          final rentRetainedMinor = rentRefundMinor == null
+              ? null
+              : rentalSubtotalMinor - rentRefundMinor;
+          final sitFeeRetainedMinor = rentRetainedMinor == null
+              ? null
+              : (((rentRetainedMinor * 1000) + 5000) ~/ 10000)
+                  .clamp(0, platformFeeMinor);
+          final sitFeeRefundMinor = sitFeeRetainedMinor == null
+              ? null
+              : platformFeeMinor - sitFeeRetainedMinor;
           cancellationOutcome = {
-            'refundBasisPoints': outcome.refundBasisPoints,
-            'refundMinor': outcome.refundMinor(totalMinor),
-            'retainedMinor': outcome.retainedMinor(totalMinor),
+            'calculationStatus': outcome.calculationStatus,
+            'refundBasisPoints': basisPoints,
+            'requiresActualLossAssessment':
+                outcome.requiresActualLossAssessment,
+            'rentRefund': {
+              'type': 'rent_refund',
+              'debtorRole': 'owner',
+              'status': basisPoints == null
+                  ? 'pending_actual_loss_assessment'
+                  : 'required',
+              'amountMinor': rentRefundMinor,
+              'maximumMinor': rentalSubtotalMinor,
+            },
+            'sitFeeRefund': {
+              'type': 'sit_fee_refund',
+              'debtorRole': 'sit',
+              'status': basisPoints == null
+                  ? 'pending_actual_loss_assessment'
+                  : 'required',
+              'amountMinor': sitFeeRefundMinor,
+              'maximumMinor': platformFeeMinor,
+            },
+            if (rentRefundMinor != null && sitFeeRefundMinor != null)
+              'refundMinor': rentRefundMinor + sitFeeRefundMinor,
+            if (rentRetainedMinor != null && sitFeeRetainedMinor != null)
+              'retainedMinor': rentRetainedMinor + sitFeeRetainedMinor,
             'reasonCode': outcome.reasonCode,
             'freeCancellationUntil':
                 outcome.freeCancellationUntil?.toIso8601String(),
@@ -6004,61 +6042,120 @@ class DataService {
     return updated;
   }
 
-  static Future<RentalRequest?> recordPlatformWithdrawal({
-    required String requestId,
+  static Future<Map<String, dynamic>?> recordPlatformWithdrawal({
+    String? requestId,
     required String userId,
+    required String scope,
   }) async {
-    final normalizedRequestId = requestId.trim();
+    final normalizedRequestId = requestId?.trim() ?? '';
     final normalizedUserId = userId.trim();
-    if (normalizedRequestId.isEmpty || normalizedUserId.isEmpty) return null;
-    final all = await _getAllRentalRequests();
-    final index = all.indexWhere((entry) => entry.id == normalizedRequestId);
-    if (index < 0 || all[index].renterId != normalizedUserId) return null;
-    final acceptedAt = DateTime.now();
-    final declaration = <String, dynamic>{
-      'type': 'platform_withdrawal',
-      'exactWording': PrivatePilotConfig.platformWithdrawalDeclaration,
-      'documentName': PrivatePilotConfig.documentName,
-      'documentVersion': PrivatePilotConfig.documentVersion,
-      'language': PrivatePilotConfig.language,
-      'accepted': true,
-      'acceptedAt': acceptedAt.toIso8601String(),
-    };
-    RentalRequest updated;
-    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-      final remote = await BackendRepository.recordPlatformWithdrawal(
-        bookingId: normalizedRequestId,
-        declaration: declaration,
-        idempotencyKey:
-            'withdrawal_${normalizedRequestId}_${acceptedAt.microsecondsSinceEpoch}',
-      );
-      updated = RentalRequest.fromJson(remote);
-    } else {
-      updated = all[index].copyWith(
-        legalDeclarations: [...all[index].legalDeclarations, declaration],
-      );
+    if (normalizedUserId.isEmpty ||
+        !{'account_contract', 'booking_contract'}.contains(scope) ||
+        (scope == 'booking_contract' && normalizedRequestId.isEmpty)) {
+      return null;
     }
-    all[index] = updated;
-    await _saveAllRentalRequests(all);
+    final all = await _getAllRentalRequests();
+    final index = scope == 'booking_contract'
+        ? all.indexWhere((entry) => entry.id == normalizedRequestId)
+        : -1;
+    if (scope == 'booking_contract' &&
+        (index < 0 || all[index].renterId != normalizedUserId)) {
+      return null;
+    }
+    final receivedAt = DateTime.now();
+    Map<String, dynamic> result;
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      result = await BackendRepository.recordPlatformWithdrawal(
+        bookingId: scope == 'booking_contract' ? normalizedRequestId : null,
+        scope: scope,
+        idempotencyKey:
+            'withdrawal_${scope}_${normalizedRequestId.isEmpty ? normalizedUserId : normalizedRequestId}_${receivedAt.microsecondsSinceEpoch}',
+      );
+    } else {
+      final withdrawalId = 'withdrawal_${receivedAt.microsecondsSinceEpoch}';
+      RentalRequest? updated;
+      Map<String, dynamic>? rentRefund;
+      Map<String, dynamic>? sitFeeRefund;
+      var effectPhase = 'account_only';
+      if (scope == 'booking_contract') {
+        final current = all[index];
+        final beforeHandover =
+            !{'running', 'completed'}.contains(current.status);
+        effectPhase = beforeHandover ? 'before_handover' : 'after_handover';
+        final rentalMinor = current.quotedRentalSubtotalMinor ?? 0;
+        final feeMinor = current.quotedPlatformFeeMinor ?? 0;
+        rentRefund = <String, dynamic>{
+          'type': 'rent_refund',
+          'debtorRole': 'owner',
+          'status': beforeHandover ? 'required' : 'calculation_pending',
+          'amountDueMinor': beforeHandover ? rentalMinor : null,
+          'maximumMinor': rentalMinor,
+        };
+        sitFeeRefund = <String, dynamic>{
+          'type': 'sit_fee_refund',
+          'debtorRole': 'sit',
+          'status': 'required',
+          'amountDueMinor': feeMinor,
+          'maximumMinor': feeMinor,
+        };
+        final withdrawalSnapshot = <String, dynamic>{
+          'id': withdrawalId,
+          'receivedAt': receivedAt.toIso8601String(),
+          'phase': effectPhase,
+          'returnRequired': !beforeHandover,
+          'rentRefund': rentRefund,
+          'sitFeeRefund': sitFeeRefund,
+        };
+        updated = current.copyWith(
+          status: beforeHandover ? 'cancelled' : current.status,
+          cancelledBy: beforeHandover ? 'renter' : current.cancelledBy,
+          workflowStatus:
+              beforeHandover ? 'cancelled' : 'withdrawalReturnRequired',
+          platformWithdrawal: withdrawalSnapshot,
+        );
+        all[index] = updated;
+        await _saveAllRentalRequests(all);
+      }
+      result = <String, dynamic>{
+        'withdrawal': <String, dynamic>{
+          'id': withdrawalId,
+          'scope': scope,
+          'bookingId': scope == 'booking_contract' ? normalizedRequestId : null,
+          'actorName': (await getCurrentUser())?.displayName ?? 'SIT-Nutzer',
+          'electronicChannel': 'in_app_download',
+          'effectPhase': effectPhase,
+          'submittedAt': receivedAt.toIso8601String(),
+          'receipt': null,
+        },
+        if (updated != null) 'booking': updated.toJson(),
+        'rentRefund': rentRefund,
+        'sitFeeRefund': sitFeeRefund,
+        'replayed': false,
+      };
+    }
+    if (scope == 'account_contract') return result;
     await addTimelineEvent(
       requestId: normalizedRequestId,
       type: 'platform_withdrawal_received',
-      note:
-          'Widerruf der kostenpflichtigen Plattformleistung eingegangen. Buchungswirkung offen.',
+      note: 'Widerruf des SIT-Plattformvertrags eingegangen.',
     );
-    await addStructuredNotification(
-      userId: updated.ownerId,
-      category: 'bookings',
-      priority: 2,
-      title: 'Widerruf zur Buchung eingegangen',
-      body:
-          'Die Plattformleistung zu Buchung $normalizedRequestId wurde widerrufen. Der Buchungsstatus bleibt bis zur rechtlichen Prozessentscheidung neutral.',
-      entityType: 'booking',
-      entityId: normalizedRequestId,
-      ctaLabel: 'Buchung öffnen',
-      payload: {'requestId': normalizedRequestId, 'role': 'owner'},
-    );
-    return updated;
+    if (!BackendConfig.enabled || QaRuntimeService.isEnabled) {
+      final updated = all[index];
+      await addStructuredNotification(
+        userId: updated.ownerId,
+        category: 'bookings',
+        priority: 3,
+        title: 'Vertragswiderruf eingegangen',
+        body: updated.status == 'cancelled'
+            ? 'Die Buchung wurde kostenfrei beendet.'
+            : 'Die dokumentierte Rückgabe ist jetzt erforderlich.',
+        entityType: 'booking',
+        entityId: normalizedRequestId,
+        ctaLabel: 'Buchung öffnen',
+        payload: {'requestId': normalizedRequestId, 'role': 'owner'},
+      );
+    }
+    return result;
   }
 
   static Future<RentalRequestTransitionResult> confirmPickupTransition({
@@ -6212,6 +6309,46 @@ class DataService {
       confirmedByUserId: userId,
       counterpartyConfirmed: true,
     );
+    if ((!BackendConfig.enabled || QaRuntimeService.isEnabled) &&
+        request.workflowStatus == 'withdrawalReturnRequired') {
+      final all = await _getAllRentalRequests();
+      final index = all.indexWhere((entry) => entry.id == id);
+      if (index >= 0) {
+        final current = all[index];
+        final confirmedReturnAt = DateTime.now();
+        final startMs = request.start.millisecondsSinceEpoch;
+        final endMs = request.end.millisecondsSinceEpoch;
+        final effectiveReturnMs =
+            confirmedReturnAt.millisecondsSinceEpoch.clamp(startMs, endMs);
+        final rentalMinor = request.quotedRentalSubtotalMinor ?? 0;
+        final durationMs = (endMs - startMs).clamp(1, 1 << 62);
+        final usedMs = effectiveReturnMs - startMs;
+        final usedRentMinor =
+            ((rentalMinor * usedMs) + durationMs - 1) ~/ durationMs;
+        final rentRefund = <String, dynamic>{
+          'type': 'rent_refund',
+          'debtorRole': 'owner',
+          'status': 'required',
+          'amountDueMinor': rentalMinor - usedRentMinor,
+          'maximumMinor': rentalMinor,
+          'calculationBasis': <String, dynamic>{
+            'confirmedReturnAt': confirmedReturnAt.toIso8601String(),
+            'usedRentMinor': usedRentMinor,
+            'source': 'verified_return_transition',
+          },
+        };
+        final withdrawal = <String, dynamic>{
+          ...?current.platformWithdrawal,
+          'returnRequired': false,
+          'rentRefund': rentRefund,
+        };
+        all[index] = current.copyWith(
+          workflowStatus: 'completed',
+          platformWithdrawal: withdrawal,
+        );
+        await _saveAllRentalRequests(all);
+      }
+    }
     final refreshed = await getRentalRequestById(id);
     if (refreshed?.needsReview == true) {
       return const RentalRequestTransitionResult.paused(
@@ -7208,7 +7345,7 @@ class DataService {
   /// Human-readable policy title (DE) – unified across the app
   static String policyName([String? ignored]) => 'Einheitliche Stornobedingung';
 
-  /// Exact V4 deadline. For a normal booking the free deadline is 24 hours
+  /// Exact V5.1 deadline. For a normal booking the free deadline is 24 hours
   /// before start. A short-notice booking receives the centrally configured
   /// grace period from contract confirmation, capped at rental start.
   static DateTime? freeCancellationUntil({
@@ -7223,9 +7360,9 @@ class DataService {
     return grace ?? start.subtract(const Duration(hours: 24));
   }
 
-  /// V4 refund ratio for renter cancellation. The same ratio applies to the
-  /// rental subtotal and the 10% platform contribution.
-  static double refundRatio({
+  /// V5.1 refund ratio for renter cancellation before start. After start or
+  /// no-show, the outcome remains pending for an actual-loss assessment.
+  static double? refundRatio({
     required String policy,
     required DateTime start,
     required DateTime cancelAt,
@@ -7237,7 +7374,8 @@ class DataService {
       actor: PrivatePilotCancellationActor.renter,
       contractConfirmedAt: createdAt,
     );
-    return outcome.refundBasisPoints / 10000;
+    final basisPoints = outcome.refundBasisPoints;
+    return basisPoints == null ? null : basisPoints / 10000;
   }
 
   /// Deletes ALL locally stored rentals and bookings (rental requests), including

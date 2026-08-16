@@ -14,6 +14,7 @@ export const bookingWorkflowStatuses = Object.freeze([
   'payment_pending',
   'confirmed',
   'active',
+  'withdrawalReturnRequired',
   'returned',
   'completed',
   'declined',
@@ -52,6 +53,10 @@ const workflowTransitions = Object.freeze({
     returned: ['owner'],
     disputed: ['owner', 'renter'],
   }),
+  withdrawalReturnRequired: Object.freeze({
+    returned: ['owner', 'system'],
+    disputed: ['owner', 'renter'],
+  }),
   returned: Object.freeze({
     completed: ['owner', 'system'],
     disputed: ['owner', 'renter'],
@@ -78,6 +83,7 @@ export function legacyStatusForWorkflow(value) {
     case 'confirmed':
       return 'accepted';
     case 'active':
+    case 'withdrawalReturnRequired':
     case 'returned':
       return 'running';
     case 'completed':
@@ -158,7 +164,7 @@ export function amountToMinor(value, { nullable = true } = {}) {
 
 export function platformFeeMinor(rentalSubtotalMinor) {
   if (!Number.isSafeInteger(rentalSubtotalMinor) || rentalSubtotalMinor <= 0) return 0;
-  // Privat-Pilot V4: exactly 10% of the discounted owner rental subtotal.
+  // Privat-Launch V5.1: exactly 10% of the discounted owner rental subtotal.
   // Keep the calculation in minor units and round half-up once at the end.
   return Math.floor((rentalSubtotalMinor * 1_000 + 5_000) / 10_000);
 }

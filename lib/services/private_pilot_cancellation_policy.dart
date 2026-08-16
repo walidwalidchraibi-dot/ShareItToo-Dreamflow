@@ -3,22 +3,32 @@ import 'package:lendify/config/private_pilot_config.dart';
 enum PrivatePilotCancellationActor { renter, owner }
 
 class PrivatePilotCancellationOutcome {
-  final int refundBasisPoints;
+  final int? refundBasisPoints;
   final DateTime? freeCancellationUntil;
   final String reasonCode;
+  final String calculationStatus;
+  final bool requiresActualLossAssessment;
 
   const PrivatePilotCancellationOutcome({
     required this.refundBasisPoints,
     required this.freeCancellationUntil,
     required this.reasonCode,
+    this.calculationStatus = 'final',
+    this.requiresActualLossAssessment = false,
   });
 
   bool get isFullRefund => refundBasisPoints == 10000;
 
-  int refundMinor(int paidMinor) =>
-      ((paidMinor * refundBasisPoints) + 5000) ~/ 10000;
+  int? refundMinor(int paidMinor) {
+    final basisPoints = refundBasisPoints;
+    if (basisPoints == null) return null;
+    return ((paidMinor * basisPoints) + 5000) ~/ 10000;
+  }
 
-  int retainedMinor(int paidMinor) => paidMinor - refundMinor(paidMinor);
+  int? retainedMinor(int paidMinor) {
+    final refund = refundMinor(paidMinor);
+    return refund == null ? null : paidMinor - refund;
+  }
 }
 
 class PrivatePilotCancellationPolicy {
@@ -58,9 +68,11 @@ class PrivatePilotCancellationPolicy {
 
     if (noShow || !cancelAt.isBefore(rentalStartAt)) {
       return const PrivatePilotCancellationOutcome(
-        refundBasisPoints: 0,
+        refundBasisPoints: null,
         freeCancellationUntil: null,
-        reasonCode: 'renter_no_show_or_after_start',
+        reasonCode: 'renter_no_show_or_after_start_actual_loss_assessment',
+        calculationStatus: 'pending_actual_loss_assessment',
+        requiresActualLossAssessment: true,
       );
     }
 

@@ -207,6 +207,97 @@ export async function enqueueBookingNotifications(client, {
   return count;
 }
 
+export async function enqueueV51WithdrawalNotifications(client, {
+  bookingId,
+  withdrawalId,
+  eventKey,
+  phase,
+  returnRequired,
+  manualReviewRequired = false,
+}) {
+  const result = await client.query(
+    `SELECT booking.owner_id, booking.renter_id,
+            listing.payload AS listing_payload,
+            owner.profile AS owner_profile,
+            renter.profile AS renter_profile
+       FROM bookings AS booking
+       JOIN listings AS listing ON listing.id = booking.listing_id
+       JOIN users AS owner ON owner.id = booking.owner_id
+       JOIN users AS renter ON renter.id = booking.renter_id
+      WHERE booking.id = $1`,
+    [bookingId],
+  );
+  if (!result.rowCount) return 0;
+  const row = result.rows[0];
+  const title = itemTitle(row.listing_payload);
+  const actionUrl = bookingActionUrl(bookingId);
+  const ownerBody = manualReviewRequired
+    ? `Eine Widerrufserklärung zu „${title}“ ist nach dem garantierten 14-Tage-Fenster eingegangen und wird auf mögliche längere Rechte geprüft. Buchung und Geldstatus bleiben unverändert.`
+    : phase === 'before_handover'
+    ? `Der SIT-Plattformvertrag zu „${title}“ wurde widerrufen. Die Buchung ist beendet; Mietpreis und SIT-Gebühr werden getrennt abgewickelt.`
+    : `Der SIT-Plattformvertrag zu „${title}“ wurde widerrufen. ${returnRequired ? 'Die dokumentierte Rückgabe ist jetzt erforderlich.' : 'Die bestätigte Rückgabe wird zeitanteilig abgerechnet.'}`;
+  const renterBody = manualReviewRequired
+    ? `Deine Erklärung zu „${title}“ ist eingegangen. Mögliche längere gesetzliche Rechte werden geprüft; bis dahin wurden Buchung und Erstattungen nicht automatisch verändert.`
+    : phase === 'before_handover'
+    ? `Dein Widerruf zu „${title}“ ist eingegangen. Die Buchung wurde kostenfrei beendet und beide Erstattungen wurden getrennt vorgemerkt.`
+    : `Dein Widerruf zu „${title}“ ist eingegangen. ${returnRequired ? 'Bitte schließe jetzt die dokumentierte Rückgabe ab.' : 'Die zeitanteilige Mietpreiserstattung und die vollständige SIT-Gebührenerstattung wurden getrennt vorgemerkt.'}`;
+  for (const [role, userId, body, profile] of [
+    ['owner', row.owner_id, ownerBody, row.owner_profile],
+    ['renter', row.renter_id, renterBody, row.renter_profile],
+  ]) {
+    await enqueueForUser(client, {
+      eventKey,
+      userId,
+      kind: 'platform_withdrawal_received',
+      bookingId,
+      channels: ['in_app', 'email', 'push'],
+      payload: {
+        notification: {
+          category: 'bookings',
+          kind: 'platform_withdrawal_received',
+          priority: 3,
+          title: 'Vertragswiderruf eingegangen',
+          body,
+          entityType: 'booking',
+          entityId: bookingId,
+          bookingId,
+          requestId: bookingId,
+          actionUrl,
+          ctaLabel: role === 'owner' ? 'Zur Vermietung' : 'Zur Buchung',
+          payload: {
+            role,
+            withdrawalId,
+            phase,
+            returnRequired,
+            manualReviewRequired,
+          },
+        },
+        email: {
+          displayName: profileName(profile),
+          bookingReference: bookingId,
+          itemTitle: title,
+          actionUrl,
+          withdrawalId,
+          phase,
+          returnRequired,
+          manualReviewRequired,
+        },
+        push: {
+          title: 'Vertragswiderruf eingegangen',
+          body,
+          actionUrl,
+          data: {
+            entityType: 'booking',
+            entityId: bookingId,
+            withdrawalId,
+          },
+        },
+      },
+    });
+  }
+  return 2;
+}
+
 export async function enqueueMessageNotification(client, {
   messageId,
   threadId,

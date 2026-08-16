@@ -65,6 +65,8 @@ class RentalRequest {
   final int contestedAuthorizedMinor;
   final int allegedDamageMinorRecordedOnly;
   final Map<String, dynamic>? cancellationOutcome;
+  final String? workflowStatus;
+  final Map<String, dynamic>? platformWithdrawal;
 
   RentalRequest({
     required this.id,
@@ -118,6 +120,8 @@ class RentalRequest {
     this.contestedAuthorizedMinor = 0,
     this.allegedDamageMinorRecordedOnly = 0,
     this.cancellationOutcome,
+    this.workflowStatus,
+    this.platformWithdrawal,
   })  : startDate = startDate ?? _dateOnly(start.toLocal()),
         endDate = endDate ?? _dateOnly(end.toLocal()),
         createdAt = createdAt ?? DateTime.now();
@@ -168,6 +172,8 @@ class RentalRequest {
     int? contestedAuthorizedMinor,
     int? allegedDamageMinorRecordedOnly,
     Map<String, dynamic>? cancellationOutcome,
+    String? workflowStatus,
+    Map<String, dynamic>? platformWithdrawal,
   }) =>
       RentalRequest(
         id: id,
@@ -230,6 +236,8 @@ class RentalRequest {
         allegedDamageMinorRecordedOnly: allegedDamageMinorRecordedOnly ??
             this.allegedDamageMinorRecordedOnly,
         cancellationOutcome: cancellationOutcome ?? this.cancellationOutcome,
+        workflowStatus: workflowStatus ?? this.workflowStatus,
+        platformWithdrawal: platformWithdrawal ?? this.platformWithdrawal,
       );
 
   factory RentalRequest.fromJson(Map<String, dynamic> json) {
@@ -302,6 +310,8 @@ class RentalRequest {
       allegedDamageMinorRecordedOnly:
           (json['allegedDamageMinorRecordedOnly'] as num?)?.toInt() ?? 0,
       cancellationOutcome: _parseMap(json['cancellationOutcome']),
+      workflowStatus: json['workflowStatus'] as String?,
+      platformWithdrawal: _parseMap(json['platformWithdrawal']),
     );
   }
 
@@ -358,6 +368,8 @@ class RentalRequest {
         'contestedAuthorizedMinor': contestedAuthorizedMinor,
         'allegedDamageMinorRecordedOnly': allegedDamageMinorRecordedOnly,
         'cancellationOutcome': cancellationOutcome,
+        'workflowStatus': workflowStatus,
+        'platformWithdrawal': platformWithdrawal,
       };
 }
 

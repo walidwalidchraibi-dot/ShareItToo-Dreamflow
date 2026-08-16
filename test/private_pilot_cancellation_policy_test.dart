@@ -54,6 +54,9 @@ void main() {
       actor: PrivatePilotCancellationActor.renter,
       noShow: true,
     );
-    expect(result.refundBasisPoints, 0);
+    expect(result.refundBasisPoints, isNull);
+    expect(result.refundMinor(11000), isNull);
+    expect(result.calculationStatus, 'pending_actual_loss_assessment');
+    expect(result.requiresActualLossAssessment, isTrue);
   });
 }

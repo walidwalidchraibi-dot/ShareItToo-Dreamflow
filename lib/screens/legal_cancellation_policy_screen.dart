@@ -9,16 +9,16 @@ class LegalCancellationPolicyScreen extends StatelessWidget {
     return LegalDetailScaffold(
       title: 'Stornierungsbedingungen',
       intro:
-          'V4-Zwischenregel für den privaten Pilot. Die Werte sind zentral änderbar und werden vor Echtgeldaktivierung nochmals rechtlich freigegeben.',
+          'Vertragliche Privat-Launch-Regel nach V5.1. Echtgeld und automatische Erstattungen bleiben bis zur geprüften PSP-Aktivierung ausgeschaltet.',
       sections: [
         LegalSectionCard(
           icon: Icons.event_busy_outlined,
           title: 'Wann kann storniert werden?',
           children: const [
             LegalBullets(items: [
-              'Mindestens 24 Stunden vor Mietbeginn: 100 % Erstattung des Gesamtbetrags.',
-              'Weniger als 24 Stunden vor Mietbeginn: vorläufig 50 % Erstattung; 50 % des Mietpreises und der darauf entfallende Plattformbeitrag verbleiben.',
-              'Ab Mietbeginn oder bei Mieter-No-Show: vorläufig keine vertragliche Erstattung.',
+              'Mindestens 24 Stunden vor Mietbeginn: Mietpreis und SIT-Plattformgebühr werden vollständig erstattet.',
+              'Weniger als 24 Stunden vor Mietbeginn: 50 % des Mietpreises bleiben grundsätzlich geschuldet; der verbleibende Gebührenanteil beträgt 10 % dieses Mietpreises, höchstens die gebuchte SIT-Plattformgebühr.',
+              'Ab Mietbeginn oder bei Mieter-No-Show: keine vertragliche Stornopauschale. Die Abrechnung berücksichtigt ersparte Aufwendungen, tatsächliche Ersatzvermietung und einen nachgewiesenen geringeren oder fehlenden Schaden.',
               'Storniert der Vermieter oder scheitert die Übergabe aus seiner Sphäre: grundsätzlich 100 % Erstattung.',
             ]),
           ],
@@ -38,7 +38,7 @@ class LegalCancellationPolicyScreen extends StatelessWidget {
           children: const [
             LegalBullets(items: [
               'Ohne aktivierte Echtgeldzahlung gibt es im aktuellen Store-Kandidaten keine reale Rückerstattung.',
-              'Bei aktivierter Zahlungsabwicklung folgt der Plattformbeitrag demselben Erstattungsverhältnis wie der Mietpreis.',
+              'Mietpreis-Erstattung und SIT-Gebühren-Erstattung werden getrennt mit ihrem jeweiligen Schuldner gespeichert.',
               'Ersparte Aufwendungen, Ersatzvermietung und der Nachweis eines geringeren Schadens werden berücksichtigt.',
               'Rückerstattungen erfolgen über die ursprüngliche Zahlungsart und den freigegebenen Marketplace-Zahlungsdienstleister.',
             ]),

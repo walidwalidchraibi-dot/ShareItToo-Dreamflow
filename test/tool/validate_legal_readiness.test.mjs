@@ -40,11 +40,12 @@ test('accepts the honest fail-closed legal draft', () => {
   assert.equal(result.storeGate, 'open');
   assert.equal(result.documentCount, 6);
   assert.equal(result.explicitConfirmations, 4);
-  assert.equal(result.interimPolicyVersion, 'V4-INTERIM-2026-08-15');
-  assert.equal(result.activeOpenPilotDecisions, 6);
+  assert.equal(result.interimPolicyVersion, 'V5.1-2026-08-16');
+  assert.equal(result.activeOpenPilotDecisions, 0);
+  assert.equal(result.supersededPilotDecisions, 6);
 });
 
-test('rejects disabling the active V4 interim policy', () => {
+test('rejects disabling the active V5.1 test policy', () => {
   const legalManifest = clone(baseLegalManifest);
   legalManifest.interimPilotRules.status = 'paused';
   assert.throws(
@@ -53,16 +54,16 @@ test('rejects disabling the active V4 interim policy', () => {
   );
 });
 
-test('rejects silently closing an open V4 decision', () => {
+test('rejects erasing a documented V5.1 supersession', () => {
   const legalManifest = clone(baseLegalManifest);
   legalManifest.openPilotDecisions.cancellationParameters.status = 'closed';
   assert.throws(
     () => validate({ legalManifest }),
-    /status must remain open until the user supplies an update/,
+    /status must preserve the documented V5.1 supersession/,
   );
 });
 
-test('rejects disabling a V4 interim decision in the app', () => {
+test('rejects enabling real payments in the V5.1 app test policy', () => {
   const configPath = 'lib/config/private_pilot_config.dart';
   const config = readFileSync(resolve(repositoryRoot, configPath), 'utf8')
     .replace('realPaymentsEnabled = false', 'realPaymentsEnabled = true');
@@ -72,13 +73,13 @@ test('rejects disabling a V4 interim decision in the app', () => {
   );
 });
 
-test('rejects removing a V4 interim decision from the backend', () => {
+test('rejects removing a V5.1 successor decision from the backend', () => {
   const domainPath = 'backend/src/private_pilot_domain.js';
   const domain = readFileSync(resolve(repositoryRoot, domainPath), 'utf8')
     .replace("id: 'handover_photo_workflow'", "id: 'handover_photo_workflow_removed'");
   assert.throws(
     () => validate({ sourceTexts: { [domainPath]: domain } }),
-    /Backend open decision is missing: handover_photo_workflow/,
+    /Backend V5.1 successor decision is missing: handover_photo_workflow/,
   );
 });
 

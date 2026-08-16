@@ -67,6 +67,12 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'transactions', 'platform_contract_declarations', count(*)::bigint, min(created_at), max(created_at) FROM platform_contract_declarations
        UNION ALL SELECT 'transactions', 'platform_contract_receipts', count(*)::bigint, min(generated_at), max(generated_at) FROM platform_contract_receipts
        UNION ALL SELECT 'transactions', 'platform_contract_receipt_events', count(*)::bigint, min(occurred_at), max(occurred_at) FROM platform_contract_receipt_events
+       UNION ALL SELECT 'transactions', 'v51_withdrawals', count(*)::bigint, min(submitted_at), max(created_at) FROM v51_withdrawals
+       UNION ALL SELECT 'transactions', 'v51_refund_obligations', count(*)::bigint, min(created_at), max(created_at) FROM v51_refund_obligations
+       UNION ALL SELECT 'transactions', 'v51_refund_obligation_events', count(*)::bigint, min(occurred_at), max(occurred_at) FROM v51_refund_obligation_events
+       UNION ALL SELECT 'transactions', 'v51_cancellation_refund_obligations', count(*)::bigint, min(created_at), max(created_at) FROM v51_cancellation_refund_obligations
+       UNION ALL SELECT 'transactions', 'v51_withdrawal_receipts', count(*)::bigint, min(generated_at), max(created_at) FROM v51_withdrawal_receipts
+       UNION ALL SELECT 'transactions', 'v51_withdrawal_receipt_events', count(*)::bigint, min(occurred_at), max(occurred_at) FROM v51_withdrawal_receipt_events
        UNION ALL SELECT 'transactions', 'payments', count(*)::bigint, min(created_at), max(updated_at) FROM payments
        UNION ALL SELECT 'transactions', 'refunds', count(*)::bigint, min(created_at), max(updated_at) FROM refunds
        UNION ALL SELECT 'transactions', 'payouts', count(*)::bigint, min(created_at), max(updated_at) FROM payouts

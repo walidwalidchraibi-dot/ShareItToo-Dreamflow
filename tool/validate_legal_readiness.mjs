@@ -46,41 +46,47 @@ const requiredApprovalKeys = [
   'cancellationRefundNoDepositConsistency',
 ];
 
-const interimPilotDecisionContract = [
+const v51SuccessorDecisionContract = [
   {
     manifestKey: 'platformContractAndWithdrawalTiming',
     sourceId: 'platform_contract_and_withdrawal_timing',
-    interimRule: 'versioned-separate-declarations-at-booking-request',
+    interimRule: 'v51-exact-two-declarations-at-binding-booking-request',
+    backendRule: 'v51_exact_two_declarations_at_binding_booking_request',
     blocksLiveActivation: true,
   },
   {
     manifestKey: 'withdrawalEffectOnPrivateRental',
     sourceId: 'withdrawal_effect_on_private_rental',
-    interimRule: 'record-and-confirm-without-automatic-booking-or-money-effect',
+    interimRule: 'v51-14-day-before-after-handover-effects-later-rights-review',
+    backendRule: 'v51_14_day_before_after_handover_effects_later_rights_review',
     blocksLiveActivation: true,
   },
   {
     manifestKey: 'cancellationParameters',
     sourceId: 'cancellation_50_100_or_30_50',
-    interimRule: '50-percent-retained-under-24h-and-100-percent-after-start',
+    interimRule: 'v51-24h-50-percent-60min-and-actual-loss-after-start',
+    backendRule: 'v51_24h_50_percent_60min_and_actual_loss_after_start',
     blocksLiveActivation: true,
   },
   {
     manifestKey: 'marketplacePspMechanics',
     sourceId: 'marketplace_psp_mechanics',
-    interimRule: 'test-and-mock-only-no-real-money-movement',
+    interimRule: 'licensed-marketplace-psp-test-only-until-evidenced',
+    backendRule: 'licensed_marketplace_psp_test_only_until_evidenced',
     blocksLiveActivation: true,
   },
   {
     manifestKey: 'missingReturnConfirmationWindow',
     sourceId: 'missing_return_confirmation_window',
     interimRule: 'awaiting-return-confirmation-until-t0-plus-5-calendar-days',
+    backendRule: 'awaiting_return_confirmation_until_t0_plus_5_calendar_days',
     blocksLiveActivation: false,
   },
   {
     manifestKey: 'handoverPhotoWorkflow',
     sourceId: 'handover_photo_workflow',
-    interimRule: 'four-photos-each-direction-with-counter-confirmation-or-deviation-photo',
+    interimRule: 'four-handover-party-photos-plus-counterparty-confirmation-or-deviation-photo',
+    backendRule: 'four_handover_party_photos_plus_counterparty_confirmation_or_deviation_photo',
     blocksLiveActivation: false,
   },
 ];
@@ -250,8 +256,8 @@ function assertInterimPilotContract({ root, sourceTexts, legal }) {
   if (Object.keys(policy).sort().join(',') !== expectedPolicyKeys.sort().join(',')) {
     fail('interimPilotRules must contain exactly the versioned active test policy.');
   }
-  if (policy.version !== 'V4-INTERIM-2026-08-15') {
-    fail('interimPilotRules.version must remain V4-INTERIM-2026-08-15 until the user supplies an update.');
+  if (policy.version !== 'V5.1-2026-08-16') {
+    fail('interimPilotRules.version must match the explicit V5.1 successor package.');
   }
   if (policy.status !== 'active-for-internal-and-closed-testing') {
     fail('interimPilotRules.status must remain active for internal and closed testing.');
@@ -264,20 +270,20 @@ function assertInterimPilotContract({ root, sourceTexts, legal }) {
   }
 
   const decisions = object(legal.openPilotDecisions, 'openPilotDecisions');
-  const expectedKeys = interimPilotDecisionContract.map(({ manifestKey }) => manifestKey);
+  const expectedKeys = v51SuccessorDecisionContract.map(({ manifestKey }) => manifestKey);
   if (Object.keys(decisions).sort().join(',') !== expectedKeys.sort().join(',')) {
-    fail('openPilotDecisions must contain exactly all six V4 interim decisions.');
+    fail('openPilotDecisions must contain exactly all six documented V5.1 successor decisions.');
   }
-  for (const expected of interimPilotDecisionContract) {
+  for (const expected of v51SuccessorDecisionContract) {
     const decision = object(
       decisions[expected.manifestKey],
       `openPilotDecisions.${expected.manifestKey}`,
     );
-    if (decision.status !== 'open') {
-      fail(`openPilotDecisions.${expected.manifestKey}.status must remain open until the user supplies an update.`);
+    if (decision.status !== 'superseded_by_v51') {
+      fail(`openPilotDecisions.${expected.manifestKey}.status must preserve the documented V5.1 supersession.`);
     }
     if (decision.interimRule !== expected.interimRule) {
-      fail(`openPilotDecisions.${expected.manifestKey}.interimRule does not match the active V4 rule.`);
+      fail(`openPilotDecisions.${expected.manifestKey}.interimRule does not match the V5.1 successor rule.`);
     }
     nonEmptyString(
       decision.decisionBy,
@@ -302,7 +308,7 @@ function assertInterimPilotContract({ root, sourceTexts, legal }) {
     'backend/src/private_pilot_domain.js',
   );
   for (const marker of [
-    "interimPolicyVersion = 'V4-INTERIM-2026-08-15'",
+    "interimPolicyVersion = 'V5.1-2026-08-16'",
     "interimPolicyScope = 'internal-and-closed-testing-only'",
     'interimLegalModelEnabled = true',
     'replaceInterimRulesOnUserInstruction = true',
@@ -313,7 +319,7 @@ function assertInterimPilotContract({ root, sourceTexts, legal }) {
     }
   }
   for (const marker of [
-    "version: 'V4-INTERIM-2026-08-15'",
+    "version: 'V5.1-2026-08-16'",
     "scope: 'internal-and-closed-testing-only'",
     'active: true',
     'realPaymentsEnabled: false',
@@ -323,22 +329,25 @@ function assertInterimPilotContract({ root, sourceTexts, legal }) {
       fail(`Backend interim policy is missing or inactive: ${marker}`);
     }
   }
-  for (const { sourceId } of interimPilotDecisionContract) {
+  for (const { sourceId, backendRule } of v51SuccessorDecisionContract) {
     const marker = `id: '${sourceId}'`;
     if (!dartConfig.includes(marker)) {
       fail(`Flutter open decision is missing: ${sourceId}`);
     }
     if (!backendDomain.includes(marker)) {
-      fail(`Backend open decision is missing: ${sourceId}`);
+      fail(`Backend V5.1 successor decision is missing: ${sourceId}`);
+    }
+    if (!backendDomain.includes(`interimRule: '${backendRule}'`)) {
+      fail(`Backend V5.1 successor rule is missing: ${sourceId}`);
     }
   }
-  const flutterOpenStatuses = dartConfig.match(/status: 'open'/g) ?? [];
-  if (flutterOpenStatuses.length !== interimPilotDecisionContract.length) {
-    fail('Flutter must keep all six V4 decisions explicitly status=open.');
+  const flutterSuccessorStatuses = dartConfig.match(/status: 'superseded_by_v51'/g) ?? [];
+  if (flutterSuccessorStatuses.length !== v51SuccessorDecisionContract.length) {
+    fail('Flutter must keep all six decisions explicitly superseded by V5.1.');
   }
-  const backendOpenStatuses = backendDomain.match(/status: 'open'/g) ?? [];
-  if (backendOpenStatuses.length !== interimPilotDecisionContract.length) {
-    fail('Backend must keep all six V4 decisions explicitly status=open.');
+  const backendSuccessorStatuses = backendDomain.match(/status: 'superseded_by_v51'/g) ?? [];
+  if (backendSuccessorStatuses.length !== v51SuccessorDecisionContract.length) {
+    fail('Backend must keep all six decisions explicitly superseded by V5.1.');
   }
 }
 
@@ -507,7 +516,8 @@ export function validateLegalReadiness({
     documentCount: Object.keys(documents).length,
     explicitConfirmations: confirmations.length,
     interimPolicyVersion: legal.interimPilotRules.version,
-    activeOpenPilotDecisions: interimPilotDecisionContract.length,
+    activeOpenPilotDecisions: 0,
+    supersededPilotDecisions: v51SuccessorDecisionContract.length,
   };
 }
 
@@ -532,7 +542,8 @@ function main() {
   console.log(
     `Legal readiness valid: state=${result.state}, approvalAllowed=${result.approvalAllowed}, `
       + `termsAndUserContentRules=${result.storeGate}, interimPolicy=${result.interimPolicyVersion}, `
-      + `activeOpenPilotDecisions=${result.activeOpenPilotDecisions}.`,
+      + `activeOpenPilotDecisions=${result.activeOpenPilotDecisions}, `
+      + `supersededPilotDecisions=${result.supersededPilotDecisions}.`,
   );
 }
 

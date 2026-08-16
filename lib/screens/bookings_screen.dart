@@ -17,17 +17,20 @@ import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/utils/booking_status_copy.dart';
 
 class BookingsScreen extends StatefulWidget {
-  final int? initialTabIndex; // Neue Reihenfolge: 0: Laufend, 1: Kommend, 2: Ausstehend, 3: Abgeschlossen
+  final int?
+      initialTabIndex; // Neue Reihenfolge: 0: Laufend, 1: Kommend, 2: Ausstehend, 3: Abgeschlossen
   // When provided, the card with this requestId will pulse briefly to
   // indicate it was just created.
   final String? highlightRequestId;
-  const BookingsScreen({super.key, this.initialTabIndex, this.highlightRequestId});
+  const BookingsScreen(
+      {super.key, this.initialTabIndex, this.highlightRequestId});
 
   @override
   State<BookingsScreen> createState() => _BookingsScreenState();
 }
 
-class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProviderStateMixin {
+class _BookingsScreenState extends State<BookingsScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> _allBookings = const [];
   Timer? _ticker;
@@ -43,7 +46,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this, initialIndex: widget.initialTabIndex ?? 0);
+    _tabController = TabController(
+        length: 4, vsync: this, initialIndex: widget.initialTabIndex ?? 0);
     _tabController.addListener(() {
       if (!mounted) return;
       // Rebuild AppBar title while swiping or tapping between tabs.
@@ -65,7 +69,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       setState(() {});
     });
     // Also check once shortly after open
-    Future.delayed(const Duration(seconds: 2), () => _maybeShowReviewReminder());
+    Future.delayed(
+        const Duration(seconds: 2), () => _maybeShowReviewReminder());
   }
 
   @override
@@ -78,13 +83,19 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   }
 
   bool _canReviewCompletedBooking(Map<String, dynamic> booking) {
-    final rawStatus = ((booking['rawStatus'] as String?) ?? '').toLowerCase().trim();
+    final rawStatus =
+        ((booking['rawStatus'] as String?) ?? '').toLowerCase().trim();
     final requestId = (booking['requestId'] as String?)?.trim() ?? '';
     final itemId = (booking['itemId'] as String?)?.trim() ?? '';
     final listerId = (booking['listerId'] as String?)?.trim() ?? '';
     final needsReview = booking['needsReview'] == true;
     final alreadyReviewed = booking['hasSubmittedReview'] == true;
-    return rawStatus == 'completed' && !needsReview && !alreadyReviewed && requestId.isNotEmpty && itemId.isNotEmpty && listerId.isNotEmpty;
+    return rawStatus == 'completed' &&
+        !needsReview &&
+        !alreadyReviewed &&
+        requestId.isNotEmpty &&
+        itemId.isNotEmpty &&
+        listerId.isNotEmpty;
   }
 
   bool _showingReminder = false;
@@ -92,14 +103,17 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     if (_showingReminder) return;
     final current = await DataService.getCurrentUser();
     if (current == null) return;
-    final reminder = await DataService.takeDueReviewReminder(reviewerId: current.id);
+    final reminder =
+        await DataService.takeDueReviewReminder(reviewerId: current.id);
     if (!mounted || reminder == null) return;
     _showingReminder = true;
     try {
       final String requestId = (reminder['requestId'] ?? '').toString();
       final String itemId = (reminder['itemId'] ?? '').toString();
-      final String reviewedUserId = (reminder['reviewedUserId'] ?? '').toString();
-      final String direction = (reminder['direction'] ?? 'renter_to_owner').toString();
+      final String reviewedUserId =
+          (reminder['reviewedUserId'] ?? '').toString();
+      final String direction =
+          (reminder['direction'] ?? 'renter_to_owner').toString();
       await AppPopup.show(
         context,
         icon: Icons.star_rate_outlined,
@@ -111,7 +125,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
           TextButton(
             onPressed: () async {
               Navigator.of(context, rootNavigator: true).maybePop();
-              await DataService.postponeReviewReminder(reminder: reminder, by: const Duration(minutes: 10));
+              await DataService.postponeReviewReminder(
+                  reminder: reminder, by: const Duration(minutes: 10));
               _showingReminder = false;
             },
             child: const Text('Später erinnern'),
@@ -128,7 +143,9 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                 direction: direction,
               );
               if (ok == true && mounted) {
-                await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
+                await AppPopup.toast(context,
+                    icon: Icons.star_rate_outlined,
+                    title: 'Danke für deine Bewertung!');
                 final item = await DataService.getItemById(itemId);
                 if (item != null && mounted) {
                   await ItemDetailsOverlay.showFullPage(context, item: item);
@@ -169,12 +186,15 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     final Map<String, model.User?> userById = {};
     final Map<String, Map<String, dynamic>?> deliveryByItemId = {};
     for (final r in requests) {
-      itemById[r.itemId] = itemById[r.itemId] ?? await DataService.getItemById(r.itemId);
+      itemById[r.itemId] =
+          itemById[r.itemId] ?? await DataService.getItemById(r.itemId);
     }
     for (final it in itemById.values) {
       if (it != null) {
-        userById[it.ownerId] = userById[it.ownerId] ?? await DataService.getUserById(it.ownerId);
-        deliveryByItemId[it.id] = await DataService.getSavedDeliverySelection(it.id);
+        userById[it.ownerId] =
+            userById[it.ownerId] ?? await DataService.getUserById(it.ownerId);
+        deliveryByItemId[it.id] =
+            await DataService.getSavedDeliverySelection(it.id);
       }
     }
     List<Map<String, dynamic>> maps = [];
@@ -182,9 +202,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       final it = itemById[r.itemId];
       if (it == null) continue; // skip dangling
       final owner = userById[it.ownerId];
-      maps.add(await _toBookingMap(r, it, owner, deliveryByItemId[it.id], reviewerId: user.id));
+      maps.add(await _toBookingMap(r, it, owner, deliveryByItemId[it.id],
+          reviewerId: user.id));
     }
-    
+
     // Calculate unread counts for each category
     final categorized = {
       'ongoing': <RentalRequest>[],
@@ -203,7 +224,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       final cat = _effectiveCategoryFor(bookingMap, start, end);
       categorized[cat]?.add(r);
     }
-    
+
     for (final cat in categorized.keys) {
       final unreadCount = await DataService.getUnreadCountForCategory(
         userId: user.id,
@@ -212,48 +233,86 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       );
       _unreadCounts[cat] = unreadCount;
     }
-    
+
     if (!mounted) return;
     setState(() => _allBookings = maps);
   }
 
-  Future<Map<String, dynamic>> _toBookingMap(RentalRequest r, Item it, model.User? owner, Map<String, dynamic>? deliverySel, {required String reviewerId}) async {
+  Future<Map<String, dynamic>> _toBookingMap(RentalRequest r, Item it,
+      model.User? owner, Map<String, dynamic>? deliverySel,
+      {required String reviewerId}) async {
     String fmt(DateTime d) {
-      const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+      const months = [
+        'Jan',
+        'Feb',
+        'Mär',
+        'Apr',
+        'Mai',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Dez'
+      ];
       final mm = months[d.month - 1];
       final dd = d.day.toString().padLeft(2, '0');
       return '$dd. $mm';
     }
+
     // Unified breakdown including delivery/pickup/express
-    final breakdown = DataService.priceBreakdownForRequest(item: it, req: r, deliverySel: deliverySel);
-    final priced = (breakdown.rentalSubtotal, breakdown.baseTotal, 0.0, breakdown.discountAmount);
+    final breakdown = DataService.priceBreakdownForRequest(
+        item: it, req: r, deliverySel: deliverySel);
+    final priced = (
+      breakdown.rentalSubtotal,
+      breakdown.baseTotal,
+      0.0,
+      breakdown.discountAmount
+    );
     final int days = breakdown.days;
     final double total = (r.quotedTotalRenter ?? breakdown.totalRenter);
     // Address privacy: hide exact house number until 6h before pickup
     final now = DateTime.now();
-    final hideHouseNumber = now.isBefore(r.start.subtract(const Duration(hours: 6)));
-    final displayLocation = hideHouseNumber ? _approximateAddress(it.locationText, seed: r.id) : it.locationText;
+    final hideHouseNumber =
+        now.isBefore(r.start.subtract(const Duration(hours: 6)));
+    final displayLocation = hideHouseNumber
+        ? _approximateAddress(it.locationText, seed: r.id)
+        : it.locationText;
 
     // Delivery selection flags (persisted on request; fall back to transient selection if missing)
     // Be robust: if legacy requests are missing the snapshot flags, infer from
     // - transient selection
     // - express (only available when delivery at dropoff is chosen)
     // - presence of a delivery address snapshot
-    final bool inferredOwnerDeliversByTransient = (deliverySel?['hinweg'] == true);
-    final bool inferredOwnerDeliversByExpress = r.expressRequested || (r.expressStatus != null);
-    final bool inferredOwnerDeliversByAddress = ((r.deliveryAddressLine ?? '').toString().trim().isNotEmpty) || ((r.deliveryCity ?? '').toString().trim().isNotEmpty);
-    final bool ownerDeliversAtDropoff = r.ownerDeliversAtDropoffChosen || inferredOwnerDeliversByTransient || inferredOwnerDeliversByExpress || inferredOwnerDeliversByAddress;
+    final bool inferredOwnerDeliversByTransient =
+        (deliverySel?['hinweg'] == true);
+    final bool inferredOwnerDeliversByExpress =
+        r.expressRequested || (r.expressStatus != null);
+    final bool inferredOwnerDeliversByAddress =
+        ((r.deliveryAddressLine ?? '').toString().trim().isNotEmpty) ||
+            ((r.deliveryCity ?? '').toString().trim().isNotEmpty);
+    final bool ownerDeliversAtDropoff = r.ownerDeliversAtDropoffChosen ||
+        inferredOwnerDeliversByTransient ||
+        inferredOwnerDeliversByExpress ||
+        inferredOwnerDeliversByAddress;
 
-    final bool inferredOwnerPicksUpByTransient = (deliverySel?['rueckweg'] == true);
-    final bool ownerPicksUpAtReturn = r.ownerPicksUpAtReturnChosen || inferredOwnerPicksUpByTransient;
+    final bool inferredOwnerPicksUpByTransient =
+        (deliverySel?['rueckweg'] == true);
+    final bool ownerPicksUpAtReturn =
+        r.ownerPicksUpAtReturnChosen || inferredOwnerPicksUpByTransient;
     final flowState = await DataService.getHandoverReturnState(r.id);
-    final reviewSubmitted = await DataService.hasSubmittedReview(requestId: r.id, reviewerId: reviewerId);
+    final reviewSubmitted = await DataService.hasSubmittedReview(
+        requestId: r.id, reviewerId: reviewerId);
 
     return {
       'requestId': r.id,
       'itemId': it.id,
       'rawStatus': r.status,
       'cancelledBy': r.cancelledBy,
+      'cancellationOutcome': r.cancellationOutcome,
+      'workflowStatus': r.workflowStatus,
+      'platformWithdrawal': r.platformWithdrawal,
       'needsReview': r.needsReview,
       'hasSubmittedReview': reviewSubmitted,
       'title': it.title,
@@ -265,18 +324,21 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       'listerId': it.ownerId,
       'listerName': owner?.displayName ?? 'Vermieter',
       'listerAvatar': owner?.photoURL,
-      'category': r.status == 'pending' ? 'pending' : null, // let UI compute otherwise
+      'category':
+          r.status == 'pending' ? 'pending' : null, // let UI compute otherwise
       'pricePaid': '${total.round()} €',
       // Persisted renter-facing constants for stable display across all states
       if (r.quotedTotalRenter != null) 'quotedTotalRenter': r.quotedTotalRenter,
       if (r.quotedSubtitle != null) 'quotedSubtitle': r.quotedSubtitle,
-      if (breakdown.discountAmount > 0) 'discounts': '-${breakdown.discountAmount.toStringAsFixed(0)} €',
+      if (breakdown.discountAmount > 0)
+        'discounts': '-${breakdown.discountAmount.toStringAsFixed(0)} €',
       // add context so detail view can show breakdown precisely
       'days': days,
       'basePerDay': it.pricePerDay,
       // keep percent only when available from item discount tiers; use computeTotalWithDiscounts again
       if (DataService.computeTotalWithDiscounts(item: it, days: days).$3 > 0)
-        'discountPercentApplied': DataService.computeTotalWithDiscounts(item: it, days: days).$3,
+        'discountPercentApplied':
+            DataService.computeTotalWithDiscounts(item: it, days: days).$3,
       // express fields for countdown in UI
       'expressRequested': r.expressRequested,
       'expressStatus': r.expressStatus,
@@ -286,23 +348,32 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       'policy': it.cancellationPolicy,
       'requestCreatedAtIso': r.createdAt.toIso8601String(),
       // Email copy (for potential backend integration)
-      'mailSummary': 'Anzahl Tage: $days\nUrsprünglicher Preis: ${priced.$2.round()} €\nRabatt: ${priced.$3.toStringAsFixed(0)}% (−${priced.$4.toStringAsFixed(0)} €)\nEndpreis: ${total.round()} €',
+      'mailSummary':
+          'Anzahl Tage: $days\nUrsprünglicher Preis: ${priced.$2.round()} €\nRabatt: ${priced.$3.toStringAsFixed(0)}% (−${priced.$4.toStringAsFixed(0)} €)\nEndpreis: ${total.round()} €',
       // delivery/pickup capabilities for privacy hints
       'offersDeliveryAtDropoff': it.offersDeliveryAtDropoff,
       'offersPickupAtReturn': it.offersPickupAtReturn,
       // chosen responsibilities (persisted per item for demo)
       'ownerDeliversAtDropoffChosen': ownerDeliversAtDropoff,
       'ownerPicksUpAtReturnChosen': ownerPicksUpAtReturn,
-      'deliveryAddressLine': r.deliveryAddressLine ?? (deliverySel?['addressLine'] as String?) ?? '',
+      'deliveryAddressLine': r.deliveryAddressLine ??
+          (deliverySel?['addressLine'] as String?) ??
+          '',
       'deliveryCity': r.deliveryCity ?? (deliverySel?['city'] as String?) ?? '',
       'deliveryLat': r.deliveryLat ?? (deliverySel?['lat'] as num?)?.toDouble(),
       'deliveryLng': r.deliveryLng ?? (deliverySel?['lng'] as num?)?.toDouble(),
-      'handoverLocationLabel': (flowState['handoverLocationLabel'] as String?) ?? '',
-      'handoverLocationMapsUrl': (flowState['handoverLocationMapsUrl'] as String?) ?? '',
-      'handoverLocationSharedByName': (flowState['handoverLocationSharedByName'] as String?) ?? '',
-      'returnLocationLabel': (flowState['returnLocationLabel'] as String?) ?? '',
-      'returnLocationMapsUrl': (flowState['returnLocationMapsUrl'] as String?) ?? '',
-      'returnLocationSharedByName': (flowState['returnLocationSharedByName'] as String?) ?? '',
+      'handoverLocationLabel':
+          (flowState['handoverLocationLabel'] as String?) ?? '',
+      'handoverLocationMapsUrl':
+          (flowState['handoverLocationMapsUrl'] as String?) ?? '',
+      'handoverLocationSharedByName':
+          (flowState['handoverLocationSharedByName'] as String?) ?? '',
+      'returnLocationLabel':
+          (flowState['returnLocationLabel'] as String?) ?? '',
+      'returnLocationMapsUrl':
+          (flowState['returnLocationMapsUrl'] as String?) ?? '',
+      'returnLocationSharedByName':
+          (flowState['returnLocationSharedByName'] as String?) ?? '',
     };
   }
 
@@ -317,7 +388,9 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     final base = int.tryParse(numStr) ?? 0;
     // Deterministic pseudo-random +/- offset up to 15 based on seed
     int hash = 0;
-    for (int i = 0; i < seed.length; i++) { hash = 0x1fffffff & (hash + seed.codeUnitAt(i)); }
+    for (int i = 0; i < seed.length; i++) {
+      hash = 0x1fffffff & (hash + seed.codeUnitAt(i));
+    }
     final off = (hash % 31) - 15; // -15..15
     final low = (base + (off < 0 ? off : 0)).clamp(1, 9999);
     final high = (base + (off > 0 ? off : 0)).clamp(1, 9999);
@@ -345,7 +418,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final tabsStyle = Theme.of(context).textTheme.bodySmall;
-    
+
     // Get unread counts for each tab
     final ongoingUnread = _unreadCounts['ongoing'] ?? 0;
     final upcomingUnread = _unreadCounts['upcoming'] ?? 0;
@@ -360,8 +433,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back),
         ),
-          title: const Text('Meine Buchungen'),
-          centerTitle: true,
+        title: const Text('Meine Buchungen'),
+        centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -391,7 +464,7 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       ),
     );
   }
-  
+
   Widget _buildTabWithBadge(String text, int unreadCount) {
     if (unreadCount == 0) {
       return Tab(text: text);
@@ -438,10 +511,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                 title,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.85),
-                  fontWeight: FontWeight.w700,
-                  height: 1.2,
-                ),
+                      color: cs.onSurfaceVariant.withValues(alpha: 0.85),
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
               ),
             ],
           ),
@@ -456,15 +529,22 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
         final booking = bookings[index];
         final (start, end) = _parseDateRange(booking['dates'] ?? '');
         final effectiveCategory = _effectiveCategoryFor(booking, start, end);
-        final chip = _buildStatusChipForCard(effectiveCategory, start, end, booking);
+        final chip =
+            _buildStatusChipForCard(effectiveCategory, start, end, booking);
         final raw = booking['rawStatus'] as String?;
-        final String? targetId = _highlightRequestId?.isNotEmpty == true ? _highlightRequestId : widget.highlightRequestId;
-        final bool highlight = (targetId != null && targetId.isNotEmpty &&
-            booking['requestId'] == targetId && (status == 'completed' || status == 'pending') && (raw == 'cancelled' || status == 'pending'));
+        final String? targetId = _highlightRequestId?.isNotEmpty == true
+            ? _highlightRequestId
+            : widget.highlightRequestId;
+        final bool highlight = (targetId != null &&
+            targetId.isNotEmpty &&
+            booking['requestId'] == targetId &&
+            (status == 'completed' || status == 'pending') &&
+            (raw == 'cancelled' || status == 'pending'));
 
         final bool isPending = (effectiveCategory == 'pending');
         // Build an optional small inline action to sit next to the chip
-        final Widget? inlineAction = _buildSmallInlineAction(effectiveCategory, booking, start, end);
+        final Widget? inlineAction =
+            _buildSmallInlineAction(effectiveCategory, booking, start, end);
         return _BlinkHighlight(
           enabled: highlight && (_highlightRequestId != null),
           onFinished: () {
@@ -475,7 +555,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
           child: Card(
             margin: const EdgeInsets.only(bottom: 12),
             elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: () async {
@@ -483,7 +564,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                 if (_currentUserId != null) {
                   final requestId = booking['requestId'] as String?;
                   if (requestId != null) {
-                    await DataService.markRequestAsRead(userId: _currentUserId!, requestId: requestId);
+                    await DataService.markRequestAsRead(
+                        userId: _currentUserId!, requestId: requestId);
                   }
                 }
                 await Navigator.of(context).push(
@@ -501,7 +583,11 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: SizedBox(width: 80, height: 80, child: _ThumbnailWithSkeleton(url: booking['image'] as String?)),
+                      child: SizedBox(
+                          width: 80,
+                          height: 80,
+                          child: _ThumbnailWithSkeleton(
+                              url: booking['image'] as String?)),
                     ),
                     const SizedBox(width: 16),
                     // Right content column with fixed height to keep the whole card as high as the image
@@ -520,7 +606,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
@@ -547,7 +634,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                                       ),
                                       const SizedBox(height: 1),
                                       Text(
-                                        _confirmedPlaceLineForCard(booking) ?? (booking['location'] ?? ''),
+                                        _confirmedPlaceLineForCard(booking) ??
+                                            (booking['location'] ?? ''),
                                         style: TextStyle(
                                           color: Colors.grey.shade400,
                                           fontSize: isPending ? 12 : 13,
@@ -578,7 +666,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                                 chip,
                                 if (inlineAction != null) ...[
                                   const SizedBox(width: 8),
-                                  Flexible(child: Align(alignment: Alignment.centerLeft, child: inlineAction)),
+                                  Flexible(
+                                      child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: inlineAction)),
                                 ],
                               ],
                             ),
@@ -602,30 +693,43 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   // - accepted → upcoming (never auto-advance by time)
   // - running → ongoing (only after confirmed Übergabe)
   // - completed/cancelled/declined → completed (never auto-complete by time)
-  String _effectiveCategoryFor(Map<String, dynamic> booking, DateTime? start, DateTime? end) {
+  String _effectiveCategoryFor(
+      Map<String, dynamic> booking, DateTime? start, DateTime? end) {
     final raw = (booking['category'] as String?)?.toLowerCase();
     final status = (booking['rawStatus'] as String?)?.toLowerCase();
     if (raw == 'pending' || status == 'pending') return 'pending';
     if (status == 'accepted') return 'upcoming';
     if (status == 'running') return 'ongoing';
-    if (status == 'completed' || status == 'cancelled' || status == 'declined') return 'completed';
+    if (status == 'completed' ||
+        status == 'cancelled' ||
+        status == 'declined') {
+      return 'completed';
+    }
     // Fallback for unknown/missing status: treat as upcoming
     return 'upcoming';
   }
 
   String? _confirmedPlaceLineForCard(Map<String, dynamic> booking) {
     final category = ((booking['category'] as String?) ?? '').toLowerCase();
-    final isOngoing = category == 'ongoing' || ((booking['rawStatus'] as String?) ?? '').toLowerCase() == 'running';
+    final isOngoing = category == 'ongoing' ||
+        ((booking['rawStatus'] as String?) ?? '').toLowerCase() == 'running';
     final prefix = isOngoing ? 'return' : 'handover';
     final label = ((booking['${prefix}LocationLabel'] as String?) ?? '').trim();
-    final sharedBy = ((booking['${prefix}LocationSharedByName'] as String?) ?? '').trim();
-    if (label.isNotEmpty) return '${isOngoing ? 'Rückgabeort' : 'Übergabeort'}: $label';
-    if (sharedBy.isNotEmpty) return '${isOngoing ? 'Rückgabeort' : 'Übergabeort'}: Standort von $sharedBy';
+    final sharedBy =
+        ((booking['${prefix}LocationSharedByName'] as String?) ?? '').trim();
+    if (label.isNotEmpty) {
+      return '${isOngoing ? 'Rückgabeort' : 'Übergabeort'}: $label';
+    }
+    if (sharedBy.isNotEmpty) {
+      return '${isOngoing ? 'Rückgabeort' : 'Übergabeort'}: Standort von $sharedBy';
+    }
     return null;
   }
 
   // Status chip with countdown for list card (German, renter view)
-  Widget _buildStatusChipForCard(String category, DateTime? start, DateTime? end, [Map<String, dynamic>? booking]) {
+  Widget _buildStatusChipForCard(
+      String category, DateTime? start, DateTime? end,
+      [Map<String, dynamic>? booking]) {
     final label = bookingCardStatusLabel(
       category: category,
       start: start,
@@ -646,8 +750,10 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
         break;
       case 'completed':
         final rawStatus = booking?['rawStatus'] as String?;
-        final wasCancelled = rawStatus == 'cancelled' || (booking?['status'] == 'Storniert');
-        final wasDeclined = rawStatus == 'declined' || (booking?['status'] == 'Abgelehnt');
+        final wasCancelled =
+            rawStatus == 'cancelled' || (booking?['status'] == 'Storniert');
+        final wasDeclined =
+            rawStatus == 'declined' || (booking?['status'] == 'Abgelehnt');
         if (wasCancelled) {
           color = const Color(0xFFF43F5E);
         } else if (wasDeclined) {
@@ -671,7 +777,11 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700, height: 1.05),
+        style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            height: 1.05),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -679,7 +789,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   }
 
   // Build a tiny inline action button to live next to the chip, keeping the card compact
-  Widget? _buildSmallInlineAction(String effectiveCategory, Map<String, dynamic> booking, DateTime? start, DateTime? end) {
+  Widget? _buildSmallInlineAction(String effectiveCategory,
+      Map<String, dynamic> booking, DateTime? start, DateTime? end) {
     switch (effectiveCategory) {
       case 'pending':
         // Entfernt: kein Inline-Button mehr – nur noch in der Detailseite unten
@@ -696,7 +807,9 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
             label: 'Bewerten',
             onPressed: () async {
               final current = await DataService.getCurrentUser();
-              if (current == null || !_canReviewCompletedBooking(booking)) return;
+              if (current == null || !_canReviewCompletedBooking(booking)) {
+                return;
+              }
               final requestId = booking['requestId'] as String;
               final itemId = booking['itemId'] as String;
               final listerId = booking['listerId'] as String;
@@ -709,7 +822,9 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
                 direction: 'renter_to_owner',
               );
               if (ok == true && mounted) {
-                await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
+                await AppPopup.toast(context,
+                    icon: Icons.star_rate_outlined,
+                    title: 'Danke für deine Bewertung!');
                 final item = await DataService.getItemById(itemId);
                 if (item != null && mounted) {
                   await ItemDetailsOverlay.showFullPage(context, item: item);
@@ -758,7 +873,8 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     final d = int.tryParse(m.group(1)!);
     final monStr = m.group(2)!;
     if (d == null) return null;
-    String key = monStr.substring(0, 1).toUpperCase() + monStr.substring(1, math.min(monStr.length, 3)).toLowerCase();
+    String key = monStr.substring(0, 1).toUpperCase() +
+        monStr.substring(1, math.min(monStr.length, 3)).toLowerCase();
     if (key == 'Mä' || key == 'Mär') key = 'Mär';
     final month = months[key];
     if (month == null) return null;
@@ -789,16 +905,32 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
   (IconData, String, bool) _emptyStateForCategory(String category) {
     switch (category) {
       case 'ongoing':
-        return (Icons.timelapse_outlined, 'Du hast keine laufenden Buchungen', false);
+        return (
+          Icons.timelapse_outlined,
+          'Du hast keine laufenden Buchungen',
+          false
+        );
       case 'upcoming':
-        return (Icons.event_available_outlined, 'Du hast keine kommenden Buchungen', false);
+        return (
+          Icons.event_available_outlined,
+          'Du hast keine kommenden Buchungen',
+          false
+        );
       case 'pending':
         // Pending bookings are booking requests waiting for confirmation.
         // Use a dedicated pending icon (instead of the Mietanfragen/BoxChat icon).
-        return (Icons.pending_actions_outlined, 'Du hast keine ausstehenden Buchungen', false);
+        return (
+          Icons.pending_actions_outlined,
+          'Du hast keine ausstehenden Buchungen',
+          false
+        );
       case 'completed':
       default:
-        return (Icons.task_alt_outlined, 'Du hast keine abgeschlossenen Buchungen', false);
+        return (
+          Icons.task_alt_outlined,
+          'Du hast keine abgeschlossenen Buchungen',
+          false
+        );
     }
   }
 }
@@ -809,7 +941,8 @@ class _TinyTextButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onPressed;
-  const _TinyTextButton({required this.icon, required this.label, required this.onPressed});
+  const _TinyTextButton(
+      {required this.icon, required this.label, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -817,7 +950,9 @@ class _TinyTextButton extends StatelessWidget {
     return TextButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: 16, color: fg),
-      label: Text(label, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: fg)),
+      label: Text(label,
+          style:
+              TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: fg)),
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -844,7 +979,8 @@ class _BlinkHighlight extends StatefulWidget {
   State<_BlinkHighlight> createState() => _BlinkHighlightState();
 }
 
-class _BlinkHighlightState extends State<_BlinkHighlight> with SingleTickerProviderStateMixin {
+class _BlinkHighlightState extends State<_BlinkHighlight>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _c;
   late final Animation<double> _t;
   Timer? _stopper;
@@ -852,7 +988,8 @@ class _BlinkHighlightState extends State<_BlinkHighlight> with SingleTickerProvi
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
+    _c = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 650));
     _t = CurvedAnimation(parent: _c, curve: Curves.easeInOut);
     if (widget.enabled) {
       _c.repeat(reverse: true);
@@ -971,13 +1108,16 @@ class _ThumbnailWithSkeleton extends StatefulWidget {
   State<_ThumbnailWithSkeleton> createState() => _ThumbnailWithSkeletonState();
 }
 
-class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with SingleTickerProviderStateMixin {
+class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat();
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1200))
+      ..repeat();
   }
 
   @override
@@ -1030,7 +1170,8 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
     );
   }
 
-  Future<void> _showPreview(BuildContext context, List<String> urls, int initialIndex) async {
+  Future<void> _showPreview(
+      BuildContext context, List<String> urls, int initialIndex) async {
     if (urls.isEmpty) return;
     await showGeneralDialog(
       context: context,
@@ -1049,7 +1190,9 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
           final target = (page + delta).clamp(0, images.length - 1);
           if (target != page) {
             page = target;
-            await controller.animateToPage(target, duration: const Duration(milliseconds: 160), curve: Curves.easeOutCubic);
+            await controller.animateToPage(target,
+                duration: const Duration(milliseconds: 160),
+                curve: Curves.easeOutCubic);
           }
         }
 
@@ -1062,7 +1205,8 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
                 child: ClipRect(
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 25.2, sigmaY: 25.2),
-                    child: Container(color: Colors.black.withValues(alpha: 0.05)),
+                    child:
+                        Container(color: Colors.black.withValues(alpha: 0.05)),
                   ),
                 ),
               ),
@@ -1072,7 +1216,9 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: size.width * 0.85, maxHeight: size.height * 0.75),
+                    constraints: BoxConstraints(
+                        maxWidth: size.width * 0.85,
+                        maxHeight: size.height * 0.75),
                     child: Material(
                       color: Colors.transparent,
                       child: ClipRRect(
@@ -1080,26 +1226,32 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
                         child: Listener(
                           onPointerSignal: (signal) {
                             if (signal is PointerScrollEvent) {
-                              if (signal.scrollDelta.dy > 0 || signal.scrollDelta.dx > 0) {
+                              if (signal.scrollDelta.dy > 0 ||
+                                  signal.scrollDelta.dx > 0) {
                                 shift(1);
-                              } else if (signal.scrollDelta.dy < 0 || signal.scrollDelta.dx < 0) {
+                              } else if (signal.scrollDelta.dy < 0 ||
+                                  signal.scrollDelta.dx < 0) {
                                 shift(-1);
                               }
                             }
                           },
                           child: Stack(children: [
                             ScrollConfiguration(
-                              behavior: const ScrollBehavior().copyWith(scrollbars: false),
+                              behavior: const ScrollBehavior()
+                                  .copyWith(scrollbars: false),
                               child: PageView.builder(
                                 controller: controller,
                                 onPageChanged: (i) => setState(() => page = i),
                                 itemCount: images.length,
                                 itemBuilder: (_, i) => DecoratedBox(
-                                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.08)),
+                                  decoration: BoxDecoration(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.08)),
                                   child: Center(
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(16),
-                                      child: AppImage(url: images[i], fit: BoxFit.contain),
+                                      child: AppImage(
+                                          url: images[i], fit: BoxFit.contain),
                                     ),
                                   ),
                                 ),
@@ -1115,13 +1267,17 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
                                   children: [
                                     for (int i = 0; i < images.length; i++)
                                       AnimatedContainer(
-                                        duration: const Duration(milliseconds: 160),
-                                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                                        duration:
+                                            const Duration(milliseconds: 160),
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 4),
                                         width: i == page ? 10 : 8,
                                         height: i == page ? 10 : 8,
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: i == page ? 0.9 : 0.5),
-                                          borderRadius: BorderRadius.circular(999),
+                                          color: Colors.white.withValues(
+                                              alpha: i == page ? 0.9 : 0.5),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
                                         ),
                                       ),
                                   ],
@@ -1139,7 +1295,8 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
         });
       },
       transitionBuilder: (ctx, anim, secAnim, child) {
-        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        final curved =
+            CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
         return FadeTransition(opacity: curved, child: child);
       },
       transitionDuration: const Duration(milliseconds: 160),

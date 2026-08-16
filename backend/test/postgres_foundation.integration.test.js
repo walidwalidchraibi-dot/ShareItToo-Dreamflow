@@ -78,6 +78,7 @@ if (!databaseUrl) {
         '015_v51_contract_persistence.up.sql',
         '016_v51_booking_quotes.up.sql',
         '017_v51_contract_receipts.up.sql',
+        '018_v51_withdrawal_and_refund_obligations.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);

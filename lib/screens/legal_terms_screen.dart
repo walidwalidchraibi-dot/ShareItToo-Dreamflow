@@ -10,7 +10,7 @@ class LegalTermsScreen extends StatelessWidget {
     return LegalDetailScaffold(
       title: 'AGB',
       intro: 'Plattform-Nutzungsbedingungen für den privaten ShareItToo-Pilot. '
-          'Stand 14.08.2026 · ${PrivatePilotConfig.documentVersion}. '
+          'Stand 16.08.2026 · ${PrivatePilotConfig.documentVersion}. '
           'ShareItToo stellt die technische Vermittlungsplattform bereit und '
           'wird nicht Partei des privaten Mietvertrags zwischen den Nutzern.',
       sections: const [
@@ -23,7 +23,7 @@ class LegalTermsScreen extends StatelessWidget {
               'Diese Bedingungen gelten für die Plattformnutzung im privaten Pilotbetrieb. Die Regeln für den privaten Mietvertrag, Stornierung, Übergabe, Rückgabe und Fälle werden im jeweiligen Buchungsablauf mit Dokumentversion dauerhaft bereitgestellt.',
             ),
             LegalParagraph(
-              'Das Öffnen des Checkouts erzeugt noch keine Buchungsanfrage, keinen Vertrag und keine Zahlung. Erst die dort eindeutig bezeichnete Schaltfläche sendet die verbindliche Buchungsanfrage. Das derzeitige V4-Zwischenmodell wird mit Dokumentversion und Zeitstempel protokolliert und nach neuer rechtlicher Rückmeldung zentral aktualisiert.',
+              'Das Öffnen des Checkouts erzeugt noch keine Buchungsanfrage, keinen Vertrag und keine Zahlung. Erst die dort eindeutig bezeichnete Schaltfläche sendet die verbindliche Buchungsanfrage. Das V5.1-Modell wird mit Dokumentversion und Zeitstempel protokolliert; externe Rechts-, PSP- und Livefreigaben bleiben davon getrennte Voraussetzungen.',
             ),
           ],
         ),
@@ -50,7 +50,7 @@ class LegalTermsScreen extends StatelessWidget {
               'ShareItToo ermöglicht Registrierung, Inserate, Suche, Preisübersicht, Kommunikation, Zeit- und Adressabstimmung, dokumentierte Übergabe und Rückgabe, Bewertungen, Meldungen und Support.',
             ),
             LegalParagraph(
-              'ShareItToo ist nicht Vermieter, Mieter, Eigentümer, Besitzer, Hersteller, Beförderer, Gutachter oder Versicherer. Der Mietvertrag kommt ausschließlich zwischen Vermieter und Mieter zustande. Im V4-Zwischenmodell gibt der Mieter eine verbindliche Buchungsanfrage ab; der Vermieter nimmt sie innerhalb der angezeigten Frist an. Die Annahme wird dem Mieter über die Plattform mitgeteilt.',
+              'ShareItToo ist nicht Vermieter, Mieter, Eigentümer, Besitzer, Hersteller, Beförderer, Gutachter oder Versicherer. Der Mietvertrag kommt ausschließlich zwischen Vermieter und Mieter zustande. Der Mieter gibt eine verbindliche Buchungsanfrage ab; der Vermieter nimmt sie innerhalb der angezeigten Frist an. Die Annahme wird dem Mieter über die Plattform mitgeteilt.',
             ),
             LegalParagraph(
               'ShareItToo prüft Gegenstand, Eigentum, Berechtigung, Funktionsfähigkeit, Sicherheit, Echtheit, Zeitwert und Versicherungsschutz nicht. Eine Veröffentlichung, Kennzeichnung oder Supportbearbeitung ist keine Empfehlung, Garantie oder Sicherheitsfreigabe.',
@@ -91,13 +91,13 @@ class LegalTermsScreen extends StatelessWidget {
           title: 'Vertragsschluss, Plattformleistung und Widerruf',
           children: [
             LegalParagraph(
-              'Das Inserat ist noch kein bindendes Angebot. Der Mieter sendet eine verbindliche zahlungspflichtige Buchungsanfrage. Der private Mietvertrag entsteht im V4-Zwischenmodell erst, wenn der Vermieter rechtzeitig und protokolliert annimmt, die Annahme dem Mieter mitgeteilt wird und eine später aktivierte Zahlungsautorisierung erfolgreich ist. Eine automatische Eingangsbestätigung ist keine Annahme.',
+              'Das Inserat ist noch kein bindendes Angebot. Der Mieter sendet eine verbindliche zahlungspflichtige Buchungsanfrage. Der private Mietvertrag entsteht erst, wenn der Vermieter rechtzeitig und protokolliert annimmt, die Annahme dem Mieter mitgeteilt wird und eine später aktivierte Zahlungsautorisierung erfolgreich ist. Eine automatische Eingangsbestätigung ist keine Annahme.',
             ),
             LegalParagraph(
               'Die Buchungsanfrage enthält zugleich ein von privatem Mietvertrag und erfolgreicher Zahlungsautorisierung abhängiges Angebot für die entgeltliche SIT-Plattformleistung. ShareItToo nimmt dieses Angebot durch die Buchungsbestätigung an. Vermittlung und technische Buchungsbestätigung gelten im Zwischenmodell dann als vollständig erbracht; Dokumentation und Support laufen unentgeltlich weiter.',
             ),
             LegalParagraph(
-              'Das Verlangen nach frühem Leistungsbeginn und die Kenntnisbestätigung zum möglichen Erlöschen des Widerrufsrechts werden getrennt, nicht vorausgewählt, mit genauem Wortlaut, Dokumentversion und Zeitpunkt gespeichert. Unter „Rechtliches > Vertrag widerrufen“ steht ein zweistufiger elektronischer Widerruf bereit. Seine Wirkung auf den privaten Mietvertrag wird bis zur abschließenden Rechtsfreigabe neutral behandelt und nicht automatisch behauptet.',
+              'Das Verlangen nach frühem Leistungsbeginn und die Kenntnisbestätigung zum möglichen Erlöschen des Widerrufsrechts werden getrennt, nicht vorausgewählt, mit genauem Wortlaut, Dokumentversion und Zeitpunkt gespeichert. Unter „Rechtliches > Vertrag widerrufen“ steht ein zweistufiger elektronischer Widerruf bereit. Innerhalb des vertraglich garantierten 14-Tage-Fensters gelten die dort vor Bestätigung eindeutig angezeigten V5.1-Folgen; später eingehende Erklärungen werden empfangen und wegen möglicher weitergehender gesetzlicher Rechte ohne automatische Buchungs- oder Geldänderung geprüft.',
             ),
           ],
         ),
@@ -155,7 +155,7 @@ class LegalTermsScreen extends StatelessWidget {
               'Liegen zwischen einer später wirksam bestätigten Buchung und Mietbeginn weniger als 24 Stunden, kann der Mieter innerhalb von 60 Minuten nach Zugang der Buchungsbestätigung kostenlos stornieren, spätestens bis Mietbeginn. Die App zeigt den genauen Ablaufzeitpunkt.',
             ),
             LegalParagraph(
-              'Aktuelle Prüfparameter sind: mindestens 24 Stunden vor Mietbeginn 100 % Erstattung; weniger als 24 Stunden vorher vorläufig 50 % verbleibender Mietpreis; ab Mietbeginn oder bei Mieter-No-Show vorläufig 100 %. Diese Prozentsätze sind konfigurierbar und noch nicht als endgültig rechtlich freigegeben.',
+              'Nach V5.1 gilt: mindestens 24 Stunden vor Mietbeginn vollständige Erstattung; weniger als 24 Stunden vorher bleiben grundsätzlich 50 % des Mietpreises geschuldet und der Gebührenanteil beträgt 10 % dieses verbleibenden Mietpreises. Ab Mietbeginn oder bei Mieter-No-Show gibt es keine starre Pauschale, sondern eine Abrechnung nach tatsächlichem Verlust unter Anrechnung von Ersatzvermietung und ersparten Aufwendungen.',
             ),
             LegalParagraph(
               'Ersatzvermietung, ersparte Aufwendungen und der Nachweis eines geringeren oder ausgebliebenen Schadens bleiben abbildbar. Der Plattformbeitrag folgt anteilig dem nach einer vertraglichen Stornierung verbleibenden Mietpreis.',

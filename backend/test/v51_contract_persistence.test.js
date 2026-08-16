@@ -10,6 +10,10 @@ const receiptMigration = readFileSync(
   new URL('../sql/migrations/017_v51_contract_receipts.up.sql', import.meta.url),
   'utf8',
 );
+const withdrawalMigration = readFileSync(
+  new URL('../sql/migrations/018_v51_withdrawal_and_refund_obligations.up.sql', import.meta.url),
+  'utf8',
+);
 const privacyExport = readFileSync(
   new URL('../src/privacy_export.js', import.meta.url),
   'utf8',
@@ -97,6 +101,53 @@ test('contract evidence is visible in the user export and retention inventory', 
     'platform_contract_declarations',
     'platform_contract_receipts',
     'platform_contract_receipt_events',
+  ]) {
+    assert.match(retentionInventory, new RegExp(`'transactions', '${dataset}'`, 'u'));
+  }
+});
+
+test('V5.1 withdrawals store immutable receipt and separate debtor obligations', () => {
+  for (const table of [
+    'v51_withdrawals',
+    'v51_refund_obligations',
+    'v51_refund_obligation_events',
+    'v51_cancellation_refund_obligations',
+    'v51_withdrawal_receipts',
+    'v51_withdrawal_receipt_events',
+  ]) {
+    assert.match(withdrawalMigration, new RegExp(`CREATE TABLE IF NOT EXISTS ${table}`, 'u'));
+    assert.match(
+      withdrawalMigration,
+      new RegExp(`CREATE TRIGGER ${table}_append_only[\\s\\S]*?ON ${table}`, 'u'),
+    );
+  }
+  assert.match(withdrawalMigration, /refund_type IN \('rent_refund', 'sit_fee_refund'\)/u);
+  assert.match(withdrawalMigration, /refund_type = 'rent_refund' AND debtor_role = 'owner'/u);
+  assert.match(withdrawalMigration, /refund_type = 'sit_fee_refund' AND debtor_role = 'sit'/u);
+  assert.match(withdrawalMigration, /'withdrawalReturnRequired'/u);
+  assert.match(withdrawalMigration, /'automatic_14_day'/u);
+  assert.match(withdrawalMigration, /'manual_review_required'/u);
+  assert.match(withdrawalMigration, /v51_withdrawals_one_booking_contract_idx/u);
+});
+
+test('withdrawal evidence is user-exported and retention-inventoried', () => {
+  for (const name of [
+    'withdrawals',
+    'withdrawalRefundObligations',
+    'withdrawalRefundObligationEvents',
+    'cancellationRefundObligations',
+    'withdrawalReceipts',
+    'withdrawalReceiptEvents',
+  ]) {
+    assert.match(privacyExport, new RegExp(name, 'u'));
+  }
+  for (const dataset of [
+    'v51_withdrawals',
+    'v51_refund_obligations',
+    'v51_refund_obligation_events',
+    'v51_cancellation_refund_obligations',
+    'v51_withdrawal_receipts',
+    'v51_withdrawal_receipt_events',
   ]) {
     assert.match(retentionInventory, new RegExp(`'transactions', '${dataset}'`, 'u'));
   }

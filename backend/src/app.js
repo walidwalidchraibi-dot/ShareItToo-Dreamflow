@@ -135,6 +135,11 @@ import {
   V51ContractReceiptError,
 } from './v51_contract_receipt.js';
 import {
+  getV51WithdrawalReceipt,
+  recordV51Withdrawal,
+  V51WithdrawalError,
+} from './v51_withdrawal_workflow.js';
+import {
   evaluateReturnTimeline,
   splitAuthorizedBookingAmount,
 } from './private_pilot_return_domain.js';
@@ -2803,82 +2808,45 @@ export function createApp({
     res.json(result);
   }));
 
+  app.post('/v1/platform-contracts/withdrawal', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => recordV51Withdrawal(client, {
+      actor: req.actor,
+      raw: { ...req.body, scope: 'account_contract' },
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
   app.post('/v1/bookings/:id/withdrawal', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
-    const bookingId = safeText(req.params.id, 120);
-    const declaration = ensureObject(req.body?.declaration, 'invalid_withdrawal_declaration');
-    const expectedWording = privatePilotDeclarations.platformWithdrawal;
-    if (declaration.type !== 'platform_withdrawal'
-        || declaration.exactWording !== expectedWording
-        || declaration.documentName !== privatePilotDocument.name
-        || declaration.documentVersion !== privatePilotDocument.version
-        || declaration.language !== privatePilotDocument.language
-        || declaration.accepted !== true
-        || !Number.isFinite(Date.parse(declaration.acceptedAt))) {
-      throw new HttpError(400, 'invalid_withdrawal_declaration');
+    const result = await inTransaction((client) => recordV51Withdrawal(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      raw: { ...req.body, scope: 'booking_contract' },
+      idempotencyKey: req.get('Idempotency-Key'),
+    }), { deadlockRetries: 2 });
+    if (result.booking) {
+      publishToUsers([result.booking.ownerId, result.booking.renterId], {
+        type: 'changed',
+        resource: 'rental_requests',
+      });
+      kickNotificationWorker();
     }
-    const booking = await inTransaction(async (client) => {
-      const result = await client.query(
-        `SELECT booking.renter_id, booking.owner_id, request.payload
-         FROM bookings AS booking
-         JOIN rental_requests AS request ON request.id = booking.id
-         WHERE booking.id = $1
-         FOR UPDATE OF booking, request`,
-        [bookingId],
-      );
-      if (!result.rowCount) throw new HttpError(404, 'booking_not_found');
-      const row = result.rows[0];
-      if (row.renter_id !== req.auth.userId) {
-        throw new HttpError(403, 'withdrawal_forbidden');
-      }
-      const payload = ensureObject(row.payload, 'invalid_stored_booking');
-      const declarations = Array.isArray(payload.legalDeclarations)
-        ? payload.legalDeclarations
-        : [];
-      const storedDeclaration = {
-        ...declaration,
-        acceptedAt: new Date(declaration.acceptedAt).toISOString(),
-      };
-      payload.legalDeclarations = [...declarations, storedDeclaration];
-      payload.platformWithdrawalReceivedAt = storedDeclaration.acceptedAt;
-      payload.platformWithdrawalBookingEffect = 'pending_legal_process_decision';
-      await client.query(
-        'UPDATE rental_requests SET payload = $2::jsonb WHERE id = $1',
-        [bookingId, JSON.stringify(payload)],
-      );
-      await client.query(
-        `INSERT INTO legal_declarations (
-           user_id, booking_id, declaration_type, exact_wording, document_name,
-           document_version, app_version, language, accepted, declared_at
-         ) VALUES ($1, $2, 'platform_withdrawal', $3, $4, $5, $6, $7, true, $8)`,
-        [
-          req.auth.userId,
-          bookingId,
-          expectedWording,
-          privatePilotDocument.name,
-          privatePilotDocument.version,
-          releaseMetadata.version,
-          privatePilotDocument.language,
-          new Date(storedDeclaration.acceptedAt),
-        ],
-      );
-      await client.query(
-        `INSERT INTO booking_events (
-           booking_id, actor_id, event_type, idempotency_key, metadata
-         ) VALUES ($1, $2, 'platform.withdrawal_received', $3, $4::jsonb)`,
-        [
-          bookingId,
-          req.auth.userId,
-          safeText(req.get('Idempotency-Key'), 160),
-          JSON.stringify({ bookingEffect: 'pending_legal_process_decision' }),
-        ],
-      );
-      return { ...payload, id: bookingId };
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.get('/v1/withdrawals/:id/receipt', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const receipt = await inTransaction((client) => getV51WithdrawalReceipt(client, {
+      actorId: req.auth.userId,
+      withdrawalId: safeText(req.params.id, 160),
+    }));
+    res.set({
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="shareittoo-widerrufsbestaetigung.html"',
+      'Cache-Control': 'private, no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'X-SIT-Artifact-SHA256': receipt.artifactSha256,
     });
-    publishToUsers([booking.ownerId, booking.renterId], {
-      type: 'changed',
-      resource: 'rental_requests',
-    });
-    res.status(201).json({ booking });
+    res.send(receipt.contentHtml);
   }));
 
   app.get('/v1/rental-requests', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
@@ -3774,18 +3742,19 @@ export function createApp({
     const retentionInventoryError = error instanceof RetentionInventoryError;
     const mapsProxyError = error instanceof MapsProxyError;
     const bookingConfirmationError = error instanceof BookingConfirmationError;
+    const v51WithdrawalError = error instanceof V51WithdrawalError;
     const status = bookingConflict
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });

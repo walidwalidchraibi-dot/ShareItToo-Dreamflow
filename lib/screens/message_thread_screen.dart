@@ -176,7 +176,7 @@ bool _isChatActiveForState(_ChatState st) {
   }
 }
 
-/// V4 keeps the booking chat available through the relevant return/report
+/// V5.1 keeps the booking chat available through the relevant return/report
 /// window and, for a substantiated case, until that case is explicitly closed.
 bool isPrivatePilotBookingChatOpen({
   required String bookingStatus,

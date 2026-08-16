@@ -442,17 +442,42 @@ class BackendRepository {
   }
 
   static Future<Map<String, dynamic>> recordPlatformWithdrawal({
-    required String bookingId,
-    required Map<String, dynamic> declaration,
+    String? bookingId,
+    required String scope,
     required String idempotencyKey,
   }) async {
-    final response = await _authorized(
+    return _authorized(
       method: 'POST',
-      path: '/bookings/${Uri.encodeComponent(bookingId)}/withdrawal',
-      body: {'declaration': declaration},
+      path: scope == 'account_contract'
+          ? '/platform-contracts/withdrawal'
+          : '/bookings/${Uri.encodeComponent(bookingId!)}/withdrawal',
+      body: {
+        'scope': scope,
+        'electronicChannel': 'in_app_download',
+        'acknowledgedConsequences': true,
+      },
       additionalHeaders: {'Idempotency-Key': idempotencyKey},
     );
-    return Map<String, dynamic>.from(response['booking'] as Map);
+  }
+
+  static Future<BackendBinaryResponse> downloadWithdrawalReceipt(
+    String withdrawalId,
+  ) async {
+    var token = await _token();
+    try {
+      return await BackendHttp.requestBytes(
+        path: '/withdrawals/${Uri.encodeComponent(withdrawalId)}/receipt',
+        accessToken: token,
+      );
+    } on BackendException catch (error) {
+      if (error.statusCode != 401) rethrow;
+      token = await AuthService.refreshAccessToken() ?? '';
+      if (token.isEmpty) rethrow;
+      return BackendHttp.requestBytes(
+        path: '/withdrawals/${Uri.encodeComponent(withdrawalId)}/receipt',
+        accessToken: token,
+      );
+    }
   }
 
   static Future<Map<String, dynamic>> getConnectStatus() async {

@@ -1198,10 +1198,13 @@ export async function reconcilePaymentLifecycle() {
   for (const row of cancelled.rows) {
     try {
       const outcome = row.booking_payload?.cancellationOutcome;
+      if (outcome?.calculationStatus !== 'final') continue;
       const configuredTarget = Number(outcome?.refundMinor);
-      const targetRefundMinor = Number.isSafeInteger(configuredTarget)
-        ? Math.min(Number(row.captured_minor), Math.max(0, configuredTarget))
-        : Number(row.captured_minor);
+      if (!Number.isSafeInteger(configuredTarget)) continue;
+      const targetRefundMinor = Math.min(
+        Number(row.captured_minor),
+        Math.max(0, configuredTarget),
+      );
       const remainingRefundMinor = targetRefundMinor - Number(row.refunded_minor);
       if (remainingRefundMinor <= 0) continue;
       await refundPayment({

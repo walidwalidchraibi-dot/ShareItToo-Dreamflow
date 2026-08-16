@@ -30,7 +30,7 @@ function checkoutDeclarations() {
   }));
 }
 
-test('all six V4 open decisions have an explicit interim rule and owner', () => {
+test('all six V4 questions have an explicit V5.1 successor and source', () => {
   assert.equal(privatePilotOpenDecisions.length, 6);
   assert.deepEqual(
     privatePilotOpenDecisions.map((entry) => entry.id),
@@ -44,7 +44,7 @@ test('all six V4 open decisions have an explicit interim rule and owner', () => 
     ],
   );
   for (const entry of privatePilotOpenDecisions) {
-    assert.equal(entry.status, 'open');
+    assert.equal(entry.status, 'superseded_by_v51');
     assert.ok(entry.interimRule.length > 0);
     assert.ok(entry.updateAuthority.length > 0);
     assert.equal(typeof entry.blocksLiveActivation, 'boolean');
@@ -173,7 +173,7 @@ test('short-notice cancellation grace ends exactly after 60 minutes or at start'
   }), null);
 });
 
-test('V4 cancellation uses exact instants and cent-based proportional refund', () => {
+test('V5.1 cancellation uses exact instants and cent-based proportional refund', () => {
   const outcome = evaluateCancellation({
     rentalStartAt: '2026-09-01T20:00:00Z',
     contractConfirmedAt: '2026-09-01T15:00:00Z',

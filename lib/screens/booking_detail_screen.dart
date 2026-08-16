@@ -997,6 +997,28 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (widget.booking['workflowStatus'] == 'withdrawalReturnRequired') ...[
+          Card(
+            color: theme.colorScheme.errorContainer,
+            child: const Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Widerruf: Rückgabe jetzt erforderlich',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Die Nutzung ist beendet. Bitte schließe die dokumentierte Rückgabe mit Fotos und QR- oder Sicherheitscode ab. Erst danach wird der zeitanteilige Mietpreis-Erstattungsbetrag fest berechnet.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         // Image carousel
         if (_photos.isNotEmpty)
           ClipRRect(
@@ -2633,117 +2655,56 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           const SizedBox(height: 8),
           Builder(
             builder: (context) {
-              // Unified refund logic with Master‑Regel
-              final now = DateTime.now();
-              double ratio = 0.0;
-              if (start != null) {
-                ratio = DataService.refundRatio(
-                  policy: 'unified',
-                  start: start,
-                  cancelAt: now,
-                );
+              final outcomeRaw = widget.booking['cancellationOutcome'];
+              final outcome = outcomeRaw is Map
+                  ? Map<String, dynamic>.from(outcomeRaw)
+                  : const <String, dynamic>{};
+              Map<String, dynamic> refundObject(String key) {
+                final value = outcome[key];
+                return value is Map
+                    ? Map<String, dynamic>.from(value)
+                    : const <String, dynamic>{};
               }
-              final cancelledBy =
-                  (widget.booking['cancelledBy'] as String?) ?? '';
-              double totalRefund;
-              String note;
-              if (cancelledBy == 'owner') {
-                totalRefund = totalPaid; // 100% aller gezahlten Beträge
-                note =
-                    'Erstattung 100% aller gezahlten Beträge (Stornierung durch Vermieter).';
-              } else {
-                // Recompute fee and extras for proportional refund
-                final fee = DataService.platformContributionForRental(
-                  rentalSubtotal,
-                );
-                final bool ownerDelivers =
-                    (widget.booking['ownerDeliversAtDropoffChosen'] == true) ||
-                        (widget.booking['expressRequested'] == true) ||
-                        (widget.booking['expressStatus'] != null) ||
-                        ((widget.booking['deliveryAddressLine'] ?? '')
-                            .toString()
-                            .trim()
-                            .isNotEmpty) ||
-                        ((widget.booking['deliveryCity'] ?? '')
-                            .toString()
-                            .trim()
-                            .isNotEmpty);
-                final bool ownerPicks =
-                    (widget.booking['ownerPicksUpAtReturnChosen'] == true);
-                double km = 0.0;
-                final double? dLat =
-                    (widget.booking['deliveryLat'] as num?)?.toDouble();
-                final double? dLng =
-                    (widget.booking['deliveryLng'] as num?)?.toDouble();
-                if (_itemLat != null &&
-                    _itemLng != null &&
-                    dLat != null &&
-                    dLng != null) {
-                  km = DataService.estimateDistanceKm(
-                    _itemLat!,
-                    _itemLng!,
-                    dLat,
-                    dLng,
-                  );
-                } else if (_itemLat != null &&
-                    _itemLng != null &&
-                    ((widget.booking['deliveryAddressLine'] ?? '')
-                        .toString()
-                        .trim()
-                        .isNotEmpty)) {
-                  km = DataService.estimateDistanceKmFromAddressLine(
-                    _itemLat!,
-                    _itemLng!,
-                    (widget.booking['deliveryAddressLine'] as String).trim(),
-                  );
-                } else if (_itemLat != null &&
-                    _itemLng != null &&
-                    ((widget.booking['deliveryCity'] ?? '')
-                        .toString()
-                        .trim()
-                        .isNotEmpty)) {
-                  km = DataService.estimateDistanceKmToCity(
-                    _itemLat!,
-                    _itemLng!,
-                    (widget.booking['deliveryCity'] as String).trim(),
-                  );
-                }
-                final double dropFee = ownerDelivers
-                    ? double.parse((km * 0.30).toStringAsFixed(2))
-                    : 0.0;
-                final double retFee = ownerPicks
-                    ? double.parse((km * 0.30).toStringAsFixed(2))
-                    : 0.0;
-                final bool expressSelected =
-                    (widget.booking['expressRequested'] == true) ||
-                        (widget.booking['expressStatus'] == 'accepted');
-                final double expressFee = expressSelected ? 5.0 : 0.0;
-                final double expressFeePlatform = expressFee > 0
-                    ? double.parse((expressFee * 0.10).toStringAsFixed(2))
-                    : 0.0;
-                final feesTotal =
-                    fee + dropFee + retFee + expressFee + expressFeePlatform;
-                final refundableTotal = (rentalSubtotal + feesTotal).clamp(
-                  0.0,
-                  totalPaid,
-                );
-                totalRefund = double.parse(
-                  (refundableTotal * ratio).toStringAsFixed(2),
-                );
-                note = ratio >= 1.0
-                    ? 'Kostenlose Stornierung – 100% Erstattung aller Beträge.'
-                    : (ratio > 0.0
-                        ? '50% Rückerstattung von Mietpreis und allen Gebühren.'
-                        : 'Keine Rückerstattung (Mietbeginn erreicht oder Nicht‑Erscheinen).');
-              }
+
+              final rentRefund = refundObject('rentRefund');
+              final sitFeeRefund = refundObject('sitFeeRefund');
+              final rentMinor = (rentRefund['amountMinor'] as num?)?.toInt();
+              final feeMinor = (sitFeeRefund['amountMinor'] as num?)?.toInt();
+              final pending = outcome['calculationStatus'] ==
+                      'pending_actual_loss_assessment' ||
+                  outcome['requiresActualLossAssessment'] == true;
+              final storedTotalRefundMinor =
+                  rentMinor != null && feeMinor != null
+                      ? rentMinor + feeMinor
+                      : (outcome['refundMinor'] as num?)?.toInt();
+              final totalRefundMinor = storedTotalRefundMinor ??
+                  (widget.booking['cancelledBy'] == 'owner'
+                      ? (totalPaid * 100).round()
+                      : null);
+              final note = pending
+                  ? 'Der Betrag ist noch offen. Ersatzvermietung, ersparte Aufwendungen und ein nachgewiesener geringerer oder fehlender Schaden müssen zuerst berücksichtigt werden.'
+                  : (totalRefundMinor == null
+                      ? 'Für diese ältere Buchung ist kein unveränderlich gespeicherter Erstattungsbetrag vorhanden. Es wird nichts anhand der aktuellen Uhrzeit neu berechnet.'
+                      : 'Mietpreis und SIT-Plattformgebühr sind getrennt gespeichert; Echtgeld bleibt bis zur PSP-Freigabe deaktiviert.');
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _AmountRow(
-                    label: 'Rückerstattung (gesamt)',
-                    value: _formatEuro(totalRefund),
-                    strong: true,
-                  ),
+                  if (rentMinor != null)
+                    _AmountRow(
+                      label: 'Mietpreis-Erstattung · Vermieter',
+                      value: _formatEuro(rentMinor / 100),
+                    ),
+                  if (feeMinor != null)
+                    _AmountRow(
+                      label: 'SIT-Gebühren-Erstattung · SIT',
+                      value: _formatEuro(feeMinor / 100),
+                    ),
+                  if (totalRefundMinor != null)
+                    _AmountRow(
+                      label: 'Rückerstattung (gesamt)',
+                      value: _formatEuro(totalRefundMinor / 100),
+                      strong: true,
+                    ),
                   Text(
                     note,
                     style: theme.textTheme.bodySmall?.copyWith(

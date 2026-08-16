@@ -17,9 +17,10 @@ import {
 import { enqueueBookingNotifications } from './notifications.js';
 import { releaseMetadata } from './release.js';
 import {
-  cancellationAmounts,
   evaluateCancellation,
 } from './private_pilot_return_domain.js';
+import { v51CancellationAmounts } from './v51_termination_domain.js';
+import { settleV51WithdrawalRefundAtReturn } from './v51_withdrawal_workflow.js';
 import { hasVerifiedBookingConfirmation } from './booking_confirmation_workflow.js';
 import {
   assertPrivatePilotBooking,
@@ -35,7 +36,14 @@ import {
   V51ContractWorkflowError,
 } from './v51_contract_workflow.js';
 
-const blockingWorkflowStatuses = Object.freeze(['accepted', 'payment_pending', 'confirmed', 'active', 'returned']);
+const blockingWorkflowStatuses = Object.freeze([
+  'accepted',
+  'payment_pending',
+  'confirmed',
+  'active',
+  'withdrawalReturnRequired',
+  'returned',
+]);
 
 export class BookingWorkflowError extends Error {
   constructor(status, code, details = undefined) {
@@ -1122,15 +1130,71 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
         contractConfirmedAt: row.accepted_at,
         actor: actorRole,
       });
+      const calculated = outcome.calculationStatus === 'final'
+        ? v51CancellationAmounts({
+            rentalSubtotalMinor: Number(row.rental_subtotal_minor),
+            platformFeeMinor: Number(row.platform_fee_minor),
+            rentRefundBasisPoints: outcome.refundBasisPoints,
+          })
+        : null;
       nextPayload.cancellationOutcome = {
         ...outcome,
-        ...cancellationAmounts({
-          totalMinor: Number(row.quoted_total_minor),
-          refundBasisPoints: outcome.refundBasisPoints,
+        ...(calculated == null ? {} : {
+          rentRefund: {
+            type: 'rent_refund',
+            debtorRole: 'owner',
+            amountMinor: calculated.rentRefundMinor,
+          },
+          sitFeeRefund: {
+            type: 'sit_fee_refund',
+            debtorRole: 'sit',
+            amountMinor: calculated.sitFeeRefundMinor,
+          },
+          refundMinor: calculated.rentRefundMinor + calculated.sitFeeRefundMinor,
+          retainedMinor: calculated.rentRetainedMinor + calculated.sitFeeRetainedMinor,
         }),
         calculatedAt: new Date().toISOString(),
-        modelVersion: privatePilotDocument.version,
+        modelVersion: 'V5.1-2026-08-16',
       };
+      for (const [refundType, debtorRole, maximumMinor, amountMinor] of [
+        [
+          'rent_refund',
+          'owner',
+          Number(row.rental_subtotal_minor),
+          calculated?.rentRefundMinor ?? null,
+        ],
+        [
+          'sit_fee_refund',
+          'sit',
+          Number(row.platform_fee_minor),
+          calculated?.sitFeeRefundMinor ?? null,
+        ],
+      ]) {
+        await client.query(
+          `INSERT INTO v51_cancellation_refund_obligations (
+             booking_id, refund_type, debtor_role, currency, status,
+             amount_due_minor, maximum_minor, calculation_basis,
+             idempotency_key
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
+           ON CONFLICT (idempotency_key) DO NOTHING`,
+          [
+            bookingId,
+            refundType,
+            debtorRole,
+            row.currency,
+            calculated == null ? 'pending_actual_loss_assessment' : 'required',
+            amountMinor,
+            maximumMinor,
+            JSON.stringify({
+              reasonCode: outcome.reasonCode,
+              calculationStatus: outcome.calculationStatus,
+              rentRefundBasisPoints: outcome.refundBasisPoints,
+              modelVersion: 'V5.1-2026-08-16',
+            }),
+            `${commandKey}:cancellation:${refundType}`,
+          ],
+        );
+      }
     }
     row.payload = nextPayload;
     await client.query(
@@ -1162,6 +1226,13 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
       eventKey: `booking:${bookingId}:${next}:${commandKey}:${index}`,
       workflowStatus: next,
     });
+    if (next === 'returned') {
+      await settleV51WithdrawalRefundAtReturn(client, {
+        bookingId,
+        confirmedReturnAt: new Date(),
+        idempotencyKey: `${commandKey}:return-settlement`,
+      });
+    }
     current = next;
   }
   const updated = await lockedBooking(client, bookingId);

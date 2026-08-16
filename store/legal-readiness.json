@@ -3,7 +3,7 @@
   "state": "draft",
   "approvalAllowed": false,
   "interimPilotRules": {
-    "version": "V4-INTERIM-2026-08-15",
+    "version": "V5.1-2026-08-16",
     "status": "active-for-internal-and-closed-testing",
     "realPaymentsEnabled": false,
     "replaceOnUserInstruction": true
@@ -25,7 +25,7 @@
     "terms": {
       "status": "draft",
       "sourceFile": "lib/screens/legal_terms_screen.dart",
-      "currentContentSha256": "22da5213613c8b168bcbc4a5616b1ab2876be8c487fd30f078b2cfbf5fc207b1",
+      "currentContentSha256": "637f6450739b8185e6f89495f85cbe697e5d15c5e080258c242f94d36457b6d9",
       "approvedContentSha256": null,
       "publicUrl": null,
       "approvalEvidenceRef": null
@@ -41,7 +41,7 @@
     "cancellationPolicy": {
       "status": "draft",
       "sourceFile": "lib/screens/legal_cancellation_policy_screen.dart",
-      "currentContentSha256": "58a5073d35642cc353e3247a7da8fb5d83939b2d8a6b0812d409ea686478c833",
+      "currentContentSha256": "73e84736d726704d0f947b4d5614680f4d7c1ed8f4c508b9af931ed370aec2a4",
       "approvedContentSha256": null,
       "publicUrl": null,
       "approvalEvidenceRef": null
@@ -95,44 +95,44 @@
   },
   "openPilotDecisions": {
     "platformContractAndWithdrawalTiming": {
-      "status": "open",
-      "interimRule": "versioned-separate-declarations-at-booking-request",
-      "decisionBy": "legal-review-question-1",
+      "status": "superseded_by_v51",
+      "interimRule": "v51-exact-two-declarations-at-binding-booking-request",
+      "decisionBy": "V5.1 Teil A Nr. 11-13 und Umsetzungsauftrag Nr. 2-5",
       "activeForInternalTesting": true,
       "blocksLiveActivation": true
     },
     "withdrawalEffectOnPrivateRental": {
-      "status": "open",
-      "interimRule": "record-and-confirm-without-automatic-booking-or-money-effect",
-      "decisionBy": "legal-review-question-2",
+      "status": "superseded_by_v51",
+      "interimRule": "v51-14-day-before-after-handover-effects-later-rights-review",
+      "decisionBy": "V5.1 Teil A Nr. 13 und Umsetzungsauftrag Nr. 5",
       "activeForInternalTesting": true,
       "blocksLiveActivation": true
     },
     "cancellationParameters": {
-      "status": "open",
-      "interimRule": "50-percent-retained-under-24h-and-100-percent-after-start",
-      "decisionBy": "legal-and-product-review-question-3",
+      "status": "superseded_by_v51",
+      "interimRule": "v51-24h-50-percent-60min-and-actual-loss-after-start",
+      "decisionBy": "V5.1 Teil C und Umsetzungsauftrag Nr. 6",
       "activeForInternalTesting": true,
       "blocksLiveActivation": true
     },
     "marketplacePspMechanics": {
-      "status": "open",
-      "interimRule": "test-and-mock-only-no-real-money-movement",
-      "decisionBy": "psp-contract-and-payment-legal-review-question-4",
+      "status": "superseded_by_v51",
+      "interimRule": "licensed-marketplace-psp-test-only-until-evidenced",
+      "decisionBy": "V5.1 Teil E und PSP-Vertrag/Testabnahme",
       "activeForInternalTesting": true,
       "blocksLiveActivation": true
     },
     "missingReturnConfirmationWindow": {
-      "status": "open",
+      "status": "superseded_by_v51",
       "interimRule": "awaiting-return-confirmation-until-t0-plus-5-calendar-days",
-      "decisionBy": "product-and-psp",
+      "decisionBy": "V5.1 Teil E Nr. 2",
       "activeForInternalTesting": true,
       "blocksLiveActivation": false
     },
     "handoverPhotoWorkflow": {
-      "status": "open",
-      "interimRule": "four-photos-each-direction-with-counter-confirmation-or-deviation-photo",
-      "decisionBy": "pilot-usability-test",
+      "status": "superseded_by_v51",
+      "interimRule": "four-handover-party-photos-plus-counterparty-confirmation-or-deviation-photo",
+      "decisionBy": "V5.1 Teil D Nr. 2 und Umsetzungsauftrag Nr. 9",
       "activeForInternalTesting": true,
       "blocksLiveActivation": false
     }

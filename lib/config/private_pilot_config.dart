@@ -25,15 +25,14 @@ class PrivatePilotConfig {
   static const bool deliveryEnabled = false;
   static const bool aiFeaturesEnabled = false;
 
-  /// Until the four legal checkout questions are answered, the pilot may show
-  /// a complete checkout preview but must not create a binding request or
-  /// start a payment from that preview.
+  /// The V5.1 checkout may create binding test requests. Real money remains
+  /// independently disabled until the PSP and launch evidence is complete.
   static const bool bindingCheckoutEnabled = true;
 
-  /// V4 interim model. These values are versioned and intentionally isolated
-  /// so later legal feedback changes one source instead of scattered screens.
+  /// V5.1 product model. External legal/provider approval remains a separate
+  /// launch gate and real money stays disabled until that evidence exists.
   static const bool interimLegalModelEnabled = true;
-  static const String interimPolicyVersion = 'V4-INTERIM-2026-08-15';
+  static const String interimPolicyVersion = 'V5.1-2026-08-16';
   static const String interimPolicyScope = 'internal-and-closed-testing-only';
   static const bool replaceInterimRulesOnUserInstruction = true;
   static const bool realPaymentsEnabled = false;
@@ -65,73 +64,70 @@ class PrivatePilotConfig {
   static const int shortNoticeThresholdHours = 24;
   static const int shortNoticeGraceMinutes = 60;
 
-  /// Test parameters only. They are deliberately not labelled as legally
-  /// final until the limited lawyer review is complete.
+  /// V5.1 test parameters. External legal review remains a separate launch
+  /// gate and no fixed post-start/no-show refund percentage is configured.
   static const int shortNoticeRemainingBasisPoints = 5000;
-  static const int noShowRemainingBasisPoints = 10000;
 
-  static const String documentName = 'ShareItToo Rechtsmappe Privat-Pilot';
-  static const String documentVersion = 'V4-2026-08-14';
+  static const String documentName = 'ShareItToo Rechtsmappe Privat-Launch';
+  static const String documentVersion = 'V5.1-2026-08-16';
   static const String language = 'de';
 
-  /// Central register for the open V4 decisions. The app uses the stated
-  /// interim rule for closed testing, but none of these entries may silently
-  /// be treated as final legal or live-payment approval. A later decision is
-  /// applied by changing this registry and the matching versioned tests.
+  /// Central register mapping the former V4 questions to their explicit V5.1
+  /// successors. Product rules are decided for closed testing, while legal,
+  /// provider and live-payment approval remain separate launch gates.
   static const List<PilotOpenDecision> openDecisions = [
     PilotOpenDecision(
       id: 'platform_contract_and_withdrawal_timing',
-      status: 'open',
+      status: 'superseded_by_v51',
       title: 'Plattformvertrag und Widerrufserklärungen',
       interimRule:
-          'Getrennte, nicht vorausgewählte Erklärungen werden bei der Buchungsanfrage versioniert protokolliert; das V4-Zwischenmodell ordnet die SIT-Annahme der Buchungsbestätigung zu.',
-      updateAuthority: 'Anwalt - Rechtsmappe Teil K, Frage 1',
+          'Der buchungsbezogene Plattformvertrag entsteht bei der verbindlichen Buchungsanfrage mit exakt zwei getrennten, nicht vorausgewählten V5.1-Erklärungen und unveränderlicher Eingangsbestätigung.',
+      updateAuthority: 'V5.1 Teil A Nr. 11-13 und Umsetzungsauftrag Nr. 2-5',
       blocksLiveActivation: true,
     ),
     PilotOpenDecision(
       id: 'withdrawal_effect_on_private_rental',
-      status: 'open',
+      status: 'superseded_by_v51',
       title: 'Wirkung des Widerrufs auf den privaten Mietvertrag',
       interimRule:
-          'Der Eingang wird bestätigt und protokolliert; Buchung, privater Mietvertrag und Geldfluss werden nicht automatisch verändert.',
-      updateAuthority: 'Anwalt - Rechtsmappe Teil K, Frage 2',
+          'Innerhalb des garantierten 14-Tage-Fensters gelten die dokumentierten Folgen vor beziehungsweise nach Übergabe; danach wird die Erklärung empfangen, aber mögliche längere Rechte werden ohne automatische Buchungs- oder Geldänderung geprüft.',
+      updateAuthority: 'V5.1 Teil A Nr. 13 und Umsetzungsauftrag Nr. 5',
       blocksLiveActivation: true,
     ),
     PilotOpenDecision(
       id: 'cancellation_50_100_or_30_50',
-      status: 'open',
+      status: 'superseded_by_v51',
       title: 'Stornoparameter 50/100 oder 30/50',
       interimRule:
-          'Für geschlossene Tests gelten konfigurierbar 50 % verbleibend unter 24 Stunden und 100 % ab Mietbeginn oder Mieter-No-Show.',
-      updateAuthority: 'Anwalt und Produkt - Rechtsmappe Teil K, Frage 3',
+          'Mindestens 24 Stunden vollständig; unter 24 Stunden grundsätzlich 50 % Mietpreis plus 10 % des verbleibenden Mietpreises als Gebührenanteil; bei kurzfristigem Vertrag 60 Minuten Karenz, spätestens bis Mietbeginn; ab Beginn/No-Show keine starre Pauschale.',
+      updateAuthority: 'V5.1 Teil C und Umsetzungsauftrag Nr. 6',
       blocksLiveActivation: true,
     ),
     PilotOpenDecision(
       id: 'marketplace_psp_mechanics',
-      status: 'open',
+      status: 'superseded_by_v51',
       title: 'PSP- und Geldflussmechanik',
       interimRule:
-          'Nur Test- und Mockzustände; keine echte Autorisierung, Belastung, Auszahlung, Erstattung oder Schadensverrechnung.',
-      updateAuthority:
-          'PSP-Vertrag und ZAG-erfahrene Prüfung - Rechtsmappe Teil K, Frage 4',
+          'Nur lizenzierter Marketplace-PSP; bis Vertrag, Produktkonfiguration und Testabnahme belegt sind, bleiben Testmodus und kein Echtgeld verbindlich.',
+      updateAuthority: 'V5.1 Teil E und PSP-Vertrag/Testabnahme',
       blocksLiveActivation: true,
     ),
     PilotOpenDecision(
       id: 'missing_return_confirmation_window',
-      status: 'open',
+      status: 'superseded_by_v51',
       title: 'Klärungsfenster bei fehlender Rückgabebestätigung',
       interimRule:
           'Neutraler Zustand awaitingReturnConfirmation bis T0 plus 5 Kalendertage; keine automatische needsReview-Eskalation.',
-      updateAuthority: 'Produkt und PSP',
+      updateAuthority: 'V5.1 Teil E Nr. 2',
       blocksLiveActivation: false,
     ),
     PilotOpenDecision(
       id: 'handover_photo_workflow',
-      status: 'open',
+      status: 'superseded_by_v51',
       title: 'Fotoablauf bei Übergabe und Rückgabe',
       interimRule:
-          'Vier aktuelle Basisfotos je Richtung, Gegenbestätigung oder mindestens ein Abweichungsfoto, danach getrennte QR- oder Fallback-Code-Bestätigung.',
-      updateAuthority: 'Usability-Test vor Pilot',
+          'Die übergebende Partei erstellt vier Pflichtfotos; die Gegenpartei bestätigt oder ergänzt mindestens ein aktuelles Gegen-/Abweichungsfoto. Danach folgt getrennt QR- oder Fallback-Code-Bestätigung.',
+      updateAuthority: 'V5.1 Teil D Nr. 2 und Umsetzungsauftrag Nr. 9',
       blocksLiveActivation: false,
     ),
   ];

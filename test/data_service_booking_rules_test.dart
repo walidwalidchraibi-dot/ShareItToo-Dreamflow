@@ -13,7 +13,7 @@ void main() {
 
   group('DataService refund policy', () {
     test(
-      'V4 cancellation policy uses exact 24-hour instants',
+      'V5.1 cancellation policy uses exact 24-hour instants',
       () {
         final start = DateTime(2026, 7, 29, 12);
 
@@ -47,7 +47,7 @@ void main() {
             start: start,
             cancelAt: DateTime(2026, 7, 29, 12, 0),
           ),
-          0.0,
+          isNull,
         );
       },
     );

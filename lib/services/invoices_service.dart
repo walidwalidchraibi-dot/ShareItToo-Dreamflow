@@ -105,22 +105,24 @@ class InvoicesService {
 
       if (_isRefund(req)) {
         final refundAmount = _refundAmount(
-          totalAfterTax: breakdown.totalAfterTax,
           req: req,
+          totalAfterTax: breakdown.totalAfterTax,
         );
-        docs.add(
-          _buildInvoice(
-            baseId: 'refund_${req.id}',
-            type: InvoiceType.refund,
-            bookingId: bookingId,
-            requestId: req.id,
-            date: date,
-            title: '${item.title} – Rückerstattung',
-            amount: refundAmount,
-            booking: bookingDetails,
-            pricing: breakdown,
-          ),
-        );
+        if (refundAmount != null) {
+          docs.add(
+            _buildInvoice(
+              baseId: 'refund_${req.id}',
+              type: InvoiceType.refund,
+              bookingId: bookingId,
+              requestId: req.id,
+              date: date,
+              title: '${item.title} – Rückerstattung',
+              amount: refundAmount,
+              booking: bookingDetails,
+              pricing: breakdown,
+            ),
+          );
+        }
       }
     }
 
@@ -162,25 +164,16 @@ class InvoicesService {
     return s == 'cancelled' || s == 'declined';
   }
 
-  static double _refundAmount({
-    required double totalAfterTax,
+  static double? _refundAmount({
     required RentalRequest req,
+    required double totalAfterTax,
   }) {
-    // Demo policy: mirror the app's unified policy when renter cancels;
-    // owner cancellation is treated as 100% refund.
-    try {
-      if ((req.cancelledBy ?? '') == 'owner') {
-        return _round2(totalAfterTax);
-      }
-      final ratio = DataService.refundRatio(
-        policy: 'unified',
-        start: req.start,
-        cancelAt: DateTime.now(),
-      );
-      return _round2(totalAfterTax * ratio);
-    } catch (_) {
-      return 0.0;
+    final stored = req.cancellationOutcome;
+    final minor = (stored?['refundMinor'] as num?)?.toInt();
+    if (minor == null) {
+      return req.cancelledBy == 'owner' ? _round2(totalAfterTax) : null;
     }
+    return _round2(minor / 100);
   }
 
   static DateTime _bookingDateFor(RentalRequest req) {

@@ -2,8 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/config/private_pilot_config.dart';
 
 void main() {
-  test('all six V4 open decisions carry an explicit interim rule and owner',
-      () {
+  test('all six V4 questions carry an explicit V5.1 successor and source', () {
     expect(PrivatePilotConfig.openDecisions, hasLength(6));
     expect(
       PrivatePilotConfig.openDecisions.map((entry) => entry.id),
@@ -17,14 +16,14 @@ void main() {
       ]),
     );
     for (final entry in PrivatePilotConfig.openDecisions) {
-      expect(entry.status, 'open');
+      expect(entry.status, 'superseded_by_v51');
       expect(entry.interimRule, isNotEmpty);
       expect(entry.updateAuthority, isNotEmpty);
       expect(entry.activeForInternalTesting, isTrue);
     }
     expect(
       PrivatePilotConfig.interimPolicyVersion,
-      'V4-INTERIM-2026-08-15',
+      'V5.1-2026-08-16',
     );
     expect(
       PrivatePilotConfig.interimPolicyScope,

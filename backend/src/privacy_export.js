@@ -27,6 +27,12 @@ export async function buildAccountExport(client, userId) {
     platformContractDeclarations,
     platformContractReceipts,
     platformContractReceiptEvents,
+    withdrawals,
+    withdrawalRefundObligations,
+    withdrawalRefundObligationEvents,
+    cancellationRefundObligations,
+    withdrawalReceipts,
+    withdrawalReceiptEvents,
     messageThreads,
     messages,
     uploads,
@@ -107,6 +113,54 @@ export async function buildAccountExport(client, userId) {
        FROM platform_contract_receipt_events AS event
        JOIN platform_contracts AS contract ON contract.id = event.contract_id
        WHERE contract.user_id = $1 ORDER BY event.occurred_at`, userId),
+    rows(client,
+      `SELECT id, scope, platform_contract_id, booking_id, actor_name,
+              electronic_channel, effect_phase, effect_status,
+              eligibility_status, right_expires_at,
+              submitted_at, created_at
+       FROM v51_withdrawals WHERE user_id = $1 ORDER BY submitted_at`, userId),
+    rows(client,
+      `SELECT obligation.id, obligation.withdrawal_id, obligation.booking_id,
+              obligation.refund_type, obligation.debtor_role,
+              obligation.currency, obligation.status,
+              obligation.amount_due_minor, obligation.maximum_minor,
+              obligation.calculation_basis, obligation.created_at
+       FROM v51_refund_obligations AS obligation
+       JOIN v51_withdrawals AS withdrawal ON withdrawal.id = obligation.withdrawal_id
+       WHERE withdrawal.user_id = $1 ORDER BY obligation.created_at`, userId),
+    rows(client,
+      `SELECT event.id, event.obligation_id, obligation.withdrawal_id,
+              event.event_type, event.amount_due_minor,
+              event.calculation_basis, event.occurred_at
+       FROM v51_refund_obligation_events AS event
+       JOIN v51_refund_obligations AS obligation
+         ON obligation.id = event.obligation_id
+       JOIN v51_withdrawals AS withdrawal
+         ON withdrawal.id = obligation.withdrawal_id
+       WHERE withdrawal.user_id = $1 ORDER BY event.occurred_at`, userId),
+    rows(client,
+      `SELECT obligation.id, obligation.booking_id, obligation.refund_type,
+              obligation.debtor_role, obligation.currency, obligation.status,
+              obligation.amount_due_minor, obligation.maximum_minor,
+              obligation.calculation_basis, obligation.created_at
+       FROM v51_cancellation_refund_obligations AS obligation
+       JOIN bookings AS booking ON booking.id = obligation.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY obligation.created_at`, userId),
+    rows(client,
+      `SELECT receipt.id, receipt.withdrawal_id, receipt.artifact_format,
+              receipt.content_html, receipt.artifact_sha256,
+              receipt.generated_at, receipt.created_at
+       FROM v51_withdrawal_receipts AS receipt
+       JOIN v51_withdrawals AS withdrawal ON withdrawal.id = receipt.withdrawal_id
+       WHERE withdrawal.user_id = $1 ORDER BY receipt.generated_at`, userId),
+    rows(client,
+      `SELECT event.id, event.withdrawal_id, event.event_type,
+              event.artifact_sha256, event.delivery_channel,
+              event.occurred_at, event.metadata
+       FROM v51_withdrawal_receipt_events AS event
+       JOIN v51_withdrawals AS withdrawal ON withdrawal.id = event.withdrawal_id
+       WHERE withdrawal.user_id = $1 ORDER BY event.occurred_at`, userId),
     rows(client,
       `SELECT id, booking_id, item_id, archived_for, created_at,
               last_message_at, updated_at
@@ -208,6 +262,9 @@ export async function buildAccountExport(client, userId) {
       platformContractDeclarations,
       platformContractReceipts,
       platformContractReceiptEvents,
+      withdrawals,
+      withdrawalReceipts,
+      withdrawalReceiptEvents,
     },
     communication: { messageThreads, messages },
     uploadedFiles: uploads,
@@ -219,6 +276,9 @@ export async function buildAccountExport(client, userId) {
     financialActivity: {
       payments,
       refunds,
+      withdrawalRefundObligations,
+      withdrawalRefundObligationEvents,
+      cancellationRefundObligations,
       payouts,
       depositMandates,
       depositCharges,

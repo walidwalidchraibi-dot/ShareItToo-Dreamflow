@@ -1,3 +1,5 @@
+import { evaluateV51Cancellation } from './v51_termination_domain.js';
+
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
@@ -155,32 +157,18 @@ export function evaluateCancellation({
   graceMinutes = 60,
   shortNoticeRefundBasisPoints = 5000,
 }) {
-  const starts = instant(rentalStartAt, 'invalid_rental_start');
-  const cancelled = instant(cancelAt, 'invalid_cancellation_time');
-  if (actor === 'owner') {
-    return Object.freeze({ refundBasisPoints: 10000, reasonCode: 'owner_cancellation_full_refund', freeCancellationUntil: null });
-  }
-  if (noShow || cancelled >= starts) {
-    return Object.freeze({ refundBasisPoints: 0, reasonCode: 'renter_no_show_or_after_start', freeCancellationUntil: null });
-  }
-  const grace = contractConfirmedAt
-    ? shortNoticeGraceDeadline({
-        contractConfirmedAt,
-        rentalStartAt: starts,
-        shortNoticeHours,
-        graceMinutes,
-      })
-    : null;
-  if (grace && cancelled <= grace) {
-    return Object.freeze({ refundBasisPoints: 10000, reasonCode: 'short_notice_grace_full_refund', freeCancellationUntil: iso(grace) });
-  }
-  if (starts.getTime() - cancelled.getTime() >= shortNoticeHours * HOUR_MS) {
-    return Object.freeze({ refundBasisPoints: 10000, reasonCode: 'at_least_24_hours_full_refund', freeCancellationUntil: null });
-  }
+  const decision = evaluateV51Cancellation({
+    rentalStartAt,
+    cancelAt,
+    contractConfirmedAt,
+    actor,
+    noShow,
+    shortNoticeHours,
+    graceMinutes,
+  });
   return Object.freeze({
-    refundBasisPoints: shortNoticeRefundBasisPoints,
-    reasonCode: 'less_than_24_hours_partial_refund',
-    freeCancellationUntil: null,
+    ...decision,
+    refundBasisPoints: decision.rentRefundBasisPoints,
   });
 }
 
