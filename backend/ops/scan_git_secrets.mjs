@@ -4,7 +4,10 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
 
-import { detectHighConfidenceSecretRules } from './secret_scan_rules.mjs';
+import {
+  detectHighConfidenceSecretRules,
+  detectSensitivePathRules,
+} from './secret_scan_rules.mjs';
 import {
   parseReviewedHistoryBaseline,
   partitionReviewedFindings,
@@ -18,6 +21,12 @@ const workingTreeOnly = process.argv.includes('--working-tree-only');
 
 function inspect(text, source, file) {
   for (const rule of detectHighConfidenceSecretRules(text, file)) {
+    findings.add(`${rule}\t${source}\t${file}`);
+  }
+}
+
+function inspectPath(source, file) {
+  for (const rule of detectSensitivePathRules(file)) {
     findings.add(`${rule}\t${source}\t${file}`);
   }
 }
@@ -40,6 +49,10 @@ async function scanHistory() {
         commit = line.slice('@@SIT_COMMIT '.length).trim();
       } else if (line.startsWith('+++ b/')) {
         file = line.slice(6);
+        inspectPath(commit, file);
+      } else if (line.startsWith('rename to ')) {
+        file = line.slice('rename to '.length);
+        inspectPath(commit, file);
       } else if (line.startsWith('+') && !line.startsWith('+++')) {
         inspect(line.slice(1), commit, file);
       }
@@ -63,6 +76,7 @@ async function scanWorkingTree() {
   ).toString('utf8').split('\0').filter(Boolean);
 
   for (const relativePath of tracked) {
+    inspectPath('working-tree', relativePath);
     const absolutePath = path.join(repoRoot, relativePath);
     let stat;
     try {

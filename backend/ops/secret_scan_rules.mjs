@@ -1,13 +1,34 @@
 const directRules = [
-  ['private_key', /-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/u],
+  ['private_key', /-----BEGIN (?:(?:RSA|EC|OPENSSH|DSA|ENCRYPTED) PRIVATE KEY|PRIVATE KEY|PGP PRIVATE KEY BLOCK)-----/u],
   ['aws_access_key', /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/u],
   ['github_token', /\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{60,})\b/u],
-  ['openai_key', /\bsk-(?:proj-)?[A-Za-z0-9_-]{32,}\b/u],
+  ['openai_key', /\bsk-(?:(?:proj|svcacct)-)?[A-Za-z0-9_-]{32,}\b/u],
   ['stripe_live_key', /\b(?:sk|rk)_live_[A-Za-z0-9]{20,}\b/u],
+  ['stripe_test_key', /\b(?:sk|rk)_test_[A-Za-z0-9]{20,}\b/u],
   ['google_api_key', /\bAIza[0-9A-Za-z_-]{35}\b/u],
   ['slack_token', /\bxox[baprs]-[0-9A-Za-z-]{20,}\b/u],
+  ['sendgrid_key', /\bSG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{20,}\b/u],
+  ['twilio_key', /\bSK[a-fA-F0-9]{32}\b/u],
   ['static_password_assignment', /\b(?:const|let|var)\s+[\w$]*password[\w$]*\s*=\s*(['"])[^'"\r\n]{8,}\1/iu],
   ['static_password_property', /\b(?:password|currentPassword|newPassword)\s*:\s*(['"])[^'"\r\n]{8,}\1/iu],
+];
+
+const sensitivePathRules = [
+  [
+    'tracked_environment_file',
+    /(^|\/)\.env(?:\.[^/]+)?$/u,
+    /(?:^|\/)(?:\.env(?:\.[^/]+)*\.(?:example|sample|template)|example\.env)$/u,
+  ],
+  [
+    'tracked_service_account_file',
+    /(?:^|\/)(?:[^/]*service[-_]?account[^/]*\.json|google-credentials\.json)$/iu,
+    null,
+  ],
+  [
+    'tracked_private_key_file',
+    /(?:^|\/)(?:id_(?:rsa|dsa|ecdsa|ed25519)|[^/]+\.(?:p12|pfx|jks|keystore|key))$/iu,
+    null,
+  ],
 ];
 
 const templateRules = [
@@ -48,5 +69,13 @@ export function detectHighConfidenceSecretRules(text, file) {
     }
   }
 
+  return [...findings];
+}
+
+export function detectSensitivePathRules(file) {
+  const findings = new Set();
+  for (const [rule, pattern, allowPattern] of sensitivePathRules) {
+    if (pattern.test(file) && !(allowPattern?.test(file) ?? false)) findings.add(rule);
+  }
   return [...findings];
 }

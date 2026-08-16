@@ -228,9 +228,14 @@ Architekturquelle.
   Android-Kandidat ist `1.0.0+2026081509`.
 - Keine echten Stripe-Schlüssel wurden im Repository gefunden; Stripe ist aber
   auch noch nicht integriert.
-- Keine Klartext-Private-Keys oder offensichtlichen Google-/Stripe-API-Schlüssel
-  wurden in den getrackten Textdateien gefunden. Das öffentliche Repository
-  benötigt vor Launch trotzdem einen vollständigen History-Secret-Scan.
+- Der vollständige Secret-Scan über alle Git-Referenzen, die gesamte
+  Änderungshistorie und den aktuellen Arbeitsstand ist grün. Zwölf exakt an
+  Commit, Pfad und Regel gebundene historische Treffer sind als entfernte oder
+  ersetzte synthetische Testwerte geprüft; unerwartete Treffer: null. Der
+  bereinigte Nachweis liegt unter
+  `docs/evidence/b11/git-history-secret-scan-20260816.json` und derselbe Scan
+  läuft mit vollständiger Historie in CI. Da kein echter Schlüssel gefunden
+  wurde, war keine Zugangsdatenrotation erforderlich.
 - Ein OpenAI-Proxy-Key ist als Compile-Time-Variable vorgesehen. Ein echter
   geheimer Schlüssel darf niemals in die Client-App kompiliert werden; die
   Funktion muss vor Aktivierung über das Backend laufen.
@@ -270,7 +275,7 @@ Architekturquelle.
 | P1-05 | Push-Benachrichtigungen | Codex | Buchungs-, Chat- und Übergabeereignisse zuverlässig; Opt-in und Deep Links getestet |
 | P1-06 | Karten/Geocoding produktiv | Codex + Walid | korrekte Distanz; Datenschutz; keine 0-km-Freigabe bei unbekannter Adresse |
 | P1-07 | Architektur- und Betriebsdokumentation aktualisieren | Codex | `architecture.md` und Runbooks entsprechen Produktion |
-| P1-08 | Öffentliche Repo-Historie auf Geheimnisse prüfen | Codex | vollständiger Secret-Scan grün; Fundrotation dokumentiert |
+| P1-08 | Öffentliche Repo-Historie auf Geheimnisse prüfen | Codex | **erfüllt**: vollständiger Secret-Scan grün; 12 historische synthetische Treffer exakt geprüft, 0 unerwartete Treffer; `docs/evidence/b11/git-history-secret-scan-20260816.json` |
 | P1-09 | Barrierefreiheit, Performance und Geräte-Matrix | Codex | definierte iOS-/Android-Matrix und Kernflows ohne P1-Blocker |
 
 ### Später

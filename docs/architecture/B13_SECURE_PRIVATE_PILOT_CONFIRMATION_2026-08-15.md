@@ -1014,3 +1014,32 @@ Servernachweis:
 - Produktion, Echtgeld, App-Kandidat `1.0.0+2026081509`, Google-Play-Tracks und
   Review-Versand blieben unveraendert. Alle neun Aufbewahrungsentscheidungen
   und alle sechs V4-Punkte bleiben offen.
+
+## Meilenstein 16.91 – oeffentliche Git-Historie vollstaendig auf Secrets geprueft
+
+- Der bereits in CI verankerte kanonische Secret-Scanner wurde erweitert,
+  statt einen zweiten parallelen Scanner einzufuehren. Er prueft alle Git-
+  Referenzen mit vollstaendiger Historie, die hinzugefuegten Zeilen jedes
+  Commits und den aktuellen Arbeitsstand.
+- Neben Private Keys, statischen Passwoertern und den bisherigen Provider-
+  Tokens erkennt er jetzt auch Testschluessel von Stripe, SendGrid-, Twilio-
+  und OpenAI-Service-Account-Schluessel. Zusaetzlich werden getrackte
+  Umgebungsdateien, Service-Account-Dateien und private Schluesseldateien
+  anhand ihres Pfads fail-closed abgewiesen; klar benannte Vorlagen bleiben
+  erlaubt.
+- Der vollstaendige Lauf ueber 698 Commits und 16 lokale beziehungsweise
+  entfernte Referenzen endete mit null unerwarteten hochvertraulichen
+  Treffern. Zwoelf historische synthetische Testtreffer wurden ausschliesslich
+  als exakte Kombination aus unveraenderlichem Commit, Regel und Pfad gegen
+  die gepruefte Baseline akzeptiert. Der aktuelle Arbeitsstand kann nie ueber
+  diese Baseline freigestellt werden. Weil kein echter Schluessel gefunden
+  wurde, war keine Zugangsdatenrotation erforderlich.
+- Der bereinigte Nachweis liegt unter
+  `docs/evidence/b11/git-history-secret-scan-20260816.json`. Er enthaelt weder
+  Trefferwerte noch Secrets, Kontodaten oder Zugangsdaten. P1-08 im
+  kanonischen Launch-Backlog ist damit technisch erfuellt; derselbe Scan bleibt
+  mit `fetch-depth: 0` Bestandteil der Backend-CI.
+- Es wurde keine Git-Historie umgeschrieben, kein Zugangsschluessel rotiert und
+  kein App-Kandidat gebaut. Produktion, Echtgeld, Store-Tracks und Review-
+  Versand blieben unveraendert; alle neun Aufbewahrungsentscheidungen und alle
+  sechs V4-Punkte bleiben offen.
