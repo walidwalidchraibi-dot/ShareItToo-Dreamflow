@@ -1251,3 +1251,31 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.99 – kleine UI-Reste und reine Framework-Bezeichner bereinigt
+
+- Der Flutter-Analysebestand wurde von 333 auf 324 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 287 Hinweise abgebaut.
+- Vier vollstaendig unreferenzierte kleine UI-Bausteine wurden entfernt: ein
+  eigenstaendiger alter Explore-Header, ein alter Trust-Meter sowie zwei nur
+  noch in auskommentiertem oder abgeloestem Profilaufbau vorhandene Helfer.
+- Fuenf veraltete Framework-Bezeichner wurden ohne Funktionsaenderung auf ihre
+  direkten aktuellen Entsprechungen umgestellt: zwei aktive Switch-Daumen und
+  drei Material- zu Widget-State-Typen.
+- Der gezielte Laufzeitumfang umfasst sechs Dateien, entfernt 124 alte Zeilen
+  und fuegt zehn Zeilen fuer die aktuellen API-Namen ein. Keine dieser Dateien
+  ist als Datenschutz-Quellbindung hinterlegt; eine Hash-Aktualisierung war
+  nicht erforderlich.
+- Sichtbare Explore-, Profil-, Sprach-, Bearbeitungs- und Detailpfade sowie
+  persistierte Daten bleiben unveraendert. Die CI-Analyseschranke steht jetzt
+  fail-closed bei 324; grosse Buchungs- und Chatregionen bleiben geschuetzt.
+- Der gezielte Public-Profile-Test mit 13 Faellen, zwei Wiring-Tests und 268
+  App-Tests bei einem bewussten Skip sind gruen. Der vollstaendige technische
+  Regressionslauf bestand einschliesslich aller Schutzvalidatoren sowie Web-
+  und Android-Debug-Bau. Nachweis:
+  `docs/evidence/b11/flutter-analysis-small-ui-and-api-cleanup-20260816.json`.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.

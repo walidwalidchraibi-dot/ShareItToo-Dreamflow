@@ -3202,8 +3202,8 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                           borderRadius: BorderRadius.circular(14)),
                     ).copyWith(
                       backgroundColor:
-                          MaterialStateProperty.resolveWith<Color?>((states) {
-                        if (states.contains(MaterialState.disabled)) {
+                          WidgetStateProperty.resolveWith<Color?>((states) {
+                        if (states.contains(WidgetState.disabled)) {
                           return Theme.of(context).brightness == Brightness.dark
                               ? Colors.white.withValues(alpha: 0.12)
                               : AppTheme.surfaceSecondary(context);
@@ -3211,7 +3211,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                         return Theme.of(context).colorScheme.primary;
                       }),
                       foregroundColor:
-                          const MaterialStatePropertyAll<Color>(Colors.white),
+                          const WidgetStatePropertyAll<Color>(Colors.white),
                     );
                     final btn = FilledButton.icon(
                       style: buttonStyle,

@@ -790,28 +790,6 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
 
 */
 
-class _MetricLine extends StatelessWidget {
-  final String label;
-  final String value;
-  const _MetricLine({required this.label, required this.value});
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      Expanded(
-          child: Text(label,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppTheme.textSecondary(context)))),
-      const SizedBox(width: 8),
-      Text(value,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textPrimary(context),
-              fontWeight: FontWeight.w700)),
-    ]);
-  }
-}
-
 class PublicProfileReviewDetailsInline extends StatelessWidget {
   final List<ReviewCriterion> criteria;
 
@@ -1080,49 +1058,6 @@ class _PublicProfileReviewArtwork extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-class _ProfileQuickInfoLines extends StatelessWidget {
-  final User user;
-  final int listingsCount;
-  const _ProfileQuickInfoLines(
-      {required this.user, required this.listingsCount});
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.watch<LocalizationController>();
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Icon(Icons.apps_outage_rounded,
-            color: AppTheme.textSecondary(context), size: 18),
-        const SizedBox(width: 8),
-        Expanded(
-            child: Text(
-                '${l10n.t('Gesamt Anzeigen bis jetzt')}: $listingsCount',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppTheme.textPrimary(context))))
-      ]),
-      const SizedBox(height: 8),
-      Row(children: [
-        Icon(user.isVerified ? Icons.verified_user : Icons.gpp_maybe,
-            color: user.isVerified
-                ? const Color(0xFF22C55E)
-                : AppTheme.textSecondary(context),
-            size: 18),
-        const SizedBox(width: 8),
-        Expanded(
-            child: Text(
-                user.isVerified
-                    ? l10n.t('Identität verifiziert')
-                    : l10n.t('Identität nicht verifiziert'),
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: Colors.white)))
-      ]),
-    ]);
   }
 }
 

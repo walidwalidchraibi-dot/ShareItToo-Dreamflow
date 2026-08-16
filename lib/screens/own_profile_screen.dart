@@ -549,35 +549,6 @@ class _AboutMeTab extends StatelessWidget {
   }
 }
 
-class _TrustMeter extends StatelessWidget {
-  final double score; // 0..100
-  const _TrustMeter({required this.score});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.30), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.08))),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Text(context.watch<LocalizationController>().t('Trust Meter'), style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white)),
-          const Spacer(),
-          Text('${score.toStringAsFixed(0)}%', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white))
-        ]),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: LinearProgressIndicator(
-            minHeight: 10,
-            value: (score / 100).clamp(0, 1),
-            backgroundColor: Colors.white.withValues(alpha: 0.10),
-            valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-          ),
-        ),
-      ]),
-    );
-  }
-}
-
 class _MetricTile extends StatelessWidget {
   final String title; final String value;
   const _MetricTile({required this.title, required this.value});

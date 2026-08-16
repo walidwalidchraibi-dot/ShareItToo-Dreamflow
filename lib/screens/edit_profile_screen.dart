@@ -178,7 +178,7 @@ class _SwitchTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
-      activeColor: Theme.of(context).colorScheme.primary,
+      activeThumbColor: Theme.of(context).colorScheme.primary,
       title: Text(title),
       value: value,
       onChanged: onChanged,
