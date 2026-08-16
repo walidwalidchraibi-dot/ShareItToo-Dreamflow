@@ -88,7 +88,7 @@
     },
     {
       "path": "lib/screens/create_listing_screen.dart",
-      "sha256": "b79b4e31eada3a01055f136680e3bf0e109c4567f12ee2959361fcd132652817"
+      "sha256": "4c9c515f8d59cdba1ab3153b858e5bf515fb36427cb8037389e2470626caf8ee"
     },
     {
       "path": "lib/screens/message_thread_screen.dart",

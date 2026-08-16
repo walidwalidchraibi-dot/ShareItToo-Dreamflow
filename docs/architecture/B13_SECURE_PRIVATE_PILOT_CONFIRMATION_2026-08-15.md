@@ -1465,3 +1465,29 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.107 – wirkungslose Inserat-Zwischenstaende entfernt
+
+- Der Flutter-Analysebestand wurde von 290 auf 276 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 335 Hinweise abgebaut.
+- Sechs nie gelesene Inserat-Zustandsfelder, drei projektweit unreferenzierte
+  Helfer, fuenf nie gesetzte Darstellungsoptionen und ein daran gebundener
+  leerer Prozentzustands-Callback sind entfernt.
+- Die gespeicherten Privat-Pilot-Regeln bleiben unveraendert: Express ist aus,
+  die Stornoregel ist `unified`, aktive Lieferflags bleiben an die Pilotgrenze
+  gebunden und die drei Rabattstufen bleiben Bestandteil des Inserats.
+- Fotoauswahl, Adressvorschlaege, KI-Preisberechnung, Kategorieauswahl,
+  Rabattbearbeitung und Inseratsspeicherung bleiben erhalten und werden durch
+  vier neue Wiring-Tests verriegelt.
+- Die Laufzeitdatei ist im Datenschutz-Inventar gebunden; ihr SHA-256 wurde
+  exakt aktualisiert. Datenfluesse, Datentypen und Offenlegungen bleiben
+  unveraendert. Die CI-Analyseschranke steht jetzt fail-closed bei 276. Nachweis:
+  `docs/evidence/b11/flutter-analysis-create-listing-dead-state-20260816.json`.
+- 16 Datenschutzpruefungen, 42 gezielte Inserat-, Preis-, Storno-, Foto- und
+  Privat-Pilot-Pruefungen, acht Wiring-/Richtlinientests sowie 268 App-Tests bei
+  einem bewussten Skip sind gruen. Web- und Android-Debug-Bau bestanden.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.

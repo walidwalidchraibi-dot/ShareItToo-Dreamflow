@@ -58,13 +58,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   // Delivery options
   bool _offersDeliveryAtDropoff = false; // Lieferung bei Abgabe (Hinweg)
   bool _offersPickupAtReturn = false; // Abholung bei Rückgabe (Rückweg)
-  bool _offersExpressAtDropoff =
-      false; // Deprecated: Prioritäts-/Expresslieferung (nicht mehr angeboten)
   double? _maxDistanceKm; // applies to both delivery and pickup (simple model)
-  // Master toggle for Lieferung / Abholung anbieten (default disabled like requested)
-  bool _deliveryOptionsEnabled = false;
-  // Cancellation policy
-  String _cancellationPolicy = 'flexible'; // 'flexible' | 'moderate' | 'strict'
 
   // Location (only address mode now)
   final TextEditingController _addressCtrl = TextEditingController();
@@ -100,10 +94,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       false; // if user edits any tier, avoid overwriting with AI
   // If user manually edits the price, we stop all auto-adjustments
   bool _priceTouched = false;
-  // Track whether any % input fields are currently empty so we can restore on mode toggle
-  bool _tier1PctEmpty = false;
-  bool _tier2PctEmpty = false;
-  bool _tier3PctEmpty = false;
   bool _privateStatusConfirmed = false;
   // Force-refresh discount rows when switching strategy so focused inputs also update
   int _strategyEpoch = 0;
@@ -130,20 +120,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           PrivatePilotConfig.deliveryEnabled && ex.offersDeliveryAtDropoff;
       _offersPickupAtReturn =
           PrivatePilotConfig.deliveryEnabled && ex.offersPickupAtReturn;
-      // Deprecated: no longer used, UI removed
-      _offersExpressAtDropoff = false;
       _maxDistanceKm = ex.maxDeliveryKmAtDropoff ?? ex.maxPickupKmAtReturn;
-      // Enable the section by default in edit mode only if any option had been set before
-      _deliveryOptionsEnabled = PrivatePilotConfig.deliveryEnabled &&
-          (_offersDeliveryAtDropoff ||
-              _offersPickupAtReturn ||
-              (_maxDistanceKm != null));
       _registeredCity = ex.city;
       _addressCtrl.text = ex.locationText;
       _selectedAddrLat = ex.lat;
       _selectedAddrLng = ex.lng;
       _existingPhotos = List<String>.from(ex.photos);
-      _cancellationPolicy = ex.cancellationPolicy;
       _privateStatusConfirmed = ex.privateStatusConfirmed;
       // Prefill discount tiers: map first three thresholds ascending
       _autoApplyDiscounts = ex.autoApplyDiscounts;
@@ -640,59 +622,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     });
   }
 
-  IconData _iconFromName(String name) {
-    switch (name) {
-      case 'devices':
-        return Icons.devices;
-      case 'computer':
-        return Icons.computer;
-      case 'camera_alt':
-        return Icons.camera_alt;
-      case 'sports_esports':
-        return Icons.sports_esports;
-      case 'kitchen':
-        return Icons.kitchen;
-      case 'weekend':
-        return Icons.weekend;
-      case 'grass':
-        return Icons.grass;
-      case 'construction':
-        return Icons.construction;
-      case 'pedal_bike':
-        return Icons.pedal_bike;
-      case 'directions_car':
-        return Icons.directions_car;
-      case 'sports_soccer':
-        return Icons.sports_soccer;
-      case 'checkroom':
-        return Icons.checkroom;
-      case 'child_friendly':
-        return Icons.child_friendly;
-      case 'music_note':
-        return Icons.music_note;
-      case 'menu_book':
-        return Icons.menu_book;
-      case 'watch':
-        return Icons.watch;
-      case 'palette':
-        return Icons.palette;
-      case 'spa':
-        return Icons.spa;
-      case 'pets':
-        return Icons.pets;
-      case 'business_center':
-        return Icons.business_center;
-      case 'celebration':
-        return Icons.celebration;
-      case 'travel_explore':
-        return Icons.travel_explore;
-      case 'more_horiz':
-        return Icons.more_horiz;
-      default:
-        return Icons.category;
-    }
-  }
-
   // Coarse/top-level category icon mapping (keep in sync with filters overlay)
   IconData _coarseIconForGroup(String group) {
     final g = group.toLowerCase();
@@ -847,10 +776,6 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         _tier3Pct = 25;
       }
       _hasCalculatedDiscounts = true;
-      // After presetting, consider inputs no longer empty
-      _tier1PctEmpty = false;
-      _tier2PctEmpty = false;
-      _tier3PctEmpty = false;
     });
   }
 
@@ -1456,12 +1381,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                     }),
                                     onPercentChanged: (v) => setState(() {
                                       _tier1Pct = v;
-                                      _tier1PctEmpty = false;
                                       _discountsTouched = true;
-                                    }),
-                                    onPercentEmptyChanged: (isEmpty) =>
-                                        setState(() {
-                                      _tier1PctEmpty = isEmpty;
                                     }),
                                   ),
                                   const SizedBox(height: 6),
@@ -1479,12 +1399,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                     }),
                                     onPercentChanged: (v) => setState(() {
                                       _tier2Pct = v;
-                                      _tier2PctEmpty = false;
                                       _discountsTouched = true;
-                                    }),
-                                    onPercentEmptyChanged: (isEmpty) =>
-                                        setState(() {
-                                      _tier2PctEmpty = isEmpty;
                                     }),
                                   ),
                                   const SizedBox(height: 6),
@@ -1502,12 +1417,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                     }),
                                     onPercentChanged: (v) => setState(() {
                                       _tier3Pct = v;
-                                      _tier3PctEmpty = false;
                                       _discountsTouched = true;
-                                    }),
-                                    onPercentEmptyChanged: (isEmpty) =>
-                                        setState(() {
-                                      _tier3PctEmpty = isEmpty;
                                     }),
                                   ),
                                   const SizedBox(height: 6),
@@ -2099,9 +2009,7 @@ class _Section extends StatelessWidget {
   final String title;
   final Widget child;
   final Widget? leading;
-  final Widget? trailing;
-  const _Section(
-      {required this.title, required this.child, this.leading, this.trailing});
+  const _Section({required this.title, required this.child, this.leading});
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -2119,7 +2027,7 @@ class _Section extends StatelessWidget {
                 : AppTheme.glassStroke(context)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (leading == null && trailing == null)
+        if (leading == null)
           Text(title,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: Theme.of(context).brightness == Brightness.dark
@@ -2139,7 +2047,6 @@ class _Section extends StatelessWidget {
                             : AppTheme.textPrimary(context),
                         fontWeight: FontWeight.w600,
                         fontSize: 16))),
-            if (trailing != null) ...[const SizedBox(width: 8), trailing!],
           ]),
         const SizedBox(height: 8),
         child,
@@ -2253,35 +2160,6 @@ class _PickedThumb extends StatelessWidget {
   }
 }
 
-class _Bullet extends StatelessWidget {
-  final String text;
-  const _Bullet({required this.text});
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Icon(Icons.circle,
-              size: 6,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white70
-                  : AppTheme.textSecondary(context)),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-            child: Text(text,
-                style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white70
-                        : AppTheme.textSecondary(context),
-                    fontSize: 13.5))),
-      ]),
-    );
-  }
-}
-
 // ---------- Simple Accordion (Chevron + smooth height animation) ----------
 class _Accordion extends StatefulWidget {
   final String title;
@@ -2289,19 +2167,11 @@ class _Accordion extends StatefulWidget {
   final bool initiallyExpanded;
   // When true, renders without its own card container (inline, text-only toggle)
   final bool bare;
-  // Center the title horizontally inside the header area
-  final bool centerTitle;
-  // Allow custom paddings per use-case
-  final EdgeInsets? headerPadding;
-  final EdgeInsets? bodyPadding;
   const _Accordion({
     required this.title,
     required this.child,
     this.initiallyExpanded = false,
     this.bare = false,
-    this.centerTitle = false,
-    this.headerPadding,
-    this.bodyPadding,
   });
   @override
   State<_Accordion> createState() => _AccordionState();
@@ -2330,19 +2200,15 @@ class _AccordionState extends State<_Accordion>
       onTap: () => setState(() => _expanded = !_expanded),
       borderRadius: BorderRadius.circular(widget.bare ? 8 : 12),
       child: Padding(
-        padding: widget.headerPadding ??
-            EdgeInsets.symmetric(
-                horizontal: widget.bare ? 0 : 12, vertical: 12),
+        padding: EdgeInsets.symmetric(
+            horizontal: widget.bare ? 0 : 12, vertical: 12),
         child: Stack(
           alignment: Alignment.center,
           children: [
-            if (!widget.centerTitle)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(widget.title, style: titleStyle),
-              ),
-            if (widget.centerTitle)
-              Center(child: Text(widget.title, style: titleStyle)),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(widget.title, style: titleStyle),
+            ),
             Align(
               alignment: Alignment.centerRight,
               child: AnimatedRotation(
@@ -2367,9 +2233,8 @@ class _AccordionState extends State<_Accordion>
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
         child: Padding(
-          padding: widget.bodyPadding ??
-              EdgeInsets.fromLTRB(
-                  widget.bare ? 0 : 12, 0, widget.bare ? 0 : 12, 12),
+          padding: EdgeInsets.fromLTRB(
+              widget.bare ? 0 : 12, 0, widget.bare ? 0 : 12, 12),
           child: widget.child,
         ),
       ),
@@ -2873,60 +2738,19 @@ class _StrategyChip extends StatelessWidget {
   }
 }
 
-class _DiscountRow extends StatelessWidget {
-  final String label;
-  final double value;
-  final bool enabled;
-  final ValueChanged<double> onChanged;
-  const _DiscountRow(
-      {required this.label,
-      required this.value,
-      required this.onChanged,
-      this.enabled = true});
-  @override
-  Widget build(BuildContext context) {
-    final ctrl = TextEditingController(
-        text: value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 1));
-    return Row(children: [
-      SizedBox(
-          width: 140,
-          child: Text(label,
-              style: const TextStyle(
-                  color: Colors.white70, fontWeight: FontWeight.w600))),
-      const SizedBox(width: 8),
-      Expanded(
-        child: TextField(
-          controller: ctrl,
-          enabled: enabled,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-              suffixText: '%', labelText: 'Rabatt', isDense: true),
-          onChanged: (v) {
-            final n = double.tryParse(v.replaceAll(',', '.'));
-            if (n != null) onChanged(n.clamp(0.0, 95.0).toDouble());
-          },
-        ),
-      ),
-    ]);
-  }
-}
-
 class _ThresholdDiscountRow extends StatefulWidget {
   final int days;
   final double percent;
   final double pricePerDay;
   final ValueChanged<int> onDaysChanged;
   final ValueChanged<double> onPercentChanged;
-  final ValueChanged<bool>? onPercentEmptyChanged;
   const _ThresholdDiscountRow(
       {super.key,
       required this.days,
       required this.percent,
       required this.pricePerDay,
       required this.onDaysChanged,
-      required this.onPercentChanged,
-      this.onPercentEmptyChanged});
+      required this.onPercentChanged});
   @override
   State<_ThresholdDiscountRow> createState() => _ThresholdDiscountRowState();
 }
@@ -3086,7 +2910,6 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
                 ),
                 onChanged: (v) {
                   final n = double.tryParse(v.replaceAll(',', '.'));
-                  widget.onPercentEmptyChanged?.call(v.trim().isEmpty);
                   if (n != null) {
                     widget.onPercentChanged(n.clamp(0.0, 95.0).toDouble());
                   }
