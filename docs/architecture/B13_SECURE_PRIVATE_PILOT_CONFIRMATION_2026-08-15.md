@@ -1610,3 +1610,32 @@ Servernachweis:
   Kandidat `1.0.0+2026081509`, Produktion, Echtgeld, Store-Tracks, Testkonten
   und Review-Versand blieben unveraendert. Alle neun Aufbewahrungsentscheidungen,
   alle sechs V4-Punkte und die vier offenen Geraetematrix-Zellen bleiben offen.
+
+## Meilenstein 16.112 – toter Explore-Wrapper-Verifizierungsgetter entfernt
+
+- Der Flutter-Analysebestand wurde von 234 auf 233 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 378 Hinweise abgebaut.
+- Ausschliesslich der unreferenzierte private `_isVerified`-Getter im
+  `_ExploreListingCard`-Wrapper wurde entfernt. Die Laufzeitdatei verlor vier
+  tote Zeilen ohne neue Laufzeitzeile.
+- Der gleichnamige aktive Getter in `_ExploreListingCardContent` bleibt
+  erhalten und steuert weiterhin die gruen/graue Verifizierungsanzeige. Grid-
+  Weitergabe, Textskalierungsbegrenzung, Favoritenaktion, echtes Rating,
+  Detailoeffnung und Long-Press-Optionen bleiben unveraendert.
+- Vier neue bereichsgebundene Wiring-Tests verriegeln die enge Patch-Grenze und
+  verhindern insbesondere eine globale Entfernung des aktiven Getters. Zwei
+  unabhaengige Reviews bestaetigen die Reichweite und melden keine Findings.
+- `explore_screen.dart` ist nicht als Datenschutz-Quellbindung hinterlegt.
+  Datenerhebung, Speicherung, Uebertragung, Berechtigungen, Store-Metadaten und
+  Offenlegungen bleiben unveraendert. Die CI-Analyseschranke steht jetzt
+  fail-closed bei 233. Nachweis:
+  `docs/evidence/b11/flutter-analysis-explore-wrapper-dead-verification-getter-20260816.json`.
+- 33 gezielte Flutter-Tests und die neuen Strukturtests sind gruen. Die
+  vollstaendige Regression bestand mit 268 App-Tests bei einem bewussten Skip,
+  dem separaten Google-Profiltest, allen Schutzvalidatoren sowie Web- und
+  Android-Debug-Bau.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Der bestehende
+  Kandidat `1.0.0+2026081509`, Produktion, Echtgeld, Store-Tracks, Testkonten
+  und Review-Versand blieben unveraendert. Alle neun Aufbewahrungsentscheidungen,
+  alle sechs V4-Punkte und die vier offenen Geraetematrix-Zellen bleiben offen.

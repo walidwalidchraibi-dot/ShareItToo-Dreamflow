@@ -2048,10 +2048,6 @@ class _ExploreListingCard extends StatelessWidget {
       required this.distanceKm,
       required this.rating});
 
-  bool get _isVerified =>
-      item.verificationStatus == 'approved' ||
-      item.verificationStatus == 'verified';
-
   @override
   Widget build(BuildContext context) {
     // Guardrail: explore grid tiles can become very tight on small devices and/or
