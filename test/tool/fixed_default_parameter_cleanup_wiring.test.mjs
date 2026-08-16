@@ -46,14 +46,6 @@ test('date-only step no longer exposes its never-used clear controls', () => {
   assert.doesNotMatch(dateOnly, /showClear|onClear/);
 });
 
-test('search helpers keep their only-used disabled tap and search icon defaults', () => {
-  const nearby = section(searchOverlay, 'class _NearbyCard', 'class _MapResultsOverlay');
-  const suggestions = section(
-    searchOverlay,
-    'class _SuggestionsPanel',
-    'class _FloatingSuggestionsPanel',
-  );
-  assert.doesNotMatch(nearby, /VoidCallback\? onTap|this\.onTap|onTap:/);
-  assert.doesNotMatch(suggestions, /IconData\? icon|this\.icon/);
-  assert.match(suggestions, /const Icon\(Icons\.search/);
+test('superseded search helpers cannot reintroduce optional defaults', () => {
+  assert.doesNotMatch(searchOverlay, /class _NearbyCard|class _SuggestionsPanel/);
 });

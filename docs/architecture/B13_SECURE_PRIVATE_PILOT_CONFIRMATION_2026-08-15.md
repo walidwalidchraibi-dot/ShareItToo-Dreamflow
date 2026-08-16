@@ -1440,3 +1440,28 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.106 – toten Such- und Kartenaltzweig entfernt
+
+- Der Flutter-Analysebestand wurde von 297 auf 290 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 321 Hinweise abgebaut.
+- Sieben projektweit unreferenzierte Such-Deklarationen sowie ihre nur intern
+  verbundenen Kartenmarkierungshelfer und zwei obsolete Zustands-Caches sind
+  entfernt. Die Laufzeitdatei verlor 328 tote Zeilen ohne Ersatzpfad.
+- Der erreichbare Sucheinstieg, KI-Auswertung, oeffentliche Artikelsuche,
+  Kategorieauswahl, schwebende Vorschlaege und Ergebnisnavigation bleiben
+  erhalten und werden durch drei neue Wiring-Tests verriegelt.
+- Die Laufzeitdatei ist nicht als Datenschutz-Quellbindung hinterlegt;
+  Datenfluesse, Datentypen und Offenlegungen bleiben unveraendert.
+- Die CI-Analyseschranke steht jetzt fail-closed bei 290. P1-01 bleibt fuer 290
+  Resthinweise offen. Nachweis:
+  `docs/evidence/b11/flutter-analysis-search-overlay-dead-branch-20260816.json`.
+- 30 gezielte Such-, Wahrheits- und Barrierefreiheitspruefungen, neun
+  Wiring-Tests sowie 268 App-Tests bei einem bewussten Skip sind gruen. Der
+  vollstaendige technische Regressionslauf bestand einschliesslich aller
+  Schutzvalidatoren sowie Web- und Android-Debug-Bau.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.

@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lendify/models/category.dart' as app_category;
 import 'package:lendify/models/item.dart';
-import 'package:lendify/widgets/listing_display_truth.dart';
 import 'package:lendify/models/user.dart' as app_user;
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/widgets/modern_range_picker_sheet.dart';
@@ -43,15 +42,6 @@ class SearchOverlay {
         );
       },
     );
-  }
-}
-
-class _BlurLayer extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(color: Colors.transparent));
   }
 }
 
@@ -112,11 +102,9 @@ class _SearchSheetState extends State<_SearchSheet> {
 
   List<String> _suggestions = [];
   List<String> _locSuggestions = [];
-  List<Item> _nearby = [];
   // Live-updated grid suggestions based on Was/Wo/Datum
   List<Item> _displayNearby = [];
   List<app_category.Category> _categories = [];
-  final Map<String, app_category.Category> _categoriesById = {};
 
   // Multiple possible categories inferred from "Was" or "KI-Suche".
   // NOTE: In Suche we only allow the 11 coarse categories (same as "Neue Anzeige").
@@ -177,14 +165,10 @@ class _SearchSheetState extends State<_SearchSheet> {
     final itemTitles =
         items.map((e) => e.title).where((e) => e.trim().isNotEmpty).toList();
     setState(() {
-      _nearby = items;
       _usersById = byId;
       _verifiedOwnerIds = verifiedIds;
       _currentUser = me;
       _categories = categories;
-      _categoriesById
-        ..clear()
-        ..addAll({for (final c in categories) c.id: c});
       _suggestions = itemTitles.take(12).toList();
       _recent = itemTitles.take(12).toList();
       _loading = false;
@@ -358,13 +342,6 @@ class _SearchSheetState extends State<_SearchSheet> {
     }
 
     return null;
-  }
-
-  String _coarseForItem(Item it) {
-    final cat = _categoriesById[it.categoryId];
-    if (cat == null) return 'Sonstiges';
-    final coarse = DataService.coarseCategoryFor(cat.name);
-    return _coarseCategoryOrder.contains(coarse) ? coarse : 'Sonstiges';
   }
 
   IconData _iconForCoarseGroup(String group) {
@@ -558,43 +535,6 @@ class _SearchSheetState extends State<_SearchSheet> {
   String _fmt(DateTime? dt) => dt == null
       ? 'Zeitraum wählen'
       : '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
-
-  List<Item> _filteredResults() {
-    final whatRaw = _whatCtrl.text.trim();
-    final inferredCatFromWhat = _normalizeCoarseCategory(whatRaw);
-    final effectiveCategory = _coarseCategory ?? inferredCatFromWhat;
-    // If the user only typed a category name into "Was", treat it as a category filter
-    // (so we show all items of that category), not a free-text query.
-    final q = (inferredCatFromWhat != null &&
-            inferredCatFromWhat == effectiveCategory)
-        ? ''
-        : whatRaw.toLowerCase();
-    final w = _whereCtrl.text.trim().toLowerCase();
-    return _nearby.where((it) {
-      final inTitleOrTags = it.title.toLowerCase().contains(q) ||
-          it.tags.any((t) => t.toLowerCase().contains(q));
-      final inPlace = w.isEmpty ||
-          it.city.toLowerCase().contains(w) ||
-          it.country.toLowerCase().contains(w) ||
-          it.locationText.toLowerCase().contains(w) ||
-          it.tags.any((t) => t.toLowerCase().contains(w));
-      final matchesWhat = q.isEmpty || inTitleOrTags;
-
-      // Price filters
-      final matchesPriceMin = _priceMin == null || it.pricePerDay >= _priceMin!;
-      final matchesPriceMax = _priceMax == null || it.pricePerDay <= _priceMax!;
-
-      // Category filter (STRICT: only the 11 coarse categories)
-      final matchesCategory =
-          effectiveCategory == null || _coarseForItem(it) == effectiveCategory;
-
-      return matchesWhat &&
-          inPlace &&
-          matchesPriceMin &&
-          matchesPriceMax &&
-          matchesCategory;
-    }).toList();
-  }
 
   // Live compute suggestions grid near user's city or typed "Wo"
   Future<void> _recomputeNearbySuggestions() async {
@@ -1367,58 +1307,6 @@ class _FieldShell extends StatelessWidget {
   }
 }
 
-class _InnerFieldShell extends StatelessWidget {
-  final String label;
-  final Widget child;
-  const _InnerFieldShell({required this.label, required this.child});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 11,
-                color: Colors.white70,
-                fontWeight: FontWeight.w600)),
-        const SizedBox(height: 2),
-        child,
-      ]),
-    );
-  }
-}
-
-class _PickerButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  const _PickerButton(
-      {required this.label, required this.icon, required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(children: [
-              Icon(icon, size: 18, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(
-                  child: Text(label,
-                      style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white),
-                      overflow: TextOverflow.ellipsis)),
-            ])));
-  }
-}
-
 class _MiniItem extends StatelessWidget {
   final Item item;
   final bool ownerVerified;
@@ -1504,222 +1392,6 @@ class _MiniItem extends StatelessWidget {
               ),
             ),
           ]),
-        ),
-      ),
-    );
-  }
-}
-
-class _NearbyCard extends StatelessWidget {
-  final Item item;
-  final bool verified;
-  const _NearbyCard({required this.item, required this.verified});
-
-  String _shorten(String s, {int max = 26}) {
-    if (s.length <= max) return s;
-    // Try to cut on word boundary before max; else hard cut
-    final cut = s.substring(0, max);
-    final lastSpace = cut.lastIndexOf(' ');
-    final base = lastSpace > 12 ? cut.substring(0, lastSpace) : cut;
-    return '$base…';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final titleStyle = theme.textTheme.titleSmall?.copyWith(
-        color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12.5);
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            // Image 4:3
-            AspectRatio(
-                aspectRatio: 4 / 3,
-                child: AppImage(
-                    url: item.photos.isNotEmpty ? item.photos.first : '',
-                    fit: BoxFit.cover)),
-            // Title row
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-              child: Row(children: [
-                Expanded(
-                    child: Text(_shorten(item.title),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: titleStyle)),
-                if (verified)
-                  Container(
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.18),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: theme.colorScheme.primary
-                              .withValues(alpha: 0.45)),
-                    ),
-                    child: const Center(
-                        child: Icon(Icons.verified,
-                            size: 10, color: Colors.white)),
-                  ),
-              ]),
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-}
-
-class _MapResultsOverlay extends StatelessWidget {
-  final List<Item> items;
-  const _MapResultsOverlay({required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        title: const Text('Karte', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: LayoutBuilder(builder: (context, constraints) {
-        final minLat =
-            items.isEmpty ? 0.0 : items.map((e) => e.lat).reduce(min);
-        final maxLat =
-            items.isEmpty ? 1.0 : items.map((e) => e.lat).reduce(max);
-        final minLng =
-            items.isEmpty ? 0.0 : items.map((e) => e.lng).reduce(min);
-        final maxLng =
-            items.isEmpty ? 1.0 : items.map((e) => e.lng).reduce(max);
-        final pad = 24.0;
-        return Stack(children: [
-          // Simple decorative "map" background
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF0B1223), Color(0xFF0F1A34)],
-              ),
-            ),
-          ),
-          CustomPaint(
-            painter: _GridPainter(color: Colors.white.withValues(alpha: 0.06)),
-            size: Size.infinite,
-          ),
-          ...List.generate(items.length, (i) {
-            final it = items[i];
-            final nx = (maxLng - minLng).abs() < 1e-6
-                ? 0.5
-                : (it.lng - minLng) / ((maxLng - minLng).abs());
-            final ny = (maxLat - minLat).abs() < 1e-6
-                ? 0.5
-                : 1 - (it.lat - minLat) / ((maxLat - minLat).abs());
-            final left = pad + nx * (constraints.maxWidth - 2 * pad);
-            final top = pad + ny * (constraints.maxHeight - 2 * pad);
-            final price =
-                listingCustomerPrice(it.pricePerDay).toStringAsFixed(0);
-            final symbol = (it.currency == 'EUR')
-                ? '€'
-                : (it.currency == 'USD')
-                    ? r'$'
-                    : '€';
-            return Positioned(
-              left: left - 30,
-              top: top - 18,
-              child: _PriceMarker(text: '$price$symbol'),
-            );
-          }),
-        ]);
-      }),
-    );
-  }
-}
-
-class _GridPainter extends CustomPainter {
-  final Color color;
-  const _GridPainter({required this.color});
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1;
-    const step = 40.0;
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _GridPainter oldDelegate) => false;
-}
-
-class _PriceMarker extends StatelessWidget {
-  final String text;
-  const _PriceMarker({required this.text});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-          color: Colors.lightBlueAccent,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 4))
-          ]),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.place, size: 14, color: Colors.white),
-        const SizedBox(width: 4),
-        Text(text,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w700)),
-      ]),
-    );
-  }
-}
-
-class _SuggestionsPanel extends StatelessWidget {
-  final List<String> suggestions;
-  final void Function(String) onTap;
-  const _SuggestionsPanel({required this.suggestions, required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.12))),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: suggestions.length,
-        separatorBuilder: (_, __) =>
-            const Divider(height: 1, color: Colors.white12),
-        itemBuilder: (context, i) => ListTile(
-          dense: true,
-          visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-          leading: const Icon(Icons.search, color: Colors.white70, size: 18),
-          title: Text(suggestions[i],
-              style: const TextStyle(color: Colors.white, fontSize: 13)),
-          onTap: () => onTap(suggestions[i]),
         ),
       ),
     );
