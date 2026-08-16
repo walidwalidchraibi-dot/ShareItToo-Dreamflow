@@ -5109,25 +5109,6 @@ class DataService {
     return '';
   }
 
-  static String _criterionLabel(String key) {
-    switch (key) {
-      case 'communication':
-        return 'Kommunikation';
-      case 'reliability':
-        return 'Zuverlässigkeit';
-      case 'article_as_described':
-      case 'description_accuracy':
-        return 'Artikel wie beschrieben';
-      case 'handover_return':
-      case 'condition_dropoff':
-      case 'condition_return':
-      case 'process':
-        return 'Übergabe & Rückgabe';
-      default:
-        return key;
-    }
-  }
-
   // Quick helpers
   static Future<Item?> getItemById(String id) async {
     final items = await getItems();

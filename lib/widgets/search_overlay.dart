@@ -123,7 +123,6 @@ class _SearchSheetState extends State<_SearchSheet> {
   // We keep this list for internal/AI logic, but we intentionally do not render
   // live suggestion chips in the UI (per previous request).
   List<String> _categoryCandidates = [];
-  bool _categorySuggesting = false;
   Set<String> _verifiedOwnerIds = {};
   Map<String, app_user.User> _usersById = {};
   app_user.User? _currentUser;
@@ -241,7 +240,6 @@ class _SearchSheetState extends State<_SearchSheet> {
     }
 
     // Then ask OpenAI for multiple plausible categories.
-    setState(() => _categorySuggesting = true);
     try {
       final suggestions = await OpenAIConfig.suggestCategories(
         userInput: q,
@@ -270,8 +268,6 @@ class _SearchSheetState extends State<_SearchSheet> {
       });
     } catch (e) {
       debugPrint('[_SearchSheet] suggestCategories failed: $e');
-    } finally {
-      if (mounted) setState(() => _categorySuggesting = false);
     }
   }
 
@@ -559,8 +555,6 @@ class _SearchSheetState extends State<_SearchSheet> {
     });
   }
 
-  bool _isReturnValid(DateTime from, DateTime to) => to.isAfter(from);
-
   String _fmt(DateTime? dt) => dt == null
       ? 'Zeitraum wählen'
       : '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
@@ -820,14 +814,6 @@ class _SearchSheetState extends State<_SearchSheet> {
     _hideWhereOverlay();
     // Reset suggestions to defaults near user's city
     _recomputeNearbySuggestions();
-  }
-
-  Size? _sizeOf(GlobalKey key) {
-    final ctx = key.currentContext;
-    if (ctx == null) return null;
-    final render = ctx.findRenderObject();
-    if (render is RenderBox) return render.size;
-    return null;
   }
 
   void _updateWhatOverlay() {

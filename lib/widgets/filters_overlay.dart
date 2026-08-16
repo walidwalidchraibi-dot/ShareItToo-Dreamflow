@@ -305,20 +305,6 @@ class _FiltersSheetState extends State<_FiltersSheet> {
         _price = RangeValues(orderedMin.toDouble(), orderedMax.toDouble()));
   }
 
-  IconData _sortIcon(String s) {
-    switch (s) {
-      case 'Preis':
-        return Icons.euro;
-      case 'Bewertung':
-        return Icons.star;
-      case 'Neueste':
-        return Icons.schedule;
-      case 'Entfernung':
-      default:
-        return Icons.place;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

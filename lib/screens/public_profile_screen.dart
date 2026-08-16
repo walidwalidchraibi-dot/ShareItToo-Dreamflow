@@ -707,13 +707,6 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     );
   }
 
-  static String? _sanitizeCity(String? raw) {
-    final v = raw?.trim();
-    if (v == null || v.isEmpty) return null;
-    // Keep only the city part (before comma/slash) to be privacy-friendly.
-    final cut = v.split(',').first.split('/').first.trim();
-    return cut.isEmpty ? null : cut;
-  }
 }
 
 /* class _HeaderCard extends StatelessWidget { // replaced by ProfileHeaderCard

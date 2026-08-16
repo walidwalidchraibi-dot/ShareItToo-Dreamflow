@@ -6,7 +6,7 @@ set -euo pipefail
 # Re-measured on Flutter 3.41.7 / Dart 3.11.5 on 2026-08-16 after the first
 # safe mechanical cleanup, the targeted correctness/startup-safety batch, and
 # removal of all unused local variables without changing reachable UI paths.
-ANALYZER_BASELINE=376
+ANALYZER_BASELINE=352
 FORBIDDEN_ANALYZER_CODES=(
   dead_code
   empty_catches

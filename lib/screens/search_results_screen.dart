@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:lendify/models/item.dart';
-import 'package:lendify/models/category.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/localization_service.dart';
 import 'package:lendify/widgets/filters_overlay.dart';
@@ -35,7 +34,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   Map<String, dynamic>? _filters;
   Set<String> _savedIds = {};
   Map<String, String> _coarseByCatId = {};
-  List<Category> _categories = [];
 
   @override
   void initState() {
@@ -58,7 +56,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     if (!mounted) return;
     setState(() {
       _savedIds = saved;
-      _categories = cats;
       _coarseByCatId = coarseMap;
     });
   }

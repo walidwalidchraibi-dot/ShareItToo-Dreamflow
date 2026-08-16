@@ -11,7 +11,6 @@ class ChangeAddressScreen extends StatefulWidget {
 }
 
 class _ChangeAddressScreenState extends State<ChangeAddressScreen> {
-  User? _user;
   bool _loading = true;
   String _error = '';
   final _addrCtrl = TextEditingController();
@@ -32,7 +31,6 @@ class _ChangeAddressScreenState extends State<ChangeAddressScreen> {
     final u = await DataService.getCurrentUser();
     if (!mounted) return;
     setState(() {
-      _user = u;
       _loading = false;
       _addrCtrl.text = _addressDisplay(u) == '—' ? '' : _addressDisplay(u);
     });

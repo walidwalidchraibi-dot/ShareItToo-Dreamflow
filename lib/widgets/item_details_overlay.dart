@@ -2225,7 +2225,6 @@ class _BottomActionBarState extends State<_BottomActionBar> {
   String _addressLine = '';
   double? _addressLat;
   double? _addressLng;
-  bool _loadingUserCity = true;
   bool _wantExpress =
       false; // renter choice for priority (express) delivery option (2h)
   bool? _isAvailable; // null = unknown, true/false = checked
@@ -2248,7 +2247,6 @@ class _BottomActionBarState extends State<_BottomActionBar> {
           _dropoff = _DropoffOption.self;
           _returning = _ReturnOption.self;
           _wantExpress = false;
-          _loadingUserCity = false;
         });
         // Ensure any prior persisted delivery selection is cleared for this session
         await DataService.clearSavedDeliverySelection(widget.item.id);
@@ -2316,7 +2314,6 @@ class _BottomActionBarState extends State<_BottomActionBar> {
       // so the Gesamtbetrag and Untertitel remain consistent across pages.
       _wantExpress = PrivatePilotConfig.deliveryEnabled &&
           (saved != null ? (saved['express'] == true) : false);
-      _loadingUserCity = false;
     });
     _persistDeliverySelection();
   }
@@ -4077,13 +4074,11 @@ class _ExpressCountdownSheet extends StatefulWidget {
 class _ExpressCountdownSheetState extends State<_ExpressCountdownSheet> {
   late Duration _remaining = const Duration(minutes: 30);
   late final Ticker _ticker;
-  RentalRequest? _req;
 
   @override
   void initState() {
     super.initState();
     _ticker = Ticker(_onTick)..start();
-    _load();
   }
 
   @override
@@ -4101,7 +4096,6 @@ class _ExpressCountdownSheetState extends State<_ExpressCountdownSheet> {
     if (elapsed.inMilliseconds % 2000 < 16) {
       final r = await DataService.getRentalRequestById(widget.requestId);
       if (!mounted) return;
-      setState(() => _req = r);
       if (r?.expressStatus == 'accepted') {
         if (!mounted) return;
         await AppPopup.toast(context,
@@ -4115,12 +4109,6 @@ class _ExpressCountdownSheetState extends State<_ExpressCountdownSheet> {
     if (_remaining == Duration.zero) {
       _showFallbackChoice();
     }
-  }
-
-  Future<void> _load() async {
-    final r = await DataService.getRentalRequestById(widget.requestId);
-    if (!mounted) return;
-    setState(() => _req = r);
   }
 
   String _fmt(Duration d) {

@@ -1091,13 +1091,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  bool _hasAtLeastOneWord(String input) {
-    final text = input.trim();
-    if (text.isEmpty) return false;
-    // Require at least one alphanumeric character (covers umlauts via Latin-1 range)
-    return RegExp(r'[A-Za-zÀ-ÖØ-öø-ÿ0-9]').hasMatch(text);
-  }
-
   Widget _sitCelebrationBadge() {
     // Show only the SIT logo (no round badge), exactly 46px and centered.
     // Nudge the logo visually ~1mm downward (~4 logical pixels)

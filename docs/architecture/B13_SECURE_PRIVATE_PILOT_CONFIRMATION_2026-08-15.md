@@ -1188,3 +1188,35 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.97 – private Zustandsreste und kleine Helfer sicher entfernt
+
+- Der Flutter-Analysebestand wurde von 376 auf 352 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 259 Hinweise abgebaut.
+- In 14 Laufzeitdateien wurden 13 ungenutzte Felder, zehn ungenutzte private
+  Elemente und ein nur zu einem toten Helfer gehoerender optionaler Parameter
+  entfernt. Die Aenderung entfernt 164 Quellzeilen und fuegt keinen neuen
+  Analysehinweis hinzu.
+- Der Block beschraenkt sich auf wirkungslosen Adress-, Social-, Profil-,
+  Such-, Katalog- und Thumbnail-Zustand, tote Datums-/Sortierhelfer, eine nicht
+  verwendete Datums-Hinweiskomponente sowie nicht erreichbaren
+  Developer-Preview-Zustand. Zwei reine Leseabfragen ohne Verbraucher wurden
+  ebenfalls entfernt.
+- Sichtbare UI-Zweige, persistierte Daten, Buchungsstatus, Uebergabe- und
+  Rueckgabeentscheidungen wurden nicht veraendert. Keine der 14 Dateien ist
+  als Datenschutz-Quellbindung hinterlegt; eine Hash-Aktualisierung war daher
+  weder erforderlich noch zulaessig.
+- Die CI-Analyseschranke steht jetzt bei 352. Die sechs zuvor bereinigten
+  Korrektheits- und Hygiene-Codes bleiben einzeln fail-closed verriegelt. Zwei
+  Wiring-Tests und 268 App-Tests bei einem bewussten Skip sind gruen. Der
+  vollstaendige technische Regressionslauf bestand einschliesslich Web- und
+  Android-Debug-Bau.
+- P1-01 bleibt fuer 352 Resthinweise offen. Groessere private UI-Regionen
+  werden nur nach Produktflusspruefung entfernt; asynchrone Context-Nutzung
+  und veraltete Framework-APIs bleiben getrennte Batches. Nachweis:
+  `docs/evidence/b11/flutter-analysis-private-state-and-helpers-20260816.json`.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.

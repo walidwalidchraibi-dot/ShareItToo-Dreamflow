@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:lendify/models/category.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/services/data_service.dart';
@@ -43,11 +42,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final PageController _feedPager = PageController();
   final ScrollController _ctrlGuests = ScrollController();
 
-  int _devTapCount = 0;
-  Timer? _devTapReset;
-
   List<Item> _items = [];
-  List<Category> _categories = [];
 // Map fine category id -> coarse/top-level category label
   Map<String, String> _coarseByCatId = {};
   Map<String, model.User> _usersById = {};
@@ -57,8 +52,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
   String? _currentUserCity;
   Set<String> _savedIds = {};
 
-// Extra curated cards with fresh images (used for Guests row)
-  List<Item> _extraGuests = [];
 // Extra curated cards for "Am meisten gebucht" to add two full rows (3 under 3)
   List<Item> _extraTopBooked = [];
 
@@ -159,17 +152,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   void dispose() {
-    _devTapReset?.cancel();
     _scrollController.dispose();
     _feedPager.dispose();
     _ctrlGuests.dispose();
     super.dispose();
-  }
-
-  void _handleDevSecretTap() {
-    // Developer Preview is intentionally unreachable from the normal product flow.
-    _devTapReset?.cancel();
-    if (mounted) setState(() => _devTapCount = 0);
   }
 
   Future<void> _loadData() async {
@@ -192,7 +178,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
       final hasRealSession = session != null;
 
 // No extra fillers for the five-item showcase
-      final extrasGuests = <Item>[];
       final extrasTop = <Item>[];
 
       // Precompute mapping: fine category id -> coarse label for filters and display
@@ -201,13 +186,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
       };
       setState(() {
         _items = items.where((item) => !hiddenIds.contains(item.id)).toList();
-        _categories = categories;
         _coarseByCatId = coarseMap;
         _usersById = {for (final u in users) u.id: u};
         _currentUserName = hasRealSession ? user?.displayName : null;
         _currentUserCity = hasRealSession ? user?.city : null;
         _savedIds = hasRealSession ? saved : <String>{};
-        _extraGuests = extrasGuests;
         _extraTopBooked = extrasTop;
         _isLoading = false;
       });

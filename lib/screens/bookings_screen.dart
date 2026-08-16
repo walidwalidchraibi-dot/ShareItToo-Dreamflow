@@ -1160,7 +1160,6 @@ class _ThumbnailWithSkeleton extends StatefulWidget {
 
 class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  bool _loaded = false;
 
   @override
   void initState() {
@@ -1188,7 +1187,6 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
         fit: BoxFit.cover,
         loadingBuilder: (c, child, progress) {
           if (progress == null) {
-            _loaded = true;
             return child;
           }
           return _skeleton();

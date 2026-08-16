@@ -1,6 +1,5 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
-import 'package:lendify/models/user.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/widgets/app_popup.dart';
 
@@ -11,7 +10,6 @@ class EditSocialMediaScreen extends StatefulWidget {
 }
 
 class _EditSocialMediaScreenState extends State<EditSocialMediaScreen> {
-  User? _user;
   bool _loading = true;
   String _error = '';
 
@@ -57,7 +55,6 @@ class _EditSocialMediaScreenState extends State<EditSocialMediaScreen> {
     final u = await DataService.getCurrentUser();
     if (!mounted) return;
     setState(() {
-      _user = u;
       _loading = false;
       _xCtrl.text = u?.socialX ?? '';
       _igCtrl.text = u?.socialInstagram ?? '';

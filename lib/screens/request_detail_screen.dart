@@ -25,7 +25,6 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   RentalRequest? _req;
   Item? _item;
   User? _renter;
-  User? _owner;
   Timer? _ticker;
   Duration _remainingConfirm = const Duration(minutes: 30);
 
@@ -40,13 +39,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     if (req == null) return;
     final item = await DataService.getItemById(req.itemId);
     final renter = await DataService.getUserById(req.renterId);
-    final owner = await DataService.getUserById(req.ownerId);
     if (!mounted) return;
     setState(() {
       _req = req;
       _item = item;
       _renter = renter;
-      _owner = owner;
     });
     _startOrStopTicker();
   }
