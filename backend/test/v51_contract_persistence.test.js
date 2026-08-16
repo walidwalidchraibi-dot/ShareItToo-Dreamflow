@@ -20,6 +20,10 @@ test('V5.1 contract evidence is separated into immutable snapshots, acceptances 
       new RegExp(`CREATE TRIGGER ${table}_append_only[\\s\\S]*?ON ${table}`, 'u'),
     );
   }
+  assert.doesNotMatch(
+    migration,
+    /CREATE OR REPLACE FUNCTION sit_reject_append_only_mutation/u,
+  );
 });
 
 test('legal snapshots and every accepted wording are hash-bound', () => {

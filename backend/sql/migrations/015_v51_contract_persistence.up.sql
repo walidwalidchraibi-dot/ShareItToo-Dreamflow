@@ -91,16 +91,6 @@ CREATE TABLE IF NOT EXISTS platform_contract_receipt_events (
 CREATE INDEX IF NOT EXISTS platform_contract_receipt_events_contract_time_idx
   ON platform_contract_receipt_events(contract_id, occurred_at DESC);
 
-CREATE OR REPLACE FUNCTION sit_reject_append_only_mutation()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  RAISE EXCEPTION 'Append-only contract evidence cannot be changed'
-    USING ERRCODE = 'check_violation';
-END;
-$$;
-
 DROP TRIGGER IF EXISTS legal_document_snapshots_append_only
   ON legal_document_snapshots;
 CREATE TRIGGER legal_document_snapshots_append_only
