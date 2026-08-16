@@ -314,13 +314,11 @@ class _DateOnlyStep extends StatefulWidget {
   final ValueChanged<DateTime> onDateChanged;
   final String primaryLabel;
   final VoidCallback onPrimary;
-  final bool showClear;
-  final VoidCallback? onClear;
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
   final bool showBottomActions;
   final bool flashDate;
-  const _DateOnlyStep({super.key, required this.dateInitial, required this.dateMin, required this.dateMax, required this.onDateChanged, required this.primaryLabel, required this.onPrimary, this.showClear = false, this.onClear, this.secondaryLabel, this.onSecondary, this.showBottomActions = true, this.flashDate = false});
+  const _DateOnlyStep({super.key, required this.dateInitial, required this.dateMin, required this.dateMax, required this.onDateChanged, required this.primaryLabel, required this.onPrimary, this.secondaryLabel, this.onSecondary, this.showBottomActions = true, this.flashDate = false});
   @override
   State<_DateOnlyStep> createState() => _DateOnlyStepState();
 }

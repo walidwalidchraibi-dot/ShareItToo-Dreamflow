@@ -1513,8 +1513,7 @@ class _MiniItem extends StatelessWidget {
 class _NearbyCard extends StatelessWidget {
   final Item item;
   final bool verified;
-  final VoidCallback? onTap;
-  const _NearbyCard({required this.item, required this.verified, this.onTap});
+  const _NearbyCard({required this.item, required this.verified});
 
   String _shorten(String s, {int max = 26}) {
     if (s.length <= max) return s;
@@ -1531,7 +1530,6 @@ class _NearbyCard extends StatelessWidget {
     final titleStyle = theme.textTheme.titleSmall?.copyWith(
         color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12.5);
     return InkWell(
-      onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -1701,9 +1699,7 @@ class _PriceMarker extends StatelessWidget {
 class _SuggestionsPanel extends StatelessWidget {
   final List<String> suggestions;
   final void Function(String) onTap;
-  final IconData? icon;
-  const _SuggestionsPanel(
-      {required this.suggestions, required this.onTap, this.icon});
+  const _SuggestionsPanel({required this.suggestions, required this.onTap});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -1720,7 +1716,7 @@ class _SuggestionsPanel extends StatelessWidget {
         itemBuilder: (context, i) => ListTile(
           dense: true,
           visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-          leading: Icon(icon ?? Icons.search, color: Colors.white70, size: 18),
+          leading: const Icon(Icons.search, color: Colors.white70, size: 18),
           title: Text(suggestions[i],
               style: const TextStyle(color: Colors.white, fontSize: 13)),
           onTap: () => onTap(suggestions[i]),

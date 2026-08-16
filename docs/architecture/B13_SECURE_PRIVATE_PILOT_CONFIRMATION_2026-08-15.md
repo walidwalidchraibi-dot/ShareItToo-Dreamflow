@@ -1413,3 +1413,30 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.105 – feststehende UI-Standardparameter entfernt
+
+- Der Flutter-Analysebestand wurde von 304 auf 297 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 314 Hinweise abgebaut.
+- Sieben optionale private UI-Parameter, die projektweit nie gesetzt wurden,
+  sind entfernt. Ihre bisher wirksamen Standardwerte sind direkt im jeweiligen
+  Helfer verankert: Primaerfarbe, 6,5-Sekunden-Puls, kein Info-Anhang, keine
+  Datums-Loeschaktion, deaktivierte Naehe-Karte und Suchsymbol.
+- Buchungskarten, Hervorhebungsdauer, Vermieter-Informationen, Datumsauswahl,
+  Suchdarstellung und Interaktion bleiben unveraendert. Vier Laufzeitdateien
+  verloren netto elf reine Signatur- und Standardwertzeilen.
+- Keine geaenderte Laufzeitdatei ist als Datenschutz-Quellbindung hinterlegt;
+  Datenfluesse und Offenlegungen bleiben unveraendert. Vier gezielte
+  Wiring-Tests verriegeln die sechs feststehenden UI-Standards.
+- Die CI-Analyseschranke steht jetzt fail-closed bei 297. P1-01 bleibt fuer 297
+  Resthinweise offen. Nachweis:
+  `docs/evidence/b11/flutter-analysis-fixed-default-parameters-20260816.json`.
+- 38 gezielte UI- und Verhaltenspruefungen, sechs Wiring-Tests sowie 268
+  App-Tests bei einem bewussten Skip sind gruen. Der vollstaendige technische
+  Regressionslauf bestand einschliesslich aller Schutzvalidatoren sowie Web-
+  und Android-Debug-Bau.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.

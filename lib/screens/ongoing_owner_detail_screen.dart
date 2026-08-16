@@ -2657,12 +2657,10 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final Widget? trailing;
   const _InfoRow({
     required this.icon,
     required this.label,
     required this.value,
-    this.trailing,
   });
   @override
   Widget build(BuildContext context) {
@@ -2695,7 +2693,6 @@ class _InfoRow extends StatelessWidget {
             ],
           ),
         ),
-        if (trailing != null) ...[const SizedBox(width: 8), trailing!],
       ],
     );
   }

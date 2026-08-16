@@ -993,13 +993,12 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
 class _TinyTextButton extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Color? color;
   final VoidCallback onPressed;
-  const _TinyTextButton({required this.icon, required this.label, required this.onPressed, this.color});
+  const _TinyTextButton({required this.icon, required this.label, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
-    final fg = color ?? Theme.of(context).colorScheme.primary;
+    final fg = Theme.of(context).colorScheme.primary;
     return TextButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: 16, color: fg),
@@ -1018,13 +1017,12 @@ class _TinyTextButton extends StatelessWidget {
 class _BlinkHighlight extends StatefulWidget {
   final Widget child;
   final bool enabled;
-  final Duration totalDuration;
   final VoidCallback? onFinished;
+  static const totalDuration = Duration(milliseconds: 6500);
   // Default: 5 full pulses (0->1->0) at 650ms each direction => 6.5s
   const _BlinkHighlight({
     required this.child,
     required this.enabled,
-    this.totalDuration = const Duration(milliseconds: 6500),
     this.onFinished,
   });
   @override
@@ -1043,7 +1041,7 @@ class _BlinkHighlightState extends State<_BlinkHighlight> with SingleTickerProvi
     _t = CurvedAnimation(parent: _c, curve: Curves.easeInOut);
     if (widget.enabled) {
       _c.repeat(reverse: true);
-      _stopper = Timer(widget.totalDuration, () {
+      _stopper = Timer(_BlinkHighlight.totalDuration, () {
         if (!mounted) return;
         _c.stop();
         widget.onFinished?.call();
@@ -1058,7 +1056,7 @@ class _BlinkHighlightState extends State<_BlinkHighlight> with SingleTickerProvi
     if (widget.enabled && !_c.isAnimating) {
       _c.repeat(reverse: true);
       _stopper?.cancel();
-      _stopper = Timer(widget.totalDuration, () {
+      _stopper = Timer(_BlinkHighlight.totalDuration, () {
         if (!mounted) return;
         _c.stop();
         widget.onFinished?.call();
