@@ -5565,8 +5565,17 @@ class DataService {
       allegedDamageMinorRecordedOnly: req.allegedDamageMinorRecordedOnly,
     );
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final createPayload = toStore.toJson();
+      final freshQuote = await BackendRepository.quoteBooking(createPayload);
+      final quoteId = freshQuote['quoteId'] as String?;
+      final quoteHash = freshQuote['quoteHash'] as String?;
+      if (quoteId == null || quoteHash == null) {
+        throw StateError('Der Server hat kein bindendes Angebot geliefert.');
+      }
+      createPayload['quoteId'] = quoteId;
+      createPayload['quoteHash'] = quoteHash;
       final remote = await BackendRepository.createBooking(
-        toStore.toJson(),
+        createPayload,
         idempotencyKey: 'create_$nextId',
       );
       toStore = RentalRequest.fromJson(remote);

@@ -40,7 +40,19 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "78e76bcc4f19ffcde3270fbbd7cea70cb64de57d14664d10eef44dbe222f80c1"
+      "sha256": "42c4d4228286e7435eeec2e6e8ef4f0faec112d4f81c5e3d447083a99cb83d55"
+    },
+    {
+      "path": "backend/src/booking_workflow.js",
+      "sha256": "0edfe9e31805a688c673144fcbcee34c0e894a726a0e6d6cc5c82b0685be596f"
+    },
+    {
+      "path": "backend/sql/migrations/016_v51_booking_quotes.up.sql",
+      "sha256": "70ab8fbfa5ab8d134775532a8122f429e1c77391bbba926ae13fb233ba8a6d89"
+    },
+    {
+      "path": "lib/services/data_service.dart",
+      "sha256": "b8c4f332accd531977edef407f874599441a1313051600381bdc5a2c48014ff4"
     },
     {
       "path": "backend/src/security.js",

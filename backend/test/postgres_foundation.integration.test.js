@@ -76,6 +76,7 @@ if (!databaseUrl) {
         '013_secure_booking_confirmation_challenges.up.sql',
         '014_account_legal_holds.up.sql',
         '015_v51_contract_persistence.up.sql',
+        '016_v51_booking_quotes.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -708,6 +709,20 @@ if (!databaseUrl) {
       assert.equal(quoted.quote.platformFeeMinor, 300);
       assert.equal(quoted.quote.totalMinor, 3300);
       assert.match(quoted.start, /T22:00:00\.000Z$/);
+      assert.match(quoted.quoteId, /^quote_[0-9a-f-]{36}$/);
+      assert.match(quoted.quoteHash, /^[0-9a-f]{64}$/);
+      assert.ok(Date.parse(quoted.quotedAt) < Date.parse(quoted.expiresAt));
+      const persistedQuote = await setupPool.query(
+        `SELECT renter_id, listing_id, quote_hash, quote_payload, expires_at
+           FROM booking_quotes
+          WHERE id = $1`,
+        [quoted.quoteId],
+      );
+      assert.equal(persistedQuote.rowCount, 1);
+      assert.equal(persistedQuote.rows[0].renter_id, 'renter-a');
+      assert.equal(persistedQuote.rows[0].listing_id, 'listing-1');
+      assert.equal(persistedQuote.rows[0].quote_hash, quoted.quoteHash);
+      assert.equal(persistedQuote.rows[0].quote_payload.totalMinor, 3300);
 
       const createHeaders = {
         ...renterAHeaders,
@@ -1839,6 +1854,7 @@ if (!databaseUrl) {
       assert.equal(accountExport.data.account.email, 'owner@example.com');
       assert.ok(accountExport.data.marketplace.listings.some((entry) => entry.id === 'listing-1'));
       assert.ok(accountExport.data.marketplace.bookings.some((entry) => entry.id === 'b6-flow'));
+      assert.ok(accountExport.data.marketplace.bookingQuotes.some((entry) => entry.id === quoted.quoteId));
       assert.ok(accountExport.data.communication.messageThreads.some((entry) => entry.id === b7Thread.id));
       assert.ok(accountExport.data.trustAndSafety.reviews.some((entry) => entry.relationship === 'submitted'));
       assert.ok(accountExport.data.auditEvents.some((entry) => (

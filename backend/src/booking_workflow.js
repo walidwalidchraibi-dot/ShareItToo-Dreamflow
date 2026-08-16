@@ -214,6 +214,7 @@ async function periodInstants(client, dates, timezone) {
 async function listingForBooking(client, listingId, { lock = false, includeInactive = false } = {}) {
   const result = await client.query(
     `SELECT id, owner_id, payload, status, is_active, catalog_version,
+            catalog_revision,
             currency, price_per_day_minor, security_deposit_minor,
             min_days, max_days, latitude, longitude,
             availability_timezone, availability_revision,
@@ -318,6 +319,73 @@ function quoteForListing(candidate, dates, listing) {
     throw new BookingWorkflowError(409, 'rental_duration_not_allowed', { minimumDays, maximumDays });
   }
   return quote;
+}
+
+function quoteBindingPayload({ actorId, listing, dates, period, quote }) {
+  return {
+    renterId: actorId,
+    listingId: listing.id,
+    startDate: dates.startDate,
+    endDate: dates.endDate,
+    timezone: listing.availability_timezone,
+    start: new Date(period.starts_at).toISOString(),
+    end: new Date(period.ends_at).toISOString(),
+    catalogRevision: Number(listing.catalog_revision),
+    availabilityRevision: Number(listing.availability_revision),
+    quote,
+  };
+}
+
+async function requireFreshBookingQuote(client, {
+  actorId,
+  candidate,
+  listing,
+  dates,
+  period,
+  quote,
+}) {
+  const quoteId = text(candidate.quoteId, 120);
+  const quoteHash = text(candidate.quoteHash, 64);
+  if (!quoteId || !quoteHash) {
+    throw new BookingWorkflowError(409, 'fresh_booking_quote_required');
+  }
+  const result = await client.query(
+    `SELECT renter_id, listing_id, rental_start_date, rental_end_date,
+            rental_timezone, starts_at, ends_at, catalog_revision,
+            availability_revision, quote_payload, quote_hash, expires_at
+       FROM booking_quotes
+      WHERE id = $1 AND quote_hash = $2`,
+    [quoteId, quoteHash],
+  );
+  if (!result.rowCount) {
+    throw new BookingWorkflowError(409, 'booking_quote_not_found');
+  }
+  const stored = result.rows[0];
+  if (new Date(stored.expires_at).getTime() <= Date.now()) {
+    throw new BookingWorkflowError(409, 'booking_quote_expired');
+  }
+  const currentBinding = quoteBindingPayload({
+    actorId,
+    listing,
+    dates,
+    period,
+    quote,
+  });
+  const bindingMatches = stored.renter_id === actorId
+    && stored.listing_id === listing.id
+    && databaseDate(stored.rental_start_date) === dates.startDate
+    && databaseDate(stored.rental_end_date) === dates.endDate
+    && stored.rental_timezone === listing.availability_timezone
+    && new Date(stored.starts_at).toISOString() === currentBinding.start
+    && new Date(stored.ends_at).toISOString() === currentBinding.end
+    && Number(stored.catalog_revision) === Number(listing.catalog_revision)
+    && Number(stored.availability_revision) === Number(listing.availability_revision)
+    && hashCommand(stored.quote_payload) === hashCommand(quote)
+    && hashCommand(currentBinding) === quoteHash;
+  if (!bindingMatches) {
+    throw new BookingWorkflowError(409, 'booking_quote_changed');
+  }
+  return { quoteId, quoteHash };
 }
 
 async function checkPeriodAvailability(client, { listing, dates, startsAt, endsAt, excludeBookingId = null }) {
@@ -523,7 +591,34 @@ export async function quoteBooking(client, { actorId, raw, privatePilot = false 
     endsAt: period.ends_at,
   });
   const quote = quoteForListing(candidate, dates, listing);
+  const binding = quoteBindingPayload({ actorId, listing, dates, period, quote });
+  const quoteId = `quote_${crypto.randomUUID()}`;
+  const quoteHash = hashCommand(binding);
+  const issuedAt = new Date();
+  const expiresAt = new Date(issuedAt.getTime() + (10 * 60 * 1000));
+  await client.query(
+    `INSERT INTO booking_quotes (
+       id, renter_id, listing_id, rental_start_date, rental_end_date,
+       rental_timezone, starts_at, ends_at, catalog_revision,
+       availability_revision, quote_version, currency, total_minor,
+       quote_payload, quote_hash, issued_at, expires_at
+     ) VALUES (
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
+       $14::jsonb, $15, $16, $17
+     )`,
+    [
+      quoteId, actorId, listing.id, dates.startDate, dates.endDate,
+      listing.availability_timezone, period.starts_at, period.ends_at,
+      listing.catalog_revision, listing.availability_revision,
+      quote.quoteVersion, quote.currency, quote.totalMinor,
+      JSON.stringify(quote), quoteHash, issuedAt, expiresAt,
+    ],
+  );
   return {
+    quoteId,
+    quoteHash,
+    quotedAt: issuedAt.toISOString(),
+    expiresAt: expiresAt.toISOString(),
     listingId,
     startDate: dates.startDate,
     endDate: dates.endDate,
@@ -590,6 +685,16 @@ export async function createBooking(client, {
     });
   }
   const quote = quoteForListing(candidate, dates, listing);
+  const quoteBinding = privatePilot
+    ? await requireFreshBookingQuote(client, {
+        actorId: actor.id,
+        candidate,
+        listing,
+        dates,
+        period,
+        quote,
+      })
+    : null;
   const id = bookingIdentifier(candidate.id);
   const createdAt = new Date();
   const bindingExpiresAt = new Date(Math.min(
@@ -616,6 +721,7 @@ export async function createBooking(client, {
     bindingExpiresAt: bindingExpiresAt.toISOString(),
     quotedTotalRenter: money(quote.totalMinor),
     quote,
+    ...(quoteBinding ?? {}),
   };
   delete payload.idempotencyKey;
   await client.query(
@@ -680,7 +786,11 @@ export async function createBooking(client, {
     `INSERT INTO booking_events (
        booking_id, actor_id, event_type, to_status, idempotency_key, metadata
      ) VALUES ($1, $2, 'booking.requested', 'requested', $3, $4::jsonb)`,
-    [id, actor.id, `${commandKey}:event`, JSON.stringify({ availabilityRevision: listing.availability_revision, quote })],
+    [id, actor.id, `${commandKey}:event`, JSON.stringify({
+      availabilityRevision: listing.availability_revision,
+      quote,
+      ...(quoteBinding ?? {}),
+    })],
   );
   await writeAudit(client, {
     actor,

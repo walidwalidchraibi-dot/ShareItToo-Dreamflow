@@ -22,6 +22,7 @@ export async function buildAccountExport(client, userId) {
     pushDevices,
     listings,
     bookings,
+    bookingQuotes,
     messageThreads,
     messages,
     uploads,
@@ -61,6 +62,12 @@ export async function buildAccountExport(client, userId) {
               platform_fee_minor, owner_payout_minor, quoted_total_minor,
               security_deposit_minor, created_at, updated_at
        FROM bookings WHERE owner_id = $1 OR renter_id = $1 ORDER BY created_at`, userId),
+    rows(client,
+      `SELECT id, listing_id, rental_start_date, rental_end_date,
+              rental_timezone, catalog_revision, availability_revision,
+              quote_version, currency, total_minor, quote_payload,
+              quote_hash, issued_at, expires_at
+       FROM booking_quotes WHERE renter_id = $1 ORDER BY issued_at`, userId),
     rows(client,
       `SELECT id, booking_id, item_id, archived_for, created_at,
               last_message_at, updated_at
@@ -154,7 +161,7 @@ export async function buildAccountExport(client, userId) {
   return {
     account,
     authentication: { sessions, identities, pushDevices },
-    marketplace: { listings, bookings },
+    marketplace: { listings, bookings, bookingQuotes },
     communication: { messageThreads, messages },
     uploadedFiles: uploads,
     notifications: {

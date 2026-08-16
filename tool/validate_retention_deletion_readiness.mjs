@@ -17,6 +17,7 @@ const sourcePaths = [
   'backend/sql/schema.sql',
   'backend/sql/migrations/006_b7_communications.up.sql',
   'backend/sql/migrations/014_account_legal_holds.up.sql',
+  'backend/sql/migrations/016_v51_booking_quotes.up.sql',
   'backend/ops/backup.sh',
   'lib/screens/legal_privacy_screen.dart',
   'lib/screens/privacy_info_screen.dart',

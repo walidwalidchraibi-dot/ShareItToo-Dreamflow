@@ -1,7 +1,7 @@
 # ShareItToo V5.1 – technische Ausgangslage
 
 Stand: 16. August 2026  
-Geprüfter Quellstand: `4e33587162114e347dc7f15b2206a24a48085e96`  
+Ausgangsstand: `4e33587162114e347dc7f15b2206a24a48085e96`
 Bestehender interner Kandidat: `1.0.0+2026081509`, Commit `3fa045b98897f9551f91da932136c2b100b2d700`  
 Status: interne Arbeitsgrundlage, `HOLD`
 
@@ -17,9 +17,9 @@ Rolloutschritt durchgeführt.
 
 | Bereich | Tatsächlicher Stand | V5.1-Abweichung / Restarbeit |
 |---|---|---|
-| Backend-Quote | `backend/src/booking_domain.js` rechnet in Integer-Cent und berechnet 10 % auf den rabattierten Mietpreis. Es gibt keine alte 1-Euro-Mindestgebühr im aktiven Privat-Pilot-Kern. | Quote-Version, Ablaufzeit, Hash, Rabatt-ID/-Label/-Finanzierungsquelle und unveränderliche Inseratsversion müssen als vollständiger V5.1-Snapshot gebunden werden. |
-| Backend-Workflow | `backend/src/booking_workflow.js` berechnet den Quote serverseitig neu und speichert die Preisbestandteile in `bookings`. | Die allgemeine Domain führt weiterhin Delivery-, Pickup- und Expressfelder; der Privat-Pilot blockiert neue Nutzung, alte Daten- und Anzeigepfade bleiben zu auditieren. |
-| Flutter-Preislogik | `lib/services/private_pilot_pricing.dart` und `lib/services/data_service.dart` bilden 10 % und Rabatte für die Anzeige nach. | Der Client darf nicht als verbindliche Preisquelle gelten. Jede sichtbare Endsumme muss auf einen frischen Server-Snapshot umgestellt werden. |
+| Backend-Quote | `backend/src/booking_domain.js` rechnet in Integer-Cent und berechnet 10 % auf den rabattierten Mietpreis. Migration 016 speichert jedes Serverangebot unveränderbar mit Nutzer, Anzeige, Zeitraum, Katalog-/Verfügbarkeitsrevision, Hash und zehn Minuten Ablaufzeit. | Rabatt-ID/-Label/-Finanzierungsquelle und die sichtbare Verwendung desselben Server-Snapshots im Checkout bleiben umzusetzen. |
+| Backend-Workflow | `backend/src/booking_workflow.js` berechnet das Angebot serverseitig neu. Eine Privat-Pilot-Buchung verlangt zusätzlich die unveränderte, nicht abgelaufene Serverbindung; Nutzer, Anzeige, Zeitraum, Revisionen und Preis müssen exakt übereinstimmen. | Die allgemeine Domain führt weiterhin Delivery-, Pickup- und Expressfelder; der Privat-Pilot blockiert neue Nutzung, alte Daten- und Anzeigepfade bleiben zu auditieren. |
+| Flutter-Preislogik | `lib/services/private_pilot_pricing.dart` bildet 10 % und Rabatte für die Anzeige nach. `DataService` holt unmittelbar vor jeder echten Remote-Buchungsanlage ein frisches Serverangebot und reicht ausschließlich dessen ID und Hash weiter. | Die sichtbare Checkout-Summe muss noch direkt aus demselben Server-Snapshot stammen; lokaler QA-Betrieb bleibt klar getrennt. |
 | Checkout | `lib/screens/private_pilot_checkout_screen.dart` zeigt Mietpreis, Rabatt, Plattformbeitrag und Gesamt. | Weiter V4-Dokumente, fünf Erklärungen und alter Button; kein eigener Plattformvertrag und kein dauerhafter Vertragsbeleg. |
 | Karten/Listen/Details | Mehrere Oberflächen zeigen Tages- oder Buchungspreise über lokale Modelle/Helper. | Alle Flächen müssen auf denselben sichtbaren Endpreis bzw. denselben gespeicherten Quote-Snapshot vereinheitlicht werden. |
 | Storno/Belege | Centbasierte Teilbeträge und Stornoansichten existieren. | Nach-Mietbeginn-/No-Show-Pauschale, getrennte Miet-/SIT-Refunds und ausschließlich snapshotbasierte Belege fehlen. |
@@ -95,3 +95,18 @@ Rolloutschritt durchgeführt.
 7. alle automatisierten Gates, vier Gerätematrixfälle und eine vollständige
    Testbuchung nachweisen.
 8. erst danach einen neuen Kandidaten mit neuer Build-Identität erstellen.
+
+## Fortschreibung 16.118 – frisches Serverangebot
+
+- `016_v51_booking_quotes.up.sql` führt unveränderbare, nutzergebundene und
+  ablaufende Angebotsnachweise ein.
+- Privat-Pilot-Buchungen scheitern geschlossen, wenn Angebot, Hash, Nutzer,
+  Anzeige, Zeitraum, Katalogrevision, Verfügbarkeitsrevision oder Preis nicht
+  mehr exakt stimmen.
+- Der echte App-Remoteweg holt das Angebot unmittelbar vor der Anlage; lokale
+  QA-Daten bleiben getrennt und erzeugen keinen falschen Servernachweis.
+- Angebotsdaten sind im Kontoexport enthalten und als Transaktionsdatensatz im
+  Aufbewahrungsinventar sichtbar. Die konkrete Löschfrist bleibt Teil der noch
+  offenen Aufbewahrungsentscheidung.
+- Checkout-Vertrag, exakt zwei V5.1-Erklärungen, dauerhafter Beleg und sichtbare
+  Serverpreisbindung sind der nächste Baustein. Echtgeld bleibt aus.

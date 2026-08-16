@@ -61,6 +61,7 @@ export async function inspectRetentionInventory(client, { actor }) {
     `WITH inventory(category, dataset, row_count, oldest_at, newest_at) AS (
        SELECT 'accounts', 'user_accounts', count(*)::bigint, min(created_at), max(updated_at) FROM users
        UNION ALL SELECT 'transactions', 'bookings', count(*)::bigint, min(created_at), max(updated_at) FROM bookings
+       UNION ALL SELECT 'transactions', 'booking_quotes', count(*)::bigint, min(issued_at), max(issued_at) FROM booking_quotes
        UNION ALL SELECT 'transactions', 'payments', count(*)::bigint, min(created_at), max(updated_at) FROM payments
        UNION ALL SELECT 'transactions', 'refunds', count(*)::bigint, min(created_at), max(updated_at) FROM refunds
        UNION ALL SELECT 'transactions', 'payouts', count(*)::bigint, min(created_at), max(updated_at) FROM payouts
