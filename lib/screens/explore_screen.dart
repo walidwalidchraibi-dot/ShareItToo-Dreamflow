@@ -2005,7 +2005,7 @@ class _SmallGridCardState extends State<_SmallGridCard> {
 double _exploreListingChildAspectRatio(BuildContext context,
     {required bool isDesktop, required bool isTablet}) {
   final size = MediaQuery.sizeOf(context);
-  final textScale = MediaQuery.textScaleFactorOf(context);
+  final textScaler = MediaQuery.textScalerOf(context);
   final cols = isDesktop ? 4 : (isTablet ? 3 : 2);
   const horizontalPadding = 40.0; // grid left 16 + right 24
   const crossSpacing = 12.0;
@@ -2013,12 +2013,12 @@ double _exploreListingChildAspectRatio(BuildContext context,
       (size.width - horizontalPadding - (crossSpacing * (cols - 1))) / cols;
   final imageHeight = colWidth * 0.60; // shorter image block to cut bottom air
   final theme = Theme.of(context).textTheme;
-  final titleFs = (theme.titleMedium?.fontSize ?? 16) * textScale;
+  final titleFs = textScaler.scale(theme.titleMedium?.fontSize ?? 16);
   final titleHeight = titleFs * ((theme.titleMedium?.height ?? 1.2));
-  final metaHeight = (16 * textScale).clamp(16, 20).toDouble();
-  final priceFs = (theme.titleLarge?.fontSize ?? 22) * textScale;
+  final metaHeight = textScaler.scale(16).clamp(16, 20).toDouble();
+  final priceFs = textScaler.scale(theme.titleLarge?.fontSize ?? 22);
   final priceHeight = priceFs * ((theme.titleLarge?.height ?? 1.1));
-  final suffixFs = (theme.bodySmall?.fontSize ?? 12) * textScale;
+  final suffixFs = textScaler.scale(theme.bodySmall?.fontSize ?? 12);
   final suffixHeight = suffixFs * ((theme.bodySmall?.height ?? 1.2));
   const verticalPadding = 12.0;
   const gaps = 12.0; // tighter vertical rhythm under the last visible block

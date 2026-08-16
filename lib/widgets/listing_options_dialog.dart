@@ -163,7 +163,8 @@ Future<List<_ListingOption>> _buildOptions(
   Future<void> shareListing() async {
     final url = AppLinkBuilder.listing(item.id).toString();
     try {
-      await Share.share('${item.title}\n$url');
+      await SharePlus.instance
+          .share(ShareParams(text: '${item.title}\n$url'));
     } catch (_) {
       await Clipboard.setData(ClipboardData(text: url));
       if (context.mounted) {

@@ -221,7 +221,8 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                           final text = currentUrl == null
                               ? 'Schau dir dieses Angebot an.'
                               : 'Schau dir dieses Angebot an:\n$currentUrl';
-                          await Share.share(text);
+                          await SharePlus.instance
+                              .share(ShareParams(text: text));
                         }
                       } catch (e) {
                         f.debugPrint('[share] failed in gallery: $e');

@@ -7,7 +7,7 @@ set -euo pipefail
 # safe mechanical cleanup, the targeted correctness/startup-safety batch, and
 # removal of all unused local variables, private state remnants, and
 # unreferenced legacy UI components without changing reachable UI paths.
-ANALYZER_BASELINE=324
+ANALYZER_BASELINE=316
 FORBIDDEN_ANALYZER_CODES=(
   dead_code
   empty_catches

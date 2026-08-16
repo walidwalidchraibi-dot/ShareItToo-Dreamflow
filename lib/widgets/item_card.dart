@@ -35,7 +35,7 @@ class ItemCard extends StatelessWidget {
     double crossSpacing = 12,
   }) {
     final size = MediaQuery.sizeOf(context);
-    final textScale = MediaQuery.textScaleFactorOf(context);
+    final textScaler = MediaQuery.textScalerOf(context);
     final theme = Theme.of(context).textTheme;
 
     final colWidth =
@@ -44,12 +44,12 @@ class ItemCard extends StatelessWidget {
     final imageHeight =
         colWidth * 0.66; // slightly shorter visual block to avoid long cards
 
-    final titleFs = ((theme.bodyMedium?.fontSize ?? 14) * textScale);
+    final titleFs = textScaler.scale(theme.bodyMedium?.fontSize ?? 14);
     final titleHeight =
         titleFs * (((theme.bodyMedium?.height) ?? 1.2)) * (compact ? 1 : 2);
-    final cityFs = ((theme.bodySmall?.fontSize ?? 12) * textScale);
+    final cityFs = textScaler.scale(theme.bodySmall?.fontSize ?? 12);
     final cityHeight = cityFs * (((theme.bodySmall?.height) ?? 1.2));
-    final priceFs = ((theme.bodyMedium?.fontSize ?? 14) * textScale);
+    final priceFs = textScaler.scale(theme.bodyMedium?.fontSize ?? 14);
     final priceHeight = priceFs * (((theme.bodyMedium?.height) ?? 1.2));
 
     final verticalPadding = compact ? 16.0 : 20.0;

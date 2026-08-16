@@ -564,7 +564,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
 // while staying visually balanced on various widths and text scales.
 double _mosaicChildAspectRatio(BuildContext context) {
   final size = MediaQuery.sizeOf(context);
-  final textScale = MediaQuery.textScaleFactorOf(context);
+  final textScaler = MediaQuery.textScalerOf(context);
 
   // Grid paddings and spacing must match GridView.builder settings above
   const horizontalPadding = 32.0; // 16 + 16
@@ -576,8 +576,8 @@ double _mosaicChildAspectRatio(BuildContext context) {
   // Estimate height from actual card layout: mosaic (fixed aspect) + padded text block.
   // This keeps the card frame ending right below the count text without dead space.
   final theme = Theme.of(context).textTheme;
-  final titleFs = (theme.titleSmall?.fontSize ?? 16) * textScale;
-  final labelFs = (theme.labelSmall?.fontSize ?? 12) * textScale;
+  final titleFs = textScaler.scale(theme.titleSmall?.fontSize ?? 16);
+  final labelFs = textScaler.scale(theme.labelSmall?.fontSize ?? 12);
   final titleHeight = titleFs * (theme.titleSmall?.height ?? 1.2);
   final labelHeight = labelFs * (theme.labelSmall?.height ?? 1.2);
 
@@ -595,7 +595,7 @@ double _mosaicChildAspectRatio(BuildContext context) {
 // Keep wishlist detail item cards a bit tighter than the generic grid,
 // while still leaving enough room for two title lines on smaller phones.
 double _wishlistDetailChildAspectRatio(BuildContext context) {
-  final textScale = MediaQuery.textScaleFactorOf(context);
+  final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
   final base = ItemCard.recommendedGridChildAspectRatio(context);
   final extra = textScale > 1.1 ? 0.06 : 0.10;
   return (base + extra).clamp(0.82, 1.0);

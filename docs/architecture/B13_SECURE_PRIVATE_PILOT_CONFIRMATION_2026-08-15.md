@@ -1279,3 +1279,31 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.100 – Teilen und Textskalierung auf aktuelle APIs migriert
+
+- Der Flutter-Analysebestand wurde von 324 auf 316 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 295 Hinweise abgebaut.
+- Zwei native Teilen-Aufrufe verwenden jetzt die aktuelle `SharePlus`-Instanz
+  mit `ShareParams`. Inhalt, Fehlerbehandlung und Link-Fallback bleiben
+  unveraendert.
+- Vier Kartenhoehenberechnungen verwenden jetzt `MediaQuery.textScalerOf` und
+  skalieren die tatsaechlichen Schriftgroessen. Damit bleibt das bisherige
+  lineare Verhalten erhalten und nichtlineare Barrierefreiheits-Skalierung
+  wird korrekt beruecksichtigt.
+- Der gezielte Laufzeitumfang umfasst fuenf Dateien mit 17 Einfuegungen und 15
+  Loeschungen. Keine dieser Dateien ist als Datenschutz-Quellbindung
+  hinterlegt; eine Hash-Aktualisierung war nicht erforderlich.
+- Persistierte Daten, Teilen-Inhalte, Explore-/Wunschlisten-Navigation und
+  Buchungs- oder Chatlogik bleiben unveraendert. Die CI-Analyseschranke steht
+  jetzt fail-closed bei 316.
+- Zwei Wiring-Tests und 268 App-Tests bei einem bewussten Skip sind gruen. Der
+  vollstaendige technische Regressionslauf bestand einschliesslich aller
+  Schutzvalidatoren sowie Web- und Android-Debug-Bau.
+- P1-01 bleibt fuer 316 Resthinweise offen. Nachweis:
+  `docs/evidence/b11/flutter-analysis-sharing-and-text-scaling-20260816.json`.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.
