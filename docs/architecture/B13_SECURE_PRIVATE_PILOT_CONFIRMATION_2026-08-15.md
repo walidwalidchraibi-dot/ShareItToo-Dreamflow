@@ -1154,3 +1154,37 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.96 – ungenutzte lokale Variablen vollstaendig entfernt
+
+- Der Flutter-Analysebestand wurde von 428 auf 376 Hinweise reduziert. Alle
+  52 `unused_local_variable`-Hinweise sind jetzt entfernt; Analysefehler
+  bleiben bei null. Seit dem urspruenglichen Stand von 611 wurden damit 235
+  Hinweise abgebaut.
+- Entfernt wurden nur lokale Werte ohne anschliessende Verwendung und drei
+  dadurch eindeutig sichtbar gewordene tote Mitglieder. Ein zuvor
+  ausgefuehrter Verfuegbarkeitsabruf und die reaktive Sprachabhaengigkeit
+  bleiben trotz nicht benoetigtem Rueckgabewert erhalten; erreichbare Widget-
+  Zweige wurden nicht entfernt.
+- Die CI-Analyseschranke steht jetzt bei 376. `dead_code`, `empty_catches`,
+  `equal_keys_in_map`, `unreachable_switch_default`, `unused_import` und
+  `unused_local_variable` werden zusaetzlich einzeln als verbotene
+  Regressionsklassen geprueft. Dadurch kann ihre Wiedereinfuehrung nicht durch
+  den gleichzeitigen Abbau einer anderen Warnung verdeckt werden.
+- Die drei betroffenen Datenschutz-Quellbindungen wurden exakt auf ihre neuen
+  SHA-256-Werte aktualisiert. Inhalt, Kandidatenbindung und offener
+  Data-Safety-/Rechtsstatus blieben unveraendert; der Privacy-Validator und
+  alle 16 zugehoerigen Tests sind gruen.
+- 268 App-Tests bestanden bei einem bewusst uebersprungenen Test. Der
+  vollstaendige technische Regressionslauf bestand einschliesslich aller
+  Backend-, Store-, Datenschutz-, Aufbewahrungs- und Schutzpruefungen sowie
+  Web- und Android-Debug-Bau. Der Nachweis liegt unter
+  `docs/evidence/b11/flutter-analysis-unused-locals-20260816.json`.
+- P1-01 bleibt fuer 376 Resthinweise offen. Als naechste sichere Arbeit werden
+  private ungenutzte Elemente und Felder nach Produktpfad und zusammenhaengender
+  Quellregion geprueft; Context- und API-Migrationen bleiben getrennte,
+  gezielt testbare UI-Batches.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.

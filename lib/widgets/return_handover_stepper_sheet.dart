@@ -272,8 +272,6 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final height = widget.fullScreen ? size.height : size.height * 0.92;
     final maxWidth = 760.0;
 
     return Material(

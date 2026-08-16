@@ -1778,9 +1778,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final savedUrl =
         ((_handoverReturnState['${prefix}LocationMapsUrl'] as String?) ?? '')
             .trim();
-    final savedLabel =
-        ((_handoverReturnState['${prefix}LocationLabel'] as String?) ?? '')
-            .trim();
     final sameCoords = savedLat == data.latitude.trim() &&
         savedLng == data.longitude.trim() &&
         savedLat.isNotEmpty &&
@@ -1835,7 +1832,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       return;
     }
     final hadSavedLocation = _hasSavedLocation(isReturn);
-    final noun = data.isAddressShare ? 'Adresse' : 'Standort';
     final accusativeNoun = data.isAddressShare ? 'die Adresse' : 'den Standort';
     final replacementNoun =
         data.isAddressShare ? 'diese Adresse' : 'diesen Standort';
@@ -2885,10 +2881,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final address = controller.text.trim();
-            final hasAddress = address.isNotEmpty;
-            final phaseIntent = _locationIntentForCurrentContext();
-            final canSetHandover = phaseIntent == _LocationIntent.handover;
-            final canSetReturn = phaseIntent == _LocationIntent.returnTrip;
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -3199,8 +3191,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
   Future<void> _changeTime() async {
     final t = _thread;
     if (t == null) return;
-
-    final cs = Theme.of(context).colorScheme;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -3617,7 +3607,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
     final me = _currentUser;
     if (t == null || req == null || me == null) return;
 
-    final now = DateTime.now();
     final initialTime = isReturn ? (req.end) : (req.start);
     final state = await DataService.getHandoverReturnState(req.id);
     final requestedLabel =
@@ -5656,7 +5645,6 @@ class _SystemMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final locationShare = _parseLocationShareMessage(text);
     if (locationShare != null) {
       return Padding(
@@ -6389,13 +6377,9 @@ class _TransactionComposerState extends State<_TransactionComposer> {
         final showTimeButtons = showHandoverTimeButton || showReturnTimeButton;
         final showActions = !isComposing && widget.showActions;
 
-        // Web-Fallback: Auf Flutter Web bleibt viewInsets.bottom oft bei 0
-        // In dem Fall nutzen wir viewPadding.bottom für SafeArea-Padding
-        final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+        // Keep the composer above browser and device safe areas without
+        // replacing the mounted input while focus changes.
         final viewPadding = MediaQuery.of(context).viewPadding.bottom;
-        final isWebKeyboardWorkaround =
-            kIsWeb && viewInsets == 0 && _inputFocused;
-
         // Keep the same input widget mounted while focus changes. Replacing
         // the TextField here used to tear down Android's input connection just
         // after the tap, leaving a focused composer without a keyboard.
@@ -7203,7 +7187,6 @@ class _CompactTransactionCTA extends StatelessWidget {
 
     // Button-Farben basierend auf Aktivierung
     final isActive = primaryEnabled && onPrimary != null;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final buttonColors = isActive
         ? [cs.primary, cs.primary.withValues(alpha: 0.85)]
         : [Colors.grey.shade600, Colors.grey.shade700];

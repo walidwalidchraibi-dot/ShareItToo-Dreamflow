@@ -1728,7 +1728,6 @@ class _ConditionPagerState extends State<_ConditionPager> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final selectedIndex = _indexFor(widget.selected);
     final selectedLabel = _labels[selectedIndex];
     final isDark = Theme.of(context).brightness == Brightness.dark;

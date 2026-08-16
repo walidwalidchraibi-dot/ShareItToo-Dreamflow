@@ -14,7 +14,6 @@ class NotificationDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final model = _NotificationDetailModel.fromNotification(notification);
 
     return Stack(

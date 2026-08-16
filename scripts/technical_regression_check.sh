@@ -4,8 +4,17 @@ set -euo pipefail
 # Transitional analyzer baseline for the existing legacy issue backlog.
 # Keep this in sync with the accepted repository baseline until the backlog is reduced.
 # Re-measured on Flutter 3.41.7 / Dart 3.11.5 on 2026-08-16 after the first
-# safe mechanical cleanup and the targeted correctness/startup-safety batch.
-ANALYZER_BASELINE=428
+# safe mechanical cleanup, the targeted correctness/startup-safety batch, and
+# removal of all unused local variables without changing reachable UI paths.
+ANALYZER_BASELINE=376
+FORBIDDEN_ANALYZER_CODES=(
+  dead_code
+  empty_catches
+  equal_keys_in_map
+  unreachable_switch_default
+  unused_import
+  unused_local_variable
+)
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$ROOT"
@@ -307,6 +316,13 @@ if (( issue_count > ANALYZER_BASELINE )); then
   echo "ERROR: Analyzer regression detected: ${issue_count} issues (baseline ${ANALYZER_BASELINE})." >&2
   exit 1
 fi
+
+for analyzer_code in "${FORBIDDEN_ANALYZER_CODES[@]}"; do
+  if grep -Eq "(^|[[:space:]•])${analyzer_code}$" "$analyze_log"; then
+    echo "ERROR: Analyzer correctness regression detected: ${analyzer_code}." >&2
+    exit 1
+  fi
+done
 
 if (( issue_count < ANALYZER_BASELINE )); then
   echo "Analyzer improvement detected; baseline update recommended (${issue_count} < ${ANALYZER_BASELINE})."

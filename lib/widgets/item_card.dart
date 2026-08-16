@@ -312,7 +312,6 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
   @override
   Widget build(BuildContext context) {
     final bg = Colors.white.withValues(alpha: 0.92);
-    final cs = Theme.of(context).colorScheme;
     final icon = listId == null ? Icons.favorite_border : Icons.favorite;
     final color = listId == null ? Colors.black54 : Colors.pinkAccent;
     return GestureDetector(

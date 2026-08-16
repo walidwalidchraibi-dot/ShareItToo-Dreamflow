@@ -168,13 +168,11 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
   }
 
   Future<void> _pickRange() async {
-    final now = DateTime.now();
     // Kein Datum vorgewählt, es sei denn der Nutzer hat in dieser Sitzung
     // bereits explizit etwas gewählt.
     final DateTimeRange? initial = _selectedRange;
     // Load booked ranges to mark them in calendar
-    final unavailable =
-        await DataService.getUnavailableRangesForItem(widget.item.id);
+    await DataService.getUnavailableRangesForItem(widget.item.id);
     // Switch to the new full screen availability UX
     final picked = await Navigator.of(context).push<DateTimeRange>(
       PageRouteBuilder(
@@ -345,8 +343,6 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
     final h = MediaQuery.of(context).size.height;
     final l10n = context.watch<LocalizationController>();
     final item = widget.item;
-    // Key for landlord info card; used by description box to compare heights
-    final GlobalKey ownerKey = GlobalKey();
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
@@ -786,7 +782,6 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
   }
 
   Future<void> _pickRange() async {
-    final now = DateTime.now();
     // Do not pre-select a default range. The sheet must open without a
     // selection unless the user already picked something in this session.
     final DateTimeRange? initial = _selectedRange;
@@ -910,9 +905,6 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
     final isEditing =
         (widget.editRequestId != null && widget.editRequestId!.isNotEmpty);
     final isPreview = widget.isOwnerPreview == true;
-    // For measuring landlord card height against description
-    final GlobalKey ownerKey = GlobalKey();
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -2233,8 +2225,6 @@ class _BottomActionBarState extends State<_BottomActionBar> {
   String _addressLine = '';
   double? _addressLat;
   double? _addressLng;
-  double _feeHinweg = 0.0;
-  double _feeRueckweg = 0.0;
   bool _loadingUserCity = true;
   bool _wantExpress =
       false; // renter choice for priority (express) delivery option (2h)
@@ -2328,26 +2318,10 @@ class _BottomActionBarState extends State<_BottomActionBar> {
           (saved != null ? (saved['express'] == true) : false);
       _loadingUserCity = false;
     });
-    _recomputeFees();
+    _persistDeliverySelection();
   }
 
-  void _recomputeFees() {
-    double km = 0.0;
-    if (_addressLat != null && _addressLng != null) {
-      km = DataService.estimateDistanceKm(
-          widget.item.lat, widget.item.lng, _addressLat!, _addressLng!);
-    } else if (_addressLine.trim().isNotEmpty) {
-      km = DataService.estimateDistanceKmFromAddressLine(
-          widget.item.lat, widget.item.lng, _addressLine);
-    } else if (_addressCity != null && _addressCity!.isNotEmpty) {
-      km = DataService.estimateDistanceKmToCity(
-          widget.item.lat, widget.item.lng, _addressCity!);
-    }
-    final fee = DataService.deliveryFeeForDistanceKm(km);
-    setState(() {
-      _feeHinweg = (_dropoff == _DropoffOption.landlord) ? fee : 0.0;
-      _feeRueckweg = (_returning == _ReturnOption.landlord) ? fee : 0.0;
-    });
+  void _persistDeliverySelection() {
     // Persist selection
     DataService.setSavedDeliverySelection(
       widget.item.id,
@@ -2378,9 +2352,6 @@ class _BottomActionBarState extends State<_BottomActionBar> {
         PrivatePilotConfig.deliveryEnabled && item.offersDeliveryAtDropoff;
     final canOfferRueckweg =
         PrivatePilotConfig.deliveryEnabled && item.offersPickupAtReturn;
-    final theme = Theme.of(context);
-
-    final deliverySum = (_feeHinweg + _feeRueckweg);
     // Rental part with discounts applied (owner-configured thresholds)
     double rentalSubtotal = 0.0;
     if (range != null) {
@@ -2513,7 +2484,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                       setState(() {
                                         _dropoff = v;
                                       });
-                                      _recomputeFees();
+                                      _persistDeliverySelection();
                                     }
                                   },
                                   contentPadding: EdgeInsets.zero,
@@ -2530,7 +2501,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                         setState(() {
                                           _dropoff = v;
                                         });
-                                        _recomputeFees();
+                                        _persistDeliverySelection();
                                       }
                                     },
                                     contentPadding: EdgeInsets.zero,
@@ -2582,7 +2553,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                       setState(() {
                                         _returning = v;
                                       });
-                                      _recomputeFees();
+                                      _persistDeliverySelection();
                                     }
                                   },
                                   contentPadding: EdgeInsets.zero,
@@ -2599,7 +2570,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                         setState(() {
                                           _returning = v;
                                         });
-                                        _recomputeFees();
+                                        _persistDeliverySelection();
                                       }
                                     },
                                     contentPadding: EdgeInsets.zero,
@@ -2670,7 +2641,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                         _addressLat = null;
                                         _addressLng = null;
                                       });
-                                      _recomputeFees();
+                                      _persistDeliverySelection();
                                     },
                                     onSelected: (full, lat, lng) {
                                       setState(() {
@@ -2678,7 +2649,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                         _addressLat = lat;
                                         _addressLng = lng;
                                       });
-                                      _recomputeFees();
+                                      _persistDeliverySelection();
                                     },
                                   ),
                                   const SizedBox(height: 8),
@@ -2748,7 +2719,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                         setState(() {
                                           _wantExpress = v ?? false;
                                         });
-                                        _recomputeFees();
+                                        _persistDeliverySelection();
                                       },
                                       controlAffinity:
                                           ListTileControlAffinity.leading,
@@ -2829,7 +2800,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                               setState(() {
                                 _dropoff = v;
                               });
-                              _recomputeFees();
+                              _persistDeliverySelection();
                             }
                           },
                           contentPadding: EdgeInsets.zero,
@@ -2846,7 +2817,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                 setState(() {
                                   _dropoff = v;
                                 });
-                                _recomputeFees();
+                                _persistDeliverySelection();
                               }
                             },
                             contentPadding: EdgeInsets.zero,
@@ -2894,7 +2865,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                               setState(() {
                                 _returning = v;
                               });
-                              _recomputeFees();
+                              _persistDeliverySelection();
                             }
                           },
                           contentPadding: EdgeInsets.zero,
@@ -2911,7 +2882,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                 setState(() {
                                   _returning = v;
                                 });
-                                _recomputeFees();
+                                _persistDeliverySelection();
                               }
                             },
                             contentPadding: EdgeInsets.zero,
@@ -2977,7 +2948,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                 _addressLat = null;
                                 _addressLng = null;
                               });
-                              _recomputeFees();
+                              _persistDeliverySelection();
                             },
                             onSelected: (full, lat, lng) {
                               setState(() {
@@ -2985,7 +2956,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                 _addressLat = lat;
                                 _addressLng = lng;
                               });
-                              _recomputeFees();
+                              _persistDeliverySelection();
                             },
                           ),
                           const SizedBox(height: 8),
@@ -3049,7 +3020,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                 setState(() {
                                   _wantExpress = v ?? false;
                                 });
-                                _recomputeFees();
+                                _persistDeliverySelection();
                               },
                               controlAffinity: ListTileControlAffinity.leading,
                               contentPadding: EdgeInsets.zero,
@@ -3219,7 +3190,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                 // Reservieren button with disabled state + tap guard popup for address (optional)
                 if (widget.showReserveButton) ...[
                   Builder(builder: (context) {
-                    final l10n = context.watch<LocalizationController>();
+                    context.watch<LocalizationController>();
                     final requiresAddress =
                         (_dropoff == _DropoffOption.landlord) ||
                             (_returning == _ReturnOption.landlord);
@@ -4379,7 +4350,6 @@ class _ExpressFallbackSheetState extends State<_ExpressFallbackSheet> {
 extension on _BottomActionBarState {
   Widget _buildAvailabilityLabel() {
     final r = widget.range;
-    final i = widget.item;
     String two(int v) => v.toString().padLeft(2, '0');
     if (r == null) return const Text('Verfügbarkeit prüfen');
     final startStr =

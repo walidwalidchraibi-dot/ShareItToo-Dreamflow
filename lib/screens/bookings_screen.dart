@@ -662,9 +662,6 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
         ]);
       default:
         // For upcoming confirmed bookings, add a "Stornieren" quick action
-        final (start, end) = _parseDateRange(booking['dates'] ?? '');
-        final effective = _effectiveCategoryFor(booking, start, end);
-        final rawStatus = booking['rawStatus'] as String?;
         if (_canCancelUpcomingBooking(booking)) {
           return Align(
             alignment: Alignment.centerLeft,
@@ -834,7 +831,6 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
 
   // Build a tiny inline action button to live next to the chip, keeping the card compact
   Widget? _buildSmallInlineAction(String effectiveCategory, Map<String, dynamic> booking, DateTime? start, DateTime? end) {
-    final rawStatus = booking['rawStatus'] as String?;
     switch (effectiveCategory) {
       case 'pending':
         // Entfernt: kein Inline-Button mehr – nur noch in der Detailseite unten

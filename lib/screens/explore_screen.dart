@@ -740,10 +740,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     final isDesktop = width >= 900;
 
                     // Guests row: keep previous style
-                    const guestsViewportFraction = 0.24; // ~24–25%
-                    final guestsRowHeight =
-                        width * guestsViewportFraction; // 1:1 tile
-
                     Widget feedPage(
                         {required String title, required List<Item> items}) {
                       final l10n = context.watch<LocalizationController>();
@@ -1581,8 +1577,6 @@ class _SquareItemCardState extends State<_SquareItemCard> {
             child: Stack(children: [
               Positioned.fill(
                 child: LayoutBuilder(builder: (context, c) {
-                  final dpr = MediaQuery.of(context).devicePixelRatio;
-                  final cache = (c.maxWidth * dpr).round();
                   return AppImage(
                     url: widget.item.photos.isNotEmpty
                         ? widget.item.photos.first
@@ -1758,8 +1752,6 @@ class _SmallScrollCardState extends State<_SmallScrollCard> {
               return Stack(children: [
                 Positioned.fill(
                   child: LayoutBuilder(builder: (context, c2) {
-                    final dpr = MediaQuery.of(context).devicePixelRatio;
-                    final cache = (c2.maxWidth * dpr).round();
                     return AppImage(
                       url: widget.item.photos.isNotEmpty
                           ? widget.item.photos.first
@@ -1940,8 +1932,6 @@ class _SmallGridCardState extends State<_SmallGridCard> {
               return Stack(children: [
                 Positioned.fill(
                   child: LayoutBuilder(builder: (context, c2) {
-                    final dpr = MediaQuery.of(context).devicePixelRatio;
-                    final cache = (c2.maxWidth * dpr).round();
                     return AppImage(
                       url: widget.item.photos.isNotEmpty
                           ? widget.item.photos.first
@@ -2445,8 +2435,6 @@ class _SquareTitleOnlyCardState extends State<_SquareTitleOnlyCard> {
             child: Stack(children: [
               Positioned.fill(
                 child: LayoutBuilder(builder: (context, c) {
-                  final dpr = MediaQuery.of(context).devicePixelRatio;
-                  final cache = (c.maxWidth * dpr).round();
                   return AppImage(
                     url: widget.item.photos.isNotEmpty
                         ? widget.item.photos.first

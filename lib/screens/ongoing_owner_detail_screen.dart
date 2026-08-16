@@ -668,7 +668,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
 
     final isCompleted = req.status == 'completed';
     final isHeldForReview = req.needsReview;
-    final title = item.title;
     final location = item.locationText;
     // Derive responsibilities robustly from persisted request snapshot; fall back to
     // transient selection and express/address hints for legacy data.
@@ -700,11 +699,9 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       req: req,
       deliverySel: _deliverySel,
     );
-    final days = breakdown.days;
     final rentalSubtotalOnly = breakdown.rentalSubtotal;
     final platformFee = breakdown.platformFee;
     double totalPaid = breakdown.totalRenter;
-    final daily = days > 0 ? (rentalSubtotalOnly / days) : rentalSubtotalOnly;
     final fee = platformFee;
     final subtotal = rentalSubtotalOnly;
 
@@ -2521,7 +2518,6 @@ class _OwnerStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final payout = (totalPaid - fee).clamp(0.0, totalPaid);
     final colorOk = const Color(0xFF22C55E);
     final colorWarn = const Color(0xFFF43F5E);

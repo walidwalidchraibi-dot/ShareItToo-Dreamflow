@@ -825,7 +825,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                 final hasUnread = _hasUnread(thread);
                                 final status = _derivedStatus(thread);
                                 final highlight = status.rank <= 1; // running/accepted
-                                final isTerminal = status.isTerminal;
                                 final isSupport = (thread.threadType ?? '').toLowerCase() == 'support' || thread.user1Id == 'support' || thread.user2Id == 'support';
                                 final item = _itemsCache[thread.itemId];
                                   return _ThreadDismissible(

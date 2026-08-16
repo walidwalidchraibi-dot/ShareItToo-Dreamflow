@@ -85,9 +85,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return single.isNotEmpty ? [single] : <String>[];
   }
 
-  bool get _canCancel =>
-      widget.booking['category'] == 'upcoming' ||
-      widget.booking['category'] == 'pending';
   bool get _isCompletedState {
     final cat = (widget.booking['category'] as String?) ?? '';
     final status = (widget.booking['status'] as String?) ?? '';
@@ -1003,21 +1000,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
 
     final title = (widget.booking['title'] as String?) ?? '-';
     final location = (widget.booking['location'] as String?) ?? '';
-    final pricePaidStr = (widget.booking['pricePaid'] as String?) ?? '';
     final bookingId = _computeBookingId();
-
-    final days = (start != null && end != null)
-        ? end.difference(start).inDays.clamp(1, 365)
-        : 1;
-    final totalPaid = _parseEuro(pricePaidStr);
-    final discounts = _discountsFromBooking();
-    final providedBasePerDay =
-        (widget.booking['basePerDay'] as num?)?.toDouble();
-    final baseTotal =
-        providedBasePerDay != null ? (providedBasePerDay * days) : totalPaid;
-    final rentalSubtotal = (baseTotal - discounts).clamp(0.0, baseTotal);
-    final fee = DataService.platformContributionForRental(rentalSubtotal);
-    final daily = days > 0 ? (rentalSubtotal / days) : rentalSubtotal;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -1373,9 +1356,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           padding: const EdgeInsets.all(12),
           child: Builder(
             builder: (context) {
-              final pricePaidStr =
-                  (widget.booking['pricePaid'] as String?) ?? '';
-              final totalPaidLegacy = _parseEuro(pricePaidStr);
               final daysLocal = (start != null && end != null)
                   ? end.difference(start).inDays.clamp(1, 365)
                   : 1;
@@ -1964,7 +1944,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     String returnText,
   ) {
     final (start, end) = _parseDateRange();
-    final now = DateTime.now();
     final effective = _effectiveCategory(start: start, end: end);
     final isUpcoming = effective == 'upcoming';
     final isPending = effective == 'pending';
@@ -1981,8 +1960,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         : 1;
     final providedBasePerDay =
         (widget.booking['basePerDay'] as num?)?.toDouble();
-    final discountPercentProvided =
-        (widget.booking['discountPercentApplied'] as num?)?.toDouble() ?? 0.0;
     final discountAmountProvided = _discountsFromBooking();
     double baseTotal;
     double discountAmount;
@@ -1999,11 +1976,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     }
     final fee = _serviceFee(totalPaid);
     final rentalSubtotal = (baseTotal - discountAmount).clamp(0.0, totalPaid);
-    final daily = days > 0 ? (rentalSubtotal / days) : rentalSubtotal;
-
-    // Unified policy uses calendar days only; no specific deadline label shown here
-    final DateTime? cancellationDeadline = null;
-    final canStillCancel = _canCancel && (start == null || now.isBefore(start));
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -3583,10 +3555,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       final listerId = widget.booking['listerId'] as String?;
       final itemId = widget.booking['itemId'] as String?;
       final viewerIsOwner = widget.viewerIsOwner;
-      final whoToRateName = viewerIsOwner
-          ? (widget.booking['renterName'] as String? ?? 'Mieter')
-          : _listerName;
-
       await AppPopup.show(
         context,
         icon: Icons.check_circle_outline,

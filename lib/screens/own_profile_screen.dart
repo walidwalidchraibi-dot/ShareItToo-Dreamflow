@@ -50,7 +50,6 @@ class _OwnProfileScreenState extends State<OwnProfileScreen> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     final l10n = context.watch<LocalizationController>();
-    final name = _user?.displayName ?? '';
     final verified = _user?.isVerified ?? false;
     final avg = _user?.avgRating ?? 0;
     final count = _user?.reviewCount ?? 0;

@@ -1,7 +1,7 @@
 # ShareItToo (SIT) – B0-Baseline und Launch-Backlog
 
 Stand: 8. August 2026, 20:30 Uhr (Europe/Berlin)
-Fortgeschrieben: 15. August 2026
+Fortgeschrieben: 16. August 2026
 
 ## Zweck und Status
 
@@ -270,7 +270,7 @@ Architekturquelle.
 
 | ID | Aufgabe | Owner | Abnahmekriterium |
 |---|---|---|---|
-| P1-01 | Flutter-Analysebestand abbauen | Codex | **in Arbeit**: 611 auf 428 Hinweise gesenkt, 0 Fehler; nach 165 sicheren automatischen Korrekturen zusätzlich sieben korrektheitsrelevante Hinweise entfernt und normalen Start gegen Showcase-Seeding sowie Daten-Reset verriegelt; CI-Baseline jetzt 428; Nachweise unter `docs/evidence/b11/flutter-analysis-safe-batch-20260816.json` und `docs/evidence/b11/flutter-analysis-correctness-and-startup-safety-20260816.json` |
+| P1-01 | Flutter-Analysebestand abbauen | Codex | **in Arbeit**: 611 auf 376 Hinweise gesenkt, 0 Fehler; nach sicheren mechanischen und korrektheitsbezogenen Batches sind nun auch alle 52 ungenutzten lokalen Variablen entfernt; sechs bereinigte Analyseklassen werden einzeln gegen Wiedereinfuehrung verriegelt; CI-Baseline jetzt 376; Nachweise unter `docs/evidence/b11/flutter-analysis-safe-batch-20260816.json`, `docs/evidence/b11/flutter-analysis-correctness-and-startup-safety-20260816.json` und `docs/evidence/b11/flutter-analysis-unused-locals-20260816.json` |
 | P1-02 | `main` schützen und Releaseprozess erzwingen | Codex | **erfüllt**: Pull Request + aktuelle grüne Backend-/Flutter-CI erforderlich; Admin-Bypass, Force-Push und Branch-Löschung blockiert; `docs/evidence/b11/github-main-branch-protection-20260816.json` |
 | P1-03 | Schema-Migrationen versionieren | Codex | vorwärts-/rückwärtsfähiger Migrationspfad und Backup vor Migration |
 | P1-04 | Crash-, Fehler- und Audit-Beobachtung einführen | Codex + Walid | Fehler mit Release-ID sichtbar; keine unnötigen personenbezogenen Daten |

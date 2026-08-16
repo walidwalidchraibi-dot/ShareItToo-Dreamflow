@@ -227,7 +227,6 @@ class _LegalMenuCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.24),

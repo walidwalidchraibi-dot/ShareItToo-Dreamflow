@@ -181,7 +181,6 @@ class _ModernRangePickerSheetState extends State<ModernRangePickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final bg = Colors.black.withValues(alpha: 0.5);
     final border = Colors.white.withValues(alpha: 0.10);
     final headerText = Colors.white;

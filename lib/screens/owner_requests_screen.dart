@@ -908,7 +908,6 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
     Color color;
     switch (category) {
       case 'upcoming':
-        final diff = start.difference(DateTime.now());
         // Do not show a return countdown for upcoming; keep a neutral label
         label = 'Kommend';
         color = const Color(0xFF0EA5E9);

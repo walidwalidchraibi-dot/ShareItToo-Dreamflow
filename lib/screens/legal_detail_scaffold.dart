@@ -84,8 +84,6 @@ class LegalSectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    final onSurface = t.colorScheme.onSurface;
-
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(

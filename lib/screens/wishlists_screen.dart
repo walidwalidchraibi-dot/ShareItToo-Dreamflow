@@ -112,7 +112,6 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
 
 extension on _WishlistsScreenState {
   Widget _buildFolderGrid(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     if (_lists.isEmpty) {
       return Center(
           child: Text(

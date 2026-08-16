@@ -218,9 +218,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           const horizontalPadding = 16.0;
           const gridGap = 8.0;
           final cols = isDesktop ? 4 : (isTablet ? 3 : 3);
-          final cardSize =
-              (width - (horizontalPadding * 2) - (gridGap * (cols - 1))) / cols;
-
           return CustomScrollView(
             controller: _scrollController,
             slivers: [
