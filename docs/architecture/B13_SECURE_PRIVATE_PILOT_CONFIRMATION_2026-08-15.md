@@ -1669,3 +1669,33 @@ Servernachweis:
   Kandidat `1.0.0+2026081509`, Produktion, Echtgeld, Store-Tracks, Testkonten
   und Review-Versand blieben unveraendert. Alle neun Aufbewahrungsentscheidungen,
   alle sechs V4-Punkte und die vier offenen Geraetematrix-Zellen bleiben offen.
+
+## Meilenstein 16.114 – totes manuelles Uebergabe-Sichtbarkeitsfeld entfernt
+
+- Der Flutter-Analysebestand wurde von 231 auf 230 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 381 Hinweise abgebaut.
+- Ausschliesslich das projektweit ungenutzte, nebenwirkungsfreie `false`-Feld
+  `_showManualHandover` wurde entfernt. Die Laufzeitdatei verlor genau eine
+  Zeile ohne neue Laufzeitzeile.
+- Die bestaetigten Zeitpruefungen, sichere Pickup- und Return-Challenges,
+  QR-/Code-Stepper, mindestens vier Fotos, verifizierte Rueckgabetransition,
+  eigentuemergebundene Stornierung und Bewertung `owner_to_renter` bleiben
+  erhalten.
+- Acht neue abschnittsgebundene fail-closed Wiring-Tests verriegeln die enge
+  Ein-Zeilen-Grenze und alle genannten aktiven Sicherheits- und Nutzerpfade.
+  Zwei unabhaengige Vorpruefungen bestaetigen Reichweite und Analyzer-Delta.
+- `ongoing_owner_detail_screen.dart` ist nicht als Datenschutz-Quellbindung
+  hinterlegt; die gebundene Rueckgabe-Schrittdatei bleibt unveraendert.
+  Datenerhebung, Speicherung, Uebertragung, Berechtigungen, Store-Metadaten und
+  Offenlegungen bleiben unveraendert. Die CI-Analyseschranke steht jetzt
+  fail-closed bei 230. Nachweis:
+  `docs/evidence/b11/flutter-analysis-ongoing-owner-dead-manual-handover-state-20260816.json`.
+- 102 gezielte Flutter-Tests und die neuen Strukturtests sind gruen. Die
+  vollstaendige Regression bestand mit 268 App-Tests bei einem bewussten Skip,
+  dem separaten Google-Profiltest, allen Schutzvalidatoren sowie Web- und
+  Android-Debug-Bau.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Der bestehende
+  Kandidat `1.0.0+2026081509`, Produktion, Echtgeld, Store-Tracks, Testkonten
+  und Review-Versand blieben unveraendert. Alle neun Aufbewahrungsentscheidungen,
+  alle sechs V4-Punkte und die vier offenen Geraetematrix-Zellen bleiben offen.

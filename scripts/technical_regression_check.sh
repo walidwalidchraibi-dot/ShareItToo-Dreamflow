@@ -7,7 +7,7 @@ set -euo pipefail
 # safe mechanical cleanup, the targeted correctness/startup-safety batch, and
 # removal of all unused local variables, private state remnants, and
 # unreferenced legacy UI components without changing reachable UI paths.
-ANALYZER_BASELINE=231
+ANALYZER_BASELINE=230
 FORBIDDEN_ANALYZER_CODES=(
   dead_code
   empty_catches
@@ -298,6 +298,7 @@ node --test test/tool/messages_screen_dead_ui_cleanup_wiring.test.mjs
 node --test test/tool/request_detail_dead_message_card_cleanup_wiring.test.mjs
 node --test test/tool/explore_listing_card_dead_verification_getter_cleanup_wiring.test.mjs
 node --test test/tool/booking_detail_dead_collapsible_hint_state_cleanup_wiring.test.mjs
+node --test test/tool/ongoing_owner_detail_dead_manual_handover_state_cleanup_wiring.test.mjs
 node --test test/tool/analyzer_baseline_wiring.test.mjs
 
 analyze_log="$(mktemp)"

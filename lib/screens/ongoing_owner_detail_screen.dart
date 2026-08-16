@@ -47,7 +47,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   Item? _item;
   User? _renter;
   User? _owner;
-  final bool _showManualHandover = false;
   final TextEditingController _manualCodeCtrl = TextEditingController();
   Map<String, dynamic>? _deliverySel;
   Map<String, dynamic> _flowState = const {};
