@@ -37,7 +37,7 @@ test('booking helpers keep their only-used color and pulse duration', () => {
 });
 
 test('owner info rows no longer expose an unused trailing slot', () => {
-  const infoRow = section(ownerDetail, 'class _InfoRow', 'class _MapLink');
+  const infoRow = section(ownerDetail, 'class _InfoRow', 'class _CounterpartyRow');
   assert.doesNotMatch(infoRow, /Widget\? trailing|this\.trailing|trailing != null/);
 });
 

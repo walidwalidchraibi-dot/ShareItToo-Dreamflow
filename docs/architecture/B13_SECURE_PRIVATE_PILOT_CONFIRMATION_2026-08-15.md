@@ -1520,3 +1520,32 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.109 – tote Buchungsdetail-Praesentationsreste entfernt
+
+- Der Flutter-Analysebestand wurde von 262 auf 239 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 372 Hinweise abgebaut.
+- Ausschliesslich projektweit unreferenzierte Darstellungsreste wurden aus den
+  Mieter- und Vermieter-Buchungsdetails entfernt. Die beiden Laufzeitdateien
+  verloren zusammen 804 tote Zeilen ohne Ersatzpfad oder neue Laufzeitzeile.
+- Moderne Detailkarten, Kartenaktionen, Gegenpartei-, Betrags- und Faktzeilen
+  bleiben erhalten. Ebenso unveraendert bleiben die konkreten Buttons und
+  Zeitpruefungen fuer Uebergabe und Rueckgabe, QR-/Code-/Foto-Schutz,
+  Mieter- und Vermieter-Storno sowie beide Bewertungsrichtungen.
+- Vier neue Wiring-Tests verriegeln die entfernten Altkomponenten und die
+  konkreten erreichbaren UI-Aufrufstellen. Nach einer unabhaengigen Review
+  wurde die Verriegelung gehaertet; die Abschlussreview meldet keine Findings.
+- Die bereinigten Laufzeitdateien sind nicht als Datenschutz-Quellbindung
+  hinterlegt. Datenerhebung, Speicherung, Uebertragung, Berechtigungen und
+  Offenlegungen bleiben unveraendert. Die CI-Analyseschranke steht jetzt
+  fail-closed bei 239. Nachweis:
+  `docs/evidence/b11/flutter-analysis-booking-detail-legacy-presentation-20260816.json`.
+- 102 gezielte Flutter-Tests und 15 gezielte Strukturtests sind gruen. Die
+  vollstaendige Regression bestand mit 268 App-Tests bei einem bewussten Skip,
+  dem separaten Google-Profiltest, allen Schutzvalidatoren sowie Web- und
+  Android-Debug-Bau.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Der bestehende
+  Kandidat `1.0.0+2026081509`, Produktion, Echtgeld, Store-Tracks, Testkonten
+  und Review-Versand blieben unveraendert. Alle neun Aufbewahrungsentscheidungen,
+  alle sechs V4-Punkte und die vier offenen Geraetematrix-Zellen bleiben offen.

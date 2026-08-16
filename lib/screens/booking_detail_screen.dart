@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
-import 'package:lendify/widgets/return_reminder_picker_sheet.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
@@ -57,7 +56,6 @@ class BookingDetailScreen extends StatefulWidget {
 class _BookingDetailScreenState extends State<BookingDetailScreen> {
   late final PageController _pageController;
   int _page = 0;
-  int? _returnReminderMinutes; // e.g., 2880, 1440, 720, 360, 120
   int _ownerPickupFailCount = 0;
   bool _manualPickupAllowed = false;
   final bool _pickupHintOpen = false; // collapsible hint under Abholung
@@ -3014,18 +3012,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     );
   }
 
-  String _humanizeReminder(int? minutes) {
-    if (minutes == null || minutes <= 0) return '—';
-    final d = minutes ~/ (60 * 24);
-    final h = (minutes % (60 * 24)) ~/ 60;
-    final m = minutes % 60;
-    final parts = <String>[];
-    if (d > 0) parts.add(d == 1 ? '1 Tag' : '$d Tage');
-    if (h > 0) parts.add(h == 1 ? '1 Stunde' : '$h Stunden');
-    if (m > 0) parts.add('$m Min');
-    return parts.isEmpty ? '—' : parts.join(' ');
-  }
-
   Color _statusColor(String? status) {
     switch (status) {
       case 'Akzeptiert':
@@ -4761,54 +4747,6 @@ class _AddressInfoCard extends StatelessWidget {
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Widget? trailing;
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.trailing,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: Colors.white, size: 18),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (trailing != null) ...[const SizedBox(width: 8), trailing!],
-      ],
-    );
-  }
-}
-
 // A more modern, cleaner details card used on the booking page
 class _ModernDetailsCard extends StatelessWidget {
   final String? title;
@@ -5063,24 +5001,6 @@ class _InfoRowModern extends StatelessWidget {
   }
 }
 
-class _MapLink extends StatelessWidget {
-  final VoidCallback onTap;
-  const _MapLink({required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Text(
-        'Karte',
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
 class _MapActions extends StatelessWidget {
   final VoidCallback onMap;
   final VoidCallback onNav;
@@ -5170,89 +5090,6 @@ class _CounterpartyInlineRow extends StatelessWidget {
   }
 }
 
-class _CounterpartyRow extends StatelessWidget {
-  final String name;
-  final String? avatarUrl;
-  final String role;
-  final VoidCallback? onProfile;
-  final double? rating;
-  final int? reviewsCount;
-  final int? trustPercent;
-  const _CounterpartyRow({
-    required this.name,
-    this.avatarUrl,
-    required this.role,
-    this.onProfile,
-    this.rating,
-    this.reviewsCount,
-    this.trustPercent,
-  });
-  @override
-  Widget build(BuildContext context) {
-    String? ratingText;
-    if (rating != null) {
-      final val = rating!.toStringAsFixed(1).replaceAll('.', ',');
-      final rc = reviewsCount ?? 0;
-      ratingText = '$val · ${rc > 0 ? '$rc Bewertungen' : 'Bewertung'}';
-    } else if (trustPercent != null) {
-      ratingText = '${trustPercent!.clamp(0, 100)}% Vertrauen';
-    }
-    return Row(
-      children: [
-        SitUserAvatar(
-          url: avatarUrl,
-          radius: 18,
-          borderColor: Colors.white.withValues(alpha: 0.12),
-          placeholderIcon: Icons.person_outline,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Row(
-                children: [
-                  Text(
-                    role,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.white70),
-                  ),
-                  if (ratingText != null) ...[
-                    const SizedBox(width: 8),
-                    const Icon(
-                      Icons.star_rate_rounded,
-                      color: Colors.amber,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      ratingText,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.white70),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
-        ),
-        TextButton(onPressed: onProfile, child: const Text('Zum Profil')),
-      ],
-    );
-  }
-}
-
 class _AmountRow extends StatelessWidget {
   final String label;
   final String value;
@@ -5305,127 +5142,6 @@ class _Bullet extends StatelessWidget {
           Text('•', style: bodyStyle),
           const SizedBox(width: 8),
           Expanded(child: Text(text, style: bodyStyle)),
-        ],
-      ),
-    );
-  }
-}
-
-class _PrimaryCTA extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-  const _PrimaryCTA({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: FilledButton.icon(
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-        ),
-        onPressed: onPressed,
-        icon: Icon(icon, size: 18),
-        label: Text(label),
-      ),
-    );
-  }
-}
-
-class _SecondaryCTA extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _SecondaryCTA({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 36,
-      child: TextButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 18, color: Colors.white70),
-        label: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ListerCard extends StatelessWidget {
-  final String name;
-  final String? avatarUrl;
-  final VoidCallback? onMessage;
-  const _ListerCard({required this.name, this.avatarUrl, this.onMessage});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.20),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              SitUserAvatar(
-                url: avatarUrl,
-                radius: 22,
-                borderColor: Colors.white.withValues(alpha: 0.12),
-                placeholderIcon: Icons.person_outline,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Antwortet in der Regel schnell',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.white70),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (onMessage != null) ...[
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.center,
-              child: OutlinedButton.icon(
-                onPressed: onMessage,
-                icon: const Icon(Icons.chat_bubble_outline),
-                label: const Text('Nachricht schreiben'),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -5813,187 +5529,6 @@ class _FactRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ReturnReminderCard extends StatelessWidget {
-  final int? valueMinutes;
-  final ValueChanged<int?> onChanged;
-  const _ReturnReminderCard({
-    required this.valueMinutes,
-    required this.onChanged,
-  });
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () async {
-        final selected = await ReturnReminderPickerSheet.show(
-          context,
-          initialMinutes: valueMinutes ?? 120,
-          maxDays: 30,
-          minuteStep: 5,
-        );
-        if (selected != null) {
-          onChanged(selected == 0 ? null : selected);
-        }
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.20),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            const Icon(Icons.alarm, color: Colors.white70),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Erinnerung zur Rückgabe',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _humanize(valueMinutes),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: Colors.white38),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _humanize(int? minutes) {
-    if (minutes == null || minutes <= 0) {
-      return 'Tippen, um eine Erinnerung vor dem Rückgabetermin zu setzen.';
-    }
-    final d = minutes ~/ (60 * 24);
-    final h = (minutes % (60 * 24)) ~/ 60;
-    final m = minutes % 60;
-    final parts = <String>[];
-    if (d > 0) parts.add(d == 1 ? '1 Tag' : '$d Tage');
-    if (h > 0) parts.add(h == 1 ? '1 Std' : '$h Std');
-    if (m > 0) parts.add('$m Min');
-    return parts.isEmpty ? '—' : parts.join(' ');
-  }
-}
-
-class _Timeline extends StatelessWidget {
-  final String
-      current; // one of Requested, Accepted, Paid, Picked up, Laufend, Due, Completed, Überfällig
-  const _Timeline({required this.current});
-
-  @override
-  Widget build(BuildContext context) {
-    final steps = [
-      'Requested',
-      'Accepted',
-      'Paid',
-      'Picked up',
-      'Laufend',
-      'Due',
-      'Completed',
-    ];
-    final isOverdue = current == 'Überfällig';
-    final currentIndex = isOverdue ? 5 : steps.indexOf(current);
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (int i = 0; i < steps.length; i++)
-          _StepChip(
-            label: steps[i],
-            state: i < currentIndex
-                ? _StepState.done
-                : (i == currentIndex
-                    ? (isOverdue ? _StepState.overdue : _StepState.current)
-                    : _StepState.todo),
-          ),
-        if (isOverdue)
-          _StepChip(label: 'Überfällig', state: _StepState.overdue),
-      ],
-    );
-  }
-}
-
-enum _StepState { done, current, todo, overdue }
-
-class _StepChip extends StatelessWidget {
-  final String label;
-  final _StepState state;
-  const _StepChip({required this.label, required this.state});
-  @override
-  Widget build(BuildContext context) {
-    Color border;
-    Color fg;
-    Color bg;
-    IconData? icon;
-    switch (state) {
-      case _StepState.done:
-        border = Colors.white24;
-        fg = Colors.white;
-        bg = Colors.white.withValues(alpha: 0.08);
-        icon = Icons.check_circle_outline;
-        break;
-      case _StepState.current:
-        border = Theme.of(context).colorScheme.primary.withValues(alpha: 0.40);
-        fg = Theme.of(context).colorScheme.primary;
-        bg = Theme.of(context).colorScheme.primary.withValues(alpha: 0.12);
-        icon = Icons.radio_button_checked;
-        break;
-      case _StepState.overdue:
-        border = const Color(0xFFF43F5E).withValues(alpha: 0.40);
-        fg = const Color(0xFFF43F5E);
-        bg = const Color(0xFFF43F5E).withValues(alpha: 0.12);
-        icon = Icons.error_outline;
-        break;
-      case _StepState.todo:
-        border = Colors.white12;
-        fg = Colors.white70;
-        bg = Colors.white.withValues(alpha: 0.05);
-        icon = Icons.radio_button_unchecked;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: fg),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(color: fg, fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
     );
   }
 }
