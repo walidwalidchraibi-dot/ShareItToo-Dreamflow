@@ -239,8 +239,10 @@ Architekturquelle.
 - Ein OpenAI-Proxy-Key ist als Compile-Time-Variable vorgesehen. Ein echter
   geheimer Schlüssel darf niemals in die Client-App kompiliert werden; die
   Funktion muss vor Aktivierung über das Backend laufen.
-- `main` ist noch nicht durch eine Branch-Regel geschützt. Der Baseline-Tag ist
-  dagegen geschützt.
+- `main` ist durch eine Branch-Regel geschützt: Pull Request, aktuelle grüne
+  Backend- und Flutter-Prüfung, lineare Historie und gelöste Review-Gespräche
+  sind Pflicht. Die Regel gilt auch für Administratoren; Force-Push und
+  Branch-Löschung sind blockiert. Der Baseline-Tag bleibt ebenfalls geschützt.
 
 ## 7. Priorisierter kanonischer Launch-Backlog
 
@@ -269,7 +271,7 @@ Architekturquelle.
 | ID | Aufgabe | Owner | Abnahmekriterium |
 |---|---|---|---|
 | P1-01 | Flutter-Analysebestand abbauen | Codex | keine Fehler/Warnungen oder ausdrücklich begründete Restliste; Baseline laufend gesenkt |
-| P1-02 | `main` schützen und Releaseprozess erzwingen | Codex | Pull Request + grüne CI erforderlich; direkte riskante Pushes blockiert |
+| P1-02 | `main` schützen und Releaseprozess erzwingen | Codex | **erfüllt**: Pull Request + aktuelle grüne Backend-/Flutter-CI erforderlich; Admin-Bypass, Force-Push und Branch-Löschung blockiert; `docs/evidence/b11/github-main-branch-protection-20260816.json` |
 | P1-03 | Schema-Migrationen versionieren | Codex | vorwärts-/rückwärtsfähiger Migrationspfad und Backup vor Migration |
 | P1-04 | Crash-, Fehler- und Audit-Beobachtung einführen | Codex + Walid | Fehler mit Release-ID sichtbar; keine unnötigen personenbezogenen Daten |
 | P1-05 | Push-Benachrichtigungen | Codex | Buchungs-, Chat- und Übergabeereignisse zuverlässig; Opt-in und Deep Links getestet |

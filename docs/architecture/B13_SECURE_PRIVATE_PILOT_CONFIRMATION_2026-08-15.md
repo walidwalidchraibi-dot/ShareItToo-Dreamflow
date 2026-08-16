@@ -1069,3 +1069,27 @@ Servernachweis:
   Es wurde kein neuer App-Kandidat gebaut oder hochgeladen. Produktion,
   Echtgeld, Store-Tracks und Review-Versand blieben unveraendert; alle neun
   Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben offen.
+
+## Meilenstein 16.93 – Hauptbranch mit Pull-Request- und CI-Pflicht geschuetzt
+
+- `main` ist jetzt durch eine aktive GitHub-Branch-Regel geschuetzt. Jede
+  Aenderung muss ueber einen Pull Request laufen und auf dem aktuellen
+  Hauptbranch sowohl `backend-regression` als auch `flutter-regression` von
+  GitHub Actions erfolgreich bestehen.
+- Die Regel gilt auch fuer Administratoren. Force-Pushes und Loeschen des
+  Hauptbranches sind deaktiviert; lineare Historie und das Aufloesen offener
+  Review-Gespraeche sind verpflichtend. Veraltete Freigaben werden bei neuen
+  Aenderungen verworfen.
+- Da das Repository derzeit einen einzelnen Maintainer hat, ist kein fremder
+  Approval-Klick vorgeschrieben. Die Pull-Request- und Pruefpflicht bleibt
+  voll wirksam, ohne einen unaufloesbaren Selbstfreigabe-Deadlock zu erzeugen.
+- Der offene Pull Request 7 blieb bewusst als Entwurf offen und wurde nicht
+  zusammengefuehrt. GitHub-Lauf 31929471745 bestand auf Commit
+  `55e65f6617f9a12d0ae71bb10a61a640014e5d59` mit gruenem Backend inklusive
+  PostgreSQL-Integration und gruener Flutter-Regression.
+- Der bereinigte Nachweis liegt unter
+  `docs/evidence/b11/github-main-branch-protection-20260816.json`; P1-02 im
+  kanonischen Launch-Backlog ist damit erfuellt. Produktion, Echtgeld,
+  App-Kandidat `1.0.0+2026081509`, Store-Tracks und Review-Versand blieben
+  unveraendert; alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte
+  bleiben offen.
