@@ -388,14 +388,8 @@ class _ResultsHeader extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-  final bool showSeeAll;
   final EdgeInsets? padding;
-  final VoidCallback? onSeeAll;
-  const _SectionHeader(
-      {required this.title,
-      this.showSeeAll = false,
-      this.padding,
-      this.onSeeAll});
+  const _SectionHeader({required this.title, this.padding});
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -410,30 +404,7 @@ class _SectionHeader extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                     color: Colors.white))),
-        if (showSeeAll)
-          TextButton(onPressed: onSeeAll, child: const Text('Alle ansehen')),
       ]),
-    );
-  }
-}
-
-class _SeeAllLike extends StatelessWidget {
-  final String title;
-  final List<Item> items;
-  const _SeeAllLike({required this.title, required this.items});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(title: Text(title), backgroundColor: Colors.black),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3, mainAxisSpacing: 8, crossAxisSpacing: 8),
-        itemCount: items.length,
-        itemBuilder: (context, i) =>
-            _SquareTitleOnlyCard(item: items[i], isFavorite: false),
-      ),
     );
   }
 }

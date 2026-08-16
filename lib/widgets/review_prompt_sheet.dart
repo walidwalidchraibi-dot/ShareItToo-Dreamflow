@@ -267,14 +267,13 @@ class _CriterionState {
   final String key;
   final String label;
   final String helpText;
-  int stars;
+  int stars = 0;
   final TextEditingController note;
 
   _CriterionState({
     required this.key,
     required this.label,
     required this.helpText,
-    this.stars = 0,
   }) : note = TextEditingController();
 }
 

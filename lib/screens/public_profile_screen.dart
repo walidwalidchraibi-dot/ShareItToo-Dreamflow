@@ -1349,19 +1349,6 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
   List<ReviewWithUser> _reviews = const [];
   bool _loading = true;
 
-  Widget _buildReviewBookingContext(ThemeData theme, ReviewWithUser entry) {
-    final itemTitle = _reviewItemTitle(entry);
-    return Text(
-      buildPublicProfileReviewItemLine(itemTitle),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: theme.textTheme.bodySmall?.copyWith(
-        color: AppTheme.textSecondary(context),
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-
   String _reviewItemTitle(ReviewWithUser entry) {
     final itemTitle = entry.item?.title.trim() ?? '';
     return itemTitle.isNotEmpty ? itemTitle : 'Anzeige';

@@ -1220,3 +1220,34 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.98 – unreferenzierte alte UI-Komponenten entfernt
+
+- Der Flutter-Analysebestand wurde von 352 auf 333 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 278 Hinweise abgebaut.
+- In sieben Laufzeitdateien wurden elf vollstaendig unreferenzierte private
+  UI-Elemente und acht nur zu diesen Elementen oder dauerhaft ungesetzten
+  Optionen gehoerende Parameter entfernt. 375 alte Quellzeilen entfallen;
+  vier Zeilen wurden fuer die vereinfachten aktiven Konstruktoren eingesetzt.
+- Entfernt wurden ein altes Popup-Aktionswidget, eine unreferenzierte
+  Suchergebnis-Unterseite, alte Filter-Icon-/Sortierhelfer und fuenf tote
+  Filterwidgets sowie zwei tote Profilhelfer. Nie gesetzte individuelle
+  Farb- und Startwertoptionen wurden auf ihr tatsaechliches Standardverhalten
+  vereinfacht.
+- Aktive Such-, Filter-, Popup-, Einstellungs-, Bewertungs- und Profilpfade
+  bleiben unveraendert. Keine der sieben Dateien ist als Datenschutz-
+  Quellbindung hinterlegt; eine Hash-Aktualisierung war nicht erforderlich.
+- Die CI-Analyseschranke steht jetzt bei 333. Die sechs einzeln gesperrten
+  Korrektheits- und Hygiene-Codes bleiben fail-closed. Grosse Buchungs- und
+  Chatregionen bleiben bis zur Produktflusspruefung bewusst unangetastet.
+- Zwei Wiring-Tests und 268 App-Tests bei einem bewussten Skip sind gruen.
+  Der vollstaendige technische Regressionslauf bestand einschliesslich aller
+  Backend-, Store-, Rechts-, Datenschutz-, Aufbewahrungs- und
+  Schutzpruefungen sowie Web- und Android-Debug-Bau.
+- P1-01 bleibt fuer 333 Resthinweise offen. Nachweis:
+  `docs/evidence/b11/flutter-analysis-dead-ui-components-20260816.json`.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.

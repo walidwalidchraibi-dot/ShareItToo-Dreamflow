@@ -350,14 +350,13 @@ class _SettingsSection extends StatelessWidget {
   final IconData icon;
   final Widget child;
   final bool emphasized;
-  final Color? highlightTint;
-  const _SettingsSection({required this.title, required this.icon, required this.child, this.emphasized = false, this.highlightTint});
+  const _SettingsSection({required this.title, required this.icon, required this.child, this.emphasized = false});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final tint = highlightTint ?? (isDark ? Colors.white.withValues(alpha: emphasized ? 0.06 : 0.04) : (emphasized ? const Color(0xFFF8FAFC) : AppTheme.surfacePrimary(context)));
+    final tint = isDark ? Colors.white.withValues(alpha: emphasized ? 0.06 : 0.04) : (emphasized ? const Color(0xFFF8FAFC) : AppTheme.surfacePrimary(context));
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
       child: BackdropFilter(

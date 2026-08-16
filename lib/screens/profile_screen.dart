@@ -727,13 +727,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _divider() => const Divider(height: 1, thickness: 1, color: Colors.white24);
 
-  Widget _buildStatItem(String value, String label) {
-    return Column(children: [
-      Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
-      Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70)),
-    ]);
-  }
-
   // removed legacy _svgIcon helper after switching to composed icon
 
   Widget _buildMenuItem(

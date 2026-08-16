@@ -399,47 +399,6 @@ class AppPopup {
   }
 }
 
-class _GlassActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Gradient? gradient;
-
-  const _GlassActionButton(
-      {required this.icon,
-      required this.label,
-      required this.onTap,
-      this.gradient});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
-          gradient: gradient,
-          color: gradient == null ? Colors.white.withValues(alpha: 0.06) : null,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, size: 18, color: Colors.white),
-          const SizedBox(width: 8),
-          Flexible(
-              child: Text(label,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white, fontWeight: FontWeight.w900))),
-        ]),
-      ),
-    );
-  }
-}
-
 class _GlassCard extends StatelessWidget {
   final IconData? leadingIcon;
   final Widget? leadingWidget;
