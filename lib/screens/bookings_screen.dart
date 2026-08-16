@@ -1239,7 +1239,7 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
         var page = startIndex;
         final size = MediaQuery.of(ctx).size;
 
-        Future<void> _shift(int delta) async {
+        Future<void> shift(int delta) async {
           final target = (page + delta).clamp(0, images.length - 1);
           if (target != page) {
             page = target;
@@ -1275,9 +1275,9 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton> with Sin
                           onPointerSignal: (signal) {
                             if (signal is PointerScrollEvent) {
                               if (signal.scrollDelta.dy > 0 || signal.scrollDelta.dx > 0) {
-                                _shift(1);
+                                shift(1);
                               } else if (signal.scrollDelta.dy < 0 || signal.scrollDelta.dx < 0) {
-                                _shift(-1);
+                                shift(-1);
                               }
                             }
                           },

@@ -143,8 +143,9 @@ class WishlistSelectionSheet {
   }
 
   static String _subtitleForSystem(String id) {
-    if (id == DataService.wlSoonId)
+    if (id == DataService.wlSoonId) {
       return 'Ich plane, diesen Artikel bald zu mieten';
+    }
     if (id == DataService.wlLaterId) return 'Interessant, aber nicht jetzt';
     if (id == DataService.wlAgainId) return 'Diesen Artikel hatte ich schon';
     return '';
@@ -334,10 +335,12 @@ class _OptionCard extends StatelessWidget {
 IconData _iconForListId(String id, {required bool system}) {
   if (system) {
     // Deutlich unterschiedliche Icons fuer "Demnächst benötigt" und "Für später"
-    if (id == DataService.wlSoonId)
+    if (id == DataService.wlSoonId) {
       return Icons.watch_later_outlined; // bald/zeitnah
-    if (id == DataService.wlLaterId)
+    }
+    if (id == DataService.wlLaterId) {
       return Icons.event_available_outlined; // für später
+    }
     if (id == DataService.wlAgainId) return Icons.repeat_outlined;
   }
   // Für vom Nutzer erstellte Wunschlisten ein persönliches Icon anzeigen

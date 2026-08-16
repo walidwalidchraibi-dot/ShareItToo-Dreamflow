@@ -270,7 +270,7 @@ Architekturquelle.
 
 | ID | Aufgabe | Owner | Abnahmekriterium |
 |---|---|---|---|
-| P1-01 | Flutter-Analysebestand abbauen | Codex | keine Fehler/Warnungen oder ausdrücklich begründete Restliste; Baseline laufend gesenkt |
+| P1-01 | Flutter-Analysebestand abbauen | Codex | **in Arbeit**: 611 auf 435 Hinweise gesenkt, 0 Fehler; 165 sichere automatische Korrekturen in 28 Dateien, vollständige Restliste und Nachweis unter `docs/evidence/b11/flutter-analysis-safe-batch-20260816.json` |
 | P1-02 | `main` schützen und Releaseprozess erzwingen | Codex | **erfüllt**: Pull Request + aktuelle grüne Backend-/Flutter-CI erforderlich; Admin-Bypass, Force-Push und Branch-Löschung blockiert; `docs/evidence/b11/github-main-branch-protection-20260816.json` |
 | P1-03 | Schema-Migrationen versionieren | Codex | vorwärts-/rückwärtsfähiger Migrationspfad und Backup vor Migration |
 | P1-04 | Crash-, Fehler- und Audit-Beobachtung einführen | Codex + Walid | Fehler mit Release-ID sichtbar; keine unnötigen personenbezogenen Daten |

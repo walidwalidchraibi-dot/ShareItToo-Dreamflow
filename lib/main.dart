@@ -33,14 +33,14 @@ Future<void> main() async {
   // Surface synchronous Flutter framework errors to the console
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
-    debugPrint('FlutterError: ' + details.exceptionAsString());
+    debugPrint('FlutterError: ${details.exceptionAsString()}');
     if (details.stack != null) debugPrint(details.stack.toString());
     FirebaseRuntime.recordFlutterFatalError(details);
   };
 
   // Catch uncaught async errors
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
-    debugPrint('Uncaught async error: ' + error.toString());
+    debugPrint('Uncaught async error: $error');
     debugPrint(stack.toString());
     FirebaseRuntime.recordUnhandledError(error, stack);
     return true; // handled
@@ -53,7 +53,7 @@ Future<void> main() async {
       await DataService.ensureListingsSeededIfEmpty();
       debugPrint('[Main] ensureListingsSeededIfEmpty done');
     } catch (e, st) {
-      debugPrint('[Main] ensureListingsSeededIfEmpty failed: ' + e.toString());
+      debugPrint('[Main] ensureListingsSeededIfEmpty failed: $e');
       debugPrint(st.toString());
     }
   } else {
@@ -70,7 +70,7 @@ Future<void> main() async {
       await DataService.clearAllRentalsAndBookings();
       debugPrint('[Main] Clear rentals/bookings done');
     } catch (e, st) {
-      debugPrint('[Main] Clear rentals/bookings failed: ' + e.toString());
+      debugPrint('[Main] Clear rentals/bookings failed: $e');
       debugPrint(st.toString());
     }
   } else {

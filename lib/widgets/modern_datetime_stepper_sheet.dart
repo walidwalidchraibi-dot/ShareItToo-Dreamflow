@@ -209,7 +209,6 @@ class _DateTimeStepperState extends State<_DateTimeStepper> {
 void _showTopOverlayHint(BuildContext context, {required String title, required String message}) {
   // Insert into the root overlay so it always sits above any modal sheets.
   final overlay = Overlay.of(context, rootOverlay: true);
-  if (overlay == null) return;
   late OverlayEntry entry;
   entry = OverlayEntry(
     builder: (ctx) {

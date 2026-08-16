@@ -491,14 +491,7 @@ Gib NUR ein JSON-Objekt zurück:
             },
             {
               'role': 'user',
-              'content': 'Artikel: ' +
-                  title +
-                  '\nOrt: ' +
-                  location +
-                  '\nPreis/Tag: ' +
-                  pricePerDay.toString() +
-                  '\nTiers: ' +
-                  jsonEncode(tiers),
+              'content': 'Artikel: $title\nOrt: $location\nPreis/Tag: $pricePerDay\nTiers: ${jsonEncode(tiers)}',
             }
           ],
           'response_format': {'type': 'json_object'},

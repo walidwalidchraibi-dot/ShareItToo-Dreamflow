@@ -771,13 +771,13 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
     final bool selected = (_rideAnsweredYes ?? true) == yes;
     final icon = yes ? Icons.check_circle_outline : Icons.close;
     final label = yes ? const Text('Ja') : const Text('Nein');
-    final onTap = () async {
+    Future<void> onTap() async {
       setState(() {
         _rideAnsweredYes = yes;
         _rideGrant = yes;
       });
       await _persistRideDecisionIfAny();
-    };
+    }
     if (selected) {
       return FilledButton.icon(
           onPressed: onTap, icon: Icon(icon), label: label);

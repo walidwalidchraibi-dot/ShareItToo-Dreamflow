@@ -20,7 +20,6 @@ import 'package:lendify/widgets/all_categories_overlay.dart';
 import 'package:lendify/services/ai_price_calculator_service.dart';
 import 'package:lendify/openai/openai_config.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
-import 'package:lendify/widgets/selection_controls.dart';
 import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/widgets/private_pilot_risk_notice.dart';
 import 'package:lendify/theme.dart';
@@ -151,7 +150,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       if (ex.longRentalDiscounts.isNotEmpty) {
         final tiers = [...ex.longRentalDiscounts]
           ..sort((a, b) => a.days.compareTo(b.days));
-        if (tiers.length >= 1) {
+        if (tiers.isNotEmpty) {
           _tier1Days = tiers[0].days;
           _tier1Pct = tiers[0].discountPercent;
         }
@@ -225,7 +224,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     } catch (e) {
       // Keep experience consistent: avoid auto-switching to gallery on Web.
       // Some browsers will still show a file dialog even for ImageSource.camera.
-      debugPrint('Camera pick failed or blocked: ' + e.toString());
+      debugPrint('Camera pick failed or blocked: $e');
     }
   }
 
@@ -699,21 +698,28 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     final g = group.toLowerCase();
     if (g.contains('technik')) return Icons.devices;
     if (g.contains('haushalt') || g.contains('wohnen')) return Icons.weekend;
-    if (g.contains('fahrzeuge') || g.contains('mobil'))
+    if (g.contains('fahrzeuge') || g.contains('mobil')) {
       return Icons.directions_car;
+    }
     if (g.contains('mode') || g.contains('lifestyle')) return Icons.checkroom;
-    if (g.contains('sport') || g.contains('hobby') || g.contains('hobb'))
+    if (g.contains('sport') || g.contains('hobby') || g.contains('hobb')) {
       return Icons.sports_soccer;
+    }
     if (g.contains('werkzeuge') ||
         g.contains('geräte') ||
-        g.contains('geraete')) return Icons.construction;
+        g.contains('geraete')) {
+      return Icons.construction;
+    }
     if (g.contains('garten') || g.contains('hof')) return Icons.grass;
-    if (g.contains('event') || g.contains('feier') || g.contains('party'))
+    if (g.contains('event') || g.contains('feier') || g.contains('party')) {
       return Icons.celebration;
-    if (g.contains('reise') || g.contains('camping'))
+    }
+    if (g.contains('reise') || g.contains('camping')) {
       return Icons.travel_explore;
-    if (g.contains('büro') || g.contains('buero') || g.contains('gewerbe'))
+    }
+    if (g.contains('büro') || g.contains('buero') || g.contains('gewerbe')) {
       return Icons.business_center;
+    }
     if (g.contains('baby') || g.contains('kinder')) return Icons.child_friendly;
     if (g.contains('haustier')) return Icons.pets;
     return Icons.category;
@@ -1283,8 +1289,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                           validator: (v) {
                             final n =
                                 double.tryParse((v ?? '').replaceAll(',', '.'));
-                            if (n == null || n <= 0)
+                            if (n == null || n <= 0) {
                               return 'Gültigen Preis eingeben';
+                            }
                             return null;
                           },
                         ),
@@ -1437,7 +1444,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                   ),
                                   _ThresholdDiscountRow(
                                     key: ValueKey(
-                                        'tier1_' + _strategyEpoch.toString()),
+                                        'tier1_$_strategyEpoch'),
                                     days: _tier1Days,
                                     percent: _tier1Pct,
                                     pricePerDay: double.tryParse(_priceCtrl.text
@@ -1460,7 +1467,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                   const SizedBox(height: 6),
                                   _ThresholdDiscountRow(
                                     key: ValueKey(
-                                        'tier2_' + _strategyEpoch.toString()),
+                                        'tier2_$_strategyEpoch'),
                                     days: _tier2Days,
                                     percent: _tier2Pct,
                                     pricePerDay: double.tryParse(_priceCtrl.text
@@ -1483,7 +1490,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                   const SizedBox(height: 6),
                                   _ThresholdDiscountRow(
                                     key: ValueKey(
-                                        'tier3_' + _strategyEpoch.toString()),
+                                        'tier3_$_strategyEpoch'),
                                     days: _tier3Days,
                                     percent: _tier3Pct,
                                     pricePerDay: double.tryParse(_priceCtrl.text

@@ -576,8 +576,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 side: BorderSide(color: AppTheme.glassStroke(context)),
               ),
               onSelected: (value) async {
-                if (value == 'report_problem')
+                if (value == 'report_problem') {
                   await _openProfileSupportFlow('Profil melden');
+                }
                 if (value == 'share_profile') {
                   final link = AppLinkBuilder.profile(u.id).toString();
                   await Clipboard.setData(ClipboardData(text: link));

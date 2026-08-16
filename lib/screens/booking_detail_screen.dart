@@ -60,8 +60,8 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   int? _returnReminderMinutes; // e.g., 2880, 1440, 720, 360, 120
   int _ownerPickupFailCount = 0;
   bool _manualPickupAllowed = false;
-  bool _pickupHintOpen = false; // collapsible hint under Abholung
-  bool _upcomingPrivacyOpen = false; // collapsible privacy hint for upcoming
+  final bool _pickupHintOpen = false; // collapsible hint under Abholung
+  final bool _upcomingPrivacyOpen = false; // collapsible privacy hint for upcoming
   // Renter upcoming: manual code entry toggle + controller
   bool _showManualPickupEntry = false;
   final TextEditingController _manualPickupCodeCtrl = TextEditingController();
@@ -262,7 +262,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           }
         }
       } catch (e) {
-        debugPrint('[booking_detail] load item coords failed: ' + e.toString());
+        debugPrint('[booking_detail] load item coords failed: $e');
       }
     });
   }
@@ -354,7 +354,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => MessageThreadScreen(
-          threadId: supportThread!.id,
+          threadId: supportThread.id,
           participantName: 'SIT Support',
           itemTitle: 'Support',
         ),
@@ -541,7 +541,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         .toSet();
     final items = await DataService.getPublicItems();
     int bestScore = 0;
-    var bestItem = null;
+    Item? bestItem;
     for (final it in items) {
       final t = it.title.toLowerCase();
       int s = 0;
@@ -554,7 +554,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
     }
     if (!mounted) return;
-    if (bestItem == null || bestScore == 0) {
+    if (bestItem == null) {
       await showDialog<void>(
         context: ctx,
         builder: (dCtx) => AlertDialog(
@@ -659,7 +659,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         var page = startIndex;
         final size = MediaQuery.of(ctx).size;
 
-        Future<void> _shift(int delta) async {
+        Future<void> shift(int delta) async {
           final target = (page + delta).clamp(0, images.length - 1);
           if (target != page) {
             page = target;
@@ -708,10 +708,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                                 if (signal is PointerScrollEvent) {
                                   if (signal.scrollDelta.dy > 0 ||
                                       signal.scrollDelta.dx > 0) {
-                                    _shift(1);
+                                    shift(1);
                                   } else if (signal.scrollDelta.dy < 0 ||
                                       signal.scrollDelta.dx < 0) {
-                                    _shift(-1);
+                                    shift(-1);
                                   }
                                 }
                               },
@@ -1265,16 +1265,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               final (s, e) = _parseDateRange();
               final eff = _effectiveCategory(start: s, end: e);
               debugPrint(
-                '[BookingDetail] transportInfo A: requestId=' +
-                    ((widget.booking['requestId'] ?? '')).toString() +
-                    ' ownerDeliversAtDropoffChosen=' +
-                    ((widget.booking['ownerDeliversAtDropoffChosen'] == true)
-                        .toString()) +
-                    ' ownerPicksUpAtReturnChosen=' +
-                    ((widget.booking['ownerPicksUpAtReturnChosen'] == true)
-                        .toString()) +
-                    ' effective=' +
-                    eff,
+                '[BookingDetail] transportInfo A: requestId=${widget.booking['requestId'] ?? ''} ownerDeliversAtDropoffChosen=${widget.booking['ownerDeliversAtDropoffChosen'] == true} ownerPicksUpAtReturnChosen=${widget.booking['ownerPicksUpAtReturnChosen'] == true} effective=$eff',
               );
             } catch (_) {}
             if (_isOngoing) {
@@ -2352,13 +2343,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       : true;
               try {
                 debugPrint(
-                  '[BookingDetail] pending map visibility: requestId=' +
-                      ((widget.booking['requestId'] ?? '')).toString() +
-                      ' ownerDeliversAtDropoffChosen=' +
-                      ((widget.booking['ownerDeliversAtDropoffChosen'] == true)
-                          .toString()) +
-                      ' showMap=' +
-                      (renterPicksUpSelf).toString(),
+                  '[BookingDetail] pending map visibility: requestId=${widget.booking['requestId'] ?? ''} ownerDeliversAtDropoffChosen=${widget.booking['ownerDeliversAtDropoffChosen'] == true} showMap=$renterPicksUpSelf',
                 );
               } catch (_) {}
               if (!renterPicksUpSelf) return const SizedBox.shrink();
@@ -3595,7 +3580,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         }
       } catch (_) {}
       if (requestId != null && requestId.isNotEmpty) {
-        await _syncBookingLifecycleFromRequest(requestId!);
+        await _syncBookingLifecycleFromRequest(requestId);
       }
       final titleTxt = (widget.booking['title'] as String?) ?? '';
       final listerId = widget.booking['listerId'] as String?;
@@ -4085,7 +4070,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
       if (!mounted) return;
       if (requestId != null && requestId.isNotEmpty) {
-        await _syncBookingLifecycleFromRequest(requestId!);
+        await _syncBookingLifecycleFromRequest(requestId);
       }
       final title = (widget.booking['title'] as String?) ?? '';
       await DataService.addNotification(
@@ -4227,7 +4212,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
       if (!mounted) return;
       if (requestId != null && requestId.isNotEmpty) {
-        await _syncBookingLifecycleFromRequest(requestId!);
+        await _syncBookingLifecycleFromRequest(requestId);
       }
       final title = (widget.booking['title'] as String?) ?? '';
       await DataService.addNotification(
@@ -4513,7 +4498,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
       return false;
     }
-    await _syncBookingLifecycleFromRequest(requestId!);
+    await _syncBookingLifecycleFromRequest(requestId);
     return true;
   }
 
@@ -4544,7 +4529,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
       return false;
     }
-    await _syncBookingLifecycleFromRequest(requestId!);
+    await _syncBookingLifecycleFromRequest(requestId);
     return true;
   }
 
@@ -4637,7 +4622,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
       if (!mounted) return;
       if (requestId != null && requestId.isNotEmpty) {
-        await _syncBookingLifecycleFromRequest(requestId!);
+        await _syncBookingLifecycleFromRequest(requestId);
       }
       final bookingId = _computeBookingId();
       final title = (widget.booking['title'] as String?) ?? '';
@@ -5611,9 +5596,9 @@ class _CompletionSummaryCard extends StatelessWidget {
 
     // Dates: use end as return date fallback
     final returnedAt = end;
-    final payoutAt = end != null ? end.add(const Duration(days: 1)) : null;
+    final payoutAt = end?.add(const Duration(days: 1));
 
-    Text _line(String label, String value, {IconData? icon}) => Text(
+    Text line(String label, String value, {IconData? icon}) => Text(
           value.isEmpty ? '' : value,
           style:
               const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),

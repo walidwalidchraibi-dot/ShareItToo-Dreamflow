@@ -741,8 +741,9 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
         final hay =
             '${cat.id} ${a.title} ${a.short} ${a.body.intro} ${a.body.steps.join(' ')} ${a.body.tips.join(' ')}'
                 .toLowerCase();
-        if (hay.contains(q))
+        if (hay.contains(q)) {
           res.add(_HelpSearchResult(category: cat, article: a));
+        }
       }
     }
     return res;

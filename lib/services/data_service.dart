@@ -186,7 +186,7 @@ class DataService {
       final map = jsonDecode(raw) as Map<String, dynamic>;
       return SecuritySettings.fromJson(map);
     } catch (e) {
-      debugPrint('[DataService] getSecuritySettings failed: ' + e.toString());
+      debugPrint('[DataService] getSecuritySettings failed: $e');
       return const SecuritySettings(enabled: false, method: 'sms');
     }
   }
@@ -199,7 +199,7 @@ class DataService {
         jsonEncode(settings.toJson()),
       );
     } catch (e) {
-      debugPrint('[DataService] setSecuritySettings failed: ' + e.toString());
+      debugPrint('[DataService] setSecuritySettings failed: $e');
     }
   }
 
@@ -227,7 +227,7 @@ class DataService {
       }
       return parsed;
     } catch (e) {
-      debugPrint('[DataService] getSignedInDevices failed: ' + e.toString());
+      debugPrint('[DataService] getSignedInDevices failed: $e');
       return const [];
     }
   }
@@ -240,7 +240,7 @@ class DataService {
         jsonEncode(devices.map((e) => e.toJson()).toList()),
       );
     } catch (e) {
-      debugPrint('[DataService] setSignedInDevices failed: ' + e.toString());
+      debugPrint('[DataService] setSignedInDevices failed: $e');
     }
   }
 
@@ -348,7 +348,7 @@ class DataService {
       await prefs.setString(_handoverBannersKey, jsonEncode(map));
     } catch (e) {
       // ignore but log for debug
-      debugPrint('[DataService] setHandoverBanner failed: ' + e.toString());
+      debugPrint('[DataService] setHandoverBanner failed: $e');
     }
   }
 
@@ -374,7 +374,7 @@ class DataService {
       return null;
     } catch (e) {
       // ignore but log for debug
-      debugPrint('[DataService] takeHandoverBanner failed: ' + e.toString());
+      debugPrint('[DataService] takeHandoverBanner failed: $e');
       return null;
     }
   }
@@ -733,17 +733,16 @@ class DataService {
     );
     list.add(toStore.toJson());
 
-    Future<void> _persist(List<dynamic> payload) async {
+    Future<void> persist(List<dynamic> payload) async {
       await prefs.setString(_itemsKey, jsonEncode(payload));
     }
 
     // Try to persist, falling back to photo sanitation when web storage quota is exceeded.
     try {
-      await _persist(list);
+      await persist(list);
     } catch (e) {
       debugPrint(
-        '[DataService] addItem persist failed, attempting to shrink payload: ' +
-            e.toString(),
+        '[DataService] addItem persist failed, attempting to shrink payload: $e',
       );
       // 1) Remove oversized inline images and keep at most three uploaded URLs.
       List<dynamic> shrunk = list.map((raw) {
@@ -770,11 +769,10 @@ class DataService {
         }
       }).toList();
       try {
-        await _persist(shrunk);
+        await persist(shrunk);
       } catch (e2) {
         debugPrint(
-          '[DataService] addItem persist still failing after shrink: ' +
-              e2.toString(),
+          '[DataService] addItem persist still failing after shrink: $e2',
         );
         // 2) Last resort: strip photos entirely to guarantee saving
         final stripped = shrunk.map((raw) {
@@ -786,7 +784,7 @@ class DataService {
             return raw;
           }
         }).toList();
-        await _persist(stripped);
+        await persist(stripped);
       }
     }
     return toStore;
@@ -899,7 +897,7 @@ class DataService {
         // Skip bad entry and mark mutated so we can sanitize storage
         mutated = true;
         debugPrint(
-          '[DataService] Skipped corrupted item entry: ' + e.toString(),
+          '[DataService] Skipped corrupted item entry: $e',
         );
       }
     }
@@ -2613,16 +2611,15 @@ class DataService {
       }
     }
     if (!mutated) list.add(effectiveUpdated.toJson());
-    Future<void> _persist(List<dynamic> payload) async {
+    Future<void> persist(List<dynamic> payload) async {
       await prefs.setString(_itemsKey, jsonEncode(payload));
     }
 
     try {
-      await _persist(list);
+      await persist(list);
     } catch (e) {
       debugPrint(
-        '[DataService] updateItem persist failed, attempting to shrink payload: ' +
-            e.toString(),
+        '[DataService] updateItem persist failed, attempting to shrink payload: $e',
       );
       // Shrink photos across all items without inventing replacement listings or media.
       List<dynamic> shrunk = list.map((raw) {
@@ -2649,11 +2646,10 @@ class DataService {
         }
       }).toList();
       try {
-        await _persist(shrunk);
+        await persist(shrunk);
       } catch (e2) {
         debugPrint(
-          '[DataService] updateItem persist still failing after shrink: ' +
-              e2.toString(),
+          '[DataService] updateItem persist still failing after shrink: $e2',
         );
         final stripped = shrunk.map((raw) {
           try {
@@ -2664,7 +2660,7 @@ class DataService {
             return raw;
           }
         }).toList();
-        await _persist(stripped);
+        await persist(stripped);
       }
     }
   }
@@ -2744,10 +2740,12 @@ class DataService {
                 .any((tag) => tag.toLowerCase().contains(normalizedQuery))) {
           return false;
         }
-        if (categoryIds.isNotEmpty && !categoryIds.contains(item.categoryId))
+        if (categoryIds.isNotEmpty && !categoryIds.contains(item.categoryId)) {
           return false;
-        if (conditions.isNotEmpty && !conditions.contains(item.condition))
+        }
+        if (conditions.isNotEmpty && !conditions.contains(item.condition)) {
           return false;
+        }
         if (minPrice != null && item.pricePerDay < minPrice) return false;
         if (maxPrice != null && item.pricePerDay > maxPrice) return false;
         if (latitude != null && longitude != null && radiusKm != null) {
@@ -2853,7 +2851,7 @@ class DataService {
       await prefs.setString(_wishlistsMetaKey, jsonEncode(list));
     } catch (e) {
       debugPrint(
-        '[DataService] _ensureDefaultWishlists error: ' + e.toString(),
+        '[DataService] _ensureDefaultWishlists error: $e',
       );
     }
   }
@@ -2872,7 +2870,7 @@ class DataService {
             if (e is Map) Map<String, dynamic>.from(e),
         ];
       } catch (e) {
-        debugPrint('[DataService] getWishlists decode failed: ' + e.toString());
+        debugPrint('[DataService] getWishlists decode failed: $e');
       }
     }
     // Sort: system first in order soon, later, again; then custom by name
@@ -2907,7 +2905,7 @@ class DataService {
       list.add({'id': id, 'name': name.trim(), 'system': false});
       await prefs.setString(_wishlistsMetaKey, jsonEncode(list));
     } catch (e) {
-      debugPrint('[DataService] addCustomWishlist failed: ' + e.toString());
+      debugPrint('[DataService] addCustomWishlist failed: $e');
     }
     return id;
   }
@@ -2936,7 +2934,7 @@ class DataService {
         } catch (_) {}
       }
     } catch (e) {
-      debugPrint('[DataService] deleteCustomWishlist failed: ' + e.toString());
+      debugPrint('[DataService] deleteCustomWishlist failed: $e');
     }
   }
 
@@ -2975,7 +2973,7 @@ class DataService {
         await prefs.setString(_wishlistsMetaKey, jsonEncode(list));
       }
     } catch (e) {
-      debugPrint('[DataService] renameCustomWishlist failed: ' + e.toString());
+      debugPrint('[DataService] renameCustomWishlist failed: $e');
     }
   }
 
@@ -2987,9 +2985,9 @@ class DataService {
       if (raw == null || raw.isEmpty) return null;
       final Map<String, dynamic> map = jsonDecode(raw);
       final v = map[itemId];
-      return v == null ? null : v.toString();
+      return v?.toString();
     } catch (e) {
-      debugPrint('[DataService] getWishlistForItem failed: ' + e.toString());
+      debugPrint('[DataService] getWishlistForItem failed: $e');
       return null;
     }
   }
@@ -3010,7 +3008,7 @@ class DataService {
       map[itemId] = listId;
       await prefs.setString(_wishlistAssignKey, jsonEncode(map));
     } catch (e) {
-      debugPrint('[DataService] setItemWishlist failed: ' + e.toString());
+      debugPrint('[DataService] setItemWishlist failed: $e');
     }
   }
 
@@ -3027,7 +3025,7 @@ class DataService {
       }
     } catch (e) {
       debugPrint(
-        '[DataService] removeItemFromWishlist failed: ' + e.toString(),
+        '[DataService] removeItemFromWishlist failed: $e',
       );
     }
   }
@@ -3053,7 +3051,7 @@ class DataService {
         out.putIfAbsent(id, () => []).add(it);
       }
     } catch (e) {
-      debugPrint('[DataService] getItemsByWishlist failed: ' + e.toString());
+      debugPrint('[DataService] getItemsByWishlist failed: $e');
     }
     return out;
   }
@@ -3107,7 +3105,7 @@ class DataService {
       await _ensureDefaultWishlists();
     } catch (e) {
       debugPrint(
-        '[DataService] ensureDefaultWishlists failed: ' + e.toString(),
+        '[DataService] ensureDefaultWishlists failed: $e',
       );
     }
   }
@@ -3366,16 +3364,20 @@ class DataService {
         if (!map.containsKey('lat')) map['lat'] = null;
         if (!map.containsKey('lng')) map['lng'] = null;
         if (!map.containsKey('express')) map['express'] = false;
-        if (!map.containsKey('deliveryAddressLine'))
+        if (!map.containsKey('deliveryAddressLine')) {
           map['deliveryAddressLine'] = map['addressLine'] ?? '';
-        if (!map.containsKey('deliveryCity'))
+        }
+        if (!map.containsKey('deliveryCity')) {
           map['deliveryCity'] = map['city'] ?? '';
+        }
         if (!map.containsKey('deliveryLat')) map['deliveryLat'] = map['lat'];
         if (!map.containsKey('deliveryLng')) map['deliveryLng'] = map['lng'];
-        if (!map.containsKey('returnAddressLine'))
+        if (!map.containsKey('returnAddressLine')) {
           map['returnAddressLine'] = map['addressLine'] ?? '';
-        if (!map.containsKey('returnCity'))
+        }
+        if (!map.containsKey('returnCity')) {
           map['returnCity'] = map['city'] ?? '';
+        }
         if (!map.containsKey('returnLat')) map['returnLat'] = map['lat'];
         if (!map.containsKey('returnLng')) map['returnLng'] = map['lng'];
         return map;
@@ -5532,8 +5534,7 @@ class DataService {
       }
     } catch (e) {
       debugPrint(
-        '[DataService] addRentalRequest: failed to compute quoted total: ' +
-            e.toString(),
+        '[DataService] addRentalRequest: failed to compute quoted total: $e',
       );
     }
     var toStore = RentalRequest(
@@ -5601,14 +5602,7 @@ class DataService {
       await _saveAllRentalRequests(all);
     }
     debugPrint(
-      '[DataService] addRentalRequest stored id=' +
-          nextId +
-          ' ownerDeliversAtDropoffChosen=' +
-          ownerDelivers.toString() +
-          ' ownerPicksUpAtReturnChosen=' +
-          ownerPicksUp.toString() +
-          ' expressRequested=' +
-          toStore.expressRequested.toString(),
+      '[DataService] addRentalRequest stored id=$nextId ownerDeliversAtDropoffChosen=$ownerDelivers ownerPicksUpAtReturnChosen=$ownerPicksUp expressRequested=${toStore.expressRequested}',
     );
 
     try {
@@ -6520,7 +6514,7 @@ class DataService {
       }
       if (mutated) await _saveAllRentalRequests(all);
     } catch (e) {
-      debugPrint('[DataService] sweepExpressTimeouts failed: ' + e.toString());
+      debugPrint('[DataService] sweepExpressTimeouts failed: $e');
     }
   }
 
@@ -6650,7 +6644,7 @@ class DataService {
       await prefs.setString(_notificationsKey, jsonEncode(list));
     } catch (e) {
       debugPrint(
-        '[DataService] addStructuredNotification failed: ' + e.toString(),
+        '[DataService] addStructuredNotification failed: $e',
       );
     }
   }
@@ -6826,7 +6820,7 @@ class DataService {
       return out;
     } catch (e) {
       debugPrint(
-        '[DataService] getNotificationFeedForUser failed: ' + e.toString(),
+        '[DataService] getNotificationFeedForUser failed: $e',
       );
       return [];
     }
@@ -6864,7 +6858,7 @@ class DataService {
       }
       if (mutated) await prefs.setString(_notificationsKey, jsonEncode(list));
     } catch (e) {
-      debugPrint('[DataService] markNotificationRead failed: ' + e.toString());
+      debugPrint('[DataService] markNotificationRead failed: $e');
     }
   }
 
@@ -6892,7 +6886,7 @@ class DataService {
       if (mutated) await prefs.setString(_notificationsKey, jsonEncode(list));
     } catch (e) {
       debugPrint(
-        '[DataService] markAllNotificationsRead failed: ' + e.toString(),
+        '[DataService] markAllNotificationsRead failed: $e',
       );
     }
   }
@@ -6930,7 +6924,7 @@ class DataService {
       }
       if (mutated) await prefs.setString(_notificationsKey, jsonEncode(list));
     } catch (e) {
-      debugPrint('[DataService] archiveNotification failed: ' + e.toString());
+      debugPrint('[DataService] archiveNotification failed: $e');
     }
   }
 
@@ -6963,7 +6957,7 @@ class DataService {
       await prefs.setString(_rideCompKey, jsonEncode(map));
     } catch (e) {
       debugPrint(
-        '[DataService] setRideCompensationDecision failed: ' + e.toString(),
+        '[DataService] setRideCompensationDecision failed: $e',
       );
     }
   }
@@ -7003,7 +6997,7 @@ class DataService {
       return null;
     } catch (e) {
       debugPrint(
-        '[DataService] getRideCompensationDecision failed: ' + e.toString(),
+        '[DataService] getRideCompensationDecision failed: $e',
       );
       return null;
     }
@@ -7045,7 +7039,7 @@ class DataService {
       await prefs.setString(_reviewRemindersKey, jsonEncode(list));
     } catch (e) {
       debugPrint(
-        '[DataService] scheduleReviewReminder failed: ' + e.toString(),
+        '[DataService] scheduleReviewReminder failed: $e',
       );
     }
   }
@@ -7094,7 +7088,7 @@ class DataService {
       }
       return null;
     } catch (e) {
-      debugPrint('[DataService] takeDueReviewReminder failed: ' + e.toString());
+      debugPrint('[DataService] takeDueReviewReminder failed: $e');
       return null;
     }
   }
@@ -7133,7 +7127,7 @@ class DataService {
       await prefs.setString(_reviewRemindersKey, jsonEncode(list));
     } catch (e) {
       debugPrint(
-        '[DataService] postponeReviewReminder failed: ' + e.toString(),
+        '[DataService] postponeReviewReminder failed: $e',
       );
     }
   }
@@ -7211,7 +7205,7 @@ class DataService {
 
   // ===== Cancellation policy helpers (Unified) =====
   /// Human-readable policy title (DE) – unified across the app
-  static String policyName([String? _ignored]) =>
+  static String policyName([String? ignored]) =>
       'Einheitliche Stornobedingung';
 
   /// Exact V4 deadline. For a normal booking the free deadline is 24 hours
@@ -7274,7 +7268,7 @@ class DataService {
       );
     } catch (e) {
       debugPrint(
-        '[DataService] clearAllRentalsAndBookings failed: ' + e.toString(),
+        '[DataService] clearAllRentalsAndBookings failed: $e',
       );
     }
   }

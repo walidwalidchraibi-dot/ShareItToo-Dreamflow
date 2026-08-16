@@ -277,7 +277,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final bool loggedOut = !hasSession || maybeUser == null;
-    final user = loggedOut ? _guestUser() : maybeUser!;
+    final user = loggedOut ? _guestUser() : maybeUser;
     if (!mounted) return;
     setState(() {
       _user = user;
@@ -442,7 +442,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Never invent account details while the real profile is loading.
     final userForDisplay = _user ?? _guestUser();
     final verified = userForDisplay.isVerified;
-    final bool _hasAnyNotifications = _hasNewRequests; // extend when adding more sources
+    final bool hasAnyNotifications = _hasNewRequests; // extend when adding more sources
     final hasProfileQuery = _isProfileSearchOpen && _profileSearchCtrl.text.trim().isNotEmpty;
     final searchResults = _isProfileSearchOpen ? _profileSearchResults(l10n) : const <_ProfileSearchEntry>[];
     final visibleProfileResults = hasProfileQuery ? searchResults : const <_ProfileSearchEntry>[];
@@ -557,7 +557,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: () => _openNotifications(isGuest: isGuest),
                   icon: const Icon(Icons.notifications_outlined),
                 ),
-                if (_hasAnyNotifications)
+                if (hasAnyNotifications)
                   Positioned(right: 8, top: 8, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFB277), shape: BoxShape.circle))),
               ]),
             ]),

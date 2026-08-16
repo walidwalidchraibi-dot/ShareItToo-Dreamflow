@@ -346,7 +346,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
     final l10n = context.watch<LocalizationController>();
     final item = widget.item;
     // Key for landlord info card; used by description box to compare heights
-    final GlobalKey _ownerKey = GlobalKey();
+    final GlobalKey ownerKey = GlobalKey();
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
@@ -907,7 +907,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
         (widget.editRequestId != null && widget.editRequestId!.isNotEmpty);
     final isPreview = widget.isOwnerPreview == true;
     // For measuring landlord card height against description
-    final GlobalKey _ownerKey = GlobalKey();
+    final GlobalKey ownerKey = GlobalKey();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -1405,8 +1405,9 @@ class _ItemMetaSection extends StatelessWidget {
   static String _duration(Item i) {
     final min = i.minDays;
     final max = i.maxDays;
-    if (min != null && max != null)
+    if (min != null && max != null) {
       return '$min–$max ${max == 1 ? 'Tag' : 'Tage'}';
+    }
     if (min != null) return 'min. $min ${min == 1 ? 'Tag' : 'Tage'}';
     if (max != null) return 'max. $max ${max == 1 ? 'Tag' : 'Tage'}';
     return '-';
@@ -2693,8 +2694,9 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                               widget.item.lng,
                                               _addressLine);
                                     }
-                                    if (km == null)
+                                    if (km == null) {
                                       return const SizedBox.shrink();
+                                    }
                                     if (_dropoff == _DropoffOption.landlord &&
                                         widget.item.maxDeliveryKmAtDropoff !=
                                             null &&
@@ -3325,9 +3327,10 @@ class _BottomActionBarState extends State<_BottomActionBar> {
 
     final current = await DataService.getCurrentUser();
     if (current == null) {
-      if (context.mounted)
+      if (context.mounted) {
         await showGuestRestrictionSheet(context,
             gateContext: GuestGateContext.rentalRequest);
+      }
       return;
     }
     if (widget.range == null) {
@@ -3426,7 +3429,7 @@ Future<void> _showReservationSentPopup(BuildContext context,
   final isDark = Theme.of(context).brightness == Brightness.dark;
 
   String formatDate(DateTime value) {
-    final two = (int v) => v.toString().padLeft(2, '0');
+    String two(int v) => v.toString().padLeft(2, '0');
     return '${two(value.day)}.${two(value.month)}.${value.year}';
   }
 

@@ -1093,3 +1093,33 @@ Servernachweis:
   App-Kandidat `1.0.0+2026081509`, Store-Tracks und Review-Versand blieben
   unveraendert; alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte
   bleiben offen.
+
+## Meilenstein 16.94 – erster sicherer Flutter-Analyseabbau abgeschlossen
+
+- Der Flutter-Analysebestand wurde in einem gebuendelten, automatisch
+  vorgeschlagenen Niedrigrisiko-Schritt von 611 auf 435 Hinweise reduziert.
+  Die Zahl der Warnungen sank von 283 auf 266, die der Informationen von 328
+  auf 169; Analysefehler bleiben bei null.
+- 165 mechanische Korrekturen wurden in 28 Dateien uebernommen. Sie betreffen
+  unter anderem String-Interpolation, ueberfluessige Nullpruefungen,
+  unnoetige Non-Null-Zusicherungen, Blockklammern und einen ungenutzten Import.
+  Eine vom Werkzeug zu aggressive lokale Typableitung wurde sofort
+  null-sicher korrigiert.
+- Eine breite automatische Neuformatierung alter Dateien wurde bewusst aus
+  dem Arbeitsstand entfernt. Dadurch bleibt die Aenderung mit 210 Einfuegungen
+  und 208 Loeschungen pruefbar, statt mehr als tausend rein optische
+  Zeilenaenderungen zu erzeugen.
+- Die vier durch rein mechanische Aenderungen betroffenen Privacy-Quellbindungen
+  wurden auf ihre neuen SHA-256-Werte aktualisiert. Der fail-closed Privacy-
+  Validator und alle 16 zugehoerigen Tests sind gruen.
+- 267 App-Tests bestanden bei einem Skip. Der vollstaendige technische
+  Regressionslauf bestand einschliesslich aller Schutzvalidatoren sowie Web-
+  und Android-Debug-Bau. Es wurde kein signierter Release-Kandidat erzeugt.
+- P1-01 bleibt fuer die 435 Resthinweise offen. Ungenutzte Elemente und
+  Parameter werden erst nach Produktflusspruefung entfernt; asynchrone
+  Context-Nutzung und veraltete Framework-APIs werden in gezielten,
+  testbaren Batches migriert. Der bereinigte Nachweis liegt unter
+  `docs/evidence/b11/flutter-analysis-safe-batch-20260816.json`.
+- Produktion, Echtgeld, App-Kandidat `1.0.0+2026081509`, Store-Tracks und
+  Review-Versand blieben unveraendert; alle neun Aufbewahrungsentscheidungen
+  und alle sechs V4-Punkte bleiben offen.

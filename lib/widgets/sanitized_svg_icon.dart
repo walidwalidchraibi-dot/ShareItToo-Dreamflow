@@ -148,12 +148,12 @@ class SanitizedSvgIcon extends StatelessWidget {
       for (final hex in lightHexes) {
         final escaped = hex.replaceAll('#', r'\#');
         final selfClosing = RegExp(
-          '<path[^>]*fill\s*=\s*"$escaped"[^>]*?/\s*>',
+          '<path[^>]*fills*=s*"$escaped"[^>]*?/s*>',
           caseSensitive: false,
           multiLine: true,
         );
         final block = RegExp(
-          '<path[^>]*fill\s*=\s*"$escaped"[^>]*?>[\s\S]*?<\/path>',
+          '<path[^>]*fills*=s*"$escaped"[^>]*?>[sS]*?</path>',
           caseSensitive: false,
           multiLine: true,
         );
@@ -164,7 +164,7 @@ class SanitizedSvgIcon extends StatelessWidget {
       // Generic catch for literal "white"
       sanitized = sanitized.replaceAll(
         RegExp(
-          '<path[^>]*fill\s*=\s*"\s*white\s*"[^>]*?>[\s\S]*?<\/path>',
+          '<path[^>]*fills*=s*"s*whites*"[^>]*?>[sS]*?</path>',
           caseSensitive: false,
           multiLine: true,
         ),
@@ -172,7 +172,7 @@ class SanitizedSvgIcon extends StatelessWidget {
       );
       sanitized = sanitized.replaceAll(
         RegExp(
-          '<path[^>]*fill\s*=\s*"\s*white\s*"[^>]*?/\s*>',
+          '<path[^>]*fills*=s*"s*whites*"[^>]*?/s*>',
           caseSensitive: false,
           multiLine: true,
         ),

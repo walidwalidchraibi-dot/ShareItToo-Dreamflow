@@ -76,8 +76,8 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    double _mmToLogicalPx(double mm) => mm * 160 / 25.4;
-    final edgeMargin = _mmToLogicalPx(2); // ~2mm margin around the image
+    double mmToLogicalPx(double mm) => mm * 160 / 25.4;
+    final edgeMargin = mmToLogicalPx(2); // ~2mm margin around the image
     // Match the rounded corner style used on the "Verfügbarkeit prüfen" image/card
     // ItemDetailsOverlay main image uses 16px radius.
     final imageRadius = 16.0;

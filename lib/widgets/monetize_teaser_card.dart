@@ -27,7 +27,7 @@ class _MonetizeTeaserCardState extends State<MonetizeTeaserCard> with TickerProv
   bool _showQuestion = true;
   bool _ctaVisible = false; // Start hidden to avoid initial flicker
   bool _videoCompleted = false;
-  bool _shouldAutoplay = false; // If intro ends before video initializes
+  final bool _shouldAutoplay = false; // If intro ends before video initializes
   Timer? _sequenceTimer;
 
   @override

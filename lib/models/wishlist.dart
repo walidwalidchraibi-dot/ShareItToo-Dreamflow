@@ -29,7 +29,7 @@ class Wishlist {
       );
 
   @override
-  String toString() => 'Wishlist(id='+id+', name='+name+', system='+system.toString()+')';
+  String toString() => 'Wishlist(id=$id, name=$name, system=$system)';
 
   @override
   bool operator ==(Object other) =>

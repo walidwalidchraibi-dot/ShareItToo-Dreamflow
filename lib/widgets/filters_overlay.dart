@@ -139,10 +139,10 @@ class _FiltersSheetState extends State<_FiltersSheet> {
   bool _minCleared = false;
   bool _maxCleared = false;
   // Ort
-  String _locationMode = 'registered'; // 'gps' | 'address' | 'registered'
+  final String _locationMode = 'registered'; // 'gps' | 'address' | 'registered'
   final TextEditingController _addressCtrl = TextEditingController();
   String? _registeredCity;
-  String _distanceBias = 'near'; // 'near' | 'far'
+  final String _distanceBias = 'near'; // 'near' | 'far'
 
   @override
   void initState() {
@@ -207,17 +207,22 @@ class _FiltersSheetState extends State<_FiltersSheet> {
     final g = group.toLowerCase();
     if (g.contains('technik')) return Icons.devices;
     if (g.contains('haushalt') || g.contains('wohnen')) return Icons.weekend;
-    if (g.contains('fahrzeuge') || g.contains('mobil'))
+    if (g.contains('fahrzeuge') || g.contains('mobil')) {
       return Icons.directions_car;
+    }
     if (g.contains('mode') || g.contains('lifestyle')) return Icons.checkroom;
-    if (g.contains('sport') || g.contains('hobby') || g.contains('hobb'))
+    if (g.contains('sport') || g.contains('hobby') || g.contains('hobb')) {
       return Icons.sports_soccer;
+    }
     if (g.contains('werkzeuge') ||
         g.contains('geräte') ||
-        g.contains('geraete')) return Icons.construction;
+        g.contains('geraete')) {
+      return Icons.construction;
+    }
     if (g.contains('garten') || g.contains('hof')) return Icons.grass;
-    if (g.contains('büro') || g.contains('buero') || g.contains('gewerbe'))
+    if (g.contains('büro') || g.contains('buero') || g.contains('gewerbe')) {
       return Icons.business_center;
+    }
     if (g.contains('baby') || g.contains('kinder')) return Icons.child_friendly;
     if (g.contains('haustier')) return Icons.pets;
     return Icons.category;

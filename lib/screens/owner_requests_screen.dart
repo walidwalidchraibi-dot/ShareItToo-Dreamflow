@@ -645,7 +645,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
         ),
       );
     }
-    final bool _isRequestsTab = target == 'requests';
+    final bool isRequestsTab = target == 'requests';
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: maps.length,
@@ -658,7 +658,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
         final titleForCategory = _titleForCategory(effective);
         final chip = _buildStatusChipForCard(effective, start, end, e);
         final inlineAction =
-            _isRequestsTab ? null : _buildInlineAction(effective, e);
+            isRequestsTab ? null : _buildInlineAction(effective, e);
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 2,
@@ -737,7 +737,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              if (!_isRequestsTab)
+                              if (!isRequestsTab)
                                 Text(booking['total'] ?? '',
                                     style: const TextStyle(
                                         color: Colors.white,
@@ -1299,7 +1299,7 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton>
         var page = startIndex;
         final size = MediaQuery.of(ctx).size;
 
-        Future<void> _shift(int delta) async {
+        Future<void> shift(int delta) async {
           final target = (page + delta).clamp(0, images.length - 1);
           if (target != page) {
             page = target;
@@ -1341,10 +1341,10 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton>
                             if (signal is PointerScrollEvent) {
                               if (signal.scrollDelta.dy > 0 ||
                                   signal.scrollDelta.dx > 0) {
-                                _shift(1);
+                                shift(1);
                               } else if (signal.scrollDelta.dy < 0 ||
                                   signal.scrollDelta.dx < 0) {
-                                _shift(-1);
+                                shift(-1);
                               }
                             }
                           },

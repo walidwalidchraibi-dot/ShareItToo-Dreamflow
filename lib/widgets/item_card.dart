@@ -259,12 +259,13 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
         listId = id;
       });
     } catch (e) {
-      debugPrint('[ItemCard] load wishlist state failed: ' + e.toString());
+      debugPrint('[ItemCard] load wishlist state failed: $e');
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
         });
+      }
     }
   }
 
@@ -292,17 +293,19 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
           currentListId: listId!);
       if (sel != null && sel.isNotEmpty) {
         await DataService.setItemWishlist(widget.itemId, sel);
-        if (mounted)
+        if (mounted) {
           setState(() {
             listId = sel;
           });
+        }
       }
     } else if (choice == 'remove') {
       await DataService.removeItemFromWishlist(widget.itemId);
-      if (mounted)
+      if (mounted) {
         setState(() {
           listId = null;
         });
+      }
     }
   }
 

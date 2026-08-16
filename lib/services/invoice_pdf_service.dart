@@ -47,7 +47,7 @@ class InvoicePdfService {
   }
 
   static pw.Widget _header(Invoice invoice) {
-    pw.String _typeLabel() {
+    pw.String typeLabel() {
       switch (invoice.type) {
         case InvoiceType.invoice:
           return 'Rechnung';
@@ -65,7 +65,7 @@ class InvoicePdfService {
         child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text(_typeLabel(),
+              pw.Text(typeLabel(),
                   style: pw.TextStyle(
                       fontSize: 20, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 2),

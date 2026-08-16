@@ -220,8 +220,9 @@ class _SearchSheetState extends State<_SearchSheet> {
     if (!mounted) return;
     final q = text.trim();
     if (q.isEmpty || _categories.isEmpty) {
-      if (_categoryCandidates.isNotEmpty)
+      if (_categoryCandidates.isNotEmpty) {
         setState(() => _categoryCandidates = []);
+      }
       return;
     }
 
@@ -685,7 +686,7 @@ class _SearchSheetState extends State<_SearchSheet> {
       });
     } catch (e) {
       debugPrint(
-          '[_SearchSheet] recompute suggestions failed: ' + e.toString());
+          '[_SearchSheet] recompute suggestions failed: $e');
     } finally {
       if (mounted) setState(() => _recomputing = false);
     }
@@ -790,8 +791,9 @@ class _SearchSheetState extends State<_SearchSheet> {
     final cities = DataService.getCities();
 
     for (final e in cities.entries) {
-      if (e.key.toLowerCase() == targetCity.toLowerCase())
+      if (e.key.toLowerCase() == targetCity.toLowerCase()) {
         return (lat: e.value.$1, lng: e.value.$2);
+      }
     }
     for (final e in cities.entries) {
       if (targetCity.toLowerCase().contains(e.key.toLowerCase()) ||
@@ -837,7 +839,6 @@ class _SearchSheetState extends State<_SearchSheet> {
       return;
     }
     final overlay = Overlay.of(context);
-    if (overlay == null) return;
     // We want the suggestions panel to span from the very left to the very right of the screen.
     // Therefore use the full screen width and horizontally shift the follower so its left aligns with the screen edge.
     final screenSize = MediaQuery.of(context).size;
@@ -909,7 +910,6 @@ class _SearchSheetState extends State<_SearchSheet> {
       return;
     }
     final overlay = Overlay.of(context);
-    if (overlay == null) return;
     // Full-width suggestions panel for the location field as well
     final screenSize = MediaQuery.of(context).size;
     final fullWidth = screenSize.width;
@@ -971,7 +971,7 @@ class _SearchSheetState extends State<_SearchSheet> {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
 
-    Widget _offsetOnSuggest({required Widget child, required bool active}) {
+    Widget offsetOnSuggest({required Widget child, required bool active}) {
       // 0.5 mm ~ ~2 logical px. Apply subtle upward shift when suggestions are visible.
       final dy = active ? -2.0 : 0.0;
       return AnimatedSlide(
@@ -1098,7 +1098,7 @@ class _SearchSheetState extends State<_SearchSheet> {
           ),
         ),
         const SizedBox(height: 10),
-        _offsetOnSuggest(
+        offsetOnSuggest(
           active: _whatOverlay != null,
           child: CompositedTransformTarget(
             link: _whatLink,
@@ -1163,7 +1163,7 @@ class _SearchSheetState extends State<_SearchSheet> {
           ),
         ),
         const SizedBox(height: 6),
-        _offsetOnSuggest(
+        offsetOnSuggest(
           active: _whereOverlay != null,
           child: CompositedTransformTarget(
             link: _whereLink,
@@ -1839,14 +1839,16 @@ class _Highlighted extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final q = query.trim();
-    if (q.isEmpty)
+    if (q.isEmpty) {
       return Text(text,
           style: const TextStyle(color: Colors.white, fontSize: 13));
+    }
     final lower = text.toLowerCase();
     final idx = lower.indexOf(q.toLowerCase());
-    if (idx < 0)
+    if (idx < 0) {
       return Text(text,
           style: const TextStyle(color: Colors.white, fontSize: 13));
+    }
     final before = text.substring(0, idx);
     final match = text.substring(idx, idx + q.length);
     final after = text.substring(idx + q.length);

@@ -118,20 +118,25 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final g = group.toLowerCase();
     if (g.contains('technik')) return Icons.devices;
     if (g.contains('haushalt') || g.contains('wohnen')) return Icons.weekend;
-    if (g.contains('fahrzeuge') || g.contains('mobil'))
+    if (g.contains('fahrzeuge') || g.contains('mobil')) {
       return Icons.directions_car;
+    }
     if (g.contains('mode') || g.contains('lifestyle')) return Icons.checkroom;
-    if (g.contains('sport') || g.contains('hobby') || g.contains('hobb'))
+    if (g.contains('sport') || g.contains('hobby') || g.contains('hobb')) {
       return Icons.sports_soccer;
+    }
     if (g.contains('event') || g.contains('feier')) return Icons.celebration;
     if (g.contains('reise') || g.contains('camping')) return Icons.hiking;
     if (g.contains('kleidung') || g.contains('anlass')) return Icons.checkroom;
     if (g.contains('werkzeuge') ||
         g.contains('geräte') ||
-        g.contains('geraete')) return Icons.construction;
+        g.contains('geraete')) {
+      return Icons.construction;
+    }
     if (g.contains('garten') || g.contains('hof')) return Icons.grass;
-    if (g.contains('büro') || g.contains('buero') || g.contains('gewerbe'))
+    if (g.contains('büro') || g.contains('buero') || g.contains('gewerbe')) {
       return Icons.business_center;
+    }
     if (g.contains('baby') || g.contains('kinder')) return Icons.child_friendly;
     if (g.contains('haustier')) return Icons.pets;
     return Icons.category;
@@ -1072,9 +1077,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                     },
                                     onAllCategoriesTap: () {
                                       setState(() {
-                                        if (_filters == null) {
-                                          _filters = {};
-                                        }
+                                        _filters ??= {};
                                         final f = Map<String, dynamic>.from(
                                             _filters!);
                                         f.remove('categories');
@@ -1216,7 +1219,6 @@ class _HoverResponsiveTopGridState extends State<_HoverResponsiveTopGrid> {
     if (item == null) return;
     final isFav = widget.savedIds.contains(item.id);
     final overlay = Overlay.of(context);
-    if (overlay == null) return;
 
     const scale = 1.33;
     final media = MediaQuery.of(context);
@@ -1459,7 +1461,6 @@ class _OverlayPresenter {
   static void showEnlarged(BuildContext context, Item item, Rect anchorRect,
       {bool isFavorite = false, VoidCallback? onFavoriteToggle}) {
     final overlay = Overlay.of(context);
-    if (overlay == null) return;
     const scale = 1.33;
     final media = MediaQuery.of(context);
     final screenSize = media.size;
@@ -1528,7 +1529,7 @@ class _SquareItemCard extends StatefulWidget {
 class _SquareItemCardState extends State<_SquareItemCard> {
   final GlobalKey _key = GlobalKey();
   Timer? _pressTimer;
-  bool _pointerDown = false;
+  final bool _pointerDown = false;
   bool get _isVerified =>
       widget.item.verificationStatus == 'approved' ||
       widget.item.verificationStatus == 'verified';
@@ -1703,7 +1704,7 @@ class _SmallScrollCard extends StatefulWidget {
 class _SmallScrollCardState extends State<_SmallScrollCard> {
   final GlobalKey _key = GlobalKey();
   Timer? _pressTimer;
-  bool _pointerDown = false;
+  final bool _pointerDown = false;
   bool get _isVerified =>
       widget.item.verificationStatus == 'approved' ||
       widget.item.verificationStatus == 'verified';
@@ -1880,7 +1881,7 @@ class _SmallGridCard extends StatefulWidget {
 class _SmallGridCardState extends State<_SmallGridCard> {
   final GlobalKey _key = GlobalKey();
   Timer? _pressTimer;
-  bool _pointerDown = false;
+  final bool _pointerDown = false;
   bool get _isVerified =>
       widget.item.verificationStatus == 'approved' ||
       widget.item.verificationStatus == 'verified';

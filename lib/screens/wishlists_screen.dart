@@ -174,8 +174,9 @@ extension on _WishlistsScreenState {
   }
 
   String _systemSubtitle(String id) {
-    if (id == DataService.wlSoonId)
+    if (id == DataService.wlSoonId) {
       return 'Ich plane, diesen Artikel bald zu mieten';
+    }
     if (id == DataService.wlLaterId) return 'Interessant, aber nicht jetzt';
     if (id == DataService.wlAgainId) return 'Diesen Artikel hatte ich schon';
     return '';
@@ -232,22 +233,28 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
   }
 
   String _headerSubline() {
-    if (widget.listId == DataService.wlSoonId)
+    if (widget.listId == DataService.wlSoonId) {
       return 'Plane, was du bald mieten möchtest.';
-    if (widget.listId == DataService.wlLaterId)
+    }
+    if (widget.listId == DataService.wlLaterId) {
       return 'Sammle Ideen für spätere Mieten.';
-    if (widget.listId == DataService.wlAgainId)
+    }
+    if (widget.listId == DataService.wlAgainId) {
       return 'Artikel, die du erneut mieten möchtest.';
+    }
     return 'Eigene Sammlung';
   }
 
   String _systemDetailSubline(String id) {
-    if (id == DataService.wlSoonId)
+    if (id == DataService.wlSoonId) {
       return 'Speichere passende Artikel aus Erkunden,\num deine nächste Miete zu planen.';
-    if (id == DataService.wlLaterId)
+    }
+    if (id == DataService.wlLaterId) {
       return 'Sammle Ideen für spätere Mieten\nund finde sie hier wieder.';
-    if (id == DataService.wlAgainId)
+    }
+    if (id == DataService.wlAgainId) {
       return 'Merke dir Artikel, die du bereits\ngemietet hast und erneut mieten möchtest.';
+    }
     return 'Speichere passende Artikel aus Erkunden.';
   }
 
@@ -798,9 +805,7 @@ class _ConfirmDeleteWishlistBody extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-                'Möchtest du "' +
-                    name +
-                    '" wirklich löschen?\nAlle Artikel-Zuordnungen werden entfernt.',
+                'Möchtest du "$name" wirklich löschen?\nAlle Artikel-Zuordnungen werden entfernt.',
                 style: TextStyle(
                     color: isDark
                         ? Colors.white70

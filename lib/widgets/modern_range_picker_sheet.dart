@@ -635,13 +635,13 @@ class _ChatTipsBox extends StatelessWidget {
       else if (dynamicLine != null) ...[
         _BotBubble(
             icon: Icons.event_available,
-            text: dynamicLine!,
+            text: dynamicLine,
             color: bubbleBg,
             border: bubbleBorder),
         if (savingsLine != null)
           _BotBubble(
               icon: Icons.local_offer_outlined,
-              text: savingsLine!,
+              text: savingsLine,
               color: bubbleBg,
               border: bubbleBorder),
       ] else ...[
