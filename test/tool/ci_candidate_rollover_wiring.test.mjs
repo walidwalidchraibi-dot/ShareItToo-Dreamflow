@@ -23,14 +23,34 @@ const wrapperProperties = readFileSync(
   'utf8',
 );
 
-test('CI validates the documented incomplete Android candidate as a safe rollover', () => {
+test('CI validates rollover metadata but builds a signed candidate only on explicit manual request', () => {
   assert.match(
     workflow,
     /name: Run regression script[\s\S]*?SIT_ALLOW_CANDIDATE_ROLLOVER: '1'[\s\S]*?bash scripts\/technical_regression_check\.sh/,
   );
   assert.match(
     workflow,
-    /name: Build a signed, commit-bound Android release candidate[\s\S]*?SIT_ALLOW_CANDIDATE_ROLLOVER: '1'[\s\S]*?bash scripts\/build_android_release_candidate\.sh/,
+    /workflow_dispatch:[\s\S]*?build_release_candidate:[\s\S]*?default: false[\s\S]*?type: boolean/,
+  );
+  assert.match(
+    workflow,
+    /name: Build a signed, commit-bound Android release candidate\n\s+if: github\.event_name == 'workflow_dispatch' && inputs\.build_release_candidate[\s\S]*?SIT_ALLOW_CANDIDATE_ROLLOVER: '1'[\s\S]*?bash scripts\/build_android_release_candidate\.sh/,
+  );
+  assert.match(
+    workflow,
+    /push:\n\s+branches:\n\s+- main/,
+  );
+  assert.doesNotMatch(
+    workflow,
+    /branches:\n\s+- '\*\*'/,
+  );
+  assert.match(
+    workflow,
+    /pull_request:\n\s+paths-ignore:\n\s+- 'docs\/\*\*'/,
+  );
+  assert.match(
+    workflow,
+    /concurrency:[\s\S]*?cancel-in-progress: true/,
   );
 });
 

@@ -3,10 +3,23 @@ name: regression
 on:
   push:
     branches:
-      - '**'
+      - main
     paths-ignore:
       - 'docs/**'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      build_release_candidate:
+        description: Build the explicitly requested signed internal candidate
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: regression-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -139,6 +152,7 @@ jobs:
         run: bash scripts/technical_regression_check.sh
 
       - name: Build a signed, commit-bound Android release candidate
+        if: github.event_name == 'workflow_dispatch' && inputs.build_release_candidate
         env:
           SIT_API_BASE_URL: https://staging.shareittoo.com/api/v1
           SIT_RELEASE_CHANNEL: internal
