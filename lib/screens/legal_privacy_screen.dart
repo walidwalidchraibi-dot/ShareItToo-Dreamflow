@@ -83,6 +83,9 @@ class LegalPrivacyScreen extends StatelessWidget {
             ]),
             SizedBox(height: 10),
             LegalParagraph(
+                'Push und freiwillige Crashdiagnose sind standardmäßig aus und werden erst nach deiner getrennten Wahl unter Benachrichtigungseinstellungen aktiviert. Dort kannst du beide Dienste jederzeit wieder ausschalten. Beim Ausschalten von Push wird der SIT-Geräteeintrag und der FCM-Token entfernt; bei einer Kontolöschung wird zusätzlich die Firebase-Installationskennung zur Löschung angestoßen. Firebase bewahrt FCM-Installationsdaten nach der Löschanforderung nach eigenen Angaben bis zu 180 Tage und Crashdaten mit zugehörigen Kennungen 90 Tage auf, bevor die Entfernung beginnt. Die Verarbeitung kann weltweit an Google-Standorten erfolgen.'),
+            SizedBox(height: 10),
+            LegalParagraph(
                 'Analyse zu Werbezwecken und Werbe-SDKs sind im aktuellen Kandidaten nicht aktiviert. Firebase Authentication wird nur nach ausdrücklichem Start einer Anmeldung oder SMS-Bestätigung verwendet; automatische Werbeereignisse und Werbetracking werden nicht verwendet.'),
           ],
         ),

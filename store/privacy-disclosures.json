@@ -12,15 +12,15 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "6bfe0a16aa372b95e36c1c001231f0578b1859a0d5d8ba175f17b855fd3489b1"
+      "sha256": "e958ca7570d80050df5499850a6f685a5bf2c8c2c99cbdbf04bb07fdffdc9a71"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
-      "sha256": "03f559adee0b8c69888a2b0a6be806bbb28aaf0e7fea5df8994709a3b1e44956"
+      "sha256": "d19335b5352d780fee39dcd98d57ba08cd279834bfab3db4a26028be597497a0"
     },
     {
       "path": "ios/Runner/Info.plist",
-      "sha256": "791e3511de5c014a0535620dea7392cc124b34d7e4b62d4140006ff75a534c56"
+      "sha256": "f9ec65bbb1f1cdf1bfa001cdc4f5f62d2dd473f557639544697d5b97d77d9037"
     },
     {
       "path": "ios/Runner/PrivacyInfo.xcprivacy",
@@ -28,15 +28,15 @@
     },
     {
       "path": "lib/screens/legal_privacy_screen.dart",
-      "sha256": "c84871daf264d9254630292f0c5ef80eb7a3b065308830e68b7f37c2d68ceb36"
+      "sha256": "a380389503ad0a0b0984944b65c45e4eea01dba2d016b1aae60cab5f5ea48a89"
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "2738e28f1e26c4b04716b9e2bf6c14699f879a45f73c4a88755fd88236a4db61"
+      "sha256": "ef6bec4f0796bf8ec06f41d666b24be504898d1ae5e3b640e8015c640537e31e"
     },
     {
       "path": "backend/src/account_actions.js",
-      "sha256": "d0bd8947185c7b0fd5bdc6ab600e2ffbafd8e89bf7a6b7e51b12706c5965ed37"
+      "sha256": "20f3561eb90e0e0d9940dbb1fd0fc6d2207ddc766dcd553b341bac0b32bcfa73"
     },
     {
       "path": "backend/src/privacy_export.js",
@@ -64,11 +64,23 @@
     },
     {
       "path": "lib/services/firebase_runtime.dart",
-      "sha256": "0109ff20d8d85a22f8481eebc8638dd095cf85725d0b18858c8866ec03627b94"
+      "sha256": "3946a3fd11fe49b30e7f81a402b8ac584807433dfdd8f455c6cfa4b87d435845"
+    },
+    {
+      "path": "lib/services/firebase_service_preferences.dart",
+      "sha256": "b3841d4e36a30eddc5f3808fb6d939de34c0766491784be38089f3d8b204d97f"
+    },
+    {
+      "path": "lib/services/account_deletion_service.dart",
+      "sha256": "b9d0ed721aed96e2aaad932416d82c5384d8430c0e444ba767a330b14815fe1a"
     },
     {
       "path": "lib/services/auth_service.dart",
-      "sha256": "92b6f5905d358586ad6fc5c98afd31547b386d539bdf0cc6858e2b4c5004ee92"
+      "sha256": "e034bcb7deb6ba11531f22befc4b036bb5916b491dc7a793aa4d0a3f7f7f4a76"
+    },
+    {
+      "path": "lib/screens/notification_settings_screen.dart",
+      "sha256": "707b4760191043ee4bb07f1acacb77933c0872dc3b75dc99fda8b27ef9d205fc"
     },
     {
       "path": "lib/screens/contact_data_screen.dart",
@@ -84,7 +96,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "52403c3ad2c4dbfe7a6d3c99a0c4ae730ee2855a4e639015e7467315410cf3da"
+      "sha256": "800e5615d2c496b170f9f13124e91349d62f0e14890f307040ee79bf64204c2e"
     },
     {
       "path": "lib/screens/create_listing_screen.dart",
@@ -121,6 +133,9 @@
     "firebaseCloudMessaging": {
       "enabled": true,
       "role": "processor",
+      "candidateCollectionMode": "automatic-in-bound-candidate",
+      "nextCandidateCollectionMode": "user-opt-in-default-off",
+      "replacementCandidateRequired": true,
       "dataTypes": [
         "deviceOrOtherIds"
       ]
@@ -128,6 +143,9 @@
     "firebaseCrashlytics": {
       "enabled": true,
       "role": "processor",
+      "candidateCollectionMode": "automatic-in-bound-candidate",
+      "nextCandidateCollectionMode": "user-opt-in-default-off",
+      "replacementCandidateRequired": true,
       "dataTypes": [
         "deviceOrOtherIds",
         "crashData",

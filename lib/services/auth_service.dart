@@ -123,6 +123,13 @@ class AuthService {
     _refreshInFlight = null;
     try {
       final session = await readSession();
+      try {
+        await FirebaseRuntime.clearPushRegistrationForLogout().timeout(
+          const Duration(seconds: 2),
+        );
+      } catch (_) {
+        // Logout remains authoritative even if the local FCM SDK is offline.
+      }
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_sessionKey);
       await runBestEffortLogoutCleanup(

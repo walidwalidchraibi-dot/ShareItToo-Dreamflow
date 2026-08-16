@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_app_installations/firebase_app_installations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -9,6 +10,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'backend_config.dart';
 import 'backend_repository.dart';
+import 'firebase_service_preferences.dart';
 import 'release_identity.dart';
 import 'shared_persistence_sync.dart';
 
@@ -226,6 +228,8 @@ class FirebaseRuntime {
   static StreamSubscription<RemoteMessage>? _openedMessageSubscription;
   static StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
   static bool _initialized = false;
+  static bool _pushEnabled = false;
+  static bool _crashDiagnosticsEnabled = false;
   static bool _nativeActionLinkChannelInitialized = false;
   static final Set<String> _controlledCrashDiagnosticsInFlight = <String>{};
   static Uri? _pendingActionLink;
@@ -235,6 +239,8 @@ class FirebaseRuntime {
   static Stream<ForegroundPushMessage> get foregroundMessages =>
       _foregroundMessages.stream;
   static bool get isInitialized => _initialized;
+  static bool get pushEnabled => _pushEnabled;
+  static bool get crashDiagnosticsEnabled => _crashDiagnosticsEnabled;
 
   static Future<bool> initialize() {
     return _initialization ??= _initialize();
@@ -252,8 +258,19 @@ class FirebaseRuntime {
     if (options == null) return false;
     try {
       await ensureFirebaseApp();
-      await FirebaseCrashlytics.instance
-          .setCrashlyticsCollectionEnabled(kReleaseMode);
+      final preferences = await FirebaseServicePreferencesStore.read();
+      if (preferences.installationCleanupPending) {
+        await _retryPendingInstallationCleanup();
+      }
+      if (preferences.pushLocalCleanupPending) {
+        await _retryPendingPushLocalCleanup();
+      }
+      _pushEnabled = preferences.pushEnabled;
+      _crashDiagnosticsEnabled = preferences.crashDiagnosticsEnabled;
+      await FirebaseMessaging.instance.setAutoInitEnabled(_pushEnabled);
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+        kReleaseMode && _crashDiagnosticsEnabled,
+      );
       FirebaseMessaging.onBackgroundMessage(
         firebaseMessagingBackgroundHandler,
       );
@@ -278,14 +295,14 @@ class FirebaseRuntime {
   }
 
   static void recordFlutterFatalError(FlutterErrorDetails details) {
-    if (!_initialized || !kReleaseMode) return;
+    if (!_initialized || !kReleaseMode || !_crashDiagnosticsEnabled) return;
     unawaited(
       FirebaseCrashlytics.instance.recordFlutterFatalError(details),
     );
   }
 
   static void recordUnhandledError(Object error, StackTrace stack) {
-    if (!_initialized || !kReleaseMode) return;
+    if (!_initialized || !kReleaseMode || !_crashDiagnosticsEnabled) return;
     unawaited(
       FirebaseCrashlytics.instance.recordError(
         error,
@@ -302,6 +319,7 @@ class FirebaseRuntime {
     String requestedRunId,
   ) async {
     final allowed = _initialized &&
+        _crashDiagnosticsEnabled &&
         controlledCrashDiagnosticAllowed(
           releaseMode: kReleaseMode,
           enabled: _controlledCrashDiagnosticEnabled,
@@ -373,9 +391,14 @@ class FirebaseRuntime {
 
   static Future<bool> syncPushRegistration() async {
     if (!_initialized || !BackendConfig.enabled) return false;
+    if (!_pushEnabled) {
+      await _retryPendingPushBackendCleanup();
+      return false;
+    }
     final platform = _platformName();
     if (platform == null) return false;
     try {
+      await FirebaseMessaging.instance.setAutoInitEnabled(true);
       _locale = PlatformDispatcher.instance.locale.toLanguageTag();
       final settings = await FirebaseMessaging.instance.requestPermission(
         alert: true,
@@ -416,6 +439,150 @@ class FirebaseRuntime {
       return true;
     } catch (error) {
       debugPrint('[FirebaseRuntime] push registration unavailable: $error');
+      return false;
+    }
+  }
+
+  static Future<bool> setPushEnabled(bool enabled) async {
+    if (!await initialize()) return false;
+    if (!enabled) {
+      await FirebaseServicePreferencesStore.setPushEnabled(false);
+      await FirebaseServicePreferencesStore.setPushBackendCleanupPending(true);
+      await FirebaseServicePreferencesStore.setPushLocalCleanupPending(true);
+      _pushEnabled = false;
+      await _tokenRefreshSubscription?.cancel();
+      _tokenRefreshSubscription = null;
+      await _retryPendingPushLocalCleanup();
+      await _retryPendingPushBackendCleanup();
+      return true;
+    }
+
+    if (!await _retryPendingPushLocalCleanup()) return false;
+    if (!await _retryPendingPushBackendCleanup()) return false;
+    try {
+      await FirebaseMessaging.instance.setAutoInitEnabled(true);
+      final platform = _platformName();
+      if (platform == null) {
+        await FirebaseMessaging.instance.setAutoInitEnabled(false);
+        return false;
+      }
+      final settings = await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+      if (!const {
+        AuthorizationStatus.authorized,
+        AuthorizationStatus.provisional,
+      }.contains(settings.authorizationStatus)) {
+        await FirebaseMessaging.instance.setAutoInitEnabled(false);
+        await FirebaseServicePreferencesStore.setPushEnabled(false);
+        _pushEnabled = false;
+        return false;
+      }
+      _pushEnabled = true;
+      await FirebaseServicePreferencesStore.setPushEnabled(true);
+      await syncPushRegistration();
+      return true;
+    } catch (error) {
+      _pushEnabled = false;
+      await FirebaseServicePreferencesStore.setPushEnabled(false);
+      try {
+        await FirebaseMessaging.instance.setAutoInitEnabled(false);
+      } catch (_) {}
+      debugPrint('[FirebaseRuntime] push activation unavailable: $error');
+      return false;
+    }
+  }
+
+  static Future<void> setCrashDiagnosticsEnabled(bool enabled) async {
+    if (!await initialize()) return;
+    _crashDiagnosticsEnabled = enabled;
+    await FirebaseServicePreferencesStore.setCrashDiagnosticsEnabled(enabled);
+    try {
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+        kReleaseMode && enabled,
+      );
+      if (!enabled) {
+        await FirebaseCrashlytics.instance.deleteUnsentReports();
+      }
+    } catch (error) {
+      debugPrint(
+          '[FirebaseRuntime] crash diagnostics update unavailable: $error');
+    }
+  }
+
+  static Future<void> clearPushRegistrationForLogout() async {
+    if (!_initialized) return;
+    await _tokenRefreshSubscription?.cancel();
+    _tokenRefreshSubscription = null;
+    try {
+      await FirebaseMessaging.instance.setAutoInitEnabled(false);
+      await FirebaseMessaging.instance.deleteToken();
+    } catch (error) {
+      debugPrint('[FirebaseRuntime] logout push cleanup unavailable: $error');
+    }
+  }
+
+  static Future<void> deleteInstallationForAccountDeletion() async {
+    _pushEnabled = false;
+    _crashDiagnosticsEnabled = false;
+    await FirebaseServicePreferencesStore.setPushEnabled(false);
+    await FirebaseServicePreferencesStore.setCrashDiagnosticsEnabled(false);
+    await FirebaseServicePreferencesStore.setPushBackendCleanupPending(false);
+    await FirebaseServicePreferencesStore.setInstallationCleanupPending(true);
+    await _tokenRefreshSubscription?.cancel();
+    _tokenRefreshSubscription = null;
+    await _retryPendingInstallationCleanup();
+  }
+
+  static Future<bool> _retryPendingInstallationCleanup() async {
+    try {
+      await ensureFirebaseApp();
+      if (Firebase.apps.isEmpty) return false;
+      await FirebaseMessaging.instance.setAutoInitEnabled(false);
+      await FirebaseMessaging.instance.deleteToken();
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(false);
+      await FirebaseCrashlytics.instance.deleteUnsentReports();
+      await FirebaseInstallations.instance.delete();
+      await FirebaseServicePreferencesStore.setPushLocalCleanupPending(false);
+      await FirebaseServicePreferencesStore.setInstallationCleanupPending(
+          false);
+      return true;
+    } catch (error) {
+      debugPrint('[FirebaseRuntime] installation deletion unavailable: $error');
+      return false;
+    }
+  }
+
+  static Future<bool> _retryPendingPushLocalCleanup() async {
+    final preferences = await FirebaseServicePreferencesStore.read();
+    if (!preferences.pushLocalCleanupPending) return true;
+    try {
+      await FirebaseMessaging.instance.setAutoInitEnabled(false);
+      await FirebaseMessaging.instance.deleteToken();
+      await FirebaseServicePreferencesStore.setPushLocalCleanupPending(false);
+      return true;
+    } catch (error) {
+      debugPrint('[FirebaseRuntime] local push cleanup pending: $error');
+      return false;
+    }
+  }
+
+  static Future<bool> _retryPendingPushBackendCleanup() async {
+    if (!BackendConfig.enabled) return true;
+    final preferences = await FirebaseServicePreferencesStore.read();
+    if (!preferences.pushBackendCleanupPending) return true;
+    try {
+      await BackendRepository.deleteCurrentSessionPushDevices();
+      await FirebaseServicePreferencesStore.setPushBackendCleanupPending(false);
+      return true;
+    } catch (error) {
+      debugPrint('[FirebaseRuntime] push backend cleanup pending: $error');
       return false;
     }
   }

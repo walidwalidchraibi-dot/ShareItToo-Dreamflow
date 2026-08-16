@@ -128,6 +128,14 @@ class BackendRepository {
     );
   }
 
+  static Future<int> deleteCurrentSessionPushDevices() async {
+    final response = await _authorized(
+      method: 'DELETE',
+      path: '/auth/devices/push/current',
+    );
+    return (response['deletedCount'] as num?)?.toInt() ?? 0;
+  }
+
   static Future<Map<String, dynamic>> updateCurrentProfile(
     Map<String, dynamic> profile,
   ) async {

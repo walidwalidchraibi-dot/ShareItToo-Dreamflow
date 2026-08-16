@@ -34,6 +34,17 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/shareittoo_notification_accent" />
+        <!-- FCM and Crashlytics remain launch services, but collection starts
+             only after the separate in-app device-service decisions. -->
+        <meta-data
+            android:name="firebase_messaging_auto_init_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="firebase_analytics_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="firebase_crashlytics_collection_enabled"
+            android:value="false" />
         <!-- Replaced with the real public Meta app configuration before the
              Facebook provider is enabled. Defaults keep the SDK fail-closed. -->
         <meta-data

@@ -80,7 +80,7 @@ test('rejects omitting precise location while fine-location flows exist', () => 
   );
 });
 
-test('rejects treating the automatic Firebase installation ID as optional', () => {
+test('rejects treating the automatic bound Firebase installation ID as optional', () => {
   const privacyManifest = clone(basePrivacyManifest);
   privacyManifest.dataTypes.find((item) => item.id === 'deviceOrOtherIds').optional = true;
   assert.throws(
@@ -89,9 +89,9 @@ test('rejects treating the automatic Firebase installation ID as optional', () =
   );
 });
 
-test('rejects omitting automatic Firebase session interactions', () => {
+test('rejects treating automatic bound Crashlytics interactions as optional', () => {
   const privacyManifest = clone(basePrivacyManifest);
-  privacyManifest.dataTypes.find((item) => item.id === 'appInteractions').collected = false;
+  privacyManifest.dataTypes.find((item) => item.id === 'appInteractions').optional = true;
   assert.throws(
     () => validate({ privacyManifest }),
     /requires non-optional, non-linked app interaction disclosure/,

@@ -20,7 +20,10 @@ const sourcePaths = [
   'backend/src/firebase_phone_verification.js',
   'backend/sql/migrations/010_phone_verification.up.sql',
   'lib/services/firebase_runtime.dart',
+  'lib/services/firebase_service_preferences.dart',
+  'lib/services/account_deletion_service.dart',
   'lib/services/auth_service.dart',
+  'lib/screens/notification_settings_screen.dart',
   'lib/screens/contact_data_screen.dart',
   'lib/openai/openai_config.dart',
   'lib/services/maps_service.dart',
@@ -170,6 +173,7 @@ function assertSourceContracts({ root, sourceTexts }) {
   for (const dependency of [
     'firebase_messaging:',
     'firebase_crashlytics:',
+    'firebase_app_installations:',
     'firebase_auth:',
     'google_sign_in:',
     'flutter_facebook_auth:',
@@ -200,6 +204,15 @@ function assertSourceContracts({ root, sourceTexts }) {
       fail(`Android must use the system photo picker instead of broad media permission ${broadMediaPermission}.`);
     }
   }
+  for (const marker of [
+    'firebase_messaging_auto_init_enabled',
+    'firebase_analytics_collection_enabled',
+    'firebase_crashlytics_collection_enabled',
+  ]) {
+    if (!new RegExp(`${marker}[\\s\\S]{0,120}android:value="false"`).test(android)) {
+      fail(`Android Firebase opt-in default is missing ${marker}=false.`);
+    }
+  }
 
   const ios = sourceText(root, sourceTexts, 'ios/Runner/Info.plist');
   for (const usage of [
@@ -209,6 +222,14 @@ function assertSourceContracts({ root, sourceTexts }) {
     'remote-notification',
   ]) {
     if (!ios.includes(usage)) fail(`iOS disclosure inventory is missing ${usage}.`);
+  }
+  for (const marker of [
+    'FirebaseMessagingAutoInitEnabled',
+    'FirebaseCrashlyticsCollectionEnabled',
+  ]) {
+    if (!new RegExp(`<key>${marker}<\\/key>\\s*<false\\/>`).test(ios)) {
+      fail(`iOS Firebase opt-in default is missing ${marker}=false.`);
+    }
   }
 
   const applePrivacy = sourceText(root, sourceTexts, 'ios/Runner/PrivacyInfo.xcprivacy');
@@ -228,7 +249,12 @@ function assertSourceContracts({ root, sourceTexts }) {
   }
 
   const firebase = sourceText(root, sourceTexts, 'lib/services/firebase_runtime.dart');
-  for (const marker of ['FirebaseMessaging', 'FirebaseCrashlytics']) {
+  for (const marker of [
+    'FirebaseMessaging',
+    'FirebaseCrashlytics',
+    'FirebaseInstallations.instance.delete()',
+    'FirebaseServicePreferencesStore.read()',
+  ]) {
     if (!firebase.includes(marker)) fail(`Firebase runtime is missing ${marker}.`);
   }
   const auth = sourceText(root, sourceTexts, 'lib/services/auth_service.dart');
@@ -467,6 +493,14 @@ export function validatePrivacyDisclosures({
   if (services.firebaseCloudMessaging?.enabled !== true || services.firebaseCrashlytics?.enabled !== true) {
     fail('Firebase Messaging and Crashlytics must remain disclosed as enabled.');
   }
+  for (const serviceKey of ['firebaseCloudMessaging', 'firebaseCrashlytics']) {
+    const service = object(services[serviceKey], `externalServices.${serviceKey}`);
+    if (service.candidateCollectionMode !== 'automatic-in-bound-candidate'
+        || service.nextCandidateCollectionMode !== 'user-opt-in-default-off'
+        || service.replacementCandidateRequired !== true) {
+      fail(`${serviceKey} must separate the automatic bound candidate from the opt-in replacement source.`);
+    }
+  }
   const socialAuth = object(services.firebaseAuthentication, 'externalServices.firebaseAuthentication');
   if (socialAuth.enabled !== true
       || socialAuth.enabledInBoundEnvironment !== true
@@ -533,12 +567,12 @@ export function validatePrivacyDisclosures({
   }
   const deviceId = privacy.dataTypes.find((item) => item.id === 'deviceOrOtherIds');
   if (deviceId?.collected !== true || deviceId.optional !== false) {
-    fail('Firebase Installations requires non-optional device or installation ID disclosure.');
+    fail('The automatic bound candidate requires non-optional device or installation ID disclosure.');
   }
   const interactions = privacy.dataTypes.find((item) => item.id === 'appInteractions');
   if (interactions?.collected !== true || interactions.optional !== false
       || interactions.linkedToUser !== false || !interactions.purposes.includes('analytics')) {
-    fail('Firebase Sessions requires non-optional, non-linked app interaction disclosure for analytics.');
+    fail('The automatic bound candidate requires non-optional, non-linked app interaction disclosure for analytics.');
   }
 
   const decisions = object(privacy.requiredDecisions, 'requiredDecisions');

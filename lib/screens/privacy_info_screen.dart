@@ -189,7 +189,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           'Firebase Authentication für eine freiwillige Anmeldung mit einem von ShareItToo freigegebenen Anbieter und die dafür erforderlichen Identitätsdaten',
         ],
         note:
-            'Werbe-IDs, Werbeprofile, Werbetracking und Analyse zu Werbezwecken sind im aktuellen App-Kandidaten nicht aktiviert. Ein externer Anmeldedienst wird nur nach ausdrücklichem Antippen der jeweiligen Anmeldung verwendet.',
+            'Push und freiwillige Crashdiagnose sind standardmäßig aus und werden nur über die getrennten Gerätedienst-Schalter aktiviert. Dort kannst du sie jederzeit wieder ausschalten. Firebase nennt für FCM-Installationsdaten nach einer Löschanforderung bis zu 180 Tage und für Crashdaten mit zugehörigen Kennungen 90 Tage Aufbewahrung, bevor die Entfernung beginnt. Die Verarbeitung kann weltweit an Google-Standorten erfolgen. Werbe-IDs, Werbeprofile, Werbetracking und Analyse zu Werbezwecken sind nicht aktiviert.',
       ),
       const _PrivacySectionData(
         icon: Icons.file_download_outlined,

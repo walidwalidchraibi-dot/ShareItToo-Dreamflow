@@ -52,6 +52,11 @@
 	</array>
 	<key>FlutterDeepLinkingEnabled</key>
 	<true/>
+	<!-- FCM and Crashlytics stay available but require separate in-app opt-in. -->
+	<key>FirebaseMessagingAutoInitEnabled</key>
+	<false/>
+	<key>FirebaseCrashlyticsCollectionEnabled</key>
+	<false/>
 	<!-- Real public Meta values are supplied in the release configuration. -->
 	<key>FacebookAppID</key>
 	<string>$(SIT_FACEBOOK_APP_ID)</string>

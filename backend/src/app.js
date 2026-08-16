@@ -22,7 +22,10 @@ import {
   publicSupportPage,
   resultPage,
 } from './account_actions.js';
-import { revokeSessionByRefreshToken } from './auth_session_actions.js';
+import {
+  deletePushDevicesForSession,
+  revokeSessionByRefreshToken,
+} from './auth_session_actions.js';
 import { config } from './config.js';
 import { inTransaction, pool } from './db.js';
 import {
@@ -2163,6 +2166,24 @@ export function createApp({
       [req.auth.userId, req.auth.sessionId, platform, token, tokenHash, locale],
     );
     res.json({ device: result.rows[0] });
+  }));
+
+  app.delete('/v1/auth/devices/push/current', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const deletedCount = await inTransaction(async (client) => {
+      const count = await deletePushDevicesForSession(client, {
+        sessionId: req.auth.sessionId,
+        userId: req.auth.userId,
+      });
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'push.current_session_devices_deleted',
+        resourceType: 'auth_session',
+        resourceId: req.auth.sessionId,
+        metadata: { deletedCount: count },
+      });
+      return count;
+    });
+    res.json({ deletedCount });
   }));
 
   app.delete('/v1/auth/devices/push/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
