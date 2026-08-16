@@ -1854,13 +1854,28 @@ if (!databaseUrl) {
       assert.equal(accountExport.data.account.email, 'owner@example.com');
       assert.ok(accountExport.data.marketplace.listings.some((entry) => entry.id === 'listing-1'));
       assert.ok(accountExport.data.marketplace.bookings.some((entry) => entry.id === 'b6-flow'));
-      assert.ok(accountExport.data.marketplace.bookingQuotes.some((entry) => entry.id === quoted.quoteId));
+      assert.equal(
+        accountExport.data.marketplace.bookingQuotes.some((entry) => entry.id === quoted.quoteId),
+        false,
+      );
       assert.ok(accountExport.data.communication.messageThreads.some((entry) => entry.id === b7Thread.id));
       assert.ok(accountExport.data.trustAndSafety.reviews.some((entry) => entry.relationship === 'submitted'));
       assert.ok(accountExport.data.auditEvents.some((entry) => (
         entry.action === 'account.data_exported'
           && entry.request_id === 'b10-owner-export'
       )));
+      const renterExportResponse = await fetch(`${baseUrl}/v1/account/export`, {
+        headers: {
+          ...renterAHeaders,
+          'X-Request-ID': 'b10-renter-export',
+        },
+      });
+      assert.equal(renterExportResponse.status, 200);
+      const renterExport = await renterExportResponse.json();
+      assert.equal(renterExport.accountId, 'renter-a');
+      assert.ok(
+        renterExport.data.marketplace.bookingQuotes.some((entry) => entry.id === quoted.quoteId),
+      );
       const serializedExport = JSON.stringify(accountExport);
       for (const forbiddenField of [
         'password_hash', 'token_hash', 'provider_payment_id',
