@@ -95,10 +95,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return _effectiveCategory() == 'ongoing';
   }
 
-  bool get _canMessage =>
-      (widget.booking['status'] == 'Akzeptiert') ||
-      (widget.booking['status'] == 'Laufend');
-
   bool get _canStartBookingHandover {
     final status = ((widget.booking['status'] as String?) ?? '').trim();
     return status == 'Akzeptiert' && !_isCompletedState && !_isOngoing;

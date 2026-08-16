@@ -1699,3 +1699,34 @@ Servernachweis:
   Kandidat `1.0.0+2026081509`, Produktion, Echtgeld, Store-Tracks, Testkonten
   und Review-Versand blieben unveraendert. Alle neun Aufbewahrungsentscheidungen,
   alle sechs V4-Punkte und die vier offenen Geraetematrix-Zellen bleiben offen.
+
+## Meilenstein 16.115 – toter Buchungsdetail-Nachrichtenfreigabegetter entfernt
+
+- Der Flutter-Analysebestand wurde von 230 auf 229 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 382 Hinweise abgebaut.
+- Ausschliesslich der projektweit unreferenzierte Getter `_canMessage` wurde aus
+  dem Buchungsdetail entfernt. Die Laufzeitdatei verlor vier tote physische
+  Zeilen ohne neue Laufzeitzeile.
+- Beide aktiven Nachrichtenaktionen behalten ihre eigenen Statussperren fuer
+  ausstehende, zu pruefende und abgeschlossene Buchungen und oeffnen weiterhin
+  `MessageThreadScreen`. Auch Gegenpartei-Chatbutton und Support-Thread bleiben
+  unveraendert erreichbar.
+- Acht neue abschnittsgebundene fail-closed Wiring-Tests verriegeln Symbol-
+  Abwesenheit, beide Chatpfade, Support, Zeitpruefungen, Stornierung und die
+  Bewertung `renter_to_owner`. Zwei unabhaengige Vorpruefungen bestaetigen
+  Reichweite und Analyzer-Delta.
+- `booking_detail_screen.dart` ist nicht als Datenschutz-Quellbindung
+  hinterlegt; die gebundenen Nachrichten- und Rueckgabe-Schrittdateien bleiben
+  unveraendert. Datenerhebung, Speicherung, Uebertragung, Berechtigungen,
+  Store-Metadaten und Offenlegungen bleiben unveraendert. Die CI-
+  Analyseschranke steht jetzt fail-closed bei 229. Nachweis:
+  `docs/evidence/b11/flutter-analysis-booking-detail-dead-can-message-getter-20260816.json`.
+- 114 gezielte Flutter-Tests und die neuen Strukturtests sind gruen. Die
+  vollstaendige Regression bestand mit 268 App-Tests bei einem bewussten Skip,
+  dem separaten Google-Profiltest, allen Schutzvalidatoren sowie Web- und
+  Android-Debug-Bau.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Der bestehende
+  Kandidat `1.0.0+2026081509`, Produktion, Echtgeld, Store-Tracks, Testkonten
+  und Review-Versand blieben unveraendert. Alle neun Aufbewahrungsentscheidungen,
+  alle sechs V4-Punkte und die vier offenen Geraetematrix-Zellen bleiben offen.
