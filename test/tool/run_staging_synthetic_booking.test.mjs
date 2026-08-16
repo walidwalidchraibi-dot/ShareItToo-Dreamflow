@@ -126,21 +126,19 @@ test('creates an isolated requested booking and returns no credentials or identi
   assert.equal(listingCall.body.privateStatusConfirmed, true);
   const bookingCall = calls.find(({ path }) => path === '/bookings');
   assert.equal(bookingCall.body.privateStatusConfirmed, true);
-  assert.equal(bookingCall.body.legalDeclarations.length, 5);
+  assert.equal(bookingCall.body.legalDeclarations.length, 2);
   assert.deepEqual(
     bookingCall.body.legalDeclarations.map(({ type }) => type),
     [
-      'booking_private',
-      'binding_booking_request',
-      'platform_terms',
-      'early_performance',
-      'withdrawal_knowledge',
+      'private_terms_and_platform_terms',
+      'early_performance_and_withdrawal',
     ],
   );
   assert.equal(
     bookingCall.body.legalDeclarations.every((entry) => (
       entry.accepted === true
-      && entry.documentVersion === 'V4-2026-08-14'
+      && entry.documentName === 'ShareItToo Rechtsmappe Privat-Launch'
+      && entry.documentVersion === 'V5.1-2026-08-16'
       && entry.language === 'de'
     )),
     true,

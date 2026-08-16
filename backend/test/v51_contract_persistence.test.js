@@ -6,6 +6,14 @@ const migration = readFileSync(
   new URL('../sql/migrations/015_v51_contract_persistence.up.sql', import.meta.url),
   'utf8',
 );
+const privacyExport = readFileSync(
+  new URL('../src/privacy_export.js', import.meta.url),
+  'utf8',
+);
+const retentionInventory = readFileSync(
+  new URL('../src/retention_inventory.js', import.meta.url),
+  'utf8',
+);
 
 test('V5.1 contract evidence is separated into immutable snapshots, acceptances and receipts', () => {
   for (const table of [
@@ -61,4 +69,18 @@ test('receipt evidence is token-free, hash-bound and idempotent', () => {
   assert.doesNotMatch(migration, /recipient_email/u);
   assert.match(migration, /delivery_channel IN \('email', 'in_app', 'download'\)/u);
   assert.match(migration, /idempotency_key TEXT NOT NULL UNIQUE/u);
+});
+
+test('contract evidence is visible in the user export and retention inventory', () => {
+  assert.match(privacyExport, /WHERE contract\.user_id = \$1 ORDER BY contract\.accepted_at/u);
+  assert.match(privacyExport, /platformContractDeclarations/u);
+  assert.match(privacyExport, /platformContractReceiptEvents/u);
+  for (const dataset of [
+    'legal_document_snapshots',
+    'platform_contracts',
+    'platform_contract_declarations',
+    'platform_contract_receipt_events',
+  ]) {
+    assert.match(retentionInventory, new RegExp(`'transactions', '${dataset}'`, 'u'));
+  }
 });

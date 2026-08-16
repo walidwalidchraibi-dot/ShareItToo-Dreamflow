@@ -23,6 +23,9 @@ export async function buildAccountExport(client, userId) {
     listings,
     bookings,
     bookingQuotes,
+    platformContracts,
+    platformContractDeclarations,
+    platformContractReceiptEvents,
     messageThreads,
     messages,
     uploads,
@@ -68,6 +71,34 @@ export async function buildAccountExport(client, userId) {
               quote_version, currency, total_minor, quote_payload,
               quote_hash, issued_at, expires_at
        FROM booking_quotes WHERE renter_id = $1 ORDER BY issued_at`, userId),
+    rows(client,
+      `SELECT contract.id, contract.booking_id, contract.quote_id,
+              contract.quote_hash, contract.contract_version, contract.locale,
+              contract.client_build, contract.accepted_at, contract.created_at,
+              platform_terms.content_sha256 AS platform_terms_sha256,
+              private_terms.content_sha256 AS private_rental_terms_sha256
+       FROM platform_contracts AS contract
+       JOIN legal_document_snapshots AS platform_terms
+         ON platform_terms.id = contract.platform_terms_snapshot_id
+       JOIN legal_document_snapshots AS private_terms
+         ON private_terms.id = contract.private_rental_terms_snapshot_id
+       WHERE contract.user_id = $1 ORDER BY contract.accepted_at`, userId),
+    rows(client,
+      `SELECT declaration.id, declaration.contract_id,
+              declaration.declaration_type, declaration.exact_wording,
+              declaration.wording_sha256, declaration.accepted_at,
+              declaration.created_at
+       FROM platform_contract_declarations AS declaration
+       JOIN platform_contracts AS contract ON contract.id = declaration.contract_id
+       WHERE contract.user_id = $1 ORDER BY declaration.accepted_at`, userId),
+    rows(client,
+      `SELECT event.id, event.contract_id, event.event_type,
+              event.artifact_format, event.artifact_sha256,
+              event.artifact_reference, event.delivery_channel,
+              event.occurred_at, event.metadata
+       FROM platform_contract_receipt_events AS event
+       JOIN platform_contracts AS contract ON contract.id = event.contract_id
+       WHERE contract.user_id = $1 ORDER BY event.occurred_at`, userId),
     rows(client,
       `SELECT id, booking_id, item_id, archived_for, created_at,
               last_message_at, updated_at
@@ -161,7 +192,14 @@ export async function buildAccountExport(client, userId) {
   return {
     account,
     authentication: { sessions, identities, pushDevices },
-    marketplace: { listings, bookings, bookingQuotes },
+    marketplace: {
+      listings,
+      bookings,
+      bookingQuotes,
+      platformContracts,
+      platformContractDeclarations,
+      platformContractReceiptEvents,
+    },
     communication: { messageThreads, messages },
     uploadedFiles: uploads,
     notifications: {

@@ -40,11 +40,23 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "42c4d4228286e7435eeec2e6e8ef4f0faec112d4f81c5e3d447083a99cb83d55"
+      "sha256": "dd50ef63f239f303cd56515cfcd22ad023d10ca7f7d726d1076642424a53dac3"
     },
     {
       "path": "backend/src/booking_workflow.js",
-      "sha256": "0edfe9e31805a688c673144fcbcee34c0e894a726a0e6d6cc5c82b0685be596f"
+      "sha256": "a69556073b72b9f4e8245c20f1efd48087906f6f83907e45c5a8d1ffd1346090"
+    },
+    {
+      "path": "backend/src/private_pilot_domain.js",
+      "sha256": "78baea0aa2b6b2b931aab11b0a059ac485579b30c0be4993d3bb9e9b4ef6f584"
+    },
+    {
+      "path": "backend/src/v51_contract_workflow.js",
+      "sha256": "2e5fbad6506a3281f5e5c5380214c7e2c98c424c58f7a9c615836cccb6985382"
+    },
+    {
+      "path": "backend/sql/migrations/015_v51_contract_persistence.up.sql",
+      "sha256": "c2ccc1d20248672cfe164f4cf5bf093dca855aa4794f71a6f9dfe3a8c8253657"
     },
     {
       "path": "backend/sql/migrations/016_v51_booking_quotes.up.sql",
@@ -108,7 +120,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "41cf776685a4be285ad9f241449a7992755bd8d80405115949256a53f78a6d85"
+      "sha256": "a0667f3fa38250a663e32c2694d5b8077ce441ccf62eb5fc411af2d10a44cbe5"
     },
     {
       "path": "lib/screens/create_listing_screen.dart",

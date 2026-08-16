@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   assertPrivatePilotBooking,
   assertPrivatePilotListing,
-  privatePilotDocument,
+  privatePilotCheckoutDocument,
   privatePilotOpenDecisions,
   privatePilotRequiredCheckoutDeclarations,
   PrivatePilotValidationError,
@@ -22,9 +22,9 @@ function checkoutDeclarations() {
   return privatePilotRequiredCheckoutDeclarations.map((entry) => ({
     type: entry.type,
     exactWording: entry.wording,
-    documentName: privatePilotDocument.name,
-    documentVersion: privatePilotDocument.version,
-    language: privatePilotDocument.language,
+    documentName: privatePilotCheckoutDocument.name,
+    documentVersion: privatePilotCheckoutDocument.version,
+    language: privatePilotCheckoutDocument.locale,
     accepted: true,
     acceptedAt: '2026-08-14T12:00:00.000Z',
   }));
@@ -83,7 +83,7 @@ test('private listing and booking guardrails reject bypasses', () => {
       legalDeclarations: checkoutDeclarations().slice(0, -1),
     }),
     (error) => error.code ===
-      'private_pilot_declaration_missing:withdrawal_knowledge',
+      'v51_exactly_two_declarations_required',
   );
 });
 

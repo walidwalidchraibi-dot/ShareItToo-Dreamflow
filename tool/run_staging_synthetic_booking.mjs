@@ -12,6 +12,7 @@ import { isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import {
+  privatePilotCheckoutDocument,
   privatePilotDeclarations,
   privatePilotDocument,
   privatePilotRequiredCheckoutDeclarations,
@@ -353,10 +354,10 @@ export async function createSyntheticBookingFixture({
     ({ type, wording }) => ({
       type,
       exactWording: wording,
-      documentName: privatePilotDocument.name,
-      documentVersion: privatePilotDocument.version,
+      documentName: privatePilotCheckoutDocument.name,
+      documentVersion: privatePilotCheckoutDocument.version,
       appVersion: 'synthetic-review-tool',
-      language: privatePilotDocument.language,
+      language: privatePilotCheckoutDocument.locale,
       accepted: true,
       acceptedAt,
     }),

@@ -24,11 +24,16 @@ import { hasVerifiedBookingConfirmation } from './booking_confirmation_workflow.
 import {
   assertPrivatePilotBooking,
   assertPrivatePilotOwnerAcceptance,
+  privatePilotCheckoutDocument,
   privatePilotDeclarations,
   privatePilotDocument,
   privatePilotRequiredCheckoutDeclarations,
   PrivatePilotValidationError,
 } from './private_pilot_domain.js';
+import {
+  persistV51PlatformContract,
+  V51ContractWorkflowError,
+} from './v51_contract_workflow.js';
 
 const blockingWorkflowStatuses = Object.freeze(['accepted', 'payment_pending', 'confirmed', 'active', 'returned']);
 
@@ -698,7 +703,7 @@ export async function createBooking(client, {
   const id = bookingIdentifier(candidate.id);
   const createdAt = new Date();
   const bindingExpiresAt = new Date(Math.min(
-    createdAt.getTime() + (24 * 60 * 60 * 1000),
+    createdAt.getTime() + (30 * 60 * 1000),
     new Date(period.starts_at).getTime(),
   ));
   const payload = {
@@ -758,6 +763,32 @@ export async function createBooking(client, {
     ],
   );
   if (privatePilot) {
+    try {
+      payload.platformContract = await persistV51PlatformContract(client, {
+        userId: actor.id,
+        bookingId: id,
+        quoteId: quoteBinding.quoteId,
+        quoteHash: quoteBinding.quoteHash,
+        clientBuild: appVersion,
+        declarations: candidate.legalDeclarations,
+        idempotencyKey: `${commandKey}:platform-contract`,
+        acceptedAt: createdAt,
+      });
+    } catch (error) {
+      if (error instanceof V51ContractWorkflowError) {
+        const status = error.code === 'v51_contract_documents_unavailable'
+          ? 409
+          : 400;
+        throw new BookingWorkflowError(status, error.code);
+      }
+      throw error;
+    }
+    await client.query(
+      'UPDATE rental_requests SET payload = $2::jsonb WHERE id = $1',
+      [id, JSON.stringify(payload)],
+    );
+  }
+  if (privatePilot) {
     const acceptedByType = new Map(
       candidate.legalDeclarations.map((entry) => [entry.type, entry]),
     );
@@ -773,10 +804,10 @@ export async function createBooking(client, {
           id,
           declaration.type,
           declaration.wording,
-          privatePilotDocument.name,
-          privatePilotDocument.version,
+          privatePilotCheckoutDocument.name,
+          privatePilotCheckoutDocument.version,
           appVersion,
-          privatePilotDocument.language,
+          privatePilotCheckoutDocument.locale,
           new Date(accepted.acceptedAt),
         ],
       );
@@ -996,7 +1027,7 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
     const bindingExpiresAt = row.payload?.bindingExpiresAt
       ? new Date(row.payload.bindingExpiresAt)
       : new Date(Math.min(
-          new Date(row.created_at).getTime() + (24 * 60 * 60 * 1000),
+          new Date(row.created_at).getTime() + (30 * 60 * 1000),
           new Date(row.starts_at).getTime(),
         ));
     if (!Number.isFinite(bindingExpiresAt.getTime())

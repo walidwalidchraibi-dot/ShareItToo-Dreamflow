@@ -1,3 +1,10 @@
+import {
+  validateV51CheckoutDeclarations,
+  v51CheckoutDeclarations,
+  v51ContractDocument,
+  V51ContractWorkflowError,
+} from './v51_contract_workflow.js';
+
 export const privatePilotDocument = Object.freeze({
   name: 'ShareItToo Rechtsmappe Privat-Pilot',
   version: 'V4-2026-08-14',
@@ -75,13 +82,8 @@ export const privatePilotDeclarations = Object.freeze({
   platformWithdrawal: 'Ich widerrufe die kostenpflichtige Plattformleistung von ShareItToo für die ausgewählte Buchung.',
 });
 
-export const privatePilotRequiredCheckoutDeclarations = Object.freeze([
-  Object.freeze({ type: 'booking_private', wording: privatePilotDeclarations.booking }),
-  Object.freeze({ type: 'binding_booking_request', wording: privatePilotDeclarations.bindingBookingRequest }),
-  Object.freeze({ type: 'platform_terms', wording: privatePilotDeclarations.platformTerms }),
-  Object.freeze({ type: 'early_performance', wording: privatePilotDeclarations.earlyPerformance }),
-  Object.freeze({ type: 'withdrawal_knowledge', wording: privatePilotDeclarations.withdrawalKnowledge }),
-]);
+export const privatePilotCheckoutDocument = v51ContractDocument;
+export const privatePilotRequiredCheckoutDeclarations = v51CheckoutDeclarations;
 
 export const privatePilotAllowedCategoryIds = Object.freeze(new Set([
   'cat1', 'cat2', 'cat3', 'cat4', 'cat5', 'cat6', 'cat7', 'cat8',
@@ -141,24 +143,13 @@ export function assertPrivatePilotBooking(raw, { requireDeclaration = true } = {
     throw new PrivatePilotValidationError('private_pilot_delivery_disabled');
   }
   if (requireDeclaration) {
-    const declarations = Array.isArray(raw?.legalDeclarations)
-      ? raw.legalDeclarations
-      : [];
-    for (const required of privatePilotRequiredCheckoutDeclarations) {
-      const match = declarations.find((entry) => (
-        entry?.type === required.type
-        && entry?.exactWording === required.wording
-        && entry?.documentName === privatePilotDocument.name
-        && entry?.documentVersion === privatePilotDocument.version
-        && entry?.language === privatePilotDocument.language
-        && entry?.accepted === true
-        && Number.isFinite(Date.parse(entry?.acceptedAt))
-      ));
-      if (!match) {
-        throw new PrivatePilotValidationError(
-          `private_pilot_declaration_missing:${required.type}`,
-        );
+    try {
+      validateV51CheckoutDeclarations(raw?.legalDeclarations);
+    } catch (error) {
+      if (error instanceof V51ContractWorkflowError) {
+        throw new PrivatePilotValidationError(error.code);
       }
+      throw error;
     }
   }
   return true;

@@ -55,6 +55,23 @@ test('private-pilot creation fails closed without the stored fresh quote', async
   assert.match(source, /hashCommand\(currentBinding\) === quoteHash/u);
 });
 
+test('booking request is not emitted before the immutable platform contract exists', async () => {
+  const source = await readFile(workflowPath, 'utf8');
+  const contractIndex = source.indexOf('persistV51PlatformContract(client');
+  const requestedEventIndex = source.indexOf("'booking.requested'");
+  const notificationIndex = source.indexOf('enqueueBookingNotifications(client', contractIndex);
+
+  assert.ok(contractIndex > 0);
+  assert.ok(requestedEventIndex > contractIndex);
+  assert.ok(notificationIndex > contractIndex);
+  assert.match(
+    source,
+    /persistV51PlatformContract\(client, \{[\s\S]*userId: actor\.id,[\s\S]*bookingId: id,[\s\S]*quoteId: quoteBinding\.quoteId,[\s\S]*quoteHash: quoteBinding\.quoteHash,[\s\S]*declarations: candidate\.legalDeclarations/u,
+  );
+  assert.match(source, /payload\.platformContract = await persistV51PlatformContract/u);
+  assert.match(source, /createdAt\.getTime\(\) \+ \(30 \* 60 \* 1000\)/u);
+});
+
 test('the app fetches a fresh quote immediately before remote creation', async () => {
   const source = await readFile(dataServicePath, 'utf8');
   const remoteBlock = source.match(
@@ -76,7 +93,11 @@ test('checkout renders the server quote and stays locked without real payment tr
 
   assert.match(
     app,
-    /paymentMethodAvailable: config\.payments\.transport === 'stripe'/u,
+    /contractDocumentsAvailable = config\.payments\.transport === 'stripe'[\s\S]*v51ContractDocumentReadiness/u,
+  );
+  assert.match(
+    app,
+    /paymentMethodAvailable: config\.payments\.transport === 'stripe'[\s\S]*&& contractDocumentsAvailable/u,
   );
   assert.match(checkout, /PrivatePilotQuote\.fromServerJson/u);
   assert.match(checkout, /_checkoutQuote = Map<String, dynamic>\.from\(envelope\)/u);
@@ -93,7 +114,10 @@ test('user export and retention inventory include the new quote records', async 
   ]);
 
   assert.match(privacyExport, /FROM booking_quotes WHERE renter_id = \$1 ORDER BY issued_at/u);
-  assert.match(privacyExport, /marketplace: \{ listings, bookings, bookingQuotes \}/u);
+  assert.match(
+    privacyExport,
+    /marketplace: \{[\s\S]*bookingQuotes,[\s\S]*platformContracts,[\s\S]*platformContractDeclarations,[\s\S]*platformContractReceiptEvents/u,
+  );
   assert.match(
     retentionInventory,
     /SELECT 'transactions', 'booking_quotes',[\s\S]*FROM booking_quotes/u,
