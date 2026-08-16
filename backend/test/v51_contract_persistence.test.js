@@ -6,6 +6,10 @@ const migration = readFileSync(
   new URL('../sql/migrations/015_v51_contract_persistence.up.sql', import.meta.url),
   'utf8',
 );
+const receiptMigration = readFileSync(
+  new URL('../sql/migrations/017_v51_contract_receipts.up.sql', import.meta.url),
+  'utf8',
+);
 const privacyExport = readFileSync(
   new URL('../src/privacy_export.js', import.meta.url),
   'utf8',
@@ -71,6 +75,18 @@ test('receipt evidence is token-free, hash-bound and idempotent', () => {
   assert.match(migration, /idempotency_key TEXT NOT NULL UNIQUE/u);
 });
 
+test('the durable receipt artifact is immutable, hash-bound and contract-bound', () => {
+  assert.match(receiptMigration, /CREATE TABLE IF NOT EXISTS platform_contract_receipts/u);
+  assert.match(receiptMigration, /contract_id UUID NOT NULL UNIQUE/u);
+  assert.match(receiptMigration, /content_html TEXT NOT NULL/u);
+  assert.match(receiptMigration, /artifact_sha256 TEXT NOT NULL/u);
+  assert.match(receiptMigration, /idempotency_key TEXT NOT NULL UNIQUE/u);
+  assert.match(
+    receiptMigration,
+    /CREATE TRIGGER platform_contract_receipts_append_only[\s\S]*ON platform_contract_receipts/u,
+  );
+});
+
 test('contract evidence is visible in the user export and retention inventory', () => {
   assert.match(privacyExport, /WHERE contract\.user_id = \$1 ORDER BY contract\.accepted_at/u);
   assert.match(privacyExport, /platformContractDeclarations/u);
@@ -79,6 +95,7 @@ test('contract evidence is visible in the user export and retention inventory', 
     'legal_document_snapshots',
     'platform_contracts',
     'platform_contract_declarations',
+    'platform_contract_receipts',
     'platform_contract_receipt_events',
   ]) {
     assert.match(retentionInventory, new RegExp(`'transactions', '${dataset}'`, 'u'));

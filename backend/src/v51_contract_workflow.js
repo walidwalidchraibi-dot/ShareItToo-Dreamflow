@@ -1,5 +1,7 @@
 import crypto from 'node:crypto';
 
+import { persistV51ContractReceipt } from './v51_contract_receipt.js';
+
 export const v51ContractDocument = Object.freeze({
   name: 'ShareItToo Rechtsmappe Privat-Launch',
   version: 'V5.1-2026-08-16',
@@ -79,7 +81,8 @@ export function validateV51CheckoutDeclarations(raw, { now = new Date() } = {}) 
 export async function v51ContractDocumentReadiness(client, { at = new Date() } = {}) {
   const result = await client.query(
     `SELECT DISTINCT ON (document_key)
-            id, document_key, document_version, content_sha256
+            id, document_key, document_version, content_type,
+            content_text, content_sha256
        FROM legal_document_snapshots
       WHERE document_key = ANY($1::text[])
         AND document_version = $2
@@ -169,6 +172,21 @@ export async function persistV51PlatformContract(client, {
       ],
     );
   }
+  const receipt = await persistV51ContractReceipt(client, {
+    contractId,
+    bookingId: normalizedBookingId,
+    quoteId: normalizedQuoteId,
+    quoteHash: normalizedQuoteHash,
+    contractVersion: v51ContractDocument.version,
+    locale: v51ContractDocument.locale,
+    clientBuild: normalizedBuild,
+    acceptedAt: contractAcceptedAt,
+    platformTerms: snapshots.platformTerms,
+    privateRentalTerms: snapshots.privateRentalTerms,
+    declarations: normalizedDeclarations,
+    idempotencyKey: normalizedKey,
+    generatedAt: contractAcceptedAt,
+  });
   return Object.freeze({
     id: contractId,
     acceptedAt: new Date(contract.rows[0].accepted_at).toISOString(),
@@ -178,5 +196,6 @@ export async function persistV51PlatformContract(client, {
       platformTerms: snapshots.platformTerms.content_sha256,
       privateRentalTerms: snapshots.privateRentalTerms.content_sha256,
     }),
+    receipt,
   });
 }

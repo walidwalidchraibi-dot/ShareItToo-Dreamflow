@@ -40,7 +40,7 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "dd50ef63f239f303cd56515cfcd22ad023d10ca7f7d726d1076642424a53dac3"
+      "sha256": "6e733019154fac22194e6d231e7f69d6eb4405f0fc6a43fc7b51a2446c019038"
     },
     {
       "path": "backend/src/booking_workflow.js",
@@ -52,7 +52,11 @@
     },
     {
       "path": "backend/src/v51_contract_workflow.js",
-      "sha256": "2e5fbad6506a3281f5e5c5380214c7e2c98c424c58f7a9c615836cccb6985382"
+      "sha256": "506c735128379bcc2d57d08be12755fc533aa05ca1ddd5dbb8626efe56b78fc6"
+    },
+    {
+      "path": "backend/src/v51_contract_receipt.js",
+      "sha256": "fda446610acd69c9ed54abf4969bba03da9acab1acfbabc93855ee51f03db494"
     },
     {
       "path": "backend/sql/migrations/015_v51_contract_persistence.up.sql",
@@ -61,6 +65,10 @@
     {
       "path": "backend/sql/migrations/016_v51_booking_quotes.up.sql",
       "sha256": "70ab8fbfa5ab8d134775532a8122f429e1c77391bbba926ae13fb233ba8a6d89"
+    },
+    {
+      "path": "backend/sql/migrations/017_v51_contract_receipts.up.sql",
+      "sha256": "01f82a6a5cbdea4650faeca82d10c4a1753ab2f9ab78572e4c4303dedb609394"
     },
     {
       "path": "lib/services/data_service.dart",
@@ -120,7 +128,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "a0667f3fa38250a663e32c2694d5b8077ce441ccf62eb5fc411af2d10a44cbe5"
+      "sha256": "0592ab40695de7df096e7600da07788f5d7071708ebaa2f09a3fbc4e607c1698"
     },
     {
       "path": "lib/screens/create_listing_screen.dart",

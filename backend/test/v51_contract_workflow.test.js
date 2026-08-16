@@ -58,6 +58,8 @@ test('contract readiness requires both immutable V5.1 snapshots', async () => {
           id: 'snapshot-platform',
           document_key: 'platform_terms',
           document_version: v51ContractDocument.version,
+          content_type: 'text/plain',
+          content_text: 'Plattformbedingungen',
           content_sha256: 'a'.repeat(64),
         }],
       };
@@ -80,12 +82,16 @@ test('platform contract and its two declarations are persisted atomically', asyn
               id: 'snapshot-platform',
               document_key: 'platform_terms',
               document_version: v51ContractDocument.version,
+              content_type: 'text/plain',
+              content_text: 'Plattformbedingungen',
               content_sha256: 'a'.repeat(64),
             },
             {
               id: 'snapshot-rental',
               document_key: 'private_rental_terms',
               document_version: v51ContractDocument.version,
+              content_type: 'text/plain',
+              content_text: 'Privat-Mietbedingungen',
               content_sha256: 'b'.repeat(64),
             },
           ],
@@ -93,6 +99,9 @@ test('platform contract and its two declarations are persisted atomically', asyn
       }
       if (sql.includes('INSERT INTO platform_contracts')) {
         return { rows: [{ id: 'contract-1', accepted_at: acceptedAt }] };
+      }
+      if (sql.includes('INSERT INTO platform_contract_receipts')) {
+        return { rows: [{ id: 'receipt-1', generated_at: acceptedAt }] };
       }
       return { rows: [] };
     },
@@ -113,6 +122,9 @@ test('platform contract and its two declarations are persisted atomically', asyn
     platformTerms: 'a'.repeat(64),
     privateRentalTerms: 'b'.repeat(64),
   });
+  assert.equal(result.receipt.id, 'receipt-1');
+  assert.match(result.receipt.artifactSha256, /^[0-9a-f]{64}$/u);
+  assert.equal(result.receipt.downloadPath, '/v1/platform-contracts/contract-1/receipt');
   assert.equal(
     calls.filter((entry) => entry.sql.includes('INSERT INTO platform_contract_declarations')).length,
     2,

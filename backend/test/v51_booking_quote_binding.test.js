@@ -8,6 +8,7 @@ const migrationPath = resolve(
   '../sql/migrations/016_v51_booking_quotes.up.sql',
 );
 const workflowPath = resolve(import.meta.dirname, '../src/booking_workflow.js');
+const contractWorkflowPath = resolve(import.meta.dirname, '../src/v51_contract_workflow.js');
 const appPath = resolve(import.meta.dirname, '../src/app.js');
 const dataServicePath = resolve(import.meta.dirname, '../../lib/services/data_service.dart');
 const checkoutScreenPath = resolve(
@@ -56,12 +57,16 @@ test('private-pilot creation fails closed without the stored fresh quote', async
 });
 
 test('booking request is not emitted before the immutable platform contract exists', async () => {
-  const source = await readFile(workflowPath, 'utf8');
+  const [source, contractSource] = await Promise.all([
+    readFile(workflowPath, 'utf8'),
+    readFile(contractWorkflowPath, 'utf8'),
+  ]);
   const contractIndex = source.indexOf('persistV51PlatformContract(client');
   const requestedEventIndex = source.indexOf("'booking.requested'");
   const notificationIndex = source.indexOf('enqueueBookingNotifications(client', contractIndex);
 
   assert.ok(contractIndex > 0);
+  assert.ok(requestedEventIndex > contractIndex);
   assert.ok(requestedEventIndex > contractIndex);
   assert.ok(notificationIndex > contractIndex);
   assert.match(
@@ -69,6 +74,10 @@ test('booking request is not emitted before the immutable platform contract exis
     /persistV51PlatformContract\(client, \{[\s\S]*userId: actor\.id,[\s\S]*bookingId: id,[\s\S]*quoteId: quoteBinding\.quoteId,[\s\S]*quoteHash: quoteBinding\.quoteHash,[\s\S]*declarations: candidate\.legalDeclarations/u,
   );
   assert.match(source, /payload\.platformContract = await persistV51PlatformContract/u);
+  assert.match(
+    contractSource,
+    /INSERT INTO platform_contract_declarations[\s\S]*persistV51ContractReceipt\(client,[\s\S]*receipt,/u,
+  );
   assert.match(source, /createdAt\.getTime\(\) \+ \(30 \* 60 \* 1000\)/u);
 });
 
@@ -105,6 +114,18 @@ test('checkout renders the server quote and stays locked without real payment tr
   assert.match(checkout, /_paymentMethodAvailable/u);
   assert.match(checkout, /checkoutQuote: _checkoutQuote/u);
   assert.match(checkout, /Bestätigen und bezahlen/u);
+});
+
+test('contract receipt download is authenticated, integrity-bound and non-cacheable', async () => {
+  const app = await readFile(appPath, 'utf8');
+  assert.match(
+    app,
+    /app\.get\('\/v1\/platform-contracts\/:id\/receipt', requireAuth, requireActiveAccount/u,
+  );
+  assert.match(app, /getV51ContractReceipt\(client,[\s\S]*userId: req\.auth\.userId/u);
+  assert.match(app, /Content-Disposition': 'attachment; filename="shareittoo-plattformvertrag\.html"'/u);
+  assert.match(app, /'Cache-Control': 'private, no-store'/u);
+  assert.match(app, /'X-SIT-Artifact-SHA256': receipt\.artifactSha256/u);
 });
 
 test('user export and retention inventory include the new quote records', async () => {

@@ -25,6 +25,7 @@ export async function buildAccountExport(client, userId) {
     bookingQuotes,
     platformContracts,
     platformContractDeclarations,
+    platformContractReceipts,
     platformContractReceiptEvents,
     messageThreads,
     messages,
@@ -91,6 +92,13 @@ export async function buildAccountExport(client, userId) {
        FROM platform_contract_declarations AS declaration
        JOIN platform_contracts AS contract ON contract.id = declaration.contract_id
        WHERE contract.user_id = $1 ORDER BY declaration.accepted_at`, userId),
+    rows(client,
+      `SELECT receipt.id, receipt.contract_id, receipt.artifact_format,
+              receipt.content_html, receipt.artifact_sha256,
+              receipt.generated_at, receipt.created_at
+       FROM platform_contract_receipts AS receipt
+       JOIN platform_contracts AS contract ON contract.id = receipt.contract_id
+       WHERE contract.user_id = $1 ORDER BY receipt.generated_at`, userId),
     rows(client,
       `SELECT event.id, event.contract_id, event.event_type,
               event.artifact_format, event.artifact_sha256,
@@ -198,6 +206,7 @@ export async function buildAccountExport(client, userId) {
       bookingQuotes,
       platformContracts,
       platformContractDeclarations,
+      platformContractReceipts,
       platformContractReceiptEvents,
     },
     communication: { messageThreads, messages },

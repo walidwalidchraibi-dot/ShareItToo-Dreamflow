@@ -131,6 +131,10 @@ import {
 } from './private_pilot_domain.js';
 import { v51ContractDocumentReadiness } from './v51_contract_workflow.js';
 import {
+  getV51ContractReceipt,
+  V51ContractReceiptError,
+} from './v51_contract_receipt.js';
+import {
   evaluateReturnTimeline,
   splitAuthorizedBookingAmount,
 } from './private_pilot_return_domain.js';
@@ -1086,7 +1090,7 @@ export function createApp({
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'X-Admin-Step-Up', 'X-Request-ID'],
-    exposedHeaders: ['X-Request-ID', 'Content-Disposition'],
+    exposedHeaders: ['X-Request-ID', 'Content-Disposition', 'X-SIT-Artifact-SHA256'],
   }));
   const webhookLimiter = rateLimit({
     windowMs: 60_000,
@@ -2711,6 +2715,30 @@ export function createApp({
       bookingId: safeText(req.params.id, 120),
     });
     res.json({ state });
+  }));
+
+  app.get('/v1/platform-contracts/:id/receipt', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    let receipt;
+    try {
+      receipt = await inTransaction((client) => getV51ContractReceipt(client, {
+        userId: req.auth.userId,
+        contractId: safeText(req.params.id, 160),
+      }));
+    } catch (error) {
+      if (error instanceof V51ContractReceiptError) {
+        const status = error.code === 'v51_receipt_not_found' ? 404 : 409;
+        throw new HttpError(status, error.code);
+      }
+      throw error;
+    }
+    res.set({
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="shareittoo-plattformvertrag.html"',
+      'Cache-Control': 'private, no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'X-SIT-Artifact-SHA256': receipt.artifactSha256,
+    });
+    res.send(receipt.contentHtml);
   }));
 
   app.post('/v1/bookings/:id/flow-time', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
