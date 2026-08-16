@@ -182,7 +182,16 @@ function validateRepositoryScaffold(root, overrides) {
   const runtime = source(root, 'lib/services/firebase_runtime.dart', overrides);
   requireIncludes(runtime, 'waitForApplePushToken', 'Firebase runtime');
   requireIncludes(runtime, 'getAPNSToken', 'Firebase runtime');
-  requireIncludes(runtime, 'setCrashlyticsCollectionEnabled(kReleaseMode)', 'Firebase runtime');
+  requireIncludes(
+    runtime,
+    'kReleaseMode && _crashDiagnosticsEnabled',
+    'Firebase runtime',
+  );
+  requireIncludes(
+    runtime,
+    'FirebaseServicePreferencesStore.read()',
+    'Firebase runtime',
+  );
 }
 
 function environmentValues(environment) {

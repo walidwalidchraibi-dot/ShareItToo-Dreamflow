@@ -233,6 +233,24 @@ test('rejects Firebase Analytics or advertising activation', () => {
   );
 });
 
+test('rejects Crashlytics collection without the persisted opt-in gate', () => {
+  const currentRuntime = readFileSync(
+    resolve(repositoryRoot, 'lib/services/firebase_runtime.dart'),
+    'utf8',
+  );
+  assert.throws(
+    () => validate({
+      sourceOverrides: {
+        'lib/services/firebase_runtime.dart': currentRuntime.replace(
+          'kReleaseMode && _crashDiagnosticsEnabled',
+          'kReleaseMode',
+        ),
+      },
+    }),
+    /kReleaseMode && _crashDiagnosticsEnabled/,
+  );
+});
+
 test('rejects an Apple Firebase file before Google Sign-In is enabled', () => {
   assert.throws(
     () => validate({ environment, iosConfig: { ...iosConfig, IS_SIGNIN_ENABLED: false } }),
