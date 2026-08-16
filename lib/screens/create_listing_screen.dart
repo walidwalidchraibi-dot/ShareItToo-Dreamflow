@@ -1360,7 +1360,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                       value: _autoApplyDiscounts,
                                       onChanged: (v) => setState(
                                           () => _autoApplyDiscounts = v),
-                                      activeColor: colorScheme.primary,
+                                      activeThumbColor: colorScheme.primary,
                                     ),
                                   ),
                                   const SizedBox(width: 4),
@@ -3014,7 +3014,7 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
                       filled: false,
                       hintText: '0',
                       hintStyle: TextStyle(
-                          color: primary.withOpacity(0.35), fontSize: 14)),
+                          color: primary.withValues(alpha: 0.35), fontSize: 14)),
                   onChanged: (v) {
                     final n = int.tryParse(v.replaceAll(',', '.'));
                     if (n != null) widget.onDaysChanged(n.clamp(1, 365));

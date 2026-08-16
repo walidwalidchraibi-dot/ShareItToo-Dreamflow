@@ -1307,3 +1307,28 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.101 – direkte Alt-APIs und wirkungslose Bildoption bereinigt
+
+- Der Flutter-Analysebestand wurde von 316 auf 313 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 298 Hinweise abgebaut.
+- Eine aktive Switch-Daumenfarbe und eine Farbtransparenz verwenden jetzt ihre
+  direkten aktuellen Framework-Entsprechungen. Eine von der Bibliothek als
+  wirkungslos und veraltet ausgewiesene Bild-Kompressionsoption wurde entfernt.
+- Sichtbare Farbe, Transparenz, Bildauswahl, Bilddaten und Mehrfachauswahl
+  bleiben unveraendert. Der gezielte Laufzeitumfang umfasst zwei Dateien mit
+  zwei Ersetzungen und einer entfernten Optionszeile.
+- Beide Laufzeitdateien sind an die Datenschutz-Inventur gebunden. Ihre zwei
+  SHA-256-Werte wurden exakt aktualisiert; alle 16 Datenschutzpruefungen sind
+  anschliessend gruen und der fachliche Datenumfang blieb unveraendert.
+- Die CI-Analyseschranke steht jetzt fail-closed bei 313. P1-01 bleibt fuer
+  313 Resthinweise offen. Nachweis:
+  `docs/evidence/b11/flutter-analysis-direct-api-cleanup-20260816.json`.
+- Zwei Wiring-Tests und 268 App-Tests bei einem bewussten Skip sind gruen. Der
+  vollstaendige technische Regressionslauf bestand einschliesslich aller
+  Schutzvalidatoren sowie Web- und Android-Debug-Bau.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.

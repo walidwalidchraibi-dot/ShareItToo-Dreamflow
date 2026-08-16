@@ -841,7 +841,6 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
     final res = await FilePicker.platform.pickFiles(
       type: FileType.image,
       allowMultiple: allowMultiple,
-      allowCompression: true,
       withData: true,
     );
     if (res != null) {
