@@ -58,8 +58,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   int _page = 0;
   int _ownerPickupFailCount = 0;
   bool _manualPickupAllowed = false;
-  final bool _pickupHintOpen = false; // collapsible hint under Abholung
-  final bool _upcomingPrivacyOpen = false; // collapsible privacy hint for upcoming
   // Renter upcoming: manual code entry toggle + controller
   bool _showManualPickupEntry = false;
   final TextEditingController _manualPickupCodeCtrl = TextEditingController();

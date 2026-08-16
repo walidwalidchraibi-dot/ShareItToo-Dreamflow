@@ -1639,3 +1639,33 @@ Servernachweis:
   Kandidat `1.0.0+2026081509`, Produktion, Echtgeld, Store-Tracks, Testkonten
   und Review-Versand blieben unveraendert. Alle neun Aufbewahrungsentscheidungen,
   alle sechs V4-Punkte und die vier offenen Geraetematrix-Zellen bleiben offen.
+
+## Meilenstein 16.113 – tote einklappbare Buchungsdetail-Hinweisfelder entfernt
+
+- Der Flutter-Analysebestand wurde von 233 auf 231 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 380 Hinweise abgebaut.
+- Ausschliesslich die beiden projektweit ungenutzten, nebenwirkungsfreien
+  `false`-Felder `_pickupHintOpen` und `_upcomingPrivacyOpen` wurden entfernt.
+  Die Laufzeitdatei verlor zwei Zeilen ohne neue Laufzeitzeile.
+- Die festen `_AddressInfoCard`-Darstellungen, gesperrte ungefaehre Adresse vor
+  Freigabe, zeit-/statusgebundene exakte Adressfreigabe, Abhol- und Rueckgabeort,
+  `ApproxLocationMap`, Uebergabe- und Rueckgabestarts sowie Zeitbestaetigungen
+  bleiben erhalten.
+- Vier neue fail-closed Wiring-Tests verriegeln die enge Zwei-Zeilen-Grenze und
+  die aktiven Datenschutz-, Adress-, Karten-, Uebergabe- und Rueckgabeanker.
+  Zwei unabhaengige Vorpruefungen bestaetigen die Reichweite.
+- `booking_detail_screen.dart` ist nicht als Datenschutz-Quellbindung
+  hinterlegt; die gebundene Rueckgabe-Schrittdatei bleibt unveraendert.
+  Datenerhebung, Speicherung, Uebertragung, Berechtigungen, Store-Metadaten und
+  Offenlegungen bleiben unveraendert. Die CI-Analyseschranke steht jetzt
+  fail-closed bei 231. Nachweis:
+  `docs/evidence/b11/flutter-analysis-booking-detail-dead-collapsible-hint-state-20260816.json`.
+- 80 gezielte Flutter-Tests und die neuen Strukturtests sind gruen. Die
+  vollstaendige Regression bestand mit 268 App-Tests bei einem bewussten Skip,
+  dem separaten Google-Profiltest, allen Schutzvalidatoren sowie Web- und
+  Android-Debug-Bau.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Der bestehende
+  Kandidat `1.0.0+2026081509`, Produktion, Echtgeld, Store-Tracks, Testkonten
+  und Review-Versand blieben unveraendert. Alle neun Aufbewahrungsentscheidungen,
+  alle sechs V4-Punkte und die vier offenen Geraetematrix-Zellen bleiben offen.
