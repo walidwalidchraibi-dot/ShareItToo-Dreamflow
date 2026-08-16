@@ -31,7 +31,6 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
   String? _ownerId;
   List<_OwnerEntry> _entries = const [];
   Timer? _ticker;
-  final Map<String, Map<String, dynamic>?> _deliveryByItemId = {};
   // Track unread counts per category
   final Map<String, int> _unreadCounts = {};
 
@@ -133,9 +132,6 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
         final demo = await _buildDemoOwnerEntries();
         if (!mounted) return;
         _ownerId = demo.ownerId;
-        _deliveryByItemId
-          ..clear()
-          ..addAll(demo.deliverySelections);
         _unreadCounts
           ..clear()
           ..addAll(
@@ -145,7 +141,6 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
       }
       if (!mounted) return;
       _ownerId = null;
-      _deliveryByItemId.clear();
       _unreadCounts.clear();
       setState(() => _entries = const []);
       return;
@@ -156,9 +151,6 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
       if (QaRuntimeService.isEnabled) {
         final demo = await _buildDemoOwnerEntries(ownerId: owner.id);
         if (!mounted) return;
-        _deliveryByItemId
-          ..clear()
-          ..addAll(demo.deliverySelections);
         _unreadCounts
           ..clear()
           ..addAll(
@@ -167,7 +159,6 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
         return;
       }
       if (!mounted) return;
-      _deliveryByItemId.clear();
       _unreadCounts.clear();
       setState(() => _entries = const []);
       return;
@@ -188,12 +179,6 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
       if (!byUser.containsKey(request.renterId)) {
         byUser[request.renterId] =
             await DataService.getUserById(request.renterId);
-      }
-    }
-    for (final item in byItem.values) {
-      if (item != null) {
-        _deliveryByItemId[item.id] =
-            await DataService.getSavedDeliverySelection(item.id);
       }
     }
     final list = <_OwnerEntry>[];
@@ -238,11 +223,8 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
   }
 
   Future<
-      ({
-        String ownerId,
-        List<_OwnerEntry> entries,
-        Map<String, Map<String, dynamic>> deliverySelections
-      })> _buildDemoOwnerEntries({String? ownerId}) async {
+      ({String ownerId, List<_OwnerEntry> entries})> _buildDemoOwnerEntries(
+          {String? ownerId}) async {
     final now = DateTime.now();
     final items = await DataService.getItems();
     final users = await DataService.getUsers();
@@ -464,12 +446,6 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
       ),
     ];
 
-    final deliverySelections = <String, Map<String, dynamic>>{
-      itemPending.id: {'hinweg': true, 'rueckweg': false},
-      itemUpcoming.id: {'hinweg': true, 'rueckweg': true},
-      itemOngoing.id: {'hinweg': false, 'rueckweg': true},
-    };
-
     final entries = <_OwnerEntry>[
       _OwnerEntry(
           r: requests[0],
@@ -512,11 +488,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
           hasSubmittedReview: true),
     ];
 
-    return (
-      ownerId: ownerUser.id,
-      entries: entries,
-      deliverySelections: deliverySelections
-    );
+    return (ownerId: ownerUser.id, entries: entries);
   }
 
   @override
@@ -877,31 +849,6 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
     }
   }
 
-  // Tiny privacy hint: only when the owner is the traveling party (delivers or picks up)
-  Widget _privacyHintForOwner(String itemId) {
-    final sel = _deliveryByItemId[itemId];
-    final bool ownerDelivers = (sel?['hinweg'] == true);
-    final bool ownerPicksUp = (sel?['rueckweg'] == true);
-    final bool ownerTravels = ownerDelivers || ownerPicksUp;
-    if (!ownerTravels) return const SizedBox.shrink();
-    return Row(children: const [
-      Icon(Icons.privacy_tip_outlined, size: 14, color: Colors.white70),
-      SizedBox(width: 4),
-      Expanded(
-          child: Text(
-              'Adresse geschützt • Karte + Abhol-/Rückgabeort nur für dich sichtbar',
-              style:
-                  TextStyle(color: Colors.white70, fontSize: 11, height: 1.05),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis)),
-    ]);
-  }
-
-  Future<void> _openItemOverlay(Item item) async {
-    if (!mounted) return;
-    await ItemDetailsOverlay.showFullPage(context, item: item);
-  }
-
   Widget _buildStatusChipForCard(
       String category, DateTime start, DateTime end, _OwnerEntry e) {
     String label;
@@ -1140,13 +1087,6 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
       default:
         return null;
     }
-  }
-
-  String _formatTwoUnits(Duration d) {
-    final days = d.inDays;
-    if (days == 0) return '1 Tag';
-    if (days == 1) return '1 Tag';
-    return '$days Tage';
   }
 
   String _formatGermanDateTime(DateTime d) {

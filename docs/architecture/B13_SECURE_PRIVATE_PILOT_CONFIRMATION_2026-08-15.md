@@ -1491,3 +1491,32 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.108 – tote Buchungslisten-Parallelpfade entfernt
+
+- Der Flutter-Analysebestand wurde von 276 auf 262 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 349 Hinweise abgebaut.
+- Neun analysewirksame tote Elemente sowie der nur daran gebundene
+  Mieter-Stornopruefer, Vermieter-Liefercache und der ungenutzte Abruf der
+  gespeicherten Lieferauswahl wurden entfernt. Zwei Laufzeitdateien verloren
+  netto 245 tote Zeilen.
+- Der doppelte, unerreichbare Mieter-Stornoweg in der Buchungsliste ist weg.
+  Der kanonische Stornoweg im Buchungsdetail bleibt unveraendert erhalten;
+  Listenstatus, Detailnavigation und Bewertungsaufrufe bleiben aktiv.
+- Vermieter-Annahme und -Ablehnung, Detailnavigation sowie Bewertungen bleiben
+  erhalten. Die beiden bereinigten Laufzeitdateien sind nicht als
+  Datenschutz-Quellbindung hinterlegt; Datenfluesse und Offenlegungen bleiben
+  unveraendert.
+- Fuenf neue Wiring-Tests verriegeln entfernte Parallelpfade und erhaltene
+  kanonische Ablaufe. Insgesamt bestanden 76 gezielte Flutter-Tests und elf
+  gezielte Strukturtests. Die CI-Analyseschranke steht jetzt fail-closed bei
+  262. Nachweis:
+  `docs/evidence/b11/flutter-analysis-booking-lists-dead-ui-20260816.json`.
+- 268 App-Tests bei einem bewussten Skip und der separate Google-Profiltest
+  sind gruen. Der vollstaendige technische Regressionslauf bestand
+  einschliesslich aller Schutzvalidatoren sowie Web- und Android-Debug-Bau.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.

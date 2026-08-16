@@ -77,14 +77,6 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     super.dispose();
   }
 
-  bool _canCancelUpcomingBooking(Map<String, dynamic> booking) {
-    final (start, end) = _parseDateRange((booking['dates'] as String?) ?? '');
-    final effective = _effectiveCategoryFor(booking, start, end);
-    final rawStatus = ((booking['rawStatus'] as String?) ?? '').toLowerCase().trim();
-    final requestId = (booking['requestId'] as String?)?.trim() ?? '';
-    return requestId.isNotEmpty && effective == 'upcoming' && rawStatus == 'accepted';
-  }
-
   bool _canReviewCompletedBooking(Map<String, dynamic> booking) {
     final rawStatus = ((booking['rawStatus'] as String?) ?? '').toLowerCase().trim();
     final requestId = (booking['requestId'] as String?)?.trim() ?? '';
@@ -151,14 +143,6 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     } catch (_) {
       _showingReminder = false;
     }
-  }
-
-  Future<void> _openItemListing(String? itemId) async {
-    final targetId = itemId?.trim();
-    if (targetId == null || targetId.isEmpty || !mounted) return;
-    final item = await DataService.getItemById(targetId);
-    if (!mounted || item == null) return;
-    await ItemDetailsOverlay.showFullPage(context, item: item);
   }
 
   Future<void> _load() async {
@@ -612,118 +596,6 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     );
   }
 
-  // Quick actions per state
-  Widget _buildQuickActionsRow(Map<String, dynamic> booking) {
-    final category = booking['category'] as String?;
-    switch (category) {
-      case 'pending':
-        // Entfernt: "Anfrage zurückziehen" gehört jetzt in die Detailseite ganz unten (Ausstehende Buchung)
-        return const SizedBox.shrink();
-      case 'completed':
-        final canReview = _canReviewCompletedBooking(booking);
-        return Wrap(spacing: 8, children: [
-          if (canReview)
-            TextButton.icon(
-              onPressed: () async {
-                final current = await DataService.getCurrentUser();
-                if (current == null) return;
-                final requestId = booking['requestId'] as String?;
-                final itemId = booking['itemId'] as String?;
-                final listerId = booking['listerId'] as String?;
-                if (requestId == null || itemId == null || listerId == null) return;
-                final ok = await ReviewPromptSheet.show(
-                  context,
-                  requestId: requestId,
-                  itemId: itemId,
-                  reviewerId: current.id,
-                  reviewedUserId: listerId,
-                  direction: 'renter_to_owner',
-                );
-                if (ok == true && context.mounted) {
-                  await AppPopup.toast(context, icon: Icons.star_rate_outlined, title: 'Danke für deine Bewertung!');
-                  final item = await DataService.getItemById(itemId);
-                  if (item != null && context.mounted) {
-                    await ItemDetailsOverlay.showFullPage(context, item: item);
-                  }
-                  await _load();
-                } else if (ok == false && context.mounted) {
-                  await AppPopup.toast(context, icon: Icons.check_circle_outline, title: 'Bewertung abgegeben');
-                  await _load();
-                }
-              },
-              icon: const Icon(Icons.star_rate_outlined, color: Colors.white70, size: 18),
-              label: const Text('Bewerten', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
-            ),
-          TextButton.icon(
-            onPressed: () => AppPopup.toast(context, icon: Icons.replay, title: 'Wieder mieten gestartet'),
-            icon: const Icon(Icons.refresh_outlined, color: Colors.white70, size: 18),
-            label: const Text('Wieder mieten', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
-          ),
-        ]);
-      default:
-        // For upcoming confirmed bookings, add a "Stornieren" quick action
-        if (_canCancelUpcomingBooking(booking)) {
-          return Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () async {
-                if (!_canCancelUpcomingBooking(booking)) {
-                  AppPopup.toast(context, icon: Icons.info_outline, title: 'Stornierung ist gerade nicht verfügbar');
-                  return;
-                }
-                // Minimal confirmation text only
-                final policy = (booking['policy'] as String?) ?? 'flexible';
-                final policyName = DataService.policyName(policy);
-                await AppPopup.show(
-                  context,
-                  icon: Icons.help_outline,
-                  title: 'Buchung stornieren?',
-                  message: 'Bitte beachte die Stornierungsbedingungen ($policyName).',
-                  barrierDismissible: true,
-                  plainCloseIcon: true,
-                  leadingWidget: Builder(builder: (context) {
-                    final danger = Theme.of(context).colorScheme.error;
-                    return Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.transparent,
-                        border: Border.all(color: danger, width: 2),
-                      ),
-                      child: Icon(Icons.close, color: danger),
-                    );
-                  }),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.of(context, rootNavigator: true).maybePop(), child: const Text('Abbrechen')),
-                    FilledButton(
-                      onPressed: () async {
-                        Navigator.of(context, rootNavigator: true).maybePop();
-                        final id = booking['requestId'] as String?;
-                        if (id != null && _canCancelUpcomingBooking(booking)) {
-                          await DataService.updateRentalRequestStatusWithActor(requestId: id, status: 'cancelled', cancelledBy: 'renter');
-                          if (!mounted) return;
-                          await _load();
-                          await AppPopup.toast(context, icon: Icons.cancel_outlined, title: 'Buchung storniert');
-                          // Switch to Abgeschlossen and highlight the just-cancelled booking
-                          setState(() { _highlightRequestId = id; });
-                          _tabController.index = 3;
-                        }
-                      },
-                      child: const Text('Stornieren'),
-                    ),
-                  ],
-                );
-              },
-              icon: const Icon(Icons.cancel_outlined, color: Colors.white70, size: 18),
-              label: const Text('Stornieren', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
-            ),
-          );
-        }
-        return const SizedBox.shrink();
-    }
-  }
-
   // Compute effective category for renter view strictly from status.
   // Business rules:
   // - pending → pending
@@ -806,29 +678,6 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
     );
   }
 
-  // Tiny privacy hint line for cards (upcoming, ongoing) – only for the party who travels
-  Widget _privacyHintForCard(Map<String, dynamic> booking) {
-    final bool ownerDelivers = booking['ownerDeliversAtDropoffChosen'] == true;
-    final bool ownerPicksUp = booking['ownerPicksUpAtReturnChosen'] == true;
-    final bool renterTravels = (!ownerDelivers) || (!ownerPicksUp);
-    if (!renterTravels) return const SizedBox.shrink();
-    final String text = 'Adresse geschützt • Karte + Abhol-/Rückgabeort nur für dich sichtbar';
-    return Row(
-      children: [
-        Icon(Icons.privacy_tip_outlined, size: 14, color: Colors.white70),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.05),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
   // Build a tiny inline action button to live next to the chip, keeping the card compact
   Widget? _buildSmallInlineAction(String effectiveCategory, Map<String, dynamic> booking, DateTime? start, DateTime? end) {
     switch (effectiveCategory) {
@@ -873,21 +722,6 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       default:
         return null; // completed/ongoing have no inline action for now
     }
-  }
-
-  // Format durations in days only
-  String _formatTwoUnitsCountdown(Duration d) {
-    final days = d.inDays;
-    if (days == 0) return '1 Tag';
-    if (days == 1) return '1 Tag';
-    return '$days Tage';
-  }
-
-  String _formatGermanDateTime(DateTime d) {
-    const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-    final mm = months[d.month - 1];
-    final dd = d.day.toString().padLeft(2, '0');
-    return '$dd. $mm';
   }
 
   (String, String) _splitDatesText(String raw) {
@@ -941,25 +775,6 @@ class _BookingsScreenState extends State<BookingsScreen> with SingleTickerProvid
       return (start, DateTime(start.year + 1, end.month, end.day));
     }
     return (start, end);
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Akzeptiert':
-        return const Color(0xFF22C55E);
-      case 'Angefragt':
-        return const Color(0xFFFB923C);
-      case 'Bezahlt':
-        return const Color(0xFF3B82F6);
-      case 'Laufend':
-        return const Color(0xFF0EA5E9);
-      case 'Abgeschlossen':
-        return Colors.blueGrey; // different color for completed confirmation
-      case 'Storniert':
-        return const Color(0xFFF43F5E);
-      default:
-        return Colors.grey;
-    }
   }
 
   List<Map<String, dynamic>> _getBookingsForStatus(String status) {
