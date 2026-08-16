@@ -514,26 +514,6 @@ class _ExpressAcceptedInfo extends StatelessWidget {
   }
 }
 
-class _MessageCard extends StatelessWidget {
-  final String message;
-  const _MessageCard({required this.message});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.20),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-      child: Text(message,
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: Colors.white)),
-    );
-  }
-}
-
 class _PublicProfileQuickView extends StatelessWidget {
   final User user;
   final String title;
