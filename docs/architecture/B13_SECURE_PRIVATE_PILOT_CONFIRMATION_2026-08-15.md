@@ -1358,3 +1358,28 @@ Servernachweis:
   Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
   alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
   offen.
+
+## Meilenstein 16.103 – Einzelwahl-Steuerung auf aktuelle Gruppenlogik migriert
+
+- Der Flutter-Analysebestand wurde von 311 auf 307 Hinweise reduziert;
+  Analysefehler bleiben bei null. Seit dem urspruenglichen Stand von 611 sind
+  damit 304 Hinweise abgebaut.
+- Die Auswahl des Developer-Vorschauzustands und der zu widerrufenden Buchung
+  werden jetzt jeweils von einer typisierten `RadioGroup` gesteuert. Die
+  einzelnen Auswahlzeilen tragen nur noch ihren eigenen Wert und Inhalt.
+- Aktueller Auswahlwert, asynchrones Speichern des Vorschauzustands,
+  Buchungsfilter, Weiter-Schaltflaeche und Widerrufsuebermittlung bleiben
+  unveraendert. Der aktuelle Gruppenmechanismus verbessert zusaetzlich Tastatur-
+  und Semantikunterstuetzung.
+- Zwei gezielte Wiring-Tests verriegeln Gruppenwert und Aenderungspfad in beiden
+  Oberflaechen. Die CI-Analyseschranke steht jetzt fail-closed bei 307. P1-01
+  bleibt fuer 307 Resthinweise offen. Nachweis:
+  `docs/evidence/b11/flutter-analysis-radio-group-controls-20260816.json`.
+- 23 gezielte Rechts-, Checkout-, Wahrheits- und Barrierefreiheitspruefungen,
+  vier Wiring-Tests sowie 268 App-Tests bei einem bewussten Skip sind gruen.
+  Der vollstaendige technische Regressionslauf bestand einschliesslich aller
+  Schutzvalidatoren sowie Web- und Android-Debug-Bau.
+- Es wurde kein neuer oder signierter App-Kandidat erzeugt. Produktion,
+  Echtgeld, Store-Tracks, Testkonten und Review-Versand blieben unveraendert;
+  alle neun Aufbewahrungsentscheidungen und alle sechs V4-Punkte bleiben
+  offen.

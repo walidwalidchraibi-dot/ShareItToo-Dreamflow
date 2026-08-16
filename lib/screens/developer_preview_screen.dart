@@ -119,33 +119,33 @@ class DeveloperPreviewScreen extends StatelessWidget {
         children: [
           _SectionCard(
             title: 'User State',
-            child: Column(children: [
-              for (final s in DeveloperUserState.values)
-                RadioListTile<DeveloperUserState>(
-                  value: s,
-                  groupValue: ctrl.state,
-                  onChanged: (v) async {
-                    if (v == null) return;
-                    await context
-                        .read<DeveloperPreviewController>()
-                        .setState(v);
-                    if (context.mounted) {
-                      AppPopup.toast(context,
-                          icon: Icons.check_circle_outline,
-                          title: 'State gesetzt: ${_labelForState(v)}',
-                          duration: const Duration(seconds: 1));
-                    }
-                  },
-                  activeColor: BrandColors.primary,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(_labelForState(s),
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                          color: Colors.white, fontWeight: FontWeight.w700)),
-                  subtitle: Text(_subtitleForState(s),
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: Colors.white70, height: 1.3)),
-                ),
-            ]),
+            child: RadioGroup<DeveloperUserState>(
+              groupValue: ctrl.state,
+              onChanged: (v) async {
+                if (v == null) return;
+                await context.read<DeveloperPreviewController>().setState(v);
+                if (context.mounted) {
+                  AppPopup.toast(context,
+                      icon: Icons.check_circle_outline,
+                      title: 'State gesetzt: ${_labelForState(v)}',
+                      duration: const Duration(seconds: 1));
+                }
+              },
+              child: Column(children: [
+                for (final s in DeveloperUserState.values)
+                  RadioListTile<DeveloperUserState>(
+                    value: s,
+                    activeColor: BrandColors.primary,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(_labelForState(s),
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                            color: Colors.white, fontWeight: FontWeight.w700)),
+                    subtitle: Text(_subtitleForState(s),
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: Colors.white70, height: 1.3)),
+                  ),
+              ]),
+            ),
           ),
           const SizedBox(height: 14),
           _SectionCard(

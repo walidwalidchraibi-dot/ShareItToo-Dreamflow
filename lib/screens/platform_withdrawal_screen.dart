@@ -106,16 +106,22 @@ class _PlatformWithdrawalScreenState extends State<PlatformWithdrawalScreen> {
                         child: Text('Keine zuordenbare Buchung gefunden.'),
                       ),
                     ),
-                  for (final request in _requests)
-                    RadioListTile<RentalRequest>(
-                      value: request,
-                      groupValue: _selected,
-                      onChanged: (value) => setState(() => _selected = value),
-                      title: Text('Buchung ${request.id}'),
-                      subtitle: Text(
-                        '${_date(request.start)} bis ${_date(request.end)} · Status ${request.status}',
-                      ),
+                  RadioGroup<RentalRequest>(
+                    groupValue: _selected,
+                    onChanged: (value) => setState(() => _selected = value),
+                    child: Column(
+                      children: [
+                        for (final request in _requests)
+                          RadioListTile<RentalRequest>(
+                            value: request,
+                            title: Text('Buchung ${request.id}'),
+                            subtitle: Text(
+                              '${_date(request.start)} bis ${_date(request.end)} · Status ${request.status}',
+                            ),
+                          ),
+                      ],
                     ),
+                  ),
                   const SizedBox(height: 12),
                   FilledButton(
                     onPressed: _selected == null
