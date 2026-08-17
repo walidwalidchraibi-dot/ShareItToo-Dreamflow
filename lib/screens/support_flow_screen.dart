@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:lendify/theme.dart';
+import 'package:lendify/widgets/app_image.dart';
 
 /// Quelle, aus der der Support-Flow gestartet wurde
 enum SupportFlowSource {
@@ -1083,10 +1084,10 @@ class _DistinctBookingContextCard extends StatelessWidget {
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: itemImageUrl != null && itemImageUrl!.isNotEmpty
-                        ? Image.network(
-                            itemImageUrl!,
+                        ? AppImage(
+                            url: itemImageUrl!,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Center(
+                            fallback: Center(
                               child: Icon(
                                 Icons.inventory_2_rounded,
                                 color: BrandColors.primary.withValues(alpha: 0.75),
@@ -1123,10 +1124,10 @@ class _DistinctBookingContextCard extends StatelessWidget {
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: otherUserImageUrl != null && otherUserImageUrl!.isNotEmpty
-                          ? Image.network(
-                              otherUserImageUrl!,
+                          ? AppImage(
+                              url: otherUserImageUrl!,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Center(
+                              fallback: Center(
                                 child: Icon(
                                   Icons.person_rounded,
                                   color: isDark ? Colors.white.withValues(alpha: 0.7) : AppTheme.textSecondary(context),

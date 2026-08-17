@@ -17,6 +17,7 @@ import 'package:lendify/services/messages_settings_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/user_avatar.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -1239,12 +1240,12 @@ class _ItemImageTile extends StatelessWidget {
         height: size,
         color: AppTheme.surfaceMuted(context),
         child: hasImage
-            ? Image.network(
-                url,
+            ? AppImage(
+                url: url,
                 width: size,
                 height: size,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _placeholder(context),
+                fallback: _placeholder(context),
               )
             : _placeholder(context),
       ),

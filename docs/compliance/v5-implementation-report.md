@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.127
+Stand: 17.08.2026, lokaler Checkpoint 16.131
 
 ## Verbindliche Grenzen
 
@@ -126,3 +126,26 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
 - vollständige Node-Prüfsuite: 611 bestanden, 0 fehlgeschlagen
 - bestehender Kandidat, Staging, Produktion, Store, Echtgeld und öffentliche
   Rechtstexte unverändert
+
+## Prüfstand Checkpoint 16.131
+
+- alle Flutter-Bilddarsteller nutzen jetzt zentral `AppImage`; direkte
+  `Image.network`-/`NetworkImage`-Umgehungen außerhalb dieses kontrollierten
+  Darstellers sind entfernt
+- ein signierter Release lädt ausschließlich Bilder aus dem authentifizierten
+  SIT-Uploadspeicher; beliebige externe Hosts und unbekannte Schemas enden
+  neutral und ohne Netzabruf
+- lokale Debug-/QA-Demos behalten ihren ausdrücklich auf Nicht-Release-Builds
+  begrenzten externen Bildpfad
+- `backend_config.dart` und `app_image.dart` sind als datenschutzrelevante
+  Quellen hashgebunden; der Datenschutzvalidator bleibt `draft` und
+  fail-closed
+- 277 Flutter-Tests bestanden bei einem bewussten Skip; 618 Tooltests,
+  Android-Debug-Build und Web-Debug-Build bestanden; der Analyzer bleibt bei
+  229 Hinweisen und 0 Fehlern
+- FCM-Push und Firebase Crashlytics bleiben unverändert erhalten: getrennte,
+  freiwillige, standardmäßig ausgeschaltete Entscheidungen; Push aktiviert
+  Crashlytics nicht
+- bestehender Kandidat `1.0.0+2026081509`, Staging, Produktion, Store,
+  Echtgeld und öffentliche Rechtstexte blieben unverändert. Nachweis:
+  `docs/evidence/b11/v51-release-image-origin-policy-20260817.json`

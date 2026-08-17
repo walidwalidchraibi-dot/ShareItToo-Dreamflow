@@ -1135,16 +1135,10 @@ class _ThumbnailWithSkeletonState extends State<_ThumbnailWithSkeleton>
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => _showPreview(context, [url], 0),
-      child: Image.network(
-        url,
+      child: AppImage(
+        url: url,
         fit: BoxFit.cover,
-        loadingBuilder: (c, child, progress) {
-          if (progress == null) {
-            return child;
-          }
-          return _skeleton();
-        },
-        errorBuilder: (_, __, ___) => _skeleton(),
+        fallback: _skeleton(),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/screens/create_listing_screen.dart';
 import 'package:lendify/services/localization_service.dart';
+import 'package:lendify/widgets/app_image.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
@@ -153,14 +154,10 @@ class _MonetizeTeaserCardState extends State<MonetizeTeaserCard> with TickerProv
                       fit: StackFit.expand,
                       children: [
                         Positioned.fill(
-                          child: Image.network(
-                            heroPosterUrl,
+                          child: AppImage(
+                            url: heroPosterUrl,
                             fit: BoxFit.cover,
-                            alignment: Alignment.center,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const ColoredBox(color: Color(0x1A000000));
-                            },
+                            fallback: const ColoredBox(color: Color(0x1A000000)),
                           ),
                         ),
                         if (videoReady)

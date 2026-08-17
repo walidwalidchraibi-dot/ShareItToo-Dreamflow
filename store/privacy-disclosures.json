@@ -191,12 +191,20 @@
       "sha256": "75ae4d33448d1b8b512b5cc956ead31d6ae947d96f6e194a0d67e07adc1ffebf"
     },
     {
+      "path": "lib/services/backend_config.dart",
+      "sha256": "0359bad55ec4e23cbd8528ff6be585e48317cb34c6a1c1d29f92a19b0529b15e"
+    },
+    {
       "path": "lib/services/firebase_runtime.dart",
       "sha256": "7cbe8fd6e3b1d461f3a06a2ab02d2e13aa6ff2752f02a108773809c859c8156c"
     },
     {
       "path": "lib/services/firebase_service_preferences.dart",
       "sha256": "b3841d4e36a30eddc5f3808fb6d939de34c0766491784be38089f3d8b204d97f"
+    },
+    {
+      "path": "lib/widgets/app_image.dart",
+      "sha256": "8cfa1d5d5f4478a79169880d0413c099b595e55599bb17bb9eb1fe6983196152"
     },
     {
       "path": "lib/services/account_deletion_service.dart",

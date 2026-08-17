@@ -364,7 +364,7 @@ class _BookingsHistoryTab extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(children: [
-              ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.network(b['image']!, width: 72, height: 72, fit: BoxFit.cover)),
+              AppImage(url: b['image']!, width: 72, height: 72, fit: BoxFit.cover, borderRadius: BorderRadius.circular(10)),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(b['title']!, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white), maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -464,12 +464,7 @@ class _ReviewsTabState extends State<_ReviewsTab> {
               border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: ListTile(
-              leading: CircleAvatar(
-                backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
-                child: (avatarUrl == null || avatarUrl.isEmpty)
-                    ? Text(name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?', style: const TextStyle(color: Colors.white))
-                    : null,
-              ),
+              leading: SitUserAvatar(url: avatarUrl, radius: 20),
               title: Text(name, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white)),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

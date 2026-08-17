@@ -17,6 +17,7 @@ import 'package:lendify/widgets/item_card.dart';
 import 'package:lendify/widgets/profile_header_card.dart';
 import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/widgets/app_popup.dart';
+import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/rating_badge.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/theme.dart';
@@ -267,6 +268,7 @@ class _PublicProfileBlockDialogCard extends StatelessWidget {
       ),
     );
   }
+
 }
 
 Future<bool?> showPublicProfileBlockConfirmationDialog(
@@ -706,7 +708,6 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
       ),
     );
   }
-
 }
 
 /* class _HeaderCard extends StatelessWidget { // replaced by ProfileHeaderCard
@@ -1023,10 +1024,10 @@ class _PublicProfileReviewArtwork extends StatelessWidget {
             ),
             clipBehavior: Clip.antiAlias,
             child: itemImageUrl != null
-                ? Image.network(
-                    itemImageUrl!,
+                ? AppImage(
+                    url: itemImageUrl!,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Icon(
+                    fallback: Icon(
                       Icons.inventory_2_outlined,
                       color: AppTheme.textSecondary(context),
                       size: 22,
