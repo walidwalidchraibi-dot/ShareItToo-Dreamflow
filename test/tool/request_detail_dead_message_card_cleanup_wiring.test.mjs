@@ -52,7 +52,10 @@ test('request cards and renter profile navigation remain active', () => {
   );
   assert.match(requestDetail, /_RenterCard\(user: renter\)/);
   assert.match(requestDetail, /_DatesCard\(request: req\)/);
-  assert.match(requestDetail, /_PriceCard\(item: item, request: req\)/);
+  assert.match(
+    requestDetail,
+    /_PriceCard\(\s+quote: displayedQuote,\s+isBindingServerQuote: serverQuote != null/u,
+  );
   assert.match(
     requestDetail,
     /builder: \(_\) => _PublicProfileQuickView\(\s*user: user, title: 'Profil des Mieters'\)/,

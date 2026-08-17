@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.145
+Stand: 17.08.2026, lokaler Checkpoint 16.146
 
 ## Verbindliche Grenzen
 
@@ -454,3 +454,32 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
   übertragen. Nachweis:
   `docs/evidence/b11/v51-local-quote-snapshot-persistence-20260817T083200Z.json`
+
+## Prüfstand Checkpoint 16.146
+
+- die Vermieterannahme rekonstruiert und prüft jetzt erneut exakt dasselbe
+  vollständige Preis-Abbild, das beim Mieter gebunden und in der Buchung
+  gespeichert wurde; auch die Vermieterauszahlung muss der privaten Mietsumme
+  entsprechen
+- fehlt der Preis oder widersprechen sich Centwerte, Währung, Tage,
+  Plattformbeitrag, Gesamtbetrag oder Auszahlung, zeigt SIT ausdrücklich
+  „Preisprüfung fehlgeschlagen“ und deaktiviert sowohl Erklärung als auch
+  verbindliche Annahme
+- diese gemeinsame letzte Schranke gilt für alle vier Annahmewege:
+  Anfragedetail, Vermieter-Anfragenliste, Nachrichten und laufende
+  Vermieteransicht
+- der Vermieter sieht vor der Erklärung getrennt den privaten Mietpreis, den
+  vom Mieter getragenen SIT-Plattformbeitrag, den Gesamtpreis des Mieters und
+  die vorgesehene eigene Auszahlung
+- nur außerhalb des echten Backendpfads bleibt ein lokaler Testpreis möglich;
+  er ist sichtbar mit „kein Echtgeld“ als nicht bindend gekennzeichnet
+- 11/11 neue bzw. angepasste Wiring-Tests und 9 gezielte Flutter-Tests
+  bestanden; der gezielte Analyzer erzeugte keine neuen Hinweise
+- die vollständige Regression blieb mit 271 bestandenen Tests, 1 bewusstem
+  Skip, 229 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder Kandidatenwechsel
+- Push und Crashdiagnose bleiben bestehen, getrennt, freiwillig und
+  standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
+  übertragen. Nachweis:
+  `docs/evidence/b11/v51-owner-acceptance-server-price-gate-20260817T084500Z.json`

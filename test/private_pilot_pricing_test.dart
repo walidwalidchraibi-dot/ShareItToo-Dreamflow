@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/models/item.dart';
+import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/services/private_pilot_pricing.dart';
 
 import 'support/test_builders.dart';
@@ -102,5 +103,45 @@ void main() {
         throwsFormatException,
       );
     }
+  });
+
+  test('owner acceptance reconstructs the same strict request snapshot', () {
+    final request = RentalRequest(
+      id: 'owner-price',
+      itemId: 'item',
+      ownerId: 'owner',
+      renterId: 'renter',
+      start: DateTime(2026, 9, 1),
+      end: DateTime(2026, 9, 4),
+      status: 'pending',
+      quotedDays: 3,
+      quotedPricePerDayMinor: 2000,
+      quotedBaseRentalMinor: 6000,
+      quotedDiscountPercent: 10,
+      quotedDiscountMinor: 600,
+      quotedRentalSubtotalMinor: 5400,
+      quotedPlatformFeeMinor: 540,
+      quotedTotalMinor: 5940,
+      quotedOwnerPayoutMinor: 5400,
+      quotedCurrency: 'EUR',
+    );
+
+    final quote = PrivatePilotQuote.fromRentalRequestSnapshot(request);
+
+    expect(quote.rentalSubtotalMinor, 5400);
+    expect(quote.platformFeeMinor, 540);
+    expect(quote.totalMinor, 5940);
+    expect(
+      () => PrivatePilotQuote.fromRentalRequestSnapshot(
+        request.copyWith(quotedTotalMinor: 5941),
+      ),
+      throwsFormatException,
+    );
+    expect(
+      () => PrivatePilotQuote.fromRentalRequestSnapshot(
+        request.copyWith(quotedOwnerPayoutMinor: 5399),
+      ),
+      throwsFormatException,
+    );
   });
 }

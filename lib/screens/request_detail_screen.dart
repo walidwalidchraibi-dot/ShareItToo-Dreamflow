@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart';
+import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/localization_service.dart';
+import 'package:lendify/services/private_pilot_pricing.dart';
+import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
@@ -85,6 +88,21 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     final req = _req;
     final item = _item;
     final renter = _renter;
+    final serverQuote = req == null ? null : _strictQuoteSnapshot(req);
+    final usesRemoteBackend =
+        BackendConfig.enabled && !QaRuntimeService.isEnabled;
+    final displayedQuote = req == null || item == null
+        ? null
+        : serverQuote ??
+            (usesRemoteBackend
+                ? null
+                : PrivatePilotPricing.quoteForItem(
+                    item: item,
+                    days: _rentalDays(req),
+                  ));
+    final acceptanceBlockedReason = usesRemoteBackend && serverQuote == null
+        ? 'Der verbindliche Serverpreis fehlt oder ist widersprüchlich. Bitte lade die Anfrage neu; bis dahin ist die Annahme gesperrt.'
+        : null;
     return Scaffold(
       appBar: AppBar(title: Text(widget.titleOverride ?? l10n.t('Anfrage'))),
       body: (req == null || item == null || renter == null)
@@ -112,20 +130,25 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
               _ItemSummaryCard(
                 item: item,
                 request: req,
-                onAccept: () async {
-                  final declarations =
-                      await showPrivatePilotOwnerAcceptanceDialog(
-                    context,
-                    request: req,
-                  );
-                  if (declarations == null) return;
-                  await DataService.updateRentalRequestStatus(
-                    requestId: req.id,
-                    status: 'accepted',
-                    legalDeclarations: declarations,
-                  );
-                  if (mounted) Navigator.of(context).pop(true);
-                },
+                acceptanceBlockedReason: acceptanceBlockedReason,
+                onAccept: displayedQuote == null
+                    ? null
+                    : () async {
+                        final declarations =
+                            await showPrivatePilotOwnerAcceptanceDialog(
+                          context,
+                          request: req,
+                          quote: displayedQuote,
+                          isBindingServerQuote: serverQuote != null,
+                        );
+                        if (declarations == null) return;
+                        await DataService.updateRentalRequestStatus(
+                          requestId: req.id,
+                          status: 'accepted',
+                          legalDeclarations: declarations,
+                        );
+                        if (mounted) Navigator.of(context).pop(true);
+                      },
                 onDecline: () async {
                   await AppPopup.show(
                     context,
@@ -171,7 +194,10 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
               const SizedBox(height: 12),
               _DatesCard(request: req),
               const SizedBox(height: 12),
-              _PriceCard(item: item, request: req),
+              _PriceCard(
+                quote: displayedQuote,
+                isBindingServerQuote: serverQuote != null,
+              ),
               const SizedBox(height: 20),
             ]),
     );
@@ -183,11 +209,13 @@ class _ItemSummaryCard extends StatelessWidget {
   final RentalRequest request;
   final VoidCallback? onAccept;
   final VoidCallback? onDecline;
+  final String? acceptanceBlockedReason;
   const _ItemSummaryCard(
       {required this.item,
       required this.request,
       this.onAccept,
-      this.onDecline});
+      this.onDecline,
+      this.acceptanceBlockedReason});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -241,6 +269,17 @@ class _ItemSummaryCard extends StatelessWidget {
             ),
           ),
         ]),
+        if (acceptanceBlockedReason != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            acceptanceBlockedReason!,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.error,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         // Title under the buttons
         Text(item.title,
@@ -333,26 +372,16 @@ class _DatesCard extends StatelessWidget {
 }
 
 class _PriceCard extends StatelessWidget {
-  final Item item;
-  final RentalRequest request;
-  const _PriceCard({required this.item, required this.request});
-  int _daysCeil(DateTime a, DateTime b) =>
-      ((b.difference(a).inHours) / 24).ceil().clamp(1, 3650);
+  final PrivatePilotQuote? quote;
+  final bool isBindingServerQuote;
+  const _PriceCard({
+    required this.quote,
+    required this.isBindingServerQuote,
+  });
+
   @override
   Widget build(BuildContext context) {
-    final days = _daysCeil(request.start, request.end);
-    final fallbackRentalOnly =
-        DataService.computeTotalWithDiscounts(item: item, days: days).$1;
-    double total = request.quotedTotalRenter ?? 0.0;
-    if (total <= 0) {
-      try {
-        total = DataService.priceBreakdownForRequest(item: item, req: request)
-            .totalRenter;
-      } catch (_) {
-        total = fallbackRentalOnly;
-      }
-    }
-    final quotedSubtitle = request.quotedSubtitle?.trim();
+    final price = quote;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -363,32 +392,117 @@ class _PriceCard extends StatelessWidget {
         const Icon(Icons.payments_outlined, color: Colors.white70),
         const SizedBox(width: 8),
         Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Preis (vom Mieter zu zahlen)',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Colors.white70)),
-          const SizedBox(height: 4),
-          Text('${total.toStringAsFixed(0)} €',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
-          if (quotedSubtitle != null && quotedSubtitle.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(quotedSubtitle,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.white60)),
-          ],
-        ]))
+          child: price == null
+              ? Text(
+                  'Kein verbindlicher Preis verfügbar. Die Annahme bleibt gesperrt.',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w700,
+                  ),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isBindingServerQuote
+                          ? 'Verbindlicher Serverpreis'
+                          : 'Lokaler Testpreis · kein Echtgeld',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 6),
+                    _OwnerPriceLine(
+                      label: 'Privater Mietpreis',
+                      value: PrivatePilotPricing.formatMinor(
+                        price.rentalSubtotalMinor,
+                        currency: price.currency,
+                      ),
+                    ),
+                    _OwnerPriceLine(
+                      label: 'SIT-Plattformbeitrag des Mieters',
+                      value: PrivatePilotPricing.formatMinor(
+                        price.platformFeeMinor,
+                        currency: price.currency,
+                      ),
+                    ),
+                    _OwnerPriceLine(
+                      label: 'Gesamtpreis des Mieters',
+                      value: PrivatePilotPricing.formatMinor(
+                        price.totalMinor,
+                        currency: price.currency,
+                      ),
+                      strong: true,
+                    ),
+                    _OwnerPriceLine(
+                      label: 'Deine vorgesehene Auszahlung',
+                      value: PrivatePilotPricing.formatMinor(
+                        price.rentalSubtotalMinor,
+                        currency: price.currency,
+                      ),
+                      strong: true,
+                    ),
+                  ],
+                ),
+        ),
       ]),
     );
   }
 }
+
+class _OwnerPriceLine extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool strong;
+
+  const _OwnerPriceLine({
+    required this.label,
+    required this.value,
+    this.strong = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: strong ? Colors.white : Colors.white70,
+                fontWeight: strong ? FontWeight.w700 : FontWeight.w400,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: strong ? FontWeight.w800 : FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+PrivatePilotQuote? _strictQuoteSnapshot(RentalRequest request) {
+  try {
+    return PrivatePilotQuote.fromRentalRequestSnapshot(request);
+  } on FormatException {
+    return null;
+  }
+}
+
+int _rentalDays(RentalRequest request) =>
+    ((request.end.difference(request.start).inHours) / 24)
+        .ceil()
+        .clamp(1, 365)
+        .toInt();
 
 class _ExpressOwnerBanner extends StatelessWidget {
   final Duration remaining;

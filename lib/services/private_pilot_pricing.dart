@@ -1,5 +1,6 @@
 import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/models/item.dart';
+import 'package:lendify/models/rental_request.dart';
 
 class PrivatePilotQuote {
   final int days;
@@ -74,6 +75,28 @@ class PrivatePilotQuote {
       totalMinor: totalMinor,
       currency: currency,
     );
+  }
+
+  factory PrivatePilotQuote.fromRentalRequestSnapshot(
+    RentalRequest request,
+  ) {
+    final quote = PrivatePilotQuote.fromServerJson({
+      'days': request.quotedDays,
+      'pricePerDayMinor': request.quotedPricePerDayMinor,
+      'baseRentalMinor': request.quotedBaseRentalMinor,
+      'discountPercent': request.quotedDiscountPercent,
+      'discountMinor': request.quotedDiscountMinor,
+      'rentalSubtotalMinor': request.quotedRentalSubtotalMinor,
+      'platformFeeMinor': request.quotedPlatformFeeMinor,
+      'totalMinor': request.quotedTotalMinor,
+      'currency': request.quotedCurrency,
+    });
+    if (request.quotedOwnerPayoutMinor != quote.rentalSubtotalMinor) {
+      throw const FormatException(
+        'Ungültiger Serverpreis: ownerPayoutMinor',
+      );
+    }
+    return quote;
   }
 }
 
