@@ -330,6 +330,23 @@ class _BookingsScreenState extends State<BookingsScreen>
       // Persisted renter-facing constants for stable display across all states
       if (r.quotedTotalRenter != null) 'quotedTotalRenter': r.quotedTotalRenter,
       if (r.quotedSubtitle != null) 'quotedSubtitle': r.quotedSubtitle,
+      if (r.quotedDays != null) 'quotedDays': r.quotedDays,
+      if (r.quotedPricePerDayMinor != null)
+        'quotedPricePerDayMinor': r.quotedPricePerDayMinor,
+      if (r.quotedBaseRentalMinor != null)
+        'quotedBaseRentalMinor': r.quotedBaseRentalMinor,
+      if (r.quotedDiscountPercent != null)
+        'quotedDiscountPercent': r.quotedDiscountPercent,
+      if (r.quotedDiscountMinor != null)
+        'quotedDiscountMinor': r.quotedDiscountMinor,
+      if (r.quotedRentalSubtotalMinor != null)
+        'quotedRentalSubtotalMinor': r.quotedRentalSubtotalMinor,
+      if (r.quotedPlatformFeeMinor != null)
+        'quotedPlatformFeeMinor': r.quotedPlatformFeeMinor,
+      if (r.quotedTotalMinor != null) 'quotedTotalMinor': r.quotedTotalMinor,
+      if (r.quotedOwnerPayoutMinor != null)
+        'quotedOwnerPayoutMinor': r.quotedOwnerPayoutMinor,
+      if (r.quotedCurrency != null) 'quotedCurrency': r.quotedCurrency,
       if (breakdown.discountAmount > 0)
         'discounts': '-${breakdown.discountAmount.toStringAsFixed(0)} €',
       // add context so detail view can show breakdown precisely

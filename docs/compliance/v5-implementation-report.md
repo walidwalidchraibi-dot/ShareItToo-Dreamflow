@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.142
+Stand: 17.08.2026, lokaler Checkpoint 16.143
 
 ## Verbindliche Grenzen
 
@@ -381,3 +381,32 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   standardmäßig aus; dieser Meilenstein änderte keinen Dienst und übertrug
   keine Crashdaten. Nachweis:
   `docs/evidence/b11/v51-selected-range-server-price-truth-20260817T074500Z.json`
+
+## Prüfstand Checkpoint 16.143
+
+- das vollständige, unveränderliche Serverpreis-Abbild wird jetzt vom
+  Backendangebot über die Buchungsanfrage bis in alle Buchungsdetailwege
+  erhalten: Tage, Tagespreis, Grundmiete, Rabatt, private Mietsumme,
+  Plattformbeitrag, Gesamtbetrag, Vermieterauszahlung und Währung
+- Buchungsliste, Benachrichtigungen, Chat und App-Links reichen dieselben
+  gebundenen Werte weiter; kein Detailweg darf den Plattformbeitrag aus dem
+  bereits inklusive Beitrag gespeicherten Gesamtbetrag schätzen
+- ein Preis-Abbild gilt nur, wenn es aus ganzzahligen Cent-Beträgen besteht,
+  `Mietsumme + Plattformbeitrag = Gesamtbetrag` erfüllt und die optionale
+  Vermieterauszahlung exakt der privaten Mietsumme entspricht
+- bei einem gültigen Serverpreis werden alte Liefer-, Rückhol- oder
+  Prioritätsbeträge nicht zusätzlich in die Launch-Preisanzeige gerechnet
+- unvollständige ältere Buchungen und ausdrücklich lokale QA-Buchungen behalten
+  ihre bisherige Darstellung; sie werden nicht fälschlich zu einem
+  verbindlichen V5.1-Serverpreis hochgestuft
+- 5/5 neue Snapshot-Wiring-Tests, zusammen 9/9 Preis-Wiring-Tests, 58 gezielte
+  Flutter-Tests, 39 Datenschutz-/Löschtests und die vollständige Regression
+  mit 269 bestandenen Tests, 1 bewusstem Skip, 229 Analyzer-Hinweisen bei
+  0 Fehlern sowie grünen Web- und Android-Debug-Builds bestanden
+- der Quellstand wurde nicht deployt, hochgeladen, als Kandidat neu gebaut oder
+  umbenannt. Google Play Internal bleibt unverändert bei `2026081509`; der
+  lokale signierte Kandidat `2026081510` bleibt `built-local-not-uploaded`
+- Push und Crashdiagnose bleiben bestehen, getrennt, freiwillig und
+  standardmäßig aus; Push aktiviert Crash nicht. Dieser Meilenstein änderte
+  keinen der beiden Dienste und übertrug keine Crashdaten. Nachweis:
+  `docs/evidence/b11/v51-booking-detail-server-price-snapshot-20260817T081200Z.json`

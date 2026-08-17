@@ -304,6 +304,8 @@ node --test test/tool/firebase_device_services_opt_in_wiring.test.mjs
 node --test test/tool/v51_withdrawal_and_cancellation_wiring.test.mjs
 node --test test/tool/v51_condition_evidence_wiring.test.mjs
 node --test test/tool/v51_return_lifecycle_wiring.test.mjs
+node --test test/tool/v51_selected_range_price_truth_wiring.test.mjs
+node --test test/tool/v51_booking_detail_server_price_snapshot_wiring.test.mjs
 node --check tool/validate_v51_legal_assets.mjs
 node --test test/tool/validate_v51_legal_assets.test.mjs
 node tool/validate_v51_legal_assets.mjs

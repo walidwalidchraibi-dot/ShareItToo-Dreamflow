@@ -52,9 +52,16 @@ class RentalRequest {
   final String?
       quotedSubtitle; // the small info line under Gesamtbetrag at request time
   final bool privateStatusConfirmed;
+  final int? quotedDays;
+  final int? quotedPricePerDayMinor;
+  final int? quotedBaseRentalMinor;
+  final double? quotedDiscountPercent;
+  final int? quotedDiscountMinor;
   final int? quotedRentalSubtotalMinor;
   final int? quotedPlatformFeeMinor;
   final int? quotedTotalMinor;
+  final int? quotedOwnerPayoutMinor;
+  final String? quotedCurrency;
   final List<Map<String, dynamic>> legalDeclarations;
   final String returnState;
   final DateTime? returnT0;
@@ -107,9 +114,16 @@ class RentalRequest {
     this.quotedTotalRenter,
     this.quotedSubtitle,
     this.privateStatusConfirmed = false,
+    this.quotedDays,
+    this.quotedPricePerDayMinor,
+    this.quotedBaseRentalMinor,
+    this.quotedDiscountPercent,
+    this.quotedDiscountMinor,
     this.quotedRentalSubtotalMinor,
     this.quotedPlatformFeeMinor,
     this.quotedTotalMinor,
+    this.quotedOwnerPayoutMinor,
+    this.quotedCurrency,
     this.legalDeclarations = const [],
     this.returnState = 'not_started',
     this.returnT0,
@@ -159,9 +173,16 @@ class RentalRequest {
     double? quotedTotalRenter,
     String? quotedSubtitle,
     bool? privateStatusConfirmed,
+    int? quotedDays,
+    int? quotedPricePerDayMinor,
+    int? quotedBaseRentalMinor,
+    double? quotedDiscountPercent,
+    int? quotedDiscountMinor,
     int? quotedRentalSubtotalMinor,
     int? quotedPlatformFeeMinor,
     int? quotedTotalMinor,
+    int? quotedOwnerPayoutMinor,
+    String? quotedCurrency,
     List<Map<String, dynamic>>? legalDeclarations,
     String? returnState,
     DateTime? returnT0,
@@ -218,11 +239,22 @@ class RentalRequest {
         quotedSubtitle: quotedSubtitle ?? this.quotedSubtitle,
         privateStatusConfirmed:
             privateStatusConfirmed ?? this.privateStatusConfirmed,
+        quotedDays: quotedDays ?? this.quotedDays,
+        quotedPricePerDayMinor:
+            quotedPricePerDayMinor ?? this.quotedPricePerDayMinor,
+        quotedBaseRentalMinor:
+            quotedBaseRentalMinor ?? this.quotedBaseRentalMinor,
+        quotedDiscountPercent:
+            quotedDiscountPercent ?? this.quotedDiscountPercent,
+        quotedDiscountMinor: quotedDiscountMinor ?? this.quotedDiscountMinor,
         quotedRentalSubtotalMinor:
             quotedRentalSubtotalMinor ?? this.quotedRentalSubtotalMinor,
         quotedPlatformFeeMinor:
             quotedPlatformFeeMinor ?? this.quotedPlatformFeeMinor,
         quotedTotalMinor: quotedTotalMinor ?? this.quotedTotalMinor,
+        quotedOwnerPayoutMinor:
+            quotedOwnerPayoutMinor ?? this.quotedOwnerPayoutMinor,
+        quotedCurrency: quotedCurrency ?? this.quotedCurrency,
         legalDeclarations: legalDeclarations ?? this.legalDeclarations,
         returnState: returnState ?? this.returnState,
         returnT0: returnT0 ?? this.returnT0,
@@ -289,6 +321,18 @@ class RentalRequest {
       quotedTotalRenter: (json['quotedTotalRenter'] as num?)?.toDouble(),
       quotedSubtitle: json['quotedSubtitle'] as String?,
       privateStatusConfirmed: json['privateStatusConfirmed'] == true,
+      quotedDays: (json['quotedDays'] as num?)?.toInt() ??
+          (quote['days'] as num?)?.toInt(),
+      quotedPricePerDayMinor:
+          (json['quotedPricePerDayMinor'] as num?)?.toInt() ??
+              (quote['pricePerDayMinor'] as num?)?.toInt(),
+      quotedBaseRentalMinor: (json['quotedBaseRentalMinor'] as num?)?.toInt() ??
+          (quote['baseRentalMinor'] as num?)?.toInt(),
+      quotedDiscountPercent:
+          (json['quotedDiscountPercent'] as num?)?.toDouble() ??
+              (quote['discountPercent'] as num?)?.toDouble(),
+      quotedDiscountMinor: (json['quotedDiscountMinor'] as num?)?.toInt() ??
+          (quote['discountMinor'] as num?)?.toInt(),
       quotedRentalSubtotalMinor:
           (json['quotedRentalSubtotalMinor'] as num?)?.toInt() ??
               (quote['rentalSubtotalMinor'] as num?)?.toInt(),
@@ -297,6 +341,11 @@ class RentalRequest {
               (quote['platformFeeMinor'] as num?)?.toInt(),
       quotedTotalMinor: (json['quotedTotalMinor'] as num?)?.toInt() ??
           (quote['totalMinor'] as num?)?.toInt(),
+      quotedOwnerPayoutMinor:
+          (json['quotedOwnerPayoutMinor'] as num?)?.toInt() ??
+              (quote['ownerPayoutMinor'] as num?)?.toInt(),
+      quotedCurrency:
+          json['quotedCurrency'] as String? ?? quote['currency'] as String?,
       legalDeclarations: _parseMapList(json['legalDeclarations']),
       returnState: (json['returnState'] as String?) ?? 'not_started',
       returnT0: _parseDt(json['returnT0']),
@@ -354,9 +403,16 @@ class RentalRequest {
         'quotedTotalRenter': quotedTotalRenter,
         'quotedSubtitle': quotedSubtitle,
         'privateStatusConfirmed': privateStatusConfirmed,
+        'quotedDays': quotedDays,
+        'quotedPricePerDayMinor': quotedPricePerDayMinor,
+        'quotedBaseRentalMinor': quotedBaseRentalMinor,
+        'quotedDiscountPercent': quotedDiscountPercent,
+        'quotedDiscountMinor': quotedDiscountMinor,
         'quotedRentalSubtotalMinor': quotedRentalSubtotalMinor,
         'quotedPlatformFeeMinor': quotedPlatformFeeMinor,
         'quotedTotalMinor': quotedTotalMinor,
+        'quotedOwnerPayoutMinor': quotedOwnerPayoutMinor,
+        'quotedCurrency': quotedCurrency,
         'legalDeclarations': legalDeclarations,
         'returnState': returnState,
         'returnT0': returnT0?.toIso8601String(),

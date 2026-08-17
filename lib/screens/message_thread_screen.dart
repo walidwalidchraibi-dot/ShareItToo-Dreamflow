@@ -3427,6 +3427,25 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       'listerAvatar': owner?.photoURL,
       'pricePaid': total > 0 ? '${total.round()} €' : null,
       'quotedTotalRenter': total,
+      if (req.quotedSubtitle != null) 'quotedSubtitle': req.quotedSubtitle,
+      if (req.quotedDays != null) 'quotedDays': req.quotedDays,
+      if (req.quotedPricePerDayMinor != null)
+        'quotedPricePerDayMinor': req.quotedPricePerDayMinor,
+      if (req.quotedBaseRentalMinor != null)
+        'quotedBaseRentalMinor': req.quotedBaseRentalMinor,
+      if (req.quotedDiscountPercent != null)
+        'quotedDiscountPercent': req.quotedDiscountPercent,
+      if (req.quotedDiscountMinor != null)
+        'quotedDiscountMinor': req.quotedDiscountMinor,
+      if (req.quotedRentalSubtotalMinor != null)
+        'quotedRentalSubtotalMinor': req.quotedRentalSubtotalMinor,
+      if (req.quotedPlatformFeeMinor != null)
+        'quotedPlatformFeeMinor': req.quotedPlatformFeeMinor,
+      if (req.quotedTotalMinor != null)
+        'quotedTotalMinor': req.quotedTotalMinor,
+      if (req.quotedOwnerPayoutMinor != null)
+        'quotedOwnerPayoutMinor': req.quotedOwnerPayoutMinor,
+      if (req.quotedCurrency != null) 'quotedCurrency': req.quotedCurrency,
       'days': breakdown?.days,
       'basePerDay': item?.pricePerDay,
       'expressRequested': req.expressRequested,

@@ -106,6 +106,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     return status == 'Laufend' && _isOngoing;
   }
 
+  _BoundBookingPriceSnapshot? get _boundPriceSnapshot =>
+      _BoundBookingPriceSnapshot.fromBooking(widget.booking);
+
   String get _listerName =>
       (widget.booking['listerName'] as String?) ?? 'Vermieter';
   String? get _listerAvatar => widget.booking['listerAvatar'] as String?;
@@ -1374,15 +1377,20 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               final daysLocal = (start != null && end != null)
                   ? end.difference(start).inDays.clamp(1, 365)
                   : 1;
+              final boundPrice = _boundPriceSnapshot;
               final providedBasePerDay =
                   (widget.booking['basePerDay'] as num?)?.toDouble();
               final discountAmountProvided = _discountsFromBooking();
-              final baseTotal = (providedBasePerDay ?? 0.0) * daysLocal;
-              final rentalSubtotalLocal =
-                  (baseTotal - discountAmountProvided).clamp(0.0, baseTotal);
-              final feeLocal = DataService.platformContributionForRental(
-                rentalSubtotalLocal,
-              );
+              final baseTotal = boundPrice?.baseRental ??
+                  (providedBasePerDay ?? 0.0) * daysLocal;
+              final exactDiscount =
+                  boundPrice?.discount ?? discountAmountProvided;
+              final rentalSubtotalLocal = boundPrice?.rentalSubtotal ??
+                  (baseTotal - exactDiscount).clamp(0.0, baseTotal);
+              final feeLocal = boundPrice?.platformFee ??
+                  DataService.platformContributionForRental(
+                    rentalSubtotalLocal,
+                  );
               // Delivery/return/express fees derived from stored selection + item coords
               final bool ownerDelivers =
                   (widget.booking['ownerDeliversAtDropoffChosen'] == true) ||
@@ -1451,22 +1459,24 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               final double expressFeePlatform = expressFee > 0
                   ? double.parse((expressFee * 0.10).toStringAsFixed(2))
                   : 0.0;
-              final double totalPaid = double.parse(
-                (rentalSubtotalLocal +
-                        feeLocal +
-                        dropFee +
-                        retFee +
-                        expressFee +
-                        expressFeePlatform)
-                    .toStringAsFixed(2),
-              );
-              final payoutEst = double.parse(
-                (rentalSubtotalLocal +
-                        dropFee +
-                        retFee +
-                        (expressAccepted ? 5.0 : 0.0))
-                    .toStringAsFixed(2),
-              );
+              final double totalPaid = boundPrice?.total ??
+                  double.parse(
+                    (rentalSubtotalLocal +
+                            feeLocal +
+                            dropFee +
+                            retFee +
+                            expressFee +
+                            expressFeePlatform)
+                        .toStringAsFixed(2),
+                  );
+              final payoutEst = boundPrice?.ownerPayout ??
+                  double.parse(
+                    (rentalSubtotalLocal +
+                            dropFee +
+                            retFee +
+                            (expressAccepted ? 5.0 : 0.0))
+                        .toStringAsFixed(2),
+                  );
               if (_isViewerOwnerSync()) {
                 final isHeldForReview = widget.booking['needsReview'] == true;
                 // Owner view: show only payout, no details
@@ -1529,7 +1539,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  if (discountAmountProvided > 0)
+                  if (exactDiscount > 0)
                     Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.symmetric(
@@ -1560,37 +1570,38 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                         ],
                       ),
                     ),
-                  if (providedBasePerDay != null)
+                  if (boundPrice?.pricePerDay != null ||
+                      providedBasePerDay != null)
                     _AmountRow(
                       label:
-                          'Grundpreis: ${_formatEuro(providedBasePerDay)} × $daysLocal',
+                          'Grundpreis: ${_formatEuro(boundPrice?.pricePerDay ?? providedBasePerDay!)} × ${boundPrice?.days ?? daysLocal}',
                       value: _formatEuro(baseTotal),
                     ),
-                  if (discountAmountProvided > 0)
+                  if (exactDiscount > 0)
                     _AmountRow(
-                      label: 'Rabatt',
-                      value: '-${_formatEuro(discountAmountProvided)}',
+                      label: boundPrice?.discountLabel ?? 'Rabatt',
+                      value: '-${_formatEuro(exactDiscount)}',
                     ),
                   _AmountRow(
                     label: 'Zwischensumme (Mietpreis)',
                     value: _formatEuro(rentalSubtotalLocal),
                   ),
-                  if (dropFee > 0)
+                  if (boundPrice == null && dropFee > 0)
                     _AmountRow(
                       label: 'Lieferung (Abgabe)',
                       value: _formatEuro(dropFee),
                     ),
-                  if (retFee > 0)
+                  if (boundPrice == null && retFee > 0)
                     _AmountRow(
                       label: 'Abholung (Rückgabe)',
                       value: _formatEuro(retFee),
                     ),
-                  if (expressFee > 0)
+                  if (boundPrice == null && expressFee > 0)
                     _AmountRow(
                       label: 'Prioritätszuschlag',
                       value: _formatEuro(expressFee),
                     ),
-                  if (expressFeePlatform > 0)
+                  if (boundPrice == null && expressFeePlatform > 0)
                     _AmountRow(
                       label: 'Plattformbeitrag auf Priorität (10%)',
                       value: _formatEuro(expressFeePlatform),
@@ -1968,8 +1979,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final isDeclined = status == 'Abgelehnt';
 
     // Derive pricing breakdown
+    final boundPrice = _boundPriceSnapshot;
     final pricePaidStr = (widget.booking['pricePaid'] as String?) ?? '';
-    final totalPaid = _parseEuro(pricePaidStr);
+    final totalPaid = boundPrice?.total ?? _parseEuro(pricePaidStr);
     final days = (start != null && end != null)
         ? end.difference(start).inDays.clamp(1, 365)
         : 1;
@@ -1978,7 +1990,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     final discountAmountProvided = _discountsFromBooking();
     double baseTotal;
     double discountAmount;
-    if (providedBasePerDay != null) {
+    if (boundPrice != null) {
+      baseTotal = boundPrice.baseRental ?? boundPrice.rentalSubtotal;
+      discountAmount = boundPrice.discount ?? 0;
+    } else if (providedBasePerDay != null) {
       baseTotal = (providedBasePerDay * days);
       discountAmount = discountAmountProvided;
     } else {
@@ -1989,8 +2004,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       baseTotal = rentalSubtotalTmp;
       discountAmount = discountAmountProvided;
     }
-    final fee = _serviceFee(totalPaid);
-    final rentalSubtotal = (baseTotal - discountAmount).clamp(0.0, totalPaid);
+    final fee = boundPrice?.platformFee ?? _serviceFee(totalPaid);
+    final rentalSubtotal = boundPrice?.rentalSubtotal ??
+        (baseTotal - discountAmount).clamp(0.0, totalPaid);
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -2479,23 +2495,25 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               final double expressFeePlatform = expressFee > 0
                   ? double.parse((expressFee * 0.10).toStringAsFixed(2))
                   : 0.0;
-              final totalRenter = (rentalSubtotal +
-                      fee +
-                      dropFee +
-                      retFee +
-                      expressFee +
-                      expressFeePlatform)
-                  .clamp(0.0, double.infinity);
+              final totalRenter = boundPrice?.total ??
+                  (rentalSubtotal +
+                          fee +
+                          dropFee +
+                          retFee +
+                          expressFee +
+                          expressFeePlatform)
+                      .clamp(0.0, double.infinity);
               if (_isViewerOwnerSync()) {
                 final isHeldForReview = widget.booking['needsReview'] == true;
                 // Owner view: payout berücksichtigt Lieferung/Abholung/Priorität (keine Plattformgebühr)
-                final payoutOwner = double.parse(
-                  (rentalSubtotal +
-                          dropFee +
-                          retFee +
-                          (expressAccepted ? 5.0 : 0.0))
-                      .toStringAsFixed(2),
-                );
+                final payoutOwner = boundPrice?.ownerPayout ??
+                    double.parse(
+                      (rentalSubtotal +
+                              dropFee +
+                              retFee +
+                              (expressAccepted ? 5.0 : 0.0))
+                          .toStringAsFixed(2),
+                    );
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2545,9 +2563,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               }
               if (isPending || isUpcoming) {
                 // Renter view – show the exact quoted total & subtitle captured at booking time
-                final double shownTotal =
+                final double shownTotal = boundPrice?.total ??
                     (widget.booking['quotedTotalRenter'] as num?)?.toDouble() ??
-                        totalRenter;
+                    totalRenter;
                 final String subtitle =
                     (widget.booking['quotedSubtitle'] as String?) ??
                         TotalSubtitleHelper.build(
@@ -2607,22 +2625,22 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     label: 'Mietpreis (Tagespreis × Tage)',
                     value: _formatEuro(rentalSubtotal),
                   ),
-                  if (dropFee > 0)
+                  if (boundPrice == null && dropFee > 0)
                     _AmountRow(
                       label: 'Lieferung (Abgabe)',
                       value: _formatEuro(dropFee),
                     ),
-                  if (retFee > 0)
+                  if (boundPrice == null && retFee > 0)
                     _AmountRow(
                       label: 'Abholung (Rückgabe)',
                       value: _formatEuro(retFee),
                     ),
-                  if (expressFee > 0)
+                  if (boundPrice == null && expressFee > 0)
                     _AmountRow(
                       label: 'Prioritätszuschlag',
                       value: _formatEuro(expressFee),
                     ),
-                  if (expressFeePlatform > 0)
+                  if (boundPrice == null && expressFeePlatform > 0)
                     _AmountRow(
                       label: 'Plattformbeitrag auf Priorität (10%)',
                       value: _formatEuro(expressFeePlatform),
@@ -2635,14 +2653,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     const Divider(height: 16, color: Colors.white24),
                     _AmountRow(
                       label: 'Gesamt bezahlt (Mieter)',
-                      value: _formatEuro(
-                        (rentalSubtotal +
-                            fee +
-                            dropFee +
-                            retFee +
-                            expressFee +
-                            expressFeePlatform),
-                      ),
+                      value: _formatEuro(totalRenter),
                       strong: true,
                     ),
                   ],
@@ -5109,6 +5120,124 @@ class _CancellationPolicyCardState extends State<_CancellationPolicyCard> {
   }
 }
 
+/// Exact immutable V5.1 price values propagated from the server quote.
+///
+/// The snapshot is accepted only when the launch invariant holds: renter
+/// total equals discounted private rent plus the SIT platform fee. Legacy and
+/// QA bookings without a complete, self-consistent snapshot keep using their
+/// existing fallback presentation.
+class _BoundBookingPriceSnapshot {
+  final int rentalSubtotalMinor;
+  final int platformFeeMinor;
+  final int totalMinor;
+  final int ownerPayoutMinor;
+  final int? daysValue;
+  final int? pricePerDayMinor;
+  final int? baseRentalMinor;
+  final int? discountMinor;
+  final double? discountPercent;
+
+  const _BoundBookingPriceSnapshot({
+    required this.rentalSubtotalMinor,
+    required this.platformFeeMinor,
+    required this.totalMinor,
+    required this.ownerPayoutMinor,
+    required this.daysValue,
+    required this.pricePerDayMinor,
+    required this.baseRentalMinor,
+    required this.discountMinor,
+    required this.discountPercent,
+  });
+
+  static _BoundBookingPriceSnapshot? fromBooking(
+    Map<String, dynamic> booking,
+  ) {
+    int? readInt(String key) {
+      final value = booking[key];
+      if (value is! num || !value.isFinite || value.toInt() != value) {
+        return null;
+      }
+      return value.toInt();
+    }
+
+    final currency = booking['quotedCurrency']?.toString().trim();
+    if (currency != null && currency.isNotEmpty && currency != 'EUR') {
+      return null;
+    }
+
+    final rental = readInt('quotedRentalSubtotalMinor');
+    final fee = readInt('quotedPlatformFeeMinor');
+    final total = readInt('quotedTotalMinor');
+    if (rental == null || fee == null || total == null) return null;
+    if (rental < 0 || fee < 0 || total <= 0 || rental + fee != total) {
+      return null;
+    }
+
+    final rawOwnerPayout = readInt('quotedOwnerPayoutMinor');
+    if (rawOwnerPayout != null && rawOwnerPayout != rental) return null;
+
+    final rawBase = readInt('quotedBaseRentalMinor');
+    final rawDiscount = readInt('quotedDiscountMinor');
+    final hasExactDiscount = rawBase != null &&
+        rawDiscount != null &&
+        rawBase >= 0 &&
+        rawDiscount >= 0 &&
+        rawBase - rawDiscount == rental;
+
+    final rawDays = readInt('quotedDays');
+    final rawDaily = readInt('quotedPricePerDayMinor');
+    final hasExactDaily = hasExactDiscount &&
+        rawDays != null &&
+        rawDays > 0 &&
+        rawDaily != null &&
+        rawDaily >= 0 &&
+        rawDaily * rawDays == rawBase;
+
+    final rawPercent = (booking['quotedDiscountPercent'] as num?)?.toDouble();
+    final exactPercent = rawPercent != null &&
+            rawPercent.isFinite &&
+            rawPercent >= 0 &&
+            rawPercent <= 90
+        ? rawPercent
+        : null;
+
+    return _BoundBookingPriceSnapshot(
+      rentalSubtotalMinor: rental,
+      platformFeeMinor: fee,
+      totalMinor: total,
+      ownerPayoutMinor: rawOwnerPayout ?? rental,
+      daysValue: hasExactDaily ? rawDays : null,
+      pricePerDayMinor: hasExactDaily ? rawDaily : null,
+      baseRentalMinor: hasExactDiscount ? rawBase : null,
+      discountMinor: hasExactDiscount ? rawDiscount : null,
+      discountPercent: hasExactDiscount ? exactPercent : null,
+    );
+  }
+
+  double get rentalSubtotal => rentalSubtotalMinor / 100;
+  double get platformFee => platformFeeMinor / 100;
+  double get total => totalMinor / 100;
+  double get ownerPayout => ownerPayoutMinor / 100;
+  int? get days => daysValue;
+  double? get pricePerDay =>
+      pricePerDayMinor == null ? null : pricePerDayMinor! / 100;
+  double? get baseRental =>
+      baseRentalMinor == null ? null : baseRentalMinor! / 100;
+  double? get discount => discountMinor == null ? null : discountMinor! / 100;
+
+  String get discountLabel {
+    final percent = discountPercent;
+    if (percent == null || percent <= 0) return 'Rabatt';
+    final text = percent == percent.roundToDouble()
+        ? percent.toStringAsFixed(0)
+        : percent
+            .toStringAsFixed(2)
+            .replaceFirst(RegExp(r'0+$'), '')
+            .replaceFirst(RegExp(r'\.$'), '');
+    return 'Rabatt $text %';
+  }
+}
+
 // Summary card for completed/cancelled bookings with key facts
 class _CompletionSummaryCard extends StatelessWidget {
   final Map<String, dynamic> booking;
@@ -5132,8 +5261,12 @@ class _CompletionSummaryCard extends StatelessWidget {
     final theme = Theme.of(context);
     final status = (booking['status'] as String?) ?? 'Abgeschlossen';
     final (start, end) = _parseStaticDateRange(booking);
-    final totalPaid = _parseStaticEuro((booking['pricePaid'] as String?) ?? '');
-    final fee = serviceFee(totalPaid);
+    final boundPrice = _BoundBookingPriceSnapshot.fromBooking(booking);
+    final totalPaid = boundPrice?.total ??
+        _parseStaticEuro((booking['pricePaid'] as String?) ?? '');
+    final fee = boundPrice?.platformFee ?? serviceFee(totalPaid);
+    final ownerPayout =
+        boundPrice?.ownerPayout ?? (totalPaid - fee).clamp(0.0, totalPaid);
 
     // Dates: use end as return date fallback
     final returnedAt = end;
@@ -5195,7 +5328,7 @@ class _CompletionSummaryCard extends StatelessWidget {
           _FactRow(
             icon: Icons.payments_outlined,
             label: 'Auszahlung',
-            value: euroFormatter((totalPaid - fee).clamp(0.0, totalPaid)),
+            value: euroFormatter(ownerPayout),
           ),
         if (isOwnerView && !needsReview && payoutAt != null)
           _FactRow(

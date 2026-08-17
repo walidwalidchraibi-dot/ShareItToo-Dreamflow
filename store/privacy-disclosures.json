@@ -144,7 +144,7 @@
     },
     {
       "path": "lib/screens/booking_detail_screen.dart",
-      "sha256": "7fe4decb91d671313a90573052f093c6e30e135e2415b0e9cadb41c4e98b8b76"
+      "sha256": "d3b2ad61def13cddeaa0110ac87b4e379a5b0208b8cef7c3d36a2ce0277d936a"
     },
     {
       "path": "lib/screens/ongoing_owner_detail_screen.dart",
@@ -240,7 +240,7 @@
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "d51a6949e40935369448398340508199534a4702ca64984e822bb69a9b540c54"
+      "sha256": "76979dafb2b953213e7c4bbb19030c203a28e9eb4ad57ec2e2e11db5ba3eed9a"
     },
     {
       "path": "lib/widgets/return_handover_stepper_sheet.dart",

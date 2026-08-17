@@ -254,9 +254,16 @@ class _PrivatePilotCheckoutScreenState
         quotedTotalRenter: PrivatePilotPricing.minorToEuros(quote.totalMinor),
         quotedSubtitle: 'inkl. ShareItToo-Plattformbeitrag 10 %',
         privateStatusConfirmed: true,
+        quotedDays: quote.days,
+        quotedPricePerDayMinor: quote.ownerPricePerDayMinor,
+        quotedBaseRentalMinor: quote.baseRentalMinor,
+        quotedDiscountPercent: quote.discountBasisPoints / 100,
+        quotedDiscountMinor: quote.discountMinor,
         quotedRentalSubtotalMinor: quote.rentalSubtotalMinor,
         quotedPlatformFeeMinor: quote.platformFeeMinor,
         quotedTotalMinor: quote.totalMinor,
+        quotedOwnerPayoutMinor: quote.rentalSubtotalMinor,
+        quotedCurrency: quote.currency,
         legalDeclarations: _legalDeclarations(declarationTime),
       );
       final stored = await DataService.addRentalRequest(
