@@ -29,6 +29,12 @@ test('all required transactional templates render text and HTML', () => {
     'message_received',
     'handover_reminder',
     'return_reminder',
+    'return_confirmation_reminder',
+    'return_confirmation_window_closed',
+    'return_report_window_closed',
+    'return_case_opened',
+    'return_case_response_due',
+    'return_case_status_update',
     'payout_sent',
   ]);
 
@@ -65,8 +71,14 @@ test('money-bearing templates require and format an amount', () => {
   }
 });
 
-test('handover and return reminders require a schedule label', () => {
-  for (const kind of ['handover_reminder', 'return_reminder']) {
+test('scheduled reminders and case deadlines require a schedule label', () => {
+  for (const kind of [
+    'handover_reminder',
+    'return_reminder',
+    'return_confirmation_reminder',
+    'return_case_response_due',
+    'return_case_status_update',
+  ]) {
     assert.throws(
       () => buildTransactionalEmail({ ...base, kind }),
       /event_label_required/,

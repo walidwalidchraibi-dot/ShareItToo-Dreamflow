@@ -115,6 +115,57 @@ const TEMPLATE_DEFINITIONS = Object.freeze({
     notice: 'Dokumentiere Abweichungen vor dem Abschluss direkt in der Buchung.',
     requiresEventLabel: true,
   },
+  return_confirmation_reminder: {
+    subject: ({ itemTitle }) => `Rückgabe bestätigen · ${itemTitle}`,
+    title: 'Rückgabebestätigung fehlt',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} für „${itemTitle}“ fehlt noch deine Rückgabebestätigung.`,
+    actionLabel: 'Rückgabe bestätigen',
+    notice: 'Die bloße Nichtbestätigung eröffnet keinen Streitfall. Dokumentiere eine konkrete Abweichung ausschließlich in der Buchung.',
+    requiresEventLabel: true,
+  },
+  return_confirmation_window_closed: {
+    subject: ({ itemTitle }) => `Rückgabefrist beendet · ${itemTitle}`,
+    title: 'Bestätigungsfenster beendet',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} das neutrale Bestätigungsfenster für „${itemTitle}“ ist beendet.`,
+    actionLabel: 'Buchung öffnen',
+    notice: 'Ohne rechtzeitig substantiierten Fall erzeugt eine fehlende Bestätigung keine automatische Prüfung.',
+  },
+  return_report_window_closed: {
+    subject: ({ itemTitle }) => `Rückgabefenster beendet · ${itemTitle}`,
+    title: 'Rückgabefenster beendet',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} das 48-Stunden-Fenster für „${itemTitle}“ ist beendet.`,
+    actionLabel: 'Buchung öffnen',
+    notice: 'Ein behaupteter Schaden erzeugt keine neue Belastung und keine automatische Haftungsentscheidung durch SIT.',
+  },
+  return_case_opened: {
+    subject: ({ itemTitle }) => `Klärungsfall eröffnet · ${itemTitle}`,
+    title: 'Klärungsfall eröffnet',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} für „${itemTitle}“ wurde ein substantiierter Klärungsfall eröffnet.`,
+    actionLabel: 'Fall öffnen',
+    notice: 'Nur der konkret betroffene bereits autorisierte Buchungsbetrag darf vorläufig gehalten werden; unstreitige Beträge bleiben freizugeben.',
+  },
+  return_case_response_due: {
+    subject: ({ itemTitle }) => `Stellungnahme erforderlich · ${itemTitle}`,
+    title: 'Stellungnahme erforderlich',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} zu „${itemTitle}“ ist jetzt deine Stellungnahme erforderlich.`,
+    actionLabel: 'Fall öffnen',
+    notice: 'Antworte mit überprüfbaren Tatsachen und nutze ausschließlich den geschützten Buchungsbereich.',
+    requiresEventLabel: true,
+  },
+  return_case_status_update: {
+    subject: ({ itemTitle }) => `Status zum Klärungsfall · ${itemTitle}`,
+    title: 'Status zum Klärungsfall',
+    intro: ({ greeting, itemTitle }) =>
+      `${greeting} der Klärungsfall zu „${itemTitle}“ ist weiterhin offen.`,
+    actionLabel: 'Fallstatus öffnen',
+    notice: 'SIT entscheidet nicht über C2C-Schadensersatz und belastet keinen neuen Schadensbetrag.',
+    requiresEventLabel: true,
+  },
   payout_sent: {
     subject: ({ itemTitle }) => `Auszahlung veranlasst · ${itemTitle}`,
     title: 'Auszahlung veranlasst',

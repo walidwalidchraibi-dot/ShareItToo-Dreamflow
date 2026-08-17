@@ -85,6 +85,39 @@ const BOOKING_NOTIFICATION_DEFINITIONS = Object.freeze({
   },
 });
 
+const RETURN_LIFECYCLE_DEFINITIONS = Object.freeze({
+  return_confirmation_reminder: {
+    title: 'Rückgabebestätigung fehlt',
+    body: ({ itemTitle, deadlineLabel }) =>
+      `Bitte bestätige die Rückgabe für „${itemTitle}“. Das neutrale Bestätigungsfenster endet ${deadlineLabel}.`,
+  },
+  return_confirmation_window_closed: {
+    title: 'Bestätigungsfenster beendet',
+    body: ({ itemTitle }) =>
+      `Das neutrale Bestätigungsfenster für „${itemTitle}“ ist beendet. Ohne belegten Fall entsteht keine automatische Prüfung.`,
+  },
+  return_report_window_closed: {
+    title: 'Rückgabefenster beendet',
+    body: ({ itemTitle }) =>
+      `Das 48-Stunden-Fenster für „${itemTitle}“ ist beendet. Ein nicht belegter Hinweis hält die Abwicklung nicht automatisch an.`,
+  },
+  return_case_opened: {
+    title: 'Klärungsfall eröffnet',
+    body: ({ itemTitle }) =>
+      `Für „${itemTitle}“ wurde ein substantiierter Klärungsfall eröffnet. Nur der konkret bestrittene bereits autorisierte Betrag darf vorläufig gehalten werden.`,
+  },
+  return_case_response_due: {
+    title: 'Stellungnahme erforderlich',
+    body: ({ itemTitle, deadlineLabel }) =>
+      `Zu „${itemTitle}“ ist deine Stellungnahme fällig (${deadlineLabel}). Bitte antworte mit überprüfbaren Tatsachen.`,
+  },
+  return_case_status_update: {
+    title: 'Status zum Klärungsfall',
+    body: ({ itemTitle, deadlineLabel }) =>
+      `Der Klärungsfall zu „${itemTitle}“ ist weiterhin offen. Nächstes begründetes Statusupdate spätestens ${deadlineLabel}.`,
+  },
+});
+
 function profileName(profile) {
   const name = typeof profile?.displayName === 'string' ? profile.displayName.trim() : '';
   return name.slice(0, 120);
@@ -111,6 +144,16 @@ function chatActionUrl(threadId) {
 
 function paymentActionUrl(bookingId) {
   return `${config.publicBaseUrl}/open/payment/${encodeURIComponent(bookingId)}`;
+}
+
+function germanDeadlineLabel(value) {
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return '';
+  return new Intl.DateTimeFormat('de-DE', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Europe/Berlin',
+  }).format(parsed);
 }
 
 async function enqueueForUser(client, {
@@ -296,6 +339,82 @@ export async function enqueueV51WithdrawalNotifications(client, {
     });
   }
   return 2;
+}
+
+export async function enqueueReturnLifecycleNotification(client, {
+  bookingId,
+  eventKey,
+  kind,
+  recipientRoles,
+  deadline = null,
+}) {
+  const definition = RETURN_LIFECYCLE_DEFINITIONS[kind];
+  if (!definition) return 0;
+  const roles = [...new Set(Array.isArray(recipientRoles) ? recipientRoles : [])]
+    .filter((role) => role === 'owner' || role === 'renter');
+  if (roles.length === 0) return 0;
+  const result = await client.query(
+    `SELECT booking.owner_id, booking.renter_id,
+            booking.rental_start_date, booking.rental_end_date,
+            listing.payload AS listing_payload,
+            owner.profile AS owner_profile,
+            renter.profile AS renter_profile
+       FROM bookings AS booking
+       JOIN listings AS listing ON listing.id = booking.listing_id
+       JOIN users AS owner ON owner.id = booking.owner_id
+       JOIN users AS renter ON renter.id = booking.renter_id
+      WHERE booking.id = $1`,
+    [bookingId],
+  );
+  if (!result.rowCount) return 0;
+  const row = result.rows[0];
+  const title = itemTitle(row.listing_payload);
+  const actionUrl = bookingActionUrl(bookingId);
+  const deadlineLabel = germanDeadlineLabel(deadline);
+  let count = 0;
+  for (const role of roles) {
+    const userId = role === 'owner' ? row.owner_id : row.renter_id;
+    const profile = role === 'owner' ? row.owner_profile : row.renter_profile;
+    const body = definition.body({ itemTitle: title, deadlineLabel });
+    await enqueueForUser(client, {
+      eventKey,
+      userId,
+      kind,
+      bookingId,
+      channels: ['in_app', 'email', 'push'],
+      payload: {
+        notification: {
+          category: 'handover',
+          kind,
+          priority: kind.startsWith('return_case_') ? 3 : 2,
+          title: definition.title,
+          body,
+          entityType: 'booking',
+          entityId: bookingId,
+          bookingId,
+          requestId: bookingId,
+          actionUrl,
+          ctaLabel: kind.startsWith('return_case_') ? 'Fall öffnen' : 'Rückgabe öffnen',
+          payload: { role, deadline: deadline ? new Date(deadline).toISOString() : null },
+        },
+        email: {
+          displayName: profileName(profile),
+          bookingReference: bookingId,
+          itemTitle: title,
+          eventLabel: deadlineLabel || eventLabel(row),
+          actionUrl,
+        },
+        push: {
+          title: definition.title,
+          body,
+          actionUrl,
+          data: { entityType: 'booking', entityId: bookingId, bookingId, kind },
+        },
+      },
+    });
+    count += 1;
+  }
+  return count;
 }
 
 export async function enqueueMessageNotification(client, {

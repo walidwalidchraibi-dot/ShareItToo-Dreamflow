@@ -215,6 +215,15 @@ export const config = Object.freeze({
     batchSize: Math.min(100, Math.max(1, Number.parseInt(process.env.NOTIFICATION_BATCH_SIZE ?? '25', 10))),
     maxAttempts: Math.min(20, Math.max(1, Number.parseInt(process.env.NOTIFICATION_MAX_ATTEMPTS ?? '5', 10))),
   }),
+  returnLifecycle: Object.freeze({
+    workerIntervalMs: Math.min(
+      15 * 60 * 1000,
+      Math.max(
+        30_000,
+        Number.parseInt(process.env.RETURN_LIFECYCLE_WORKER_INTERVAL_MS ?? '60000', 10),
+      ),
+    ),
+  }),
   push: Object.freeze({
     transport: pushTransport,
     webhookUrl: pushWebhookUrl,

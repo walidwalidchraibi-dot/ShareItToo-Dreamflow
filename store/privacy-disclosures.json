@@ -124,7 +124,19 @@
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "75c153e2bda86f7b76c3fcb7d6c9a1a09a728aba2e9600211735a1452669833b"
+      "sha256": "cfa3a767b96e2d11706afac85d767c27d41c0c8647487f0729e90c5539412200"
+    },
+    {
+      "path": "backend/src/notifications.js",
+      "sha256": "dfd3c6633fdfa2d59bea86221b4cbbb3da884cbb3b20c222628f0ab1408547d8"
+    },
+    {
+      "path": "backend/src/transactional_mail_templates.js",
+      "sha256": "1bdbc6ac443c73bf70ee8ee81e48336ed9f2e9ad4cc4cb7df0bd4cb07bb44339"
+    },
+    {
+      "path": "backend/src/return_lifecycle_workflow.js",
+      "sha256": "2fe69aefcf3c4096754d258eda1c5f89da5b700fbf09ccd00447ff3f7dd783e7"
     },
     {
       "path": "backend/src/firebase_phone_verification.js",
