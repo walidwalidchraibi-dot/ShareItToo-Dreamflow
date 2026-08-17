@@ -1259,3 +1259,32 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   oder Kandidatenwechsel und keine zusätzliche Crashlytics-
   Kennungsübertragung. Nachweis:
   `docs/evidence/b11/v51-remove-owner-detail-transport-ui-20260817T152652Z.json`
+
+## Prüfstand Checkpoint 16.174
+
+- die Mieter-Buchungsliste lädt keine alte lokale Lieferauswahl mehr und gibt
+  weder Expressstatus noch Lieferangebot, Lieferverantwortung oder
+  Lieferadresse an die Buchungsdetailansicht weiter. Damit kann der
+  Navigationspfad keinen bereits abgeschalteten Transportmodus aus einem
+  lokalen Altbestand rekonstruieren
+- die Preisvorschau verwendet weiterhin den kanonischen Privat-Pilot-
+  Preisweg, jedoch ohne transiente Transportauswahl. Der unveränderliche
+  Serverpreis-Snapshot bleibt für alle Buchungszustände vorrangig
+- Buchungsnavigation, Statusgruppen, ungelesene Nachrichten, Bewertung,
+  Storno sowie die im sicheren Ablauf bestätigten Übergabe- und Rückgabeorte
+  bleiben erhalten und werden durch Verkabelungstests geschützt
+- 17/17 gezielte Listen-, Preis-, Navigations- und Transporttests bestanden;
+  aus der Laufzeitansicht entfielen netto 38 Zeilen. Der Bildschirm analysiert
+  mit 0 Fehlern; seine zwei bestehenden Kontext-Hinweise blieben unverändert
+- die vollständige technische Regression bestand mit 292 Flutter-Tests und
+  1 bewusstem Skip, 213 Backendtests und 1 bewusstem PostgreSQL-Skip, 224
+  Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds
+- FCM-Push und Firebase Crashlytics bleiben ausdrücklich bestehen, getrennt,
+  freiwillig und im nächsten Kandidaten standardmäßig aus; Push aktiviert
+  Crashlytics nicht. Werbung, Marketingtracking, allgemeine Analytics und
+  externe generative KI bleiben aus
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store-, Anbieterconsole-
+  oder Kandidatenwechsel und keine zusätzliche Crashlytics-
+  Kennungsübertragung. Nachweis:
+  `docs/evidence/b11/v51-neutralize-renter-booking-navigation-transport-20260817T154108Z.json`

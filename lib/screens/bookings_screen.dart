@@ -184,7 +184,6 @@ class _BookingsScreenState extends State<BookingsScreen>
     // Load items and listers referenced by requests
     final Map<String, Item?> itemById = {};
     final Map<String, model.User?> userById = {};
-    final Map<String, Map<String, dynamic>?> deliveryByItemId = {};
     for (final r in requests) {
       itemById[r.itemId] =
           itemById[r.itemId] ?? await DataService.getItemById(r.itemId);
@@ -193,8 +192,6 @@ class _BookingsScreenState extends State<BookingsScreen>
       if (it != null) {
         userById[it.ownerId] =
             userById[it.ownerId] ?? await DataService.getUserById(it.ownerId);
-        deliveryByItemId[it.id] =
-            await DataService.getSavedDeliverySelection(it.id);
       }
     }
     List<Map<String, dynamic>> maps = [];
@@ -202,8 +199,9 @@ class _BookingsScreenState extends State<BookingsScreen>
       final it = itemById[r.itemId];
       if (it == null) continue; // skip dangling
       final owner = userById[it.ownerId];
-      maps.add(await _toBookingMap(r, it, owner, deliveryByItemId[it.id],
-          reviewerId: user.id));
+      maps.add(
+        await _toBookingMap(r, it, owner, reviewerId: user.id),
+      );
     }
 
     // Calculate unread counts for each category
@@ -238,9 +236,12 @@ class _BookingsScreenState extends State<BookingsScreen>
     setState(() => _allBookings = maps);
   }
 
-  Future<Map<String, dynamic>> _toBookingMap(RentalRequest r, Item it,
-      model.User? owner, Map<String, dynamic>? deliverySel,
-      {required String reviewerId}) async {
+  Future<Map<String, dynamic>> _toBookingMap(
+    RentalRequest r,
+    Item it,
+    model.User? owner, {
+    required String reviewerId,
+  }) async {
     String fmt(DateTime d) {
       const months = [
         'Jan',
@@ -261,9 +262,7 @@ class _BookingsScreenState extends State<BookingsScreen>
       return '$dd. $mm';
     }
 
-    // Unified breakdown including delivery/pickup/express
-    final breakdown = DataService.priceBreakdownForRequest(
-        item: it, req: r, deliverySel: deliverySel);
+    final breakdown = DataService.priceBreakdownForRequest(item: it, req: r);
     final priced = (
       breakdown.rentalSubtotal,
       breakdown.baseTotal,
@@ -280,27 +279,6 @@ class _BookingsScreenState extends State<BookingsScreen>
         ? _approximateAddress(it.locationText, seed: r.id)
         : it.locationText;
 
-    // Delivery selection flags (persisted on request; fall back to transient selection if missing)
-    // Be robust: if legacy requests are missing the snapshot flags, infer from
-    // - transient selection
-    // - express (only available when delivery at dropoff is chosen)
-    // - presence of a delivery address snapshot
-    final bool inferredOwnerDeliversByTransient =
-        (deliverySel?['hinweg'] == true);
-    final bool inferredOwnerDeliversByExpress =
-        r.expressRequested || (r.expressStatus != null);
-    final bool inferredOwnerDeliversByAddress =
-        ((r.deliveryAddressLine ?? '').toString().trim().isNotEmpty) ||
-            ((r.deliveryCity ?? '').toString().trim().isNotEmpty);
-    final bool ownerDeliversAtDropoff = r.ownerDeliversAtDropoffChosen ||
-        inferredOwnerDeliversByTransient ||
-        inferredOwnerDeliversByExpress ||
-        inferredOwnerDeliversByAddress;
-
-    final bool inferredOwnerPicksUpByTransient =
-        (deliverySel?['rueckweg'] == true);
-    final bool ownerPicksUpAtReturn =
-        r.ownerPicksUpAtReturnChosen || inferredOwnerPicksUpByTransient;
     final flowState = await DataService.getHandoverReturnState(r.id);
     final reviewSubmitted = await DataService.hasSubmittedReview(
         requestId: r.id, reviewerId: reviewerId);
@@ -356,10 +334,6 @@ class _BookingsScreenState extends State<BookingsScreen>
       if (DataService.computeTotalWithDiscounts(item: it, days: days).$3 > 0)
         'discountPercentApplied':
             DataService.computeTotalWithDiscounts(item: it, days: days).$3,
-      // express fields for countdown in UI
-      'expressRequested': r.expressRequested,
-      'expressStatus': r.expressStatus,
-      'expressRequestedAt': r.expressRequestedAt?.toIso8601String(),
       'startIso': r.start.toIso8601String(),
       'endIso': r.end.toIso8601String(),
       'policy': it.cancellationPolicy,
@@ -367,18 +341,6 @@ class _BookingsScreenState extends State<BookingsScreen>
       // Email copy (for potential backend integration)
       'mailSummary':
           'Anzahl Tage: $days\nUrsprünglicher Preis: ${priced.$2.round()} €\nRabatt: ${priced.$3.toStringAsFixed(0)}% (−${priced.$4.toStringAsFixed(0)} €)\nEndpreis: ${total.round()} €',
-      // delivery/pickup capabilities for privacy hints
-      'offersDeliveryAtDropoff': it.offersDeliveryAtDropoff,
-      'offersPickupAtReturn': it.offersPickupAtReturn,
-      // chosen responsibilities (persisted per item for demo)
-      'ownerDeliversAtDropoffChosen': ownerDeliversAtDropoff,
-      'ownerPicksUpAtReturnChosen': ownerPicksUpAtReturn,
-      'deliveryAddressLine': r.deliveryAddressLine ??
-          (deliverySel?['addressLine'] as String?) ??
-          '',
-      'deliveryCity': r.deliveryCity ?? (deliverySel?['city'] as String?) ?? '',
-      'deliveryLat': r.deliveryLat ?? (deliverySel?['lat'] as num?)?.toDouble(),
-      'deliveryLng': r.deliveryLng ?? (deliverySel?['lng'] as num?)?.toDouble(),
       'handoverLocationLabel':
           (flowState['handoverLocationLabel'] as String?) ?? '',
       'handoverLocationMapsUrl':

@@ -43,6 +43,33 @@ test('active booking list loading navigation statuses and reviews stay wired', (
   assert.match(bookings, /ReviewPromptSheet\.show\(/);
 });
 
+test('renter booking list cannot reintroduce disabled transport state', () => {
+  for (const forbidden of [
+    'getSavedDeliverySelection',
+    'deliveryByItemId',
+    'deliverySel',
+    'expressRequested',
+    'expressStatus',
+    'expressRequestedAt',
+    'offersDeliveryAtDropoff',
+    'offersPickupAtReturn',
+    'ownerDeliversAtDropoffChosen',
+    'ownerPicksUpAtReturnChosen',
+    'deliveryAddressLine',
+    'deliveryCity',
+    'deliveryLat',
+    'deliveryLng',
+  ]) {
+    assert.doesNotMatch(bookings, new RegExp(forbidden, 'u'));
+  }
+  assert.match(
+    bookings,
+    /DataService\.priceBreakdownForRequest\(item: it, req: r\)/u,
+  );
+  assert.match(bookings, /handoverLocationLabel/u);
+  assert.match(bookings, /returnLocationLabel/u);
+});
+
 test('renter cancellation remains in the canonical booking detail flow', () => {
   assert.match(bookingDetail, /title: 'Buchung stornieren\?'/);
   assert.match(
