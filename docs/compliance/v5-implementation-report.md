@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.144
+Stand: 17.08.2026, lokaler Checkpoint 16.145
 
 ## Verbindliche Grenzen
 
@@ -432,3 +432,25 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
   übertragen. Nachweis:
   `docs/evidence/b11/v51-checkout-server-quote-validation-20260817T082300Z.json`
+
+## Prüfstand Checkpoint 16.145
+
+- das vollständige Preis-Abbild bleibt jetzt auch beim isolierten lokalen
+  QA-Speicherweg erhalten: Tage, Tagespreis, Grundmiete, Rabatt, Mietsumme,
+  Plattformbeitrag, Gesamtbetrag, Vermieterauszahlung und Währung
+- der echte Backendpfad bleibt davon getrennt und ersetzt die lokale Eingabe
+  weiterhin durch die authentifizierte Serverbuchung; QA wird nicht zu einem
+  Produktions-, Echtgeld- oder Servernachweis hochgestuft
+- 3/3 neue Persistenz-Wiring-Tests, 51 gezielte Buchungs-/Checkout-Tests und
+  19 Datenschutzprüfungen bestanden; der gezielte Analyzer erzeugte keine
+  neuen Hinweise
+- die vollständige Regression blieb mit 270 bestandenen Tests, 1 bewusstem
+  Skip, 229 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün
+- die Datenschutz-Inventarbindung wurde auf den neuen Quellhash aktualisiert;
+  Erhebungszweck, Transport, Anbieter und Berechtigungen änderten sich nicht
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder Kandidatenwechsel
+- Push und Crashdiagnose bleiben bestehen, getrennt, freiwillig und
+  standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
+  übertragen. Nachweis:
+  `docs/evidence/b11/v51-local-quote-snapshot-persistence-20260817T083200Z.json`

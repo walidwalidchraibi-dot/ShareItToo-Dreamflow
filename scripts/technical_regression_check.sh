@@ -307,6 +307,7 @@ node --test test/tool/v51_return_lifecycle_wiring.test.mjs
 node --test test/tool/v51_selected_range_price_truth_wiring.test.mjs
 node --test test/tool/v51_booking_detail_server_price_snapshot_wiring.test.mjs
 node --test test/tool/v51_checkout_server_quote_validation_wiring.test.mjs
+node --test test/tool/v51_local_quote_snapshot_persistence_wiring.test.mjs
 node --check tool/validate_v51_legal_assets.mjs
 node --test test/tool/validate_v51_legal_assets.test.mjs
 node tool/validate_v51_legal_assets.mjs
