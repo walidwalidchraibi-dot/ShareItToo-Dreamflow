@@ -1203,3 +1203,29 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   nicht. Es erfolgte kein Deployment, Upload, Echtgeld-, Store-,
   Anbieterconsole- oder Kandidatenwechsel. Nachweis:
   `docs/evidence/b11/v51-neutralize-legacy-transport-payloads-20260817T145418Z.json`
+
+## Prüfstand Checkpoint 16.172
+
+- die Eigentümer-Anfrageansicht enthält keine Prioritätslieferungs-Anfrage,
+  Expressannahme/-ablehnung, +5-Euro-Aktion, Lieferfrist oder bestätigte
+  Expressanzeige mehr; die zugehörigen zwei UI-Komponenten und alle Aufrufer
+  wurden vollständig entfernt
+- der frühere sekündliche Mehrzweck-Timer wurde durch einen einmaligen,
+  präzise auf das Ende der verbindlichen 30-Minuten-Annahmefrist gesetzten
+  Timer ersetzt. Dadurch bleibt die servergebundene Annahmesperre exakt, ohne
+  eine unsichtbare Ansicht jede Sekunde neu aufzubauen
+- das Laden von Anfrage, Anzeige und Mieter, die bindende Serverpreisprüfung,
+  Annahme mit zwei Erklärungen, Ablehnung, alle Detailkarten sowie die
+  Mieterprofilnavigation bleiben durch abschnittsgebundene Tests geschützt
+- 21/21 gezielte Fail-closed-, Annahmefrist-, Preis- und
+  Transportverkabelungstests bestanden; 194 alte Laufzeitzeilen wurden aus der
+  Anfrageansicht entfernt
+- die vollständige technische Regression bestand mit 292 Flutter-Tests und
+  1 bewusstem Skip, 213 Backendtests und 1 bewusstem PostgreSQL-Skip, 224
+  Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds
+- FCM-Push und Firebase Crashlytics bleiben bestehen, getrennt, freiwillig
+  und im nächsten Kandidaten standardmäßig aus; Push aktiviert Crashlytics
+  nicht. Es erfolgte kein Deployment, Upload, Echtgeld-, Store-,
+  Anbieterconsole- oder Kandidatenwechsel. Nachweis:
+  `docs/evidence/b11/v51-remove-request-express-ui-20260817T150818Z.json`

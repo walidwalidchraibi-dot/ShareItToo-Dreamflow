@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "16.172",
+  "capturedAtUtc": "2026-08-17T15:08:18Z",
+  "sourceBaseCommit": "df8e8a0379c3e484d03cf78158d62514773ea287",
+  "status": "passed",
+  "requestDetailBoundary": {
+    "expressRequestUiPresent": false,
+    "expressAcceptActionPresent": false,
+    "expressDeclineActionPresent": false,
+    "expressFeeCopyPresent": false,
+    "expressDeliveryDeadlinePresent": false,
+    "bindingAcceptanceDeadlinePreserved": true,
+    "bindingDeadlineUsesSingleShotTimer": true,
+    "ownerAcceptanceAndDeclinePreserved": true,
+    "serverQuoteGuardPreserved": true,
+    "renterProfileNavigationPreserved": true
+  },
+  "verification": {
+    "targetedWiring": "21/21 passed",
+    "removedRuntimeLines": 194,
+    "fullTechnicalRegression": "passed with exit code 0",
+    "fullFlutter": "292 passed, 1 intentional skip",
+    "backend": "213 passed, 1 intentional PostgreSQL skip",
+    "flutterAnalyzer": "224 findings, 0 errors",
+    "webDebugBuild": "passed",
+    "androidDebugBuild": "passed"
+  },
+  "serviceBoundary": {
+    "pushRetained": true,
+    "crashlyticsRetained": true,
+    "separateVoluntaryDefaultOffChoices": true,
+    "pushEnablesCrashlytics": false
+  },
+  "externalActions": {
+    "deployment": false,
+    "upload": false,
+    "storeMutation": false,
+    "providerConsoleMutation": false,
+    "liveMoney": false,
+    "candidateBuiltOrRelabeled": false
+  },
+  "sourceHashesSha256": {
+    "lib/screens/request_detail_screen.dart": "210844b412a72baac8a7c0e8c9ed38f7780ca20cd1ec0d6a6d784809e7837026",
+    "test/tool/request_detail_dead_message_card_cleanup_wiring.test.mjs": "f156222b64ac2bb6c64fe3132cc55fb60604fce9509354c9c2744a9721ec1095",
+    "test/tool/v51_owner_acceptance_server_price_wiring.test.mjs": "dc9396b61268d1860c172f2ca3516b87fa621f69e69050a3fab5da9b1367437c"
+  }
+}

@@ -153,8 +153,9 @@ test('an open request detail view rebuilds exactly when the binding deadline exp
   );
   assert.match(
     requestDetail,
-    /Timer\.periodic\(const Duration\(seconds: 1\)[\s\S]*?_refreshTimedState\(tickNow\)[\s\S]*?!_bindingDeadlinePending\(current, tickNow\)[\s\S]*?_ticker\?\.cancel\(\)/u,
+    /_scheduleAcceptanceDeadlineRefresh\(\)[\s\S]*?_bindingDeadlinePending\(req, now\)[\s\S]*?_acceptanceDeadlineTimer = Timer\(deadline\.difference\(now\)[\s\S]*?setState\(\(\) \{\}\)/u,
   );
+  assert.doesNotMatch(requestDetail, /Timer\.periodic/u);
   assert.match(
     requestDetail,
     /final deadlineValid = !usesRemoteBackend \|\|[\s\S]*?bindingDeadline\.isAfter\(DateTime\.now\(\)\)/u,

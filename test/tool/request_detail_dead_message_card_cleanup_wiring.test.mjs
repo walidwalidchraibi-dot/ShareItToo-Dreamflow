@@ -20,17 +20,11 @@ test('request detail still loads the request item and renter', () => {
   assert.match(requestDetail, /DataService\.getUserById\(req\.renterId\)/);
 });
 
-test('express confirmation and rejection remain wired', () => {
-  assert.match(
-    requestDetail,
-    /DataService\.updateRentalRequestExpress\(\s*requestId: req\.id,\s*accept: true\s*\)/,
-  );
-  assert.match(
-    requestDetail,
-    /DataService\.updateRentalRequestExpress\(\s*requestId: req\.id,\s*accept: false\s*\)/,
-  );
-  assert.match(requestDetail, /class _ExpressOwnerBanner extends StatelessWidget/);
-  assert.match(requestDetail, /class _ExpressAcceptedInfo extends StatelessWidget/);
+test('request detail cannot regain disabled express UI or actions', () => {
+  assert.doesNotMatch(requestDetail, /updateRentalRequestExpress/u);
+  assert.doesNotMatch(requestDetail, /_ExpressOwnerBanner/u);
+  assert.doesNotMatch(requestDetail, /_ExpressAcceptedInfo/u);
+  assert.doesNotMatch(requestDetail, /expressRequested|expressStatus|expressFee/u);
 });
 
 test('owner acceptance and decline status transitions remain wired', () => {

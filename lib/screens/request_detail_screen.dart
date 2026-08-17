@@ -28,8 +28,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   RentalRequest? _req;
   Item? _item;
   User? _renter;
-  Timer? _ticker;
-  Duration _remainingConfirm = const Duration(minutes: 30);
+  Timer? _acceptanceDeadlineTimer;
 
   @override
   void initState() {
@@ -48,40 +47,21 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       _item = item;
       _renter = renter;
     });
-    _startOrStopTicker();
+    _scheduleAcceptanceDeadlineRefresh();
   }
 
-  void _startOrStopTicker() {
-    _ticker?.cancel();
+  void _scheduleAcceptanceDeadlineRefresh() {
+    _acceptanceDeadlineTimer?.cancel();
     final req = _req;
     if (req == null) return;
     final now = DateTime.now();
-    if (!_expressConfirmationPending(req) &&
-        !_bindingDeadlinePending(req, now)) {
-      return;
-    }
-    _refreshTimedState(now);
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+    if (!_bindingDeadlinePending(req, now)) return;
+    final deadline = req.bindingExpiresAt!;
+    _acceptanceDeadlineTimer = Timer(deadline.difference(now), () {
       if (!mounted) return;
-      final current = _req;
-      if (current == null) {
-        _ticker?.cancel();
-        _ticker = null;
-        return;
-      }
-      final tickNow = DateTime.now();
-      _refreshTimedState(tickNow);
-      if (!_expressConfirmationPending(current) &&
-          !_bindingDeadlinePending(current, tickNow)) {
-        _ticker?.cancel();
-        _ticker = null;
-      }
+      setState(() {});
     });
   }
-
-  bool _expressConfirmationPending(RentalRequest req) =>
-      req.expressRequested &&
-      (req.expressStatus == null || req.expressStatus == 'pending');
 
   bool _bindingDeadlinePending(RentalRequest req, DateTime now) {
     final deadline = req.bindingExpiresAt;
@@ -92,22 +72,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         deadline.isAfter(now);
   }
 
-  void _refreshTimedState(DateTime now) {
-    final req = _req;
-    if (req == null) return;
-    final left = _expressConfirmationPending(req)
-        ? (req.expressRequestedAt ?? req.createdAt)
-            .add(const Duration(minutes: 30))
-            .difference(now)
-        : _remainingConfirm;
-    setState(() {
-      _remainingConfirm = left.isNegative ? Duration.zero : left;
-    });
-  }
-
   @override
   void dispose() {
-    _ticker?.cancel();
+    _acceptanceDeadlineTimer?.cancel();
     super.dispose();
   }
 
@@ -145,25 +112,6 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
       body: (req == null || item == null || renter == null)
           ? const Center(child: CircularProgressIndicator())
           : ListView(padding: const EdgeInsets.all(16), children: [
-              if (req.expressRequested &&
-                  (req.expressStatus == null || req.expressStatus == 'pending'))
-                _ExpressOwnerBanner(
-                  remaining: _remainingConfirm,
-                  onAccept: () async {
-                    await DataService.updateRentalRequestExpress(
-                        requestId: req.id, accept: true);
-                    if (!mounted) return;
-                    await _load();
-                  },
-                  onDecline: () async {
-                    await DataService.updateRentalRequestExpress(
-                        requestId: req.id, accept: false);
-                    if (!mounted) return;
-                    await _load();
-                  },
-                )
-              else if (req.expressRequested && req.expressStatus == 'accepted')
-                _ExpressAcceptedInfo(confirmedAt: req.expressConfirmedAt),
               _ItemSummaryCard(
                 item: item,
                 request: req,
@@ -562,130 +510,6 @@ String _formatDeadline(DateTime value) {
   final local = value.toLocal();
   return '${two(local.day)}.${two(local.month)}.${local.year}, '
       '${two(local.hour)}:${two(local.minute)} Uhr';
-}
-
-class _ExpressOwnerBanner extends StatelessWidget {
-  final Duration remaining;
-  final VoidCallback onAccept;
-  final VoidCallback onDecline;
-  const _ExpressOwnerBanner(
-      {required this.remaining,
-      required this.onAccept,
-      required this.onDecline});
-  String _fmt(Duration d) {
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final left = remaining.isNegative ? Duration.zero : remaining;
-    final canAccept = left > Duration.zero;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: const [
-          Icon(Icons.flash_on_outlined, color: Colors.white70),
-          SizedBox(width: 8),
-          Text('Prioritätslieferung angefragt',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-        ]),
-        const SizedBox(height: 6),
-        Text(
-          canAccept
-              ? 'Du hast noch ${_fmt(left)} Minuten zur Bestätigung.'
-              : 'Die 30 Minuten sind abgelaufen. Priorität gilt als nicht bestätigt.',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        const SizedBox(height: 10),
-        Row(children: [
-          Expanded(
-              child: FilledButton(
-                  onPressed: canAccept ? onAccept : null,
-                  child: const Text('Priorität bestätigen (+5,00 €)'))),
-          const SizedBox(width: 12),
-          Expanded(
-              child: OutlinedButton(
-                  onPressed: onDecline,
-                  child: const Text('Priorität ablehnen'))),
-        ]),
-        const SizedBox(height: 8),
-        const Text(
-          'Hinweis: Die 5,00 € werden nur berechnet, wenn du innerhalb von 30 Minuten bestätigst und innerhalb von 2,5 Stunden lieferst.',
-          style: TextStyle(color: Colors.white54, fontSize: 12),
-        ),
-      ]),
-    );
-  }
-}
-
-class _ExpressAcceptedInfo extends StatelessWidget {
-  final DateTime? confirmedAt;
-  const _ExpressAcceptedInfo({required this.confirmedAt});
-  String _formatGermanDateTime(DateTime d) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mär',
-      'Apr',
-      'Mai',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Dez'
-    ];
-    final mm = months[d.month - 1];
-    final dd = d.day.toString().padLeft(2, '0');
-    return '$dd. $mm';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final confirmed = confirmedAt ?? DateTime.now();
-    final deliveryBy = confirmed.add(const Duration(hours: 2, minutes: 30));
-    final left = deliveryBy.difference(DateTime.now());
-    String countdown;
-    if (left.isNegative) {
-      countdown = 'Zeitfenster überschritten';
-    } else if (left.inDays > 0) {
-      countdown = left.inDays == 1 ? '1 Tag' : '${left.inDays} Tage';
-    } else {
-      countdown = 'Heute';
-    }
-    return Container(
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: const [
-          Icon(Icons.check_circle_outline, color: Color(0xFF22C55E)),
-          SizedBox(width: 8),
-          Text('Priorität bestätigt (+5,00 €)',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-        ]),
-        const SizedBox(height: 6),
-        Text(
-            'Lieferung bis: ${_formatGermanDateTime(deliveryBy)}  •  Noch $countdown',
-            style: const TextStyle(color: Colors.white70)),
-      ]),
-    );
-  }
 }
 
 class _PublicProfileQuickView extends StatelessWidget {
