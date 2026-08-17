@@ -165,6 +165,10 @@ import {
   verifyFirebasePhoneToken,
 } from './firebase_phone_verification.js';
 import {
+  drainFirebaseIdentityDeletionOutbox,
+  enqueueFirebaseIdentityDeletions,
+} from './firebase_identity_cleanup.js';
+import {
   ListingValidationError,
   listingProjection,
   normalizeListingPayload,
@@ -986,6 +990,9 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
     [user.id],
   );
   await client.query('DELETE FROM push_devices WHERE user_id = $1', [user.id]);
+  const firebaseIdentityDeletionIds = await enqueueFirebaseIdentityDeletions(client, {
+    userId: user.id,
+  });
   await client.query('DELETE FROM auth_identities WHERE user_id = $1', [user.id]);
   await client.query('DELETE FROM auth_action_tokens WHERE user_id = $1', [user.id]);
   await client.query('DELETE FROM refresh_tokens WHERE user_id = $1', [user.id]);
@@ -1029,6 +1036,7 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
       row.storage_name,
       row.thumbnail_storage_name,
     ]).filter(Boolean),
+    firebaseIdentityDeletionIds,
   };
 }
 
@@ -1096,8 +1104,22 @@ export function createApp({
   verifySocialToken = verifyFirebaseSocialToken,
   verifyPhoneToken = verifyFirebasePhoneToken,
   deletePhoneIdentity = deleteFirebasePhoneIdentity,
+  drainFirebaseIdentityDeletions = (ids) => drainFirebaseIdentityDeletionOutbox({
+    client: pool,
+    ids,
+  }),
 } = {}) {
   const app = express();
+  const attemptFirebaseIdentityDeletion = async (ids) => {
+    try {
+      await drainFirebaseIdentityDeletions(ids);
+    } catch (error) {
+      console.error(
+        '[privacy] immediate Firebase identity cleanup failed; durable retry remains queued',
+        error?.code ?? error?.message ?? 'cleanup_failed',
+      );
+    }
+  };
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
   app.use(requestContext());
@@ -2261,6 +2283,7 @@ export function createApp({
       source: 'app',
     }));
     await removeErasedUploadFiles(outcome.erasedUploadStorageNames);
+    await attemptFirebaseIdentityDeletion(outcome.firebaseIdentityDeletionIds);
     res.json({ deleted: true });
   }));
 
@@ -2347,6 +2370,7 @@ export function createApp({
         return eraseAccount(client, user, { actorRole: user.role ?? 'user', source: 'web' });
       });
       await removeErasedUploadFiles(outcome.erasedUploadStorageNames);
+      await attemptFirebaseIdentityDeletion(outcome.firebaseIdentityDeletionIds);
       return sendHtml(res, 200, resultPage({
         success: true,
         title: 'Konto gelöscht',

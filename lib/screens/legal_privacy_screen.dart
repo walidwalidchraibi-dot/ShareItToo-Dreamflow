@@ -83,6 +83,7 @@ class LegalPrivacyScreen extends StatelessWidget {
               'Firebase Cloud Messaging für Push‑Benachrichtigungen; dabei wird eine technische Installationskennung verarbeitet',
               'Firebase Crashlytics für Absturz-, Geräte-, Diagnose- und App-Sitzungsdaten; es wird keine Werbe-ID verwendet und kein Nutzerprofil für Werbung erstellt',
               'Firebase Authentication für die freiwillige Anmeldung über einen freigegebenen externen Anbieter; dabei werden Anbieterkennung, E-Mail, E-Mail-Bestätigungsstatus und gegebenenfalls der Anzeigename verarbeitet',
+              'Bei einer SIT-Kontolöschung wird eine verknüpfte Firebase-Authentifizierungsidentität dauerhaft zur Anbieterlöschung vorgemerkt und bei vorübergehenden Fehlern erneut angefragt; Firebase nennt bis zu 180 Tage nach der Nutzerlöschung für die Entfernung sonstiger Authentifizierungsdaten aus Live- und Sicherungssystemen',
               'Firebase Authentication für die freiwillige SMS-Bestätigung einer Telefonnummer; die nur für den Nachweis verwendete Firebase-Telefonidentität wird nach der serverseitigen Bestätigung entfernt',
             ]),
             SizedBox(height: 10),

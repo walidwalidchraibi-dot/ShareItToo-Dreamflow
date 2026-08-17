@@ -3,6 +3,7 @@ import http from 'node:http';
 import { createApp } from './app.js';
 import { config } from './config.js';
 import { startCredentialCleanupWorker } from './credential_cleanup.js';
+import { startFirebaseIdentityCleanupWorker } from './firebase_identity_cleanup.js';
 import { initializeDatabase, pool } from './db.js';
 import { attachRealtime } from './realtime.js';
 import { verifyMailer } from './mailer.js';
@@ -49,6 +50,9 @@ async function main() {
     console.error('[payments] startup reconciliation failed', error?.code ?? error?.message ?? error);
   });
   const stopCredentialCleanup = startCredentialCleanupWorker({ client: pool });
+  const stopFirebaseIdentityCleanup = startFirebaseIdentityCleanupWorker({
+    client: pool,
+  });
 
   const shutdown = async (signal) => {
     console.log(`[shareittoo-api] ${signal}, shutting down`);
@@ -56,6 +60,7 @@ async function main() {
     clearInterval(returnLifecycleTimer);
     clearInterval(paymentTimer);
     stopCredentialCleanup();
+    stopFirebaseIdentityCleanup();
     server.close(async () => {
       await pool.end();
       process.exit(0);

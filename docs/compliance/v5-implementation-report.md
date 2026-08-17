@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.164
+Stand: 17.08.2026, lokaler Checkpoint 16.165
 
 ## Verbindliche Grenzen
 
@@ -990,3 +990,40 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   Crash nicht. Es erfolgte kein Deployment, Upload, Echtgeld-, Store-,
   Anbieterconsole- oder Kandidatenwechsel. Nachweis:
   `docs/evidence/b11/v51-firebase-auth-maps-retention-boundaries-20260817T124523Z.json`
+
+## Prüfstand Checkpoint 16.165
+
+- der in Checkpoint 16.164 belegte technische Löschblocker für persistente
+  soziale Firebase-Identitäten ist im Quellstand geschlossen: Vor der lokalen
+  Entfernung einer Kontoverknüpfung wird die zugehörige Firebase-UID innerhalb
+  derselben Datenbanktransaktion in eine dauerhafte Anbieter-Löschwarteschlange
+  aufgenommen
+- die Warteschlange enthält keine SIT-Konto-ID, ist auf Google, Apple und
+  Facebook begrenzt und bewahrt die Provider-UID nur bis zum erfolgreichen
+  Abschluss auf; gleichzeitige Worker werden mit atomarem `SKIP LOCKED`-Claim
+  getrennt
+- nach dem Commit erfolgt sofort ein Löschversuch; vorübergehende Fehler werden
+  mit begrenztem exponentiellem Abstand erneut versucht, hängende Claims nach
+  15 Minuten wieder aufgenommen und der Worker bei API-Start sowie periodisch
+  ausgeführt
+- nur eine bestätigte Firebase-Löschung oder `user-not-found` entfernt den
+  Auftrag; Providerfehlermeldungen und Firebase-UIDs werden weder protokolliert
+  noch als Fehlerdetail gespeichert. Ein Konto ohne soziale Identität kann
+  keinen globalen Warteschlangenlauf auslösen
+- die bestehende sichere Löschung der temporären telefongebundenen Identität
+  bleibt unverändert; App-, Rechts- und öffentliche Datenschutztexte erklären
+  jetzt die Anbieter-Löschvormerkung, Wiederholung bei Fehlern und die von
+  Firebase genannte Abschlussfrist von bis zu 180 Tagen
+- Google-, Apple- und Facebook-Anmeldung bleibt trotz geschlossener technischer
+  Löschwarteschlange deaktiviert, bis Betreiber-, Vertrags-, Transfer-,
+  Store- und physische Kandidatenfreigaben abgeschlossen sind
+- 10/10 neue Löschsicherheits-, 55/55 gezielte Datenschutz-/Retention- und
+  11/11 Rechtsprüfungen bestanden; die vollständige Regression blieb mit 282
+  Flutter-Tests, 1 bewusstem Skip, 224 Analyzer-Hinweisen bei 0 Fehlern sowie
+  grünen Web- und Android-Debug-Builds vollständig grün
+- FCM-Push und Crashlytics bleiben unverändert erhalten, getrennt,
+  freiwillig und im nächsten Kandidaten standardmäßig aus; Push aktiviert
+  Crash nicht. Migration 021 wurde nicht auf Staging oder Produktion
+  angewandt; es erfolgte kein Deployment, Upload, Echtgeld-, Store-,
+  Anbieterconsole- oder Kandidatenwechsel. Nachweis:
+  `docs/evidence/b11/v51-firebase-persistent-identity-deletion-20260817T130728Z.json`

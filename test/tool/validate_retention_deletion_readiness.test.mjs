@@ -316,15 +316,15 @@ test('binds Firebase Authentication and Maps to their own readiness evidence', (
   assert.notEqual(auth.serviceReadinessRef, maps.serviceReadinessRef);
 });
 
-test('rejects pretending persistent Firebase social identities are deleted', () => {
+test('rejects regressing persistent Firebase social identity deletion', () => {
   const path =
     'docs/evidence/b11/firebase-authentication-retention-deletion-readiness-20260817.json';
   const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
   evidence.currentTechnicalControls
-    .persistentSocialIdentityDeletionOnAccountErasureImplemented = true;
+    .persistentSocialIdentityDeletionOnAccountErasureImplemented = false;
   assert.throws(
     () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
-    /persistentSocialIdentityDeletionOnAccountErasureImplemented must remain false/u,
+    /persistentSocialIdentityDeletionOnAccountErasureImplemented must remain true/u,
   );
 });
 

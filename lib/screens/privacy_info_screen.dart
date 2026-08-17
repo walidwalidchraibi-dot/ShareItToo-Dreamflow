@@ -189,7 +189,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
           'Firebase Authentication für eine freiwillige Anmeldung mit einem von ShareItToo freigegebenen Anbieter und die dafür erforderlichen Identitätsdaten',
         ],
         note:
-            'Push und freiwillige Crashdiagnose sind standardmäßig aus und werden nur über die getrennten Gerätedienst-Schalter aktiviert. Dort kannst du sie jederzeit wieder ausschalten. Firebase nennt für FCM-Installationsdaten nach einer Löschanforderung bis zu 180 Tage und für Crashdaten mit zugehörigen Kennungen 90 Tage Aufbewahrung, bevor die Entfernung beginnt. Die Verarbeitung kann weltweit an Google-Standorten erfolgen. Werbe-IDs, Werbeprofile, Werbetracking und Analyse zu Werbezwecken sind nicht aktiviert.',
+            'Push und freiwillige Crashdiagnose sind standardmäßig aus und werden nur über die getrennten Gerätedienst-Schalter aktiviert. Dort kannst du sie jederzeit wieder ausschalten. Bei Kontolöschung wird eine verknüpfte Firebase-Authentifizierungsidentität dauerhaft zur Anbieterlöschung vorgemerkt und bei Fehlern erneut angefragt. Firebase nennt für FCM-Installationsdaten sowie sonstige Authentifizierungsdaten nach der jeweiligen Löschanforderung bis zu 180 Tage und für Crashdaten mit zugehörigen Kennungen 90 Tage Aufbewahrung, bevor die Entfernung beginnt. Die Verarbeitung kann weltweit an Google-Standorten erfolgen. Werbe-IDs, Werbeprofile, Werbetracking und Analyse zu Werbezwecken sind nicht aktiviert.',
       ),
       const _PrivacySectionData(
         icon: Icons.file_download_outlined,
@@ -214,6 +214,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
         extraTitle: 'Beim Löschen eines Kontos werden:',
         extraBullets: [
           'persönliche Daten entfernt oder anonymisiert',
+          'verknüpfte Firebase-Anmeldeidentitäten zur Anbieterlöschung vorgemerkt und bei vorübergehenden Fehlern erneut angefragt',
           'Buchungsdaten gemäß gesetzlichen Anforderungen gespeichert',
         ],
         note: 'Dieser Prozess entspricht den geltenden Datenschutzrichtlinien.',

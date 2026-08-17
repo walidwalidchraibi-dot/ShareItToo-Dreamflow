@@ -24,6 +24,7 @@ const sourcePaths = [
   'backend/src/financial_documents.js',
   'backend/src/firebase_social_auth.js',
   'backend/src/firebase_phone_verification.js',
+  'backend/src/firebase_identity_cleanup.js',
   'backend/src/maps_proxy.js',
   'backend/sql/schema.sql',
   'backend/sql/migrations/006_b7_communications.up.sql',
@@ -34,6 +35,7 @@ const sourcePaths = [
   'backend/sql/migrations/018_v51_withdrawal_and_refund_obligations.up.sql',
   'backend/sql/migrations/019_v51_condition_evidence.up.sql',
   'backend/sql/migrations/020_v51_financial_documents.up.sql',
+  'backend/sql/migrations/021_firebase_identity_deletion_outbox.up.sql',
   'backend/ops/backup.sh',
   'android/app/src/main/AndroidManifest.xml',
   'ios/Runner/Info.plist',
@@ -462,6 +464,49 @@ function assertSourceContracts(root, sourceTexts) {
       fail(`Firebase Authentication readiness is missing temporary-identity cleanup: ${marker}.`);
     }
   }
+  const firebaseIdentityCleanup = text(
+    root,
+    sourceTexts,
+    'backend/src/firebase_identity_cleanup.js',
+  );
+  for (const marker of [
+    'enqueueFirebaseIdentityDeletions',
+    'drainFirebaseIdentityDeletionOutbox',
+    'FOR UPDATE SKIP LOCKED',
+    "userNotFoundCodes.has(code)",
+    "SET status = 'retry'",
+    'startFirebaseIdentityCleanupWorker',
+  ]) {
+    if (!firebaseIdentityCleanup.includes(marker)) {
+      fail(`Firebase Authentication readiness is missing durable provider deletion: ${marker}.`);
+    }
+  }
+  const firebaseIdentityMigration = text(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/021_firebase_identity_deletion_outbox.up.sql',
+  );
+  for (const marker of [
+    'CREATE TABLE IF NOT EXISTS firebase_identity_deletion_outbox',
+    "provider IN ('google', 'apple', 'facebook')",
+    "status IN ('pending', 'processing', 'retry')",
+    'firebase_identity_deletion_outbox_due_idx',
+  ]) {
+    if (!firebaseIdentityMigration.includes(marker)) {
+      fail(`Firebase Authentication readiness is missing deletion-outbox schema: ${marker}.`);
+    }
+  }
+  if (!app.includes('enqueueFirebaseIdentityDeletions(client,')
+      || !app.includes("await client.query('DELETE FROM auth_identities WHERE user_id = $1'")
+      || app.indexOf('enqueueFirebaseIdentityDeletions(client,')
+        > app.indexOf("await client.query('DELETE FROM auth_identities WHERE user_id = $1'")) {
+    fail('Firebase identity deletion must be queued transactionally before local identity erasure.');
+  }
+  const runtimeServer = text(root, sourceTexts, 'backend/src/server.js');
+  if (!runtimeServer.includes('startFirebaseIdentityCleanupWorker({')
+      || !runtimeServer.includes('stopFirebaseIdentityCleanup()')) {
+    fail('Firebase identity deletion retry worker must start and stop with the API process.');
+  }
   const mapsProxy = text(root, sourceTexts, 'backend/src/maps_proxy.js');
   for (const marker of [
     "throw new MapsProxyError(503, 'maps_unavailable')",
@@ -682,14 +727,14 @@ function assertFirebaseServiceReadiness(root, evidenceTexts) {
         phoneVerificationInLaunchScope: true,
         socialLoginActivationApproved: false,
         temporaryPhoneIdentityRequired: true,
-        futureSocialActivationBlockedUntilDeletionGapClosed: true,
+        futureSocialActivationRequiresExternalApprovals: true,
       },
       controls: {
         phoneProviderEnabledInBoundEnvironment: true,
         temporaryPhoneIdentityDeletionImplemented: true,
         temporaryIdentitySafetyCheckImplemented: true,
         firebaseUserIdStoredForLinkedSocialIdentity: true,
-        persistentSocialIdentityDeletionOnAccountErasureImplemented: false,
+        persistentSocialIdentityDeletionOnAccountErasureImplemented: true,
         providerPasswordOrAccessTokenStoredBySit: false,
       },
       retention: {
@@ -697,7 +742,7 @@ function assertFirebaseServiceReadiness(root, evidenceTexts) {
         otherAuthenticationInformationRemoval:
           'within-180-days-after-customer-initiated-associated-user-deletion',
         temporaryPhoneIdentityProviderDeletionImplemented: true,
-        persistentSocialIdentityProviderDeletionImplemented: false,
+        persistentSocialIdentityProviderDeletionImplemented: true,
         sitCanPromiseImmediateProviderErasure: false,
         currentAccountContractAcceptanceVerified: false,
         currentProcessingLocationsVerified: false,

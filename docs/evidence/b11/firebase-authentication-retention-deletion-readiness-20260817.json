@@ -10,7 +10,7 @@
     "phoneVerificationInLaunchScope": true,
     "socialLoginActivationApproved": false,
     "temporaryPhoneIdentityRequired": true,
-    "futureSocialActivationBlockedUntilDeletionGapClosed": true
+    "futureSocialActivationRequiresExternalApprovals": true
   },
   "officialSources": [
     {
@@ -34,14 +34,14 @@
     "temporaryPhoneIdentityDeletionImplemented": true,
     "temporaryIdentitySafetyCheckImplemented": true,
     "firebaseUserIdStoredForLinkedSocialIdentity": true,
-    "persistentSocialIdentityDeletionOnAccountErasureImplemented": false,
+    "persistentSocialIdentityDeletionOnAccountErasureImplemented": true,
     "providerPasswordOrAccessTokenStoredBySit": false
   },
   "retentionAndDeletionReality": {
     "loggedIpRetention": "a-few-weeks",
     "otherAuthenticationInformationRemoval": "within-180-days-after-customer-initiated-associated-user-deletion",
     "temporaryPhoneIdentityProviderDeletionImplemented": true,
-    "persistentSocialIdentityProviderDeletionImplemented": false,
+    "persistentSocialIdentityProviderDeletionImplemented": true,
     "sitCanPromiseImmediateProviderErasure": false,
     "currentAccountContractAcceptanceVerified": false,
     "currentProcessingLocationsVerified": false,

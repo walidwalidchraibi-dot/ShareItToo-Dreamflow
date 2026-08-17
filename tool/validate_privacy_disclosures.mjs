@@ -40,6 +40,9 @@ const sourcePaths = [
   'backend/src/transactional_mail_templates.js',
   'backend/src/return_lifecycle_workflow.js',
   'backend/src/firebase_phone_verification.js',
+  'backend/src/firebase_social_auth.js',
+  'backend/src/firebase_identity_cleanup.js',
+  'backend/sql/migrations/021_firebase_identity_deletion_outbox.up.sql',
   'backend/sql/migrations/010_phone_verification.up.sql',
   'lib/services/backend_config.dart',
   'lib/services/firebase_runtime.dart',
@@ -359,6 +362,34 @@ function assertSourceContracts({ root, sourceTexts }) {
       || !phoneVerifier.includes('await remove(firebaseUserId)')) {
     fail('Temporary Firebase phone identities must be removed after ownership proof.');
   }
+  const firebaseIdentityCleanup = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/firebase_identity_cleanup.js',
+  );
+  const firebaseIdentityMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/021_firebase_identity_deletion_outbox.up.sql',
+  );
+  for (const marker of [
+    'enqueueFirebaseIdentityDeletions',
+    'drainFirebaseIdentityDeletionOutbox',
+    'FOR UPDATE SKIP LOCKED',
+    "userNotFoundCodes.has(code)",
+    "SET status = 'retry'",
+  ]) {
+    if (!firebaseIdentityCleanup.includes(marker)) {
+      fail(`Persistent Firebase identity deletion is missing ${marker}.`);
+    }
+  }
+  if (!firebaseIdentityMigration.includes(
+    'CREATE TABLE IF NOT EXISTS firebase_identity_deletion_outbox',
+  ) || !firebaseIdentityMigration.includes(
+    "provider IN ('google', 'apple', 'facebook')",
+  )) {
+    fail('Persistent Firebase identity deletion requires its bounded durable outbox.');
+  }
   const phoneMigration = sourceText(
     root,
     sourceTexts,
@@ -483,6 +514,7 @@ function assertSourceContracts({ root, sourceTexts }) {
       'App-Sitzungsdaten',
       'keine Ausweisprüfung',
       'SMS-Verifizierung',
+      'Firebase-Authentifizierungsidentität',
     ]) {
       if (!source.includes(marker)) fail(`The ${label} is missing the truthful disclosure marker: ${marker}.`);
     }
@@ -494,6 +526,7 @@ function assertSourceContracts({ root, sourceTexts }) {
     'Firebase Cloud Messaging',
     'Firebase Crashlytics',
     'Anmeldung mit Google, Apple oder Facebook',
+    'dauerhaft zur Anbieterlöschung vorgemerkt',
     'bis zu 180 Tagen',
     '90 Tage',
     'keine dauerhafte Hintergrund- oder Live-Ortung',
@@ -614,6 +647,8 @@ export function validatePrivacyDisclosures({
       || socialAuth.enabledInBoundEnvironment !== true
       || socialAuth.role !==
         'processor-for-firebase-authentication-phone-active-social-provider-review-if-enabled'
+      || socialAuth.socialProvidersActivated !== false
+      || socialAuth.persistentIdentityDeletionImplemented !== true
       || !Array.isArray(socialAuth.providers)
       || socialAuth.providers.join(',') !== 'google,apple,facebook,phone'
       || !Array.isArray(socialAuth.dataTypes)

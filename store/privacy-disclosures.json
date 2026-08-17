@@ -28,7 +28,7 @@
     },
     {
       "path": "lib/screens/legal_privacy_screen.dart",
-      "sha256": "544bfb2ea2633119e2333bb778ec3912e77fddc36797dde2fe4a30afa1119953"
+      "sha256": "5ae3786fe933f51a04e660399d6339f16e64aa4b75c7f130e15a02aebbcb91c5"
     },
     {
       "path": "assets/legal/de/privacy_v5.html",
@@ -40,11 +40,11 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "cfbf65f0b78d0929db79715ec946b7de9b3f86b978cc1331f47e6c6be5c125a0"
+      "sha256": "00a5403b14b80c496b40e978809908871da9cde82f39736ed8353dc3c3e72a59"
     },
     {
       "path": "backend/src/account_actions.js",
-      "sha256": "398a1f485cecbf839f5503d3b8cca7f3e31935043c23a589322ea119659eec12"
+      "sha256": "bf8699272c9711d351d71c95beacd0f723188ed134880e1640814a04a7e21e10"
     },
     {
       "path": "backend/src/privacy_export.js",
@@ -187,6 +187,18 @@
       "sha256": "ea8fb71aeada7eab59006e789d7890c697e1d6d43fbf7c94a3bed5df615d81dc"
     },
     {
+      "path": "backend/src/firebase_social_auth.js",
+      "sha256": "eb94da31526a69226e5cc4081f05b80b2504114aa557c3de3fad63cfb84559c6"
+    },
+    {
+      "path": "backend/src/firebase_identity_cleanup.js",
+      "sha256": "fc7b99d321a7a2bb0a871dc4f57f18357ec47923fb03a19c1777bce8270a3057"
+    },
+    {
+      "path": "backend/sql/migrations/021_firebase_identity_deletion_outbox.up.sql",
+      "sha256": "24766e130717d7a07a892e75326b341340b9818771f949d79e59a2780035bd20"
+    },
+    {
       "path": "backend/sql/migrations/010_phone_verification.up.sql",
       "sha256": "75ae4d33448d1b8b512b5cc956ead31d6ae947d96f6e194a0d67e07adc1ffebf"
     },
@@ -232,7 +244,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "59ae29aa0d24909c0eb8175fa73e8525b0ea4a5d1a487dab35430e462d8caeaa"
+      "sha256": "9716faf170300f0c096e33a675237575a79a1980744ee47eea42c5871a193ae5"
     },
     {
       "path": "lib/screens/create_listing_screen.dart",
@@ -294,6 +306,8 @@
       "enabledInBoundEnvironment": true,
       "role": "processor-for-firebase-authentication-phone-active-social-provider-review-if-enabled",
       "providers": ["google", "apple", "facebook", "phone"],
+      "socialProvidersActivated": false,
+      "persistentIdentityDeletionImplemented": true,
       "dataTypes": ["name", "emailAddress", "phoneNumber", "userId"]
     },
     "googleMapsPlatform": {
