@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.136
+Stand: 17.08.2026, lokaler Checkpoint 16.137
 
 ## Verbindliche Grenzen
 
@@ -267,3 +267,19 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   technische Firebase-Datenübertragung erforderlich ist
 - GO/NO-GO bleibt `HOLD`. Nachweis:
   `docs/evidence/b11/android-candidate-2026081510-build-and-device-services-20260817.json`
+
+## Prüfstand Checkpoint 16.137
+
+- die Großtextkorrektur wurde auf dem physischen Pixel 7 Pro mit dem exakten
+  Kandidaten `2026081510` und Android-Schriftgröße 200 % geprüft
+- Wunschlisten wechseln sichtbar in das einspaltige Layout; „Demnächst
+  benötigt“, Leerzustand und Navigation sind vollständig lesbar
+- das Profil stapelt Identität und Kennzahlen; Bewertung, Buchungen,
+  „Dabei seit“ und Anzeigenzahl sind ohne Ellipse oder Abschneiden sichtbar
+- private lokale Screenshots wurden nur gehasht und nicht ins Repository
+  übernommen
+- Schriftgröße `0.85`, deaktivierte Bedienungshilfe und automatische Drehung
+  wurden danach verifiziert wiederhergestellt
+- TalkBack bleibt als eigenständiger manueller Bedienungshilfe-Test offen und
+  wird durch diesen Großtext-Pass nicht vorweggenommen. Nachweis:
+  `docs/evidence/b11/android-large-text-physical-2026081510-20260817T070236Z.json`
