@@ -168,7 +168,7 @@
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "4e3e095849cba2b75208f0d5b6df601d487c74ec183e9769af5d41b57189afdf"
+      "sha256": "00f00dd0e0fae98f2dc7090da620ae41babdd865926633415175346b12015cdc"
     },
     {
       "path": "backend/src/notifications.js",
@@ -195,8 +195,16 @@
       "sha256": "fc7b99d321a7a2bb0a871dc4f57f18357ec47923fb03a19c1777bce8270a3057"
     },
     {
+      "path": "backend/src/crashlytics_cleanup.js",
+      "sha256": "fef8a5977fabec6c2547d0d6ca0dc7e19e6e0db5bd6e6fe300d194d37d1d36c6"
+    },
+    {
       "path": "backend/sql/migrations/021_firebase_identity_deletion_outbox.up.sql",
       "sha256": "24766e130717d7a07a892e75326b341340b9818771f949d79e59a2780035bd20"
+    },
+    {
+      "path": "backend/sql/migrations/022_crashlytics_subject_deletion.up.sql",
+      "sha256": "2d018478ee2691a7900a2665c541acc522c634763505e12e65e997a1d1054f9a"
     },
     {
       "path": "backend/sql/migrations/010_phone_verification.up.sql",
@@ -244,7 +252,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "9716faf170300f0c096e33a675237575a79a1980744ee47eea42c5871a193ae5"
+      "sha256": "dcb18c60146370cfffd389fc2c80e1b2a2c5b1f30751492dbbc202ba04655733"
     },
     {
       "path": "lib/screens/create_listing_screen.dart",
@@ -294,6 +302,9 @@
       "candidateCollectionMode": "automatic-in-bound-candidate",
       "nextCandidateCollectionMode": "user-opt-in-default-off",
       "replacementCandidateRequired": true,
+      "serverDeletionQueueFoundationImplemented": true,
+      "pseudonymousSubjectTransmissionImplemented": false,
+      "providerDeletionExecutionEnabled": false,
       "dataTypes": [
         "deviceOrOtherIds",
         "crashData",

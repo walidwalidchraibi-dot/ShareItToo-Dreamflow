@@ -4,6 +4,10 @@ import { createApp } from './app.js';
 import { config } from './config.js';
 import { startCredentialCleanupWorker } from './credential_cleanup.js';
 import { startFirebaseIdentityCleanupWorker } from './firebase_identity_cleanup.js';
+import {
+  createCrashlyticsReportDeleteClient,
+  startCrashlyticsCleanupWorker,
+} from './crashlytics_cleanup.js';
 import { initializeDatabase, pool } from './db.js';
 import { attachRealtime } from './realtime.js';
 import { verifyMailer } from './mailer.js';
@@ -53,6 +57,15 @@ async function main() {
   const stopFirebaseIdentityCleanup = startFirebaseIdentityCleanupWorker({
     client: pool,
   });
+  const stopCrashlyticsCleanup = config.crashReportDeletion.enabled
+    ? startCrashlyticsCleanupWorker({
+      client: pool,
+      deleteReports: createCrashlyticsReportDeleteClient({
+        projectId: config.crashReportDeletion.firebaseProjectId,
+        serviceAccountFile: config.crashReportDeletion.firebaseServiceAccountFile,
+      }),
+    })
+    : () => {};
 
   const shutdown = async (signal) => {
     console.log(`[shareittoo-api] ${signal}, shutting down`);
@@ -61,6 +74,7 @@ async function main() {
     clearInterval(paymentTimer);
     stopCredentialCleanup();
     stopFirebaseIdentityCleanup();
+    stopCrashlyticsCleanup();
     server.close(async () => {
       await pool.end();
       process.exit(0);

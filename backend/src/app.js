@@ -169,6 +169,12 @@ import {
   enqueueFirebaseIdentityDeletions,
 } from './firebase_identity_cleanup.js';
 import {
+  createCrashlyticsReportDeleteClient,
+  drainCrashlyticsReportDeletionOutbox,
+  enqueueCrashlyticsReportDeletions,
+  getOrCreateCrashlyticsSubject,
+} from './crashlytics_cleanup.js';
+import {
   ListingValidationError,
   listingProjection,
   normalizeListingPayload,
@@ -211,6 +217,12 @@ function asyncRoute(handler) {
 }
 
 const mapsProxy = createMapsProxy({ apiKey: config.maps.serverApiKey });
+const crashlyticsReportDeleteClient = config.crashReportDeletion.enabled
+  ? createCrashlyticsReportDeleteClient({
+    projectId: config.crashReportDeletion.firebaseProjectId,
+    serviceAccountFile: config.crashReportDeletion.firebaseServiceAccountFile,
+  })
+  : null;
 
 function kickNotificationWorker() {
   void drainNotificationOutbox().catch((error) => {
@@ -993,6 +1005,9 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
   const firebaseIdentityDeletionIds = await enqueueFirebaseIdentityDeletions(client, {
     userId: user.id,
   });
+  const crashlyticsReportDeletionIds = await enqueueCrashlyticsReportDeletions(client, {
+    userId: user.id,
+  });
   await client.query('DELETE FROM auth_identities WHERE user_id = $1', [user.id]);
   await client.query('DELETE FROM auth_action_tokens WHERE user_id = $1', [user.id]);
   await client.query('DELETE FROM refresh_tokens WHERE user_id = $1', [user.id]);
@@ -1037,6 +1052,7 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
       row.thumbnail_storage_name,
     ]).filter(Boolean),
     firebaseIdentityDeletionIds,
+    crashlyticsReportDeletionIds,
   };
 }
 
@@ -1108,6 +1124,16 @@ export function createApp({
     client: pool,
     ids,
   }),
+  drainCrashlyticsReportDeletions = (ids) => {
+    if (!crashlyticsReportDeleteClient) {
+      return Promise.resolve({ accepted: 0, retried: 0 });
+    }
+    return drainCrashlyticsReportDeletionOutbox({
+      client: pool,
+      deleteReports: crashlyticsReportDeleteClient,
+      ids,
+    });
+  },
 } = {}) {
   const app = express();
   const attemptFirebaseIdentityDeletion = async (ids) => {
@@ -1117,6 +1143,16 @@ export function createApp({
       console.error(
         '[privacy] immediate Firebase identity cleanup failed; durable retry remains queued',
         error?.code ?? error?.message ?? 'cleanup_failed',
+      );
+    }
+  };
+  const attemptCrashlyticsReportDeletion = async (ids) => {
+    try {
+      await drainCrashlyticsReportDeletions(ids);
+    } catch (error) {
+      console.error(
+        '[privacy] immediate Crashlytics report cleanup failed; durable retry remains queued',
+        error?.code ?? 'cleanup_failed',
       );
     }
   };
@@ -2241,6 +2277,35 @@ export function createApp({
     res.status(204).end();
   }));
 
+  app.put('/v1/auth/devices/crash-subject', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
+    if (!config.crashReportDeletion.enabled) {
+      throw new HttpError(503, 'crash_diagnostics_unavailable');
+    }
+    const platform = safeText(req.body?.platform, 20).toLowerCase();
+    const firebaseAppId = config.crashReportDeletion.appIds[platform];
+    if (!firebaseAppId) throw new HttpError(400, 'invalid_crash_platform');
+    const subjectId = await getOrCreateCrashlyticsSubject(pool, {
+      userId: req.auth.userId,
+      platform,
+      firebaseAppId,
+    });
+    res.set('Cache-Control', 'no-store').json({ subjectId });
+  }));
+
+  app.delete('/v1/auth/devices/crash-subject/current', requireAuth, requireActiveAccount, actionLimiter, asyncRoute(async (req, res) => {
+    const platform = safeText(req.body?.platform, 20).toLowerCase();
+    if (!['android', 'ios'].includes(platform)) {
+      throw new HttpError(400, 'invalid_crash_platform');
+    }
+    const ids = await inTransaction((client) =>
+      enqueueCrashlyticsReportDeletions(client, {
+        userId: req.auth.userId,
+        platform,
+      }));
+    await attemptCrashlyticsReportDeletion(ids);
+    res.status(202).json({ deletionQueued: ids.length > 0 });
+  }));
+
   app.get('/v1/account/deletion-preflight', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     res.json(await accountDeletionPreflight(pool, req.auth.userId));
   }));
@@ -2284,6 +2349,7 @@ export function createApp({
     }));
     await removeErasedUploadFiles(outcome.erasedUploadStorageNames);
     await attemptFirebaseIdentityDeletion(outcome.firebaseIdentityDeletionIds);
+    await attemptCrashlyticsReportDeletion(outcome.crashlyticsReportDeletionIds);
     res.json({ deleted: true });
   }));
 
@@ -2371,6 +2437,7 @@ export function createApp({
       });
       await removeErasedUploadFiles(outcome.erasedUploadStorageNames);
       await attemptFirebaseIdentityDeletion(outcome.firebaseIdentityDeletionIds);
+      await attemptCrashlyticsReportDeletion(outcome.crashlyticsReportDeletionIds);
       return sendHtml(res, 200, resultPage({
         success: true,
         title: 'Konto gelöscht',

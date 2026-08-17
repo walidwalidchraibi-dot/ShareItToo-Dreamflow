@@ -162,16 +162,16 @@ test('protects the separate default-off Push and Crash decision in the matrix', 
   );
 });
 
-test('protects the documented Crashlytics stored-report deletion gap', () => {
+test('protects the documented default-off Crashlytics stored-report deletion gap', () => {
   const path = 'docs/compliance/retention-deletion-decision-matrix.md';
   const changed = readFileSync(resolve(root, path), 'utf8')
     .replace(
-      'SIT hat die dafür nötige stabile Zuordnung und den serverseitigen Aufruf noch nicht implementiert',
+      'Eine standardmäßig ausgeschaltete serverseitige Löschwarteschlange mit Wiederholung und ohne SIT-Konto-ID ist vorbereitet.',
       'SIT löscht alle gespeicherten Berichte vollständig',
     );
   assert.throws(
     () => validate({ evidenceTexts: { [path]: changed } }),
-    /stabile Zuordnung und den serverseitigen Aufruf noch nicht implementiert/u,
+    /standardmäßig ausgeschaltete serverseitige Löschwarteschlange/u,
   );
 });
 
@@ -368,6 +368,17 @@ test('rejects pretending that server-side Crashlytics report deletion is impleme
   assert.throws(
     () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
     /storedCrashReportDeletionInvocationImplemented must remain false/u,
+  );
+});
+
+test('rejects silently enabling Crashlytics subject transmission or provider deletion', () => {
+  const path =
+    'docs/evidence/b11/firebase-crashlytics-retention-deletion-readiness-20260817.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.currentTechnicalControls.pseudonymousSdkSubjectTransmissionImplemented = true;
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /pseudonymousSdkSubjectTransmissionImplemented must remain false/u,
   );
 });
 

@@ -42,7 +42,9 @@ const sourcePaths = [
   'backend/src/firebase_phone_verification.js',
   'backend/src/firebase_social_auth.js',
   'backend/src/firebase_identity_cleanup.js',
+  'backend/src/crashlytics_cleanup.js',
   'backend/sql/migrations/021_firebase_identity_deletion_outbox.up.sql',
+  'backend/sql/migrations/022_crashlytics_subject_deletion.up.sql',
   'backend/sql/migrations/010_phone_verification.up.sql',
   'lib/services/backend_config.dart',
   'lib/services/firebase_runtime.dart',
@@ -641,6 +643,15 @@ export function validatePrivacyDisclosures({
         || service.replacementCandidateRequired !== true) {
       fail(`${serviceKey} must separate the automatic bound candidate from the opt-in replacement source.`);
     }
+  }
+  const crashlytics = object(
+    services.firebaseCrashlytics,
+    'externalServices.firebaseCrashlytics',
+  );
+  if (crashlytics.serverDeletionQueueFoundationImplemented !== true
+      || crashlytics.pseudonymousSubjectTransmissionImplemented !== false
+      || crashlytics.providerDeletionExecutionEnabled !== false) {
+    fail('Crashlytics deletion foundation must remain default-off until pseudonymous subject transfer is approved.');
   }
   const socialAuth = object(services.firebaseAuthentication, 'externalServices.firebaseAuthentication');
   if (socialAuth.enabled !== true

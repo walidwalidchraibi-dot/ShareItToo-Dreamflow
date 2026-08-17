@@ -63,7 +63,13 @@ const firebaseAuthEnabled = (process.env.FIREBASE_AUTH_ENABLED ?? 'false')
 const firebasePhoneVerificationEnabled = (
   process.env.FIREBASE_PHONE_VERIFICATION_ENABLED ?? 'false'
 ).trim().toLowerCase() === 'true';
-if (pushTransport === 'fcm' || firebaseAuthEnabled || firebasePhoneVerificationEnabled) {
+const firebaseCrashReportDeletionEnabled = (
+  process.env.FIREBASE_CRASH_REPORT_DELETION_ENABLED ?? 'false'
+).trim().toLowerCase() === 'true';
+const firebaseAndroidAppId = process.env.FIREBASE_ANDROID_APP_ID?.trim() ?? '';
+const firebaseIosAppId = process.env.FIREBASE_IOS_APP_ID?.trim() ?? '';
+if (pushTransport === 'fcm' || firebaseAuthEnabled ||
+    firebasePhoneVerificationEnabled || firebaseCrashReportDeletionEnabled) {
   if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(firebaseProjectId)) {
     throw new Error('FIREBASE_PROJECT_ID must be configured for Firebase services');
   }
@@ -88,6 +94,16 @@ if (pushTransport === 'fcm' || firebaseAuthEnabled || firebasePhoneVerificationE
     );
   } catch {
     throw new Error('FIREBASE_SERVICE_ACCOUNT_FILE must contain credentials for FIREBASE_PROJECT_ID');
+  }
+}
+if (firebaseCrashReportDeletionEnabled) {
+  for (const [name, value, platform] of [
+    ['FIREBASE_ANDROID_APP_ID', firebaseAndroidAppId, 'android'],
+    ['FIREBASE_IOS_APP_ID', firebaseIosAppId, 'ios'],
+  ]) {
+    if (!new RegExp(`^1:[0-9]{6,20}:${platform}:[A-Fa-f0-9]{8,64}$`, 'u').test(value)) {
+      throw new Error(`${name} must be the exact Firebase ${platform} app ID`);
+    }
   }
 }
 
@@ -280,6 +296,17 @@ export const config = Object.freeze({
     firebaseServiceAccountFile: firebaseServiceAccountFile
       ? path.resolve(firebaseServiceAccountFile)
       : '',
+  }),
+  crashReportDeletion: Object.freeze({
+    enabled: firebaseCrashReportDeletionEnabled,
+    firebaseProjectId,
+    firebaseServiceAccountFile: firebaseServiceAccountFile
+      ? path.resolve(firebaseServiceAccountFile)
+      : '',
+    appIds: Object.freeze({
+      android: firebaseAndroidAppId,
+      ios: firebaseIosAppId,
+    }),
   }),
   payments: Object.freeze({
     transport: paymentTransport,

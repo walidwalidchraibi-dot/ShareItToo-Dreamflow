@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.165
+Stand: 17.08.2026, lokaler Checkpoint 16.166
 
 ## Verbindliche Grenzen
 
@@ -1027,3 +1027,37 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   angewandt; es erfolgte kein Deployment, Upload, Echtgeld-, Store-,
   Anbieterconsole- oder Kandidatenwechsel. Nachweis:
   `docs/evidence/b11/v51-firebase-persistent-identity-deletion-20260817T130728Z.json`
+
+## Prüfstand Checkpoint 16.166
+
+- für eine spätere kontobezogene Löschung gespeicherter Crashlytics-Berichte
+  wurde ausschließlich ein standardmäßig ausgeschalteter serverseitiger
+  Unterbau vorbereitet: zufällige Diagnosekennung je Plattform, atomare
+  Löschwarteschlange, Wiederaufnahme hängender Aufträge und begrenzte
+  Wiederholungen
+- die Löschwarteschlange enthält keine SIT-Konto-ID; beim Vormerken wird die
+  aktive Kontozuordnung in derselben Datenbanktransaktion entfernt. Anbieter-
+  Fehlertexte, Firebase-Objektkennungen und Diagnosekennungen werden weder
+  protokolliert noch als Fehlerdetail gespeichert
+- die Firebase-Löschschnittstelle wird nur bei einer ausdrücklich aktivierten
+  Serverkonfiguration aufgebaut. Diese Konfiguration bleibt standardmäßig
+  aus; Migration 022 wurde nicht angewandt und es wurde keine Anbieteranfrage
+  gesendet
+- die App übermittelt weiterhin keine pseudonyme Crashlytics-
+  Diagnosekennung. Diese zusätzliche, kontoverknüpfbare Übertragung und der
+  daraus folgende irreversible Löschaufruf bleiben eine eigene ausdrückliche
+  Freigabegrenze und wurden nicht vorweggenommen
+- 9/9 neue Unterbauprüfungen, 65/65 gezielte Datenschutz-/Retention-Prüfungen
+  und 209/209 Backendtests bestanden; 1 PostgreSQL-Integrationstest blieb
+  ohne lokale `TEST_DATABASE_URL` bewusst übersprungen
+- die vollständige Regression blieb mit 282 Flutter-Tests, 1 bewusstem Skip,
+  224 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün
+- FCM-Push und Crashlytics bleiben ausdrücklich erhalten, getrennt,
+  freiwillig und im nächsten Kandidaten standardmäßig aus; Push aktiviert
+  Crashlytics nicht. Werbung, Marketingtracking, allgemeine Analytics und
+  externe generative KI bleiben aus
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store-, Anbieterconsole-
+  oder Kandidatenwechsel, keine Migration, keine Kennungsübertragung und kein
+  Crashereignis. Nachweis:
+  `docs/evidence/b11/v51-crashlytics-provider-deletion-foundation-20260817T133007Z.json`
