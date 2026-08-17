@@ -13,17 +13,12 @@ class RentalRequest {
   // Who cancelled the request when status == 'cancelled'.
   // Values: 'renter' | 'owner'. Null when not cancelled or legacy data.
   final String? cancelledBy;
-  // Express delivery (2h) option
-  final bool
-      expressRequested; // renter requested express delivery during booking
-  final String?
-      expressStatus; // 'pending' | 'accepted' | 'declined' (null if not requested)
-  final double expressFee; // default 5.0
-  // Persist the chosen transport responsibilities at booking time so UI remains correct
-  // even after transient UI selections are cleared.
-  // When true => Owner brings item to renter at start (delivery on dropoff). When false => renter picks up.
+  // Legacy transport fields retained for backward-compatible storage only.
+  // Remote payloads are normalized to the disabled V5.1 launch boundary.
+  final bool expressRequested;
+  final String? expressStatus;
+  final double expressFee;
   final bool ownerDeliversAtDropoffChosen;
-  // When true => Owner picks item up from renter at return. When false => renter returns himself.
   final bool ownerPicksUpAtReturnChosen;
   // Optional address snapshots used for pricing and later coordination.
   final String? deliveryAddressLine;
@@ -292,13 +287,11 @@ class RentalRequest {
       status: (json['status'] as String?) ?? 'pending',
       message: json['message'] as String?,
       cancelledBy: json['cancelledBy'] as String?,
-      expressRequested: (json['expressRequested'] as bool?) ?? false,
-      expressStatus: json['expressStatus'] as String?,
-      expressFee: (json['expressFee'] as num?)?.toDouble() ?? 5.0,
-      ownerDeliversAtDropoffChosen:
-          (json['ownerDeliversAtDropoffChosen'] as bool?) ?? false,
-      ownerPicksUpAtReturnChosen:
-          (json['ownerPicksUpAtReturnChosen'] as bool?) ?? false,
+      expressRequested: false,
+      expressStatus: null,
+      expressFee: 0,
+      ownerDeliversAtDropoffChosen: false,
+      ownerPicksUpAtReturnChosen: false,
       deliveryAddressLine: json['deliveryAddressLine'] as String?,
       deliveryCity: json['deliveryCity'] as String?,
       deliveryLat: (json['deliveryLat'] as num?)?.toDouble(),
@@ -310,8 +303,8 @@ class RentalRequest {
       createdAt: _parseDt(json['createdAt']) ?? DateTime.now(),
       bindingExpiresAt: _parseDt(json['bindingExpiresAt']),
       acceptedAt: _parseDt(json['acceptedAt']),
-      expressRequestedAt: _parseDt(json['expressRequestedAt']),
-      expressConfirmedAt: _parseDt(json['expressConfirmedAt']),
+      expressRequestedAt: null,
+      expressConfirmedAt: null,
       needsReview: (json['needsReview'] as bool?) ?? false,
       reviewReason: json['reviewReason'] as String?,
       reviewSource: json['reviewSource'] as String?,

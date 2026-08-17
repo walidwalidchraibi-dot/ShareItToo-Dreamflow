@@ -38,12 +38,11 @@ class Item {
   final DateTime? endedAt;
   // Engagement
   final int timesLent;
-  // Delivery options offered by the lister
-  final bool offersDeliveryAtDropoff; // Lieferung bei Abgabe (Hinweg)
-  final bool offersPickupAtReturn; // Abholung bei Rückgabe (Rückweg)
-  // Optional: express delivery offering at dropoff (within ~2.5h, +5€ on confirm)
+  // Legacy transport fields retained only for backward-compatible storage.
+  // Remote payloads are normalized to the disabled V5.1 launch boundary.
+  final bool offersDeliveryAtDropoff;
+  final bool offersPickupAtReturn;
   final bool offersExpressAtDropoff;
-  // Optional: max distance (km) the lister is willing to deliver/pick up (demo field)
   final double? maxDeliveryKmAtDropoff;
   final double? maxPickupKmAtReturn;
   // Cancellation policy selected by the lister: 'flexible' | 'moderate' | 'strict'
@@ -149,12 +148,11 @@ class Item {
           ? DateTime.tryParse(endedAtStr)
           : null,
       timesLent: (json['timesLent'] as num?)?.toInt() ?? 0,
-      offersDeliveryAtDropoff: json['offersDeliveryAtDropoff'] == true,
-      offersPickupAtReturn: json['offersPickupAtReturn'] == true,
-      offersExpressAtDropoff: json['offersExpressAtDropoff'] == true,
-      maxDeliveryKmAtDropoff:
-          (json['maxDeliveryKmAtDropoff'] as num?)?.toDouble(),
-      maxPickupKmAtReturn: (json['maxPickupKmAtReturn'] as num?)?.toDouble(),
+      offersDeliveryAtDropoff: false,
+      offersPickupAtReturn: false,
+      offersExpressAtDropoff: false,
+      maxDeliveryKmAtDropoff: null,
+      maxPickupKmAtReturn: null,
       cancellationPolicy: (json['cancellationPolicy'] as String?) ?? 'flexible',
       availabilityMode: (json['availabilityMode'] as String?) ?? 'calendar',
       approximateLocation: json['approximateLocation'] == true,

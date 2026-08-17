@@ -1177,3 +1177,29 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   oder Kandidatenwechsel und keine zusätzliche Crashlytics-
   Kennungsübertragung. Nachweis:
   `docs/evidence/b11/v51-disable-transport-services-20260817T144339Z.json`
+
+## Prüfstand Checkpoint 16.171
+
+- die App neutralisiert jetzt auch alte oder manipulierte Transportfelder
+  unmittelbar beim Einlesen: Listingangebote für Lieferung, Rückgabe-Abholung
+  und Express werden auf `false`, zugehörige Entfernungsgrenzen auf `null`
+  gesetzt
+- eingelesene Buchungen können keine Lieferung, Abholservice oder Express mehr
+  reaktivieren; Auswahl, Status und Zeitstempel werden auf `false`/`null`, die
+  frühere Expressgebühr auf null gesetzt. Die bereinigte Form wird auch wieder
+  so serialisiert
+- diese zweite Verteidigungsschicht verhindert, dass bereits gespeicherte oder
+  manipulierte Payloads frühere Liefer-/Expressanzeigen auslösen, während
+  persönliche Übergabe und Rückgabe sowie Preis-, Katalog- und
+  Buchungssnapshots unverändert bleiben
+- 2/2 neue Ingestion-Tests und 9/9 kombinierte Modell-, Buchungs- und
+  Katalogtests bestanden; beide geänderten Modelle analysieren ohne Befund
+- die vollständige technische Regression bestand mit 292 Flutter-Tests und
+  1 bewusstem Skip, 213 Backendtests und 1 bewusstem PostgreSQL-Skip, 224
+  Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds
+- FCM-Push und Firebase Crashlytics bleiben bestehen, getrennt, freiwillig
+  und im nächsten Kandidaten standardmäßig aus; Push aktiviert Crashlytics
+  nicht. Es erfolgte kein Deployment, Upload, Echtgeld-, Store-,
+  Anbieterconsole- oder Kandidatenwechsel. Nachweis:
+  `docs/evidence/b11/v51-neutralize-legacy-transport-payloads-20260817T145418Z.json`
