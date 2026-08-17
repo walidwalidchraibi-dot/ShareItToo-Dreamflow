@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.133
+Stand: 17.08.2026, lokaler Checkpoint 16.134
 
 ## Verbindliche Grenzen
 
@@ -197,3 +197,25 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
 - Produktion, Store, Echtgeld, öffentliche Rechtstexte und der bestehende
   Kandidat blieben unverändert. Nachweis:
   `docs/evidence/b11/android-moderation-account-ui-2026081509-20260817T061138Z.json`
+
+## Prüfstand Checkpoint 16.134
+
+- der Crashlytics-Restnachweis wurde auf dem unveränderten Play-Kandidaten
+  gezielt und ohne Crashereignis vorgeprüft
+- dessen Benachrichtigungseinstellungen enthalten noch die ältere
+  Feed-Steuerung, aber nicht die später implementierten getrennten freiwilligen
+  Gerätedienst-Schalter für Push und Crashdiagnose
+- der exakt begrenzte kalte App-Link für
+  `b11-android-2026081509` endete erwartungsgemäß mit `Diagnose gesperrt`;
+  es wurde kein kontrolliertes oder produktives Crashereignis erzeugt
+- Mapping, native Symbole, Cache-Drain und sichtbare exakte
+  Crashlytics-Releasezuordnung bleiben bestanden; nur das kontrollierte,
+  bereinigte Ereignis bleibt offen
+- der nächste Kandidat muss die unabhängigen, standardmäßig ausgeschalteten
+  Einwilligungen enthalten, genau einen Staging-Lauf kompilieren und nach
+  freiwilliger Aktivierung die exakte Console-Zuordnung beweisen; danach wird
+  Crashdiagnose wieder ausgeschaltet
+- Push blieb unangetastet und aktiviert Crashlytics weiterhin nicht
+- Produktion, Store, Echtgeld, öffentliche Rechtstexte und der bestehende
+  Kandidat blieben unverändert. Nachweis:
+  `docs/evidence/b11/android-crash-controlled-event-gate-2026081509-20260817T061900Z.json`

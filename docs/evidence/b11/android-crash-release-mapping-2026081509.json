@@ -85,6 +85,14 @@
     "settingsChanged": false,
     "eventGenerated": false
   },
+  "deviceGateObservation": {
+    "capturedAt": "2026-08-17T06:19:00Z",
+    "evidenceRef": "docs/evidence/b11/android-crash-controlled-event-gate-2026081509-20260817T061900Z.json",
+    "independentCrashOptInUiAvailableInCandidate": false,
+    "coldDiagnosticLinkResult": "blocked",
+    "eventGenerated": false,
+    "newCandidateRequired": true
+  },
   "boundaries": {
     "uploadedToStore": true,
     "productionCrashGenerated": false,
