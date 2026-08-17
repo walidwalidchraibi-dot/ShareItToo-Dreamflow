@@ -134,7 +134,11 @@ test('return completion keeps photo evidence and verified transition guards', ()
     /static const int minimumRequiredPhotos = 4;/,
   );
 
-  assert.match(returnStepper, /enum _StepKind \{ photos, rideConfirm, damage, codes \}/);
+  assert.match(returnStepper, /enum _StepKind \{ photos, damage, codes \}/);
+  assert.doesNotMatch(
+    returnStepper,
+    /rideConfirm|Fahrtvergütung|setRideCompensationDecision/,
+  );
   const renderedStep = sourceSectionBetween(
     returnStepper,
     'Widget _buildStep() {',
@@ -172,7 +176,7 @@ test('return completion keeps photo evidence and verified transition guards', ()
   const builtSteps = sourceSectionBetween(
     returnStepper,
     'List<_StepKind> _buildSteps() {',
-    'Widget _rideInfoChip({required bool grant})',
+    'void _openImagePreview(',
   );
   assert.match(
     builtSteps,

@@ -1379,3 +1379,33 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   oder Kandidatenwechsel und keine zusätzliche Crashlytics-
   Kennungsübertragung. Nachweis:
   `docs/evidence/b11/v51-duration-selection-transport-cleanup-20260817T184903Z.json`
+
+## Prüfstand Checkpoint 16.178
+
+- der Übergabe-/Rückgabe-Assistent enthält keinen Fahrtbestätigungs- oder
+  Fahrtvergütungsschritt mehr. Er liest keine alten Liefer-/Abholflags und
+  trifft keine transportbezogene Standortentscheidung
+- der Pilotablauf bleibt bewusst vollständig: mindestens vier aktuelle Fotos
+  der übergebenden Partei, Gegenbestätigung beziehungsweise eigenes Gegenfoto,
+  Schadensdokumentation sowie rollen- und buchungsgebundene Challenge mit
+  QR- oder sechsstelligem Ersatzcode bleiben erhalten
+- der aus diesem Ablauf entfernte Standortzugriff reduziert die dort mögliche
+  Datenerhebung. Es wurde keine neue Speicherung, Übertragung oder
+  Berechtigung eingeführt; der gebundene Datenschutz-Quellhash wurde auf die
+  geprüfte Quelle aktualisiert
+- 35/35 gezielte Sicherheits- und Datenschutzprüfungen sowie nach Anpassung
+  einer veralteten Erwartung nochmals 12/12 betroffene Tests bestanden. Aus
+  der Laufzeitdatei entfielen netto 260 Zeilen; sie analysiert mit 0 Hinweisen
+  und 0 Fehlern
+- die vollständige technische Regression bestand mit 292 Flutter-Tests und
+  1 bewusstem Skip, 213 Backendtests und 1 bewusstem PostgreSQL-Skip, 223
+  Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds
+- FCM-Push und Firebase Crashlytics bleiben ausdrücklich bestehen, getrennt,
+  freiwillig und im nächsten Kandidaten standardmäßig aus; Push aktiviert
+  Crashlytics nicht. Werbung, Marketingtracking, allgemeine Analytics und
+  externe generative KI bleiben aus
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store-, Anbieterconsole-
+  oder Kandidatenwechsel und keine zusätzliche Crashlytics-
+  Kennungsübertragung. Nachweis:
+  `docs/evidence/b11/v51-return-stepper-transport-cleanup-20260817T190416Z.json`

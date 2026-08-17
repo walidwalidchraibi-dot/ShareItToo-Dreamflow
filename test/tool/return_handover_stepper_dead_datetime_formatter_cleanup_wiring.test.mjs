@@ -20,7 +20,10 @@ test('obsolete stepper date formatter cannot return', () => {
 });
 
 test('step order still requires evidence before confirmation codes', () => {
-  const steps = between('List<_StepKind> _buildSteps() {', 'Widget _rideInfoChip(');
+  const steps = between(
+    'List<_StepKind> _buildSteps() {',
+    'void _openImagePreview(',
+  );
   assert.match(steps, /base\.add\(_StepKind\.photos\)/);
   assert.match(steps, /base\.add\(_StepKind\.codes\)/);
   assert.ok(
@@ -51,8 +54,8 @@ test('QR and manual code still delegate to the bound verifier', () => {
   assert.match(confirmation, /widget\.confirmationVerifier!\(code: code\)/);
 });
 
-test('live currency formatter and completion callback remain intact', () => {
-  assert.match(source, /String _fmtEuro\(double v\)/);
+test('completion callback remains intact after obsolete formatters are removed', () => {
+  assert.doesNotMatch(source, /String _fmtEuro\(double v\)/);
   assert.match(
     source,
     /Navigator\.of\(context\)\.pop\(ReturnHandoverStepResult\(/,

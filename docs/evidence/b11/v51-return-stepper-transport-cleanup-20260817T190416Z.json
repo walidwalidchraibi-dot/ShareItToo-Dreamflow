@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "16.178",
+  "capturedAtUtc": "2026-08-17T19:04:16Z",
+  "sourceBaseCommit": "d9866a1c2dc832e267bea7fceefb1c007a56ce9e",
+  "status": "passed",
+  "handoverReturnBoundary": {
+    "rideConfirmationStepRemoved": true,
+    "rideCompensationDecisionRemoved": true,
+    "locationBasedTransportDecisionRemoved": true,
+    "legacyTransportFlagsRead": false,
+    "minimumFourPresenterPhotosPreserved": true,
+    "counterpartyConfirmationAndCounterphotoPreserved": true,
+    "challengeQrAndManualCodePreserved": true,
+    "damageEvidencePreserved": true
+  },
+  "privacyBoundary": {
+    "locationCollectionInThisFlowReduced": true,
+    "storageExpanded": false,
+    "transmissionExpanded": false,
+    "permissionsExpanded": false,
+    "privacySourceHashUpdated": true
+  },
+  "verification": {
+    "targetedWiring": "35/35 passed before compatibility update; 12/12 affected tests passed after update",
+    "runtimeDiff": "1 insertion, 261 deletions",
+    "totalCheckpointDiffBeforeEvidenceAndReport": "64 insertions, 269 deletions",
+    "targetedAnalyzer": "0 findings, 0 errors",
+    "fullTechnicalRegression": "passed with exit code 0",
+    "fullFlutter": "292 passed, 1 intentional skip",
+    "backend": "213 passed, 1 intentional PostgreSQL skip",
+    "flutterAnalyzer": "223 findings, 0 errors",
+    "webDebugBuild": "passed",
+    "androidDebugBuild": "passed"
+  },
+  "serviceBoundary": {
+    "pushRetained": true,
+    "crashlyticsRetained": true,
+    "separateVoluntaryDefaultOffChoices": true,
+    "pushEnablesCrashlytics": false,
+    "adsMarketingAnalyticsExternalGenAiEnabled": false
+  },
+  "externalActions": {
+    "deployment": false,
+    "upload": false,
+    "storeMutation": false,
+    "providerConsoleMutation": false,
+    "liveMoney": false,
+    "candidateBuiltOrRelabeled": false
+  },
+  "sourceHashesSha256": {
+    "lib/widgets/return_handover_stepper_sheet.dart": "64af00d397306bbd115ea5baa1490a269950e399319dd0e597c6b84dd318da5d",
+    "store/privacy-disclosures.json": "d6b053d5a1585eb2153db8f9b3dc30eb832c300f27e3a153ac2e9b370bdb4af3",
+    "test/tool/v51_return_stepper_transport_removed_wiring.test.mjs": "37ba5ac195d8dafb9c2c5e7829b2dc44c9f0f10f0264cd61002a785108a8f14c"
+  }
+}
