@@ -8,12 +8,14 @@ import { validateGoogleOnlyNextCandidate } from '../../tool/validate_google_only
 const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
 const futurePubspec = readFileSync(new URL('../../pubspec.yaml', import.meta.url), 'utf8')
   .replace(/^version:\s*([^+\s]+)\+\d+\s*$/mu, 'version: $1+2026081510');
+const repeatedPubspec = futurePubspec
+  .replace(/^version:\s*([^+\s]+)\+\d+\s*$/mu, 'version: $1+2026081509');
 
 test('accepts the prepared Google-only plan without building', () => {
   assert.deepEqual(validateGoogleOnlyNextCandidate({ repositoryRoot }), {
     state: 'prepared-not-built',
     baselineBuildNumber: '2026081509',
-    plannedBuildNumber: '2026081509',
+    plannedBuildNumber: '2026081510',
     buildable: false,
   });
 });
@@ -22,6 +24,7 @@ test('refuses a repeated candidate build number', () => {
   assert.throws(() => validateGoogleOnlyNextCandidate({
     repositoryRoot,
     requireBuildable: true,
+    pubspecContents: repeatedPubspec,
     environment: { SIT_SOCIAL_GOOGLE_ENABLED: '1' },
   }), /strictly higher build number/);
 });
