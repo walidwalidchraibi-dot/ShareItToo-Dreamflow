@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.167
+Stand: 17.08.2026, lokaler Checkpoint 16.168
 
 ## Verbindliche Grenzen
 
@@ -1095,3 +1095,34 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   oder Kandidatenwechsel, keine Migration und keine zusätzliche
   Crashlytics-Kennungsübertragung. Nachweis:
   `docs/evidence/b11/v51-payment-provider-ui-truth-20260817T135537Z.json`
+
+## Prüfstand Checkpoint 16.168
+
+- auch der direkt aus Buchungsdetails und einem authentifizierten
+  Zahlungs-Rückkehrlink erreichbare Checkout ist jetzt an dieselbe
+  kontogebundene Serverwahrheit gebunden; ohne konsistente Bestätigung von
+  Anbieter, Verfügbarkeit und Modus lädt er keinen zahlbaren Vorgang und zeigt
+  keine Aktion
+- ohne real angebundenen Marketplace-Zahlungsdienst nennt die Ansicht keinen
+  Anbieter und fordert keine Karten-, Konto- oder Sicherheitsdaten an. Ein
+  echter Provider-Testmodus wird ausdrücklich als Test ohne Echtgeld gezeigt;
+  nur ein gültiger Live-Modus darf den Stripe-Checkout benennen
+- die Checkout-Route selbst verweigert Memory-/Demoausführung in Staging und
+  Produktion mit `payment_provider_unavailable`; allein die exakt bezeichnete
+  isolierte Backend-Testumgebung behält den Memory-Pfad für Integrationstests
+- die Auszahlungsbenachrichtigung behauptet nicht länger pauschal ein
+  Stripe-Konto, sondern nennt wahrheitsgemäß nur das bestätigte
+  Auszahlungskonto
+- 6/6 Fail-closed-Verkabelungs- und 8/8 Zahlungs-Widgettests bestanden; die
+  Backendbilanz blieb bei 209 bestanden und 1 bewusstem PostgreSQL-Skip ohne
+  lokale `TEST_DATABASE_URL`
+- die vollständige technische Regression bestand mit 290 Flutter-Tests und
+  1 bewusstem Skip, 224 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web-
+  und Android-Debug-Builds; Datenschutz-, Retention- und Rechtsgates blieben
+  geschlossen und grün
+- FCM-Push und Firebase Crashlytics bleiben ausdrücklich bestehen, getrennt,
+  freiwillig und im nächsten Kandidaten standardmäßig aus; Push aktiviert
+  Crashlytics nicht. Es erfolgte kein Deployment, Upload, Echtgeld-, Store-,
+  Anbieterconsole- oder Kandidatenwechsel und keine zusätzliche
+  Crashlytics-Kennungsübertragung. Nachweis:
+  `docs/evidence/b11/v51-direct-checkout-provider-truth-20260817T141319Z.json`

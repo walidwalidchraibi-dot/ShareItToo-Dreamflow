@@ -3,7 +3,7 @@
   "state": "draft",
   "approvalAllowed": false,
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "dede8e5d38598d0c9bb698ee55f663a3606e97771295748cc11ef8c77be114a0"},
+    {"path": "backend/src/app.js", "sha256": "dc39ac4052227bbc02807ef4172aa4626c955521d0afb07599c18ab4272c4559"},
     {"path": "backend/src/server.js", "sha256": "56eb8383d74e6f609ff2b54f4af4910c26c76b4006dc7ea5fe6f456eb97e68c3"},
     {"path": "backend/src/credential_cleanup.js", "sha256": "53386748f6a9cf2869c2fc98bacdd367270b4d97f5b044fffcf58dab12a2b18b"},
     {"path": "backend/src/moderation_workflow.js", "sha256": "acdc6f8158d2acdf7cd0b5e53ff125a44e0286fca7db1bbf5569ba0de271cafc"},
@@ -11,7 +11,7 @@
     {"path": "backend/src/privacy_export.js", "sha256": "704de255427d3626b2611da64fa75479cdde1871f0d8c174a39c252d388eeeb1"},
     {"path": "backend/src/account_actions.js", "sha256": "bf8699272c9711d351d71c95beacd0f723188ed134880e1640814a04a7e21e10"},
     {"path": "backend/src/config.js", "sha256": "00f00dd0e0fae98f2dc7090da620ae41babdd865926633415175346b12015cdc"},
-    {"path": "backend/src/notifications.js", "sha256": "dfd3c6633fdfa2d59bea86221b4cbbb3da884cbb3b20c222628f0ab1408547d8"},
+    {"path": "backend/src/notifications.js", "sha256": "7f62dab8453861d8ae7558bc46b271ff06e59a0452b7049049763f13122dda5d"},
     {"path": "backend/src/transactional_mail_templates.js", "sha256": "1bdbc6ac443c73bf70ee8ee81e48336ed9f2e9ad4cc4cb7df0bd4cb07bb44339"},
     {"path": "backend/src/return_lifecycle_workflow.js", "sha256": "2fe69aefcf3c4096754d258eda1c5f89da5b700fbf09ccd00447ff3f7dd783e7"},
     {"path": "backend/src/v51_contract_workflow.js", "sha256": "506c735128379bcc2d57d08be12755fc533aa05ca1ddd5dbb8626efe56b78fc6"},
@@ -45,6 +45,7 @@
     {"path": "lib/services/backend_repository.dart", "sha256": "60f4599624201ba5661e84b284dd72c21579aa74d909dd7cc8a9f30afc76ac75"},
     {"path": "lib/screens/payment_methods_screen.dart", "sha256": "47591d15c4ae31869be0d6483a99cf173bd581efa0cd70deda5091160d4b21ff"},
     {"path": "lib/screens/stripe_payout_account_screen.dart", "sha256": "6bc62a6da035fdb3d7f9b81c651c05798ff8e3a259e21b1f910121f1f1f75d08"},
+    {"path": "lib/screens/payment_checkout_screen.dart", "sha256": "154ae02a27644d6e366b07014bcbeccc946bb687f6e8fdf9f1fa224dffc9a8fc"},
     {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "5ae3786fe933f51a04e660399d6339f16e64aa4b75c7f130e15a02aebbcb91c5"},
     {"path": "lib/screens/privacy_info_screen.dart", "sha256": "00a5403b14b80c496b40e978809908871da9cde82f39736ed8353dc3c3e72a59"}
   ],

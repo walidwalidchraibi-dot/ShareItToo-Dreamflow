@@ -250,6 +250,12 @@ function paymentOnboardingExecutionAllowed(userId) {
     config.payments.transport === 'memory';
 }
 
+function paymentCheckoutExecutionAllowed(userId) {
+  if (paymentCapabilitiesFor(userId).checkoutAvailable) return true;
+  return config.deploymentEnvironment === 'test' &&
+    config.payments.transport === 'memory';
+}
+
 function kickNotificationWorker() {
   void drainNotificationOutbox().catch((error) => {
     console.error('[notifications] background drain failed', error?.message ?? error);
@@ -1633,6 +1639,9 @@ export function createApp({
   }));
 
   app.post('/v1/bookings/:id/payment/checkout', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    if (!paymentCheckoutExecutionAllowed(req.auth.userId)) {
+      throw new HttpError(503, 'payment_provider_unavailable');
+    }
     const result = await createPaymentCheckout({
       actor: req.actor,
       bookingId: safeText(req.params.id, 120),

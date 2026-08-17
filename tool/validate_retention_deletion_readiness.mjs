@@ -48,6 +48,7 @@ const sourcePaths = [
   'lib/services/backend_repository.dart',
   'lib/screens/payment_methods_screen.dart',
   'lib/screens/stripe_payout_account_screen.dart',
+  'lib/screens/payment_checkout_screen.dart',
   'lib/screens/legal_privacy_screen.dart',
   'lib/screens/privacy_info_screen.dart',
 ];

@@ -6,6 +6,8 @@ const app = fs.readFileSync('backend/src/app.js', 'utf8');
 const repository = fs.readFileSync('lib/services/backend_repository.dart', 'utf8');
 const methods = fs.readFileSync('lib/screens/payment_methods_screen.dart', 'utf8');
 const payout = fs.readFileSync('lib/screens/stripe_payout_account_screen.dart', 'utf8');
+const checkout = fs.readFileSync('lib/screens/payment_checkout_screen.dart', 'utf8');
+const notifications = fs.readFileSync('backend/src/notifications.js', 'utf8');
 
 test('server exposes one account-bound provider capability truth', () => {
   assert.match(app, /function paymentCapabilitiesFor\(userId\)/u);
@@ -43,6 +45,30 @@ test('payout onboarding cannot render or start without server capability', () =>
   );
   assert.match(payout, /if \(providerAvailable\)[\s\S]*?FilledButton\.icon/u);
   assert.match(payout, /Auszahlungen noch nicht freigeschaltet/u);
+});
+
+test('direct checkout is server- and client-gated by the same capability', () => {
+  assert.match(
+    app,
+    /function paymentCheckoutExecutionAllowed\(userId\)[\s\S]*?deploymentEnvironment === 'test'[\s\S]*?transport === 'memory'/u,
+  );
+  assert.match(
+    app,
+    /if \(!paymentCheckoutExecutionAllowed\(req\.auth\.userId\)\)[\s\S]*?payment_provider_unavailable/u,
+  );
+  assert.match(checkout, /BackendRepository\.getPaymentCapabilities/u);
+  assert.match(checkout, /if \(!_providerAvailable\(_capabilities\)\) return;/u);
+  assert.match(
+    checkout,
+    /if \(providerAvailable && !captured\)[\s\S]*?FilledButton\.icon/u,
+  );
+  assert.match(checkout, /Zahlung noch nicht freigeschaltet/u);
+  assert.match(checkout, /Test-Checkout öffnen/u);
+});
+
+test('financial notification does not invent a provider name', () => {
+  assert.match(notifications, /bestätigtes Auszahlungskonto/u);
+  assert.doesNotMatch(notifications, /an dein Stripe-Konto übertragen/u);
 });
 
 test('push and Crashlytics boundaries remain untouched by payment truth', () => {

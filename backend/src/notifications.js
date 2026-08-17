@@ -482,7 +482,7 @@ export async function enqueueFinancialNotification(client, {
     },
     payout_sent: {
       title: 'Auszahlung freigegeben',
-      body: (title) => `Der Erlös für „${title}“ wurde an dein Stripe-Konto übertragen.`,
+      body: (title) => `Der Erlös für „${title}“ wurde an dein bestätigtes Auszahlungskonto übertragen.`,
       ctaLabel: 'Auszahlung ansehen',
     },
     payment_failed: {

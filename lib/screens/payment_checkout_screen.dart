@@ -5,8 +5,15 @@ import 'package:url_launcher/url_launcher.dart';
 
 class PaymentCheckoutScreen extends StatefulWidget {
   final String bookingId;
+  final Future<Map<String, dynamic>> Function()? loadCapabilities;
+  final Future<Map<String, dynamic>> Function(String bookingId)? loadPayment;
 
-  const PaymentCheckoutScreen({super.key, required this.bookingId});
+  const PaymentCheckoutScreen({
+    super.key,
+    required this.bookingId,
+    this.loadCapabilities,
+    this.loadPayment,
+  });
 
   @override
   State<PaymentCheckoutScreen> createState() => _PaymentCheckoutScreenState();
@@ -17,6 +24,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
   late final String _checkoutKey =
       'checkout_${widget.bookingId}_${DateTime.now().microsecondsSinceEpoch}';
   Map<String, dynamic>? _state;
+  Map<String, dynamic>? _capabilities;
   bool _loading = true;
   bool _working = false;
   String? _error;
@@ -41,10 +49,18 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
 
   Future<void> _refresh() async {
     try {
-      final value = await BackendRepository.getBookingPayment(widget.bookingId);
+      final capabilities = await (widget.loadCapabilities ??
+          BackendRepository.getPaymentCapabilities)();
+      final providerAvailable = _providerAvailable(capabilities);
+      final value = providerAvailable
+          ? await (widget.loadPayment ?? BackendRepository.getBookingPayment)(
+              widget.bookingId,
+            )
+          : null;
       if (!mounted) return;
       setState(() {
         _state = value;
+        _capabilities = capabilities;
         _loading = false;
         _error = null;
       });
@@ -64,6 +80,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
   }
 
   Future<void> _openSecureCheckout() async {
+    if (!_providerAvailable(_capabilities)) return;
     setState(() {
       _working = true;
       _error = null;
@@ -86,7 +103,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
     } catch (_) {
       if (mounted) {
         setState(() => _error =
-            'Der sichere Stripe-Checkout konnte nicht geöffnet werden.');
+            'Der sichere Zahlungs-Checkout konnte nicht geöffnet werden.');
       }
     } finally {
       if (mounted) {
@@ -99,9 +116,11 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
         'booking_not_ready_for_payment' =>
           'Die Buchung muss zuerst vom Vermieter angenommen werden.',
         'owner_payout_account_not_ready' =>
-          'Der Vermieter muss sein Stripe-Auszahlungskonto zuerst vervollständigen.',
+          'Der Vermieter muss sein Auszahlungskonto beim freigeschalteten Zahlungsdienst zuerst vervollständigen.',
         'payments_disabled' =>
           'Zahlungen sind für dieses Konto noch nicht freigeschaltet.',
+        'payment_provider_unavailable' =>
+          'Für dieses Konto ist noch kein echter Marketplace-Zahlungsdienst freigeschaltet.',
         'booking_already_paid' => 'Diese Buchung wurde bereits bezahlt.',
         _ => 'Die Zahlungsaktion konnte gerade nicht abgeschlossen werden.',
       };
@@ -109,6 +128,13 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
   String _money(Object? minor, String currency) {
     final value = (minor as num?)?.toInt() ?? 0;
     return '${(value / 100).toStringAsFixed(2).replaceAll('.', ',')} $currency';
+  }
+
+  bool _providerAvailable(Map<String, dynamic>? capabilities) {
+    final mode = capabilities?['mode']?.toString();
+    return capabilities?['checkoutAvailable'] == true &&
+        capabilities?['provider'] == 'stripe' &&
+        (mode == 'test' || mode == 'live');
   }
 
   @override
@@ -120,10 +146,12 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
     final paymentStatus = payment?['status']?.toString();
     final captured = const {'captured', 'partially_refunded', 'refunded'}
         .contains(paymentStatus);
+    final providerAvailable = _providerAvailable(_capabilities);
+    final testMode = providerAvailable && _capabilities?['mode'] == 'test';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sichere Zahlung'),
+        title: const Text('Zahlungsstatus'),
         actions: [
           IconButton(
               onPressed: _working ? null : _refresh,
@@ -146,14 +174,24 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
                           const Icon(Icons.lock_outline, size: 36),
                           const SizedBox(height: 12),
                           Text(
-                            captured ? 'Zahlung bestätigt' : 'Buchung bezahlen',
+                            !providerAvailable
+                                ? 'Zahlung noch nicht freigeschaltet'
+                                : (captured
+                                    ? 'Zahlung bestätigt'
+                                    : (testMode
+                                        ? 'Zahlungstest'
+                                        : 'Buchung bezahlen')),
                             style: Theme.of(context).textTheme.headlineSmall,
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            captured
-                                ? 'Stripe hat die Zahlung bestätigt. Der Status stammt direkt vom Server.'
-                                : 'Betrag und Gebühr werden vom ShareItToo-Server festgelegt. Deine Zahlungsdaten werden ausschließlich bei Stripe eingegeben.',
+                            !providerAvailable
+                                ? 'Für dieses Konto ist noch kein echter Marketplace-Zahlungsdienst freigeschaltet. ShareItToo fordert deshalb keine Karten-, Konto- oder Sicherheitsdaten an.'
+                                : (captured
+                                    ? 'Der freigeschaltete Zahlungsdienst hat die Zahlung bestätigt. Der Status stammt direkt vom Server.'
+                                    : (testMode
+                                        ? 'Dieser Checkout ist ausschließlich für gekennzeichnete Tests vorgesehen. Es fließt kein echtes Geld.'
+                                        : 'Betrag und Gebühr werden vom ShareItToo-Server festgelegt. Deine Zahlungsdaten werden ausschließlich im sicheren Stripe-Checkout eingegeben.')),
                           ),
                           if (amounts != null) ...[
                             const SizedBox(height: 18),
@@ -170,7 +208,7 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
                                 value: _money(
                                     amounts['ownerPayoutMinor'], currency)),
                           ],
-                          if (!captured) ...[
+                          if (providerAvailable && !captured) ...[
                             const SizedBox(height: 18),
                             SizedBox(
                               width: double.infinity,
@@ -180,7 +218,9 @@ class _PaymentCheckoutScreenState extends State<PaymentCheckoutScreen>
                                 icon: const Icon(Icons.open_in_new),
                                 label: Text(_working
                                     ? 'Bitte warten …'
-                                    : 'Sicher mit Stripe bezahlen'),
+                                    : (testMode
+                                        ? 'Test-Checkout öffnen'
+                                        : 'Sicher mit Stripe bezahlen')),
                               ),
                             ),
                           ],

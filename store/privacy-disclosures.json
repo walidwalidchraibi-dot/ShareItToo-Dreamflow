@@ -131,6 +131,10 @@
       "sha256": "6bc62a6da035fdb3d7f9b81c651c05798ff8e3a259e21b1f910121f1f1f75d08"
     },
     {
+      "path": "lib/screens/payment_checkout_screen.dart",
+      "sha256": "154ae02a27644d6e366b07014bcbeccc946bb687f6e8fdf9f1fa224dffc9a8fc"
+    },
+    {
       "path": "lib/models/invoice.dart",
       "sha256": "88a76b48770de56737b6e9a2330101ffaa34261b050ef728befe64043105574c"
     },
@@ -180,7 +184,7 @@
     },
     {
       "path": "backend/src/notifications.js",
-      "sha256": "dfd3c6633fdfa2d59bea86221b4cbbb3da884cbb3b20c222628f0ab1408547d8"
+      "sha256": "7f62dab8453861d8ae7558bc46b271ff06e59a0452b7049049763f13122dda5d"
     },
     {
       "path": "backend/src/transactional_mail_templates.js",
@@ -260,7 +264,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "dede8e5d38598d0c9bb698ee55f663a3606e97771295748cc11ef8c77be114a0"
+      "sha256": "dc39ac4052227bbc02807ef4172aa4626c955521d0afb07599c18ab4272c4559"
     },
     {
       "path": "lib/screens/create_listing_screen.dart",
