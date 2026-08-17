@@ -122,12 +122,10 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
         extraBullets: [
           'Übergaben',
           'Rückgaben',
-          'mögliche Lieferungen',
-          'Berechnung von Liefergebühren',
         ],
         ruleTitle: 'Regel',
         ruleText:
-            'Die genaue Adresse wird je nach Buchungsart erst nach einer bestätigten Anfrage für die notwendige Übergabe, Lieferung oder Rückgabe sichtbar.',
+            'Die genaue Adresse wird erst nach einer bestätigten Anfrage und nur nach der festgelegten Zeit- und Statusregel für Übergabe oder Rückgabe sichtbar.',
         note:
             'Andere Nutzer sehen öffentlich nur deine Stadt oder ungefähre Region. Einen präzisen aktuellen Gerätestandort fragt die App nur einmalig ab, wenn du „Standort prüfen“ selbst startest; eine dauerhafte Hintergrund- oder Live‑Ortung findet nicht statt.',
       ),

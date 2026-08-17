@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "16.170",
+  "capturedAtUtc": "2026-08-17T14:43:39Z",
+  "sourceBaseCommit": "ed2283dec167a6af464580accba374490f017c24",
+  "status": "passed",
+  "launchTransportBoundary": {
+    "ownerDeliveryEnabled": false,
+    "returnPickupServiceEnabled": false,
+    "expressEnabled": false,
+    "authoritativeServerQuoteRejectsTamperedSelection": true,
+    "legacySyncRejectsTamperedSelection": true,
+    "deliveryFeeMinor": 0,
+    "pickupFeeMinor": 0,
+    "personalHandoverAndReturnPreserved": true
+  },
+  "copyTruth": {
+    "deliveryServicePromised": false,
+    "deliveryFeePromised": false,
+    "addressReleaseRuleRetained": true
+  },
+  "verification": {
+    "newDomainAndWiringTests": "8/8 passed",
+    "backend": "213 passed, 1 intentional PostgreSQL skip",
+    "flutterAnalyzer": "224 findings, 0 errors",
+    "fullTechnicalRegression": "passed with exit code 0",
+    "fullFlutter": "290 passed, 1 intentional skip",
+    "webDebugBuild": "passed",
+    "androidDebugBuild": "passed",
+    "privacyValidator": "passed",
+    "retentionValidator": "passed"
+  },
+  "serviceBoundary": {
+    "pushRetained": true,
+    "crashlyticsRetained": true,
+    "separateVoluntaryDefaultOffChoices": true,
+    "pushEnablesCrashlytics": false,
+    "adsMarketingAnalyticsExternalGenAiEnabled": false
+  },
+  "externalActions": {
+    "deployment": false,
+    "upload": false,
+    "storeMutation": false,
+    "providerConsoleMutation": false,
+    "liveMoney": false,
+    "candidateBuiltOrRelabeled": false
+  },
+  "sourceHashesSha256": {
+    "backend/src/app.js": "46e6d343c89e2c1b20136f67318858b813e0659ff7c6455d409df1f61ecd6e3b",
+    "backend/src/booking_workflow.js": "555f6f6916f8281f6eb71f0c1b7e61c9480f0a9ab9d633f300f40f533a0a90b0",
+    "backend/src/v51_transport_domain.js": "23203dff7ae70545d534cee19dfbe434b0c64ff4144780186fc30aad523d0e72",
+    "backend/test/v51_transport_disabled.test.js": "ac9e7e3b0fbe2a59b8e084ca68ef849d45720cd298ebcab3e65efc4d5cc18fb3",
+    "lib/screens/contact_data_screen.dart": "e0e08663f291e335179e411d3003b0976bf3420e35999bcc2940fcdb2e6509f8",
+    "lib/screens/privacy_info_screen.dart": "815fdf46ecffa72ce9f517633646a484e932282f84cdc8f44a6bbedd6eff1be6",
+    "store/privacy-disclosures.json": "512592a8a2c0d84d8100abb3a57506fc1c8ee42473857d89e609d51220cba65f",
+    "store/retention-deletion-readiness.json": "49a47959cb35afa268d27990e913a25954ac38403e1755963baf84a0d6c614ae",
+    "test/tool/v51_transport_disabled_wiring.test.mjs": "6018a8a488d68f2392989bed9d85c5b8df42b926f9eb1716604b3555000cf148"
+  }
+}

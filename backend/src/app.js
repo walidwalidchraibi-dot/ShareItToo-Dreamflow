@@ -98,6 +98,7 @@ import {
 } from './payment_workflow.js';
 import { PaymentDomainError } from './payment_domain.js';
 import { ModerationDomainError } from './moderation_domain.js';
+import { v51DisabledTransportCode } from './v51_transport_domain.js';
 import {
   createAccountLegalHold,
   createBookingReview,
@@ -723,17 +724,14 @@ function existingRentalPayload(raw, existing, actorId) {
     }
   }
   if (isRenter && existing.status === 'pending') {
-    for (const key of ['start', 'end', 'expressRequested', 'expressRequestedAt']) {
+    for (const key of ['start', 'end']) {
       if (Object.hasOwn(candidate, key)) merged[key] = candidate[key];
     }
   }
-  if (isRenter && (stored.expressStatus === null || stored.expressStatus === 'pending')) {
-    merged.expressStatus = candidate.expressRequested === false ? null : 'pending';
-  }
-  if (!isRenter && ['pending', 'accepted', 'declined'].includes(candidate.expressStatus)) {
-    merged.expressStatus = candidate.expressStatus;
-    merged.expressConfirmedAt = candidate.expressConfirmedAt ?? null;
-  }
+  merged.expressRequested = false;
+  merged.expressRequestedAt = null;
+  merged.expressStatus = null;
+  merged.expressConfirmedAt = null;
 
   const nextStatus = normalizeBookingStatus(candidate.status ?? existing.status);
   merged.status = nextStatus;
@@ -3072,6 +3070,8 @@ export function createApp({
     const requests = await inTransaction(async (client) => {
       for (const raw of req.body.requests) {
         const candidate = ensureObject(raw, 'invalid_request');
+        const disabledTransportCode = v51DisabledTransportCode(candidate);
+        if (disabledTransportCode) throw new HttpError(409, disabledTransportCode);
         const id = identifier(candidate.id, 'request');
         const existingResult = await client.query(
           `SELECT request.*, booking.status AS booking_status,

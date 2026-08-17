@@ -1144,3 +1144,36 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   nicht. Es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder
   Kandidatenwechsel. Nachweis:
   `docs/evidence/b11/v51-remove-unreachable-payment-demos-20260817T142336Z.json`
+
+## Prüfstand Checkpoint 16.170
+
+- Lieferung durch den Vermieter, Rückgabe-Abholservice und Express sind jetzt
+  nicht nur in der App abgewählt, sondern an der maßgeblichen Serverquote
+  ausdrücklich gesperrt; manipulierte Anfragen erhalten je einen stabilen
+  Konfliktcode und können keine Transportgebühr erzeugen
+- die ältere Synchronisationsroute kann diese drei Modi ebenfalls nicht mehr
+  einführen. Bei einer zulässigen Aktualisierung werden alte Expressfelder
+  fail-closed auf `false` beziehungsweise `null` normalisiert
+- der Serverquote-Pfad enthält keine Entfernungs- oder
+  Liefergebührenberechnung mehr und setzt Liefer- sowie Abholgebühr
+  unveränderlich auf null Cent; die persönliche Übergabe und Rückgabe mit
+  ihren bestehenden Foto-, QR-/Code- und Rollenregeln bleiben unangetastet
+- Datenschutz- und Kontaktdatenansichten versprechen weder mögliche
+  Lieferungen noch Liefergebühren. Sie erklären stattdessen die lokale Suche,
+  sichere Übergabeplanung und die festgelegte Zeit- und Statusregel für die
+  genaue Adresse
+- 8/8 neue fachliche und Fail-closed-Verkabelungstests bestanden; die gesamte
+  Backendbilanz beträgt 213 bestanden und 1 bewusster PostgreSQL-Skip ohne
+  lokale `TEST_DATABASE_URL`
+- die vollständige technische Regression bestand mit 290 Flutter-Tests und
+  1 bewusstem Skip, 224 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web-
+  und Android-Debug-Builds; Datenschutz-, Retention-, Rechts-, Store- und
+  Geräteevidenzvalidatoren blieben grün
+- FCM-Push und Firebase Crashlytics bleiben ausdrücklich bestehen, getrennt,
+  freiwillig und im nächsten Kandidaten standardmäßig aus; Push aktiviert
+  Crashlytics nicht. Werbung, Marketingtracking, allgemeine Analytics und
+  externe generative KI bleiben aus
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store-, Anbieterconsole-
+  oder Kandidatenwechsel und keine zusätzliche Crashlytics-
+  Kennungsübertragung. Nachweis:
+  `docs/evidence/b11/v51-disable-transport-services-20260817T144339Z.json`

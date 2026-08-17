@@ -763,7 +763,7 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
         return _SheetScaffold(
           title: 'Standort auf Karte bestätigen',
           subtitle:
-              'Wir speichern optionale GPS‑Koordinaten, um Entfernungen und Liefergebühren berechnen zu können.',
+              'Wir speichern optionale GPS‑Koordinaten, um Entfernungen für die lokale Suche und sichere Übergabeplanung berechnen zu können.',
           child: StatefulBuilder(
             builder: (context, setLocal) {
               return Column(
@@ -883,7 +883,7 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                                   style: theme.textTheme.titleLarge),
                               const SizedBox(height: 8),
                               Text(
-                                'Diese Informationen werden für Kommunikation, Verifizierung sowie für Übergaben, Rückgaben und mögliche Lieferungen verwendet. Deine Daten sind nicht öffentlich sichtbar.',
+                                'Diese Informationen werden für Kommunikation, Verifizierung sowie für Übergaben und Rückgaben verwendet. Deine Daten sind nicht öffentlich sichtbar.',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                     color: Colors.white70, height: 1.45),
                               ),
@@ -992,7 +992,7 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                               _SectionHeader(title: 'Adresse'),
                               const SizedBox(height: 8),
                               Text(
-                                'Die Adresse ist verpflichtend, da sie für Übergaben, Rückgaben, Lieferungen und die Berechnung möglicher Liefergebühren benötigt wird.',
+                                'Die Adresse ist verpflichtend, da sie für sichere Übergaben und Rückgaben benötigt wird.',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                     color: Colors.white70, height: 1.45),
                               ),
@@ -1097,7 +1097,7 @@ class _ContactDataScreenState extends State<ContactDataScreen> {
                               const SizedBox(height: 12),
                               _PrivacyNote(
                                 text:
-                                    'Deine Adresse wird nur für Buchungen, Übergaben, Rückgaben und mögliche Lieferungen verwendet. Sie ist nicht öffentlich sichtbar.\n\nDie genaue Adresse wird bei Buchungen erst kurz vor der Übergabe oder Rückgabe angezeigt (je nach Buchungsart).',
+                                    'Deine Adresse wird nur für Buchungen, Übergaben und Rückgaben verwendet. Sie ist nicht öffentlich sichtbar.\n\nDie genaue Adresse wird bei Buchungen erst nach der festgelegten Zeit- und Statusregel für Übergabe oder Rückgabe angezeigt.',
                               ),
                               const SizedBox(height: 80),
                             ]),

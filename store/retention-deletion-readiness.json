@@ -3,7 +3,7 @@
   "state": "draft",
   "approvalAllowed": false,
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "dc39ac4052227bbc02807ef4172aa4626c955521d0afb07599c18ab4272c4559"},
+    {"path": "backend/src/app.js", "sha256": "46e6d343c89e2c1b20136f67318858b813e0659ff7c6455d409df1f61ecd6e3b"},
     {"path": "backend/src/server.js", "sha256": "56eb8383d74e6f609ff2b54f4af4910c26c76b4006dc7ea5fe6f456eb97e68c3"},
     {"path": "backend/src/credential_cleanup.js", "sha256": "53386748f6a9cf2869c2fc98bacdd367270b4d97f5b044fffcf58dab12a2b18b"},
     {"path": "backend/src/moderation_workflow.js", "sha256": "acdc6f8158d2acdf7cd0b5e53ff125a44e0286fca7db1bbf5569ba0de271cafc"},
@@ -47,7 +47,7 @@
     {"path": "lib/screens/stripe_payout_account_screen.dart", "sha256": "6bc62a6da035fdb3d7f9b81c651c05798ff8e3a259e21b1f910121f1f1f75d08"},
     {"path": "lib/screens/payment_checkout_screen.dart", "sha256": "154ae02a27644d6e366b07014bcbeccc946bb687f6e8fdf9f1fa224dffc9a8fc"},
     {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "5ae3786fe933f51a04e660399d6339f16e64aa4b75c7f130e15a02aebbcb91c5"},
-    {"path": "lib/screens/privacy_info_screen.dart", "sha256": "00a5403b14b80c496b40e978809908871da9cde82f39736ed8353dc3c3e72a59"}
+    {"path": "lib/screens/privacy_info_screen.dart", "sha256": "815fdf46ecffa72ce9f517633646a484e932282f84cdc8f44a6bbedd6eff1be6"}
   ],
   "implementedControls": {
     "accountErasure": {

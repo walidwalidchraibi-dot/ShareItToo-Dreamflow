@@ -4,8 +4,6 @@ import {
   actorRoleForBooking,
   canTransitionWorkflow,
   datePart,
-  deliveryFeeForDistanceMinor,
-  distanceKm,
   legacyStatusForWorkflow,
   normalizeBookingWorkflowStatus,
   normalizeCurrency,
@@ -35,6 +33,10 @@ import {
   persistV51PlatformContract,
   V51ContractWorkflowError,
 } from './v51_contract_workflow.js';
+import {
+  v51DisabledTransportCode,
+  v51ZeroTransportQuote,
+} from './v51_transport_domain.js';
 
 const blockingWorkflowStatuses = Object.freeze([
   'accepted',
@@ -121,12 +123,6 @@ function rentalDatesFromCandidate(candidate, { maxDays = 365 } = {}) {
 
 function money(value) {
   return Number(value) / 100;
-}
-
-function numberOrNull(value) {
-  if (value === null || value === undefined || value === '') return null;
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
 }
 
 function databaseDate(value) {
@@ -268,54 +264,17 @@ async function assertNewBookingAllowed(client, renterId, ownerId) {
   }
 }
 
-function deliveryQuote(candidate, listing) {
-  const payload = listing.payload && typeof listing.payload === 'object' ? listing.payload : {};
-  const deliverySelected = candidate.ownerDeliversAtDropoffChosen === true;
-  const pickupSelected = candidate.ownerPicksUpAtReturnChosen === true;
-  let deliveryFeeMinor = 0;
-  let pickupFeeMinor = 0;
-
-  const calculate = ({ selected, offered, latitude, longitude, maximum, code }) => {
-    if (!selected) return 0;
-    if (!offered) throw new BookingWorkflowError(409, `${code}_not_offered`);
-    const km = distanceKm(listing.latitude, listing.longitude, latitude, longitude);
-    if (km === null) throw new BookingWorkflowError(400, `${code}_location_required`);
-    const maxKm = numberOrNull(maximum);
-    if (maxKm !== null && km > maxKm) {
-      throw new BookingWorkflowError(409, `${code}_outside_service_area`, {
-        maximumKm: Number(maxKm.toFixed(2)),
-      });
-    }
-    return deliveryFeeForDistanceMinor(km);
-  };
-
-  deliveryFeeMinor = calculate({
-    selected: deliverySelected,
-    offered: payload.offersDeliveryAtDropoff === true,
-    latitude: candidate.deliveryLat,
-    longitude: candidate.deliveryLng,
-    maximum: payload.maxDeliveryKmAtDropoff,
-    code: 'delivery',
-  });
-  pickupFeeMinor = calculate({
-    selected: pickupSelected,
-    offered: payload.offersPickupAtReturn === true,
-    latitude: candidate.returnLat ?? candidate.deliveryLat,
-    longitude: candidate.returnLng ?? candidate.deliveryLng,
-    maximum: payload.maxPickupKmAtReturn,
-    code: 'pickup',
-  });
-  if (candidate.expressRequested === true) {
-    throw new BookingWorkflowError(409, 'express_booking_not_enabled');
-  }
-  return { deliveryFeeMinor, pickupFeeMinor };
+function v51DisabledTransportQuote(candidate) {
+  const disabledCode = v51DisabledTransportCode(candidate);
+  if (disabledCode) throw new BookingWorkflowError(409, disabledCode);
+  return v51ZeroTransportQuote();
 }
 
 function quoteForListing(candidate, dates, listing) {
   const payload = listing.payload && typeof listing.payload === 'object' ? listing.payload : {};
   const minimumDays = Math.max(1, Number(listing.min_days ?? payload.minDays ?? 1));
   const maximumDays = Math.min(365, Math.max(minimumDays, Number(listing.max_days ?? payload.maxDays ?? 365)));
-  const extras = deliveryQuote(candidate, listing);
+  const extras = v51DisabledTransportQuote(candidate);
   const quote = quoteRental({
     days: dates.days,
     pricePerDayMinor: Number(listing.price_per_day_minor),
