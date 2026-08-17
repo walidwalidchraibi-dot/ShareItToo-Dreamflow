@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.168
+Stand: 17.08.2026, lokaler Checkpoint 16.169
 
 ## Verbindliche Grenzen
 
@@ -1126,3 +1126,21 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   Anbieterconsole- oder Kandidatenwechsel und keine zusätzliche
   Crashlytics-Kennungsübertragung. Nachweis:
   `docs/evidence/b11/v51-direct-checkout-provider-truth-20260817T141319Z.json`
+
+## Prüfstand Checkpoint 16.169
+
+- das unerreichbare lokale Demo-Wallet mit erfundenem Guthaben und
+  Beispieltransaktionen sowie der ebenfalls unerreichbare Demo-
+  Verifizierungsablauf wurden vollständig entfernt; zusammen entfielen 667
+  tote Quellzeilen ohne Laufzeitaufrufer
+- der verbleibende Buchungsmenüpunkt heißt wahrheitsgemäß
+  `Zahlungsstatus` und verspricht keine freigeschaltete Zahlung
+- 4/4 neue Demo-Abwesenheits-, 10/10 kombinierte Zahlungs-Verkabelungs- und
+  31/31 gezielte Flutter-Tests bestanden; die vollständige Regression blieb
+  mit 290 Flutter-Tests, 1 bewusstem Skip, 224 Analyzer-Hinweisen bei 0
+  Fehlern sowie grünen Web- und Android-Debug-Builds vollständig grün
+- FCM-Push und Firebase Crashlytics bleiben bestehen, getrennt, freiwillig
+  und im nächsten Kandidaten standardmäßig aus; Push aktiviert Crashlytics
+  nicht. Es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder
+  Kandidatenwechsel. Nachweis:
+  `docs/evidence/b11/v51-remove-unreachable-payment-demos-20260817T142336Z.json`

@@ -834,7 +834,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     ((widget.booking['requestId'] as String?) ?? '').isNotEmpty)
                   const SitMenuOption(
                     icon: Icons.lock_outline,
-                    label: 'Zahlung',
+                    label: 'Zahlungsstatus',
                     value: 'payment',
                   ),
                 const SitMenuOption(

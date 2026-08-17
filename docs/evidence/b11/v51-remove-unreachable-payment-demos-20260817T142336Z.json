@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "16.169",
+  "capturedAtUtc": "2026-08-17T14:23:36Z",
+  "sourceBaseCommit": "793e7d21e92135d886b1d9bf4b0e05f53fdd08fe",
+  "status": "passed",
+  "removedUnreachableSources": [
+    "lib/screens/sit_wallet_screen.dart",
+    "lib/services/sit_credit_service.dart",
+    "lib/models/sit_credit_transaction.dart",
+    "lib/screens/verification_intro_screen.dart"
+  ],
+  "truthChange": "The booking menu now says Zahlungsstatus instead of implying that a payment action is available.",
+  "reachabilityProof": "Repository-wide reference inspection found no runtime caller or import outside the mutually closed wallet trio and the demo screen declarations.",
+  "verification": {
+    "noDemoSurfaceWiring": "4/4 passed",
+    "combinedPaymentWiring": "10/10 passed",
+    "targetedFlutter": "31/31 passed",
+    "flutterAnalyzer": "224 findings, 0 errors",
+    "fullTechnicalRegression": "passed with exit code 0",
+    "fullFlutter": "290 passed, 1 intentional skip",
+    "webDebugBuild": "passed",
+    "androidDebugBuild": "passed"
+  },
+  "serviceBoundary": {
+    "pushRetained": true,
+    "crashlyticsRetained": true,
+    "separateVoluntaryDefaultOffChoices": true,
+    "pushEnablesCrashlytics": false
+  },
+  "externalActions": {
+    "deployment": false,
+    "upload": false,
+    "storeMutation": false,
+    "liveMoney": false,
+    "candidateBuiltOrRelabeled": false
+  },
+  "sourceHashesSha256": {
+    "lib/screens/booking_detail_screen.dart": "62c6d25566e5a8bf5d430947eb02588ec0141f5f0c6f71b858b4dee265a0da3f",
+    "test/tool/no_demo_payment_surfaces.test.mjs": "55bb7600de1549208943069dc6360128d3b7afa81d3b04d5a7baf4e6447e239a",
+    "store/privacy-disclosures.json": "22e4c0859197e5f5024932106f59489a7fb6284a066e7c9e803890bdfde3325a"
+  }
+}
