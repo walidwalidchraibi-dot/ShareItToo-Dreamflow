@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.140
+Stand: 17.08.2026, lokaler Checkpoint 16.141
 
 ## Verbindliche Grenzen
 
@@ -342,3 +342,18 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   Gebundene Nachweise:
   `docs/evidence/b11/android-candidate-2026081510-build-and-device-services-20260817.json`
   und `store/google-only-next-candidate.json`
+
+## Prüfstand Checkpoint 16.141
+
+- die Löschmatrix bildet die Produktentscheidung jetzt korrekt ab: FCM-Push
+  und Firebase Crashlytics bleiben verbindlich Bestandteil von SIT
+- beide Dienste bleiben getrennt, freiwillig und standardmäßig aus; Push darf
+  Crashdiagnose niemals automatisch aktivieren
+- die Aufnahmeentscheidung wird nicht fälschlich als Datenschutz- oder
+  Löschfreigabe gewertet: Transfergrundlage, Region, Vertrag, Storeangaben,
+  Anbieterfristen sowie lokaler Opt-out- und Löschablauf bleiben je Dienst offen
+- Firebase Authentication und Google Maps bleiben zusätzlich als eigene
+  Anbieterentscheidungen abzugrenzen
+- alle neun Aufbewahrungs-/Löschentscheidungen bleiben deshalb formal offen;
+  keine Löschroutine, Produktion, Store-Angabe oder externe Übertragung wurde
+  durch diesen Dokumentationsschritt aktiviert.

@@ -20,7 +20,7 @@ Die V5.1-Unterlagen verlangen eine dokumentierte Löschmatrix, enthalten aber ke
 | Sicherheits-/Auditlogs | Risiko + Recht nötig | Auth-, Admin-, Buchungs-, Zustell- und Lösch-Audit getrennt bewerten; kürzeste zweckerfüllende Frist. | Append-only Nachweise vorhanden; Frist/Purge offen. |
 | Abgelaufene Zugangsdaten | Technisch entscheidungsreif | Bei Ablauf/Verbrauch löschen oder Challenge-Digest unbrauchbar machen; Startlauf + alle 6 Stunden, maximal 24 Stunden nach Löschreife. | Implementiert und getestet. |
 | Backups | Betrieblich entscheidungsreif | 14 Tage Rotation bestätigen; Primärdaten sofort bereinigen, alte Backups rotieren aus und dürfen nur kontrolliert zur Wiederherstellung dienen. | 14-Tage-Rotation vorhanden; keine Einzellöschung in bestehenden Backups. |
-| Externe Anbieter | Einzelannahme nötig | FCM, Crashlytics, Firebase Auth und Maps einzeln bestätigen; lokale Deaktivierung und Anbieterabschluss nicht vermischen. | Offizielle Quellen geprüft; Betreiberannahme und Löschablauf offen. |
+| Externe Anbieter | Produktaufnahme für FCM und Crashlytics bestätigt; Anbieter-/Transfer-/Retention-Entscheidung offen | FCM und Crashlytics verbindlich erhalten; Firebase Auth und Maps weiterhin einzeln bestätigen. Lokale Deaktivierung, Anbieterabschluss und anbietergesteuerte Löschung nicht vermischen. | Offizielle Quellen geprüft; Produktentscheidung für FCM/Crashlytics bestätigt, konkrete Transfer-, Aufbewahrungs- und Löschabläufe bleiben offen. |
 | Legal Hold | Betreiberprozess + Recht nötig | Admin-only, fallgebunden, begrenzter Umfang, Grund, regelmäßige Erforderlichkeitsprüfung und dokumentierte Freigabe. | Technische Sperre und Audit vorhanden; Prozessfreigabe offen. |
 
 ## Externe Dienste – verbindliche Produktgrenze
@@ -28,6 +28,7 @@ Die V5.1-Unterlagen verlangen eine dokumentierte Löschmatrix, enthalten aber ke
 - Firebase Cloud Messaging bleibt Bestandteil von SIT, aber standardmäßig aus und nur nach eigener freiwilliger Aktivierung.
 - Firebase Crashlytics bleibt Bestandteil von SIT, aber standardmäßig aus und nur nach einer davon getrennten freiwilligen Aktivierung.
 - Push darf Crashdiagnose niemals automatisch aktivieren.
+- Diese bestätigte Produktaufnahme schließt die externe Anbieterentscheidung nicht: Transfergrundlage, Region, Vertrag, Storeangaben, Anbieterfrist und lokaler Opt-out-/Löschablauf bleiben je Dienst nachzuweisen.
 - Werbung, Marketingtracking, allgemeine Analytics und externe generative KI bleiben ohne gesonderte Entscheidung aus.
 - Anbieterfristen werden als anbietergesteuerte Abschlusszeiten beschrieben, nicht als von SIT garantierte Sofortlöschung.
 
@@ -48,7 +49,7 @@ Offizielle Grundlagen:
 ## Freigabereihenfolge
 
 1. Abgelaufene Zugangsdaten und Backupfenster als bereits technisch belegte Betriebsentscheidungen bestätigen.
-2. Jeden externen Dienst samt Löschablauf einzeln bestätigen.
+2. Für FCM und Crashlytics die bestätigte Produktaufnahme um Transfer-, Vertrags-, Store-, Aufbewahrungs- und Löschbelege ergänzen; Firebase Auth und Maps weiterhin einzeln bestätigen.
 3. Transaktionen, Kommunikation, Moderation und Audit datensatzweise rechtlich klassifizieren.
 4. Inaktivitäts- und Legal-Hold-Prozess organisatorisch festlegen.
 5. Erst danach Werte in `store/retention-deletion-readiness.json` schließen.
