@@ -1,11 +1,16 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.139
+Stand: 17.08.2026, lokaler Checkpoint 16.140
 
 ## Verbindliche Grenzen
 
-- Der unveränderte interne Kandidat ist `1.0.0+2026081509`. Spätere
-  Quelländerungen sind kein Kandidaten- oder Store-Nachweis.
+- Der unveränderte, offiziell über Google Play Internal ausgelieferte Kandidat
+  ist `1.0.0+2026081509`.
+- Der neuere Kandidat `1.0.0+2026081510` wurde lokal kanonisch signiert,
+  geprüft und privat archiviert. Er wurde nicht hochgeladen und ist deshalb
+  weder Play-Kandidat noch Store-, Closed-Test- oder Produktionsnachweis.
+- Spätere Quelländerungen sind ohne neue eindeutige Buildidentität kein
+  Kandidaten- oder Store-Nachweis.
 - Echtgeld, produktive Zahlungen, öffentliche Rechtstexte, Produktion und
   Store-Einreichung bleiben gesperrt.
 - Firebase Cloud Messaging und Firebase Crashlytics bleiben Bestandteil des
@@ -78,7 +83,7 @@ Aufbewahrungs-, Lösch- und Store-Nachweise geschlossen werden.
 - Firebase Push-/Crash-Provider-, Transfer- und Vertragsnachweise
 - neun Aufbewahrungs-/Löschentscheidungen
 - vier reale physische Gerätematrix-Fälle
-- neuer signierter Kandidat und vollständige Kandidatenbindung
+- Play-ausgelieferter Nachfolgekandidat und vollständige Store-Kandidatenbindung
 - unabhängige Rechts-/Produktprüfung, soweit verfügbar
 
 Bis diese Punkte belegt sind, bleibt Go/No-Go auf `HOLD`.
@@ -320,3 +325,20 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   freigegebene private oder dedizierte Testidentität ausgewählt werden darf.
   Nachweis:
   `docs/evidence/b11/android-social-auth-google-only-2026081510-20260817T072343Z.json`
+
+## Prüfstand Checkpoint 16.140
+
+- der Umsetzungsbericht trennt jetzt ausdrücklich den unveränderten
+  Google-Play-Internal-Kandidaten `2026081509` vom lokal signierten,
+  geprüften und privat archivierten Kandidaten `2026081510`
+- `2026081510` bleibt `built-local-not-uploaded`; daraus wird weder ein
+  Play-, Closed-Test-, Store- noch Produktionsnachweis abgeleitet
+- das noch offene Kandidatengate verlangt deshalb nicht erneut irgendeinen
+  signierten Build, sondern einen tatsächlich über Play ausgelieferten
+  Nachfolgekandidaten mit vollständiger Store-Bindung
+- Push und Crashdiagnose bleiben in beiden Kandidatengrenzen erhalten,
+  getrennt, freiwillig und standardmäßig aus; Push aktiviert Crash nicht
+- es erfolgte kein neuer Build, kein Upload und keine externe Änderung.
+  Gebundene Nachweise:
+  `docs/evidence/b11/android-candidate-2026081510-build-and-device-services-20260817.json`
+  und `store/google-only-next-candidate.json`
