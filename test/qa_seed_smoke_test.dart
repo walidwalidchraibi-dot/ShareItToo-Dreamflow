@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/services/data_service.dart';
@@ -165,10 +166,22 @@ void main() {
         isTrue,
       );
       for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-        await DataService.incrementHandoverPhotos(pickupRequestId);
+        await DataService.addConditionEvidencePhoto(
+          requestId: pickupRequestId,
+          bytes: Uint8List.fromList([1, 2, 3, i]),
+          filename: 'pickup-$i.jpg',
+          segment: 'pickup',
+          kind: 'presenter_photo',
+          source: 'camera',
+        );
       }
 
       await triggerQaSeed(ownerA.id);
+      await DataService.recordConditionConfirmation(
+        requestId: pickupRequestId,
+        segment: 'pickup',
+        decision: 'confirmed',
+      );
       final pickup = await DataService.confirmPickupTransition(
         requestId: pickupRequestId,
         confirmedByUserId: ownerA.id,
@@ -207,10 +220,22 @@ void main() {
         isTrue,
       );
       for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-        await DataService.incrementReturnPhotos(returnRequestId);
+        await DataService.addConditionEvidencePhoto(
+          requestId: returnRequestId,
+          bytes: Uint8List.fromList([4, 5, 6, i]),
+          filename: 'return-$i.jpg',
+          segment: 'return',
+          kind: 'presenter_photo',
+          source: 'camera',
+        );
       }
 
       await triggerQaSeed(ownerMain.id);
+      await DataService.recordConditionConfirmation(
+        requestId: returnRequestId,
+        segment: 'return',
+        decision: 'confirmed',
+      );
       final completion = await DataService.confirmReturnTransition(
         requestId: returnRequestId,
         confirmedByUserId: ownerMain.id,

@@ -15,6 +15,7 @@ import {
   counterpartRole,
   parseConfirmationQrPayload,
 } from './booking_confirmation_domain.js';
+import { assertConditionEvidenceReadyForVerification } from './booking_condition_evidence_workflow.js';
 import { evaluateReturnTimeline } from './private_pilot_return_domain.js';
 
 async function lockedBooking(client, bookingId) {
@@ -244,6 +245,12 @@ export async function verifyBookingConfirmationChallenge(client, {
     );
     return { rejected: true, code: 'confirmation_challenge_invalid', attemptsRemaining: 5 - attempts };
   }
+
+  await assertConditionEvidenceReadyForVerification(client, {
+    bookingId,
+    selectedSegment: input.segment,
+    verifierUserId: actor.id,
+  });
 
   const consumed = await client.query(
     `UPDATE booking_confirmation_challenges

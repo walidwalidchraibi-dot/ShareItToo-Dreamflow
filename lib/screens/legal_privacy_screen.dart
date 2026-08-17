@@ -46,6 +46,10 @@ class LegalPrivacyScreen extends StatelessWidget {
             ]),
             SizedBox(height: 10),
             LegalParagraph(
+              'Bei der Übergabe hinterlegt der Vermieter mindestens vier aktuelle Zustandsfotos; der Mieter bestätigt den Fotosatz oder dokumentiert eine Abweichung mit mindestens einem eigenen Foto. Bei der Rückgabe gelten dieselben Schritte mit vertauschten Rollen. Diese Nachweise bleiben privat, sind an Buchung und Rolle gebunden und werden nicht an eine KI übermittelt.',
+            ),
+            SizedBox(height: 10),
+            LegalParagraph(
               'Einen präzisen aktuellen Gerätestandort fragt die App nur ab, wenn du die Funktion „Standort prüfen“ selbst startest. Er wird dabei einmalig für die Entfernungsprüfung verwendet. Eine dauerhafte Hintergrund- oder Live‑Ortung findet nicht statt.',
             ),
           ],

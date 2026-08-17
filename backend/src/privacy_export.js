@@ -36,6 +36,8 @@ export async function buildAccountExport(client, userId) {
     messageThreads,
     messages,
     uploads,
+    bookingConditionEvidence,
+    bookingConditionConfirmations,
     notificationPreferences,
     notifications,
     reviews,
@@ -180,6 +182,24 @@ export async function buildAccountExport(client, userId) {
               byte_size, image_width, image_height, created_at
        FROM uploads WHERE owner_id = $1 ORDER BY created_at`, userId),
     rows(client,
+      `SELECT evidence.id, evidence.booking_id, evidence.segment,
+              evidence.evidence_kind, evidence.actor_role,
+              evidence.upload_id, evidence.message_id, evidence.source,
+              evidence.created_at
+       FROM booking_condition_evidence AS evidence
+       JOIN bookings AS booking ON booking.id = evidence.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY evidence.created_at`, userId),
+    rows(client,
+      `SELECT confirmation.id, confirmation.booking_id,
+              confirmation.segment, confirmation.verifier_role,
+              confirmation.decision, confirmation.presenter_photo_count,
+              confirmation.deviation_photo_count, confirmation.created_at
+       FROM booking_condition_confirmations AS confirmation
+       JOIN bookings AS booking ON booking.id = confirmation.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY confirmation.created_at`, userId),
+    rows(client,
       `SELECT in_app_enabled, email_enabled, push_enabled,
               message_push_enabled, booking_push_enabled, locale, updated_at
        FROM notification_preferences WHERE user_id = $1`, userId),
@@ -266,7 +286,12 @@ export async function buildAccountExport(client, userId) {
       withdrawalReceipts,
       withdrawalReceiptEvents,
     },
-    communication: { messageThreads, messages },
+    communication: {
+      messageThreads,
+      messages,
+      bookingConditionEvidence,
+      bookingConditionConfirmations,
+    },
     uploadedFiles: uploads,
     notifications: {
       preferences: notificationPreferences[0] ?? null,

@@ -137,12 +137,12 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
         description:
             'Bei jeder Übergabe und Rückgabe ist eine Foto‑Dokumentation verpflichtend.',
         bullets: [
-          'den Zustand des Artikels zu dokumentieren',
-          'Missverständnisse zu vermeiden',
-          'mögliche Streitfälle zu klären',
+          'Übergabe: mindestens 4 Fotos durch den Vermieter',
+          'Rückgabe: mindestens 4 Fotos durch den Mieter',
+          'Bestätigung durch die Gegenpartei oder mindestens 1 eigenes Abweichungsfoto',
         ],
         note:
-            'Diese Fotos werden ausschließlich zur Dokumentation der Buchung verwendet.',
+            'Die Fotos sind privat, nur für Buchungsbeteiligte und erforderliche Support-/Prüffälle zugänglich und werden nicht an eine KI übermittelt.',
       ),
       const _PrivacySectionData(
         icon: Icons.verified_user_outlined,

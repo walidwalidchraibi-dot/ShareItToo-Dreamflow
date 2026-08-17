@@ -84,6 +84,10 @@ export async function inspectRetentionInventory(client, { actor }) {
          FROM uploads WHERE purpose = 'message_attachment'
        UNION ALL SELECT 'handoverEvidence', 'handover_return_evidence', count(*)::bigint, min(created_at), max(created_at)
          FROM uploads WHERE purpose IN ('handover_evidence', 'return_evidence')
+       UNION ALL SELECT 'handoverEvidence', 'booking_condition_evidence', count(*)::bigint, min(created_at), max(created_at)
+         FROM booking_condition_evidence
+       UNION ALL SELECT 'handoverEvidence', 'booking_condition_confirmations', count(*)::bigint, min(created_at), max(created_at)
+         FROM booking_condition_confirmations
        UNION ALL SELECT 'moderation', 'reports', count(*)::bigint, min(created_at), max(updated_at) FROM reports
        UNION ALL SELECT 'moderation', 'report_evidence', count(*)::bigint, min(created_at), max(created_at) FROM report_evidence
        UNION ALL SELECT 'moderation', 'moderation_case_events', count(*)::bigint, min(created_at), max(created_at) FROM moderation_case_events

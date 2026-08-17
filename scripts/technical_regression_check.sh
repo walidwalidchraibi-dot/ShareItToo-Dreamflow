@@ -302,6 +302,7 @@ node --test test/tool/ongoing_owner_detail_dead_manual_handover_state_cleanup_wi
 node --test test/tool/booking_detail_dead_can_message_getter_cleanup_wiring.test.mjs
 node --test test/tool/firebase_device_services_opt_in_wiring.test.mjs
 node --test test/tool/v51_withdrawal_and_cancellation_wiring.test.mjs
+node --test test/tool/v51_condition_evidence_wiring.test.mjs
 node --test test/tool/analyzer_baseline_wiring.test.mjs
 
 analyze_log="$(mktemp)"

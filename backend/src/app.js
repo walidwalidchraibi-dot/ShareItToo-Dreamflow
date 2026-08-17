@@ -54,6 +54,10 @@ import {
 } from './booking_flow_time.js';
 import { BookingConfirmationError } from './booking_confirmation_domain.js';
 import {
+  getConditionEvidenceSummary,
+  recordConditionConfirmation,
+} from './booking_condition_evidence_workflow.js';
+import {
   issueBookingConfirmationChallenge,
   verifyBookingConfirmationChallenge,
 } from './booking_confirmation_workflow.js';
@@ -945,6 +949,10 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
     `DELETE FROM uploads AS upload
      WHERE upload.owner_id = $1
        AND NOT EXISTS (SELECT 1 FROM report_evidence WHERE upload_id = upload.id)
+       AND NOT EXISTS (
+         SELECT 1 FROM booking_condition_evidence
+         WHERE upload_id = upload.id
+       )
      RETURNING storage_name, thumbnail_storage_name`,
     [user.id],
   );
@@ -1004,6 +1012,7 @@ async function eraseAccount(client, user, { actorRole = 'user', source = 'app' }
         'pseudonymous_booking_records',
         'legally_required_financial_records',
         'pseudonymous_notification_delivery_audit',
+        'pseudonymous_booking_condition_evidence',
         'audit_log',
       ],
       erasedUploadCount: erasedUploads.rowCount,
@@ -2769,6 +2778,28 @@ export function createApp({
       secret: config.jwtSecret,
     }));
     res.status(201).json({ challenge });
+  }));
+
+  app.get('/v1/bookings/:id/condition-evidence', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const summary = await inTransaction((client) => getConditionEvidenceSummary(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      rawSegment: req.query.segment,
+    }));
+    res.json({ summary });
+  }));
+
+  app.post('/v1/bookings/:id/condition-confirmations', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => recordConditionConfirmation(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      raw: req.body,
+    }));
+    publishToUsers(result.participantUserIds, {
+      type: 'changed',
+      resource: 'rental_requests',
+    });
+    res.status(result.replayed ? 200 : 201).json(result);
   }));
 
   app.post('/v1/bookings/:id/confirmation-challenges/verify', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), confirmationLimiter, asyncRoute(async (req, res) => {

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/models/message.dart';
@@ -112,6 +113,31 @@ void main() {
         if (currentUser != null)
           'currentUser': jsonEncode(currentUser.toJson()),
       });
+    }
+
+    Future<void> seedConditionEvidence({
+      required String requestId,
+      required String segment,
+    }) async {
+      final presenter = segment == 'pickup' ? owner : renter;
+      final verifier = segment == 'pickup' ? renter : owner;
+      await DataService.setCurrentUser(presenter);
+      for (var index = 0; index < DataService.minimumRequiredPhotos; index++) {
+        await DataService.addConditionEvidencePhoto(
+          requestId: requestId,
+          bytes: Uint8List.fromList([1, 2, 3, index]),
+          filename: '$segment-$index.jpg',
+          segment: segment,
+          kind: 'presenter_photo',
+          source: 'camera',
+        );
+      }
+      await DataService.setCurrentUser(verifier);
+      await DataService.recordConditionConfirmation(
+        requestId: requestId,
+        segment: segment,
+        decision: 'confirmed',
+      );
     }
 
     setUp(() async {
@@ -728,12 +754,12 @@ void main() {
     );
 
     test(
-      'pickup transition requires active flow and at least four handover photos',
+      'ordinary local photo counters cannot replace four role-bound presenter photos',
       () async {
         await DataService.setHandoverActive('req-pickup', active: true);
-        await DataService.incrementHandoverPhotos('req-pickup');
-        await DataService.incrementHandoverPhotos('req-pickup');
-        await DataService.incrementHandoverPhotos('req-pickup');
+        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
+          await DataService.incrementHandoverPhotos('req-pickup');
+        }
         await DataService.setCurrentUser(renter);
 
         final result = await DataService.confirmPickupTransition(
@@ -756,10 +782,10 @@ void main() {
       'pickup transition moves accepted booking to running after verified renter confirmation',
       () async {
         await DataService.setHandoverActive('req-pickup', active: true);
-        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-          await DataService.incrementHandoverPhotos('req-pickup');
-        }
-        await DataService.setCurrentUser(renter);
+        await seedConditionEvidence(
+          requestId: 'req-pickup',
+          segment: 'pickup',
+        );
 
         final result = await DataService.confirmPickupTransition(
           requestId: 'req-pickup',
@@ -784,10 +810,10 @@ void main() {
       'pickup transition rejects repeated confirmation after booking is already running',
       () async {
         await DataService.setHandoverActive('req-pickup', active: true);
-        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-          await DataService.incrementHandoverPhotos('req-pickup');
-        }
-        await DataService.setCurrentUser(renter);
+        await seedConditionEvidence(
+          requestId: 'req-pickup',
+          segment: 'pickup',
+        );
 
         final first = await DataService.confirmPickupTransition(
           requestId: 'req-pickup',
@@ -919,10 +945,10 @@ void main() {
       () async {
         await seedBookingState(currentUser: renter);
         await DataService.setReturnActive('req-review', active: true);
-        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-          await DataService.incrementReturnPhotos('req-review');
-        }
-        await DataService.setCurrentUser(owner);
+        await seedConditionEvidence(
+          requestId: 'req-review',
+          segment: 'return',
+        );
 
         final result = await DataService.confirmReturnTransition(
           requestId: 'req-review',
@@ -949,10 +975,10 @@ void main() {
       () async {
         await seedBookingState(currentUser: renter);
         await DataService.setReturnActive('req-return', active: true);
-        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-          await DataService.incrementReturnPhotos('req-return');
-        }
-        await DataService.setCurrentUser(owner);
+        await seedConditionEvidence(
+          requestId: 'req-return',
+          segment: 'return',
+        );
 
         final result = await DataService.confirmReturnTransition(
           requestId: 'req-return',
@@ -980,10 +1006,10 @@ void main() {
       () async {
         await seedBookingState(currentUser: renter);
         await DataService.setReturnActive('req-return', active: true);
-        for (var i = 0; i < DataService.minimumRequiredPhotos; i++) {
-          await DataService.incrementReturnPhotos('req-return');
-        }
-        await DataService.setCurrentUser(owner);
+        await seedConditionEvidence(
+          requestId: 'req-return',
+          segment: 'return',
+        );
 
         final first = await DataService.confirmReturnTransition(
           requestId: 'req-return',

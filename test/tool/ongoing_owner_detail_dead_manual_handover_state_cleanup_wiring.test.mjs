@@ -151,7 +151,23 @@ test('return completion keeps photo evidence and verified transition guards', ()
   );
   assert.match(
     canContinue,
-    /case _StepKind\.photos:\s*return _checkoutPhotos\.length >= 4;/,
+    /case _StepKind\.photos:\s*if \(_savingEvidence\) return false;/,
+  );
+  assert.match(
+    canContinue,
+    /if \(_viewerIsPresenter\) \{\s*return _presenterEvidenceCount \+ _checkoutPhotos\.length >= 4;/,
+  );
+  assert.match(
+    canContinue,
+    /if \(_presenterEvidenceCount < 4\) return false;/,
+  );
+  assert.match(
+    canContinue,
+    /if \(_counterpartyDecision == 'confirmed'\) \{\s*return _deviationEvidenceCount == 0 && _checkoutPhotos\.isEmpty;/,
+  );
+  assert.match(
+    canContinue,
+    /if \(_counterpartyDecision == 'deviation_recorded'\) \{\s*return _deviationEvidenceCount \+ _checkoutPhotos\.length >= 1;/,
   );
   const builtSteps = sourceSectionBetween(
     returnStepper,
@@ -169,7 +185,23 @@ test('return completion keeps photo evidence and verified transition guards', ()
   );
   assert.match(
     photoStep,
-    /isReturn\s*\? 'Rückgabe Fotos \(min\. 4\)'\s*: 'Übergabe Fotos \(min\. 4\)'/,
+    /final presenterLabel = isReturn \? 'Mieter' : 'Vermieter';/,
+  );
+  assert.match(
+    photoStep,
+    /'Bitte mindestens 4 aktuelle Fotos hinzufügen\./,
+  );
+  assert.match(
+    photoStep,
+    /label: 'Fotos stimmen überein'/,
+  );
+  assert.match(
+    photoStep,
+    /label: 'Abweichung dokumentieren'/,
+  );
+  assert.match(
+    photoStep,
+    /'Mindestens ein eigenes Gegenfoto ist erforderlich\.'/,
   );
 });
 

@@ -1568,8 +1568,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       if (reqId != null && reqId.isNotEmpty) {
         final handoverActive = _handoverReturnState['handoverActive'] == true;
         final returnActive = _handoverReturnState['returnActive'] == true;
-        if (handoverActive) await DataService.incrementHandoverPhotos(reqId);
-        if (returnActive) await DataService.incrementReturnPhotos(reqId);
         if (source == ImageSource.camera && (handoverActive || returnActive)) {
           final saveResult =
               await LocalArtifactStorageService.maybeSaveEvidencePhoto(
@@ -1664,7 +1662,7 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         final mode = (_handoverReturnState['handoverActive'] == true)
             ? ReturnFlowMode.pickupFlow
             : ReturnFlowMode.returnFlow;
-        final ok = await ReturnHandoverStepperSheet.push(
+        await ReturnHandoverStepperSheet.push(
           context,
           item: item,
           request: r,
@@ -1674,19 +1672,6 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
           viewerIsOwner: _viewerIsOwner(),
           mode: mode,
         );
-        if (didConfirmReturnHandover(ok)) {
-          // Treat as completing 4/4 photos in the active segment.
-          if (_handoverReturnState['handoverActive'] == true) {
-            for (int i = 0; i < 4; i++) {
-              await DataService.incrementHandoverPhotos(r.id);
-            }
-          }
-          if (_handoverReturnState['returnActive'] == true) {
-            for (int i = 0; i < 4; i++) {
-              await DataService.incrementReturnPhotos(r.id);
-            }
-          }
-        }
       }
     } catch (e) {
       debugPrint('[MessageThreadScreen] ReturnHandoverStepperSheet failed: $e');

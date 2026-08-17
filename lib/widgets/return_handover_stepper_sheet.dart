@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
@@ -175,7 +176,15 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
 
   // Step: photos
   List<PlatformFile> _checkoutPhotos = [];
+  List<String> _checkoutPhotoSources = [];
   bool _galleryUsedInCheckoutPhotos = false;
+  int _presenterEvidenceCount = 0;
+  int _deviationEvidenceCount = 0;
+  bool _presenterNonCameraUsed = false;
+  String? _counterpartyDecision;
+  bool _savingEvidence = false;
+  bool _evidencePersisted = false;
+  String _lastPhotoSource = 'browser_picker';
 
   // Step: damage report (return flow only)
   bool _hasDamage = false;
@@ -196,7 +205,40 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
   @override
   void initState() {
     super.initState();
-    // no-op for removed steps
+    unawaited(_loadConditionEvidence());
+  }
+
+  String get _evidenceSegment =>
+      widget.mode == ReturnFlowMode.returnFlow ? 'return' : 'pickup';
+
+  bool get _viewerIsPresenter => widget.mode == ReturnFlowMode.pickupFlow
+      ? widget.viewerIsOwner
+      : !widget.viewerIsOwner;
+
+  Future<void> _loadConditionEvidence() async {
+    try {
+      final summary = await DataService.getConditionEvidenceSummary(
+        requestId: widget.request.id,
+        segment: _evidenceSegment,
+      );
+      if (!mounted) return;
+      final confirmation = summary['counterpartyConfirmation'];
+      setState(() {
+        _presenterEvidenceCount =
+            (summary['presenterPhotos'] as num?)?.toInt() ?? 0;
+        _deviationEvidenceCount =
+            (summary['deviationPhotos'] as num?)?.toInt() ?? 0;
+        _presenterNonCameraUsed = summary['presenterNonCameraUsed'] == true;
+        if (confirmation is Map) {
+          _counterpartyDecision = confirmation['decision']?.toString();
+          _evidencePersisted = true;
+        } else if (_deviationEvidenceCount > 0) {
+          _counterpartyDecision = 'deviation_recorded';
+        }
+      });
+    } catch (error) {
+      debugPrint('[handover] evidence summary failed: $error');
+    }
   }
 
   @override
@@ -232,7 +274,18 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
     final kind = _steps[_step];
     switch (kind) {
       case _StepKind.photos:
-        return _checkoutPhotos.length >= 4;
+        if (_savingEvidence) return false;
+        if (_viewerIsPresenter) {
+          return _presenterEvidenceCount + _checkoutPhotos.length >= 4;
+        }
+        if (_presenterEvidenceCount < 4) return false;
+        if (_counterpartyDecision == 'confirmed') {
+          return _deviationEvidenceCount == 0 && _checkoutPhotos.isEmpty;
+        }
+        if (_counterpartyDecision == 'deviation_recorded') {
+          return _deviationEvidenceCount + _checkoutPhotos.length >= 1;
+        }
+        return false;
       case _StepKind.rideConfirm:
         // Require the user to at least select an answer; location fallback optional
         return _rideAnsweredYes != null;
@@ -253,11 +306,81 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
           title: 'Bitte die Anforderungen dieses Schritts erfüllen.');
       return;
     }
+    if (_steps[_step] == _StepKind.photos && !_evidencePersisted) {
+      final saved = await _saveConditionEvidenceStep();
+      if (!saved) return;
+    }
+    if (!mounted) return;
     if (_step < _steps.length - 1) {
       setState(() => _step++);
     } else {
       Navigator.of(context).pop(ReturnHandoverStepResult(
-          confirmed: true, galleryUsed: _galleryUsedInCheckoutPhotos));
+          confirmed: true,
+          galleryUsed:
+              _galleryUsedInCheckoutPhotos || _presenterNonCameraUsed));
+    }
+  }
+
+  Future<bool> _saveConditionEvidenceStep() async {
+    setState(() => _savingEvidence = true);
+    try {
+      final kind =
+          _viewerIsPresenter ? 'presenter_photo' : 'counterparty_deviation';
+      while (_checkoutPhotos.isNotEmpty) {
+        final photo = _checkoutPhotos.first;
+        final bytes = photo.bytes;
+        if (bytes == null || bytes.isEmpty) {
+          throw StateError('condition_evidence_bytes_missing');
+        }
+        final source = _checkoutPhotoSources.isEmpty
+            ? (kIsWeb ? 'browser_picker' : 'gallery')
+            : _checkoutPhotoSources.first;
+        await DataService.addConditionEvidencePhoto(
+          requestId: widget.request.id,
+          bytes: bytes,
+          filename: photo.name,
+          segment: _evidenceSegment,
+          kind: kind,
+          source: source,
+        );
+        if (!mounted) return false;
+        setState(() {
+          _checkoutPhotos = _checkoutPhotos.sublist(1);
+          if (_checkoutPhotoSources.isNotEmpty) {
+            _checkoutPhotoSources = _checkoutPhotoSources.sublist(1);
+          }
+          if (_viewerIsPresenter) {
+            _presenterEvidenceCount++;
+            if (source != 'camera') _presenterNonCameraUsed = true;
+          } else {
+            _deviationEvidenceCount++;
+          }
+        });
+      }
+      if (!_viewerIsPresenter) {
+        await DataService.recordConditionConfirmation(
+          requestId: widget.request.id,
+          segment: _evidenceSegment,
+          decision: _counterpartyDecision!,
+        );
+      }
+      if (!mounted) return false;
+      setState(() => _evidencePersisted = true);
+      return true;
+    } catch (error) {
+      debugPrint('[handover] evidence persistence failed: $error');
+      if (mounted) {
+        await AppPopup.toast(
+          context,
+          icon: Icons.error_outline,
+          title: 'Fotodokumentation nicht gespeichert',
+          message:
+              'Bitte prüfe die Verbindung und versuche diesen Schritt erneut.',
+        );
+      }
+      return false;
+    } finally {
+      if (mounted) setState(() => _savingEvidence = false);
     }
   }
 
@@ -776,6 +899,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
       });
       await _persistRideDecisionIfAny();
     }
+
     if (selected) {
       return FilledButton.icon(
           onPressed: onTap, icon: Icon(icon), label: label);
@@ -845,6 +969,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
     );
     if (res != null) {
       setState(() {
+        _lastPhotoSource = kIsWeb ? 'browser_picker' : 'gallery';
         _galleryUsedInCheckoutPhotos =
             _galleryUsedInCheckoutPhotos || res.files.isNotEmpty;
         addToList(res.files);
@@ -862,6 +987,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
         final pf = PlatformFile(
             name: shot.name, size: bytes.length, path: shot.path, bytes: bytes);
         setState(() {
+          _lastPhotoSource = kIsWeb ? 'browser_picker' : 'camera';
           addToList([pf]);
           if (kIsWeb) _galleryUsedInCheckoutPhotos = true;
         });
@@ -922,6 +1048,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
 
   Widget _stepCheckoutPhotos() {
     final isReturn = widget.mode == ReturnFlowMode.returnFlow;
+    final presenterLabel = isReturn ? 'Mieter' : 'Vermieter';
     return Align(
       alignment: Alignment.center,
       child: ConstrainedBox(
@@ -932,11 +1059,13 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
           children: [
             const SizedBox(height: 8),
             Text(
-              _galleryUsedInCheckoutPhotos
-                  ? 'Bitte mindestens 4 Fotos hinzufügen. Galerie-Fotos werden bei der Bestätigung offengelegt.'
-                  : (kIsWeb
-                      ? 'Bitte mindestens 4 Fotos hinzufügen. Im Browser können Fotos nicht eindeutig als Live-Aufnahme verifiziert werden.'
-                      : 'Bitte mindestens 4 Fotos hinzufügen.'),
+              _viewerIsPresenter
+                  ? (_galleryUsedInCheckoutPhotos
+                      ? 'Bitte mindestens 4 aktuelle Fotos hinzufügen. Galerie-Fotos werden bei der Bestätigung offengelegt.'
+                      : (kIsWeb
+                          ? 'Bitte mindestens 4 aktuelle Fotos hinzufügen. Im Browser kann eine Live-Aufnahme nicht eindeutig verifiziert werden.'
+                          : 'Bitte mindestens 4 aktuelle Fotos hinzufügen.'))
+                  : '$presenterLabel hat $_presenterEvidenceCount von 4 Pflichtfotos im geschützten Buchungs-Chat hinterlegt. Bestätige den Satz oder dokumentiere eine Abweichung.',
               style: const TextStyle(
                   color: Colors.white70, fontWeight: FontWeight.w700),
               textAlign: TextAlign.center,
@@ -947,28 +1076,100 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    isReturn
-                        ? 'Rückgabe Fotos (min. 4)'
-                        : 'Übergabe Fotos (min. 4)',
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 8),
-                  _photoGrid(
-                    _checkoutPhotos,
-                    () => _pickPhotosMenu(
-                        (newOnes) =>
-                            _checkoutPhotos = [..._checkoutPhotos, ...newOnes],
-                        multiple: true),
-                    emptyText: '',
-                  ),
+                  if (_viewerIsPresenter) ...[
+                    Text(
+                      '${isReturn ? 'Rückgabe' : 'Übergabe'}-Fotos (${_presenterEvidenceCount + _checkoutPhotos.length}/4)',
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 8),
+                    _photoGrid(
+                      _checkoutPhotos,
+                      () => _pickPhotosMenu((newOnes) {
+                        _checkoutPhotos = [..._checkoutPhotos, ...newOnes];
+                        _checkoutPhotoSources = [
+                          ..._checkoutPhotoSources,
+                          ...List<String>.filled(
+                              newOnes.length, _lastPhotoSource),
+                        ];
+                      }, multiple: true),
+                      emptyText: '',
+                    ),
+                  ] else ...[
+                    _conditionDecisionButton(
+                      decision: 'confirmed',
+                      label: 'Fotos stimmen überein',
+                      icon: Icons.check_circle_outline,
+                      enabled: _deviationEvidenceCount == 0,
+                    ),
+                    const SizedBox(height: 8),
+                    _conditionDecisionButton(
+                      decision: 'deviation_recorded',
+                      label: 'Abweichung dokumentieren',
+                      icon: Icons.report_problem_outlined,
+                    ),
+                    if (_counterpartyDecision == 'deviation_recorded') ...[
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Mindestens ein eigenes Gegenfoto ist erforderlich.',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      const SizedBox(height: 8),
+                      _photoGrid(
+                        _checkoutPhotos,
+                        () => _pickPhotosMenu((newOnes) {
+                          _checkoutPhotos = [..._checkoutPhotos, ...newOnes];
+                          _checkoutPhotoSources = [
+                            ..._checkoutPhotoSources,
+                            ...List<String>.filled(
+                                newOnes.length, _lastPhotoSource),
+                          ];
+                        }, multiple: true),
+                        emptyText: '',
+                      ),
+                    ],
+                  ],
+                  if (_savingEvidence) ...[
+                    const SizedBox(height: 12),
+                    const LinearProgressIndicator(),
+                  ],
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _conditionDecisionButton({
+    required String decision,
+    required String label,
+    required IconData icon,
+    bool enabled = true,
+  }) {
+    void select() {
+      setState(() {
+        _counterpartyDecision = decision;
+        if (decision == 'confirmed') {
+          _checkoutPhotos = [];
+          _checkoutPhotoSources = [];
+        }
+        _evidencePersisted = false;
+      });
+    }
+
+    if (_counterpartyDecision == decision) {
+      return FilledButton.icon(
+        onPressed: enabled ? select : null,
+        icon: Icon(icon),
+        label: Text(label),
+      );
+    }
+    return OutlinedButton.icon(
+      onPressed: enabled ? select : null,
+      icon: Icon(icon),
+      label: Text(label),
     );
   }
 

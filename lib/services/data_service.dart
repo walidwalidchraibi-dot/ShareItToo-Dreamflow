@@ -6205,13 +6205,24 @@ class DataService {
         'Bitte starte die Übergabe zuerst im Chat.',
       );
     }
-    final handoverPhotos = await getHandoverPhotoCount(id);
+    final evidence = await getConditionEvidenceSummary(
+      requestId: id,
+      segment: 'pickup',
+    );
+    final handoverPhotos = (evidence['presenterPhotos'] as num?)?.toInt() ?? 0;
     if (handoverPhotos < minimumRequiredPhotos) {
       return const RentalRequestTransitionResult.failure(
-        'Bitte dokumentiere die Übergabe zuerst mit mindestens 4 Fotos.',
+        'Der Vermieter muss die Übergabe zuerst mit mindestens 4 Fotos dokumentieren.',
       );
     }
-    final galleryUsed = await wasHandoverGalleryUsed(id);
+    final confirmation = evidence['counterpartyConfirmation'];
+    if (confirmation is! Map ||
+        confirmation['verifierUserId']?.toString() != userId) {
+      return const RentalRequestTransitionResult.failure(
+        'Bitte bestätige zuerst den geschützten Fotosatz oder dokumentiere eine Abweichung.',
+      );
+    }
+    final galleryUsed = evidence['presenterNonCameraUsed'] == true;
     if (galleryUsed && !galleryAcknowledged) {
       return const RentalRequestTransitionResult.failure(
         'Bitte bestätige bewusst die Galerie-Dokumentation, bevor du fortfährst.',
@@ -6278,13 +6289,24 @@ class DataService {
         'Bitte starte die Rückgabe zuerst im Chat.',
       );
     }
-    final returnPhotos = await getReturnPhotoCount(id);
+    final evidence = await getConditionEvidenceSummary(
+      requestId: id,
+      segment: 'return',
+    );
+    final returnPhotos = (evidence['presenterPhotos'] as num?)?.toInt() ?? 0;
     if (returnPhotos < minimumRequiredPhotos) {
       return const RentalRequestTransitionResult.failure(
-        'Bitte dokumentiere die Rückgabe zuerst mit mindestens 4 Fotos.',
+        'Der Mieter muss die Rückgabe zuerst mit mindestens 4 Fotos dokumentieren.',
       );
     }
-    final galleryUsed = await wasReturnGalleryUsed(id);
+    final confirmation = evidence['counterpartyConfirmation'];
+    if (confirmation is! Map ||
+        confirmation['verifierUserId']?.toString() != userId) {
+      return const RentalRequestTransitionResult.failure(
+        'Bitte bestätige zuerst den geschützten Fotosatz oder dokumentiere eine Abweichung.',
+      );
+    }
+    final galleryUsed = evidence['presenterNonCameraUsed'] == true;
     if (galleryUsed && !galleryAcknowledged) {
       return const RentalRequestTransitionResult.failure(
         'Bitte bestätige bewusst die Galerie-Dokumentation, bevor du fortfährst.',
@@ -7613,6 +7635,20 @@ class DataService {
             : 0,
         'returnPhotos':
             (e['returnPhotos'] is num) ? (e['returnPhotos'] as num).toInt() : 0,
+        'pickupPresenterPhotos':
+            (e['pickupPresenterPhotos'] as num?)?.toInt() ?? 0,
+        'pickupDeviationPhotos':
+            (e['pickupDeviationPhotos'] as num?)?.toInt() ?? 0,
+        'pickupPresenterNonCameraUsed':
+            e['pickupPresenterNonCameraUsed'] == true,
+        'pickupCounterpartyConfirmation': e['pickupCounterpartyConfirmation'],
+        'returnPresenterPhotos':
+            (e['returnPresenterPhotos'] as num?)?.toInt() ?? 0,
+        'returnDeviationPhotos':
+            (e['returnDeviationPhotos'] as num?)?.toInt() ?? 0,
+        'returnPresenterNonCameraUsed':
+            e['returnPresenterNonCameraUsed'] == true,
+        'returnCounterpartyConfirmation': e['returnCounterpartyConfirmation'],
         'handoverTimeRequested': (e['handoverTimeRequested'] as String?) ?? '',
         'returnTimeRequested': (e['returnTimeRequested'] as String?) ?? '',
         'handoverTimeIso': (e['handoverTimeIso'] as String?) ?? '',
@@ -7657,6 +7693,14 @@ class DataService {
       'returnActive': false,
       'handoverPhotos': 0,
       'returnPhotos': 0,
+      'pickupPresenterPhotos': 0,
+      'pickupDeviationPhotos': 0,
+      'pickupPresenterNonCameraUsed': false,
+      'pickupCounterpartyConfirmation': null,
+      'returnPresenterPhotos': 0,
+      'returnDeviationPhotos': 0,
+      'returnPresenterNonCameraUsed': false,
+      'returnCounterpartyConfirmation': null,
       'handoverTimeRequested': '',
       'returnTimeRequested': '',
       'handoverTimeIso': '',
@@ -7800,6 +7844,197 @@ class DataService {
         ? (existing['returnPhotos'] as num).toInt()
         : 0;
     existing['returnPhotos'] = (cur + 1).clamp(0, max);
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+  }
+
+  static Future<Map<String, dynamic>> getConditionEvidenceSummary({
+    required String requestId,
+    required String segment,
+  }) async {
+    final id = requestId.trim();
+    final normalizedSegment = segment == 'return' ? 'return' : 'pickup';
+    if (id.isEmpty) {
+      return <String, dynamic>{
+        'segment': normalizedSegment,
+        'presenterPhotos': 0,
+        'deviationPhotos': 0,
+        'presenterNonCameraUsed': false,
+        'counterpartyConfirmation': null,
+      };
+    }
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      return BackendRepository.getConditionEvidenceSummary(
+        bookingId: id,
+        segment: normalizedSegment,
+      );
+    }
+    final state = await getHandoverReturnState(id);
+    final prefix = normalizedSegment == 'return' ? 'return' : 'pickup';
+    return <String, dynamic>{
+      'segment': normalizedSegment,
+      'presenterPhotos':
+          (state['${prefix}PresenterPhotos'] as num?)?.toInt() ?? 0,
+      'deviationPhotos':
+          (state['${prefix}DeviationPhotos'] as num?)?.toInt() ?? 0,
+      'presenterNonCameraUsed':
+          state['${prefix}PresenterNonCameraUsed'] == true,
+      'counterpartyConfirmation': state['${prefix}CounterpartyConfirmation'],
+    };
+  }
+
+  static Future<void> addConditionEvidencePhoto({
+    required String requestId,
+    required Uint8List bytes,
+    required String filename,
+    required String segment,
+    required String kind,
+    required String source,
+  }) async {
+    final id = requestId.trim();
+    final normalizedSegment = segment == 'return' ? 'return' : 'pickup';
+    final normalizedKind = kind.trim();
+    final normalizedSource = source.trim();
+    if (id.isEmpty || bytes.isEmpty) {
+      throw StateError('condition_evidence_photo_missing');
+    }
+    if (!const {'camera', 'gallery', 'browser_picker'}
+        .contains(normalizedSource)) {
+      throw StateError('invalid_condition_evidence_source');
+    }
+    final request = await getRentalRequestById(id);
+    final currentUser = await getCurrentUser();
+    if (request == null || currentUser == null) {
+      throw StateError('condition_evidence_booking_missing');
+    }
+    final presenterId =
+        normalizedSegment == 'pickup' ? request.ownerId : request.renterId;
+    final verifierId =
+        normalizedSegment == 'pickup' ? request.renterId : request.ownerId;
+    final expectedKind = currentUser.id == presenterId
+        ? 'presenter_photo'
+        : currentUser.id == verifierId
+            ? 'counterparty_deviation'
+            : '';
+    if (normalizedKind != expectedKind) {
+      throw StateError('condition_evidence_role_mismatch');
+    }
+    final flowState = await getHandoverReturnState(id);
+    if (normalizedSegment == 'pickup' &&
+        (request.status != 'accepted' || flowState['handoverActive'] != true)) {
+      throw StateError('condition_evidence_wrong_booking_state');
+    }
+    if (normalizedSegment == 'return' &&
+        (request.status != 'running' || flowState['returnActive'] != true)) {
+      throw StateError('condition_evidence_wrong_booking_state');
+    }
+
+    final thread = await createOrGetThreadForRequest(id);
+    if (thread == null) throw StateError('condition_evidence_thread_missing');
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      final upload = await BackendRepository.uploadMessageAttachment(
+        bytes: bytes,
+        filename: filename,
+        threadId: thread.id,
+        purpose: normalizedSegment == 'pickup'
+            ? 'handover_evidence'
+            : 'return_evidence',
+      );
+      await BackendRepository.sendThreadMessage(
+        threadId: thread.id,
+        text: normalizedKind == 'presenter_photo'
+            ? '${normalizedSegment == 'pickup' ? 'Übergabe' : 'Rückgabe'}-Zustandsfoto'
+            : 'Abweichungsfoto der Gegenpartei',
+        idempotencyKey:
+            'condition_${thread.id}_${DateTime.now().microsecondsSinceEpoch}',
+        attachmentIds: [upload['id'].toString()],
+        conditionEvidence: <String, dynamic>{
+          'segment': normalizedSegment,
+          'kind': normalizedKind,
+          'source': normalizedSource,
+        },
+      );
+      final prefs = await SharedPreferences.getInstance();
+      final remote = await BackendRepository.getMessageThreads();
+      await _persistMessageThreads(prefs, remote);
+      return;
+    }
+
+    await addMessageToThread(
+      threadId: thread.id,
+      senderId: currentUser.id,
+      text: normalizedKind == 'presenter_photo'
+          ? '${normalizedSegment == 'pickup' ? 'Übergabe' : 'Rückgabe'}-Zustandsfoto (geschützt)'
+          : 'Abweichungsfoto der Gegenpartei (geschützt)',
+    );
+    final map = await _getHandoverReturnStateMap();
+    final existing = map[id] is Map
+        ? Map<String, dynamic>.from(map[id] as Map)
+        : <String, dynamic>{};
+    final prefix = normalizedSegment == 'return' ? 'return' : 'pickup';
+    final key = normalizedKind == 'presenter_photo'
+        ? '${prefix}PresenterPhotos'
+        : '${prefix}DeviationPhotos';
+    existing[key] = ((existing[key] as num?)?.toInt() ?? 0) + 1;
+    if (normalizedKind == 'presenter_photo' && normalizedSource != 'camera') {
+      existing['${prefix}PresenterNonCameraUsed'] = true;
+    }
+    map[id] = existing;
+    await _setHandoverReturnStateMap(map);
+  }
+
+  static Future<void> recordConditionConfirmation({
+    required String requestId,
+    required String segment,
+    required String decision,
+  }) async {
+    final id = requestId.trim();
+    final normalizedSegment = segment == 'return' ? 'return' : 'pickup';
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      await BackendRepository.recordConditionConfirmation(
+        bookingId: id,
+        segment: normalizedSegment,
+        decision: decision,
+      );
+      return;
+    }
+    final request = await getRentalRequestById(id);
+    final currentUser = await getCurrentUser();
+    if (request == null || currentUser == null) {
+      throw StateError('condition_confirmation_booking_missing');
+    }
+    final verifierId =
+        normalizedSegment == 'pickup' ? request.renterId : request.ownerId;
+    if (currentUser.id != verifierId) {
+      throw StateError('condition_confirmation_counterparty_required');
+    }
+    final summary = await getConditionEvidenceSummary(
+      requestId: id,
+      segment: normalizedSegment,
+    );
+    final presenterPhotos = (summary['presenterPhotos'] as num?)?.toInt() ?? 0;
+    final deviationPhotos = (summary['deviationPhotos'] as num?)?.toInt() ?? 0;
+    if (presenterPhotos < minimumRequiredPhotos) {
+      throw StateError('presenter_photo_set_incomplete');
+    }
+    if (decision == 'deviation_recorded' && deviationPhotos < 1) {
+      throw StateError('deviation_photo_required');
+    }
+    if (decision == 'confirmed' && deviationPhotos > 0) {
+      throw StateError('deviation_decision_required');
+    }
+    final map = await _getHandoverReturnStateMap();
+    final existing = map[id] is Map
+        ? Map<String, dynamic>.from(map[id] as Map)
+        : <String, dynamic>{};
+    final prefix = normalizedSegment == 'return' ? 'return' : 'pickup';
+    existing['${prefix}CounterpartyConfirmation'] = <String, dynamic>{
+      'decision': decision,
+      'verifierUserId': currentUser.id,
+      'presenterPhotoCount': presenterPhotos,
+      'deviationPhotoCount': deviationPhotos,
+      'createdAt': DateTime.now().toIso8601String(),
+    };
     map[id] = existing;
     await _setHandoverReturnStateMap(map);
   }

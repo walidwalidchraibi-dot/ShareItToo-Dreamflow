@@ -8,7 +8,7 @@ import {
 
 const secret = 'workflow-confirmation-secret-that-is-long-enough';
 
-function memoryClient({ workflowStatus = 'accepted' } = {}) {
+function memoryClient({ workflowStatus = 'accepted', evidenceReady = true } = {}) {
   const state = {
     booking: {
       id: 'booking-1',
@@ -23,6 +23,14 @@ function memoryClient({ workflowStatus = 'accepted' } = {}) {
     },
     challenges: new Map(),
     events: [],
+    conditionEvidence: evidenceReady ? [
+      { evidence_kind: 'presenter_photo', count: 4, non_camera_used: false },
+    ] : [],
+    conditionConfirmation: evidenceReady ? {
+      decision: 'confirmed',
+      verifier_user_id: workflowStatus === 'active' ? 'owner-1' : 'renter-1',
+      deviation_photo_count: 0,
+    } : null,
   };
   return {
     state,
@@ -84,6 +92,17 @@ function memoryClient({ workflowStatus = 'accepted' } = {}) {
         row.attempt_count = values[1];
         if (values[1] >= 5) row.locked_at = values[2];
         return { rowCount: 1, rows: [{ ...row }] };
+      }
+      if (compact.startsWith('SELECT evidence_kind, count(*)::integer AS count')) {
+        return {
+          rowCount: state.conditionEvidence.length,
+          rows: state.conditionEvidence.map((entry) => ({ ...entry })),
+        };
+      }
+      if (compact.startsWith('SELECT decision, verifier_user_id, deviation_photo_count FROM booking_condition_confirmations')) {
+        return state.conditionConfirmation
+          ? { rowCount: 1, rows: [{ ...state.conditionConfirmation }] }
+          : { rowCount: 0, rows: [] };
       }
       if (compact.startsWith('UPDATE booking_confirmation_challenges SET verifier_user_id')) {
         const row = state.challenges.get(values[0]);
@@ -165,6 +184,42 @@ test('presenter cannot verify their own challenge', async () => {
     }),
     (error) => error.code === 'confirmation_counterparty_required',
   );
+});
+
+test('correct pickup code stays reusable until four presenter photos and renter confirmation exist', async () => {
+  const client = memoryClient({ evidenceReady: false });
+  const challenge = await issueBookingConfirmationChallenge(client, {
+    actor: { id: 'owner-1' },
+    bookingId: 'booking-1',
+    raw: { segment: 'pickup' },
+    secret,
+  });
+  await assert.rejects(
+    verifyBookingConfirmationChallenge(client, {
+      actor: { id: 'renter-1' },
+      bookingId: 'booking-1',
+      raw: { qrPayload: challenge.qrPayload },
+      secret,
+    }),
+    (error) => error.code === 'presenter_photo_set_incomplete',
+  );
+  assert.equal(client.state.challenges.get(challenge.id).consumed_at, null);
+
+  client.state.conditionEvidence = [
+    { evidence_kind: 'presenter_photo', count: 4, non_camera_used: false },
+  ];
+  client.state.conditionConfirmation = {
+    decision: 'confirmed',
+    verifier_user_id: 'renter-1',
+    deviation_photo_count: 0,
+  };
+  const verified = await verifyBookingConfirmationChallenge(client, {
+    actor: { id: 'renter-1' },
+    bookingId: 'booking-1',
+    raw: { qrPayload: challenge.qrPayload },
+    secret,
+  });
+  assert.equal(verified.replayed, false);
 });
 
 test('participant cannot issue the counterparty presentation role', async () => {

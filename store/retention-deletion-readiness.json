@@ -3,13 +3,13 @@
   "state": "draft",
   "approvalAllowed": false,
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "fc8a446b177163a712b53c5adf4f7bae5910acf0ed75196fffa79572b882f9aa"},
+    {"path": "backend/src/app.js", "sha256": "a65acc2b6a0d7e6ae96328a12222f9e1d662bfc7c01322b075f62d6008971ba7"},
     {"path": "backend/src/server.js", "sha256": "dfde3b267be22261de2fd101618b5efa0cdfe6d65cdec88a1d08f42bbd27e5f7"},
     {"path": "backend/src/credential_cleanup.js", "sha256": "53386748f6a9cf2869c2fc98bacdd367270b4d97f5b044fffcf58dab12a2b18b"},
     {"path": "backend/src/moderation_workflow.js", "sha256": "acdc6f8158d2acdf7cd0b5e53ff125a44e0286fca7db1bbf5569ba0de271cafc"},
-    {"path": "backend/src/retention_inventory.js", "sha256": "a79c07a9650d0de8d514002cf86377a2ab47f005c58e18f9a3c8b61bef9ff997"},
-    {"path": "backend/src/privacy_export.js", "sha256": "4c2020684a4074df0680de2274c3da8cdf2504444c8ac9119c4ca50eba400111"},
-    {"path": "backend/src/account_actions.js", "sha256": "20f3561eb90e0e0d9940dbb1fd0fc6d2207ddc766dcd553b341bac0b32bcfa73"},
+    {"path": "backend/src/retention_inventory.js", "sha256": "d7236432b4ea526fd994e49c4130a55332213937c4823608c3eb39533f9aee4e"},
+    {"path": "backend/src/privacy_export.js", "sha256": "d020933a9203136e8d874ad8d9a76094e55c6d0ffa887c142aa03e9ddaa8eb8a"},
+    {"path": "backend/src/account_actions.js", "sha256": "fa8b9e73e595951f2a81556d4f7f93e198967ccbc71fc26ab988b026166f3cc6"},
     {"path": "backend/src/config.js", "sha256": "75c153e2bda86f7b76c3fcb7d6c9a1a09a728aba2e9600211735a1452669833b"},
     {"path": "backend/src/v51_contract_workflow.js", "sha256": "506c735128379bcc2d57d08be12755fc533aa05ca1ddd5dbb8626efe56b78fc6"},
     {"path": "backend/src/v51_contract_receipt.js", "sha256": "fda446610acd69c9ed54abf4969bba03da9acab1acfbabc93855ee51f03db494"},
@@ -21,9 +21,11 @@
     {"path": "backend/sql/migrations/016_v51_booking_quotes.up.sql", "sha256": "70ab8fbfa5ab8d134775532a8122f429e1c77391bbba926ae13fb233ba8a6d89"},
     {"path": "backend/sql/migrations/017_v51_contract_receipts.up.sql", "sha256": "01f82a6a5cbdea4650faeca82d10c4a1753ab2f9ab78572e4c4303dedb609394"},
     {"path": "backend/sql/migrations/018_v51_withdrawal_and_refund_obligations.up.sql", "sha256": "cc2e2c0571d0983bf126b46ef181f482d89e6edc5ab790b1cdc4a062db57b134"},
+    {"path": "backend/sql/migrations/019_v51_condition_evidence.up.sql", "sha256": "8ff5dfe3d41517df4d3bd18a0effa30c9f0e41fc3387663cac7b8c5fb96bab07"},
+    {"path": "backend/src/booking_condition_evidence_workflow.js", "sha256": "43d1ed3a27de3738422107ca5c2517db4fc1b8c3b136954b5f7aaf4bd167eda1"},
     {"path": "backend/ops/backup.sh", "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"},
-    {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "a380389503ad0a0b0984944b65c45e4eea01dba2d016b1aae60cab5f5ea48a89"},
-    {"path": "lib/screens/privacy_info_screen.dart", "sha256": "ef6bec4f0796bf8ec06f41d666b24be504898d1ae5e3b640e8015c640537e31e"}
+    {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "544bfb2ea2633119e2333bb778ec3912e77fddc36797dde2fe4a30afa1119953"},
+    {"path": "lib/screens/privacy_info_screen.dart", "sha256": "cfbf65f0b78d0929db79715ec946b7de9b3f86b978cc1331f47e6c6be5c125a0"}
   ],
   "implementedControls": {
     "accountErasure": {

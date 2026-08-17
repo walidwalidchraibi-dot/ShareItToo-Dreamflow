@@ -1,5 +1,9 @@
 import crypto from 'node:crypto';
 
+import {
+  parseConditionEvidence,
+  recordConditionEvidenceForMessage,
+} from './booking_condition_evidence_workflow.js';
 import { enqueueMessageNotification } from './notifications.js';
 
 const CHAT_ENABLED_STATUSES = Object.freeze([
@@ -72,6 +76,7 @@ function threadPayload(row, messages = []) {
 async function lockedThread(client, threadId, actorId) {
   const result = await client.query(
     `SELECT thread.*, booking.workflow_status, booking.workflow_version,
+            booking.owner_id, booking.renter_id,
             listing.payload AS listing_payload
      FROM message_threads AS thread
      JOIN bookings AS booking ON booking.id = thread.booking_id
@@ -284,7 +289,12 @@ export async function listThreadMessages(client, {
   };
 }
 
-async function validatedAttachments(client, { actorId, threadId, raw }) {
+async function validatedAttachments(client, {
+  actorId,
+  threadId,
+  raw,
+  requiredPurpose = 'message_attachment',
+}) {
   if (raw === undefined || raw === null) return [];
   if (!Array.isArray(raw) || raw.length > 5) {
     throw new MessageWorkflowError(400, 'invalid_message_attachments');
@@ -297,9 +307,9 @@ async function validatedAttachments(client, { actorId, threadId, raw }) {
             image_width, image_height
      FROM uploads
      WHERE owner_id = $1 AND thread_id = $2
-       AND purpose = 'message_attachment' AND visibility = 'private'
-       AND (id::text = ANY($3::text[]) OR storage_name = ANY($3::text[]))`,
-    [actorId, threadId, ids],
+       AND purpose = $3 AND visibility = 'private'
+       AND (id::text = ANY($4::text[]) OR storage_name = ANY($4::text[]))`,
+    [actorId, threadId, requiredPurpose, ids],
   );
   if (result.rowCount !== new Set(ids).size) {
     throw new MessageWorkflowError(400, 'message_attachment_not_owned');
@@ -336,11 +346,19 @@ export async function sendThreadMessage(client, {
   if (existing.rowCount) {
     return { message: messagePayload(existing.rows[0], actor.id), replayed: true, recipientId };
   }
+  const conditionEvidence = parseConditionEvidence(raw?.conditionEvidence, {
+    booking: row,
+    actorId: actor.id,
+  });
   const attachments = await validatedAttachments(client, {
     actorId: actor.id,
     threadId,
     raw: raw?.attachmentIds,
+    requiredPurpose: conditionEvidence?.requiredUploadPurpose,
   });
+  if (conditionEvidence && attachments.length !== 1) {
+    throw new MessageWorkflowError(400, 'condition_evidence_requires_one_photo');
+  }
   if (!body && !attachments.length) throw new MessageWorkflowError(400, 'message_empty');
   const messageId = safeIdentifier(raw?.id, 'message');
   let inserted;
@@ -366,6 +384,13 @@ export async function sendThreadMessage(client, {
     if (!replay.rowCount) throw error;
     return { message: messagePayload(replay.rows[0], actor.id), replayed: true, recipientId };
   }
+  await recordConditionEvidenceForMessage(client, {
+    bookingId: row.booking_id,
+    actorId: actor.id,
+    messageId,
+    attachments,
+    evidence: conditionEvidence,
+  });
   await client.query(
     `UPDATE message_threads
      SET last_message_at = now(), archived_for = archived_for - $2
@@ -375,7 +400,15 @@ export async function sendThreadMessage(client, {
   await client.query(
     `INSERT INTO audit_log (actor_id, actor_role, action, resource_type, resource_id, metadata)
      VALUES ($1, $2, 'message.sent', 'message', $3, $4::jsonb)`,
-    [actor.id, actor.role, messageId, JSON.stringify({ threadId, bookingId: row.booking_id, hasAttachments: attachments.length > 0 })],
+    [actor.id, actor.role, messageId, JSON.stringify({
+      threadId,
+      bookingId: row.booking_id,
+      hasAttachments: attachments.length > 0,
+      conditionEvidence: conditionEvidence == null ? null : {
+        segment: conditionEvidence.segment,
+        kind: conditionEvidence.kind,
+      },
+    })],
   );
   await enqueueMessageNotification(client, {
     messageId,

@@ -565,6 +565,7 @@ class BackendRepository {
     required String text,
     required String idempotencyKey,
     List<String> attachmentIds = const <String>[],
+    Map<String, dynamic>? conditionEvidence,
   }) async {
     final response = await _authorized(
       method: 'POST',
@@ -572,6 +573,7 @@ class BackendRepository {
       body: {
         'text': text,
         if (attachmentIds.isNotEmpty) 'attachmentIds': attachmentIds,
+        if (conditionEvidence != null) 'conditionEvidence': conditionEvidence,
       },
       additionalHeaders: {'Idempotency-Key': idempotencyKey},
     );
@@ -900,6 +902,7 @@ class BackendRepository {
     required Uint8List bytes,
     required String filename,
     required String threadId,
+    String purpose = 'message_attachment',
   }) async {
     var token = await _token();
     Future<http.StreamedResponse> send(String accessToken) {
@@ -908,7 +911,7 @@ class BackendRepository {
         BackendConfig.uri('/uploads'),
       )
         ..headers['Authorization'] = 'Bearer $accessToken'
-        ..fields['purpose'] = 'message_attachment'
+        ..fields['purpose'] = purpose
         ..fields['threadId'] = threadId
         ..files.add(
           http.MultipartFile.fromBytes('file', bytes, filename: filename),
@@ -934,6 +937,31 @@ class BackendRepository {
       throw const BackendException(500, 'invalid_upload_response');
     }
     return decoded;
+  }
+
+  static Future<Map<String, dynamic>> getConditionEvidenceSummary({
+    required String bookingId,
+    required String segment,
+  }) async {
+    final response = await _authorized(
+      method: 'GET',
+      path:
+          '/bookings/${Uri.encodeComponent(bookingId)}/condition-evidence?segment=${Uri.encodeQueryComponent(segment)}',
+    );
+    return Map<String, dynamic>.from(response['summary'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> recordConditionConfirmation({
+    required String bookingId,
+    required String segment,
+    required String decision,
+  }) async {
+    return _authorized(
+      method: 'POST',
+      path:
+          '/bookings/${Uri.encodeComponent(bookingId)}/condition-confirmations',
+      body: {'segment': segment, 'decision': decision},
+    );
   }
 
   static Future<Map<String, dynamic>> uploadReportEvidence({
