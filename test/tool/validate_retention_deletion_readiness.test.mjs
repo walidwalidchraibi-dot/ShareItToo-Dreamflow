@@ -21,6 +21,42 @@ test('accepts the honest fail-closed retention draft', () => {
   assert.deepEqual(validate(), {state: 'draft', approvalAllowed: false, openDecisionCount: 9, storeGate: 'open'});
 });
 
+test('binds all nine prepared recommendations without pretending they are approved', () => {
+  const preparation = baseRetention.decisionPreparation;
+  assert.equal(preparation.preparedDecisionCount, 9);
+  assert.equal(preparation.closedDecisionCount, 0);
+  assert.equal(preparation.categoryPurgeEnabled, false);
+  for (const decision of Object.values(baseRetention.requiredDecisions)) {
+    assert.deepEqual(decision, { status: 'open', value: null, evidenceRef: null });
+  }
+});
+
+test('rejects decision preparation that silently enables category purge', () => {
+  const retentionManifest = clone(baseRetention);
+  retentionManifest.decisionPreparation.categoryPurgeEnabled = true;
+  assert.throws(() => validate({ retentionManifest }), /remain fail closed/u);
+});
+
+test('rejects decision evidence that treats recommendations as approval', () => {
+  const path = 'docs/evidence/b11/retention-deletion-decision-preparation-20260817.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.boundaries.recommendationsAreApproval = true;
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /must not claim approval or enable deletion/u,
+  );
+});
+
+test('protects the separate default-off Push and Crash decision in the matrix', () => {
+  const path = 'docs/compliance/retention-deletion-decision-matrix.md';
+  const changed = readFileSync(resolve(root, path), 'utf8')
+    .replace('Push darf Crashdiagnose niemals automatisch aktivieren.', 'Push kann Crashdiagnose aktivieren.');
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: changed } }),
+    /Push darf Crashdiagnose niemals automatisch aktivieren/u,
+  );
+});
+
 test('strict approval rejects the current retention draft', () => {
   assert.throws(() => validate({ requireApproved: true }), /Approved retention and deletion readiness is required/);
 });

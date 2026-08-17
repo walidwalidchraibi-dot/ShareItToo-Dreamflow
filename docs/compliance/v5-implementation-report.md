@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.126
+Stand: 17.08.2026, lokaler Checkpoint 16.127
 
 ## Verbindliche Grenzen
 
@@ -83,6 +83,14 @@ Aufbewahrungs-, Lösch- und Store-Nachweise geschlossen werden.
 
 Bis diese Punkte belegt sind, bleibt Go/No-Go auf `HOLD`.
 
+Die neun Aufbewahrungs-/Löschfragen sind in Checkpoint 16.127 nicht mehr ein
+undifferenzierter Block: Für jede Entscheidung liegen jetzt Klassifikation,
+Empfehlung, Implementierungsstand und belastbare Quellen vor. Zwei Regeln sind
+technisch beziehungsweise betrieblich entscheidungsreif (Credential-Purge und
+14-Tage-Backuprotation). Die übrigen Regeln bleiben bewusst offen, bis ihre
+Betreiber-/Rechtsgrundlage bestätigt ist. Keine kategorieweise Löschung wurde
+aktiviert.
+
 ## Prüfstand Checkpoint 16.126
 
 - Backend: 198 bestanden, 1 PostgreSQL-Integrationstest ohne lokale
@@ -100,3 +108,21 @@ Bis diese Punkte belegt sind, bleibt Go/No-Go auf `HOLD`.
 
 Dieser Bericht beschreibt den Quell- und Prüfstand. Er ist keine Freigabe für
 Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
+
+## Prüfstand Checkpoint 16.127
+
+- alle neun Retention-/Löschentscheidungen einzeln vorbereitet, keine als
+  beschlossen ausgegeben
+- maschinenlesbarer Beleg und lesbare Entscheidungsmatrix gebunden
+- FCM-Push und Firebase Crashlytics ausdrücklich erhalten: getrennte
+  freiwillige Opt-ins, beide standardmäßig aus, keine Kopplung
+- abgelaufene Zugangsdaten: bestehende automatische Bereinigung mit Startlauf,
+  Sechs-Stunden-Takt und maximal vorgeschlagenem 24-Stunden-Abschlussfenster
+- Backups: bestehende 14-Tage-Rotation als Betreiberentscheidung vorbereitet;
+  keine falsche Behauptung kontobezogener Einzellöschung aus alten Backups
+- HGB-, AO-, BGB- und BfDI-Quellen gebunden; keine pauschale Rechtsfrist auf
+  fachlich unterschiedliche Daten übertragen
+- Retention-/Datenschutz-/V5.1-Validatoren grün und weiterhin fail-closed
+- vollständige Node-Prüfsuite: 611 bestanden, 0 fehlgeschlagen
+- bestehender Kandidat, Staging, Produktion, Store, Echtgeld und öffentliche
+  Rechtstexte unverändert

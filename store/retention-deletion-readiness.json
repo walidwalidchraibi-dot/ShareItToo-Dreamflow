@@ -124,6 +124,14 @@
     "externalProcessorRetention": {"status": "open", "value": null, "evidenceRef": null},
     "legalHoldProcess": {"status": "open", "value": null, "evidenceRef": null}
   },
+  "decisionPreparation": {
+    "status": "recommendations-prepared-owner-and-legal-approval-open",
+    "matrixRef": "docs/compliance/retention-deletion-decision-matrix.md",
+    "evidenceRef": "docs/evidence/b11/retention-deletion-decision-preparation-20260817.json",
+    "preparedDecisionCount": 9,
+    "closedDecisionCount": 0,
+    "categoryPurgeEnabled": false
+  },
   "storeGate": {
     "privacyDecision": "retentionAndDeletionSchedule",
     "status": "open"

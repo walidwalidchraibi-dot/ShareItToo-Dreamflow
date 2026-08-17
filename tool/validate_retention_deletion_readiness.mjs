@@ -52,6 +52,10 @@ const providerEvidencePath = 'docs/evidence/b11/privacy-provider-retention-sourc
 const credentialCleanupEvidencePath = 'docs/evidence/b11/expired-credential-cleanup-20260815.json';
 const legalHoldEvidencePath = 'docs/evidence/b11/account-legal-hold-20260815.json';
 const retentionInventoryEvidencePath = 'docs/evidence/b11/retention-inventory-20260815.json';
+const decisionPreparationEvidencePath =
+  'docs/evidence/b11/retention-deletion-decision-preparation-20260817.json';
+const decisionPreparationMatrixPath =
+  'docs/compliance/retention-deletion-decision-matrix.md';
 
 const requiredOfficialSources = [
   ['Firebase Cloud Messaging', 'https://firebase.google.com/support/privacy/', 'within 180 days'],
@@ -102,6 +106,73 @@ function assertNoSensitiveData(value, label = 'retention readiness') {
       fail(`${label}.${key} must not contain secrets or account data.`);
     }
     assertNoSensitiveData(entry, `${label}.${key}`);
+  }
+}
+
+function assertDecisionPreparation(root, evidenceTexts) {
+  let evidence;
+  try {
+    evidence = JSON.parse(text(root, evidenceTexts, decisionPreparationEvidencePath));
+  } catch (error) {
+    fail(`Retention decision-preparation evidence must be valid JSON: ${error.message}`);
+  }
+  assertNoSensitiveData(evidence, 'retention decision-preparation evidence');
+  if (evidence.schemaVersion !== 1
+      || evidence.kind !== 'retention-deletion-decision-preparation'
+      || evidence.status !== 'recommendations-prepared-owner-and-legal-approval-open'
+      || evidence.scope?.decisionCount !== decisionKeys.length
+      || evidence.scope?.closedDecisionCount !== 0
+      || evidence.scope?.categoryPurgeEnabled !== false
+      || evidence.scope?.productionChanged !== false
+      || evidence.scope?.storeSubmissionChanged !== false) {
+    fail('Retention decision-preparation evidence must remain complete and fail closed.');
+  }
+  const prepared = object(evidence.decisions, 'retention decision-preparation evidence.decisions');
+  exactKeys(prepared, decisionKeys, 'retention decision-preparation evidence.decisions');
+  for (const key of decisionKeys) {
+    const entry = object(prepared[key], `retention decision-preparation evidence.decisions.${key}`);
+    exactKeys(entry, [
+      'classification',
+      'recommendation',
+      'implementationState',
+      'authorityRefs',
+    ], `retention decision-preparation evidence.decisions.${key}`);
+    if (typeof entry.classification !== 'string' || !entry.classification.trim()
+        || typeof entry.recommendation !== 'string' || !entry.recommendation.trim()
+        || typeof entry.implementationState !== 'string' || !entry.implementationState.trim()
+        || !Array.isArray(entry.authorityRefs) || entry.authorityRefs.length === 0
+        || entry.authorityRefs.some((ref) => typeof ref !== 'string' || !ref.trim())) {
+      fail(`Retention decision-preparation entry ${key} is incomplete.`);
+    }
+  }
+  if (evidence.decisions.expiredCredentialPurgePeriod.classification
+        !== 'technically-ready-for-owner-approval'
+      || evidence.decisions.backupErasureWindow.classification
+        !== 'operationally-ready-for-owner-approval'
+      || evidence.decisions.externalProcessorRetention.classification
+        !== 'owner-contract-and-deletion-procedure-approval-required') {
+    fail('Retention decision-preparation classifications drifted from the reviewed boundary.');
+  }
+  if (evidence.boundaries?.recommendationsAreApproval !== false
+      || evidence.boundaries?.legalPeriodsInvented !== false
+      || evidence.boundaries?.allNineDecisionsRemainOpen !== true
+      || evidence.boundaries?.categoryPurgeEnabled !== false
+      || evidence.boundaries?.productionChanged !== false
+      || evidence.boundaries?.storeSubmissionChanged !== false
+      || evidence.boundaries?.containsSecrets !== false
+      || evidence.boundaries?.containsAccountData !== false) {
+    fail('Retention decision preparation must not claim approval or enable deletion.');
+  }
+  const matrix = text(root, evidenceTexts, decisionPreparationMatrixPath);
+  for (const marker of [
+    'Status: **Entscheidungsvorbereitung; nicht freigegeben**',
+    'Alle neun Entscheidungen bleiben formal offen.',
+    'Firebase Cloud Messaging bleibt Bestandteil von SIT',
+    'Firebase Crashlytics bleibt Bestandteil von SIT',
+    'Push darf Crashdiagnose niemals automatisch aktivieren.',
+    'schaltet keine Löschroutine frei',
+  ]) {
+    if (!matrix.includes(marker)) fail(`Retention decision matrix is missing boundary: ${marker}`);
   }
 }
 
@@ -444,6 +515,7 @@ export function validateRetentionDeletionReadiness({
   assertCredentialCleanupEvidence(root, evidenceTexts);
   assertLegalHoldEvidence(root, evidenceTexts);
   assertRetentionInventoryEvidence(root, evidenceTexts);
+  assertDecisionPreparation(root, evidenceTexts);
 
   const controls = object(retention.implementedControls, 'implementedControls');
   if (controls.accountErasure?.status !== 'implemented-integration-covered'
@@ -494,6 +566,24 @@ export function validateRetentionDeletionReadiness({
         || typeof decision.evidenceRef !== 'string' || !decision.evidenceRef.startsWith('docs/evidence/b11/'))) {
       fail(`Closed decision ${key} requires an evidence-backed value.`);
     }
+  }
+
+  const preparation = object(retention.decisionPreparation, 'decisionPreparation');
+  exactKeys(preparation, [
+    'status',
+    'matrixRef',
+    'evidenceRef',
+    'preparedDecisionCount',
+    'closedDecisionCount',
+    'categoryPurgeEnabled',
+  ], 'decisionPreparation');
+  if (preparation.status !== 'recommendations-prepared-owner-and-legal-approval-open'
+      || preparation.matrixRef !== decisionPreparationMatrixPath
+      || preparation.evidenceRef !== decisionPreparationEvidencePath
+      || preparation.preparedDecisionCount !== decisionKeys.length
+      || preparation.closedDecisionCount !== 0
+      || preparation.categoryPurgeEnabled !== false) {
+    fail('Retention decision preparation must bind all nine open decisions and remain fail closed.');
   }
 
   const processors = object(retention.externalProcessors, 'externalProcessors');

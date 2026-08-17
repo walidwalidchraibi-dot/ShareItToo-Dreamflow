@@ -135,3 +135,19 @@ Rolloutschritt durchgeführt.
   aus.
 - Echtgeld, Migration/Deployment auf Staging oder Produktion, Store-Aktion und
   neuer Kandidat wurden nicht ausgelöst.
+
+## Fortschreibung 16.127 – entscheidbare Löschmatrix
+
+- Die neun offenen Retention-/Löschpunkte sind einzeln nach Empfehlung,
+  Implementierungsstand, Autorität und verbleibender Freigabe klassifiziert.
+- V5.1 verlangt eine Löschmatrix, enthält aber keine vollständigen Fristen.
+  Deshalb bleiben alle neun formell offen; eine Empfehlung gilt niemals als
+  Betreiber- oder Rechtsfreigabe.
+- Abgelaufene Zugangsdaten und 14-Tage-Backuprotation sind technisch bzw.
+  betrieblich entscheidungsreif. Transaktionen, Kommunikation, Moderation,
+  Audit, inaktive Konten, externe Anbieter und Legal Hold brauchen getrennte
+  Entscheidungen oder Klassifikationen.
+- FCM-Push und Crashlytics bleiben ausdrücklich erhalten, unabhängig,
+  freiwillig und standardmäßig aus. Push aktiviert Crashlytics nicht.
+- Kategorieweise Löschung, Produktion, Store, öffentlicher Datenschutztext und
+  der bestehende Kandidat bleiben unverändert beziehungsweise gesperrt.
