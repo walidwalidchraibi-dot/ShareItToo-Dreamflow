@@ -2005,23 +2005,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       await _load();
       return;
     }
-    // Release/cancel ride compensation if present (return segment)
-    try {
-      final grant = await DataService.getRideCompensationDecision(
-        requestId: req.id,
-        segment: 'return',
-        consume: true,
-      );
-      if (grant != null) {
-        await DataService.addTimelineEvent(
-          requestId: req.id,
-          type: grant ? 'ride_comp_release_return' : 'ride_comp_cancel_return',
-          note: grant
-              ? 'Fahrtvergütung freigegeben (Rückgabe)'
-              : 'Fahrtvergütung nicht ausgezahlt (Rückgabe)',
-        );
-      }
-    } catch (_) {}
     await DataService.addNotification(
       title: 'Buchung abgeschlossen',
       body:

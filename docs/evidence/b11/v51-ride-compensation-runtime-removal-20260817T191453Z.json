@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "16.179",
+  "capturedAtUtc": "2026-08-17T19:14:53Z",
+  "sourceBaseCommit": "7850513399de159257eb40ec6b06f2fbab2c6d8c",
+  "status": "passed",
+  "rideCompensationBoundary": {
+    "localPersistenceRemoved": true,
+    "decisionReadAndConsumeRemoved": true,
+    "returnReleaseOrCancelTimelineRemoved": true,
+    "returnCompletionPreserved": true,
+    "receiptNotificationPreserved": true,
+    "ownerReviewReminderPreserved": true
+  },
+  "safetyBoundary": {
+    "authenticatedOwnerGuardPreserved": true,
+    "activeReturnFlowGuardPreserved": true,
+    "minimumReturnPhotosGuardPreserved": true,
+    "galleryEvidenceAcknowledgementPreserved": true,
+    "verifiedReturnTransitionPreserved": true
+  },
+  "privacyBoundary": {
+    "legacyLocalStorageRemoved": true,
+    "collectionExpanded": false,
+    "storageExpanded": false,
+    "transmissionExpanded": false,
+    "permissionsExpanded": false,
+    "privacySourceHashesUpdated": true
+  },
+  "verification": {
+    "targetedNode": "31/31 passed",
+    "targetedFlutter": "55/55 passed",
+    "runtimeDiff": "0 insertions, 93 deletions",
+    "totalCheckpointDiffBeforeEvidenceAndReport": "58 insertions, 95 deletions",
+    "targetedAnalyzer": "29 existing findings, 0 errors across both changed runtime files",
+    "fullTechnicalRegression": "passed with exit code 0",
+    "fullFlutter": "292 passed, 1 intentional skip",
+    "backend": "213 passed, 1 intentional PostgreSQL skip",
+    "flutterAnalyzer": "223 findings, 0 errors",
+    "webDebugBuild": "passed",
+    "androidDebugBuild": "passed"
+  },
+  "serviceBoundary": {
+    "pushRetained": true,
+    "crashlyticsRetained": true,
+    "separateVoluntaryDefaultOffChoices": true,
+    "pushEnablesCrashlytics": false,
+    "adsMarketingAnalyticsExternalGenAiEnabled": false
+  },
+  "externalActions": {
+    "deployment": false,
+    "upload": false,
+    "storeMutation": false,
+    "providerConsoleMutation": false,
+    "liveMoney": false,
+    "candidateBuiltOrRelabeled": false
+  },
+  "sourceHashesSha256": {
+    "lib/services/data_service.dart": "0efd956db2c34c8f75229dbbf652b049711be106311e61bb44ccb2ab71bd3f42",
+    "lib/screens/ongoing_owner_detail_screen.dart": "17d7d78447c0eed2fb216380c8d07638ecb7f7713d85a1a2a0addc49c5b9456f",
+    "store/privacy-disclosures.json": "75d13b208cb10b94a9369bc1f3a57fbb1da1b026bf6dde6872e928f2adceff72",
+    "test/tool/v51_ride_compensation_runtime_removed_wiring.test.mjs": "aeae839ae5db3874fc2f1a0395cd9223cfe62e86eafb9ea287660053a41a8a3f"
+  }
+}

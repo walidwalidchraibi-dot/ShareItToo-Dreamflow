@@ -73,7 +73,6 @@ class DataService {
       'read_requests_v1'; // userId -> Set<requestId>
   static const String _handoverFailCountsKey = 'handover_fail_counts';
   static const String _handoverBannersKey = 'handover_banners';
-  static const String _rideCompKey = 'ride_compensation_v1';
   // Wishlists
   static const String _wishlistsMetaKey = 'wishlists_meta_v1';
   static const String _wishlistAssignKey = 'wishlist_assign_v1';
@@ -7105,81 +7104,6 @@ class DataService {
       if (mutated) await prefs.setString(_notificationsKey, jsonEncode(list));
     } catch (e) {
       debugPrint('[DataService] archiveNotification failed: $e');
-    }
-  }
-
-  // ===== Ride compensation lightweight state =====
-  /// Persist a decision for ride compensation per request and segment ('dropoff' | 'return').
-  static Future<void> setRideCompensationDecision({
-    required String requestId,
-    required String segment,
-    required bool grant,
-    String? reason,
-  }) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_rideCompKey);
-      Map<String, dynamic> map = {};
-      if (raw != null && raw.isNotEmpty) {
-        try {
-          map = jsonDecode(raw) as Map<String, dynamic>;
-        } catch (_) {
-          map = {};
-        }
-      }
-      final entry = Map<String, dynamic>.from(map[requestId] as Map? ?? {});
-      entry[segment] = {
-        'grant': grant,
-        'reason': reason ?? '',
-        'ts': DateTime.now().toIso8601String(),
-      };
-      map[requestId] = entry;
-      await prefs.setString(_rideCompKey, jsonEncode(map));
-    } catch (e) {
-      debugPrint(
-        '[DataService] setRideCompensationDecision failed: $e',
-      );
-    }
-  }
-
-  /// Returns the decision if present. If [consume] is true, removes it after reading.
-  static Future<bool?> getRideCompensationDecision({
-    required String requestId,
-    required String segment,
-    bool consume = false,
-  }) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_rideCompKey);
-      if (raw == null || raw.isEmpty) return null;
-      Map<String, dynamic> map;
-      try {
-        map = jsonDecode(raw) as Map<String, dynamic>;
-      } catch (_) {
-        return null;
-      }
-      final entry = map[requestId];
-      if (entry is Map) {
-        final seg = (entry[segment] as Map?);
-        final grant = (seg?['grant'] as bool?);
-        if (consume) {
-          final e2 = Map<String, dynamic>.from(entry);
-          e2.remove(segment);
-          if (e2.isEmpty) {
-            map.remove(requestId);
-          } else {
-            map[requestId] = e2;
-          }
-          await prefs.setString(_rideCompKey, jsonEncode(map));
-        }
-        return grant;
-      }
-      return null;
-    } catch (e) {
-      debugPrint(
-        '[DataService] getRideCompensationDecision failed: $e',
-      );
-      return null;
     }
   }
 

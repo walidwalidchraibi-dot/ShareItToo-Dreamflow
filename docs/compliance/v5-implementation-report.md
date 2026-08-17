@@ -1409,3 +1409,32 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   oder Kandidatenwechsel und keine zusätzliche Crashlytics-
   Kennungsübertragung. Nachweis:
   `docs/evidence/b11/v51-return-stepper-transport-cleanup-20260817T190416Z.json`
+
+## Prüfstand Checkpoint 16.179
+
+- die alte Fahrtvergütung ist jetzt auch aus der wirkungsfähigen
+  Rückgabe-Finalisierung entfernt. Nach Abschluss wird weder ein lokaler
+  Fahrtentscheid gelesen oder verbraucht noch ein Freigabe-/Stornoereignis
+  für eine im Privat-Pilot nicht angebotene Transportleistung erzeugt
+- der zugehörige lokale Speicher samt Schreib- und Lesezugriff wurde aus dem
+  zentralen Datendienst entfernt. Es werden keine Buchungs-, Nutzer- oder
+  Übergabedaten gelöscht; nur die nicht mehr zulässige Pilotfunktion entfällt
+- Eigentümer-Authentifizierung, aktiver Rückgabeprozess, mindestens vier
+  Rollenfotos, Gallery-Bestätigung und verifizierter Abschluss bleiben
+  fail-closed. Abschlussbenachrichtigung, Beleghinweis, Aktualisierung und
+  Bewertungs-Erinnerung bleiben aktiv
+- 31/31 gezielte Verkabelungs-/Datenschutzprüfungen und 55/55
+  sicherheitskritische Flutter-Tests bestanden. Aus den Laufzeitdateien
+  entfielen 93 Zeilen; es entstanden keine neuen Analysefehler oder -hinweise
+- die vollständige technische Regression bestand mit 292 Flutter-Tests und
+  1 bewusstem Skip, 213 Backendtests und 1 bewusstem PostgreSQL-Skip, 223
+  Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds
+- FCM-Push und Firebase Crashlytics bleiben ausdrücklich bestehen, getrennt,
+  freiwillig und im nächsten Kandidaten standardmäßig aus; Push aktiviert
+  Crashlytics nicht. Werbung, Marketingtracking, allgemeine Analytics und
+  externe generative KI bleiben aus
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store-, Anbieterconsole-
+  oder Kandidatenwechsel und keine zusätzliche Crashlytics-
+  Kennungsübertragung. Nachweis:
+  `docs/evidence/b11/v51-ride-compensation-runtime-removal-20260817T191453Z.json`

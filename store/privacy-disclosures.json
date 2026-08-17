@@ -160,11 +160,11 @@
     },
     {
       "path": "lib/screens/ongoing_owner_detail_screen.dart",
-      "sha256": "401e865b3afc517af27796898df8c901e7f609cdce81d13eb38d9961ff3e67fd"
+      "sha256": "17d7d78447c0eed2fb216380c8d07638ecb7f7713d85a1a2a0addc49c5b9456f"
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "011f3c2ed79a2bf85ed9b6aba5c3d0b25cf687e5667c3e3892172ec2c6a4993d"
+      "sha256": "0efd956db2c34c8f75229dbbf652b049711be106311e61bb44ccb2ab71bd3f42"
     },
     {
       "path": "lib/screens/platform_withdrawal_screen.dart",
