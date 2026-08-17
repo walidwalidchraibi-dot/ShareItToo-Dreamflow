@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.149
+Stand: 17.08.2026, lokaler Checkpoint 16.150
 
 ## Verbindliche Grenzen
 
@@ -567,3 +567,28 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
   übertragen. Nachweis:
   `docs/evidence/b11/v51-checkout-backend-error-mapping-20260817T092630Z.json`
+
+## Prüfstand Checkpoint 16.150
+
+- jede neue Serverpreisabfrage setzt jetzt sowohl die Bestätigung der privaten
+  Bedingungen als auch die Erklärung zur vorzeitigen Leistung und
+  Widerrufsfolge auf nicht bestätigt zurück
+- dasselbe gilt sofort beim automatischen Ablauf des zehn Minuten gültigen
+  Preisangebots; alte Häkchen bleiben nicht sichtbar oder technisch wirksam
+- nach einem abgelaufenen oder geänderten Preis kann der automatisch neu
+  geladene Preis deshalb erst gesendet werden, wenn der Nutzer beide
+  Erklärungen für den frischen Preis erneut bewusst setzt
+- der Absende-Guard verlangt weiterhin gleichzeitig beide Erklärungen, einen
+  frischen Serverpreis, die Zahlungsbereitschaft und einen nicht laufenden
+  Sendevorgang
+- 5/5 Checkout-Fehler-/Neubestätigungs-Wiring-Tests, 9/9 gezielte Node-Tests
+  und 8/8 gezielte Flutter-Tests bestanden; die Checkout-Datei hat weiterhin
+  0 Analyzer-Hinweise
+- die vollständige Regression blieb mit 282 bestandenen Tests, 1 bewusstem
+  Skip, 229 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder Kandidatenwechsel
+- Push und Crashdiagnose bleiben bestehen, getrennt, freiwillig und
+  standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
+  übertragen. Nachweis:
+  `docs/evidence/b11/v51-checkout-reconfirmation-after-requote-20260817T093351Z.json`

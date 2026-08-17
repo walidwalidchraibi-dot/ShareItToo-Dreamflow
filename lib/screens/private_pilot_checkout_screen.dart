@@ -85,6 +85,8 @@ class _PrivatePilotCheckoutScreenState
     _quoteExpiryTimer?.cancel();
     setState(() {
       _loadingQuote = true;
+      _privateAndTermsConfirmed = false;
+      _earlyPerformanceAndWithdrawalConfirmed = false;
       _quoteError = null;
       _checkoutQuote = null;
       _quoteExpiresAt = null;
@@ -123,6 +125,8 @@ class _PrivatePilotCheckoutScreenState
         () {
           if (!mounted) return;
           setState(() {
+            _privateAndTermsConfirmed = false;
+            _earlyPerformanceAndWithdrawalConfirmed = false;
             _checkoutQuote = null;
             _quoteExpiresAt = null;
             _quoteError = 'Der Preis ist abgelaufen. Bitte neu laden.';

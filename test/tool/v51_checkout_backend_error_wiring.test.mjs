@@ -67,6 +67,21 @@ test('stale or changed binding quotes are cleared and reloaded after a centered 
   assert.match(checkout, /bitte prüfe und bestätige ihn erneut/u);
 });
 
+test('every binding quote reload and timer expiry clears both confirmations', () => {
+  assert.match(
+    checkout,
+    /Future<void> _loadFreshQuote\(\)[\s\S]*?_loadingQuote = true;[\s\S]*?_privateAndTermsConfirmed = false;[\s\S]*?_earlyPerformanceAndWithdrawalConfirmed = false;/u,
+  );
+  assert.match(
+    checkout,
+    /_quoteExpiryTimer = Timer\([\s\S]*?_privateAndTermsConfirmed = false;[\s\S]*?_earlyPerformanceAndWithdrawalConfirmed = false;[\s\S]*?_checkoutQuote = null;/u,
+  );
+  assert.match(
+    checkout,
+    /bool get _canSubmit =>[\s\S]*?_allConfirmed[\s\S]*?_freshQuoteAvailable/u,
+  );
+});
+
 test('non-price conflicts receive bounded honest messages and no false success', () => {
   for (const message of [
     'Zeitraum nicht mehr verfügbar',
