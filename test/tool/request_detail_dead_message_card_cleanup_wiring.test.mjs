@@ -37,7 +37,7 @@ test('owner acceptance and decline status transitions remain wired', () => {
   assert.match(requestDetail, /showPrivatePilotOwnerAcceptanceDialog\(/);
   assert.match(
     requestDetail,
-    /DataService\.updateRentalRequestStatus\([\s\S]*?requestId: req\.id,[\s\S]*?status: 'accepted',[\s\S]*?legalDeclarations: declarations/,
+    /commitPrivatePilotOwnerAcceptance\([\s\S]*?request: req,[\s\S]*?legalDeclarations: declarations[\s\S]*?if \(!accepted\) return;/,
   );
   assert.match(
     requestDetail,

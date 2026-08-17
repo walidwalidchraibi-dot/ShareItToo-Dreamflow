@@ -148,7 +148,7 @@
     },
     {
       "path": "lib/screens/ongoing_owner_detail_screen.dart",
-      "sha256": "dbd328c9323d9797e422765ee201f13592b1cc27c5236e835cb89401de47f0e9"
+      "sha256": "0f624cca34cdf8b0e296f57e70e7a2488486d9e01e4ecc9a2471d829e0b996dc"
     },
     {
       "path": "lib/services/data_service.dart",
@@ -240,7 +240,7 @@
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "76979dafb2b953213e7c4bbb19030c203a28e9eb4ad57ec2e2e11db5ba3eed9a"
+      "sha256": "72b323237ae088f559898d06f19cf7f17230e043ce574875aba2b4e2ad886f73"
     },
     {
       "path": "lib/widgets/return_handover_stepper_sheet.dart",

@@ -1256,11 +1256,13 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
               request: r,
             );
             if (declarations == null) return;
-            await DataService.updateRentalRequestStatus(
-              requestId: r.id,
-              status: 'accepted',
+            if (!context.mounted) return;
+            final accepted = await commitPrivatePilotOwnerAcceptance(
+              context,
+              request: r,
               legalDeclarations: declarations,
             );
+            if (!accepted) return;
             await DataService.updateMessageThreadBookingStatus(
               threadId: t.id,
               status: 'accepted',

@@ -222,9 +222,8 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
     setState(() => _entries = list);
   }
 
-  Future<
-      ({String ownerId, List<_OwnerEntry> entries})> _buildDemoOwnerEntries(
-          {String? ownerId}) async {
+  Future<({String ownerId, List<_OwnerEntry> entries})> _buildDemoOwnerEntries(
+      {String? ownerId}) async {
     final now = DateTime.now();
     final items = await DataService.getItems();
     final users = await DataService.getUsers();
@@ -644,7 +643,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
                 await DataService.markRequestAsRead(
                     userId: _ownerId!, requestId: e.r.id);
               }
-              if (!mounted) return;
+              if (!context.mounted) return;
               await Navigator.of(context).push(MaterialPageRoute(
                   builder: (_) => OngoingOwnerDetailScreen(
                       requestId: e.r.id, titleOverride: titleForCategory)));
@@ -918,11 +917,13 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
                 request: e.r,
               );
               if (declarations == null) return;
-              await DataService.updateRentalRequestStatus(
-                requestId: e.r.id,
-                status: 'accepted',
+              if (!mounted) return;
+              final accepted = await commitPrivatePilotOwnerAcceptance(
+                context,
+                request: e.r,
                 legalDeclarations: declarations,
               );
+              if (!accepted) return;
               if (!mounted) return;
               await _load();
               if (!mounted) return;

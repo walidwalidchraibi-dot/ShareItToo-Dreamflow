@@ -151,11 +151,14 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                           isBindingServerQuote: serverQuote != null,
                         );
                         if (declarations == null) return;
-                        await DataService.updateRentalRequestStatus(
-                          requestId: req.id,
-                          status: 'accepted',
+                        if (!context.mounted) return;
+                        final accepted =
+                            await commitPrivatePilotOwnerAcceptance(
+                          context,
+                          request: req,
                           legalDeclarations: declarations,
                         );
+                        if (!accepted) return;
                         if (mounted) Navigator.of(context).pop(true);
                       },
                 onDecline: () async {

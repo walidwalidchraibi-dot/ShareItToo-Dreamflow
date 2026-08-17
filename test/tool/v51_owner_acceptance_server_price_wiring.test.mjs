@@ -85,7 +85,11 @@ test('acceptance dialog and backend transition receive the same guarded quote fl
   );
   assert.match(
     requestDetail,
-    /if \(declarations == null\) return;[\s\S]*?updateRentalRequestStatus\([\s\S]*?status: 'accepted'/u,
+    /if \(declarations == null\) return;[\s\S]*?commitPrivatePilotOwnerAcceptance\([\s\S]*?legalDeclarations: declarations/u,
+  );
+  assert.match(
+    dialog,
+    /commitPrivatePilotOwnerAcceptance\([\s\S]*?updateRentalRequestStatus\([\s\S]*?status: 'accepted'/u,
   );
   assert.match(dialog, /PrivatePilotConfig\.ownerAcceptanceDeclaration/u);
   assert.match(
@@ -150,5 +154,22 @@ test('every alternative owner-acceptance surface reaches the guarded dialog', ()
   ]) {
     const caller = readFileSync(new URL(relative, import.meta.url), 'utf8');
     assert.match(caller, /showPrivatePilotOwnerAcceptanceDialog\(/u);
+    assert.match(caller, /commitPrivatePilotOwnerAcceptance\(/u);
+    assert.match(caller, /if \(!accepted\) return;/u);
   }
+});
+
+test('an acceptance race at the server deadline becomes a centered SIT message', () => {
+  assert.match(dialog, /on BackendException catch \(error\)/u);
+  assert.match(
+    dialog,
+    /if \(error\.code != 'booking_request_expired'\) rethrow;/u,
+  );
+  assert.match(dialog, /if \(!context\.mounted\) return false;/u);
+  assert.match(
+    dialog,
+    /AppPopup\.info\([\s\S]*?title: 'Annahmefrist abgelaufen'/u,
+  );
+  assert.match(dialog, /Diese Anfrage kann nicht mehr angenommen werden/u);
+  assert.match(dialog, /Bitte lade die Ansicht neu/u);
 });

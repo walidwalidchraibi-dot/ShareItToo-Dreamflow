@@ -1232,11 +1232,13 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                       request: req,
                     );
                     if (declarations == null) return;
-                    await DataService.updateRentalRequestStatus(
-                      requestId: req.id,
-                      status: 'accepted',
+                    if (!context.mounted) return;
+                    final accepted = await commitPrivatePilotOwnerAcceptance(
+                      context,
+                      request: req,
                       legalDeclarations: declarations,
                     );
+                    if (!accepted) return;
                     await DataService.addTimelineEvent(
                       requestId: req.id,
                       type: 'accepted',

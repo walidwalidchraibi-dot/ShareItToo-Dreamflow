@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.147
+Stand: 17.08.2026, lokaler Checkpoint 16.148
 
 ## Verbindliche Grenzen
 
@@ -513,3 +513,30 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
   übertragen. Nachweis:
   `docs/evidence/b11/v51-owner-acceptance-deadline-gate-20260817T085811Z.json`
+
+## Prüfstand Checkpoint 16.148
+
+- weist das Backend einen Annahmeversuch exakt mit
+  `booking_request_expired` zurück, zeigt SIT jetzt zentral das mittige Popup
+  „Annahmefrist abgelaufen“ statt eines technischen oder kaum sichtbaren
+  Fehlers
+- die Meldung erklärt, dass die 30-Minuten-Frist abgelaufen ist, dass die
+  Anfrage nicht mehr angenommen werden kann und dass die Ansicht neu geladen
+  werden soll
+- andere Backendfehler werden nicht fälschlich als Fristablauf ausgegeben,
+  sondern weiterhin an die bestehende Fehlerbehandlung weitergereicht
+- alle vier Vermieter-Annahmewege verwenden dieselbe zentrale Abschluss- und
+  Fehlerfunktion; nach einer abgelaufenen Annahme entstehen weder
+  Erfolgsmeldung noch Chatstatus-, Timeline- oder Navigations-Folgeschritte
+- 8/8 Annahme-Wiring-Tests und 57/57 gezielte Flutter-Tests bestanden
+- die vollständige Regression blieb mit 282 bestandenen Tests, 1 bewusstem
+  Skip, 229 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün
+- die Datenschutz-Inventarbindung der zwei bereits inventarisierten Ansichten
+  wurde aktualisiert; Datenerhebung, Speicherung, Transport, Anbieter und
+  Berechtigungen änderten sich nicht
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder Kandidatenwechsel
+- Push und Crashdiagnose bleiben bestehen, getrennt, freiwillig und
+  standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
+  übertragen. Nachweis:
+  `docs/evidence/b11/v51-owner-acceptance-expired-popup-20260817T091611Z.json`

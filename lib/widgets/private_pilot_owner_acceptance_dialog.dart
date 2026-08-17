@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/services/backend_config.dart';
+import 'package:lendify/services/backend_http.dart';
+import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/private_pilot_pricing.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
+import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/private_pilot_risk_notice.dart';
 
 Future<List<Map<String, dynamic>>?> showPrivatePilotOwnerAcceptanceDialog(
@@ -151,6 +154,31 @@ Future<List<Map<String, dynamic>>?> showPrivatePilotOwnerAcceptanceDialog(
       },
     ),
   );
+}
+
+Future<bool> commitPrivatePilotOwnerAcceptance(
+  BuildContext context, {
+  required RentalRequest request,
+  required List<Map<String, dynamic>> legalDeclarations,
+}) async {
+  try {
+    await DataService.updateRentalRequestStatus(
+      requestId: request.id,
+      status: 'accepted',
+      legalDeclarations: legalDeclarations,
+    );
+    return true;
+  } on BackendException catch (error) {
+    if (error.code != 'booking_request_expired') rethrow;
+    if (!context.mounted) return false;
+    await AppPopup.info(
+      context,
+      title: 'Annahmefrist abgelaufen',
+      message:
+          'Die 30-Minuten-Frist ist inzwischen abgelaufen. Diese Anfrage kann nicht mehr angenommen werden. Bitte lade die Ansicht neu.',
+    );
+    return false;
+  }
 }
 
 String _date(DateTime value) {
