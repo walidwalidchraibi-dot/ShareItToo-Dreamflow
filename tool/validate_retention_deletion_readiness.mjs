@@ -53,6 +53,13 @@ const decisionKeys = [
   'legalHoldProcess',
 ];
 
+const externalProcessorKeys = [
+  'firebaseCloudMessaging',
+  'firebaseCrashlytics',
+  'firebaseAuthentication',
+  'googleMapsPlatform',
+];
+
 const providerEvidencePath = 'docs/evidence/b11/privacy-provider-retention-sources-20260812.json';
 const firebaseServiceReadinessPaths = {
   firebaseCloudMessaging:
@@ -63,6 +70,8 @@ const firebaseServiceReadinessPaths = {
 const credentialCleanupEvidencePath = 'docs/evidence/b11/expired-credential-cleanup-20260815.json';
 const legalHoldEvidencePath = 'docs/evidence/b11/account-legal-hold-20260815.json';
 const retentionInventoryEvidencePath = 'docs/evidence/b11/retention-inventory-20260815.json';
+const retentionExecutionPreflightEvidencePath =
+  'docs/evidence/b11/v51-retention-execution-preflight-20260817T130000Z.json';
 const decisionPreparationEvidencePath =
   'docs/evidence/b11/retention-deletion-decision-preparation-20260817.json';
 const decisionPreparationMatrixPath =
@@ -128,6 +137,77 @@ function assertNoSensitiveData(value, label = 'retention readiness') {
     }
     assertNoSensitiveData(entry, `${label}.${key}`);
   }
+}
+
+export function assessRetentionExecutionReadiness({ retentionManifest, privacyManifest }) {
+  const retention = object(retentionManifest, 'retention execution preflight.retentionManifest');
+  const privacy = object(privacyManifest, 'retention execution preflight.privacyManifest');
+  const blockers = [];
+
+  if (retention.state !== 'approved'
+      || retention.approvalAllowed !== true
+      || retention.boundaries?.legalApproval !== true) {
+    blockers.push('retention-policy-approval-open');
+  }
+
+  const decisions = object(
+    retention.requiredDecisions,
+    'retention execution preflight.requiredDecisions',
+  );
+  for (const key of decisionKeys) {
+    const decision = decisions[key];
+    if (decision?.status !== 'closed'
+        || typeof decision?.value !== 'string'
+        || !decision.value.trim()
+        || typeof decision?.evidenceRef !== 'string'
+        || !decision.evidenceRef.startsWith('docs/evidence/b11/')) {
+      blockers.push(`decision-open:${key}`);
+    }
+  }
+
+  const controls = object(
+    retention.implementedControls,
+    'retention execution preflight.implementedControls',
+  );
+  if (controls.categoryPurge?.status !== 'implemented-staging-dry-run-verified') {
+    blockers.push('category-purge-not-staging-verified');
+  }
+  if (controls.retentionInventory?.retentionPeriodsApplied !== true) {
+    blockers.push('retention-periods-not-applied');
+  }
+  if (controls.retentionInventory?.eligibleRowsCalculated !== true) {
+    blockers.push('eligible-rows-not-calculated');
+  }
+  if (controls.retentionInventory?.executionEnabled !== true) {
+    blockers.push('retention-execution-disabled');
+  }
+
+  const processors = object(
+    retention.externalProcessors,
+    'retention execution preflight.externalProcessors',
+  );
+  for (const key of externalProcessorKeys) {
+    const processor = processors[key];
+    if (processor?.retentionOwnerVerified !== true
+        || processor?.deletionProcedureVerified !== true
+        || typeof processor?.ownerEvidenceRef !== 'string'
+        || !processor.ownerEvidenceRef.startsWith('docs/evidence/b11/')) {
+      blockers.push(`external-processor-open:${key}`);
+    }
+  }
+
+  if (retention.storeGate?.status !== 'closed') blockers.push('retention-store-gate-open');
+  if (privacy.requiredDecisions?.retentionAndDeletionSchedule?.status !== 'closed') {
+    blockers.push('privacy-retention-schedule-open');
+  }
+
+  return {
+    status: blockers.length === 0 ? 'executable' : 'blocked',
+    executionAllowed: blockers.length === 0,
+    destructiveRouteExposed: false,
+    blockerCount: blockers.length,
+    blockers,
+  };
 }
 
 function assertDecisionPreparation(root, evidenceTexts) {
@@ -382,6 +462,67 @@ function assertProviderEvidence(root, evidenceTexts) {
       || boundaries.containsSecrets !== false
       || boundaries.containsAccountData !== false) {
     fail('Provider-retention evidence must preserve the reviewed-but-unapproved release boundary.');
+  }
+}
+
+function assertRetentionExecutionPreflightEvidence(root, evidenceTexts) {
+  let evidence;
+  try {
+    evidence = JSON.parse(text(root, evidenceTexts, retentionExecutionPreflightEvidencePath));
+  } catch (error) {
+    fail(`Retention execution-preflight evidence must be valid JSON: ${error.message}`);
+  }
+  assertNoSensitiveData(evidence, 'retention execution-preflight evidence');
+  if (evidence.schemaVersion !== 1
+      || evidence.kind !== 'v51-retention-execution-preflight'
+      || evidence.status !== 'implemented-full-regression-passed-execution-blocked'
+      || evidence.sourceBaseCommit !== '61b570ba6629a88eb0e3be24def23b2718351d6e'
+      || evidence.result?.executionStatus !== 'blocked'
+      || evidence.result?.executionAllowed !== false
+      || evidence.result?.destructiveRouteExposed !== false
+      || evidence.result?.currentBlockerCount !== 20
+      || evidence.result?.openRetentionDecisions !== decisionKeys.length
+      || evidence.result?.processorVerificationGatesOpen !== externalProcessorKeys.length
+      || evidence.result?.unsafeDecisionValuesReflected !== false
+      || !Array.isArray(evidence.requiredCombinedGates)
+      || evidence.requiredCombinedGates.length !== 9
+      || evidence.verification?.targetedRetentionTests !== 'passed-36'
+      || evidence.verification?.retentionValidator
+        !== 'passed-draft-open-nine-decisions-execution-blocked-20'
+      || evidence.verification?.fullTechnicalRegression !== 'passed-candidate-rollover-mode'
+      || evidence.verification?.flutterTests !== 'passed-282-with-1-intentional-skip'
+      || evidence.verification?.flutterAnalyzer !== '229-findings-0-errors-baseline-accepted'
+      || evidence.verification?.webDebugBuild
+        !== 'passed-existing-wasm-dry-run-warnings-only'
+      || evidence.verification?.androidDebugBuild !== 'passed'
+      || evidence.boundaries?.retentionPeriodsInvented !== false
+      || evidence.boundaries?.decisionStatusChanged !== false
+      || evidence.boundaries?.eligibleRowsCalculated !== false
+      || evidence.boundaries?.databaseRowsReadForThisMilestone !== false
+      || evidence.boundaries?.databaseRowsChanged !== false
+      || evidence.boundaries?.deletionRouteAdded !== false
+      || evidence.boundaries?.stagingChanged !== false
+      || evidence.boundaries?.productionChanged !== false
+      || evidence.boundaries?.storeSubmissionChanged !== false
+      || evidence.boundaries?.candidateBuiltOrRelabeled !== false
+      || evidence.boundaries?.containsSecrets !== false
+      || evidence.boundaries?.containsAccountData !== false) {
+    fail('Retention execution-preflight evidence is incomplete or exceeds its non-destructive boundary.');
+  }
+  for (const requiredGate of [
+    'owner-and-legal-policy-approval',
+    'all-nine-decisions-evidence-closed',
+    'category-purge-staging-dry-run-verified',
+    'retention-periods-applied',
+    'eligible-rows-calculated',
+    'retention-execution-explicitly-enabled',
+    'all-four-external-processor-retention-and-deletion-procedures-verified',
+    'retention-store-gate-closed',
+    'privacy-retention-schedule-closed',
+  ]) {
+    if (!evidence.requiredCombinedGates.includes(requiredGate)) {
+      fail(`Retention execution-preflight evidence is missing gate: ${requiredGate}.`);
+    }
   }
 }
 
@@ -746,6 +887,7 @@ export function validateRetentionDeletionReadiness({
   }
   assertSourceContracts(root, sourceTexts);
   assertProviderEvidence(root, evidenceTexts);
+  assertRetentionExecutionPreflightEvidence(root, evidenceTexts);
   assertFirebaseServiceReadiness(root, evidenceTexts);
   assertCredentialCleanupEvidence(root, evidenceTexts);
   assertLegalHoldEvidence(root, evidenceTexts);
@@ -775,6 +917,12 @@ export function validateRetentionDeletionReadiness({
       || controls.retentionInventory?.eligibleRowsCalculated !== false
       || controls.retentionInventory?.executionEnabled !== false
       || controls.retentionInventory?.technicalEvidenceRef !== retentionInventoryEvidencePath
+      || controls.retentionExecutionPreflight?.status
+        !== 'implemented-fail-closed-policy-and-staging-gates-open'
+      || controls.retentionExecutionPreflight?.executionAllowed !== false
+      || controls.retentionExecutionPreflight?.destructiveRouteExposed !== false
+      || controls.retentionExecutionPreflight?.technicalEvidenceRef
+        !== retentionExecutionPreflightEvidencePath
       || controls.legalHold?.status !== 'technical-enforcement-implemented-policy-process-open'
       || controls.legalHold?.accountDeletionPreflightBlocked !== true
       || controls.legalHold?.adminStepUpRequired !== true
@@ -782,6 +930,16 @@ export function validateRetentionDeletionReadiness({
       || controls.legalHold?.idempotentLifecycle !== true
       || controls.legalHold?.technicalEvidenceRef !== legalHoldEvidencePath) {
     fail('Credential cleanup and retention controls must stay technically enforced and policy-fail-closed.');
+  }
+  const executionPreflight = assessRetentionExecutionReadiness({
+    retentionManifest: retention,
+    privacyManifest: privacy,
+  });
+  if (executionPreflight.status !== 'blocked'
+      || executionPreflight.executionAllowed !== false
+      || executionPreflight.destructiveRouteExposed !== false
+      || (retention.state === 'draft' && executionPreflight.blockerCount < 1)) {
+    fail('Retention execution preflight must expose all current blockers and remain non-destructive.');
   }
   if (controls.backups?.observedRotationDays !== 14
       || controls.backups?.accountSpecificEraseFromExistingBackups !== false) {
@@ -822,12 +980,7 @@ export function validateRetentionDeletionReadiness({
   }
 
   const processors = object(retention.externalProcessors, 'externalProcessors');
-  for (const processor of [
-    'firebaseCloudMessaging',
-    'firebaseCrashlytics',
-    'firebaseAuthentication',
-    'googleMapsPlatform',
-  ]) {
+  for (const processor of externalProcessorKeys) {
     const processorState = object(processors[processor], `externalProcessors.${processor}`);
     exactKeys(processorState, [
       'retentionOwnerVerified',
@@ -898,7 +1051,11 @@ function runCli() {
     privacyManifest,
     requireApproved: process.argv.includes('--require-approved'),
   });
-  console.log(`Retention/deletion readiness valid: state=${result.state}, openDecisions=${result.openDecisionCount}, storeGate=${result.storeGate}`);
+  const execution = assessRetentionExecutionReadiness({
+    retentionManifest,
+    privacyManifest,
+  });
+  console.log(`Retention/deletion readiness valid: state=${result.state}, openDecisions=${result.openDecisionCount}, storeGate=${result.storeGate}, executionPreflight=${execution.status}, executionBlockers=${execution.blockerCount}`);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {

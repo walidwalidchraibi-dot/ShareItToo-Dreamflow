@@ -61,6 +61,14 @@ Offizielle Grundlagen:
 5. Erst danach Werte in `store/retention-deletion-readiness.json` schließen.
 6. Danach Cutoff-Berechnung implementieren, Staging trocken prüfen und erst mit separater Freigabe eine produktive Löschroutine ermöglichen.
 
+Die technische Ausführungsvorprüfung ist bereits fail-closed implementiert.
+Sie meldet im aktuellen Stand 20 ausschließlich symbolische Blocker und gibt
+weder Richtlinienwerte noch Kennungen aus. Selbst vollständig freigegebene
+Dokumente reichen nicht für eine Löschung: kategorieweiser Purge,
+Cutoff-Anwendung, Berechnung löschbarer Zeilen und Staging-Trockenlauf müssen
+zusätzlich gemeinsam bestanden sein. Ein destruktiver API-Pfad wurde nicht
+angelegt.
+
 ## Harte Grenze
 
 Dieser Entwurf ändert weder Produktion noch Store-Angaben, schaltet keine Löschroutine frei und ist keine Rechtsberatung oder Rechtsfreigabe.

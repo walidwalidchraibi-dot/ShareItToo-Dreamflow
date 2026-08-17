@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.156
+Stand: 17.08.2026, lokaler Checkpoint 16.157
 
 ## Verbindliche Grenzen
 
@@ -763,3 +763,29 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   oder Kandidatenwechsel und es wurden keine Crashdaten erzeugt oder
   übertragen. Nachweis:
   `docs/evidence/b11/v51-firebase-service-specific-retention-readiness-20260817T105628Z.json`
+
+## Prüfstand Checkpoint 16.157
+
+- eine zentrale Retention-Ausführungsvorprüfung bewertet jetzt die neun
+  Entscheidungen, technische Cutoff-/Eligible-Row-Reife, alle vier externen
+  Anbieter, Rechts-/Betreiberfreigabe sowie Datenschutz- und Store-Gates
+  gemeinsam
+- der aktuelle Stand bleibt mit genau 20 stabilen, rein symbolischen
+  Blockercodes geschlossen; Richtlinienwerte, E-Mails, Kennungen oder andere
+  sensible Inhalte werden nicht in das Ergebnis übernommen
+- auch vollständig unterschriebene Richtlinien können allein keine Löschung
+  ermöglichen: kategorieweiser Purge, angewandte Fristen, berechnete
+  löschbare Zeilen und ein verifizierter Staging-Trockenlauf müssen zusätzlich
+  gemeinsam vorliegen
+- die Vorprüfung stellt keinen destruktiven API-Pfad bereit und hat weder
+  Datenbankzeilen gelesen oder verändert noch Fristen, Betreiberentscheidungen
+  oder Anbieterfreigaben erfunden
+- 36/36 gezielte Retention-Prüfungen bestanden; die vollständige Regression
+  blieb mit 282 bestandenen Flutter-Tests, 1 bewusstem Skip, 229
+  Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün
+- FCM-Push und Crashlytics bleiben unverändert getrennt, freiwillig und im
+  nächsten Kandidaten standardmäßig aus; es erfolgte kein Deployment,
+  Upload, Echtgeld-, Store-, Anbieterconsole- oder Kandidatenwechsel und kein
+  Crashereignis. Nachweis:
+  `docs/evidence/b11/v51-retention-execution-preflight-20260817T130000Z.json`

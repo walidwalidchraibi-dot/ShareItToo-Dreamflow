@@ -5,7 +5,10 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { validateRetentionDeletionReadiness } from '../../tool/validate_retention_deletion_readiness.mjs';
+import {
+  assessRetentionExecutionReadiness,
+  validateRetentionDeletionReadiness,
+} from '../../tool/validate_retention_deletion_readiness.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const baseRetention = JSON.parse(readFileSync(resolve(root, 'store/retention-deletion-readiness.json'), 'utf8'));
@@ -19,6 +22,108 @@ function validate({ retentionManifest = clone(baseRetention), privacyManifest = 
 
 test('accepts the honest fail-closed retention draft', () => {
   assert.deepEqual(validate(), {state: 'draft', approvalAllowed: false, openDecisionCount: 9, storeGate: 'open'});
+});
+
+test('execution preflight reports only stable blocker codes and exposes no destructive route', () => {
+  const result = assessRetentionExecutionReadiness({
+    retentionManifest: clone(baseRetention),
+    privacyManifest: clone(basePrivacy),
+  });
+  assert.equal(result.status, 'blocked');
+  assert.equal(result.executionAllowed, false);
+  assert.equal(result.destructiveRouteExposed, false);
+  assert.equal(result.blockerCount, 20);
+  assert.deepEqual(result.blockers.slice(0, 3), [
+    'retention-policy-approval-open',
+    'decision-open:inactiveAccountPeriod',
+    'decision-open:transactionalRecordPeriod',
+  ]);
+  assert.ok(result.blockers.includes('external-processor-open:firebaseCloudMessaging'));
+  assert.ok(result.blockers.includes('external-processor-open:firebaseCrashlytics'));
+  assert.ok(result.blockers.includes('privacy-retention-schedule-open'));
+  assert.doesNotMatch(JSON.stringify(result), /@|password|token|secret/iu);
+});
+
+test('execution preflight never reflects unsafe decision values into its output', () => {
+  const retentionManifest = clone(baseRetention);
+  retentionManifest.requiredDecisions.communicationPeriod.value = 'unsafe-owner@example.com';
+  const result = assessRetentionExecutionReadiness({
+    retentionManifest,
+    privacyManifest: clone(basePrivacy),
+  });
+  assert.ok(result.blockers.includes('decision-open:communicationPeriod'));
+  assert.doesNotMatch(JSON.stringify(result), /unsafe-owner|example\.com/iu);
+});
+
+test('approved paperwork alone cannot make retention execution ready', () => {
+  const retentionManifest = clone(baseRetention);
+  const privacyManifest = clone(basePrivacy);
+  retentionManifest.state = 'approved';
+  retentionManifest.approvalAllowed = true;
+  retentionManifest.boundaries.legalApproval = true;
+  retentionManifest.storeGate.status = 'closed';
+  privacyManifest.requiredDecisions.retentionAndDeletionSchedule.status = 'closed';
+  for (const [key, decision] of Object.entries(retentionManifest.requiredDecisions)) {
+    decision.status = 'closed';
+    decision.value = `approved-${key}`;
+    decision.evidenceRef = `docs/evidence/b11/retention-${key}.json`;
+  }
+  for (const processor of Object.values(retentionManifest.externalProcessors)) {
+    processor.retentionOwnerVerified = true;
+    processor.deletionProcedureVerified = true;
+    processor.ownerEvidenceRef = 'docs/evidence/b11/retention-external-owner.json';
+  }
+  const result = assessRetentionExecutionReadiness({ retentionManifest, privacyManifest });
+  assert.equal(result.executionAllowed, false);
+  assert.deepEqual(result.blockers, [
+    'category-purge-not-staging-verified',
+    'retention-periods-not-applied',
+    'eligible-rows-not-calculated',
+    'retention-execution-disabled',
+  ]);
+});
+
+test('execution preflight requires policy, processors, cutoffs, dry run and Store gate together', () => {
+  const retentionManifest = clone(baseRetention);
+  const privacyManifest = clone(basePrivacy);
+  retentionManifest.state = 'approved';
+  retentionManifest.approvalAllowed = true;
+  retentionManifest.boundaries.legalApproval = true;
+  retentionManifest.storeGate.status = 'closed';
+  retentionManifest.implementedControls.categoryPurge.status =
+    'implemented-staging-dry-run-verified';
+  retentionManifest.implementedControls.retentionInventory.retentionPeriodsApplied = true;
+  retentionManifest.implementedControls.retentionInventory.eligibleRowsCalculated = true;
+  retentionManifest.implementedControls.retentionInventory.executionEnabled = true;
+  privacyManifest.requiredDecisions.retentionAndDeletionSchedule.status = 'closed';
+  for (const [key, decision] of Object.entries(retentionManifest.requiredDecisions)) {
+    decision.status = 'closed';
+    decision.value = `approved-${key}`;
+    decision.evidenceRef = `docs/evidence/b11/retention-${key}.json`;
+  }
+  for (const processor of Object.values(retentionManifest.externalProcessors)) {
+    processor.retentionOwnerVerified = true;
+    processor.deletionProcedureVerified = true;
+    processor.ownerEvidenceRef = 'docs/evidence/b11/retention-external-owner.json';
+  }
+  const result = assessRetentionExecutionReadiness({ retentionManifest, privacyManifest });
+  assert.deepEqual(result, {
+    status: 'executable',
+    executionAllowed: true,
+    destructiveRouteExposed: false,
+    blockerCount: 0,
+    blockers: [],
+  });
+});
+
+test('rejects preflight evidence that claims a destructive route was added', () => {
+  const path = 'docs/evidence/b11/v51-retention-execution-preflight-20260817T130000Z.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.boundaries.deletionRouteAdded = true;
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /non-destructive boundary/u,
+  );
 });
 
 test('binds all nine prepared recommendations without pretending they are approved', () => {
