@@ -22,6 +22,9 @@ const sourcePaths = [
   'backend/src/v51_withdrawal_workflow.js',
   'backend/src/booking_condition_evidence_workflow.js',
   'backend/src/financial_documents.js',
+  'backend/src/firebase_social_auth.js',
+  'backend/src/firebase_phone_verification.js',
+  'backend/src/maps_proxy.js',
   'backend/sql/schema.sql',
   'backend/sql/migrations/006_b7_communications.up.sql',
   'backend/sql/migrations/014_account_legal_holds.up.sql',
@@ -37,6 +40,8 @@ const sourcePaths = [
   'lib/services/firebase_runtime.dart',
   'lib/services/firebase_service_preferences.dart',
   'lib/services/account_deletion_service.dart',
+  'lib/services/maps_service.dart',
+  'lib/services/backend_repository.dart',
   'lib/screens/legal_privacy_screen.dart',
   'lib/screens/privacy_info_screen.dart',
 ];
@@ -66,6 +71,10 @@ const firebaseServiceReadinessPaths = {
     'docs/evidence/b11/firebase-cloud-messaging-retention-deletion-readiness-20260817.json',
   firebaseCrashlytics:
     'docs/evidence/b11/firebase-crashlytics-retention-deletion-readiness-20260817.json',
+  firebaseAuthentication:
+    'docs/evidence/b11/firebase-authentication-retention-deletion-readiness-20260817.json',
+  googleMapsPlatform:
+    'docs/evidence/b11/google-maps-platform-retention-deletion-readiness-20260817.json',
 };
 const credentialCleanupEvidencePath = 'docs/evidence/b11/expired-credential-cleanup-20260815.json';
 const legalHoldEvidencePath = 'docs/evidence/b11/account-legal-hold-20260815.json';
@@ -259,6 +268,8 @@ function assertDecisionPreparation(root, evidenceTexts) {
     providerEvidencePath,
     firebaseServiceReadinessPaths.firebaseCloudMessaging,
     firebaseServiceReadinessPaths.firebaseCrashlytics,
+    firebaseServiceReadinessPaths.firebaseAuthentication,
+    firebaseServiceReadinessPaths.googleMapsPlatform,
   ]) {
     if (!externalProcessorDecision.authorityRefs.includes(ref)) {
       fail(`External-processor decision preparation is missing separate authority: ${ref}.`);
@@ -427,6 +438,54 @@ function assertSourceContracts(root, sourceTexts) {
   const accountDeletion = text(root, sourceTexts, 'lib/services/account_deletion_service.dart');
   if (!accountDeletion.includes('FirebaseRuntime.deleteInstallationForAccountDeletion()')) {
     fail('Account deletion must invoke Firebase installation cleanup.');
+  }
+  const firebaseSocial = text(root, sourceTexts, 'backend/src/firebase_social_auth.js');
+  for (const marker of [
+    'await verify(token, true)',
+    'firebaseUserId',
+    "'google.com': 'google'",
+    "'apple.com': 'apple'",
+    "'facebook.com': 'facebook'",
+  ]) {
+    if (!firebaseSocial.includes(marker)) {
+      fail(`Firebase Authentication readiness is missing social-auth control: ${marker}.`);
+    }
+  }
+  const firebasePhone = text(root, sourceTexts, 'backend/src/firebase_phone_verification.js');
+  for (const marker of [
+    'deleteFirebasePhoneIdentity',
+    'providers.length !== 1',
+    "providers[0]?.providerId !== 'phone'",
+    'await remove(firebaseUserId)',
+  ]) {
+    if (!firebasePhone.includes(marker)) {
+      fail(`Firebase Authentication readiness is missing temporary-identity cleanup: ${marker}.`);
+    }
+  }
+  const mapsProxy = text(root, sourceTexts, 'backend/src/maps_proxy.js');
+  for (const marker of [
+    "throw new MapsProxyError(503, 'maps_unavailable')",
+    "'/maps/api/place/autocomplete/json'",
+    "'/maps/api/place/details/json'",
+    "fields: 'formatted_address,geometry'",
+  ]) {
+    if (!mapsProxy.includes(marker)) {
+      fail(`Google Maps readiness is missing server-proxy control: ${marker}.`);
+    }
+  }
+  for (const marker of [
+    "app.get('/v1/maps/places/autocomplete', requireAuth, requireActiveAccount, mapsLimiter",
+    "app.get('/v1/maps/places/:placeId', requireAuth, requireActiveAccount, mapsLimiter",
+  ]) {
+    if (!app.includes(marker)) fail(`Google Maps readiness is missing authenticated routing: ${marker}.`);
+  }
+  const mapsService = text(root, sourceTexts, 'lib/services/maps_service.dart');
+  const backendRepository = text(root, sourceTexts, 'lib/services/backend_repository.dart');
+  if (!mapsService.includes('BackendRepository.autocompleteAddresses(')
+      || !mapsService.includes('BackendRepository.getAddressPlaceDetails(')
+      || !backendRepository.includes("path: '/maps/places/autocomplete?$query'")
+      || !backendRepository.includes("path: '/maps/places/${Uri.encodeComponent(placeId)}?$query'")) {
+    fail('Google Maps client flow must remain routed through the authenticated SIT backend.');
   }
   const privacy = `${text(root, sourceTexts, 'lib/screens/legal_privacy_screen.dart')}\n${text(root, sourceTexts, 'lib/screens/privacy_info_screen.dart')}`;
   if (!privacy.includes('Löschung')) fail('In-app privacy information must disclose deletion.');
@@ -609,6 +668,100 @@ function assertFirebaseServiceReadiness(root, evidenceTexts) {
         containsAccountData: false,
       },
     },
+    firebaseAuthentication: {
+      path: firebaseServiceReadinessPaths.firebaseAuthentication,
+      kind: 'firebase-authentication-retention-deletion-readiness',
+      provider: 'Google Firebase',
+      sources: [
+        ['retention', 'https://firebase.google.com/support/privacy/', 'within 180 days'],
+        ['deletion-control', 'https://firebase.google.com/docs/auth/admin/manage-users', 'delete users by UID'],
+        ['processor-role-and-transfer-framework', 'https://firebase.google.com/terms/data-processing-terms/', 'Google as processor'],
+      ],
+      productDecision: {
+        retainedForLaunch: true,
+        phoneVerificationInLaunchScope: true,
+        socialLoginActivationApproved: false,
+        temporaryPhoneIdentityRequired: true,
+        futureSocialActivationBlockedUntilDeletionGapClosed: true,
+      },
+      controls: {
+        phoneProviderEnabledInBoundEnvironment: true,
+        temporaryPhoneIdentityDeletionImplemented: true,
+        temporaryIdentitySafetyCheckImplemented: true,
+        firebaseUserIdStoredForLinkedSocialIdentity: true,
+        persistentSocialIdentityDeletionOnAccountErasureImplemented: false,
+        providerPasswordOrAccessTokenStoredBySit: false,
+      },
+      retention: {
+        loggedIpRetention: 'a-few-weeks',
+        otherAuthenticationInformationRemoval:
+          'within-180-days-after-customer-initiated-associated-user-deletion',
+        temporaryPhoneIdentityProviderDeletionImplemented: true,
+        persistentSocialIdentityProviderDeletionImplemented: false,
+        sitCanPromiseImmediateProviderErasure: false,
+        currentAccountContractAcceptanceVerified: false,
+        currentProcessingLocationsVerified: false,
+        internationalTransferMechanismApprovedForSIT: false,
+        retentionAcceptedByOwner: false,
+        deletionProcedureVerifiedByOwner: false,
+        ownerEvidenceRef: null,
+      },
+      activation: {
+        socialProvidersRemainDisabled: true,
+        storeDisclosureApproved: false,
+        replacementCandidateBuilt: false,
+        replacementCandidateDeviceVerified: false,
+        productionChanged: false,
+        providerConsoleChanged: false,
+        containsSecrets: false,
+        containsAccountData: false,
+      },
+    },
+    googleMapsPlatform: {
+      path: firebaseServiceReadinessPaths.googleMapsPlatform,
+      kind: 'google-maps-platform-retention-deletion-readiness',
+      provider: 'Google Maps Platform',
+      sources: [
+        ['logged-data-and-retention', 'https://developers.google.com/maps/security/compliance/security-compliance', 'no single fixed retention period'],
+        ['controller-role-and-terms', 'https://cloud.google.com/maps-platform/terms?sign=1', 'controller-controller data protection terms'],
+      ],
+      productDecision: {
+        retainedForLaunch: true,
+        addressAutocompleteAndPlaceDetailsInLaunchScope: true,
+        preciseDeviceLocationRequiresExplicitUserAction: true,
+        backgroundOrLiveTrackingAllowed: false,
+        serverProxyRequired: true,
+      },
+      controls: {
+        serverSideProxyImplemented: true,
+        clientCredentialEmbedded: false,
+        authenticatedActiveAccountRequired: true,
+        requestRateLimitImplemented: true,
+        inputAndPlaceIdBounded: true,
+        directMapsSdkTransferImplemented: false,
+        typedAddressOrPlaceIdTransferredOnUse: true,
+      },
+      retention: {
+        singleFixedProviderRetentionPeriodAvailable: false,
+        accountScopedProviderDeletionProcedureImplemented: false,
+        sitCanPromiseImmediateProviderErasure: false,
+        currentAccountContractAcceptanceVerified: false,
+        currentEnabledApisAndLoggingVerified: false,
+        currentProcessingLocationsVerified: false,
+        internationalTransferMechanismApprovedForSIT: false,
+        retentionAcceptedByOwner: false,
+        deletionProcedureVerifiedByOwner: false,
+        ownerEvidenceRef: null,
+      },
+      activation: {
+        serverCredentialRestrictionVerified: false,
+        storeDisclosureApproved: false,
+        productionChanged: false,
+        providerConsoleChanged: false,
+        containsSecrets: false,
+        containsAccountData: false,
+      },
+    },
   };
 
   for (const [serviceId, contract] of Object.entries(contracts)) {
@@ -633,14 +786,14 @@ function assertFirebaseServiceReadiness(root, evidenceTexts) {
       'activationBoundary',
     ], `${serviceId} readiness evidence`);
     if (evidence.schemaVersion !== 1
-        || evidence.kind !== 'firebase-service-retention-deletion-readiness'
+        || evidence.kind !== (contract.kind ?? 'firebase-service-retention-deletion-readiness')
         || evidence.serviceId !== serviceId
-        || evidence.provider !== 'Google Firebase'
+        || evidence.provider !== (contract.provider ?? 'Google Firebase')
         || evidence.reviewedAt !== '2026-08-17T00:00:00Z'
         || evidence.status !== 'official-controls-structured-owner-contract-and-deletion-approval-open') {
       fail(`${serviceId} readiness evidence identity or status is invalid.`);
     }
-    exactScalarValues(evidence.productDecision, {
+    exactScalarValues(evidence.productDecision, contract.productDecision ?? {
       retainedForLaunch: true,
       voluntaryOptIn: true,
       nextCandidateDefaultOff: true,

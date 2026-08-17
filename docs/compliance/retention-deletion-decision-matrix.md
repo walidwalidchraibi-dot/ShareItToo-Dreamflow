@@ -20,7 +20,7 @@ Die V5.1-Unterlagen verlangen eine dokumentierte Löschmatrix, enthalten aber ke
 | Sicherheits-/Auditlogs | Risiko + Recht nötig | Auth-, Admin-, Buchungs-, Zustell- und Lösch-Audit getrennt bewerten; kürzeste zweckerfüllende Frist. | Append-only Nachweise vorhanden; Frist/Purge offen. |
 | Abgelaufene Zugangsdaten | Technisch entscheidungsreif | Bei Ablauf/Verbrauch löschen oder Challenge-Digest unbrauchbar machen; Startlauf + alle 6 Stunden, maximal 24 Stunden nach Löschreife. | Implementiert und getestet. |
 | Backups | Betrieblich entscheidungsreif | 14 Tage Rotation bestätigen; Primärdaten sofort bereinigen, alte Backups rotieren aus und dürfen nur kontrolliert zur Wiederherstellung dienen. | 14-Tage-Rotation vorhanden; keine Einzellöschung in bestehenden Backups. |
-| Externe Anbieter | Produktaufnahme für FCM und Crashlytics bestätigt; Anbieter-/Transfer-/Retention-Entscheidung offen | FCM und Crashlytics verbindlich erhalten; Firebase Auth und Maps weiterhin einzeln bestätigen. Lokale Deaktivierung, Anbieterabschluss und anbietergesteuerte Löschung nicht vermischen. | Offizielle Quellen geprüft; Produktentscheidung für FCM/Crashlytics bestätigt, konkrete Transfer-, Aufbewahrungs- und Löschabläufe bleiben offen. |
+| Externe Anbieter | Produktaufnahme für FCM, Crashlytics, Firebase Auth und Maps strukturiert; Anbieter-/Transfer-/Retention-Entscheidung offen | FCM und Crashlytics verbindlich erhalten; Firebase Auth und Maps mit eigener Löschgrenze fail-closed halten. Lokale Deaktivierung, Anbieterabschluss und anbietergesteuerte Löschung nicht vermischen. | Offizielle Quellen und vier getrennte Bereitschaftsakten geprüft; konkrete Transfer-, Aufbewahrungs- und Löschfreigaben bleiben offen. |
 | Legal Hold | Betreiberprozess + Recht nötig | Admin-only, fallgebunden, begrenzter Umfang, Grund, regelmäßige Erforderlichkeitsprüfung und dokumentierte Freigabe. | Technische Sperre und Audit vorhanden; Prozessfreigabe offen. |
 
 ## Externe Dienste – verbindliche Produktgrenze
@@ -37,6 +37,8 @@ Die V5.1-Unterlagen verlangen eine dokumentierte Löschmatrix, enthalten aber ke
 - **FCM-Push:** SIT schaltet die lokale automatische Initialisierung aus, löscht bei Abmeldung beziehungsweise Kontolöschung die aktuelle Backend-Registrierung, den Messaging-Token und die Firebase-Installation und merkt fehlgeschlagene Bereinigung für einen erneuten Versuch vor. Google beschreibt den Abschluss der installationsgebundenen Löschung innerhalb von bis zu 180 Tagen nach dem Löschantrag. Vertrag, Verarbeitungsorte, Transferfreigabe und Betreiberbestätigung bleiben offen.
 - **Crashlytics:** SIT schaltet die automatische Erfassung aus, aktiviert sie nur nach der getrennten Crashdiagnose-Entscheidung und löscht noch nicht gesendete lokale Berichte beim Ausschalten. Google beschreibt für bereits gespeicherte Crashberichte 90 Tage Aufbewahrung vor Beginn der Entfernung und stellt inzwischen eine benutzergebundene Löschoperation bereit. SIT hat die dafür nötige stabile Zuordnung und den serverseitigen Aufruf noch nicht implementiert oder betrieblich bestätigt; deshalb darf lokale Bereinigung nicht als vollständige Anbieter-Löschung ausgegeben werden.
 - Ein FCM-Nachweis darf niemals die Crashlytics-Freigabe schließen und umgekehrt. Beide erhalten eigene maschinenlesbare Bereitschaftsbelege und bleiben bis zur jeweiligen Betreiber-/Vertrags-/Transfer-/Löschbestätigung `open`.
+- **Firebase Authentication:** Die aktive Telefonprüfung entfernt die temporäre, ausschließlich telefongebundene Firebase-Identität nach sicherer Gegenprüfung. Eine persistente soziale Firebase-Identität würde bei heutiger Kontolöschung nicht beim Anbieter entfernt; Google-, Apple- und Facebook-Anmeldung bleiben deshalb bis zur technischen Schließung und Betreiberfreigabe deaktiviert. Firebase nennt wenige Wochen für protokollierte IP-Adressen und bis zu 180 Tage nach kundenseitig ausgelöster Nutzerlöschung für andere Authentifizierungsdaten.
+- **Google Maps Platform:** Adressvorschläge und Ortsdetails laufen authentifiziert, begrenzt und ohne eingebetteten Client-Schlüssel über den SIT-Server. Erst bei Nutzung werden eingegebene Adresse beziehungsweise Ortskennung übertragen. Google nennt keinen einheitlichen festen Log-Aufbewahrungszeitraum; Vertrag, aktivierte APIs, Logging, Schlüsselrestriktion, Transfer und ein kontobezogener Löschweg bleiben offen.
 
 ## Warum die neun Punkte noch nicht geschlossen werden
 
@@ -55,7 +57,7 @@ Offizielle Grundlagen:
 ## Freigabereihenfolge
 
 1. Abgelaufene Zugangsdaten und Backupfenster als bereits technisch belegte Betriebsentscheidungen bestätigen.
-2. Für FCM und Crashlytics die bestätigte Produktaufnahme um Transfer-, Vertrags-, Store-, Aufbewahrungs- und Löschbelege ergänzen; Firebase Auth und Maps weiterhin einzeln bestätigen.
+2. Für alle vier getrennten Google-Dienste die vorbereiteten Akten um Betreiber-, Vertrags-, Transfer-, Store-, Aufbewahrungs- und Löschbelege ergänzen; soziale Firebase-Anmeldung bleibt bis zur Schließung der persistenten Nutzerlöschung aus.
 3. Transaktionen, Kommunikation, Moderation und Audit datensatzweise rechtlich klassifizieren.
 4. Inaktivitäts- und Legal-Hold-Prozess organisatorisch festlegen.
 5. Erst danach Werte in `store/retention-deletion-readiness.json` schließen.

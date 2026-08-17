@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.163
+Stand: 17.08.2026, lokaler Checkpoint 16.164
 
 ## Verbindliche Grenzen
 
@@ -957,3 +957,36 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   Deployment, Upload, Echtgeld-, Store-, Anbieterconsole- oder
   Kandidatenwechsel und kein Crashereignis. Nachweis:
   `docs/evidence/b11/v51-item-details-dead-range-formatter-cleanup-20260817T123234Z.json`
+
+## Prüfstand Checkpoint 16.164
+
+- die bisher fehlenden service-spezifischen Aufbewahrungs- und Löschakten
+  für Firebase Authentication und Google Maps Platform wurden aus aktuellen
+  offiziellen Anbieterquellen erstellt und zusammen mit FCM und Crashlytics
+  als vier strikt getrennte Anbietergrenzen gebunden
+- die aktive SMS-Prüfung bleibt im Launchumfang und entfernt ihre temporäre,
+  ausschließlich telefongebundene Firebase-Identität nach sicherer
+  Gegenprüfung; Google beschreibt wenige Wochen für protokollierte
+  IP-Adressen und bis zu 180 Tage nach kundenseitig ausgelöster
+  Nutzerlöschung für andere Authentifizierungsdaten
+- eine persistente soziale Firebase-Identität würde bei heutiger
+  Kontolöschung noch nicht beim Anbieter entfernt; Google-, Apple- und
+  Facebook-Anmeldung bleiben deshalb bis zur technischen Schließung dieser
+  Lücke und den erforderlichen Betreiberfreigaben ausdrücklich deaktiviert
+- Google-Maps-Adressvorschläge und Ortsdetails bleiben im Launchumfang,
+  laufen aber ausschließlich authentifiziert und begrenzt über den SIT-Server;
+  ein Maps-Schlüssel ist nicht in der App eingebettet und eine dauerhafte
+  Hintergrund- oder Live-Ortung bleibt ausgeschlossen
+- Google veröffentlicht für Maps-Protokolle keinen einheitlichen festen
+  Aufbewahrungszeitraum und SIT hat keinen kontobezogenen Anbieter-Löschweg;
+  Vertrag, aktivierte APIs, Logging, Schlüsselrestriktion, Verarbeitungsorte,
+  Transfer und Betreiberentscheidung bleiben deshalb offen statt erfunden
+- 39/39 gezielte Fail-closed-Retention-Prüfungen bestanden; die vollständige
+  Regression blieb mit 282 Flutter-Tests, 1 bewusstem Skip, 224
+  Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün
+- FCM-Push und Crashlytics bleiben unverändert erhalten, getrennt,
+  freiwillig und im nächsten Kandidaten standardmäßig aus; Push aktiviert
+  Crash nicht. Es erfolgte kein Deployment, Upload, Echtgeld-, Store-,
+  Anbieterconsole- oder Kandidatenwechsel. Nachweis:
+  `docs/evidence/b11/v51-firebase-auth-maps-retention-boundaries-20260817T124523Z.json`

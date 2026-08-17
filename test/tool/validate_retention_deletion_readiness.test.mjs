@@ -302,6 +302,43 @@ test('binds Push and Crashlytics to separate service-readiness evidence', () => 
   assert.notEqual(push.serviceReadinessRef, crash.serviceReadinessRef);
 });
 
+test('binds Firebase Authentication and Maps to their own readiness evidence', () => {
+  const auth = baseRetention.externalProcessors.firebaseAuthentication;
+  const maps = baseRetention.externalProcessors.googleMapsPlatform;
+  assert.equal(
+    auth.serviceReadinessRef,
+    'docs/evidence/b11/firebase-authentication-retention-deletion-readiness-20260817.json',
+  );
+  assert.equal(
+    maps.serviceReadinessRef,
+    'docs/evidence/b11/google-maps-platform-retention-deletion-readiness-20260817.json',
+  );
+  assert.notEqual(auth.serviceReadinessRef, maps.serviceReadinessRef);
+});
+
+test('rejects pretending persistent Firebase social identities are deleted', () => {
+  const path =
+    'docs/evidence/b11/firebase-authentication-retention-deletion-readiness-20260817.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.currentTechnicalControls
+    .persistentSocialIdentityDeletionOnAccountErasureImplemented = true;
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /persistentSocialIdentityDeletionOnAccountErasureImplemented must remain false/u,
+  );
+});
+
+test('rejects inventing a fixed Google Maps retention period', () => {
+  const path =
+    'docs/evidence/b11/google-maps-platform-retention-deletion-readiness-20260817.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.retentionAndDeletionReality.singleFixedProviderRetentionPeriodAvailable = true;
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /singleFixedProviderRetentionPeriodAvailable must remain false/u,
+  );
+});
+
 test('rejects using Push readiness as Crashlytics readiness', () => {
   const retentionManifest = clone(baseRetention);
   retentionManifest.externalProcessors.firebaseCrashlytics.serviceReadinessRef =

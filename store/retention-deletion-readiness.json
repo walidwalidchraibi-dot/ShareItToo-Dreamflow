@@ -27,6 +27,9 @@
     {"path": "backend/sql/migrations/019_v51_condition_evidence.up.sql", "sha256": "8ff5dfe3d41517df4d3bd18a0effa30c9f0e41fc3387663cac7b8c5fb96bab07"},
     {"path": "backend/src/booking_condition_evidence_workflow.js", "sha256": "43d1ed3a27de3738422107ca5c2517db4fc1b8c3b136954b5f7aaf4bd167eda1"},
     {"path": "backend/src/financial_documents.js", "sha256": "f8de734a21577f038cd881aca8e07f6fcd3ecf776ab18e9e76bdd48b72177000"},
+    {"path": "backend/src/firebase_social_auth.js", "sha256": "eb94da31526a69226e5cc4081f05b80b2504114aa557c3de3fad63cfb84559c6"},
+    {"path": "backend/src/firebase_phone_verification.js", "sha256": "ea8fb71aeada7eab59006e789d7890c697e1d6d43fbf7c94a3bed5df615d81dc"},
+    {"path": "backend/src/maps_proxy.js", "sha256": "e3b3ec6db438488910e8638fe498f0d61652250d803e007a513f74eec8f6b8de"},
     {"path": "backend/sql/migrations/020_v51_financial_documents.up.sql", "sha256": "0ed5451601e962c0b3632008db0e3437a1ee9d837d14a1a0512eb6e190567201"},
     {"path": "backend/ops/backup.sh", "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"},
     {"path": "android/app/src/main/AndroidManifest.xml", "sha256": "d19335b5352d780fee39dcd98d57ba08cd279834bfab3db4a26028be597497a0"},
@@ -34,6 +37,8 @@
     {"path": "lib/services/firebase_runtime.dart", "sha256": "7cbe8fd6e3b1d461f3a06a2ab02d2e13aa6ff2752f02a108773809c859c8156c"},
     {"path": "lib/services/firebase_service_preferences.dart", "sha256": "b3841d4e36a30eddc5f3808fb6d939de34c0766491784be38089f3d8b204d97f"},
     {"path": "lib/services/account_deletion_service.dart", "sha256": "b9d0ed721aed96e2aaad932416d82c5384d8430c0e444ba767a330b14815fe1a"},
+    {"path": "lib/services/maps_service.dart", "sha256": "a8cb474b2849d7e894919ae1056e8158d51c66fbfe8e0b1fab40d1db7fdaf32f"},
+    {"path": "lib/services/backend_repository.dart", "sha256": "d6e20c252d9d91e4158ebbb9d115d375d68e1d5e782b91bbd45752d89f390104"},
     {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "544bfb2ea2633119e2333bb778ec3912e77fddc36797dde2fe4a30afa1119953"},
     {"path": "lib/screens/privacy_info_screen.dart", "sha256": "cfbf65f0b78d0929db79715ec946b7de9b3f86b978cc1331f47e6c6be5c125a0"}
   ],
@@ -116,7 +121,7 @@
       "deletionProcedureVerified": false,
       "officialDocumentationReviewed": true,
       "officialEvidenceRef": "docs/evidence/b11/privacy-provider-retention-sources-20260812.json",
-      "serviceReadinessRef": null,
+      "serviceReadinessRef": "docs/evidence/b11/firebase-authentication-retention-deletion-readiness-20260817.json",
       "ownerEvidenceRef": null
     },
     "googleMapsPlatform": {
@@ -124,7 +129,7 @@
       "deletionProcedureVerified": false,
       "officialDocumentationReviewed": true,
       "officialEvidenceRef": "docs/evidence/b11/privacy-provider-retention-sources-20260812.json",
-      "serviceReadinessRef": null,
+      "serviceReadinessRef": "docs/evidence/b11/google-maps-platform-retention-deletion-readiness-20260817.json",
       "ownerEvidenceRef": null
     }
   },

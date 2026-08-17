@@ -80,7 +80,9 @@
       "authorityRefs": [
         "docs/evidence/b11/privacy-provider-retention-sources-20260812.json",
         "docs/evidence/b11/firebase-cloud-messaging-retention-deletion-readiness-20260817.json",
-        "docs/evidence/b11/firebase-crashlytics-retention-deletion-readiness-20260817.json"
+        "docs/evidence/b11/firebase-crashlytics-retention-deletion-readiness-20260817.json",
+        "docs/evidence/b11/firebase-authentication-retention-deletion-readiness-20260817.json",
+        "docs/evidence/b11/google-maps-platform-retention-deletion-readiness-20260817.json"
       ]
     },
     "legalHoldProcess": {
@@ -95,8 +97,8 @@
   "providerFacts": {
     "firebaseCloudMessaging": "SIT deletes the local messaging token, the current-session backend registration and the Firebase installation on account deletion with a persisted retry. Provider documentation states that installation-related data is removed from live and backup systems within 180 days after the deletion request. Current-account contract, locations, transfer approval and owner acceptance remain open.",
     "firebaseCrashlytics": "SIT disables collection and deletes unsent device reports on opt-out or account deletion. Provider documentation states that stored crash reports and associated identifiers are retained for 90 days before removal begins and provides a user-bound stored-report deletion API. SIT has not implemented or verified the subject correlation and provider-side invocation, so stored-report deletion remains open.",
-    "firebaseAuthentication": "Provider documentation states that deleted installation-related data is removed from live and backup systems within 180 days; the account deletion procedure must also delete the Firebase Authentication user by UID where one exists.",
-    "googleMapsPlatform": "No single fixed provider retention period applies to every Maps request; enabled API, contract, logging configuration, and transmitted fields must be verified separately."
+    "firebaseAuthentication": "Firebase Authentication keeps logged IP addresses for a few weeks and other authentication information until the customer deletes the associated user, followed by provider removal within 180 days. SIT safely deletes the temporary phone-only identity after verification. Persistent social identities are not yet deleted during account erasure, so social login remains blocked until that gap and the provider approvals are closed.",
+    "googleMapsPlatform": "No single fixed provider retention period applies to every Maps request. SIT routes address autocomplete and place details through an authenticated, rate-limited server proxy without a client credential, but contract acceptance, enabled APIs, logging, transfer and account-scoped deletion reality remain open."
   },
   "boundaries": {
     "recommendationsAreApproval": false,
