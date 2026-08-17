@@ -36,6 +36,7 @@ class RentalRequest {
   final double? returnLng;
   // Timestamps
   final DateTime createdAt; // when the request was created
+  final DateTime? bindingExpiresAt; // last instant at which owner may accept
   final DateTime? acceptedAt; // when the booking contract was confirmed
   final DateTime? expressRequestedAt; // when renter opted for express
   final DateTime? expressConfirmedAt; // when owner confirmed express
@@ -101,6 +102,7 @@ class RentalRequest {
     this.returnLat,
     this.returnLng,
     DateTime? createdAt,
+    this.bindingExpiresAt,
     this.acceptedAt,
     this.expressRequestedAt,
     this.expressConfirmedAt,
@@ -152,6 +154,7 @@ class RentalRequest {
     double? expressFee,
     DateTime? expressConfirmedAt,
     DateTime? expressRequestedAt,
+    DateTime? bindingExpiresAt,
     DateTime? acceptedAt,
     bool? needsReview,
     String? reviewReason,
@@ -212,6 +215,7 @@ class RentalRequest {
         expressStatus: expressStatus ?? this.expressStatus,
         expressFee: expressFee ?? this.expressFee,
         createdAt: createdAt,
+        bindingExpiresAt: bindingExpiresAt ?? this.bindingExpiresAt,
         acceptedAt: acceptedAt ?? this.acceptedAt,
         expressRequestedAt: expressRequestedAt ?? this.expressRequestedAt,
         expressConfirmedAt: expressConfirmedAt ?? this.expressConfirmedAt,
@@ -304,6 +308,7 @@ class RentalRequest {
       returnLat: (json['returnLat'] as num?)?.toDouble(),
       returnLng: (json['returnLng'] as num?)?.toDouble(),
       createdAt: _parseDt(json['createdAt']) ?? DateTime.now(),
+      bindingExpiresAt: _parseDt(json['bindingExpiresAt']),
       acceptedAt: _parseDt(json['acceptedAt']),
       expressRequestedAt: _parseDt(json['expressRequestedAt']),
       expressConfirmedAt: _parseDt(json['expressConfirmedAt']),
@@ -390,6 +395,7 @@ class RentalRequest {
         'returnLat': returnLat,
         'returnLng': returnLng,
         'createdAt': createdAt.toIso8601String(),
+        'bindingExpiresAt': bindingExpiresAt?.toIso8601String(),
         'acceptedAt': acceptedAt?.toIso8601String(),
         'expressRequestedAt': expressRequestedAt?.toIso8601String(),
         'expressConfirmedAt': expressConfirmedAt?.toIso8601String(),

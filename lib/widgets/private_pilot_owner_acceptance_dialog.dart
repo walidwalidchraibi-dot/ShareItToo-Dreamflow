@@ -23,103 +23,132 @@ Future<List<Map<String, dynamic>>?> showPrivatePilotOwnerAcceptanceDialog(
       (BackendConfig.enabled &&
           !QaRuntimeService.isEnabled &&
           requestSnapshot != null);
+  final requiresRemoteDeadline =
+      BackendConfig.enabled && !QaRuntimeService.isEnabled;
+  final bindingDeadline = request.bindingExpiresAt;
   var confirmed = false;
   return showDialog<List<Map<String, dynamic>>>(
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) => StatefulBuilder(
-      builder: (context, setState) => AlertDialog(
-        title: const Text('Buchungsanfrage annehmen'),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Zeitraum: ${_date(request.start)} bis ${_date(request.end)}',
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  displayedQuote == null
-                      ? 'Preisprüfung fehlgeschlagen'
-                      : bindingServerQuote
-                          ? 'Verbindlicher Serverpreis'
-                          : 'Lokaler Testpreis · kein Echtgeld',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                if (displayedQuote == null) ...[
-                  const SizedBox(height: 4),
+      builder: (context, setState) {
+        final deadlineValid = !requiresRemoteDeadline ||
+            (bindingDeadline != null &&
+                bindingDeadline.isAfter(DateTime.now()));
+        final acceptanceAllowed = displayedQuote != null && deadlineValid;
+        return AlertDialog(
+          title: const Text('Buchungsanfrage annehmen'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    'Der verbindliche Preis fehlt oder ist widersprüchlich. Die Annahme bleibt gesperrt; bitte lade die Anfrage neu.',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontWeight: FontWeight.w700,
+                    'Zeitraum: ${_date(request.start)} bis ${_date(request.end)}',
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    displayedQuote == null
+                        ? 'Preisprüfung fehlgeschlagen'
+                        : bindingServerQuote
+                            ? 'Verbindlicher Serverpreis'
+                            : 'Lokaler Testpreis · kein Echtgeld',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  if (!deadlineValid) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Die 30-Minuten-Annahmefrist ist abgelaufen. Diese Anfrage kann nicht mehr angenommen werden.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ] else if (displayedQuote == null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Der verbindliche Preis fehlt oder ist widersprüchlich. Die Annahme bleibt gesperrt; bitte lade die Anfrage neu.',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ] else ...[
+                    if (requiresRemoteDeadline) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                          'Annahme möglich bis ${_dateTime(bindingDeadline!)}.'),
+                    ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'Privater Mietpreis / deine vorgesehene Auszahlung: ${_money(displayedQuote.rentalSubtotalMinor)}',
+                    ),
+                    Text(
+                      'SIT-Plattformbeitrag des Mieters: ${_money(displayedQuote.platformFeeMinor)}',
+                    ),
+                    Text(
+                      'Gesamtpreis des Mieters: ${_money(displayedQuote.totalMinor)}',
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  const PrivatePilotRiskNotice(
+                    title: 'Privatvermietung ohne SIT-Schadenschutz',
+                  ),
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    value: confirmed,
+                    onChanged: acceptanceAllowed
+                        ? (value) => setState(() => confirmed = value == true)
+                        : null,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: const Text(
+                      PrivatePilotConfig.ownerAcceptanceDeclaration,
+                    ),
+                    subtitle: const Text(
+                      '${PrivatePilotConfig.documentName} · ${PrivatePilotConfig.documentVersion}',
                     ),
                   ),
-                ] else ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Privater Mietpreis / deine vorgesehene Auszahlung: ${_money(displayedQuote.rentalSubtotalMinor)}',
-                  ),
-                  Text(
-                    'SIT-Plattformbeitrag des Mieters: ${_money(displayedQuote.platformFeeMinor)}',
-                  ),
-                  Text(
-                    'Gesamtpreis des Mieters: ${_money(displayedQuote.totalMinor)}',
-                  ),
                 ],
-                const SizedBox(height: 12),
-                const PrivatePilotRiskNotice(
-                  title: 'Privatvermietung ohne SIT-Schadenschutz',
-                ),
-                const SizedBox(height: 8),
-                CheckboxListTile(
-                  value: confirmed,
-                  onChanged: displayedQuote == null
-                      ? null
-                      : (value) => setState(() => confirmed = value == true),
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text(
-                    PrivatePilotConfig.ownerAcceptanceDeclaration,
-                  ),
-                  subtitle: const Text(
-                    '${PrivatePilotConfig.documentName} · ${PrivatePilotConfig.documentVersion}',
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Abbrechen'),
-          ),
-          FilledButton(
-            onPressed: confirmed && displayedQuote != null
-                ? () {
-                    final acceptedAt = DateTime.now();
-                    Navigator.of(dialogContext).pop([
-                      {
-                        'type': 'owner_booking_acceptance',
-                        'exactWording':
-                            PrivatePilotConfig.ownerAcceptanceDeclaration,
-                        'documentName': PrivatePilotConfig.documentName,
-                        'documentVersion': PrivatePilotConfig.documentVersion,
-                        'language': PrivatePilotConfig.language,
-                        'accepted': true,
-                        'acceptedAt': acceptedAt.toIso8601String(),
-                      },
-                    ]);
-                  }
-                : null,
-            child: const Text('Verbindlich annehmen'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: confirmed && acceptanceAllowed
+                  ? () {
+                      if (requiresRemoteDeadline &&
+                          (bindingDeadline == null ||
+                              !bindingDeadline.isAfter(DateTime.now()))) {
+                        setState(() => confirmed = false);
+                        return;
+                      }
+                      final acceptedAt = DateTime.now();
+                      Navigator.of(dialogContext).pop([
+                        {
+                          'type': 'owner_booking_acceptance',
+                          'exactWording':
+                              PrivatePilotConfig.ownerAcceptanceDeclaration,
+                          'documentName': PrivatePilotConfig.documentName,
+                          'documentVersion': PrivatePilotConfig.documentVersion,
+                          'language': PrivatePilotConfig.language,
+                          'accepted': true,
+                          'acceptedAt': acceptedAt.toIso8601String(),
+                        },
+                      ]);
+                    }
+                  : null,
+              child: const Text('Verbindlich annehmen'),
+            ),
+          ],
+        );
+      },
     ),
   );
 }
@@ -130,3 +159,10 @@ String _date(DateTime value) {
 }
 
 String _money(int minor) => '${(minor / 100).toStringAsFixed(2)} €';
+
+String _dateTime(DateTime value) {
+  String two(int number) => number.toString().padLeft(2, '0');
+  final local = value.toLocal();
+  return '${two(local.day)}.${two(local.month)}.${local.year}, '
+      '${two(local.hour)}:${two(local.minute)} Uhr';
+}

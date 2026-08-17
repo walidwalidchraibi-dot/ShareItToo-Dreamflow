@@ -152,7 +152,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "961d08eb844db7290981f6c27288d2d3f9dee6f8791d122cb318cb66075a7af2"
+      "sha256": "011f3c2ed79a2bf85ed9b6aba5c3d0b25cf687e5667c3e3892172ec2c6a4993d"
     },
     {
       "path": "lib/screens/platform_withdrawal_screen.dart",

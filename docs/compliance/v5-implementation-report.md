@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.146
+Stand: 17.08.2026, lokaler Checkpoint 16.147
 
 ## Verbindliche Grenzen
 
@@ -483,3 +483,33 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
   übertragen. Nachweis:
   `docs/evidence/b11/v51-owner-acceptance-server-price-gate-20260817T084500Z.json`
+
+## Prüfstand Checkpoint 16.147
+
+- die vom Server gesetzte verbindliche Annahmefrist bleibt jetzt im
+  Buchungsmodell, im Checkout und im isolierten lokalen QA-Speicherweg
+  vollständig erhalten; der echte Backendpfad bleibt weiterhin die
+  maßgebliche Quelle
+- die Anfragedetailansicht zeigt dem Vermieter die genaue Annahmefrist und
+  deaktiviert die Annahme, sobald die 30-Minuten-Frist abgelaufen ist
+- dieselbe Fristschranke gilt über den gemeinsamen Annahmedialog für alle vier
+  Annahmewege; nach Ablauf sind sowohl die Erklärung als auch die verbindliche
+  Annahme deaktiviert
+- unmittelbar beim Tippen auf „Verbindlich annehmen“ wird die Frist nochmals
+  geprüft, damit ein während des geöffneten Dialogs eintretender Ablauf nicht
+  umgangen werden kann
+- das Backend bleibt die letzte maßgebliche Schranke und weist einen
+  Annahmeversuch nach der gespeicherten Frist mit
+  `booking_request_expired` zurück
+- 32/32 gezielte Struktur-, Backend- und Datenschutztests sowie 12/12
+  gezielte Flutter-Tests bestanden; die gezielte Analyse erzeugte keine Fehler
+- die vollständige Regression blieb mit 282 bestandenen Tests, 1 bewusstem
+  Skip, 229 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün
+- die Datenschutz-Inventarbindung wurde auf den neuen Quellhash aktualisiert;
+  Erhebungszweck, Transport, Anbieter und Berechtigungen änderten sich nicht
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder Kandidatenwechsel
+- Push und Crashdiagnose bleiben bestehen, getrennt, freiwillig und
+  standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
+  übertragen. Nachweis:
+  `docs/evidence/b11/v51-owner-acceptance-deadline-gate-20260817T085811Z.json`

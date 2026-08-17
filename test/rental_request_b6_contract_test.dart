@@ -49,6 +49,7 @@ void main() {
       'start': '2026-09-01T10:00:00.000Z',
       'end': '2026-09-04T10:00:00.000Z',
       'status': 'pending',
+      'bindingExpiresAt': '2026-09-01T10:30:00.000Z',
       'quote': {
         'days': 3,
         'pricePerDayMinor': 2500,
@@ -76,5 +77,6 @@ void main() {
     expect(json['quotedTotalMinor'], 6600);
     expect(json['quotedOwnerPayoutMinor'], 6000);
     expect(json['quotedCurrency'], 'EUR');
+    expect(json['bindingExpiresAt'], '2026-09-01T10:30:00.000Z');
   });
 }

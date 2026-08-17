@@ -251,6 +251,7 @@ class _PrivatePilotCheckoutScreenState
         end: widget.range.end,
         status: 'pending',
         expressRequested: false,
+        bindingExpiresAt: _bindingDeadline,
         quotedTotalRenter: PrivatePilotPricing.minorToEuros(quote.totalMinor),
         quotedSubtitle: 'inkl. ShareItToo-Plattformbeitrag 10 %',
         privateStatusConfirmed: true,

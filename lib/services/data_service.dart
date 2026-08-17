@@ -5560,6 +5560,7 @@ class DataService {
       returnLat: (deliverySel?['returnLat'] as num?)?.toDouble(),
       returnLng: (deliverySel?['returnLng'] as num?)?.toDouble(),
       createdAt: now,
+      bindingExpiresAt: req.bindingExpiresAt,
       expressRequestedAt: req.expressRequested ? now : null,
       expressConfirmedAt: null,
       quotedTotalRenter: quotedTotal,

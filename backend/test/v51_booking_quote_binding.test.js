@@ -81,6 +81,23 @@ test('booking request is not emitted before the immutable platform contract exis
   assert.match(source, /createdAt\.getTime\(\) \+ \(30 \* 60 \* 1000\)/u);
 });
 
+test('owner acceptance is rejected after the stored 30-minute binding deadline', async () => {
+  const source = await readFile(workflowPath, 'utf8');
+
+  assert.match(
+    source,
+    /createdAt\.getTime\(\) \+ \(30 \* 60 \* 1000\)/u,
+  );
+  assert.match(
+    source,
+    /current === 'requested' && steps\[0\] === 'accepted'[\s\S]*?row\.payload\?\.bindingExpiresAt/u,
+  );
+  assert.match(
+    source,
+    /Date\.now\(\) >= bindingExpiresAt\.getTime\(\)[\s\S]*?booking_request_expired/u,
+  );
+});
+
 test('the app fetches a fresh quote immediately before remote creation', async () => {
   const source = await readFile(dataServicePath, 'utf8');
   const remoteBlock = source.match(

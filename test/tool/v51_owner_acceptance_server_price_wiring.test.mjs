@@ -47,7 +47,7 @@ test('remote owner acceptance is disabled when the server snapshot is invalid', 
   );
   assert.match(
     requestDetail,
-    /onAccept: displayedQuote == null\s+\? null/u,
+    /onAccept: displayedQuote == null \|\| !deadlineValid\s+\? null/u,
   );
   assert.match(
     requestDetail,
@@ -94,13 +94,52 @@ test('acceptance dialog and backend transition receive the same guarded quote fl
   );
   assert.match(
     dialog,
-    /onPressed: confirmed && displayedQuote != null/u,
+    /onPressed: confirmed && acceptanceAllowed/u,
   );
   assert.match(
     dialog,
-    /onChanged: displayedQuote == null\s+\? null/u,
+    /onChanged: acceptanceAllowed\s+\? \(value\)/u,
   );
   assert.match(dialog, /Preisprüfung fehlgeschlagen/u);
+});
+
+test('remote owner acceptance is bound to the server 30-minute deadline', () => {
+  const model = readFileSync(
+    new URL('../../lib/models/rental_request.dart', import.meta.url),
+    'utf8',
+  );
+  const checkout = readFileSync(
+    new URL('../../lib/screens/private_pilot_checkout_screen.dart', import.meta.url),
+    'utf8',
+  );
+  const dataService = readFileSync(
+    new URL('../../lib/services/data_service.dart', import.meta.url),
+    'utf8',
+  );
+  const backend = readFileSync(
+    new URL('../../backend/src/booking_workflow.js', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(model, /final DateTime\? bindingExpiresAt/u);
+  assert.match(model, /bindingExpiresAt: _parseDt\(json\['bindingExpiresAt'\]\)/u);
+  assert.match(model, /'bindingExpiresAt': bindingExpiresAt\?\.toIso8601String\(\)/u);
+  assert.match(checkout, /bindingExpiresAt: _bindingDeadline/u);
+  assert.match(dataService, /bindingExpiresAt: req\.bindingExpiresAt/u);
+  assert.match(
+    requestDetail,
+    /bindingDeadline != null && bindingDeadline\.isAfter\(DateTime\.now\(\)\)/u,
+  );
+  assert.match(
+    requestDetail,
+    /onAccept: displayedQuote == null \|\| !deadlineValid\s+\? null/u,
+  );
+  assert.match(dialog, /final acceptanceAllowed = displayedQuote != null && deadlineValid/u);
+  assert.match(
+    dialog,
+    /bindingDeadline == null \|\|\s+!bindingDeadline\.isAfter\(DateTime\.now\(\)\)/u,
+  );
+  assert.match(backend, /throw new BookingWorkflowError\(409, 'booking_request_expired'\)/u);
 });
 
 test('every alternative owner-acceptance surface reaches the guarded dialog', () => {

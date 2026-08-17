@@ -91,6 +91,9 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
     final serverQuote = req == null ? null : _strictQuoteSnapshot(req);
     final usesRemoteBackend =
         BackendConfig.enabled && !QaRuntimeService.isEnabled;
+    final bindingDeadline = req?.bindingExpiresAt;
+    final deadlineValid = !usesRemoteBackend ||
+        (bindingDeadline != null && bindingDeadline.isAfter(DateTime.now()));
     final displayedQuote = req == null || item == null
         ? null
         : serverQuote ??
@@ -102,6 +105,11 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                   ));
     final acceptanceBlockedReason = usesRemoteBackend && serverQuote == null
         ? 'Der verbindliche Serverpreis fehlt oder ist widersprüchlich. Bitte lade die Anfrage neu; bis dahin ist die Annahme gesperrt.'
+        : !deadlineValid
+            ? 'Die 30-Minuten-Annahmefrist ist abgelaufen. Diese Anfrage kann nicht mehr angenommen werden.'
+            : null;
+    final acceptanceInfo = usesRemoteBackend && deadlineValid
+        ? 'Annahme möglich bis ${_formatDeadline(bindingDeadline!)}.'
         : null;
     return Scaffold(
       appBar: AppBar(title: Text(widget.titleOverride ?? l10n.t('Anfrage'))),
@@ -131,7 +139,8 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                 item: item,
                 request: req,
                 acceptanceBlockedReason: acceptanceBlockedReason,
-                onAccept: displayedQuote == null
+                acceptanceInfo: acceptanceInfo,
+                onAccept: displayedQuote == null || !deadlineValid
                     ? null
                     : () async {
                         final declarations =
@@ -210,12 +219,14 @@ class _ItemSummaryCard extends StatelessWidget {
   final VoidCallback? onAccept;
   final VoidCallback? onDecline;
   final String? acceptanceBlockedReason;
+  final String? acceptanceInfo;
   const _ItemSummaryCard(
       {required this.item,
       required this.request,
       this.onAccept,
       this.onDecline,
-      this.acceptanceBlockedReason});
+      this.acceptanceBlockedReason,
+      this.acceptanceInfo});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -277,6 +288,16 @@ class _ItemSummaryCard extends StatelessWidget {
               color: Theme.of(context).colorScheme.error,
               fontSize: 12,
               fontWeight: FontWeight.w700,
+            ),
+          ),
+        ] else if (acceptanceInfo != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            acceptanceInfo!,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -503,6 +524,13 @@ int _rentalDays(RentalRequest request) =>
         .ceil()
         .clamp(1, 365)
         .toInt();
+
+String _formatDeadline(DateTime value) {
+  String two(int number) => number.toString().padLeft(2, '0');
+  final local = value.toLocal();
+  return '${two(local.day)}.${two(local.month)}.${local.year}, '
+      '${two(local.hour)}:${two(local.minute)} Uhr';
+}
 
 class _ExpressOwnerBanner extends StatelessWidget {
   final Duration remaining;
