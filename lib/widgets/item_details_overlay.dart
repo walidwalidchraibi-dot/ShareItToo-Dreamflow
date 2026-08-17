@@ -21,7 +21,6 @@ import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/sit_overflow_menu.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
-import 'package:lendify/utils/total_subtitle.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
 import 'package:lendify/utils/condition_labels.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
@@ -605,6 +604,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
                                   message: msg);
                             },
                       collapsibleDelivery: false,
+                      showDeliverySection: false,
                       onCanReserveChange: (v) {
                         if (_canReserve != v) setState(() => _canReserve = v);
                       },
@@ -748,7 +748,8 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
         final id = await DataService.getWishlistForItem(widget.item.id);
         if (mounted) setState(() => _wishlistId = id);
       } catch (_) {
-        debugPrint('[ItemDetails] Wishlist-Zuordnung konnte nicht geladen werden.');
+        debugPrint(
+            '[ItemDetails] Wishlist-Zuordnung konnte nicht geladen werden.');
       }
     }();
     if (widget.fresh == true) {
@@ -2177,7 +2178,7 @@ class _BottomActionBar extends StatefulWidget {
       this.fresh = false,
       this.ownerPreview = false,
       this.collapsibleDelivery = false,
-      this.showDeliverySection = true,
+      this.showDeliverySection = false,
       this.onCanReserveChange,
       this.showReserveButton = true,
       this.showDatePickerInline = true});
@@ -2208,43 +2209,20 @@ class _BottomActionBarState extends State<_BottomActionBar> {
   void initState() {
     super.initState();
     _refreshAvailability();
-    if (widget.fresh == true) {
-      // Start with a pristine state for Explore: self/self, no address, priority off
-      () async {
-        final user = await DataService.getCurrentUser();
-        if (!mounted) return;
-        setState(() {
-          _addressCity = user?.city ?? widget.item.city;
-          _addressLine = '';
-          _addressLat = null;
-          _addressLng = null;
-          _dropoff = _DropoffOption.self;
-          _returning = _ReturnOption.self;
-          _wantExpress = false;
-        });
-        // Ensure any prior persisted delivery selection is cleared for this session
-        await DataService.clearSavedDeliverySelection(widget.item.id);
-      }();
-    } else {
-      _loadSaved();
-    }
+    // A stale pre-pilot transport choice must not affect this booking surface.
+    DataService.clearSavedDeliverySelection(widget.item.id);
   }
 
   @override
   void didUpdateWidget(covariant _BottomActionBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // When the selected range changes (e.g., returning from the
-    // Mietdauer/Verfügbarkeit prüfen screen), we must:
-    // 1) Re-check availability for the new period
-    // 2) Reload the saved delivery/abhol/express selection that might have been
-    //    persisted on the previous screen so the Gesamtbetrag matches exactly.
     if (oldWidget.range?.start != widget.range?.start ||
         oldWidget.range?.end != widget.range?.end ||
         oldWidget.item.id != widget.item.id) {
       _refreshAvailability();
-      // Important: reflect any choices saved in SelectRentalDurationScreen
-      // (hinweg/rueckweg/express + address) to keep totals identical.
-      _loadSaved();
+      if (oldWidget.item.id != widget.item.id) {
+        DataService.clearSavedDeliverySelection(widget.item.id);
+      }
     }
   }
 
@@ -2257,39 +2235,6 @@ class _BottomActionBarState extends State<_BottomActionBar> {
     final ok = await DataService.checkAvailability(
         itemId: widget.item.id, start: r.start, end: r.end);
     if (mounted) setState(() => _isAvailable = ok);
-  }
-
-  Future<void> _loadSaved() async {
-    // Default address city to current user's city or item's city
-    final user = await DataService.getCurrentUser();
-    final saved = await DataService.getSavedDeliverySelection(widget.item.id);
-    setState(() {
-      _addressCity = saved != null
-          ? (saved['city'] as String?)
-          : (user?.city ?? widget.item.city);
-      _addressLine =
-          saved != null ? ((saved['addressLine'] as String?) ?? '') : '';
-      _addressLat = saved != null ? (saved['lat'] as num?)?.toDouble() : null;
-      _addressLng = saved != null ? (saved['lng'] as num?)?.toDouble() : null;
-      final bool hinweg = saved != null ? (saved['hinweg'] == true) : false;
-      final bool rueck = saved != null ? (saved['rueckweg'] == true) : false;
-      // Respect item capabilities; coerce to self if landlord option not offered
-      _dropoff = (PrivatePilotConfig.deliveryEnabled &&
-              hinweg &&
-              widget.item.offersDeliveryAtDropoff)
-          ? _DropoffOption.landlord
-          : _DropoffOption.self;
-      _returning = (PrivatePilotConfig.deliveryEnabled &&
-              rueck &&
-              widget.item.offersPickupAtReturn)
-          ? _ReturnOption.landlord
-          : _ReturnOption.self;
-      // Restore Priorität exactly as the user selected it earlier – independent of item flags
-      // so the Gesamtbetrag and Untertitel remain consistent across pages.
-      _wantExpress = PrivatePilotConfig.deliveryEnabled &&
-          (saved != null ? (saved['express'] == true) : false);
-    });
-    _persistDeliverySelection();
   }
 
   void _persistDeliverySelection() {
@@ -2332,62 +2277,17 @@ class _BottomActionBarState extends State<_BottomActionBar> {
           DataService.computeTotalWithDiscounts(item: item, days: days);
       rentalSubtotal = tuple.$1; // final after discount
     }
-    // Calculate TOTAL identical to Mietdauer/"Verfügbarkeit prüfen" screen:
-    // subtotal = rental (after discount) + delivery (Abgabe) + pickup (Rückgabe) + Priorität (if selected)
-    // platform fee = only on rental subtotal, plus 10% of priority surcharge
-    double km = 0.0;
-    if (_addressLat != null && _addressLng != null) {
-      km = DataService.estimateDistanceKm(
-          widget.item.lat, widget.item.lng, _addressLat!, _addressLng!);
-    } else if (_addressLine.trim().isNotEmpty) {
-      km = DataService.estimateDistanceKmFromAddressLine(
-          widget.item.lat, widget.item.lng, _addressLine);
-    }
-    final bool dropSelected = PrivatePilotConfig.deliveryEnabled &&
-        _dropoff == _DropoffOption.landlord &&
-        item.offersDeliveryAtDropoff;
-    final bool pickSelected = PrivatePilotConfig.deliveryEnabled &&
-        _returning == _ReturnOption.landlord &&
-        item.offersPickupAtReturn;
-    double deliveryFee = 0.0; // Abgabe
-    double pickupFee = 0.0; // Rückgabe
-    if (range != null && dropSelected) {
-      // Distanzkosten (0,30€/km)
-      deliveryFee = double.parse((km * 0.30).toStringAsFixed(2));
-    }
-    if (range != null && pickSelected) {
-      pickupFee = double.parse((km * 0.30).toStringAsFixed(2));
-    }
-    // Prioritätszuschlag: 5,00€ sobald ausgewählt (immer, auch bei Selbstabholung), plus 10% Plattformanteil auf Priorität
-    // Wichtig: Der Betrag reagiert sofort auf die Nutzerwahl. Dadurch bleibt er konsistent
-    // über Ausstehend → Kommend → Laufend → Abgeschlossen.
-    final bool expressIncluded =
-        PrivatePilotConfig.deliveryEnabled && _wantExpress;
-    final double expressFee = (range != null && expressIncluded) ? 5.0 : 0.0;
-    final double expressFeePlatform = expressFee > 0
-        ? double.parse((expressFee * 0.10).toStringAsFixed(2))
-        : 0.0;
-    // Plattformbeitrag nur auf Mietpreis (ohne Lieferung/Priorität)
+    // Private pilot: local fallback pricing contains rent and platform
+    // contribution only. The binding checkout quote remains server-owned.
     final platformFee = range != null
         ? DataService.platformContributionForRental(rentalSubtotal)
         : 0.0;
     final total = range != null
-        ? double.parse((rentalSubtotal +
-                platformFee +
-                deliveryFee +
-                pickupFee +
-                expressFee +
-                expressFeePlatform)
-            .toStringAsFixed(2))
+        ? double.parse((rentalSubtotal + platformFee).toStringAsFixed(2))
         : 0.0;
 
     // compute canReserve to inform parent (for showing cancellation section)
-    final requiresAddress = (_dropoff == _DropoffOption.landlord) ||
-        (_returning == _ReturnOption.landlord);
-    final hasValidAddress =
-        !requiresAddress || (_addressLat != null && _addressLng != null);
-    final canReserveForNotify =
-        range != null && hasValidAddress && (_isAvailable != false);
+    final canReserveForNotify = range != null && (_isAvailable != false);
     if (widget.onCanReserveChange != null &&
         _lastNotifiedCanReserve != canReserveForNotify) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -3070,12 +2970,6 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                         children: [
                           // Checkout: nur EIN Preis (inkl. Plattformbeitrag)
                           Builder(builder: (context) {
-                            // Subtitle under Gesamtbetrag per decision matrix
-                            final String subtitle = TotalSubtitleHelper.build(
-                              delivery: dropSelected,
-                              pickup: pickSelected,
-                              priority: expressIncluded,
-                            );
                             return Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
@@ -3117,7 +3011,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600)),
                                   const SizedBox(height: 2),
-                                  Text(subtitle,
+                                  Text('Inkl. Plattformbeitrag.',
                                       style: TextStyle(
                                           color: Theme.of(context).brightness ==
                                                   Brightness.dark
@@ -3162,14 +3056,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
                 if (widget.showReserveButton) ...[
                   Builder(builder: (context) {
                     context.watch<LocalizationController>();
-                    final requiresAddress =
-                        (_dropoff == _DropoffOption.landlord) ||
-                            (_returning == _ReturnOption.landlord);
-                    final hasValidAddress = !requiresAddress ||
-                        (_addressLat != null && _addressLng != null);
-                    final canReserve = range != null &&
-                        hasValidAddress &&
-                        (_isAvailable != false);
+                    final canReserve = range != null && (_isAvailable != false);
                     final buttonStyle = FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -3236,40 +3123,6 @@ class _BottomActionBarState extends State<_BottomActionBar> {
       await _showOwnerPreviewBlockPopup(context);
       return;
     }
-    final requiresAddress = (_dropoff == _DropoffOption.landlord) ||
-        (_returning == _ReturnOption.landlord);
-    final hasValidAddress = _addressLat != null && _addressLng != null;
-    if (requiresAddress && !hasValidAddress) {
-      await _showAddressGuardPopup(context, _addressLine.trim().isEmpty);
-      return;
-    }
-    // Distance limit warnings (not blocking, just info)
-    double km = 0.0;
-    if (_addressLat != null && _addressLng != null) {
-      km = DataService.estimateDistanceKm(
-          widget.item.lat, widget.item.lng, _addressLat!, _addressLng!);
-    } else if (_addressLine.trim().isNotEmpty) {
-      km = DataService.estimateDistanceKmFromAddressLine(
-          widget.item.lat, widget.item.lng, _addressLine);
-    }
-    if (_dropoff == _DropoffOption.landlord &&
-        widget.item.maxDeliveryKmAtDropoff != null &&
-        km > widget.item.maxDeliveryKmAtDropoff!) {
-      await AppPopup.toast(context,
-          icon: Icons.location_off,
-          title: 'Adresse außerhalb des Lieferbereichs',
-          message:
-              'Max. ${widget.item.maxDeliveryKmAtDropoff!.toStringAsFixed(0)} km');
-    }
-    if (_returning == _ReturnOption.landlord &&
-        widget.item.maxPickupKmAtReturn != null &&
-        km > widget.item.maxPickupKmAtReturn!) {
-      await AppPopup.toast(context,
-          icon: Icons.location_off,
-          title: 'Adresse außerhalb des Abholbereichs',
-          message:
-              'Max. ${widget.item.maxPickupKmAtReturn!.toStringAsFixed(0)} km');
-    }
 
     final current = await DataService.getCurrentUser();
     if (current == null) {
@@ -3300,7 +3153,7 @@ class _BottomActionBarState extends State<_BottomActionBar> {
         requestId: widget.editRequestId!,
         start: widget.range!.start,
         end: widget.range!.end,
-        expressRequested: _wantExpress,
+        expressRequested: false,
       );
       if (!mounted) return;
       await AppPopup.toast(context,
@@ -3332,9 +3185,9 @@ class _BottomActionBarState extends State<_BottomActionBar> {
       end: widget.range!.end,
       status: 'pending',
       message: null,
-      expressRequested: _wantExpress,
-      expressStatus: _wantExpress ? 'pending' : null,
-      expressFee: 5.0,
+      expressRequested: false,
+      expressStatus: null,
+      expressFee: 0.0,
     );
     final stored = await DataService.addRentalRequest(req);
 

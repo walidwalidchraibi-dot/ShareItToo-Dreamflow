@@ -1320,3 +1320,32 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   oder Kandidatenwechsel und keine zusätzliche Crashlytics-
   Kennungsübertragung. Nachweis:
   `docs/evidence/b11/v51-remove-booking-detail-transport-20260817T182243Z.json`
+
+## Prüfstand Checkpoint 16.176
+
+- beide Artikel-/Reservierungsoberflächen verbergen die alte Liefer-,
+  Rückgabe-Abhol- und Expressauswahl jetzt ausdrücklich. Der Standardwert ist
+  ebenfalls geschlossen, damit ein neuer Aufrufer die Optionen nicht
+  versehentlich wieder sichtbar macht
+- der aktive Pfad liest keine gespeicherte Transportauswahl mehr ein und
+  bereinigt einen eventuell vorhandenen lokalen Altwert. Die Reservierung kann
+  Express weder beim Ändern noch beim Neuerstellen wieder einschalten
+- die lokale Preisvorschau besteht nur noch aus Mietpreis plus
+  Plattformbeitrag. Der verbindliche serverseitige Privat-Pilot-Checkout,
+  Verfügbarkeit, Gastschutz und Eigentümervorschau bleiben erhalten
+- 17/17 gezielte Artikel-, Preis-, Checkout- und Transporttests bestanden;
+  aus dem Laufzeitpfad entfielen netto 147 Zeilen. Der Bildschirm analysiert
+  mit 0 Fehlern; seine bestehenden Hinweise bleiben innerhalb des
+  festgeschriebenen Gesamtbestands
+- die vollständige technische Regression bestand mit 292 Flutter-Tests und
+  1 bewusstem Skip, 213 Backendtests und 1 bewusstem PostgreSQL-Skip, 224
+  Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds
+- FCM-Push und Firebase Crashlytics bleiben ausdrücklich bestehen, getrennt,
+  freiwillig und im nächsten Kandidaten standardmäßig aus; Push aktiviert
+  Crashlytics nicht. Werbung, Marketingtracking, allgemeine Analytics und
+  externe generative KI bleiben aus
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store-, Anbieterconsole-
+  oder Kandidatenwechsel und keine zusätzliche Crashlytics-
+  Kennungsübertragung. Nachweis:
+  `docs/evidence/b11/v51-item-details-transport-fail-closed-20260817T183625Z.json`
