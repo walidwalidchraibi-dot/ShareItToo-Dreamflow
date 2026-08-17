@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.132
+Stand: 17.08.2026, lokaler Checkpoint 16.133
 
 ## Verbindliche Grenzen
 
@@ -175,3 +175,25 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
 - Produktion, Store, Echtgeld, öffentliche Rechtstexte und der bestehende
   Kandidat blieben unverändert. Nachweis:
   `docs/evidence/b11/android-large-text-physical-2026081509-20260817T053900Z.json`
+
+## Prüfstand Checkpoint 16.133
+
+- auf dem unveränderten Play-Internal-Kandidaten wurden die Konto- und
+  Moderationsoberflächen mit einem synthetischen Konto physisch geprüft
+- die Kontolöschung zeigte Voraussetzungen und Unwiderruflichkeit und wurde
+  sicher abgebrochen; kein Konto wurde gelöscht
+- die Blockliste war erreichbar; der private Datenexport öffnete die
+  Android-Freigabeoberfläche, die ohne Zielauswahl geschlossen wurde
+- das synthetische Gegenprofil bot Melden und Blockieren; die Meldegründe
+  waren erreichbar, ohne eine Meldung abzusenden
+- die App verweigerte das Blockieren korrekt, solange Übergabe oder Rückgabe
+  noch nicht vollständig abgeschlossen waren; niemand wurde blockiert
+- der Gesamtfall bleibt `testing`: erfolgreiche UI-Blockierung mit Rücknahme
+  und tatsächliche UI-Löschung eines neuen Wegwerfkontos sind noch offen
+- serverseitige Nachweise für Melden, Blockieren mit Rücknahme, privaten Export
+  und isolierte Wegwerf-Kontolöschung bleiben gültig
+- FCM-Push und Firebase Crashlytics blieben unverändert erhalten, getrennt,
+  freiwillig und standardmäßig aus; Push aktiviert Crashlytics nicht
+- Produktion, Store, Echtgeld, öffentliche Rechtstexte und der bestehende
+  Kandidat blieben unverändert. Nachweis:
+  `docs/evidence/b11/android-moderation-account-ui-2026081509-20260817T061138Z.json`

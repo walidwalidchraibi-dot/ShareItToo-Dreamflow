@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "device-matrix-cell-progress",
   "status": "testing",
-  "capturedAt": "2026-08-17T05:39:00Z",
+  "capturedAt": "2026-08-17T06:11:38Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
@@ -93,12 +93,13 @@
       },
       "moderationAndAccount": {
         "status": "testing",
-        "checkedAt": "2026-08-15T14:21:10.656Z",
-        "summary": "Abmeldung und Push-Unterdrückung bestanden auf dem exakten Play-Build; Melden, Blockieren mit Rücknahme, privater Export und isolierte Wegwerf-Kontolöschung bestanden serverseitig. Die vollständige Geräteoberfläche bleibt offen.",
+        "checkedAt": "2026-08-17T06:11:38Z",
+        "summary": "Auf dem exakten Play-Build bestanden die Geräteoberflächen für Lösch-Vorprüfung mit sicherem Abbruch, Blockliste, privaten Datenexport bis zur ungenutzten System-Freigabe und Profil-Meldegründe. Blockieren eines synthetischen Gegenparts wurde bei unvollständiger Übergabe oder Rückgabe korrekt fail-closed verweigert. Serverseitig sind Melden, Blockieren mit Rücknahme, Export und isolierte Wegwerf-Kontolöschung bereits belegt; erfolgreiche UI-Blockierung mit Rücknahme und tatsächliche UI-Wegwerf-Kontolöschung bleiben offen.",
         "evidenceRefs": [
           "docs/evidence/b11/android-logout-lifecycle-2026081509-20260815T131701Z.json",
           "docs/evidence/b11/store-review-safety-actions-2026081509-20260815T142110Z.json",
-          "docs/evidence/b11/store-review-disposable-deletion-20260811.json"
+          "docs/evidence/b11/store-review-disposable-deletion-20260811.json",
+          "docs/evidence/b11/android-moderation-account-ui-2026081509-20260817T061138Z.json"
         ]
       },
       "offlineRecovery": {
