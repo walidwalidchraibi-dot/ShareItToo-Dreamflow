@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.162
+Stand: 17.08.2026, lokaler Checkpoint 16.163
 
 ## Verbindliche Grenzen
 
@@ -932,3 +932,28 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   Deployment, Upload, Echtgeld-, Store-, Anbieterconsole- oder
   Kandidatenwechsel und kein Crashereignis. Nachweis:
   `docs/evidence/b11/v51-item-details-dead-tag-chips-cleanup-20260817T122246Z.json`
+
+## Prüfstand Checkpoint 16.163
+
+- aus der Artikel-Detailseite wurde ausschließlich der projektweit
+  unreferenzierte lokale Kurz-Datumsformatter `_formatRange` entfernt; der
+  Laufzeitdiff umfasst exakt sieben Löschungen und keine Ergänzung
+- die aktive vollständige Datumsdarstellung, Verfügbarkeitsprüfung,
+  Gast-Sperre, Buchungsübermittlung, Preisangabe und der
+  Privatpilot-Checkout bleiben unverändert erhalten
+- eine neue abschnittsgebundene Fail-closed-Prüfung verhindert die
+  Wiedereinführung des toten Formatters und schützt die aktiven Nachbarpfade;
+  zusammen mit den bestehenden Artikel- und Analyzer-Sperren waren 7/7
+  gezielte Node- und 34/34 gezielte Flutter-Tests grün
+- die Ansicht bleibt außerhalb des Datenschutz-Quellinventars; Erhebung,
+  Speicherung, Übertragung, Berechtigungen, Anbieter, öffentliche Angaben
+  und Store-Metadaten blieben unverändert
+- die vollständige Regression bestand mit 282 Flutter-Tests, 1 bewusstem
+  Skip, jetzt 224 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds; die bekannten externen WebAssembly-Trockenlaufhinweise
+  blieben unverändert
+- FCM-Push und Crashlytics bleiben getrennt, freiwillig und im nächsten
+  Kandidaten standardmäßig aus; Push aktiviert Crash nicht. Es erfolgte kein
+  Deployment, Upload, Echtgeld-, Store-, Anbieterconsole- oder
+  Kandidatenwechsel und kein Crashereignis. Nachweis:
+  `docs/evidence/b11/v51-item-details-dead-range-formatter-cleanup-20260817T123234Z.json`

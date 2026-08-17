@@ -39,3 +39,15 @@ test('listing details still keep price booking and owner actions', () => {
   assert.match(source, /PublicProfileScreen/u);
   assert.match(source, /WishlistSelectionSheet/u);
 });
+
+test('item details page cannot regain its unused compact range formatter', () => {
+  const pageState = source.match(
+    /class _ItemDetailsPageState[\s\S]*?class _ItemMetaSection/u,
+  )?.[0] ?? '';
+  assert.doesNotMatch(pageState, /String _formatRange\s*\(/u);
+  assert.match(pageState, /Future<void> _sendRequest\s*\(\)/u);
+  assert.match(pageState, /DataService\.checkAvailability\(/u);
+  assert.match(pageState, /DataService\.addRentalRequest\(req\)/u);
+  assert.match(pageState, /String _priceWithUnit\s*\(/u);
+  assert.match(pageState, /String _formatRangeForButton\s*\(/u);
+});

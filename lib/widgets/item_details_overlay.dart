@@ -878,13 +878,6 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
     }
   }
 
-  String _formatRange(DateTimeRange r) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    final s = '${two(r.start.day)}.${two(r.start.month)}.';
-    final e = '${two(r.end.day)}.${two(r.end.month)}.';
-    return '$s–$e';
-  }
-
   String _priceWithUnit(Item i) {
     final unit = i.priceUnit;
     final raw = i.priceRaw;
