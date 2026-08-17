@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.148
+Stand: 17.08.2026, lokaler Checkpoint 16.149
 
 ## Verbindliche Grenzen
 
@@ -540,3 +540,30 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
   übertragen. Nachweis:
   `docs/evidence/b11/v51-owner-acceptance-expired-popup-20260817T091611Z.json`
+
+## Prüfstand Checkpoint 16.149
+
+- der Checkout unterscheidet jetzt bekannte serverseitige Buchungsschranken
+  und zeigt verständliche SIT-Texte statt interner Fehlercodes oder der
+  pauschalen Aufforderung, nur die Verbindung zu prüfen
+- abgelaufene, fehlende oder geänderte verbindliche Preise werden aus dem
+  bestätigbaren Zustand entfernt; SIT lädt danach automatisch einen frischen
+  Serverpreis, den der Nutzer erneut prüfen und bestätigen muss
+- nicht mehr verfügbare Zeiträume, vorhandene Doppelanfragen, eigene Anzeigen,
+  fehlende Anmeldung, bereits laufende Serververarbeitung und vorübergehend
+  gesperrte Buchungen erhalten jeweils eine begrenzte, ehrliche Meldung
+- Moderations- oder Blockgründe werden bewusst neutral formuliert und legen
+  keine privaten Gegenpartei-Informationen offen
+- unbekannte Fehler bleiben fail-closed bei der generischen Meldung; es wird
+  kein Erfolg, keine Belastung und keine erzeugte Buchung behauptet
+- 4/4 neue Checkout-Fehler-Wiring-Tests, insgesamt 17/17 gezielte Node-Tests,
+  11/11 gezielte Flutter-Tests und 16/16 Datenschutztests bestanden; die
+  geänderte Checkout-Datei hat 0 Analyzer-Hinweise
+- die vollständige Regression blieb mit 282 bestandenen Tests, 1 bewusstem
+  Skip, 229 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder Kandidatenwechsel
+- Push und Crashdiagnose bleiben bestehen, getrennt, freiwillig und
+  standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
+  übertragen. Nachweis:
+  `docs/evidence/b11/v51-checkout-backend-error-mapping-20260817T092630Z.json`

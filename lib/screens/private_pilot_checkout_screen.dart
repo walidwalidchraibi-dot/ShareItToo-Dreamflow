@@ -6,6 +6,7 @@ import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/screens/legal_screen.dart';
 import 'package:lendify/services/backend_config.dart';
+import 'package:lendify/services/backend_http.dart';
 import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/private_pilot_pricing.dart';
@@ -128,6 +129,11 @@ class _PrivatePilotCheckoutScreenState
           });
         },
       );
+    } on BackendException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _quoteError = _quoteLoadMessage(error.code);
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -283,7 +289,27 @@ class _PrivatePilotCheckoutScreenState
         message:
             'Anfrage ${stored.id}: Der Vermieter kann sie jetzt prüfen. Es wurde noch kein echtes Zahlungsmittel belastet.',
       );
-    } catch (error) {
+    } on BackendException catch (error) {
+      if (!mounted) return;
+      final failure = _submissionFailure(error.code);
+      if (failure.refreshQuote) {
+        _quoteExpiryTimer?.cancel();
+        setState(() {
+          _checkoutQuote = null;
+          _quoteExpiresAt = null;
+          _paymentMethodAvailable = false;
+          _quoteError = failure.message;
+        });
+      }
+      await AppPopup.error(
+        context,
+        title: failure.title,
+        message: failure.message,
+      );
+      if (failure.refreshQuote && mounted) {
+        await _loadFreshQuote();
+      }
+    } catch (_) {
       if (!mounted) return;
       await AppPopup.error(
         context,
@@ -294,6 +320,91 @@ class _PrivatePilotCheckoutScreenState
       if (mounted) setState(() => _submitting = false);
     }
   }
+
+  String _quoteLoadMessage(String code) => switch (code) {
+        'listing_not_found' =>
+          'Diese Anzeige ist nicht mehr verfügbar. Bitte gehe zurück und aktualisiere die Suche.',
+        'cannot_rent_own_listing' =>
+          'Du kannst deine eigene Anzeige nicht mieten.',
+        'rental_duration_not_allowed' =>
+          'Die gewählte Mietdauer ist für diese Anzeige nicht möglich.',
+        'booking_notice_too_short' =>
+          'Der Mietbeginn liegt zu nah. Bitte wähle einen späteren Zeitraum.',
+        'listing_period_blocked' ||
+        'booking_period_unavailable' ||
+        'listing_day_unavailable' =>
+          'Der gewählte Zeitraum ist nicht mehr verfügbar. Bitte wähle neue Daten.',
+        'booking_blocked_by_user_block' ||
+        'booking_blocked_by_moderation' =>
+          'Diese Buchung ist derzeit nicht möglich.',
+        'booking_pilot_not_enabled' =>
+          'Buchungsanfragen sind vorübergehend nicht verfügbar.',
+        _ => 'Der verbindliche Serverpreis konnte nicht geladen werden.',
+      };
+
+  ({String title, String message, bool refreshQuote}) _submissionFailure(
+    String code,
+  ) =>
+      switch (code) {
+        'fresh_booking_quote_required' ||
+        'booking_quote_not_found' ||
+        'booking_quote_expired' ||
+        'booking_quote_changed' =>
+          (
+            title: 'Preis wird erneuert',
+            message:
+                'Der verbindliche Preis ist abgelaufen oder hat sich geändert. SIT lädt jetzt einen neuen Serverpreis; bitte prüfe und bestätige ihn erneut.',
+            refreshQuote: true,
+          ),
+        'listing_period_blocked' ||
+        'booking_period_unavailable' ||
+        'listing_day_unavailable' =>
+          (
+            title: 'Zeitraum nicht mehr verfügbar',
+            message:
+                'Der gewählte Zeitraum wurde inzwischen belegt oder gesperrt. Bitte gehe zurück und wähle neue Daten.',
+            refreshQuote: false,
+          ),
+        'duplicate_booking_request' => (
+            title: 'Anfrage bereits vorhanden',
+            message:
+                'Für diese Anzeige und diesen Zeitraum besteht bereits eine Mietanfrage. Bitte prüfe deine Buchungen.',
+            refreshQuote: false,
+          ),
+        'cannot_rent_own_listing' => (
+            title: 'Eigene Anzeige',
+            message: 'Du kannst deine eigene Anzeige nicht mieten.',
+            refreshQuote: false,
+          ),
+        'booking_blocked_by_user_block' || 'booking_blocked_by_moderation' => (
+            title: 'Buchung nicht möglich',
+            message: 'Diese Buchung kann derzeit nicht abgeschlossen werden.',
+            refreshQuote: false,
+          ),
+        'authentication_required' => (
+            title: 'Anmeldung erforderlich',
+            message:
+                'Bitte melde dich erneut an und öffne den Checkout danach noch einmal.',
+            refreshQuote: false,
+          ),
+        'booking_command_in_progress' => (
+            title: 'Anfrage wird verarbeitet',
+            message:
+                'Die Buchungsanfrage wird bereits verarbeitet. Bitte warte kurz und prüfe anschließend deine Buchungen.',
+            refreshQuote: false,
+          ),
+        'booking_pilot_not_enabled' => (
+            title: 'Buchung vorübergehend nicht verfügbar',
+            message:
+                'Buchungsanfragen sind momentan nicht freigeschaltet. Es wurde nichts belastet.',
+            refreshQuote: false,
+          ),
+        _ => (
+            title: 'Buchungsanfrage nicht gesendet',
+            message: 'Bitte prüfe deine Verbindung und versuche es erneut.',
+            refreshQuote: false,
+          ),
+      };
 
   @override
   Widget build(BuildContext context) {
