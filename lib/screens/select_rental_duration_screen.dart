@@ -1,13 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class SelectRentalDurationScreen extends StatefulWidget {
   final Item item;
@@ -36,19 +34,6 @@ class _SelectRentalDurationScreenState
 
   bool get _usesRemoteBackend =>
       BackendConfig.enabled && !QaRuntimeService.isEnabled;
-
-  bool _hinwegLandlord = false;
-  bool _rueckwegLandlord = false;
-
-  final TextEditingController _deliveryAddressCtrl = TextEditingController();
-  final TextEditingController _returnAddressCtrl = TextEditingController();
-
-  String? _deliveryCity;
-  double? _deliveryLat;
-  double? _deliveryLng;
-  String? _returnCity;
-  double? _returnLat;
-  double? _returnLng;
 
   static const _monthsDe = [
     'Januar',
@@ -80,14 +65,7 @@ class _SelectRentalDurationScreenState
       _visibleMonth = DateTime(_start!.year, _start!.month, 1);
     }
     _loadUnavailable();
-    _loadSavedDeliverySelection();
-  }
-
-  @override
-  void dispose() {
-    _deliveryAddressCtrl.dispose();
-    _returnAddressCtrl.dispose();
-    super.dispose();
+    DataService.clearSavedDeliverySelection(widget.item.id);
   }
 
   DateTime _strip(DateTime d) => DateTime(d.year, d.month, d.day);
@@ -104,133 +82,9 @@ class _SelectRentalDurationScreenState
     }
   }
 
-  Future<void> _loadSavedDeliverySelection() async {
-    try {
-      final saved = await DataService.getSavedDeliverySelection(widget.item.id);
-      if (!mounted || saved == null) return;
-      setState(() {
-        _hinwegLandlord = PrivatePilotConfig.deliveryEnabled &&
-            widget.item.offersDeliveryAtDropoff &&
-            saved['hinweg'] == true;
-        _rueckwegLandlord = PrivatePilotConfig.deliveryEnabled &&
-            widget.item.offersPickupAtReturn &&
-            saved['rueckweg'] == true;
-
-        final sharedLine = (saved['addressLine'] as String?) ?? '';
-        final sharedCity = saved['city'] as String?;
-        final sharedLat = (saved['lat'] as num?)?.toDouble();
-        final sharedLng = (saved['lng'] as num?)?.toDouble();
-
-        final deliveryLine =
-            ((saved['deliveryAddressLine'] as String?) ?? sharedLine).trim();
-        final returnLine =
-            ((saved['returnAddressLine'] as String?) ?? sharedLine).trim();
-
-        _deliveryAddressCtrl.text = deliveryLine;
-        _returnAddressCtrl.text = returnLine;
-
-        _deliveryCity = (saved['deliveryCity'] as String?) ?? sharedCity;
-        _deliveryLat = (saved['deliveryLat'] as num?)?.toDouble() ?? sharedLat;
-        _deliveryLng = (saved['deliveryLng'] as num?)?.toDouble() ?? sharedLng;
-        _returnCity = (saved['returnCity'] as String?) ?? sharedCity;
-        _returnLat = (saved['returnLat'] as num?)?.toDouble() ?? sharedLat;
-        _returnLng = (saved['returnLng'] as num?)?.toDouble() ?? sharedLng;
-      });
-      _persistDeliverySelection();
-    } catch (_) {}
-  }
-
-  void _persistDeliverySelection() {
-    final deliveryLine = _deliveryAddressCtrl.text.trim();
-    final returnLine = _returnAddressCtrl.text.trim();
-    _deliveryCity = deliveryLine.isEmpty
-        ? null
-        : DataService.deriveCityFromAddress(deliveryLine);
-    _returnCity = returnLine.isEmpty
-        ? null
-        : DataService.deriveCityFromAddress(returnLine);
-    DataService.setSavedDeliverySelection(
-      widget.item.id,
-      hinweg: PrivatePilotConfig.deliveryEnabled &&
-          _hinwegLandlord &&
-          widget.item.offersDeliveryAtDropoff,
-      rueckweg: PrivatePilotConfig.deliveryEnabled &&
-          _rueckwegLandlord &&
-          widget.item.offersPickupAtReturn,
-      addressCity: _deliveryCity,
-      addressLine: deliveryLine,
-      express: false,
-      lat: _deliveryLat,
-      lng: _deliveryLng,
-      deliveryAddressLine: deliveryLine,
-      deliveryCity: _deliveryCity,
-      deliveryLat: _deliveryLat,
-      deliveryLng: _deliveryLng,
-      returnAddressLine: returnLine,
-      returnCity: _returnCity,
-      returnLat: _returnLat,
-      returnLng: _returnLng,
-    );
-  }
-
-  double? _estimatedKmFor({required bool isReturn}) {
-    final line =
-        (isReturn ? _returnAddressCtrl.text : _deliveryAddressCtrl.text).trim();
-    final city = isReturn ? _returnCity : _deliveryCity;
-    final lat = isReturn ? _returnLat : _deliveryLat;
-    final lng = isReturn ? _returnLng : _deliveryLng;
-    if (lat != null && lng != null) {
-      return DataService.estimateDistanceKm(
-          widget.item.lat, widget.item.lng, lat, lng);
-    }
-    if (line.isNotEmpty) {
-      final derivedCity = DataService.deriveCityFromAddress(line);
-      if (derivedCity.isNotEmpty) {
-        return DataService.estimateDistanceKmToCity(
-            widget.item.lat, widget.item.lng, derivedCity);
-      }
-    }
-    if (city != null && city.isNotEmpty) {
-      return DataService.estimateDistanceKmToCity(
-          widget.item.lat, widget.item.lng, city);
-    }
-    return null;
-  }
-
-  bool _isAddressEstimateReady(bool isReturn) {
-    final line =
-        (isReturn ? _returnAddressCtrl.text : _deliveryAddressCtrl.text).trim();
-    if (line.isEmpty) return false;
-    return _estimatedKmFor(isReturn: isReturn) != null;
-  }
-
-  bool _hasAddressText(bool isReturn) =>
-      (isReturn ? _returnAddressCtrl.text : _deliveryAddressCtrl.text)
-          .trim()
-          .isNotEmpty;
-
   String? _continueHint() {
     if (_start == null) return 'Bitte wähle mindestens einen Miettag.';
     if (_overlapsBlocked) return 'Bitte wähle einen verfügbaren Zeitraum.';
-    if (_requiresDeliveryAddress && !_hasAddressText(false)) {
-      return 'Bitte Lieferadresse eingeben.';
-    }
-    if (_requiresDeliveryAddress && !_isAddressEstimateReady(false)) {
-      return 'Lieferkosten können aktuell nicht automatisch berechnet werden. Bitte wähle Selbstabholung oder prüfe die Adresse mit Stadtangabe.';
-    }
-    if (_requiresReturnAddress && !_hasAddressText(true)) {
-      return 'Bitte Rückgabeadresse eingeben.';
-    }
-    if (_requiresReturnAddress && !_isAddressEstimateReady(true)) {
-      return 'Abholkosten können aktuell nicht automatisch berechnet werden. Bitte wähle Rückgabe beim Vermieter oder prüfe die Adresse mit Stadtangabe.';
-    }
-    final preview = _pricePreview;
-    if (_requiresDeliveryAddress && !preview.deliveryWithinMax) {
-      return 'Die Lieferadresse liegt außerhalb des Lieferbereichs.';
-    }
-    if (_requiresReturnAddress && !preview.returnWithinMax) {
-      return 'Die Rückgabeadresse liegt außerhalb des Abholbereichs.';
-    }
     return null;
   }
 
@@ -353,75 +207,19 @@ class _SelectRentalDurationScreenState
     final platformFee =
         DataService.platformContributionForRental(rentalSubtotal);
 
-    final deliveryKm = _estimatedKmFor(isReturn: false);
-    final returnKm = _estimatedKmFor(isReturn: true);
-
-    final deliveryAllowed = PrivatePilotConfig.deliveryEnabled &&
-        widget.item.offersDeliveryAtDropoff &&
-        _hinwegLandlord;
-    final returnAllowed = PrivatePilotConfig.deliveryEnabled &&
-        widget.item.offersPickupAtReturn &&
-        _rueckwegLandlord;
-
-    final deliveryWithinMax = !deliveryAllowed ||
-        deliveryKm == null ||
-        widget.item.maxDeliveryKmAtDropoff == null ||
-        deliveryKm <= widget.item.maxDeliveryKmAtDropoff!;
-    final returnWithinMax = !returnAllowed ||
-        returnKm == null ||
-        widget.item.maxPickupKmAtReturn == null ||
-        returnKm <= widget.item.maxPickupKmAtReturn!;
-
-    final deliveryFeePending = deliveryAllowed && deliveryKm == null;
-    final pickupFeePending = returnAllowed && returnKm == null;
-
-    final deliveryFee =
-        deliveryAllowed && deliveryKm != null && deliveryWithinMax
-            ? DataService.deliveryFeeForDistanceKm(deliveryKm)
-            : 0.0;
-    final pickupFee = returnAllowed && returnKm != null && returnWithinMax
-        ? DataService.deliveryFeeForDistanceKm(returnKm)
-        : 0.0;
-
-    final total = double.parse(
-        (rentalSubtotal + platformFee + deliveryFee + pickupFee)
-            .toStringAsFixed(2));
+    final total =
+        double.parse((rentalSubtotal + platformFee).toStringAsFixed(2));
 
     return _PricePreview(
       rentalSubtotal: double.parse(rentalSubtotal.toStringAsFixed(2)),
       baseTotal: double.parse(baseTotal.toStringAsFixed(2)),
       discountAmount: double.parse(discountAmt.toStringAsFixed(2)),
       platformFee: double.parse(platformFee.toStringAsFixed(2)),
-      deliveryFee: double.parse(deliveryFee.toStringAsFixed(2)),
-      pickupFee: double.parse(pickupFee.toStringAsFixed(2)),
       total: total,
-      deliveryKm: deliveryKm,
-      returnKm: returnKm,
-      deliveryWithinMax: deliveryWithinMax,
-      returnWithinMax: returnWithinMax,
-      deliveryFeePending: deliveryFeePending,
-      pickupFeePending: pickupFeePending,
     );
   }
 
-  bool get _requiresDeliveryAddress =>
-      PrivatePilotConfig.deliveryEnabled &&
-      _hinwegLandlord &&
-      widget.item.offersDeliveryAtDropoff;
-  bool get _requiresReturnAddress =>
-      PrivatePilotConfig.deliveryEnabled &&
-      _rueckwegLandlord &&
-      widget.item.offersPickupAtReturn;
-
   bool get _canContinue => !_checking && _continueHint() == null;
-
-  Future<void> _openMapsSearch(String query) async {
-    final trimmed = query.trim();
-    if (trimmed.isEmpty) return;
-    final uri = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(trimmed)}');
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
 
   Future<void> _confirm() async {
     if (!_canContinue) return;
@@ -433,7 +231,8 @@ class _SelectRentalDurationScreenState
           itemId: widget.item.id, start: start, end: end);
       if (!mounted) return;
       if (ok) {
-        _persistDeliverySelection();
+        await DataService.clearSavedDeliverySelection(widget.item.id);
+        if (!mounted) return;
         Navigator.of(context).pop(DateTimeRange(start: start, end: end));
       } else {
         AppPopup.info(
@@ -770,152 +569,21 @@ class _SelectRentalDurationScreenState
                       ),
                     ),
                     const SizedBox(height: 12),
-                    if (PrivatePilotConfig.deliveryEnabled) ...[
-                      _StepCard(
-                        step: '2',
-                        title: 'Übergabe',
-                        subtitle: 'Entscheide, wie du den Artikel bekommst.',
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _ChoiceCard(
-                              title: 'Beim Vermieter abholen',
-                              subtitle: 'Du holst den Artikel selbst ab.',
-                              selected: !_hinwegLandlord,
-                              onTap: () {
-                                setState(() => _hinwegLandlord = false);
-                                _persistDeliverySelection();
-                              },
-                            ),
-                            const SizedBox(height: 10),
-                            _ChoiceCard(
-                              title: widget.item.offersDeliveryAtDropoff
-                                  ? 'Lieferung durch Vermieter'
-                                  : 'Aktuell nicht verfügbar',
-                              subtitle: widget.item.offersDeliveryAtDropoff
-                                  ? 'Der Vermieter bringt den Artikel zu dir.'
-                                  : 'Lieferung ist für diesen Artikel aktuell nicht verfügbar.',
-                              selected: _hinwegLandlord,
-                              enabled: widget.item.offersDeliveryAtDropoff,
-                              onTap: () {
-                                if (!widget.item.offersDeliveryAtDropoff) {
-                                  return;
-                                }
-                                setState(() => _hinwegLandlord = true);
-                                _persistDeliverySelection();
-                              },
-                            ),
-                            if (_requiresDeliveryAddress) ...[
-                              const SizedBox(height: 12),
-                              _AddressSection(
-                                label: 'Lieferadresse',
-                                helper:
-                                    'Sobald wir die Adresse grob zuordnen können, zeigen wir dir Entfernung und Lieferkosten an.',
-                                controller: _deliveryAddressCtrl,
-                                estimatedKm: preview.deliveryKm,
-                                fee: preview.deliveryFee,
-                                feeLabel: 'Liefergebühr',
-                                overMax: !preview.deliveryWithinMax,
-                                maxKm: widget.item.maxDeliveryKmAtDropoff,
-                                onChanged: (_) {
-                                  setState(() {
-                                    _deliveryLat = null;
-                                    _deliveryLng = null;
-                                    _deliveryCity = null;
-                                  });
-                                  _persistDeliverySelection();
-                                },
-                                onCheckAddress: () =>
-                                    _openMapsSearch(_deliveryAddressCtrl.text),
-                              ),
-                            ],
-                            const SizedBox(height: 10),
-                            Text(
-                                'Die genaue Uhrzeit und der finale Treffpunkt werden nach Annahme im Chat abgestimmt.',
-                                style: TextStyle(color: sub, fontSize: 12)),
-                          ],
-                        ),
+                    _StepCard(
+                      step: '2',
+                      title: 'Persönliche Abholung und Rückgabe',
+                      subtitle:
+                          'Lieferung und Versand sind im Privat-Pilot deaktiviert.',
+                      child: Text(
+                        'Du holst den Gegenstand beim Vermieter ab und bringst '
+                        'ihn persönlich dorthin zurück. Den genauen Termin und '
+                        'Treffpunkt stimmt ihr nach Annahme im Buchungschat ab.',
+                        style: TextStyle(color: sub, height: 1.45),
                       ),
-                      const SizedBox(height: 12),
-                      _StepCard(
-                        step: '3',
-                        title: 'Rückgabe',
-                        subtitle: 'Entscheide, wie der Artikel zurückgeht.',
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _ChoiceCard(
-                              title: 'Zum Vermieter zurückbringen',
-                              subtitle: 'Du bringst den Artikel selbst zurück.',
-                              selected: !_rueckwegLandlord,
-                              onTap: () {
-                                setState(() => _rueckwegLandlord = false);
-                                _persistDeliverySelection();
-                              },
-                            ),
-                            const SizedBox(height: 10),
-                            _ChoiceCard(
-                              title: widget.item.offersPickupAtReturn
-                                  ? 'Abholung durch Vermieter'
-                                  : 'Aktuell nicht verfügbar',
-                              subtitle: widget.item.offersPickupAtReturn
-                                  ? 'Der Vermieter holt den Artikel bei dir ab.'
-                                  : 'Abholung ist für diesen Artikel aktuell nicht verfügbar.',
-                              selected: _rueckwegLandlord,
-                              enabled: widget.item.offersPickupAtReturn,
-                              onTap: () {
-                                if (!widget.item.offersPickupAtReturn) return;
-                                setState(() => _rueckwegLandlord = true);
-                                _persistDeliverySelection();
-                              },
-                            ),
-                            if (_requiresReturnAddress) ...[
-                              const SizedBox(height: 12),
-                              _AddressSection(
-                                label: 'Rückgabeadresse',
-                                helper:
-                                    'Sobald wir die Adresse grob zuordnen können, zeigen wir dir Entfernung und Abholkosten an.',
-                                controller: _returnAddressCtrl,
-                                estimatedKm: preview.returnKm,
-                                fee: preview.pickupFee,
-                                feeLabel: 'Abholgebühr',
-                                overMax: !preview.returnWithinMax,
-                                maxKm: widget.item.maxPickupKmAtReturn,
-                                onChanged: (_) {
-                                  setState(() {
-                                    _returnLat = null;
-                                    _returnLng = null;
-                                    _returnCity = null;
-                                  });
-                                  _persistDeliverySelection();
-                                },
-                                onCheckAddress: () =>
-                                    _openMapsSearch(_returnAddressCtrl.text),
-                              ),
-                            ],
-                            const SizedBox(height: 10),
-                            Text(
-                                'Die genaue Uhrzeit und der finale Treffpunkt werden nach Annahme im Chat abgestimmt.',
-                                style: TextStyle(color: sub, fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                    ] else
-                      _StepCard(
-                        step: '2',
-                        title: 'Persönliche Abholung und Rückgabe',
-                        subtitle:
-                            'Lieferung und Versand sind im Privat-Pilot deaktiviert.',
-                        child: Text(
-                          'Du holst den Gegenstand beim Vermieter ab und bringst '
-                          'ihn persönlich dorthin zurück. Den genauen Termin und '
-                          'Treffpunkt stimmt ihr nach Annahme im Buchungschat ab.',
-                          style: TextStyle(color: sub, height: 1.45),
-                        ),
-                      ),
+                    ),
                     const SizedBox(height: 12),
                     _StepCard(
-                      step: PrivatePilotConfig.deliveryEnabled ? '4' : '3',
+                      step: '3',
                       title: 'Übersicht & Preis',
                       subtitle: _usesRemoteBackend
                           ? 'Der verbindliche Gesamtbetrag wird im nächsten Schritt direkt vom Server geladen.'
@@ -972,16 +640,6 @@ class _SelectRentalDurationScreenState
                             _PriceRow(
                                 label: 'Plattformgebühr',
                                 value: preview.platformFee),
-                            if (_hinwegLandlord)
-                              _PriceRow(
-                                  label: 'Liefergebühr',
-                                  value: preview.deliveryFee,
-                                  pending: preview.deliveryFeePending),
-                            if (_rueckwegLandlord)
-                              _PriceRow(
-                                  label: 'Abholgebühr',
-                                  value: preview.pickupFee,
-                                  pending: preview.pickupFeePending),
                           ],
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -1125,30 +783,14 @@ class _PricePreview {
   final double baseTotal;
   final double discountAmount;
   final double platformFee;
-  final double deliveryFee;
-  final double pickupFee;
   final double total;
-  final double? deliveryKm;
-  final double? returnKm;
-  final bool deliveryWithinMax;
-  final bool returnWithinMax;
-  final bool deliveryFeePending;
-  final bool pickupFeePending;
 
   const _PricePreview({
     required this.rentalSubtotal,
     required this.baseTotal,
     required this.discountAmount,
     required this.platformFee,
-    required this.deliveryFee,
-    required this.pickupFee,
     required this.total,
-    required this.deliveryKm,
-    required this.returnKm,
-    required this.deliveryWithinMax,
-    required this.returnWithinMax,
-    required this.deliveryFeePending,
-    required this.pickupFeePending,
   });
 }
 
@@ -1250,230 +892,12 @@ class _StepCard extends StatelessWidget {
   }
 }
 
-class _ChoiceCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final bool selected;
-  final bool enabled;
-  final VoidCallback onTap;
-  const _ChoiceCard(
-      {required this.title,
-      required this.subtitle,
-      required this.selected,
-      this.enabled = true,
-      required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary = BrandColors.primary;
-    return Opacity(
-      opacity: enabled ? 1 : 0.55,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: enabled ? onTap : null,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: selected
-                  ? primary.withValues(alpha: 0.18)
-                  : Colors.white.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                  color: selected
-                      ? primary
-                      : Colors.white.withValues(alpha: 0.12)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(selected ? Icons.check_circle : Icons.circle_outlined,
-                    color: selected
-                        ? primary
-                        : (isDark
-                            ? Colors.white70
-                            : AppTheme.textSecondary(context))),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title,
-                          style: TextStyle(
-                              color: isDark
-                                  ? Colors.white
-                                  : AppTheme.textPrimary(context),
-                              fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 4),
-                      Text(subtitle,
-                          style: TextStyle(
-                              color: isDark
-                                  ? Colors.white70
-                                  : AppTheme.textSecondary(context),
-                              fontSize: 12,
-                              height: 1.35)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AddressSection extends StatelessWidget {
-  final String label;
-  final String helper;
-  final TextEditingController controller;
-  final double? estimatedKm;
-  final double fee;
-  final String feeLabel;
-  final bool overMax;
-  final double? maxKm;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onCheckAddress;
-
-  const _AddressSection({
-    required this.label,
-    required this.helper,
-    required this.controller,
-    required this.estimatedKm,
-    required this.fee,
-    required this.feeLabel,
-    required this.overMax,
-    required this.maxKm,
-    required this.onChanged,
-    required this.onCheckAddress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final sub = isDark ? Colors.white70 : AppTheme.textSecondary(context);
-    final danger = BrandColors.danger;
-    final canCheck = controller.text.trim().isNotEmpty;
-    final hasEstimate = estimatedKm != null;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.04)
-            : AppTheme.surfacePrimary(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.10)
-                : AppTheme.glassStroke(context)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: TextStyle(
-                  color: isDark ? Colors.white : AppTheme.textPrimary(context),
-                  fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: controller,
-            onChanged: onChanged,
-            style: TextStyle(
-                color: isDark ? Colors.white : AppTheme.textPrimary(context)),
-            decoration: InputDecoration(
-              hintText: 'z. B. Musterstraße 12, Stuttgart',
-              hintStyle: TextStyle(
-                  color:
-                      isDark ? Colors.white54 : AppTheme.textDisabled(context)),
-              filled: true,
-              fillColor: isDark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : AppTheme.surfaceSecondary(context),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.10)
-                          : AppTheme.glassStroke(context))),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.10)
-                          : AppTheme.glassStroke(context))),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: BrandColors.primary)),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(helper, style: TextStyle(color: sub, fontSize: 12)),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              OutlinedButton.icon(
-                onPressed: canCheck ? onCheckAddress : null,
-                icon: const Icon(Icons.map_outlined),
-                label: const Text('Adresse in Maps öffnen'),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  hasEstimate
-                      ? 'Entfernung: ca. ${estimatedKm!.toStringAsFixed(1)} km'
-                      : 'Kosten können wir aktuell nur berechnen, wenn die Adresse einer bekannten Stadt zugeordnet werden kann.',
-                  style: TextStyle(
-                      color: hasEstimate
-                          ? (isDark
-                              ? Colors.white70
-                              : AppTheme.textSecondary(context))
-                          : (isDark
-                              ? Colors.white60
-                              : AppTheme.textSecondary(context)),
-                      fontSize: 12,
-                      height: 1.35),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            hasEstimate
-                ? '$feeLabel: ${fee.toStringAsFixed(2)} €'
-                : '$feeLabel: noch nicht berechnet',
-            style: TextStyle(
-                color: isDark ? Colors.white : AppTheme.textPrimary(context),
-                fontWeight: FontWeight.w700),
-          ),
-          if (overMax) ...[
-            const SizedBox(height: 8),
-            Text(
-              maxKm != null
-                  ? 'Diese Adresse liegt außerhalb des angebotenen Bereichs (max. ${maxKm!.toStringAsFixed(0)} km).'
-                  : 'Diese Adresse liegt außerhalb des angebotenen Bereichs.',
-              style: TextStyle(
-                  color: danger, fontSize: 12, fontWeight: FontWeight.w700),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
 class _PriceRow extends StatelessWidget {
   final String label;
   final double value;
   final bool positiveAccent;
-  final bool pending;
   const _PriceRow(
-      {required this.label,
-      required this.value,
-      this.positiveAccent = false,
-      this.pending = false});
+      {required this.label, required this.value, this.positiveAccent = false});
 
   @override
   Widget build(BuildContext context) {
@@ -1484,8 +908,6 @@ class _PriceRow extends StatelessWidget {
     final valueColor = positiveAccent
         ? const Color(0xFF86EFAC)
         : (isDark ? Colors.white : AppTheme.textPrimary(context));
-    final pendingColor =
-        isDark ? Colors.white60 : AppTheme.textSecondary(context);
     final prefix = value < 0 ? '- ' : '';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -1493,14 +915,8 @@ class _PriceRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(color: labelColor, fontSize: 13)),
-          Text(
-            pending
-                ? 'noch nicht berechnet'
-                : '$prefix${value.abs().toStringAsFixed(2)} €',
-            style: TextStyle(
-                color: pending ? pendingColor : valueColor,
-                fontWeight: FontWeight.w700),
-          ),
+          Text('$prefix${value.abs().toStringAsFixed(2)} €',
+              style: TextStyle(color: valueColor, fontWeight: FontWeight.w700)),
         ],
       ),
     );

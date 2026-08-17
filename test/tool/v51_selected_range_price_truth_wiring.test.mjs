@@ -43,6 +43,28 @@ test('local preview is explicitly limited to the isolated QA branch', () => {
     source,
     /else \.\.\.\[[\s\S]*?value: preview\.rentalSubtotal[\s\S]*?value: preview\.platformFee/,
   );
+  assert.match(
+    source,
+    /\(rentalSubtotal \+ platformFee\)\.toStringAsFixed\(2\)/,
+  );
+  assert.doesNotMatch(
+    source,
+    /deliveryFeeForDistanceKm|estimateDistanceKm|deliveryFee:|pickupFee:/,
+  );
+});
+
+test('duration selection is permanently self-pickup for the private pilot', () => {
+  assert.match(source, /'Persönliche Abholung und Rückgabe'/);
+  assert.match(
+    source,
+    /'Lieferung und Versand sind im Privat-Pilot deaktiviert\.'/,
+  );
+  assert.match(source, /step: '3',\s*title: 'Übersicht & Preis'/);
+  assert.match(source, /clearSavedDeliverySelection\(widget\.item\.id\)/);
+  assert.doesNotMatch(
+    source,
+    /getSavedDeliverySelection|setSavedDeliverySelection|_ChoiceCard|_AddressSection|_hinwegLandlord|_rueckwegLandlord|Liefergebühr|Abholgebühr/,
+  );
 });
 
 test('checkout remains the only binding remote price surface', () => {

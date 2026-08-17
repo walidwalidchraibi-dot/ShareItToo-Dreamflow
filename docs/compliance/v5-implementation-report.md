@@ -1349,3 +1349,33 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   oder Kandidatenwechsel und keine zusätzliche Crashlytics-
   Kennungsübertragung. Nachweis:
   `docs/evidence/b11/v51-item-details-transport-fail-closed-20260817T183625Z.json`
+
+## Prüfstand Checkpoint 16.177
+
+- die Mietdauer-/Datumsansicht enthält keine Liefer- oder Abholauswahl, keine
+  Liefer-/Rückgabeadresse und keine Transport-Distanz- oder Gebührenberechnung
+  mehr. Die zugehörigen Zustände, Eingabekomponenten und Hilfsklassen wurden
+  vollständig entfernt
+- ein eventuell vorhandener lokaler Altwert wird bereinigt und nicht mehr
+  eingelesen. Die Ansicht beschreibt ausschließlich persönliche Abholung und
+  persönliche Rückgabe; Termin und Treffpunkt werden nach Annahme im Chat
+  abgestimmt
+- Kalender, belegte Zeiträume, Mietdauer-Rabatte und Verfügbarkeitsprüfung
+  bleiben erhalten. Die isolierte QA-Preisvorschau besteht nur aus Mietpreis
+  plus Plattformbeitrag; im echten Backendpfad bleibt allein der frische,
+  zeitlich begrenzte Server-Quote verbindlich
+- 9/9 gezielte Preis-, Checkout- und Transporttests bestanden; aus der
+  Laufzeitansicht entfielen netto 584 Zeilen. Die geänderte Datei analysiert
+  vollständig sauber mit 0 Hinweisen und 0 Fehlern
+- die vollständige technische Regression bestand mit 292 Flutter-Tests und
+  1 bewusstem Skip, 213 Backendtests und 1 bewusstem PostgreSQL-Skip, 224
+  Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds
+- FCM-Push und Firebase Crashlytics bleiben ausdrücklich bestehen, getrennt,
+  freiwillig und im nächsten Kandidaten standardmäßig aus; Push aktiviert
+  Crashlytics nicht. Werbung, Marketingtracking, allgemeine Analytics und
+  externe generative KI bleiben aus
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store-, Anbieterconsole-
+  oder Kandidatenwechsel und keine zusätzliche Crashlytics-
+  Kennungsübertragung. Nachweis:
+  `docs/evidence/b11/v51-duration-selection-transport-cleanup-20260817T184903Z.json`
