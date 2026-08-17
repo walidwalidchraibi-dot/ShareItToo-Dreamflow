@@ -91,7 +91,7 @@ Push-Zustellung, TalkBack und iOS/TestFlight bleiben offen.
 | Android-Abmeldung und Push-Unterdrückung | `passed`; `docs/evidence/b11/android-logout-lifecycle-2026081509-20260815T131701Z.json` |
 | Android-Offline-/Realtime-Wiederherstellung | `passed` auf Pixel 7 Pro, Android 16; `docs/evidence/b11/android-offline-realtime-2026081509-20260815T132209Z.json` |
 | Google-Play-Installation | `passed`; interner Track, exakte Version `1.0.0 (2026081509)` |
-| Android-WLAN-/Owner-Matrix | `testing`; Teilpruefungen 9/11 bestanden; moderationAndAccount=testing; Accessibility-Preflight auf exaktem Play-Build mit TalkBack + 200-%-Text bestanden und Ausgangszustand wiederhergestellt, vollständige manuelle Traversierung/physische Sichtprüfung weiter offen; `docs/evidence/b11/android-wifi-owner-progress-2026081509-20260815T133200Z.json` |
+| Android-WLAN-/Owner-Matrix | `testing`; Teilpruefungen 9/11 bestanden; moderationAndAccount=testing, largeTextAndScreenReader=testing; `docs/evidence/b11/android-wifi-owner-progress-2026081509-20260815T133200Z.json` |
 | Play-Signing und öffentliche App-Links | `passed`; `docs/evidence/b11/android-play-store-links-signing-2026081509-20260815.json` |
 | Crashlytics-Releasezuordnung | `testing`; `docs/evidence/b11/android-crash-release-mapping-2026081509.json` |
 | Kandidatenbeleg | `docs/evidence/b11/android-candidate-2026081509.json` |

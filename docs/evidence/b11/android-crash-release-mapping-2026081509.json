@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "android-crash-release-mapping",
-  "status": "mapping-and-native-symbols-uploaded-controlled-event-pending",
+  "status": "mapping-and-native-symbols-uploaded-console-release-observed-controlled-event-pending",
   "capturedAt": "2026-08-15T14:01:53Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
@@ -51,7 +51,8 @@
     "originalAabMappingUploadedToCrashlytics": "passed",
     "uploadBuildResult": "successful",
     "controlledSanitizedCrashEvent": "pending",
-    "consoleReleaseAssignment": "pending"
+    "consoleReleaseAssignment": "passed",
+    "consoleObservedVersion": "1.0.0 (2026081509)"
   },
   "uploadProof": {
     "mappingUpload": "exact-build-2026081509-mapping-and-id",
@@ -62,6 +63,15 @@
     "nativeDebugSymbolsZipSha256Matches": true,
     "allNativeSymbolMemberHashesMatch": true,
     "differentMappingIdReused": false
+  },
+  "consoleObservation": {
+    "capturedAt": "2026-08-17T03:40:25Z",
+    "source": "firebase-console-read-only",
+    "observedLatestRelease": "1.0.0 (2026081509)",
+    "latestReleaseMatchesExactCandidate": true,
+    "issueCountsUsedAsCandidateProof": false,
+    "settingsChanged": false,
+    "eventGenerated": false
   },
   "boundaries": {
     "uploadedToStore": true,

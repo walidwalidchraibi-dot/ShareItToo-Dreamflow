@@ -108,7 +108,7 @@
     "evidenceRef": "docs/evidence/b11/android-offline-realtime-2026081509-20260815T132209Z.json"
   },
   "crashlyticsReleaseMapping": {
-    "status": "mapping-and-native-symbols-uploaded-controlled-event-pending",
+    "status": "mapping-and-native-symbols-uploaded-console-release-observed-controlled-event-pending",
     "evidenceRef": "docs/evidence/b11/android-crash-release-mapping-2026081509.json"
   },
   "storeLinksAndSigning": {
