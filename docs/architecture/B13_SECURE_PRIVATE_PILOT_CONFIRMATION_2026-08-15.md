@@ -1718,10 +1718,11 @@ Servernachweis:
   Abwesenheit, beide Chatpfade, Support, Zeitpruefungen, Stornierung und die
   Bewertung `renter_to_owner`. Zwei unabhaengige Vorpruefungen bestaetigen
   Reichweite und Analyzer-Delta.
-- `booking_detail_screen.dart` ist nicht als Datenschutz-Quellbindung
-  hinterlegt; die gebundenen Nachrichten- und Rueckgabe-Schrittdateien bleiben
-  unveraendert. Datenerhebung, Speicherung, Uebertragung, Berechtigungen,
-  Store-Metadaten und Offenlegungen bleiben unveraendert. Die CI-
+- `booking_detail_screen.dart` ist als Datenschutz-Quellbindung hinterlegt;
+  ihr Quellhash wurde fuer den unveraenderten Datenschutzumfang aktualisiert,
+  waehrend Nachrichten- und Rueckgabe-Schrittdateien unveraendert blieben.
+  Datenerhebung, Speicherung, Uebertragung, Berechtigungen, Store-Metadaten und
+  Offenlegungen bleiben unveraendert. Die CI-
   Analyseschranke steht jetzt fail-closed bei 229. Nachweis:
   `docs/evidence/b11/flutter-analysis-booking-detail-dead-can-message-getter-20260816.json`.
 - 114 gezielte Flutter-Tests und die neuen Strukturtests sind gruen. Die

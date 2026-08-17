@@ -1721,11 +1721,6 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
 
   // Entfernt: Unterschriften
 
-  String _fmtDateTime(DateTime d) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${two(d.day)}.${two(d.month)}.${d.year}';
-  }
-
   String _fmtEuro(double v) {
     String two = v.toStringAsFixed(2);
     two = two.replaceAll('.', ',');
