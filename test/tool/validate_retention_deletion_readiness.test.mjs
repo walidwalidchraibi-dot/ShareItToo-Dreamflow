@@ -57,12 +57,50 @@ test('protects the separate default-off Push and Crash decision in the matrix', 
   );
 });
 
+test('protects the documented Crashlytics stored-report deletion gap', () => {
+  const path = 'docs/compliance/retention-deletion-decision-matrix.md';
+  const changed = readFileSync(resolve(root, path), 'utf8')
+    .replace(
+      'SIT hat die dafür nötige stabile Zuordnung und den serverseitigen Aufruf noch nicht implementiert',
+      'SIT löscht alle gespeicherten Berichte vollständig',
+    );
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: changed } }),
+    /stabile Zuordnung und den serverseitigen Aufruf noch nicht implementiert/u,
+  );
+});
+
+test('rejects decision preparation that omits a separate Firebase service authority', () => {
+  const path = 'docs/evidence/b11/retention-deletion-decision-preparation-20260817.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.decisions.externalProcessorRetention.authorityRefs =
+    evidence.decisions.externalProcessorRetention.authorityRefs.filter(
+      (ref) => !ref.includes('firebase-crashlytics-retention-deletion-readiness'),
+    );
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /missing separate authority/u,
+  );
+});
+
 test('strict approval rejects the current retention draft', () => {
   assert.throws(() => validate({ requireApproved: true }), /Approved retention and deletion readiness is required/);
 });
 
 test('rejects source drift after retention review', () => {
   assert.throws(() => validate({ sourceTexts: {'backend/ops/backup.sh': '# changed\n'} }), /sourceInventory hash is stale/);
+});
+
+test('rejects a rehashed runtime that stops deleting the Firebase installation', () => {
+  const path = 'lib/services/firebase_runtime.dart';
+  const retentionManifest = clone(baseRetention);
+  const changed = readFileSync(resolve(root, path), 'utf8')
+    .replace('FirebaseInstallations.instance.delete()', 'Future<void>.value()');
+  retentionManifest.sourceInventory.find((entry) => entry.path === path).sha256 = sha256(changed);
+  assert.throws(
+    () => validate({ retentionManifest, sourceTexts: { [path]: changed } }),
+    /FirebaseInstallations.instance.delete\(\)/u,
+  );
 });
 
 test('rejects account erasure that leaves notification payloads behind', () => {
@@ -142,6 +180,64 @@ test('rejects provider evidence that prematurely claims owner approval', () => {
   assert.throws(
     () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
     /reviewed-but-unapproved release boundary/,
+  );
+});
+
+test('binds Push and Crashlytics to separate service-readiness evidence', () => {
+  const push = baseRetention.externalProcessors.firebaseCloudMessaging;
+  const crash = baseRetention.externalProcessors.firebaseCrashlytics;
+  assert.equal(
+    push.serviceReadinessRef,
+    'docs/evidence/b11/firebase-cloud-messaging-retention-deletion-readiness-20260817.json',
+  );
+  assert.equal(
+    crash.serviceReadinessRef,
+    'docs/evidence/b11/firebase-crashlytics-retention-deletion-readiness-20260817.json',
+  );
+  assert.notEqual(push.serviceReadinessRef, crash.serviceReadinessRef);
+});
+
+test('rejects using Push readiness as Crashlytics readiness', () => {
+  const retentionManifest = clone(baseRetention);
+  retentionManifest.externalProcessors.firebaseCrashlytics.serviceReadinessRef =
+    retentionManifest.externalProcessors.firebaseCloudMessaging.serviceReadinessRef;
+  assert.throws(
+    () => validate({ retentionManifest }),
+    /firebaseCrashlytics must reference only its own service-specific readiness evidence/u,
+  );
+});
+
+test('rejects a Push readiness artifact that can enable Crashlytics', () => {
+  const path =
+    'docs/evidence/b11/firebase-cloud-messaging-retention-deletion-readiness-20260817.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.currentTechnicalControls.runtimeEnablementCanEnableCrashlytics = true;
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /runtimeEnablementCanEnableCrashlytics must remain false/u,
+  );
+});
+
+test('rejects pretending that server-side Crashlytics report deletion is implemented', () => {
+  const path =
+    'docs/evidence/b11/firebase-crashlytics-retention-deletion-readiness-20260817.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.currentTechnicalControls.storedCrashReportDeletionInvocationImplemented = true;
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /storedCrashReportDeletionInvocationImplemented must remain false/u,
+  );
+});
+
+test('rejects premature provider or replacement-candidate approval in service readiness', () => {
+  const path =
+    'docs/evidence/b11/firebase-cloud-messaging-retention-deletion-readiness-20260817.json';
+  const evidence = JSON.parse(readFileSync(resolve(root, path), 'utf8'));
+  evidence.retentionAndDeletionReality.currentAccountContractAcceptanceVerified = true;
+  evidence.activationBoundary.replacementCandidateBuilt = true;
+  assert.throws(
+    () => validate({ evidenceTexts: { [path]: JSON.stringify(evidence) } }),
+    /currentAccountContractAcceptanceVerified must remain false/u,
   );
 });
 

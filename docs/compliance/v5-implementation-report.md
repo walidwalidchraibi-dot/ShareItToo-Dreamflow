@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.155
+Stand: 17.08.2026, lokaler Checkpoint 16.156
 
 ## Verbindliche Grenzen
 
@@ -82,7 +82,7 @@ Store-Nachweise bleiben getrennt je Dienst zu schließen.
 - finale öffentliche Widerrufs-URL
 - Hosting-, SMTP- und Kartenanbieter samt Regionen
 - lizenzierter Marketplace-PSP samt Vertrag, Region und Geldfluss
-- Firebase Push-/Crash-Provider-, Transfer- und Vertragsnachweise
+- Firebase Push-/Crash-Vertrags-, Regions-, Transfer- und Betreiberfreigaben
 - neun Aufbewahrungs-/Löschentscheidungen
 - vier reale physische Gerätematrix-Fälle
 - Play-ausgelieferter Nachfolgekandidat und vollständige Store-Kandidatenbindung
@@ -733,3 +733,33 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
 - es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder Kandidatenwechsel
   und es wurden keine Crashdaten erzeugt oder übertragen. Nachweis:
   `docs/evidence/b11/v51-push-crash-successor-decision-20260817T103613Z.json`
+
+## Prüfstand Checkpoint 16.156
+
+- FCM-Push und Firebase Crashlytics besitzen jetzt zwei getrennte,
+  maschinenlesbare Anbieter-/Aufbewahrungs-/Löschbereitschaftsbelege; kein
+  Dienst kann durch den Nachweis des anderen freigegeben werden
+- für FCM sind die bestehende Sitzungsregistrierungs-, Token- und
+  Firebase-Installationslöschung samt gespeichertem Wiederholungsversuch an
+  ihre echten Quellhashes gebunden; Googles Abschlussfenster von bis zu 180
+  Tagen nach dem installationsgebundenen Löschantrag wird als
+  anbietergesteuert und nicht als SIT-Sofortlöschung ausgewiesen
+- für Crashlytics sind standardmäßig ausgeschaltete Erfassung, getrennte
+  Aktivierung und Löschung noch nicht gesendeter Geräteberichte belegt
+- bereits bei Google gespeicherte Crashberichte werden ausdrücklich nicht als
+  vollständig löschbar behauptet: Die aktuelle Firebase-Schnittstelle setzt
+  eine stabile Benutzerzuordnung und einen autorisierten serverseitigen
+  Löschaufruf voraus; beides ist in SIT noch nicht implementiert oder
+  betrieblich bestätigt
+- Vertrag, Verarbeitungsorte, Drittlandtransfer, Betreiberakzeptanz,
+  Storeangaben und ein neuer physisch geprüfter Nachfolgekandidat bleiben für
+  beide Dienste getrennt `open`; die neun Retention-Entscheidungen bleiben
+  ebenfalls offen
+- 52/52 gezielte Node-Prüfungen bestanden; die vollständige Regression blieb
+  mit 282 bestandenen Flutter-Tests, 1 bewusstem Skip, 229
+  Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store-, Anbieterconsole-
+  oder Kandidatenwechsel und es wurden keine Crashdaten erzeugt oder
+  übertragen. Nachweis:
+  `docs/evidence/b11/v51-firebase-service-specific-retention-readiness-20260817T105628Z.json`

@@ -32,6 +32,12 @@ Die V5.1-Unterlagen verlangen eine dokumentierte Löschmatrix, enthalten aber ke
 - Werbung, Marketingtracking, allgemeine Analytics und externe generative KI bleiben ohne gesonderte Entscheidung aus.
 - Anbieterfristen werden als anbietergesteuerte Abschlusszeiten beschrieben, nicht als von SIT garantierte Sofortlöschung.
 
+### Getrennter technischer Nachweis
+
+- **FCM-Push:** SIT schaltet die lokale automatische Initialisierung aus, löscht bei Abmeldung beziehungsweise Kontolöschung die aktuelle Backend-Registrierung, den Messaging-Token und die Firebase-Installation und merkt fehlgeschlagene Bereinigung für einen erneuten Versuch vor. Google beschreibt den Abschluss der installationsgebundenen Löschung innerhalb von bis zu 180 Tagen nach dem Löschantrag. Vertrag, Verarbeitungsorte, Transferfreigabe und Betreiberbestätigung bleiben offen.
+- **Crashlytics:** SIT schaltet die automatische Erfassung aus, aktiviert sie nur nach der getrennten Crashdiagnose-Entscheidung und löscht noch nicht gesendete lokale Berichte beim Ausschalten. Google beschreibt für bereits gespeicherte Crashberichte 90 Tage Aufbewahrung vor Beginn der Entfernung und stellt inzwischen eine benutzergebundene Löschoperation bereit. SIT hat die dafür nötige stabile Zuordnung und den serverseitigen Aufruf noch nicht implementiert oder betrieblich bestätigt; deshalb darf lokale Bereinigung nicht als vollständige Anbieter-Löschung ausgegeben werden.
+- Ein FCM-Nachweis darf niemals die Crashlytics-Freigabe schließen und umgekehrt. Beide erhalten eigene maschinenlesbare Bereitschaftsbelege und bleiben bis zur jeweiligen Betreiber-/Vertrags-/Transfer-/Löschbestätigung `open`.
+
 ## Warum die neun Punkte noch nicht geschlossen werden
 
 § 257 HGB unterscheidet derzeit zehn Jahre für bestimmte Grundunterlagen, acht Jahre für Buchungsbelege und sechs Jahre für sonstige erfasste Handelsunterlagen. § 147 AO unterscheidet ebenfalls nach Dokumentart. Die regelmäßige Verjährung nach § 195 BGB beträgt drei Jahre; ihr Beginn richtet sich regelmäßig nach § 199 BGB. Diese Regeln erlauben keine pauschale Aussage wie „alle Buchungsdaten acht Jahre“.

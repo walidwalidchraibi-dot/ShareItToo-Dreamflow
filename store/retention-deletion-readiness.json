@@ -29,6 +29,11 @@
     {"path": "backend/src/financial_documents.js", "sha256": "f8de734a21577f038cd881aca8e07f6fcd3ecf776ab18e9e76bdd48b72177000"},
     {"path": "backend/sql/migrations/020_v51_financial_documents.up.sql", "sha256": "0ed5451601e962c0b3632008db0e3437a1ee9d837d14a1a0512eb6e190567201"},
     {"path": "backend/ops/backup.sh", "sha256": "f00667d1b8131f3f3d16f05ff89bd171a9cebc37af1678e02dc872405fc1f8f7"},
+    {"path": "android/app/src/main/AndroidManifest.xml", "sha256": "d19335b5352d780fee39dcd98d57ba08cd279834bfab3db4a26028be597497a0"},
+    {"path": "ios/Runner/Info.plist", "sha256": "f9ec65bbb1f1cdf1bfa001cdc4f5f62d2dd473f557639544697d5b97d77d9037"},
+    {"path": "lib/services/firebase_runtime.dart", "sha256": "7cbe8fd6e3b1d461f3a06a2ab02d2e13aa6ff2752f02a108773809c859c8156c"},
+    {"path": "lib/services/firebase_service_preferences.dart", "sha256": "b3841d4e36a30eddc5f3808fb6d939de34c0766491784be38089f3d8b204d97f"},
+    {"path": "lib/services/account_deletion_service.dart", "sha256": "b9d0ed721aed96e2aaad932416d82c5384d8430c0e444ba767a330b14815fe1a"},
     {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "544bfb2ea2633119e2333bb778ec3912e77fddc36797dde2fe4a30afa1119953"},
     {"path": "lib/screens/privacy_info_screen.dart", "sha256": "cfbf65f0b78d0929db79715ec946b7de9b3f86b978cc1331f47e6c6be5c125a0"}
   ],
@@ -89,6 +94,7 @@
       "deletionProcedureVerified": false,
       "officialDocumentationReviewed": true,
       "officialEvidenceRef": "docs/evidence/b11/privacy-provider-retention-sources-20260812.json",
+      "serviceReadinessRef": "docs/evidence/b11/firebase-cloud-messaging-retention-deletion-readiness-20260817.json",
       "ownerEvidenceRef": null
     },
     "firebaseCrashlytics": {
@@ -96,6 +102,7 @@
       "deletionProcedureVerified": false,
       "officialDocumentationReviewed": true,
       "officialEvidenceRef": "docs/evidence/b11/privacy-provider-retention-sources-20260812.json",
+      "serviceReadinessRef": "docs/evidence/b11/firebase-crashlytics-retention-deletion-readiness-20260817.json",
       "ownerEvidenceRef": null
     },
     "firebaseAuthentication": {
@@ -103,6 +110,7 @@
       "deletionProcedureVerified": false,
       "officialDocumentationReviewed": true,
       "officialEvidenceRef": "docs/evidence/b11/privacy-provider-retention-sources-20260812.json",
+      "serviceReadinessRef": null,
       "ownerEvidenceRef": null
     },
     "googleMapsPlatform": {
@@ -110,6 +118,7 @@
       "deletionProcedureVerified": false,
       "officialDocumentationReviewed": true,
       "officialEvidenceRef": "docs/evidence/b11/privacy-provider-retention-sources-20260812.json",
+      "serviceReadinessRef": null,
       "ownerEvidenceRef": null
     }
   },

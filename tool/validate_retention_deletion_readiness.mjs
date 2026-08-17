@@ -32,6 +32,11 @@ const sourcePaths = [
   'backend/sql/migrations/019_v51_condition_evidence.up.sql',
   'backend/sql/migrations/020_v51_financial_documents.up.sql',
   'backend/ops/backup.sh',
+  'android/app/src/main/AndroidManifest.xml',
+  'ios/Runner/Info.plist',
+  'lib/services/firebase_runtime.dart',
+  'lib/services/firebase_service_preferences.dart',
+  'lib/services/account_deletion_service.dart',
   'lib/screens/legal_privacy_screen.dart',
   'lib/screens/privacy_info_screen.dart',
 ];
@@ -49,6 +54,12 @@ const decisionKeys = [
 ];
 
 const providerEvidencePath = 'docs/evidence/b11/privacy-provider-retention-sources-20260812.json';
+const firebaseServiceReadinessPaths = {
+  firebaseCloudMessaging:
+    'docs/evidence/b11/firebase-cloud-messaging-retention-deletion-readiness-20260817.json',
+  firebaseCrashlytics:
+    'docs/evidence/b11/firebase-crashlytics-retention-deletion-readiness-20260817.json',
+};
 const credentialCleanupEvidencePath = 'docs/evidence/b11/expired-credential-cleanup-20260815.json';
 const legalHoldEvidencePath = 'docs/evidence/b11/account-legal-hold-20260815.json';
 const retentionInventoryEvidencePath = 'docs/evidence/b11/retention-inventory-20260815.json';
@@ -87,6 +98,16 @@ function text(root, sourceTexts, path) {
 function exactKeys(value, expected, label) {
   if (Object.keys(value).sort().join(',') !== expected.slice().sort().join(',')) {
     fail(`${label} must contain exactly: ${expected.join(', ')}.`);
+  }
+}
+
+function exactScalarValues(value, expected, label) {
+  const source = object(value, label);
+  exactKeys(source, Object.keys(expected), label);
+  for (const [key, expectedValue] of Object.entries(expected)) {
+    if (source[key] !== expectedValue) {
+      fail(`${label}.${key} must remain ${JSON.stringify(expectedValue)}.`);
+    }
   }
 }
 
@@ -153,6 +174,16 @@ function assertDecisionPreparation(root, evidenceTexts) {
         !== 'owner-contract-and-deletion-procedure-approval-required') {
     fail('Retention decision-preparation classifications drifted from the reviewed boundary.');
   }
+  const externalProcessorDecision = evidence.decisions.externalProcessorRetention;
+  for (const ref of [
+    providerEvidencePath,
+    firebaseServiceReadinessPaths.firebaseCloudMessaging,
+    firebaseServiceReadinessPaths.firebaseCrashlytics,
+  ]) {
+    if (!externalProcessorDecision.authorityRefs.includes(ref)) {
+      fail(`External-processor decision preparation is missing separate authority: ${ref}.`);
+    }
+  }
   if (evidence.boundaries?.recommendationsAreApproval !== false
       || evidence.boundaries?.legalPeriodsInvented !== false
       || evidence.boundaries?.allNineDecisionsRemainOpen !== true
@@ -170,6 +201,8 @@ function assertDecisionPreparation(root, evidenceTexts) {
     'Firebase Cloud Messaging bleibt Bestandteil von SIT',
     'Firebase Crashlytics bleibt Bestandteil von SIT',
     'Push darf Crashdiagnose niemals automatisch aktivieren.',
+    'Ein FCM-Nachweis darf niemals die Crashlytics-Freigabe schließen',
+    'SIT hat die dafür nötige stabile Zuordnung und den serverseitigen Aufruf noch nicht implementiert',
     'schaltet keine Löschroutine frei',
   ]) {
     if (!matrix.includes(marker)) fail(`Retention decision matrix is missing boundary: ${marker}`);
@@ -266,6 +299,55 @@ function assertSourceContracts(root, sourceTexts) {
   }
   const backup = text(root, sourceTexts, 'backend/ops/backup.sh');
   if (!backup.includes('-mtime +14 -delete')) fail('The observed 14-day backup rotation contract is missing.');
+  const android = text(root, sourceTexts, 'android/app/src/main/AndroidManifest.xml');
+  for (const marker of [
+    'firebase_messaging_auto_init_enabled',
+    'firebase_crashlytics_collection_enabled',
+  ]) {
+    if (!new RegExp(`${marker}[\\s\\S]{0,120}android:value="false"`).test(android)) {
+      fail(`Android Firebase service readiness requires ${marker}=false.`);
+    }
+  }
+  const ios = text(root, sourceTexts, 'ios/Runner/Info.plist');
+  for (const marker of [
+    'FirebaseMessagingAutoInitEnabled',
+    'FirebaseCrashlyticsCollectionEnabled',
+  ]) {
+    if (!new RegExp(`<key>${marker}<\\/key>\\s*<false\\/>`).test(ios)) {
+      fail(`iOS Firebase service readiness requires ${marker}=false.`);
+    }
+  }
+  const firebaseRuntime = text(root, sourceTexts, 'lib/services/firebase_runtime.dart');
+  for (const marker of [
+    'setAutoInitEnabled(_pushEnabled)',
+    'kReleaseMode && _crashDiagnosticsEnabled',
+    'FirebaseMessaging.instance.deleteToken()',
+    'FirebaseCrashlytics.instance.deleteUnsentReports()',
+    'FirebaseInstallations.instance.delete()',
+    'deleteCurrentSessionPushDevices()',
+  ]) {
+    if (!firebaseRuntime.includes(marker)) {
+      fail(`Firebase service readiness is missing runtime control: ${marker}.`);
+    }
+  }
+  const firebasePreferences = text(
+    root,
+    sourceTexts,
+    'lib/services/firebase_service_preferences.dart',
+  );
+  for (const marker of [
+    'installationCleanupPending',
+    'pushLocalCleanupPending',
+    'pushBackendCleanupPending',
+  ]) {
+    if (!firebasePreferences.includes(marker)) {
+      fail(`Firebase service readiness is missing persisted retry state: ${marker}.`);
+    }
+  }
+  const accountDeletion = text(root, sourceTexts, 'lib/services/account_deletion_service.dart');
+  if (!accountDeletion.includes('FirebaseRuntime.deleteInstallationForAccountDeletion()')) {
+    fail('Account deletion must invoke Firebase installation cleanup.');
+  }
   const privacy = `${text(root, sourceTexts, 'lib/screens/legal_privacy_screen.dart')}\n${text(root, sourceTexts, 'lib/screens/privacy_info_screen.dart')}`;
   if (!privacy.includes('Löschung')) fail('In-app privacy information must disclose deletion.');
 }
@@ -300,6 +382,158 @@ function assertProviderEvidence(root, evidenceTexts) {
       || boundaries.containsSecrets !== false
       || boundaries.containsAccountData !== false) {
     fail('Provider-retention evidence must preserve the reviewed-but-unapproved release boundary.');
+  }
+}
+
+function assertFirebaseServiceReadiness(root, evidenceTexts) {
+  const contracts = {
+    firebaseCloudMessaging: {
+      path: firebaseServiceReadinessPaths.firebaseCloudMessaging,
+      sources: [
+        ['retention', 'https://firebase.google.com/support/privacy/', 'within 180 days'],
+        ['deletion-control', 'https://firebase.google.com/docs/projects/manage-installations', 'new unrelated installation ID'],
+        ['processor-role-and-transfer-framework', 'https://firebase.google.com/terms/data-processing-terms/', 'Google as processor'],
+      ],
+      controls: {
+        nativeAutoInitDefaultOffInCurrentSource: true,
+        runtimeEnablementRequiresPushChoice: true,
+        runtimeEnablementCanEnableCrashlytics: false,
+        backendSessionRegistrationDeletionImplemented: true,
+        messagingTokenDeletionImplemented: true,
+        firebaseInstallationDeletionImplemented: true,
+        pendingDeletionRetryImplemented: true,
+      },
+      retention: {
+        providerCompletionWindow: 'within-180-days-after-installation-deletion-request',
+        sitCanPromiseImmediateProviderErasure: false,
+        localAndBackendDisableProcedureImplemented: true,
+        providerDeletionRequestImplemented: true,
+        currentAccountContractAcceptanceVerified: false,
+        currentProcessingLocationsVerified: false,
+        internationalTransferMechanismApprovedForSIT: false,
+        retentionAcceptedByOwner: false,
+        deletionProcedureVerifiedByOwner: false,
+        ownerEvidenceRef: null,
+      },
+      activation: {
+        storeDisclosureApproved: false,
+        replacementCandidateBuilt: false,
+        replacementCandidateDeviceVerified: false,
+        productionChanged: false,
+        storeFormChanged: false,
+        providerConsoleChanged: false,
+        containsSecrets: false,
+        containsAccountData: false,
+      },
+    },
+    firebaseCrashlytics: {
+      path: firebaseServiceReadinessPaths.firebaseCrashlytics,
+      sources: [
+        ['retention', 'https://firebase.google.com/support/privacy/', 'for 90 days'],
+        ['opt-in-control', 'https://firebase.google.com/docs/crashlytics/android/customize-crash-reports', 'unsent reports on the device'],
+        ['stored-report-deletion-control', 'https://firebase.google.com/docs/reference/crashlytics/rest/v1alpha/projects.apps.users/deleteCrashReports', 'typically within 24 hours'],
+        ['processor-role-and-transfer-framework', 'https://firebase.google.com/terms/data-processing-terms/', 'Google as processor'],
+      ],
+      controls: {
+        nativeAutomaticCollectionDefaultOffInCurrentSource: true,
+        runtimeEnablementRequiresCrashDiagnosticsChoice: true,
+        pushChoiceCanEnableCrashlytics: false,
+        disableCollectionImplemented: true,
+        deleteUnsentDeviceReportsImplemented: true,
+        firebaseInstallationDeletionImplemented: true,
+        stableCrashSubjectCorrelationImplemented: false,
+        storedCrashReportDeletionInvocationImplemented: false,
+      },
+      retention: {
+        providerRetentionWindow: '90-days-before-provider-removal-process-starts',
+        sitCanPromiseImmediateProviderErasure: false,
+        localUnsentReportDeletionImplemented: true,
+        providerStoredReportDeletionProcedureImplemented: false,
+        currentAccountContractAcceptanceVerified: false,
+        currentProcessingLocationsVerified: false,
+        internationalTransferMechanismApprovedForSIT: false,
+        retentionAcceptedByOwner: false,
+        deletionProcedureVerifiedByOwner: false,
+        ownerEvidenceRef: null,
+      },
+      activation: {
+        storeDisclosureApproved: false,
+        replacementCandidateBuilt: false,
+        replacementCandidateDeviceVerified: false,
+        crashEventEmittedForThisMilestone: false,
+        productionChanged: false,
+        storeFormChanged: false,
+        providerConsoleChanged: false,
+        containsSecrets: false,
+        containsAccountData: false,
+      },
+    },
+  };
+
+  for (const [serviceId, contract] of Object.entries(contracts)) {
+    let evidence;
+    try {
+      evidence = JSON.parse(text(root, evidenceTexts, contract.path));
+    } catch (error) {
+      fail(`${serviceId} readiness evidence must be valid JSON: ${error.message}`);
+    }
+    assertNoSensitiveData(evidence, `${serviceId} readiness evidence`);
+    exactKeys(evidence, [
+      'schemaVersion',
+      'kind',
+      'serviceId',
+      'provider',
+      'reviewedAt',
+      'status',
+      'productDecision',
+      'officialSources',
+      'currentTechnicalControls',
+      'retentionAndDeletionReality',
+      'activationBoundary',
+    ], `${serviceId} readiness evidence`);
+    if (evidence.schemaVersion !== 1
+        || evidence.kind !== 'firebase-service-retention-deletion-readiness'
+        || evidence.serviceId !== serviceId
+        || evidence.provider !== 'Google Firebase'
+        || evidence.reviewedAt !== '2026-08-17T00:00:00Z'
+        || evidence.status !== 'official-controls-structured-owner-contract-and-deletion-approval-open') {
+      fail(`${serviceId} readiness evidence identity or status is invalid.`);
+    }
+    exactScalarValues(evidence.productDecision, {
+      retainedForLaunch: true,
+      voluntaryOptIn: true,
+      nextCandidateDefaultOff: true,
+      independentFromOtherFirebaseDeviceServices: true,
+      boundCandidateCollectionMode: 'automatic-in-bound-candidate',
+      replacementCandidateRequired: true,
+    }, `${serviceId} readiness evidence.productDecision`);
+    if (!Array.isArray(evidence.officialSources)
+        || evidence.officialSources.length !== contract.sources.length) {
+      fail(`${serviceId} readiness evidence must bind every separate official source exactly once.`);
+    }
+    for (const [purpose, url, marker] of contract.sources) {
+      const source = evidence.officialSources.find(
+        (entry) => entry?.purpose === purpose && entry?.url === url,
+      );
+      if (!source || typeof source.finding !== 'string' || !source.finding.includes(marker)) {
+        fail(`${serviceId} readiness evidence is missing ${purpose}: ${marker}.`);
+      }
+    }
+    exactScalarValues(
+      evidence.currentTechnicalControls,
+      contract.controls,
+      `${serviceId} readiness evidence.currentTechnicalControls`,
+    );
+    exactScalarValues(
+      evidence.retentionAndDeletionReality,
+      contract.retention,
+      `${serviceId} readiness evidence.retentionAndDeletionReality`,
+    );
+    exactScalarValues(
+      evidence.activationBoundary,
+      contract.activation,
+      `${serviceId} readiness evidence.activationBoundary`,
+    );
   }
 }
 
@@ -512,6 +746,7 @@ export function validateRetentionDeletionReadiness({
   }
   assertSourceContracts(root, sourceTexts);
   assertProviderEvidence(root, evidenceTexts);
+  assertFirebaseServiceReadiness(root, evidenceTexts);
   assertCredentialCleanupEvidence(root, evidenceTexts);
   assertLegalHoldEvidence(root, evidenceTexts);
   assertRetentionInventoryEvidence(root, evidenceTexts);
@@ -599,6 +834,7 @@ export function validateRetentionDeletionReadiness({
       'deletionProcedureVerified',
       'officialDocumentationReviewed',
       'officialEvidenceRef',
+      'serviceReadinessRef',
       'ownerEvidenceRef',
     ], `externalProcessors.${processor}`);
     if (typeof processorState.retentionOwnerVerified !== 'boolean'
@@ -606,6 +842,10 @@ export function validateRetentionDeletionReadiness({
         || processorState.officialDocumentationReviewed !== true
         || processorState.officialEvidenceRef !== providerEvidencePath) {
       fail(`${processor} must keep boolean verification flags and reference the reviewed official-source evidence.`);
+    }
+    const expectedServiceReadinessRef = firebaseServiceReadinessPaths[processor] ?? null;
+    if (processorState.serviceReadinessRef !== expectedServiceReadinessRef) {
+      fail(`${processor} must reference only its own service-specific readiness evidence.`);
     }
     const verified = processorState.retentionOwnerVerified
       && processorState.deletionProcedureVerified;
@@ -617,7 +857,8 @@ export function validateRetentionDeletionReadiness({
         && (!verified
           || typeof processorState.ownerEvidenceRef !== 'string'
           || !processorState.ownerEvidenceRef.startsWith('docs/evidence/b11/')
-          || processorState.ownerEvidenceRef === providerEvidencePath)) {
+          || processorState.ownerEvidenceRef === providerEvidencePath
+          || processorState.ownerEvidenceRef === processorState.serviceReadinessRef)) {
       fail(`${processor} requires separate owner evidence when external processor retention is closed.`);
     }
   }
