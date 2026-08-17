@@ -73,6 +73,18 @@
     "settingsChanged": false,
     "eventGenerated": false
   },
+  "releaseMonitorObservation": {
+    "capturedAt": "2026-08-17T04:02:32Z",
+    "source": "firebase-console-read-only",
+    "observedRelease": "1.0.0 (2026081509)",
+    "displayedState": "operational",
+    "crashFreeUsersPercent": 100,
+    "crashFreeSessionsPercent": 100,
+    "newIssuesDisplayed": false,
+    "usedAsControlledEventProof": false,
+    "settingsChanged": false,
+    "eventGenerated": false
+  },
   "boundaries": {
     "uploadedToStore": true,
     "productionCrashGenerated": false,
