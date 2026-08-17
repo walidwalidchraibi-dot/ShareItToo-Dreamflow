@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.138
+Stand: 17.08.2026, lokaler Checkpoint 16.139
 
 ## Verbindliche Grenzen
 
@@ -299,3 +299,24 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   verifiziert
 - der Versuch wird ausdrücklich nicht als TalkBack-Pass gewertet. Nachweis:
   `docs/evidence/b11/android-talkback-bounded-probe-2026081510-20260817T071110Z.json`
+
+## Prüfstand Checkpoint 16.139
+
+- auf dem physischen Pixel und Kandidaten `2026081510` waren Google, Apple
+  und Facebook als Anmeldeoptionen sichtbar
+- Google öffnete die echte Android-Google-Kontoauswahl; es wurde bewusst kein
+  privates Konto ausgewählt, keine Anmeldung abgeschlossen und keine
+  Kontokennung erfasst
+- Apple und Facebook blieben wie vorgesehen geschlossen und zeigten jeweils
+  den klaren SIT-Hinweis, vorübergehend E-Mail zu verwenden
+- das synthetische Staging-Testkonto wurde anschließend ohne Ausgabe von
+  Zugangsdaten wiederhergestellt
+- private lokale Screenshots wurden ausschließlich gehasht und nicht ins
+  Repository übernommen
+- Push und Crashdiagnose bleiben verbindlich erhalten, getrennt, freiwillig
+  und standardmäßig aus; dieser Test änderte keinen der beiden Dienste und
+  übertrug keine Crashdaten
+- die vollständige Google-Anmeldung bleibt offen, bis eine ausdrücklich dafür
+  freigegebene private oder dedizierte Testidentität ausgewählt werden darf.
+  Nachweis:
+  `docs/evidence/b11/android-social-auth-google-only-2026081510-20260817T072343Z.json`
