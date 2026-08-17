@@ -2,7 +2,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/models/item.dart';
+import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -31,6 +33,9 @@ class _SelectRentalDurationScreenState
   bool _checking = false;
   bool _overlapsBlocked = false;
   bool _calendarExpanded = true;
+
+  bool get _usesRemoteBackend =>
+      BackendConfig.enabled && !QaRuntimeService.isEnabled;
 
   bool _hinwegLandlord = false;
   bool _rueckwegLandlord = false;
@@ -912,31 +917,72 @@ class _SelectRentalDurationScreenState
                     _StepCard(
                       step: PrivatePilotConfig.deliveryEnabled ? '4' : '3',
                       title: 'Übersicht & Preis',
-                      subtitle:
-                          'Hier siehst du die preisrelevanten Bestandteile deiner Anfrage.',
+                      subtitle: _usesRemoteBackend
+                          ? 'Der verbindliche Gesamtbetrag wird im nächsten Schritt direkt vom Server geladen.'
+                          : 'Lokale QA-Vorschau der preisrelevanten Bestandteile.',
                       child: Column(
                         children: [
-                          _PriceRow(
-                              label: 'Mietpreis',
-                              value: preview.rentalSubtotal),
-                          if (preview.discountAmount > 0)
+                          if (_usesRemoteBackend)
+                            Semantics(
+                              label:
+                                  'Verbindlicher Gesamtbetrag wird im Checkout vom Server geladen',
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.06)
+                                      : AppTheme.surfaceSecondary(context),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: border),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Verbindlicher Serverpreis',
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppTheme.textPrimary(context),
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Nach „Weiter“ lädt SIT einen frischen, zeitlich begrenzten Quote. Erst dieser zeigt Mietpreis, konkreten Rabatt, 10 % Plattformgebühr und Gesamtbetrag.',
+                                      style: TextStyle(
+                                        color: sub,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          else ...[
                             _PriceRow(
-                                label: 'Rabatt',
-                                value: -preview.discountAmount,
-                                positiveAccent: true),
-                          _PriceRow(
-                              label: 'Plattformgebühr',
-                              value: preview.platformFee),
-                          if (_hinwegLandlord)
+                                label: 'Mietpreis',
+                                value: preview.rentalSubtotal),
+                            if (preview.discountAmount > 0)
+                              _PriceRow(
+                                  label: 'Rabatt',
+                                  value: -preview.discountAmount,
+                                  positiveAccent: true),
                             _PriceRow(
-                                label: 'Liefergebühr',
-                                value: preview.deliveryFee,
-                                pending: preview.deliveryFeePending),
-                          if (_rueckwegLandlord)
-                            _PriceRow(
-                                label: 'Abholgebühr',
-                                value: preview.pickupFee,
-                                pending: preview.pickupFeePending),
+                                label: 'Plattformgebühr',
+                                value: preview.platformFee),
+                            if (_hinwegLandlord)
+                              _PriceRow(
+                                  label: 'Liefergebühr',
+                                  value: preview.deliveryFee,
+                                  pending: preview.deliveryFeePending),
+                            if (_rueckwegLandlord)
+                              _PriceRow(
+                                  label: 'Abholgebühr',
+                                  value: preview.pickupFee,
+                                  pending: preview.pickupFeePending),
+                          ],
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             child: Divider(
@@ -948,7 +994,9 @@ class _SelectRentalDurationScreenState
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              'Preisrelevante Änderungen müssen später von beiden Seiten bestätigt werden.',
+                              _usesRemoteBackend
+                                  ? 'Ändert sich der Serverpreis, musst du den neuen Gesamtbetrag im Checkout erneut bestätigen.'
+                                  : 'Preisrelevante Änderungen müssen später von beiden Seiten bestätigt werden.',
                               style: TextStyle(
                                   color: isDark
                                       ? Colors.white70
@@ -986,27 +1034,34 @@ class _SelectRentalDurationScreenState
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Gesamtbetrag',
+                              Text(
+                                  _usesRemoteBackend
+                                      ? 'Verbindlicher Gesamtbetrag'
+                                      : 'Gesamtbetrag',
                                   style: TextStyle(
                                       color: isDark
                                           ? Colors.white
                                           : AppTheme.textPrimary(context),
                                       fontWeight: FontWeight.w800)),
                               const SizedBox(height: 2),
-                              Text('inkl. Plattformgebühr',
+                              Text(
+                                  _usesRemoteBackend
+                                      ? 'wird im Checkout vom Server geladen'
+                                      : 'inkl. Plattformgebühr',
                                   style: TextStyle(
                                       color: isDark
                                           ? Colors.white70
                                           : AppTheme.textSecondary(context),
                                       fontSize: 12)),
                               const SizedBox(height: 4),
-                              Text('${preview.total.toStringAsFixed(2)} €',
-                                  style: TextStyle(
-                                      color: isDark
-                                          ? Colors.white
-                                          : AppTheme.textPrimary(context),
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 20)),
+                              if (!_usesRemoteBackend)
+                                Text('${preview.total.toStringAsFixed(2)} €',
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppTheme.textPrimary(context),
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 20)),
                             ],
                           ),
                         ),
