@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.160
+Stand: 17.08.2026, lokaler Checkpoint 16.161
 
 ## Verbindliche Grenzen
 
@@ -874,3 +874,36 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   Deployment, Upload, Echtgeld-, Store-, Anbieterconsole- oder
   Kandidatenwechsel und kein Crashereignis. Nachweis:
   `docs/evidence/b11/v51-booking-detail-dead-return-code-cleanup-20260817T114634Z.json`
+
+## Prüfstand Checkpoint 16.161
+
+- FCM-Push und Firebase Crashlytics bleiben für den Launch erhalten,
+  unabhängig voneinander, freiwillig und im nächsten Kandidaten
+  standardmäßig aus; die Aktivierung von Push kann Crashlytics weiterhin
+  nicht aktivieren
+- Crashlytics erhält weiterhin keine Werbe-ID und keine SIT-Nutzerkennung;
+  es wurde bewusst keine zusätzliche kontoverknüpfte Diagnosekennung
+  eingeführt
+- der Aktivierungsdialog und die öffentliche Datenschutzerklärung erklären
+  jetzt deckungsgleich: Beim Ausschalten beziehungsweise bei Kontolöschung
+  werden ungesendete Berichte auf dem Gerät entfernt und die Löschung der
+  Firebase-Installation angefordert
+- bereits gesendete Crashberichte können ohne SIT-Nutzerkennung keinem
+  SIT-Konto zugeordnet und deshalb nicht kontobezogen vor Ablauf der
+  Anbieterfrist entfernt werden; die 90-Tage-Frist bis zum Beginn der
+  Entfernung wird ausdrücklich genannt und eine sofortige Providerlöschung
+  nicht versprochen
+- sechs Fail-closed-Prüfungen schützen Standard-Aus, getrennte Aktivierung,
+  lokale Löschung, Installationslöschung, das Verbot einer SIT-Nutzerkennung
+  sowie die übereinstimmende öffentliche Erklärung; 58/58 gezielte Node-,
+  10/10 Backend-Sicherheits- und 19/19 gezielte Flutter-Tests bestanden
+- Datenschutz- und Retention-Quellhashes wurden aktualisiert; die
+  vollständige Regression bestand mit 282 Flutter-Tests, 1 bewusstem Skip,
+  226 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds
+- Anbieter-Vertrag, Verarbeitungsorte/Drittlandtransfer, die übergreifende
+  externe Retention-Entscheidung, Storefreigabe und ein physisch geprüfter
+  Nachfolgekandidat bleiben offen. Es erfolgte kein Deployment, Upload,
+  Echtgeld-, Store-, Anbieterconsole- oder Kandidatenwechsel und kein
+  Crashereignis. Nachweis:
+  `docs/evidence/b11/v51-crashlytics-privacy-preserving-deletion-boundary-20260817T120447Z.json`

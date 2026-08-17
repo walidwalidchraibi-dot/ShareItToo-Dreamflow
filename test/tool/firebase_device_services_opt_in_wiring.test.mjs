@@ -9,6 +9,7 @@ const ios = read('ios/Runner/Info.plist');
 const settings = read('lib/screens/notification_settings_screen.dart');
 const deletion = read('lib/services/account_deletion_service.dart');
 const backend = read('backend/src/app.js');
+const publicPrivacy = read('backend/src/account_actions.js');
 
 test('native Firebase auto collection is fail-closed on Android and iOS', () => {
   assert.match(android, /firebase_messaging_auto_init_enabled[\s\S]*android:value="false"/);
@@ -26,6 +27,7 @@ test('runtime gates push and crash collection on persisted user decisions', () =
   assert.match(runtime, /setPushEnabled\(bool enabled\)/);
   assert.match(runtime, /setCrashDiagnosticsEnabled\(bool enabled\)/);
   assert.match(runtime, /deleteUnsentReports\(\)/);
+  assert.doesNotMatch(runtime, /setUserIdentifier\(|setUserId\(/);
 });
 
 test('account deletion removes the Firebase installation best effort', () => {
@@ -45,7 +47,17 @@ test('settings distinguish real device services from feed filters', () => {
   assert.match(settings, /Freiwillige Crashdiagnose/);
   assert.match(settings, /Firebase Cloud Messaging von Google/);
   assert.match(settings, /Firebase Crashlytics von Google/);
+  assert.match(settings, /keine SIT-Nutzerkennung übermittelt/);
+  assert.match(settings, /ungesendete Berichte auf diesem Gerät/);
+  assert.match(settings, /nicht kontobezogen vorzeitig löschen/);
   assert.doesNotMatch(settings, /Push- und E-Mail-Benachrichtigungen folgen später/);
+});
+
+test('public privacy copy states the same privacy-preserving crash deletion boundary', () => {
+  assert.match(publicPrivacy, /keine Werbe-ID und keine SIT-Nutzerkennung/);
+  assert.match(publicPrivacy, /ungesendete Crashberichte auf dem Gerät/);
+  assert.match(publicPrivacy, /nicht kontobezogen vorzeitig löschen/);
+  assert.match(publicPrivacy, /90 Tage auf/);
 });
 
 test('backend cleanup is current-session scoped and does not expose tokens', () => {

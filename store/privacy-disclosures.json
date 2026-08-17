@@ -44,7 +44,7 @@
     },
     {
       "path": "backend/src/account_actions.js",
-      "sha256": "fa8b9e73e595951f2a81556d4f7f93e198967ccbc71fc26ab988b026166f3cc6"
+      "sha256": "398a1f485cecbf839f5503d3b8cca7f3e31935043c23a589322ea119659eec12"
     },
     {
       "path": "backend/src/privacy_export.js",
@@ -216,7 +216,7 @@
     },
     {
       "path": "lib/screens/notification_settings_screen.dart",
-      "sha256": "707b4760191043ee4bb07f1acacb77933c0872dc3b75dc99fda8b27ef9d205fc"
+      "sha256": "d8f2baaf72da1b79db724142b959c098fdcc3d12e00fceb9ec24e619b6083597"
     },
     {
       "path": "lib/screens/contact_data_screen.dart",

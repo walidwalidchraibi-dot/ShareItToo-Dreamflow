@@ -116,7 +116,7 @@ class _NotificationSettingsScreenState
         icon: Icons.bug_report_outlined,
         title: 'Freiwillige Crashdiagnose aktivieren?',
         message:
-            'Firebase Crashlytics von Google erhält technische Installations-, Sitzungs-, Geräte-, App-, Absturz- und Diagnosedaten, damit SIT Fehler beheben kann. Es werden keine Werbe-ID und keine SIT-Nutzerkennung übermittelt. Crashdaten und zugehörige Kennungen werden laut Anbieter 90 Tage aufbewahrt; die Verarbeitung kann weltweit erfolgen. Du kannst die Diagnose hier jederzeit wieder ausschalten.',
+            'Firebase Crashlytics von Google erhält technische Installations-, Sitzungs-, Geräte-, App-, Absturz- und Diagnosedaten, damit SIT Fehler beheben kann. Es werden keine Werbe-ID und keine SIT-Nutzerkennung übermittelt. Beim Ausschalten oder bei einer Kontolöschung löscht SIT ungesendete Berichte auf diesem Gerät und fordert die Löschung der Firebase-Installation an. Bereits gesendete Crashdaten bleiben nach Angaben des Anbieters 90 Tage gespeichert, bevor deren Entfernung beginnt; SIT kann sie ohne übermittelte SIT-Nutzerkennung keinem Konto zuordnen und nicht kontobezogen vorzeitig löschen. Die Verarbeitung kann weltweit erfolgen. Du kannst die Diagnose hier jederzeit wieder ausschalten.',
         confirmLabel: 'Crashdiagnose aktivieren',
       );
       if (!confirmed || !mounted) return;
