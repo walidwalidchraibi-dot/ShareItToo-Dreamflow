@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "device-matrix-cell-progress",
   "status": "testing",
-  "capturedAt": "2026-08-15T13:32:00.000Z",
+  "capturedAt": "2026-08-17T03:28:36Z",
   "candidate": {
     "applicationId": "com.shareittoo.app",
     "bundleId": "com.shareittoo.app",
@@ -111,10 +111,11 @@
       },
       "largeTextAndScreenReader": {
         "status": "testing",
-        "checkedAt": "2026-08-15T14:28:08Z",
-        "summary": "23 kandidatengleiche Widget-Prüfungen für 200-Prozent-Text, Fokus und semantische Namen bestanden; die physische Sichtprüfung und manuelle TalkBack-Traversierung bleiben offen.",
+        "checkedAt": "2026-08-17T03:28:36Z",
+        "summary": "23 kandidatengleiche Widget-Prüfungen bestanden. Auf dem exakten Play-Build wurden zusätzlich TalkBack und 200-Prozent-Text gleichzeitig erkannt; die Explore-Oberfläche und semantische Hauptaktionen waren vorhanden. Der systemweite TalkBack-Hinweis verdeckte jedoch obere Inhalte, daher bleiben die vollständige physische Sichtprüfung und manuelle Traversierung ehrlich offen. Die ursprünglichen Geräteeinstellungen wurden wiederhergestellt.",
         "evidenceRefs": [
-          "docs/evidence/b11/android-accessibility-source-2026081509-20260815T142808Z.json"
+          "docs/evidence/b11/android-accessibility-source-2026081509-20260815T142808Z.json",
+          "docs/evidence/b11/android-accessibility-physical-preflight-2026081509-20260817T032836Z.json"
         ]
       }
     }
