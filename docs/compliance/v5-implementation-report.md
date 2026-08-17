@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.143
+Stand: 17.08.2026, lokaler Checkpoint 16.144
 
 ## Verbindliche Grenzen
 
@@ -410,3 +410,25 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   standardmäßig aus; Push aktiviert Crash nicht. Dieser Meilenstein änderte
   keinen der beiden Dienste und übertrug keine Crashdaten. Nachweis:
   `docs/evidence/b11/v51-booking-detail-server-price-snapshot-20260817T081200Z.json`
+
+## Prüfstand Checkpoint 16.144
+
+- der Checkout übernimmt einen Serverpreis erst dann als verbindliche Anzeige,
+  wenn alle Geldwerte ganzzahlige Centbeträge sind und der Preis vollständig
+  in sich stimmt
+- der Parser verlangt für den Privatlaunch EUR, 1 bis 365 Miettage,
+  `Tagespreis × Tage = Grundmiete`, `Grundmiete − Rabatt = Mietsumme`, den
+  exakt einmal centgenau berechneten 10-%-Plattformbeitrag und
+  `Mietsumme + Plattformbeitrag = Gesamtbetrag`
+- formal gültig aussehende, aber rechnerisch widersprüchliche Antworten sowie
+  Nicht-EUR-Preise werden geschlossen verworfen und gelangen nicht in den
+  bestätigbaren Checkout-Zustand
+- 13/13 Preis-Wiring-Tests, 10 gezielte Flutter-Tests und ein gezielter
+  Analyzerlauf mit 0 Hinweisen bestanden; die vollständige Regression blieb
+  mit 270 bestandenen Tests, 1 bewusstem Skip, 229 Analyzer-Hinweisen bei
+  0 Fehlern sowie grünen Web- und Android-Debug-Builds vollständig grün
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder Kandidatenwechsel
+- Push und Crashdiagnose bleiben bestehen, getrennt, freiwillig und
+  standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
+  übertragen. Nachweis:
+  `docs/evidence/b11/v51-checkout-server-quote-validation-20260817T082300Z.json`

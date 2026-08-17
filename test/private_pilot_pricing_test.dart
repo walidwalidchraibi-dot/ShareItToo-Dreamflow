@@ -75,4 +75,32 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('inconsistent or non-EUR server quotes are rejected', () {
+    Map<String, dynamic> validQuote() => {
+          'days': 3,
+          'pricePerDayMinor': 2000,
+          'baseRentalMinor': 6000,
+          'discountPercent': 10,
+          'discountMinor': 600,
+          'rentalSubtotalMinor': 5400,
+          'platformFeeMinor': 540,
+          'totalMinor': 5940,
+          'currency': 'EUR',
+        };
+
+    for (final invalid in [
+      validQuote()..['days'] = 0,
+      validQuote()..['baseRentalMinor'] = 5999,
+      validQuote()..['rentalSubtotalMinor'] = 5399,
+      validQuote()..['platformFeeMinor'] = 539,
+      validQuote()..['totalMinor'] = 5941,
+      validQuote()..['currency'] = 'USD',
+    ]) {
+      expect(
+        () => PrivatePilotQuote.fromServerJson(invalid),
+        throwsFormatException,
+      );
+    }
+  });
 }

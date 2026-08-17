@@ -34,6 +34,12 @@ class PrivatePilotQuote {
     }
 
     final days = requiredMinor('days');
+    final pricePerDayMinor = requiredMinor('pricePerDayMinor');
+    final baseRentalMinor = requiredMinor('baseRentalMinor');
+    final discountMinor = requiredMinor('discountMinor');
+    final rentalSubtotalMinor = requiredMinor('rentalSubtotalMinor');
+    final platformFeeMinor = requiredMinor('platformFeeMinor');
+    final totalMinor = requiredMinor('totalMinor');
     final discountPercent = json['discountPercent'];
     if (discountPercent is! num ||
         !discountPercent.isFinite ||
@@ -42,18 +48,30 @@ class PrivatePilotQuote {
       throw const FormatException('Ungültiger Serverpreis: discountPercent');
     }
     final currency = json['currency'];
-    if (currency is! String || !RegExp(r'^[A-Z]{3}$').hasMatch(currency)) {
+    if (currency != 'EUR') {
       throw const FormatException('Ungültiger Serverpreis: currency');
+    }
+    if (days < 1 || days > 365) {
+      throw const FormatException('Ungültiger Serverpreis: days');
+    }
+    if (pricePerDayMinor * days != baseRentalMinor ||
+        baseRentalMinor - discountMinor != rentalSubtotalMinor ||
+        PrivatePilotPricing.platformFeeMinor(rentalSubtotalMinor) !=
+            platformFeeMinor ||
+        rentalSubtotalMinor + platformFeeMinor != totalMinor) {
+      throw const FormatException(
+        'Ungültiger Serverpreis: inkonsistente Summen',
+      );
     }
     return PrivatePilotQuote(
       days: days,
-      ownerPricePerDayMinor: requiredMinor('pricePerDayMinor'),
-      baseRentalMinor: requiredMinor('baseRentalMinor'),
+      ownerPricePerDayMinor: pricePerDayMinor,
+      baseRentalMinor: baseRentalMinor,
       discountBasisPoints: (discountPercent * 100).round(),
-      discountMinor: requiredMinor('discountMinor'),
-      rentalSubtotalMinor: requiredMinor('rentalSubtotalMinor'),
-      platformFeeMinor: requiredMinor('platformFeeMinor'),
-      totalMinor: requiredMinor('totalMinor'),
+      discountMinor: discountMinor,
+      rentalSubtotalMinor: rentalSubtotalMinor,
+      platformFeeMinor: platformFeeMinor,
+      totalMinor: totalMinor,
       currency: currency,
     );
   }
