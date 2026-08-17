@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.154
+Stand: 17.08.2026, lokaler Checkpoint 16.155
 
 ## Verbindliche Grenzen
 
@@ -68,11 +68,13 @@ Es bleibt `draft-blocked`, kann nicht veröffentlicht und nicht in
 `legal_document_snapshots` provisioniert werden.
 
 Die Quelle behauptet auf Seite 38 noch, dass externe Push- und Crashdienste im
-Startbetrieb deaktiviert seien. Die spätere Produktentscheidung vom 17.08.2026
-behält FCM und Crashlytics bei. Dieser Widerspruch ist im Manifest ausdrücklich
-als aktivierungsblockierend festgehalten. Vor einer Freigabe müssen der
-Datenschutztext angepasst und Anbieter-, Transfer-, Einwilligungs-,
-Aufbewahrungs-, Lösch- und Store-Nachweise geschlossen werden.
+Startbetrieb deaktiviert seien. Ein klar abgegrenzter Nachtrag bindet jetzt die
+spätere Produktentscheidung vom 17.08.2026: FCM und Crashlytics bleiben
+unabhängig, freiwillig und standardmäßig aus; Push aktiviert Crash nicht. Der
+Quelltext bleibt unverändert sichtbar und der Nachtrag ersetzt ausschließlich
+diese zwei alten Startaussagen. Das ist keine Aktivierungsfreigabe. Anbieter-,
+Vertrags-, Regions-, Transfer-, Einwilligungs-, Aufbewahrungs-, Lösch- und
+Store-Nachweise bleiben getrennt je Dienst zu schließen.
 
 ## Offene Tatsachen und Gates
 
@@ -700,3 +702,34 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
   übertragen. Nachweis:
   `docs/evidence/b11/v51-owner-detail-live-expiry-20260817T102341Z.json`
+
+## Prüfstand Checkpoint 16.155
+
+- Firebase Cloud Messaging und Firebase Crashlytics bleiben verbindlich
+  Bestandteil des vorgesehenen SIT-Launchumfangs
+- ein datierter Nachtrag in der internen V5.1-Datenschutzfassung ersetzt jetzt
+  ausschließlich die zwei alten Aussagen auf Quellseite 38, wonach externe
+  Push- und Crashdienste beim Start generell nicht aktiviert seien; der
+  ursprüngliche Quelltext bleibt für die Nachvollziehbarkeit sichtbar
+- der Nachtrag bindet beide Dienste als unabhängige, freiwillige und
+  standardmäßig ausgeschaltete Entscheidungen; Push kann Crashdiagnose nicht
+  aktivieren
+- Werbung, Marketingtracking, allgemeine Analytics und externe generative KI
+  bleiben weiterhin aus
+- die Produktentscheidung ist ausdrücklich keine Live-, Datenschutz- oder
+  Store-Freigabe. Anbieterrolle, Vertrag, Regionen, Drittlandtransfer,
+  Datenfelder, Einwilligung/Widerruf, Aufbewahrung/Löschung und Store-Angaben
+  bleiben je Dienst offen und aktivierungsblockierend
+- Manifest, V5.1-Rechtsvalidator und allgemeiner Datenschutzvalidator lehnen
+  sowohl Entfernen/Koppeln der Dienste als auch eine vorzeitige Freigabe
+  geschlossen ab
+- 50/50 gezielte Node-Prüfungen und 18/18 gezielte Flutter-Prüfungen
+  bestanden; die vollständige Regression blieb mit 282 bestandenen Tests,
+  1 bewusstem Skip, 229 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web-
+  und Android-Debug-Builds vollständig grün
+- die zwei geänderten Rechtsassets wurden mit ihren neuen Hashes im
+  Datenschutz-Inventar neu gebunden; Datenerhebung, Speicherung, Transport,
+  Anbieter und Berechtigungen änderten sich nicht
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder Kandidatenwechsel
+  und es wurden keine Crashdaten erzeugt oder übertragen. Nachweis:
+  `docs/evidence/b11/v51-push-crash-successor-decision-20260817T103613Z.json`

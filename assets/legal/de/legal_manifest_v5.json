@@ -105,7 +105,7 @@
         39,
         40
       ],
-      "sha256": "f7baada60fb1c3fee15b647a30f7b0b773772a55733a62021872e80c861d23a4",
+      "sha256": "5e4a5f241ce8049a23b7e8688d09a8a39ed543f095c3c267cba4228f54713041",
       "publicUrl": null,
       "downloadUrl": null,
       "status": "draft-blocked"
@@ -177,9 +177,11 @@
         38
       ],
       "sourcePosition": "Teil H Nummer 15-16",
-      "status": "blocks-activation",
+      "status": "source-superseded-activation-blocked",
       "successorDecisionDate": "2026-08-17",
-      "resolutionRequired": "Revise the privacy text and complete provider, transfer, consent, retention, deletion, and Store disclosure evidence before activation."
+      "successorDecisionPath": "assets/legal/de/privacy_v5.html",
+      "supersededScope": "Only the source statements that external Push and Crash analysis are generally disabled for the initial launch.",
+      "resolutionRequired": "Complete provider, contract, region, transfer, consent, retention, deletion, and Store disclosure evidence separately for FCM and Crashlytics before activation."
     }
   ],
   "boundaries": {

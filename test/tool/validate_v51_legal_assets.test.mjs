@@ -73,7 +73,7 @@ test('rejects coupling or silently removing retained Push and Crashlytics', (t) 
   );
 });
 
-test('rejects hiding the source conflict before the privacy text is revised', (t) => {
+test('rejects hiding the source supersession while activation evidence remains open', (t) => {
   const root = fixture(t);
   const path = resolve(root, 'assets/legal/de/legal_manifest_v5.json');
   const manifest = JSON.parse(readFileSync(path, 'utf8'));
@@ -81,6 +81,18 @@ test('rejects hiding the source conflict before the privacy text is revised', (t
   writeFileSync(path, JSON.stringify(manifest));
   assert.throws(
     () => validateV51LegalAssets({ repositoryRoot: root }),
-    /source conflict for retained Push and Crashlytics/,
+    /source supersession for retained Push and Crashlytics/,
+  );
+});
+
+test('rejects treating the product successor decision as an activation approval', (t) => {
+  const root = fixture(t);
+  const path = resolve(root, 'assets/legal/de/legal_manifest_v5.json');
+  const manifest = JSON.parse(readFileSync(path, 'utf8'));
+  manifest.knownConflicts[0].status = 'resolved';
+  writeFileSync(path, JSON.stringify(manifest));
+  assert.throws(
+    () => validateV51LegalAssets({ repositoryRoot: root }),
+    /source supersession for retained Push and Crashlytics/,
   );
 });

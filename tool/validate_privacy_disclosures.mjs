@@ -447,16 +447,22 @@ function assertSourceContracts({ root, sourceTexts }) {
         ?.requiresSeparateVoluntaryOptIn !== true
       || !v51LegalManifest.knownConflicts?.some(
         (entry) => entry?.id === 'firebase-push-crash-retained-after-v51-source'
-          && entry?.status === 'blocks-activation',
+          && entry?.status === 'source-superseded-activation-blocked'
+          && entry?.successorDecisionDate === '2026-08-17'
+          && entry?.successorDecisionPath === 'assets/legal/de/privacy_v5.html',
       )) {
-    fail('The V5.1 legal bundle must preserve retained, independently opted-in Push and Crashlytics while blocking the conflicting draft.');
+    fail('The V5.1 legal bundle must preserve retained, independently opted-in Push and Crashlytics while keeping activation blocked.');
   }
   for (const marker of [
     'Externe Push-Benachrichtigungen sind im Startbetrieb nicht aktiviert.',
     'Im Startbetrieb sind keine externen Crashanalyse-',
+    'data-successor-decision="2026-08-17"',
+    'data-supersedes-source-page="38"',
+    'Die Aktivierung von Push aktiviert Crashlytics nicht.',
+    'Der Nachtrag ist keine Live- oder Datenschutzfreigabe.',
   ]) {
     if (!v51Privacy.includes(marker)) {
-      fail(`The source-bound V5.1 privacy draft is missing its disclosed conflict marker: ${marker}`);
+      fail(`The source-bound V5.1 privacy draft is missing its source or successor marker: ${marker}`);
     }
   }
   const privacyInfo = sourceText(root, sourceTexts, 'lib/screens/privacy_info_screen.dart');

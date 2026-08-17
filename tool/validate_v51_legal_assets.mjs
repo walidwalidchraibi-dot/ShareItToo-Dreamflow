@@ -72,10 +72,11 @@ export function validateV51LegalAssets({ repositoryRoot }) {
   const firebaseConflict = manifest.knownConflicts?.find(
     (entry) => entry?.id === 'firebase-push-crash-retained-after-v51-source',
   );
-  if (firebaseConflict?.status !== 'blocks-activation'
+  if (firebaseConflict?.status !== 'source-superseded-activation-blocked'
       || firebaseConflict.successorDecisionDate !== '2026-08-17'
+      || firebaseConflict.successorDecisionPath !== 'assets/legal/de/privacy_v5.html'
       || !firebaseConflict.sourcePages?.includes(38)) {
-    fail('V5.1 source conflict for retained Push and Crashlytics must remain explicit and blocking.');
+    fail('V5.1 source supersession for retained Push and Crashlytics must remain explicit and activation-blocking.');
   }
   if (manifest.boundaries?.containsLivePlaceholders !== true
       || manifest.boundaries?.databaseProvisioned !== false
@@ -140,6 +141,18 @@ export function validateV51LegalAssets({ repositoryRoot }) {
     'Keine Kaution, Versicherung oder Schadengarantie',
   ]) {
     if (!normalizedRental.includes(marker)) fail(`Private rental terms missing ${marker}.`);
+  }
+  const privacy = readFileSync(resolve(assetRoot, 'privacy_v5.html'), 'utf8');
+  for (const marker of [
+    'data-successor-decision="2026-08-17"',
+    'data-supersedes-source-page="38"',
+    'Die Aktivierung von Push aktiviert Crashlytics nicht.',
+    'Werbung, Marketingtracking, allgemeine Analytics und externe generative KI',
+    'Der Nachtrag ist keine Live- oder Datenschutzfreigabe.',
+  ]) {
+    if (!privacy.includes(marker)) {
+      fail(`V5.1 privacy asset missing retained Push/Crash successor decision marker ${marker}.`);
+    }
   }
   return {
     status: manifest.status,

@@ -32,11 +32,11 @@
     },
     {
       "path": "assets/legal/de/privacy_v5.html",
-      "sha256": "f7baada60fb1c3fee15b647a30f7b0b773772a55733a62021872e80c861d23a4"
+      "sha256": "5e4a5f241ce8049a23b7e8688d09a8a39ed543f095c3c267cba4228f54713041"
     },
     {
       "path": "assets/legal/de/legal_manifest_v5.json",
-      "sha256": "096c6cc0fe645a591e03dd0ebab374413d79b2d2033d10d8df1028218e411d25"
+      "sha256": "6cffec53a27f84b24a44aebad50afd6e7ce17a4c196c7946155fba743fdc161f"
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
