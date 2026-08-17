@@ -1655,10 +1655,11 @@ Servernachweis:
 - Vier neue fail-closed Wiring-Tests verriegeln die enge Zwei-Zeilen-Grenze und
   die aktiven Datenschutz-, Adress-, Karten-, Uebergabe- und Rueckgabeanker.
   Zwei unabhaengige Vorpruefungen bestaetigen die Reichweite.
-- `booking_detail_screen.dart` ist nicht als Datenschutz-Quellbindung
-  hinterlegt; die gebundene Rueckgabe-Schrittdatei bleibt unveraendert.
-  Datenerhebung, Speicherung, Uebertragung, Berechtigungen, Store-Metadaten und
-  Offenlegungen bleiben unveraendert. Die CI-Analyseschranke steht jetzt
+- `booking_detail_screen.dart` ist als Datenschutz-Quellbindung hinterlegt;
+  ihr Quellhash wurde fuer den unveraenderten Datenschutzumfang aktualisiert,
+  waehrend die Rueckgabe-Schrittdatei unveraendert blieb. Datenerhebung,
+  Speicherung, Uebertragung, Berechtigungen, Store-Metadaten und Offenlegungen
+  bleiben unveraendert. Die CI-Analyseschranke steht jetzt
   fail-closed bei 231. Nachweis:
   `docs/evidence/b11/flutter-analysis-booking-detail-dead-collapsible-hint-state-20260816.json`.
 - 80 gezielte Flutter-Tests und die neuen Strukturtests sind gruen. Die
@@ -1685,8 +1686,9 @@ Servernachweis:
 - Acht neue abschnittsgebundene fail-closed Wiring-Tests verriegeln die enge
   Ein-Zeilen-Grenze und alle genannten aktiven Sicherheits- und Nutzerpfade.
   Zwei unabhaengige Vorpruefungen bestaetigen Reichweite und Analyzer-Delta.
-- `ongoing_owner_detail_screen.dart` ist nicht als Datenschutz-Quellbindung
-  hinterlegt; die gebundene Rueckgabe-Schrittdatei bleibt unveraendert.
+- `ongoing_owner_detail_screen.dart` ist als Datenschutz-Quellbindung
+  hinterlegt; ihr Quellhash wurde fuer den unveraenderten Datenschutzumfang
+  aktualisiert, waehrend die Rueckgabe-Schrittdatei unveraendert blieb.
   Datenerhebung, Speicherung, Uebertragung, Berechtigungen, Store-Metadaten und
   Offenlegungen bleiben unveraendert. Die CI-Analyseschranke steht jetzt
   fail-closed bei 230. Nachweis:

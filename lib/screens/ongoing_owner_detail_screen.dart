@@ -2079,11 +2079,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     AppPopup.toast(context, icon: Icons.info_outline, title: msg);
   }
 
-  bool _canStartOwnerHandover(RentalRequest req) {
-    final status = req.status.toLowerCase().trim();
-    return status == 'accepted';
-  }
-
   bool _canCompleteOwnerReturn(RentalRequest req) {
     final status = req.status.toLowerCase().trim();
     return status == 'running';

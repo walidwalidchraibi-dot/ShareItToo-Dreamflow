@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.157
+Stand: 17.08.2026, lokaler Checkpoint 16.158
 
 ## Verbindliche Grenzen
 
@@ -789,3 +789,33 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   Upload, Echtgeld-, Store-, Anbieterconsole- oder Kandidatenwechsel und kein
   Crashereignis. Nachweis:
   `docs/evidence/b11/v51-retention-execution-preflight-20260817T130000Z.json`
+
+## Prüfstand Checkpoint 16.158
+
+- der ausschließlich deklarierte, nirgends verwendete
+  `_canStartOwnerHandover`-Getter wurde aus der Vermieter-Detailansicht
+  entfernt; der Laufzeitdiff umfasst exakt fünf Löschungen und keine
+  Ergänzung
+- der tatsächlich aktive Übergabeweg bleibt unverändert an bestätigte Zeit,
+  serverseitige Challenge, Buchung/Segment/Rolle, QR beziehungsweise
+  sechsstelligen Code und den Übergabe-Stepper gebunden
+- der Rückgabeweg behält seinen aktiven Statusguard, Gegenparteiprüfung,
+  mindestens vier beweisgebundene Fotos, gegebenenfalls Gegenfoto sowie den
+  verifizierten Abschluss; Vermieter-Storno und `owner_to_renter`-Bewertung
+  bleiben rollen- und buchungsgebunden
+- sechs neue abschnittsgebundene Fail-closed-Prüfungen verhindern die
+  Wiedereinführung des toten Getters und schützen die genannten aktiven Wege;
+  zusammen mit den bestehenden Strukturprüfungen waren 16/16 gezielte
+  Node-Prüfungen grün, zusätzlich 59/59 gezielte Flutter-Sicherheitstests
+- das Datenschutz-Inventar wurde ausschließlich mit dem neuen Quellhash der
+  bereits gebundenen Ansicht aktualisiert; Datenarten, Zwecke, Anbieter,
+  Transport, Berechtigungen und öffentliche Angaben blieben unverändert
+- die vollständige Regression bestand mit 282 Flutter-Tests, 1 bewusstem
+  Skip, jetzt 228 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds; die bekannten externen WebAssembly-Trockenlaufhinweise
+  blieben unverändert
+- FCM-Push und Crashlytics bleiben getrennt, freiwillig und im nächsten
+  Kandidaten standardmäßig aus; Push aktiviert Crash nicht. Es erfolgte kein
+  Deployment, Upload, Echtgeld-, Store-, Anbieterconsole- oder
+  Kandidatenwechsel und kein Crashereignis. Nachweis:
+  `docs/evidence/b11/v51-owner-handover-dead-gate-cleanup-20260817T112722Z.json`

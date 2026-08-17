@@ -148,7 +148,7 @@
     },
     {
       "path": "lib/screens/ongoing_owner_detail_screen.dart",
-      "sha256": "72ee602b82967e644299c0e2593dd8ebe9c776588d00bb6679e7fd3a5342852c"
+      "sha256": "3722f98c4d040ca3c3fba05142b181b1782d91961dcbe6346fc2bfc727e7a42d"
     },
     {
       "path": "lib/services/data_service.dart",
