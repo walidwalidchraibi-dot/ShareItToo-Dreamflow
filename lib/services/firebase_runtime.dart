@@ -296,6 +296,17 @@ class FirebaseRuntime {
 
   static void recordFlutterFatalError(FlutterErrorDetails details) {
     if (!_initialized || !kReleaseMode || !_crashDiagnosticsEnabled) return;
+    if (!shouldRecordUnhandledErrorAsFatal(details.exception)) {
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          details.exception,
+          details.stack ?? StackTrace.current,
+          fatal: false,
+          reason: 'Transient realtime connectivity failure',
+        ),
+      );
+      return;
+    }
     unawaited(
       FirebaseCrashlytics.instance.recordFlutterFatalError(details),
     );

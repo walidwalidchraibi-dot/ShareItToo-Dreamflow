@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "b5daef785d40ceb0c70e8308712c5410974c88d8c54067fc32e220a1ff12d66c"
+      "sha256": "ff07d54b30787cac8a7ad4d1f379a4d9aae93d6394e0c14882682b2a00cb7c1f"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -192,7 +192,7 @@
     },
     {
       "path": "lib/services/firebase_runtime.dart",
-      "sha256": "3946a3fd11fe49b30e7f81a402b8ac584807433dfdd8f455c6cfa4b87d435845"
+      "sha256": "7cbe8fd6e3b1d461f3a06a2ab02d2e13aa6ff2752f02a108773809c859c8156c"
     },
     {
       "path": "lib/services/firebase_service_preferences.dart",

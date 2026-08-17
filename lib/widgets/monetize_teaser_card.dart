@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/screens/create_listing_screen.dart';
 import 'package:lendify/services/localization_service.dart';
@@ -269,7 +268,11 @@ class _CurrencyAssembleIntro extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color stroke = Theme.of(context).colorScheme.primary;
-    final TextStyle base = GoogleFonts.baloo2(fontSize: fontSize, fontWeight: FontWeight.w800, height: 1.15);
+    final TextStyle base = TextStyle(
+      fontSize: fontSize,
+      fontWeight: FontWeight.w800,
+      height: 1.15,
+    );
     return Stack(alignment: Alignment.center, children: [
       // Currency particles assembling
       SizedBox(
