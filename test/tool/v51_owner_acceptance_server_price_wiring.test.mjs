@@ -212,3 +212,25 @@ test('an already-open acceptance dialog expires itself and clears confirmation',
     /value: _confirmed,[\s\S]*?onChanged: acceptanceAllowed[\s\S]*?onPressed: _confirmed && acceptanceAllowed/u,
   );
 });
+
+test('the owner request overview refreshes exactly at the next server deadline', () => {
+  const ownerRequests = readFileSync(
+    new URL('../../lib/screens/owner_requests_screen.dart', import.meta.url),
+    'utf8',
+  );
+  assert.match(ownerRequests, /Timer\? _acceptanceDeadlineTimer/u);
+  assert.match(
+    ownerRequests,
+    /void _scheduleAcceptanceDeadlineRefresh\(\)[\s\S]*?!BackendConfig\.enabled \|\| QaRuntimeService\.isEnabled[\s\S]*?entry\.r\.bindingExpiresAt[\s\S]*?_acceptanceDeadlineTimer = Timer\(nextDeadline\.difference\(now\)[\s\S]*?setState\(\(\) \{\}\)[\s\S]*?_scheduleAcceptanceDeadlineRefresh\(\)/u,
+  );
+  assert.match(
+    ownerRequests,
+    /void dispose\(\)[\s\S]*?_acceptanceDeadlineTimer\?\.cancel\(\)/u,
+  );
+  assert.match(
+    ownerRequests,
+    /bool _ownerAcceptanceDeadlineValid\(_OwnerEntry entry\)[\s\S]*?deadline != null && deadline\.isAfter\(DateTime\.now\(\)\)/u,
+  );
+  assert.match(ownerRequests, /Annahmefrist abgelaufen/u);
+  assert.match(ownerRequests, /Annahme gesperrt/u);
+});

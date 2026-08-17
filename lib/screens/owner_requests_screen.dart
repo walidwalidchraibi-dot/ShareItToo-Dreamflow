@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/models/user.dart' as model;
+import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/widgets/app_popup.dart';
@@ -31,6 +32,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
   String? _ownerId;
   List<_OwnerEntry> _entries = const [];
   Timer? _ticker;
+  Timer? _acceptanceDeadlineTimer;
   // Track unread counts per category
   final Map<String, int> _unreadCounts = {};
 
@@ -57,8 +59,36 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
   @override
   void dispose() {
     _ticker?.cancel();
+    _acceptanceDeadlineTimer?.cancel();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _replaceEntries(List<_OwnerEntry> entries) {
+    setState(() => _entries = entries);
+    _scheduleAcceptanceDeadlineRefresh();
+  }
+
+  void _scheduleAcceptanceDeadlineRefresh() {
+    _acceptanceDeadlineTimer?.cancel();
+    _acceptanceDeadlineTimer = null;
+    if (!BackendConfig.enabled || QaRuntimeService.isEnabled) return;
+    final now = DateTime.now();
+    DateTime? nextDeadline;
+    for (final entry in _entries) {
+      if (entry.r.status.toLowerCase().trim() != 'pending') continue;
+      final deadline = entry.r.bindingExpiresAt;
+      if (deadline == null || !deadline.isAfter(now)) continue;
+      if (nextDeadline == null || deadline.isBefore(nextDeadline)) {
+        nextDeadline = deadline;
+      }
+    }
+    if (nextDeadline == null) return;
+    _acceptanceDeadlineTimer = Timer(nextDeadline.difference(now), () {
+      if (!mounted) return;
+      setState(() {});
+      _scheduleAcceptanceDeadlineRefresh();
+    });
   }
 
   bool _showingReminder = false;
@@ -136,13 +166,13 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
           ..clear()
           ..addAll(
               {'ongoing': 1, 'upcoming': 1, 'requests': 1, 'completed': 3});
-        setState(() => _entries = demo.entries);
+        _replaceEntries(demo.entries);
         return;
       }
       if (!mounted) return;
       _ownerId = null;
       _unreadCounts.clear();
-      setState(() => _entries = const []);
+      _replaceEntries(const []);
       return;
     }
     _ownerId = owner.id;
@@ -155,12 +185,12 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
           ..clear()
           ..addAll(
               {'ongoing': 1, 'upcoming': 1, 'requests': 1, 'completed': 3});
-        setState(() => _entries = demo.entries);
+        _replaceEntries(demo.entries);
         return;
       }
       if (!mounted) return;
       _unreadCounts.clear();
-      setState(() => _entries = const []);
+      _replaceEntries(const []);
       return;
     }
     // Load the catalog and local profile cache once. Calling getItemById for
@@ -219,7 +249,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
     }
 
     if (!mounted) return;
-    setState(() => _entries = list);
+    _replaceEntries(list);
   }
 
   Future<({String ownerId, List<_OwnerEntry> entries})> _buildDemoOwnerEntries(
@@ -863,9 +893,16 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
         color = const Color(0xFFFB923C);
         break;
       case 'requests':
-        // Owner shouldn't see a passive "waiting" state. Indicate action required.
-        label = 'Anfrage';
-        color = Colors.grey;
+        if (!_ownerAcceptanceDeadlineValid(e)) {
+          label = e.r.bindingExpiresAt == null
+              ? 'Annahme gesperrt'
+              : 'Annahmefrist abgelaufen';
+          color = const Color(0xFFF43F5E);
+        } else {
+          // Owner shouldn't see a passive "waiting" state. Indicate action required.
+          label = 'Anfrage';
+          color = Colors.grey;
+        }
         break;
       case 'completed':
         final s = e.r.status;
@@ -900,6 +937,12 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
           maxLines: 1,
           overflow: TextOverflow.ellipsis),
     );
+  }
+
+  bool _ownerAcceptanceDeadlineValid(_OwnerEntry entry) {
+    if (!BackendConfig.enabled || QaRuntimeService.isEnabled) return true;
+    final deadline = entry.r.bindingExpiresAt;
+    return deadline != null && deadline.isAfter(DateTime.now());
   }
 
   Widget? _buildInlineAction(String category, _OwnerEntry e) {

@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.152
+Stand: 17.08.2026, lokaler Checkpoint 16.153
 
 ## Verbindliche Grenzen
 
@@ -644,3 +644,30 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
   übertragen. Nachweis:
   `docs/evidence/b11/v51-owner-acceptance-dialog-live-expiry-20260817T100225Z.json`
+
+## Prüfstand Checkpoint 16.153
+
+- die Vermieterübersicht wertet eine ausstehende Remote-Anfrage nicht mehr
+  pauschal als aktive „Anfrage“, wenn ihre servergebundene Annahmefrist fehlt
+  oder bereits abgelaufen ist
+- fehlt die Pflichtfrist, zeigt die Karte „Annahme gesperrt“; nach Ablauf
+  wechselt sie sichtbar auf „Annahmefrist abgelaufen“ und verwendet die rote
+  Warnfarbe statt eines neutralen aktiven Status
+- die Übersicht plant genau den jeweils nächsten zukünftigen Ablaufzeitpunkt,
+  baut sich dort neu auf und plant danach gegebenenfalls die nächste Frist;
+  ihr Zeitgeber wird bei neu geladenen Daten ersetzt und beim Verlassen beendet
+- der isolierte QA-Modus bleibt von einer behaupteten Serverfrist getrennt;
+  Dialogprüfung, Antippprüfung und Backendschranke bleiben die verbindlichen
+  technischen Annahme-Gates
+- 11/11 Annahme-Wiring-Tests und 53/53 gezielte Flutter-Buchungs-,
+  Hydrations- und Sicherheitstests bestanden; die gezielte Übersichtsanalyse
+  blieb bei den zwei bereits vorhandenen Hinweisen und ohne neue Diagnose
+- die vollständige Regression blieb mit 282 bestandenen Tests, 1 bewusstem
+  Skip, 229 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün; das technische Gesamttor bestand mit
+  der dokumentierten lokalen Kandidaten-Rollover-Grenze
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder Kandidatenwechsel
+- Push und Crashdiagnose bleiben bestehen, getrennt, freiwillig und
+  standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
+  übertragen. Nachweis:
+  `docs/evidence/b11/v51-owner-request-overview-live-expiry-20260817T101258Z.json`
