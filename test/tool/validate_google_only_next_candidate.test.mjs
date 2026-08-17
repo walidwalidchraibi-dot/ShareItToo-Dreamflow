@@ -37,6 +37,8 @@ test('accepts one future internal Staging build with Google only', () => {
       SIT_SOCIAL_FACEBOOK_ENABLED: '0',
       SIT_RELEASE_CHANNEL: 'internal',
       SIT_API_BASE_URL: 'https://staging.shareittoo.com/api/v1',
+      SIT_ENABLE_STAGING_CRASH_DIAGNOSTIC: '1',
+      SIT_STAGING_CRASH_DIAGNOSTIC_RUN_ID: 'b11-android-2026081510',
     },
   });
   assert.equal(result.plannedBuildNumber, '2026081510');
@@ -52,6 +54,8 @@ test('rejects enabling Apple or Facebook in the Google-only build', () => {
       environment: {
         SIT_SOCIAL_GOOGLE_ENABLED: '1',
         [providerFlag]: '1',
+        SIT_ENABLE_STAGING_CRASH_DIAGNOSTIC: '1',
+        SIT_STAGING_CRASH_DIAGNOSTIC_RUN_ID: 'b11-android-2026081510',
       },
     }), /must enable Google only/);
   }
@@ -65,6 +69,28 @@ test('rejects production or Store submission', () => {
     environment: {
       SIT_SOCIAL_GOOGLE_ENABLED: '1',
       SIT_API_BASE_URL: 'https://api.shareittoo.com/api/v1',
+      SIT_ENABLE_STAGING_CRASH_DIAGNOSTIC: '1',
+      SIT_STAGING_CRASH_DIAGNOSTIC_RUN_ID: 'b11-android-2026081510',
     },
   }), /restricted to internal Staging/);
+});
+
+test('rejects omitting or reusing a controlled Crashlytics run id', () => {
+  for (const finalEnvironment of [
+    {
+      SIT_SOCIAL_GOOGLE_ENABLED: '1',
+    },
+    {
+      SIT_SOCIAL_GOOGLE_ENABLED: '1',
+      SIT_ENABLE_STAGING_CRASH_DIAGNOSTIC: '1',
+      SIT_STAGING_CRASH_DIAGNOSTIC_RUN_ID: 'b11-android-2026081509',
+    },
+  ]) {
+    assert.throws(() => validateGoogleOnlyNextCandidate({
+      repositoryRoot,
+      requireBuildable: true,
+      pubspecContents: futurePubspec,
+      environment: finalEnvironment,
+    }), /exactly one build-bound sanitized Crashlytics run/);
+  }
 });

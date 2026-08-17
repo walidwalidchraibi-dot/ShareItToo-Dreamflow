@@ -46,8 +46,30 @@ export function validateGoogleOnlyNextCandidate({
       policy.appleLoginEnabled !== false ||
       policy.facebookLoginEnabled !== false ||
       policy.providerEvidenceRef !==
-        'docs/evidence/b11/firebase-google-signin-provider-20260815.json') {
+        'docs/evidence/b11/firebase-google-signin-provider-20260815.json' ||
+      policy.firebaseCloudMessagingRetained !== true ||
+      policy.firebaseCrashlyticsRetained !== true ||
+      policy.independentDeviceServiceOptIns !== true ||
+      policy.deviceServicesDefaultOff !== true ||
+      policy.controlledCrashDiagnosticRequired !== true ||
+      policy.controlledCrashDiagnosticRunIdRule !==
+        'b11-android-<buildNumber>' ||
+      policy.largeTextRemediationRequired !== true ||
+      policy.v51LegalAssetsActivation !== 'draft-blocked') {
     fail('Google-only next-candidate plan is stale or no longer fail-closed.');
+  }
+  const requiredBeforeBuild = manifest.requiredBeforeBuild;
+  const requiredCandidateControls = [
+    'large-text wishlist and profile remediation is included',
+    'Push and Crashlytics remain separate voluntary default-off choices',
+    'exactly one sanitized internal Crashlytics run id is compiled',
+    'V5.1 legal assets remain draft-blocked',
+  ];
+  if (!Array.isArray(requiredBeforeBuild) ||
+      requiredCandidateControls.some(
+        (requirement) => !requiredBeforeBuild.includes(requirement),
+      )) {
+    fail('Next-candidate build requirements omit a mandatory safety control.');
   }
   const provider = JSON.parse(readFileSync(resolve(
     repositoryRoot, policy.providerEvidenceRef), 'utf8'));
@@ -92,6 +114,14 @@ export function validateGoogleOnlyNextCandidate({
         enabled(environment.SIT_SOCIAL_APPLE_ENABLED) ||
         enabled(environment.SIT_SOCIAL_FACEBOOK_ENABLED)) {
       fail('Next consolidated candidate must enable Google only.');
+    }
+    const expectedCrashRunId = `b11-android-${plannedBuildNumber}`;
+    if (!enabled(environment.SIT_ENABLE_STAGING_CRASH_DIAGNOSTIC) ||
+        environment.SIT_STAGING_CRASH_DIAGNOSTIC_RUN_ID !==
+          expectedCrashRunId) {
+      fail(
+        'Next consolidated candidate requires exactly one build-bound sanitized Crashlytics run.',
+      );
     }
     if ((environment.SIT_RELEASE_CHANNEL ?? 'internal') !== 'internal' ||
         (environment.SIT_API_BASE_URL ?? 'https://staging.shareittoo.com/api/v1') !==

@@ -18,14 +18,26 @@
     "googleLoginEnabled": true,
     "appleLoginEnabled": false,
     "facebookLoginEnabled": false,
-    "providerEvidenceRef": "docs/evidence/b11/firebase-google-signin-provider-20260815.json"
+    "providerEvidenceRef": "docs/evidence/b11/firebase-google-signin-provider-20260815.json",
+    "firebaseCloudMessagingRetained": true,
+    "firebaseCrashlyticsRetained": true,
+    "independentDeviceServiceOptIns": true,
+    "deviceServicesDefaultOff": true,
+    "controlledCrashDiagnosticRequired": true,
+    "controlledCrashDiagnosticRunIdRule": "b11-android-<buildNumber>",
+    "largeTextRemediationRequired": true,
+    "v51LegalAssetsActivation": "draft-blocked"
   },
   "requiredBeforeBuild": [
     "all intended source changes are consolidated and committed",
     "pubspec build number is strictly higher than 2026081509",
     "Google-only release profile test passes",
     "Firebase upload and Play App Signing OAuth clients validate",
-    "release preflight passes against internal Staging"
+    "release preflight passes against internal Staging",
+    "large-text wishlist and profile remediation is included",
+    "Push and Crashlytics remain separate voluntary default-off choices",
+    "exactly one sanitized internal Crashlytics run id is compiled",
+    "V5.1 legal assets remain draft-blocked"
   ],
   "hardStops": {
     "sameOrOlderBuildNumber": true,

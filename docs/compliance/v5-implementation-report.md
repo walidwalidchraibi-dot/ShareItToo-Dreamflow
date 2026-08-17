@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.134
+Stand: 17.08.2026, lokaler Checkpoint 16.135
 
 ## Verbindliche Grenzen
 
@@ -219,3 +219,24 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
 - Produktion, Store, Echtgeld, öffentliche Rechtstexte und der bestehende
   Kandidat blieben unverändert. Nachweis:
   `docs/evidence/b11/android-crash-controlled-event-gate-2026081509-20260817T061900Z.json`
+
+## Prüfstand Checkpoint 16.135
+
+- der lokale Plan für den nächsten konsolidierten internen Kandidaten wurde
+  verschärft; gebaut oder hochgeladen wurde noch nichts
+- `2026081510` ist ausschließlich für Google-Anmeldung, internen Kanal und
+  isoliertes Staging zulässig; Apple, Facebook, Produktion, Store-Einreichung
+  und Echtgeld bleiben geschlossen
+- FCM-Push und Firebase Crashlytics sind als getrennte, freiwillige und
+  standardmäßig ausgeschaltete Dienste verbindlich im Kandidatenvertrag
+  erhalten
+- der Build wird technisch verweigert, solange nicht genau der
+  buildgebundene bereinigte Crashlauf `b11-android-2026081510` aktiviert ist
+- Großtextkorrektur für Wunschlisten und Profil muss enthalten bleiben;
+  V5.1-Rechtsassets bleiben `draft-blocked`
+- 14 Plan-, Rollover-, Provider-, Crash- und Fail-closed-Tests bestanden; der
+  aktuelle Stand bleibt bewusst `prepared-not-built`, weil die Buildnummer
+  noch unverändert `2026081509` ist
+- Produktion, Store, Echtgeld, öffentliche Rechtstexte und der bestehende
+  Kandidat blieben unverändert. Nachweis:
+  `docs/evidence/b11/next-candidate-safety-contract-2026081510-20260817.json`
