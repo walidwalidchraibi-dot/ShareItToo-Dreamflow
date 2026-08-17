@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.141
+Stand: 17.08.2026, lokaler Checkpoint 16.142
 
 ## Verbindliche Grenzen
 
@@ -357,3 +357,27 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
 - alle neun Aufbewahrungs-/Löschentscheidungen bleiben deshalb formal offen;
   keine Löschroutine, Produktion, Store-Angabe oder externe Übertragung wurde
   durch diesen Dokumentationsschritt aktiviert.
+
+## Prüfstand Checkpoint 16.142
+
+- im echten Backendpfad zeigt die Auswahl des Mietzeitraums keinen lokal
+  berechneten Gesamtpreis mehr als verbindlichen Betrag an
+- der verbindliche Gesamtpreis wird erst nach „Weiter“ im Checkout über ein
+  frisches, zeitlich begrenztes Serverangebot geladen; ändert sich dieses
+  Angebot, muss der Nutzer es erneut ausdrücklich bestätigen
+- nur der ausdrücklich gebundene lokale QA-Modus darf weiterhin eine lokale
+  Vorschau anzeigen; sie ist sichtbar als unverbindliche QA-Vorschau markiert
+- der Checkout bleibt geschlossen, wenn das Angebot abgelaufen ist, keine
+  Zahlungsart gewählt wurde oder eine der beiden Erklärungen fehlt
+- Lieferung, Rückgabeabholung und Express bleiben im gebundenen Serverangebot
+  ausgeschaltet; sie werden nicht stillschweigend in den Preis aufgenommen
+- 4/4 neue Preis-Wiring-Tests, 61 gezielte Flutter-Tests und die vollständige
+  Regression mit 268 bestandenen Tests, 1 bewusstem Skip, 229 Analyzer-
+  Hinweisen bei 0 Fehlern sowie grünen Web- und Android-Debug-Builds bestanden
+- der Quellstand wurde nicht als Kandidat neu gebaut, umbenannt oder
+  hochgeladen. Google Play Internal bleibt unverändert bei `2026081509`; der
+  lokale signierte Kandidat `2026081510` bleibt `built-local-not-uploaded`
+- Push und Crashdiagnose bleiben erhalten, getrennt, freiwillig und
+  standardmäßig aus; dieser Meilenstein änderte keinen Dienst und übertrug
+  keine Crashdaten. Nachweis:
+  `docs/evidence/b11/v51-selected-range-server-price-truth-20260817T074500Z.json`
