@@ -75,7 +75,8 @@ test('all booking states prefer exact server rent, fee, total and payout', () =>
   assert.match(detail, /boundPrice\?\.rentalSubtotal/u);
   assert.match(detail, /boundPrice\?\.total/u);
   assert.match(detail, /boundPrice\?\.ownerPayout/u);
-  assert.match(detail, /if \(boundPrice == null && dropFee > 0\)/u);
-  assert.match(detail, /if \(boundPrice == null && expressFee > 0\)/u);
+  assert.doesNotMatch(detail, /dropFee|retFee|expressFee/u);
+  assert.match(detail, /\(rentalSubtotalLocal \+ feeLocal\)\.toStringAsFixed\(2\)/u);
+  assert.match(detail, /\(rentalSubtotal \+ fee\)[\s\S]*?\.clamp\(0\.0, double\.infinity\)/u);
   assert.match(detail, /Legacy and\s+\/\/\/ QA bookings without a complete/u);
 });

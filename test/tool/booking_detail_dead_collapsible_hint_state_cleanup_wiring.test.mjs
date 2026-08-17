@@ -38,8 +38,8 @@ test('active address privacy and fixed information cards stay wired', () => {
   );
 
   const upcoming = sectionBetween(
-    '// Approximate pickup map directly under the info card (only for the traveler)',
-    '// Pending (Ausstehend):',
+    '// Approximate pickup map directly under the info card.',
+    '// Pending: same self-pickup privacy map as upcoming.',
   );
   assert.match(
     upcoming.source,
@@ -55,8 +55,8 @@ test('active address privacy and fixed information cards stay wired', () => {
   );
 
   const pending = sectionBetween(
-    '// Pending (Ausstehend):',
-    '// Ongoing (Laufend):',
+    '// Pending: same self-pickup privacy map as upcoming.',
+    '// Ongoing: self-return map.',
     upcoming.end,
   );
   assert.match(
@@ -74,16 +74,16 @@ test('approximate location maps stay present for protected booking locations', (
   assert.ok(mapCalls.length >= 4, 'expected all active approximate map branches');
 
   const upcoming = sectionBetween(
-    '// Approximate pickup map directly under the info card (only for the traveler)',
-    '// Pending (Ausstehend):',
+    '// Approximate pickup map directly under the info card.',
+    '// Pending: same self-pickup privacy map as upcoming.',
   );
   const pending = sectionBetween(
-    '// Pending (Ausstehend):',
-    '// Ongoing (Laufend):',
+    '// Pending: same self-pickup privacy map as upcoming.',
+    '// Ongoing: self-return map.',
     upcoming.end,
   );
   const ongoing = sectionBetween(
-    '// Ongoing (Laufend):',
+    '// Ongoing: self-return map.',
     '// Old collapsible privacy card removed',
     pending.end,
   );

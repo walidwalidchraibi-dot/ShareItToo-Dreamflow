@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "16.175",
+  "capturedAtUtc": "2026-08-17T18:22:43Z",
+  "sourceBaseCommit": "8e3180091dbb52d5e375adf4ecac317b868ceda2",
+  "status": "passed",
+  "bookingDetailBoundary": {
+    "savedTransportStateRead": false,
+    "expressStateRead": false,
+    "deliveryDistanceRecalculated": false,
+    "legacyTransportFeesDisplayed": false,
+    "rideCompensationMutated": false,
+    "selfPickupAndReturnPresented": true,
+    "bindingServerPriceSnapshotPreserved": true,
+    "fallbackRentAndPlatformContributionOnly": true,
+    "addressPrivacyPreserved": true,
+    "pickupAndReturnChallengesPreserved": true,
+    "pickupAndReturnPhotoGuardsPreserved": true,
+    "chatCancellationAndReviewPreserved": true
+  },
+  "privacyBoundary": {
+    "collectionChanged": false,
+    "storageChanged": false,
+    "transmissionChanged": false,
+    "permissionsChanged": false,
+    "sourceInventoryHashUpdated": true
+  },
+  "verification": {
+    "targetedWiring": "27/27 passed",
+    "targetedPrivacyAndStore": "31/31 passed",
+    "runtimeDiff": "19 insertions, 392 deletions",
+    "targetedAnalyzer": "46 existing findings, 0 errors",
+    "fullTechnicalRegression": "passed with exit code 0",
+    "fullFlutter": "292 passed, 1 intentional skip",
+    "backend": "213 passed, 1 intentional PostgreSQL skip",
+    "flutterAnalyzer": "224 findings, 0 errors",
+    "webDebugBuild": "passed",
+    "androidDebugBuild": "passed"
+  },
+  "serviceBoundary": {
+    "pushRetained": true,
+    "crashlyticsRetained": true,
+    "separateVoluntaryDefaultOffChoices": true,
+    "pushEnablesCrashlytics": false,
+    "adsMarketingAnalyticsExternalGenAiEnabled": false
+  },
+  "externalActions": {
+    "deployment": false,
+    "upload": false,
+    "storeMutation": false,
+    "providerConsoleMutation": false,
+    "liveMoney": false,
+    "candidateBuiltOrRelabeled": false
+  },
+  "sourceHashesSha256": {
+    "lib/screens/booking_detail_screen.dart": "eea69894977356af2b5f314bf5f8c2cea3012cdf48a1c5ef7c28b2bb090657f3",
+    "store/privacy-disclosures.json": "11a875cc6e73eed919ea80e76190acfad2dd6212a1bee977d257b4500048206b",
+    "test/tool/booking_detail_dead_collapsible_hint_state_cleanup_wiring.test.mjs": "f47f7b1a1f61f3c639522abbafa8aa185552fa6a40ede2c775c289f3e84ead05",
+    "test/tool/v51_booking_detail_server_price_snapshot_wiring.test.mjs": "b39a89364255efbaf45f6a41edf02446f23080c93d46a2feb31e75f960444921",
+    "test/tool/v51_booking_detail_transport_disabled_wiring.test.mjs": "8122e22dd4b6ae52fbac865a29f7d1baabba1e7ff297113cda5fe0a184d24ce4"
+  }
+}

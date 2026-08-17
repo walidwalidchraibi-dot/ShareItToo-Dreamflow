@@ -1288,3 +1288,35 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   oder Kandidatenwechsel und keine zusätzliche Crashlytics-
   Kennungsübertragung. Nachweis:
   `docs/evidence/b11/v51-neutralize-renter-booking-navigation-transport-20260817T154108Z.json`
+
+## Prüfstand Checkpoint 16.175
+
+- die Mieter-Buchungsdetailansicht liest oder rekonstruiert keine alte
+  Liefer-, Rückgabe-Abhol- oder Expressauswahl mehr. Alte Lieferadressen,
+  Distanzschätzungen, Prioritätszustände und Fahrtvergütungs-Mutationen sind
+  aus diesem Laufzeitpfad entfernt
+- der Privat-Pilot zeigt dort jetzt ausschließlich Selbstabholung und
+  Selbstrückgabe. Geschützte Ortsdarstellung, exakte Adressfreigabe sowie die
+  im sicheren Ablauf bestätigten Übergabe- und Rückgabeorte bleiben erhalten
+- der unveränderliche Serverpreis-Snapshot bleibt vorrangig. Nur für den
+  vorhandenen Legacy-/QA-Fallback wird noch Mietpreis plus Plattformbeitrag
+  dargestellt; Transport- und Expressgebühren werden nicht lokal neu erfunden
+- sichere Übergabe und Rückgabe mit Rollenbindung, Challenge, QR/Code und
+  Fotos sowie Chat, Storno und Bewertung bleiben durch fail-closed Tests
+  geschützt
+- 27/27 gezielte Funktionsschutztests und 31/31 Datenschutz-/Store-Prüfungen
+  bestanden; aus der Laufzeitansicht entfielen netto 373 Zeilen. Der gebundene
+  Datenschutz-Quellhash wurde auf die geprüfte Quelle aktualisiert, ohne eine
+  Erhebungs-, Speicher-, Übertragungs- oder Berechtigungsänderung zu behaupten
+- die vollständige technische Regression bestand mit 292 Flutter-Tests und
+  1 bewusstem Skip, 213 Backendtests und 1 bewusstem PostgreSQL-Skip, 224
+  Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds
+- FCM-Push und Firebase Crashlytics bleiben ausdrücklich bestehen, getrennt,
+  freiwillig und im nächsten Kandidaten standardmäßig aus; Push aktiviert
+  Crashlytics nicht. Werbung, Marketingtracking, allgemeine Analytics und
+  externe generative KI bleiben aus
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store-, Anbieterconsole-
+  oder Kandidatenwechsel und keine zusätzliche Crashlytics-
+  Kennungsübertragung. Nachweis:
+  `docs/evidence/b11/v51-remove-booking-detail-transport-20260817T182243Z.json`

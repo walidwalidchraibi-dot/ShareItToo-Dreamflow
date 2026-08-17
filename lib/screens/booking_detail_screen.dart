@@ -37,7 +37,6 @@ import 'package:lendify/screens/payment_checkout_screen.dart';
 import 'package:lendify/widgets/sit_glass_time_picker.dart';
 import 'package:lendify/widgets/sit_overflow_menu.dart';
 import 'package:lendify/services/handover_code.dart';
-import 'package:lendify/utils/total_subtitle.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
 
 class BookingDetailScreen extends StatefulWidget {
@@ -1253,39 +1252,14 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           // Locations moved out of the info card in all sections
           showLocations: false,
           transportInfo: () {
-            // For laufend we show return side, for others pickup side
-            final renterPicksUpSelf =
-                (widget.booking['ownerDeliversAtDropoffChosen'] == true)
-                    ? false
-                    : true;
-            final renterReturnsSelf =
-                (widget.booking['ownerPicksUpAtReturnChosen'] == true)
-                    ? false
-                    : true;
-            try {
-              final (s, e) = _parseDateRange();
-              final eff = _effectiveCategory(start: s, end: e);
-              debugPrint(
-                '[BookingDetail] transportInfo A: requestId=${widget.booking['requestId'] ?? ''} ownerDeliversAtDropoffChosen=${widget.booking['ownerDeliversAtDropoffChosen'] == true} ownerPicksUpAtReturnChosen=${widget.booking['ownerPicksUpAtReturnChosen'] == true} effective=$eff',
-              );
-            } catch (_) {}
             if (_isOngoing) {
-              return renterReturnsSelf
-                  ? 'Du bringst den Artikel selbst zurück.'
-                  : 'Der Vermieter holt den Artikel wieder ab.';
-            } else {
-              final (s, e) = _parseDateRange();
-              final eff = _effectiveCategory(start: s, end: e);
-              if (renterPicksUpSelf) {
-                return eff == 'pending'
-                    ? 'Du holst den Artikel selbst ab, wenn deine Anfrage akzeptiert wird.'
-                    : 'Du holst den Artikel selbst ab.';
-              } else {
-                return eff == 'pending'
-                    ? 'Wenn $_listerName deine Anfrage annimmt, bringt er dir den Artikel vorbei.'
-                    : 'Der Vermieter bringt dir den Artikel.';
-              }
+              return 'Du bringst den Artikel selbst zurück.';
             }
+            final (s, e) = _parseDateRange();
+            final eff = _effectiveCategory(start: s, end: e);
+            return eff == 'pending'
+                ? 'Du holst den Artikel selbst ab, wenn deine Anfrage akzeptiert wird.'
+                : 'Du holst den Artikel selbst ab.';
           }(),
         ),
 
@@ -1324,15 +1298,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           ),
         ],
 
-        // Ongoing (Laufend): Karte für Rückgabe, falls der Mieter selbst zurückbringt –
-        // identisches Verhalten wie die Abhol‑Karte in „Kommende Buchung"
+        // Ongoing: self-return map mirrors the pickup map.
         Builder(
           builder: (context) {
-            final renterReturnsSelf =
-                (widget.booking['ownerPicksUpAtReturnChosen'] == true)
-                    ? false
-                    : true;
-            if (!renterReturnsSelf) return const SizedBox.shrink();
             final label = AddressPrivacy.nearbyShort(kindLabel: 'Rückgabe');
             final fullAddress = (widget.booking['location'] as String?) ?? '';
             // For ongoing bookings, always show the exact address
@@ -1391,92 +1359,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                   DataService.platformContributionForRental(
                     rentalSubtotalLocal,
                   );
-              // Delivery/return/express fees derived from stored selection + item coords
-              final bool ownerDelivers =
-                  (widget.booking['ownerDeliversAtDropoffChosen'] == true) ||
-                      (widget.booking['expressRequested'] == true) ||
-                      (widget.booking['expressStatus'] != null) ||
-                      ((widget.booking['deliveryAddressLine'] ?? '')
-                          .toString()
-                          .trim()
-                          .isNotEmpty) ||
-                      ((widget.booking['deliveryCity'] ?? '')
-                          .toString()
-                          .trim()
-                          .isNotEmpty);
-              final bool ownerPicks =
-                  (widget.booking['ownerPicksUpAtReturnChosen'] == true);
-              double km = 0.0;
-              final double? dLat =
-                  (widget.booking['deliveryLat'] as num?)?.toDouble();
-              final double? dLng =
-                  (widget.booking['deliveryLng'] as num?)?.toDouble();
-              if (_itemLat != null &&
-                  _itemLng != null &&
-                  dLat != null &&
-                  dLng != null) {
-                km = DataService.estimateDistanceKm(
-                  _itemLat!,
-                  _itemLng!,
-                  dLat,
-                  dLng,
-                );
-              } else if (_itemLat != null &&
-                  _itemLng != null &&
-                  ((widget.booking['deliveryAddressLine'] ?? '')
-                      .toString()
-                      .trim()
-                      .isNotEmpty)) {
-                km = DataService.estimateDistanceKmFromAddressLine(
-                  _itemLat!,
-                  _itemLng!,
-                  (widget.booking['deliveryAddressLine'] as String).trim(),
-                );
-              } else if (_itemLat != null &&
-                  _itemLng != null &&
-                  ((widget.booking['deliveryCity'] ?? '')
-                      .toString()
-                      .trim()
-                      .isNotEmpty)) {
-                km = DataService.estimateDistanceKmToCity(
-                  _itemLat!,
-                  _itemLng!,
-                  (widget.booking['deliveryCity'] as String).trim(),
-                );
-              }
-              final double dropFee = ownerDelivers
-                  ? double.parse((km * 0.30).toStringAsFixed(2))
-                  : 0.0;
-              final double retFee = ownerPicks
-                  ? double.parse((km * 0.30).toStringAsFixed(2))
-                  : 0.0;
-              final bool expressSelected =
-                  (widget.booking['expressRequested'] == true) ||
-                      (widget.booking['expressStatus'] == 'accepted');
-              final bool expressAccepted =
-                  (widget.booking['expressStatus'] == 'accepted');
-              final double expressFee = expressSelected ? 5.0 : 0.0;
-              final double expressFeePlatform = expressFee > 0
-                  ? double.parse((expressFee * 0.10).toStringAsFixed(2))
-                  : 0.0;
               final double totalPaid = boundPrice?.total ??
                   double.parse(
-                    (rentalSubtotalLocal +
-                            feeLocal +
-                            dropFee +
-                            retFee +
-                            expressFee +
-                            expressFeePlatform)
-                        .toStringAsFixed(2),
+                    (rentalSubtotalLocal + feeLocal).toStringAsFixed(2),
                   );
               final payoutEst = boundPrice?.ownerPayout ??
-                  double.parse(
-                    (rentalSubtotalLocal +
-                            dropFee +
-                            retFee +
-                            (expressAccepted ? 5.0 : 0.0))
-                        .toStringAsFixed(2),
-                  );
+                  double.parse(rentalSubtotalLocal.toStringAsFixed(2));
               if (_isViewerOwnerSync()) {
                 final isHeldForReview = widget.booking['needsReview'] == true;
                 // Owner view: show only payout, no details
@@ -1586,26 +1474,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     label: 'Zwischensumme (Mietpreis)',
                     value: _formatEuro(rentalSubtotalLocal),
                   ),
-                  if (boundPrice == null && dropFee > 0)
-                    _AmountRow(
-                      label: 'Lieferung (Abgabe)',
-                      value: _formatEuro(dropFee),
-                    ),
-                  if (boundPrice == null && retFee > 0)
-                    _AmountRow(
-                      label: 'Abholung (Rückgabe)',
-                      value: _formatEuro(retFee),
-                    ),
-                  if (boundPrice == null && expressFee > 0)
-                    _AmountRow(
-                      label: 'Prioritätszuschlag',
-                      value: _formatEuro(expressFee),
-                    ),
-                  if (boundPrice == null && expressFeePlatform > 0)
-                    _AmountRow(
-                      label: 'Plattformbeitrag auf Priorität (10%)',
-                      value: _formatEuro(expressFeePlatform),
-                    ),
                   _AmountRow(
                     label: 'Plattformbeitrag',
                     value: _formatEuro(feeLocal),
@@ -2127,16 +1995,9 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                         builder: (context) {
                           final now = DateTime.now();
                           final diff = start.difference(now);
-                          final ownerDeliversAtDropoff = (widget.booking[
-                                      'ownerDeliversAtDropoffChosen'] ==
-                                  true) ||
-                              (widget.booking['expressRequested'] == true) ||
-                              (widget.booking['expressStatus'] == 'accepted');
-                          final modeLabel =
-                              ownerDeliversAtDropoff ? 'Lieferung' : 'Abholung';
                           final text = _formatPickupCountdown(
                             diff,
-                            modeLabel: modeLabel,
+                            modeLabel: 'Abholung',
                           );
                           return Container(
                             padding: const EdgeInsets.symmetric(
@@ -2257,43 +2118,21 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           // Locations moved out of the info card for all sections
           showLocations: false,
           transportInfo: () {
-            final renterPicksUpSelf =
-                (widget.booking['ownerDeliversAtDropoffChosen'] == true)
-                    ? false
-                    : true;
-            final renterReturnsSelf =
-                (widget.booking['ownerPicksUpAtReturnChosen'] == true)
-                    ? false
-                    : true;
             if (_isOngoing) {
-              // Laufend: Rückgabe-Info abhängig von der gewählten Rückgabeart
-              return renterReturnsSelf
-                  ? 'Du bringst den Artikel selbst zurück.'
-                  : 'Der Vermieter holt den Artikel wieder ab.';
+              return 'Du bringst den Artikel selbst zurück.';
             } else if (isPending || isUpcoming) {
-              if (renterPicksUpSelf) {
-                return isPending
-                    ? 'Du holst den Artikel selbst ab, wenn deine Anfrage akzeptiert wird.'
-                    : 'Du holst den Artikel selbst ab.';
-              }
-              // Lieferung gewählt: In Ausstehend klarstellen, dass erst nach Annahme geliefert wird
               return isPending
-                  ? 'Wenn $_listerName deine Anfrage annimmt, bringt er dir den Artikel vorbei.'
-                  : 'Der Vermieter bringt dir den Artikel.';
+                  ? 'Du holst den Artikel selbst ab, wenn deine Anfrage akzeptiert wird.'
+                  : 'Du holst den Artikel selbst ab.';
             }
             return null;
           }(),
         ),
 
-        // Approximate pickup map directly under the info card (only for the traveler)
+        // Approximate pickup map directly under the info card.
         if (isUpcoming)
           Builder(
             builder: (context) {
-              final renterPicksUpSelf =
-                  (widget.booking['ownerDeliversAtDropoffChosen'] == true)
-                      ? false
-                      : true;
-              if (!renterPicksUpSelf) return const SizedBox.shrink();
               final label = AddressPrivacy.nearbyShort(kindLabel: 'Abholung');
               final fullAddress = (widget.booking['location'] as String?) ?? '';
               final requestStatus = ((widget.booking['statusRaw'] as String?) ??
@@ -2333,20 +2172,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             },
           ),
 
-        // Pending (Ausstehend): gleiche Kartenlogik wie Kommend, falls der Mieter selbst abholt
+        // Pending: same self-pickup privacy map as upcoming.
         if (isPending)
           Builder(
             builder: (context) {
-              final renterPicksUpSelf =
-                  (widget.booking['ownerDeliversAtDropoffChosen'] == true)
-                      ? false
-                      : true;
-              try {
-                debugPrint(
-                  '[BookingDetail] pending map visibility: requestId=${widget.booking['requestId'] ?? ''} ownerDeliversAtDropoffChosen=${widget.booking['ownerDeliversAtDropoffChosen'] == true} showMap=$renterPicksUpSelf',
-                );
-              } catch (_) {}
-              if (!renterPicksUpSelf) return const SizedBox.shrink();
               final label = AddressPrivacy.nearbyShort(kindLabel: 'Abholung');
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2369,15 +2198,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             },
           ),
 
-        // Ongoing (Laufend): Karte für Rückgabe, falls der Mieter selbst zurückbringt
+        // Ongoing: self-return map.
         if (_isOngoing && widget.booking['needsReview'] != true)
           Builder(
             builder: (context) {
-              final renterReturnsSelf =
-                  (widget.booking['ownerPicksUpAtReturnChosen'] == true)
-                      ? false
-                      : true;
-              if (!renterReturnsSelf) return const SizedBox.shrink();
               final label = AddressPrivacy.nearbyShort(kindLabel: 'Rückgabe');
               final fullAddress = (widget.booking['location'] as String?) ?? '';
               // For ongoing bookings, always show the exact address
@@ -2427,93 +2251,12 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
           padding: const EdgeInsets.all(12),
           child: Builder(
             builder: (context) {
-              // Delivery/return/express fees for total computation (align with ongoing logic)
-              final bool ownerDelivers =
-                  (widget.booking['ownerDeliversAtDropoffChosen'] == true) ||
-                      (widget.booking['expressRequested'] == true) ||
-                      (widget.booking['expressStatus'] != null) ||
-                      ((widget.booking['deliveryAddressLine'] ?? '')
-                          .toString()
-                          .trim()
-                          .isNotEmpty) ||
-                      ((widget.booking['deliveryCity'] ?? '')
-                          .toString()
-                          .trim()
-                          .isNotEmpty);
-              final bool ownerPicks =
-                  (widget.booking['ownerPicksUpAtReturnChosen'] == true);
-              double km = 0.0;
-              final double? dLat =
-                  (widget.booking['deliveryLat'] as num?)?.toDouble();
-              final double? dLng =
-                  (widget.booking['deliveryLng'] as num?)?.toDouble();
-              if (_itemLat != null &&
-                  _itemLng != null &&
-                  dLat != null &&
-                  dLng != null) {
-                km = DataService.estimateDistanceKm(
-                  _itemLat!,
-                  _itemLng!,
-                  dLat,
-                  dLng,
-                );
-              } else if (_itemLat != null &&
-                  _itemLng != null &&
-                  ((widget.booking['deliveryAddressLine'] ?? '')
-                      .toString()
-                      .trim()
-                      .isNotEmpty)) {
-                km = DataService.estimateDistanceKmFromAddressLine(
-                  _itemLat!,
-                  _itemLng!,
-                  (widget.booking['deliveryAddressLine'] as String).trim(),
-                );
-              } else if (_itemLat != null &&
-                  _itemLng != null &&
-                  ((widget.booking['deliveryCity'] ?? '')
-                      .toString()
-                      .trim()
-                      .isNotEmpty)) {
-                km = DataService.estimateDistanceKmToCity(
-                  _itemLat!,
-                  _itemLng!,
-                  (widget.booking['deliveryCity'] as String).trim(),
-                );
-              }
-              final double dropFee = ownerDelivers
-                  ? double.parse((km * 0.30).toStringAsFixed(2))
-                  : 0.0;
-              final double retFee = ownerPicks
-                  ? double.parse((km * 0.30).toStringAsFixed(2))
-                  : 0.0;
-              final bool expressSelected =
-                  (widget.booking['expressRequested'] == true) ||
-                      (widget.booking['expressStatus'] == 'accepted');
-              final bool expressAccepted =
-                  (widget.booking['expressStatus'] == 'accepted');
-              final double expressFee = expressSelected ? 5.0 : 0.0;
-              final double expressFeePlatform = expressFee > 0
-                  ? double.parse((expressFee * 0.10).toStringAsFixed(2))
-                  : 0.0;
               final totalRenter = boundPrice?.total ??
-                  (rentalSubtotal +
-                          fee +
-                          dropFee +
-                          retFee +
-                          expressFee +
-                          expressFeePlatform)
-                      .clamp(0.0, double.infinity);
+                  (rentalSubtotal + fee).clamp(0.0, double.infinity);
               if (_isViewerOwnerSync()) {
                 final isHeldForReview = widget.booking['needsReview'] == true;
-                // Owner view: payout berücksichtigt Lieferung/Abholung/Priorität (keine Plattformgebühr)
                 final payoutOwner = boundPrice?.ownerPayout ??
-                    double.parse(
-                      (rentalSubtotal +
-                              dropFee +
-                              retFee +
-                              (expressAccepted ? 5.0 : 0.0))
-                          .toStringAsFixed(2),
-                    );
+                    double.parse(rentalSubtotal.toStringAsFixed(2));
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2568,11 +2311,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     totalRenter;
                 final String subtitle =
                     (widget.booking['quotedSubtitle'] as String?) ??
-                        TotalSubtitleHelper.build(
-                          delivery: ownerDelivers,
-                          pickup: ownerPicks,
-                          priority: expressSelected,
-                        );
+                        'Inkl. Plattformbeitrag.';
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -2625,26 +2364,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     label: 'Mietpreis (Tagespreis × Tage)',
                     value: _formatEuro(rentalSubtotal),
                   ),
-                  if (boundPrice == null && dropFee > 0)
-                    _AmountRow(
-                      label: 'Lieferung (Abgabe)',
-                      value: _formatEuro(dropFee),
-                    ),
-                  if (boundPrice == null && retFee > 0)
-                    _AmountRow(
-                      label: 'Abholung (Rückgabe)',
-                      value: _formatEuro(retFee),
-                    ),
-                  if (boundPrice == null && expressFee > 0)
-                    _AmountRow(
-                      label: 'Prioritätszuschlag',
-                      value: _formatEuro(expressFee),
-                    ),
-                  if (boundPrice == null && expressFeePlatform > 0)
-                    _AmountRow(
-                      label: 'Plattformbeitrag auf Priorität (10%)',
-                      value: _formatEuro(expressFeePlatform),
-                    ),
                   _AmountRow(
                     label: 'Plattformbeitrag',
                     value: _formatEuro(fee),
@@ -3381,19 +3100,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       timesLent: 0,
     );
 
-    // Carry through transport selections so the stepper can show the
-    // "Fahrtvergütung bestätigen" step when zutreffend (Abholung bei Rückgabe).
-    final bool ownerPicksUpChosen =
-        (widget.booking['ownerPicksUpAtReturnChosen'] == true);
-    final bool ownerDeliversChosen =
-        (widget.booking['ownerDeliversAtDropoffChosen'] == true);
-    final String? delLine = widget.booking['deliveryAddressLine'] as String?;
-    final String? delCity = widget.booking['deliveryCity'] as String?;
-    final double? delLat = (widget.booking['deliveryLat'] as num?)?.toDouble();
-    final double? delLng = (widget.booking['deliveryLng'] as num?)?.toDouble();
-    final bool expressRequested = (widget.booking['expressRequested'] == true);
-    final String? expressStatus = widget.booking['expressStatus'] as String?;
-
     final req = RentalRequest(
       id: 'req_$reqIdSeed',
       itemId: item.id,
@@ -3403,14 +3109,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       end: end ?? DateTime.now().add(const Duration(days: 1)),
       status: 'running',
       message: null,
-      ownerPicksUpAtReturnChosen: ownerPicksUpChosen,
-      ownerDeliversAtDropoffChosen: ownerDeliversChosen,
-      deliveryAddressLine: delLine,
-      deliveryCity: delCity,
-      deliveryLat: delLat,
-      deliveryLng: delLng,
-      expressRequested: expressRequested,
-      expressStatus: expressStatus,
     );
 
     final renterName = widget.viewerIsOwner ? _listerName : 'Mieter';
@@ -3475,27 +3173,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         );
         if (!transitioned) return;
       }
-      // Release/cancel ride compensation automatically if a decision was made for return segment
-      try {
-        if (requestId != null && requestId.isNotEmpty) {
-          final grant = await DataService.getRideCompensationDecision(
-            requestId: requestId,
-            segment: 'return',
-            consume: true,
-          );
-          if (grant != null) {
-            await DataService.addTimelineEvent(
-              requestId: requestId,
-              type: grant
-                  ? 'ride_comp_release_return'
-                  : 'ride_comp_cancel_return',
-              note: grant
-                  ? 'Fahrtvergütung freigegeben (Rückgabe)'
-                  : 'Fahrtvergütung nicht ausgezahlt (Rückgabe)',
-            );
-          }
-        }
-      } catch (_) {}
       if (requestId != null && requestId.isNotEmpty) {
         await _syncBookingLifecycleFromRequest(requestId);
       }
@@ -3586,29 +3263,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       timesLent: 0,
     );
 
-    // Carry through transport selections so the stepper can show the
-    // "Fahrtvergütung bestätigen" step when Lieferung bei Abgabe gewählt wurde.
-    final bool ownerDeliversChosenPickup =
-        (widget.booking['ownerDeliversAtDropoffChosen'] == true) ||
-            (widget.booking['expressRequested'] == true) ||
-            (widget.booking['expressStatus'] != null) ||
-            ((widget.booking['deliveryAddressLine'] ?? '')
-                .toString()
-                .trim()
-                .isNotEmpty) ||
-            ((widget.booking['deliveryCity'] ?? '')
-                .toString()
-                .trim()
-                .isNotEmpty);
-    final bool ownerPicksChosenPickup =
-        (widget.booking['ownerPicksUpAtReturnChosen'] == true);
-    final String? pDelLine = widget.booking['deliveryAddressLine'] as String?;
-    final String? pDelCity = widget.booking['deliveryCity'] as String?;
-    final double? pDelLat = (widget.booking['deliveryLat'] as num?)?.toDouble();
-    final double? pDelLng = (widget.booking['deliveryLng'] as num?)?.toDouble();
-    final bool pExpressRequested = (widget.booking['expressRequested'] == true);
-    final String? pExpressStatus = widget.booking['expressStatus'] as String?;
-
     final req = RentalRequest(
       id: 'req_$reqIdSeed',
       itemId: item.id,
@@ -3618,14 +3272,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       end: end ?? DateTime.now().add(const Duration(days: 1)),
       status: 'accepted',
       message: null,
-      ownerDeliversAtDropoffChosen: ownerDeliversChosenPickup,
-      ownerPicksUpAtReturnChosen: ownerPicksChosenPickup,
-      deliveryAddressLine: pDelLine,
-      deliveryCity: pDelCity,
-      deliveryLat: pDelLat,
-      deliveryLng: pDelLng,
-      expressRequested: pExpressRequested,
-      expressStatus: pExpressStatus,
     );
 
     final renterName = widget.viewerIsOwner ? _listerName : 'Mieter';
@@ -3680,25 +3326,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             galleryAcknowledged: galleryAcknowledged,
           );
           if (!transitioned) return;
-          // Release/cancel ride compensation for dropoff if decision exists
-          try {
-            final grant = await DataService.getRideCompensationDecision(
-              requestId: requestId,
-              segment: 'dropoff',
-              consume: true,
-            );
-            if (grant != null) {
-              await DataService.addTimelineEvent(
-                requestId: requestId,
-                type: grant
-                    ? 'ride_comp_release_dropoff'
-                    : 'ride_comp_cancel_dropoff',
-                note: grant
-                    ? 'Fahrtvergütung freigegeben (Übergabe)'
-                    : 'Fahrtvergütung nicht ausgezahlt (Übergabe)',
-              );
-            }
-          } catch (_) {}
         }
         if (!mounted) return;
         await _syncBookingLifecycleFromRequest(requestId!);
