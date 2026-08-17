@@ -10,7 +10,8 @@ User buildTestUser(
   required String name,
   String city = 'Berlin',
   String? email,
-}) => User(
+}) =>
+    User(
       id: id,
       displayName: name,
       email: email ?? '$id@example.com',
@@ -32,7 +33,8 @@ Item buildTestItem({
   double lat = 52.52,
   double lng = 13.405,
   String cancellationPolicy = 'unified',
-}) => Item(
+}) =>
+    Item(
       id: id,
       ownerId: ownerId,
       title: title,
@@ -90,7 +92,11 @@ RentalRequest buildTestRequest({
   String? returnCity,
   double? returnLat,
   double? returnLng,
-}) => RentalRequest(
+  int? quotedRentalSubtotalMinor,
+  int? quotedPlatformFeeMinor,
+  int? quotedTotalMinor,
+}) =>
+    RentalRequest(
       id: id,
       itemId: itemId,
       ownerId: ownerId,
@@ -113,6 +119,9 @@ RentalRequest buildTestRequest({
       returnCity: returnCity,
       returnLat: returnLat,
       returnLng: returnLng,
+      quotedRentalSubtotalMinor: quotedRentalSubtotalMinor,
+      quotedPlatformFeeMinor: quotedPlatformFeeMinor,
+      quotedTotalMinor: quotedTotalMinor,
     );
 
 Future<void> seedCoreBookingState({

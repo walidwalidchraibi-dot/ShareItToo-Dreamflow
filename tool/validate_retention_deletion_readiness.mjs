@@ -21,6 +21,7 @@ const sourcePaths = [
   'backend/src/v51_contract_receipt.js',
   'backend/src/v51_withdrawal_workflow.js',
   'backend/src/booking_condition_evidence_workflow.js',
+  'backend/src/financial_documents.js',
   'backend/sql/schema.sql',
   'backend/sql/migrations/006_b7_communications.up.sql',
   'backend/sql/migrations/014_account_legal_holds.up.sql',
@@ -29,6 +30,7 @@ const sourcePaths = [
   'backend/sql/migrations/017_v51_contract_receipts.up.sql',
   'backend/sql/migrations/018_v51_withdrawal_and_refund_obligations.up.sql',
   'backend/sql/migrations/019_v51_condition_evidence.up.sql',
+  'backend/sql/migrations/020_v51_financial_documents.up.sql',
   'backend/ops/backup.sh',
   'lib/screens/legal_privacy_screen.dart',
   'lib/screens/privacy_info_screen.dart',
@@ -178,6 +180,11 @@ function assertSourceContracts(root, sourceTexts) {
     'eligibleRowsCalculated: false',
   ]) {
     if (!inventory.includes(marker)) fail(`Retention inventory is missing the fail-closed contract: ${marker}.`);
+  }
+  for (const dataset of ['financial_documents', 'financial_document_events']) {
+    if (!inventory.includes(`'transactions', '${dataset}'`)) {
+      fail(`Retention inventory is missing immutable dataset ${dataset}.`);
+    }
   }
   if (/DELETE\s+FROM|UPDATE\s+[a-z_]+\s+SET/iu.test(inventory)) {
     fail('Retention inventory must remain read-only.');

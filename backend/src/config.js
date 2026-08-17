@@ -135,6 +135,12 @@ const publicCompliance = {
   contentResponsible: process.env.PUBLIC_LEGAL_CONTENT_RESPONSIBLE?.trim() ?? '',
   effectiveDate: process.env.PUBLIC_PRIVACY_EFFECTIVE_DATE?.trim() ?? '',
 };
+const financialDocumentsLiveIssuanceApproved =
+  (process.env.FINANCIAL_DOCUMENTS_LIVE_ISSUANCE_APPROVED ?? 'false')
+    .trim()
+    .toLowerCase() === 'true';
+const financialDocumentsSitFeeTaxLabel =
+  process.env.FINANCIAL_DOCUMENTS_SIT_FEE_TAX_LABEL?.trim() ?? '';
 
 const googleMapsServerApiKey = process.env.GOOGLE_MAPS_SERVER_API_KEY?.trim() ?? '';
 if (googleMapsServerApiKey && !/^AIza[0-9A-Za-z_-]{20,}$/u.test(googleMapsServerApiKey)) {
@@ -170,6 +176,29 @@ if (publicComplianceApproved) {
     throw new Error('PUBLIC_PRIVACY_EFFECTIVE_DATE must use YYYY-MM-DD');
   }
 }
+if (financialDocumentsLiveIssuanceApproved) {
+  if (!publicComplianceApproved) {
+    throw new Error(
+      'FINANCIAL_DOCUMENTS_LIVE_ISSUANCE_APPROVED requires PUBLIC_COMPLIANCE_APPROVED=true',
+    );
+  }
+  if (paymentTransport !== 'stripe' || !stripeLivemode) {
+    throw new Error(
+      'FINANCIAL_DOCUMENTS_LIVE_ISSUANCE_APPROVED requires live Stripe transport',
+    );
+  }
+  if (!financialDocumentsSitFeeTaxLabel) {
+    throw new Error(
+      'FINANCIAL_DOCUMENTS_SIT_FEE_TAX_LABEL is required for live financial documents',
+    );
+  }
+}
+if (paymentTransport === 'stripe' && stripeLivemode
+    && !financialDocumentsLiveIssuanceApproved) {
+  throw new Error(
+    'Live Stripe requires approved immutable financial-document issuance',
+  );
+}
 
 export const config = Object.freeze({
   port: Number.parseInt(process.env.PORT ?? '8080', 10),
@@ -195,6 +224,10 @@ export const config = Object.freeze({
   failedLoginLockMinutes: 15,
   appPublicUrl: (process.env.APP_PUBLIC_URL ?? 'https://shareittoo.com').replace(/\/$/, ''),
   publicCompliance: Object.freeze(publicCompliance),
+  financialDocuments: Object.freeze({
+    liveIssuanceApproved: financialDocumentsLiveIssuanceApproved,
+    sitFeeTaxLabel: financialDocumentsSitFeeTaxLabel,
+  }),
   maps: Object.freeze({
     enabled: googleMapsServerApiKey !== '',
     serverApiKey: googleMapsServerApiKey,

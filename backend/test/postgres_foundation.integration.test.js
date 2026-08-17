@@ -80,10 +80,23 @@ if (!databaseUrl) {
         '017_v51_contract_receipts.up.sql',
         '018_v51_withdrawal_and_refund_obligations.up.sql',
         '019_v51_condition_evidence.up.sql',
+        '020_v51_financial_documents.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows.at(-1).checksum, /^[0-9a-f]{64}$/);
+      const financialDocumentTables = await setupPool.query(
+        `SELECT table_name
+           FROM information_schema.tables
+          WHERE table_schema = 'public'
+            AND table_name = ANY($1::text[])
+          ORDER BY table_name`,
+        [['financial_document_events', 'financial_documents']],
+      );
+      assert.deepEqual(financialDocumentTables.rows, [
+        { table_name: 'financial_document_events' },
+        { table_name: 'financial_documents' },
+      ]);
       const confirmationChallengeColumns = await setupPool.query(
         `SELECT column_name
            FROM information_schema.columns

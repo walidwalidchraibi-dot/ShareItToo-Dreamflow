@@ -21,12 +21,16 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
 import 'package:lendify/widgets/sit_glass_time_picker.dart';
-import 'dart:convert';
 import 'dart:ui' show ImageFilter;
 import 'package:lendify/services/address_privacy.dart';
 import 'package:lendify/widgets/approx_location_map.dart';
 import 'package:lendify/widgets/sit_overflow_menu.dart';
 import 'package:lendify/services/handover_code.dart';
+import 'package:lendify/models/invoice.dart';
+import 'package:lendify/services/invoice_pdf_service.dart';
+import 'package:lendify/services/invoices_service.dart';
+import 'package:lendify/services/local_artifact_storage_service.dart';
+import 'package:printing/printing.dart';
 
 class OngoingOwnerDetailScreen extends StatefulWidget {
   final String requestId;
@@ -698,11 +702,8 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       req: req,
       deliverySel: _deliverySel,
     );
-    final rentalSubtotalOnly = breakdown.rentalSubtotal;
-    final platformFee = breakdown.platformFee;
-    double totalPaid = breakdown.totalRenter;
-    final fee = platformFee;
-    final subtotal = rentalSubtotalOnly;
+    final totalPaid = breakdown.totalRenter;
+    final fee = breakdown.platformFee;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -1574,13 +1575,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                 Align(
                   alignment: Alignment.center,
                   child: OutlinedButton.icon(
-                    onPressed: () => _downloadReceiptPdf(
-                      item,
-                      req,
-                      totalPaid,
-                      fee,
-                      subtotal,
-                    ),
+                    onPressed: () => _downloadReceiptPdf(req),
                     icon: const Icon(Icons.picture_as_pdf),
                     label: const Text('Beleg herunterladen (PDF)'),
                   ),
@@ -1846,75 +1841,47 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     );
   }
 
-  Future<void> _downloadReceiptPdf(
-    Item item,
-    RentalRequest req,
-    double totalPaid,
-    double fee,
-    double subtotal,
-  ) async {
-    if (req.needsReview) {
+  Future<void> _downloadReceiptPdf(RentalRequest req) async {
+    try {
+      final documents = await InvoicesService.getInvoicesForCurrentUser();
+      final matching = documents.where((document) =>
+          document.bookingId == req.id &&
+          document.type == InvoiceType.ownerPayoutStatement);
+      if (matching.isEmpty) {
+        if (mounted) {
+          await AppPopup.info(
+            context,
+            title: 'Noch kein Auszahlungsnachweis',
+            message:
+                'Der Beleg wird erst nach einer tatsächlich ausgeführten Auszahlung bereitgestellt.',
+          );
+        }
+        return;
+      }
+      final invoice = matching.first;
+      await InvoicesService.verifyDownloadArtifact(invoice);
+      final bytes = await InvoicePdfService.buildPdf(invoice);
+      final fileName =
+          'SIT_Auszahlungsbeleg_${invoice.bookingId}_${invoice.issuedAt.toIso8601String().split('T').first}.pdf';
+      final saveResult = await LocalArtifactStorageService.maybeSaveReceiptPdf(
+        bytes: bytes,
+        artifactKey:
+            'financial-document:${invoice.id}:${invoice.artifactSha256}',
+        filename: fileName,
+      );
+      if (!saveResult.handledPrimaryAction) {
+        await Printing.layoutPdf(name: fileName, onLayout: (_) async => bytes);
+      }
+    } catch (error) {
+      debugPrint('[OngoingOwnerDetail] payout document failed: $error');
       if (mounted) {
-        AppPopup.toast(
+        await AppPopup.error(
           context,
-          icon: Icons.hourglass_top_outlined,
-          title: 'Beleg gesperrt, solange dieser Fall geprüft wird.',
+          title: 'Auszahlungsnachweis konnte nicht geladen werden',
+          message: 'Bitte versuche es erneut.',
         );
       }
-      return;
     }
-    final bookingId = _computeBookingId(item, req);
-    final bool expressRefund = req.expressRequested &&
-        req.expressStatus == 'declined' &&
-        req.expressFee > 0;
-    final breakdown = DataService.priceBreakdownForRequest(
-      item: item,
-      req: req,
-      deliverySel: _deliverySel,
-    );
-    final html = '''
-<!doctype html>
-<html lang="de">
-<meta charset="utf-8">
-<title>Beleg $bookingId</title>
-<style>
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:24px;color:#0f172a}
-  h1{font-size:18px;margin:0 0 12px}
-  table{border-collapse:collapse;width:100%;max-width:560px}
-  td{padding:6px 0}
-  .right{text-align:right}
-  .muted{color:#475569}
-  .total{font-weight:800}
-  hr{border:none;border-top:1px solid #e2e8f0;margin:12px 0}
- </style>
- <h1>Beleg</h1>
- <div class="muted">Buchungs-ID $bookingId</div>
- <div style="margin:8px 0 16px 0">${item.title}</div>
- <div class="muted">Zeitraum: ${_formatRange(req.start, req.end)}</div>
- <hr>
-  <table>
-   <tr><td>Mietpreis (Tagespreis × Tage)</td><td class="right">${_formatEuro(breakdown.rentalSubtotal)}</td></tr>
-   ${breakdown.dropoffFee > 0 ? '<tr><td>Lieferung (Abgabe)</td><td class="right">${_formatEuro(breakdown.dropoffFee)}</td></tr>' : ''}
-   ${breakdown.returnFee > 0 ? '<tr><td>Abholung (Rückgabe)</td><td class="right">${_formatEuro(breakdown.returnFee)}</td></tr>' : ''}
-    ${breakdown.expressApplied > 0 ? '<tr><td>Prioritätszuschlag</td><td class="right">${_formatEuro(breakdown.expressApplied)}</td></tr>' : ''}
-    ${breakdown.expressApplied > 0 ? '<tr><td>Plattformbeitrag auf Priorität (10%)</td><td class="right">${_formatEuro(double.parse((breakdown.expressApplied * 0.10).toStringAsFixed(2)))}</td></tr>' : ''}
-   <tr><td>Plattformbeitrag</td><td class="right">${_formatEuro(breakdown.platformFee)}</td></tr>
-   <tr><td colspan="2"><hr></td></tr>
-   <tr><td class="total">Gesamt bezahlt (Mieter)</td><td class="right total">${_formatEuro(breakdown.totalRenter)}</td></tr>
-  ${expressRefund ? '<tr><td>Rückerstattung (Priorität)</td><td class="right">${_formatEuro(req.expressFee)}</td></tr>' : ''}
- </table>
-  <p class="muted">${expressRefund ? 'Prioritätszuschlag wird vollständig erstattet.' : ''}</p>
- <p class="muted">ShareItToo – Quittung ohne Gewähr.</p>
- </html>
-''';
-    final dataUri = Uri.dataFromString(
-      html,
-      mimeType: 'text/html',
-      encoding: const Utf8Codec(),
-    );
-    try {
-      await launchUrl(dataUri, mode: LaunchMode.platformDefault);
-    } catch (_) {}
   }
 
   String _formatRange(DateTime a, DateTime b) {

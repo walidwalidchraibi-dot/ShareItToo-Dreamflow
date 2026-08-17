@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/invoices_service.dart';
+import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/test_builders.dart';
@@ -90,6 +91,15 @@ void main() {
     expect(me!.id, currentUserId);
   }
 
+  setUp(() {
+    QaRuntimeService.configureFromUri(
+      Uri.parse('https://example.test/?qa=1'),
+      debugMode: true,
+    );
+  });
+
+  tearDown(QaRuntimeService.reset);
+
   test(
     'qa renter lane seeds accepted/running/completed/needsReview smoke set',
     () async {
@@ -117,7 +127,7 @@ void main() {
         invoices.where(
           (d) =>
               d.requestId == 'qa_req_completed_${renterMain.id}' &&
-              d.type.name == 'invoice',
+              d.type.name == 'bookingPaymentReceipt',
         ),
         isNotEmpty,
       );
@@ -260,7 +270,7 @@ void main() {
         ownerInvoices.where(
           (d) =>
               d.requestId == 'qa_owner_completed_clean_${ownerMain.id}' &&
-              d.type.name == 'payment',
+              d.type.name == 'ownerPayoutStatement',
         ),
         isNotEmpty,
       );

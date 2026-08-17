@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.125
+Stand: 17.08.2026, lokaler Checkpoint 16.126
 
 ## Verbindliche Grenzen
 
@@ -24,6 +24,35 @@ Stand: 17.08.2026, lokaler Checkpoint 16.125
 - rollen- und buchungsgebundene Übergabe-/Rückgabefotos mit Gegenbestätigung
 - neutrale Rückgabezeitachse bis T0+5 sowie begründete Fallfristen
 - exakter, hashgebundener Satz aus sieben deutschen V5.1-Rechtsassets
+- unveränderliche Finanzdokumente ausschließlich aus erfolgreich erfassten
+  Zahlungs-, Erstattungs- und Auszahlungssnapshots
+- getrennte Darstellung von privatem Mietpreis und SIT-Plattformgebühr ohne
+  pauschalen 19-%-Umsatzsteuerausweis auf die private Miete
+- authentifizierter Belegdownload mit serverseitiger und clientseitiger
+  Hashbindung; unbekannte Typen, falsche Summen und unvollständige Snapshots
+  werden geschlossen abgelehnt
+
+## Finanzdokument-Boundary
+
+Vor einem tatsächlich erfolgreichen Quellereignis entsteht kein Beleg. Der
+Mieter erhält nach erfolgreicher Zahlung eine Buchungs-/Zahlungsübersicht und
+gegebenenfalls einen separaten SIT-Gebührenbeleg. Der Vermieter erhält keine
+SIT-Gebührenrechnung, sondern erst nach einer tatsächlich ausgeführten
+Auszahlung einen Auszahlungsnachweis. Ein Erstattungsbeleg entsteht erst nach
+erfolgreicher Erstattung und weist Mietpreis und SIT-Gebühr mit getrennten
+Schuldnern aus.
+
+Die Datenbank erzwingt Dokumenttyp, Quellobjekt, Rollen und Summengleichungen.
+Dokumente und Downloadereignisse sind append-only. Die Release-App bezieht die
+Liste authentifiziert vom Backend, ruft vor PDF-Darstellung den exakten
+Serverbeleg ab und vergleicht dessen Hash mit dem unveränderlichen Snapshot.
+Nur der ausdrücklich markierte QA-Modus darf lokale Testbelege erzeugen; diese
+tragen sichtbar `TESTBELEG` und sind weder Echtgeld- noch Steuerbelege.
+
+Echtbetrieb bleibt zusätzlich geschlossen, bis Betreiber-/Steuerangaben,
+SIT-Gebühren-Steuerbehandlung und Live-Ausstellung ausdrücklich freigegeben
+sind. Migration 020 wurde nicht auf Staging oder Produktion angewandt; dieser
+Checkpoint ist Quell- und Teststand, kein Deployment.
 
 ## Rechtsasset-Boundary
 
@@ -54,12 +83,15 @@ Aufbewahrungs-, Lösch- und Store-Nachweise geschlossen werden.
 
 Bis diese Punkte belegt sind, bleibt Go/No-Go auf `HOLD`.
 
-## Prüfstand Checkpoint 16.125
+## Prüfstand Checkpoint 16.126
 
-- Backend: 191 bestanden, 1 PostgreSQL-Integrationstest ohne lokale
+- Backend: 198 bestanden, 1 PostgreSQL-Integrationstest ohne lokale
   `TEST_DATABASE_URL` bewusst übersprungen
-- Flutter: 272 bestanden, 1 bewusster Skip
+- Flutter: 275 bestanden, 1 bewusster Skip
 - Analyzer: 229 Hinweise, 0 Fehler
+- technische Node-/Vertragsprüfungen: 607 bestanden
+- Finanzdokument-spezifisch: 7 Backend-, 3 Modell-/Fail-closed- und 4
+  Verkabelungstests bestanden
 - Rechtsasset-Validator: 6 bestanden
 - Datenschutz-, Rechts-, Retention-, Store- und Release-Gates: grün und
   weiterhin fail-closed

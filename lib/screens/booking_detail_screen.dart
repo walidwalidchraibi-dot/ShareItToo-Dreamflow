@@ -11,6 +11,7 @@ import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/models/invoice.dart';
 import 'package:lendify/services/invoice_pdf_service.dart';
+import 'package:lendify/services/invoices_service.dart';
 import 'package:lendify/services/local_artifact_storage_service.dart';
 import 'package:printing/printing.dart';
 import 'package:lendify/services/file_download_stub.dart'
@@ -3723,136 +3724,34 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   }
 
   Future<void> _downloadReceiptPdf() async {
-    if (widget.booking['needsReview'] == true) {
-      if (mounted) {
-        AppPopup.toast(
-          context,
-          icon: Icons.hourglass_top_outlined,
-          title: 'Beleg gesperrt, solange dieser Fall geprüft wird.',
-        );
-      }
-      return;
-    }
-    final title = (widget.booking['title'] as String?) ?? '-';
     final bookingId = _computeBookingId();
     final requestId = (widget.booking['requestId'] ?? '').toString();
-    final (start, end) = _parseDateRange();
-    final pricePaidStr = (widget.booking['pricePaid'] as String?) ?? '';
-    final totalPaidLegacy = _parseEuro(pricePaidStr);
-    final daysVal = (widget.booking['days'] as num?)?.toInt() ??
-        ((start != null && end != null)
-            ? end.difference(start).inDays.clamp(1, 365)
-            : 1);
-    final basePerDayProvided =
-        (widget.booking['basePerDay'] as num?)?.toDouble();
-    final double baseTotal = basePerDayProvided != null
-        ? (basePerDayProvided * daysVal)
-        : totalPaidLegacy;
-    final double discountAmount = _discountsFromBooking();
-    final rentalSubtotal = (baseTotal - discountAmount).clamp(0.0, baseTotal);
-    final fee = DataService.platformContributionForRental(rentalSubtotal);
-    final netAmount = (rentalSubtotal / 1.19);
-    final taxAmount = (rentalSubtotal - netAmount);
-
-    final bool ownerDelivers =
-        (widget.booking['ownerDeliversAtDropoffChosen'] == true) ||
-            (widget.booking['expressRequested'] == true) ||
-            (widget.booking['expressStatus'] != null) ||
-            ((widget.booking['deliveryAddressLine'] ?? '')
-                .toString()
-                .trim()
-                .isNotEmpty) ||
-            ((widget.booking['deliveryCity'] ?? '')
-                .toString()
-                .trim()
-                .isNotEmpty);
-    final bool ownerPicks =
-        (widget.booking['ownerPicksUpAtReturnChosen'] == true);
-    double km = 0.0;
-    final double? dLat = (widget.booking['deliveryLat'] as num?)?.toDouble();
-    final double? dLng = (widget.booking['deliveryLng'] as num?)?.toDouble();
-    if (_itemLat != null && _itemLng != null && dLat != null && dLng != null) {
-      km = DataService.estimateDistanceKm(_itemLat!, _itemLng!, dLat, dLng);
-    } else if (_itemLat != null &&
-        _itemLng != null &&
-        ((widget.booking['deliveryAddressLine'] ?? '')
-            .toString()
-            .trim()
-            .isNotEmpty)) {
-      km = DataService.estimateDistanceKmFromAddressLine(
-        _itemLat!,
-        _itemLng!,
-        (widget.booking['deliveryAddressLine'] as String).trim(),
-      );
-    } else if (_itemLat != null &&
-        _itemLng != null &&
-        ((widget.booking['deliveryCity'] ?? '').toString().trim().isNotEmpty)) {
-      km = DataService.estimateDistanceKmToCity(
-        _itemLat!,
-        _itemLng!,
-        (widget.booking['deliveryCity'] as String).trim(),
-      );
-    }
-    final double dropFee =
-        ownerDelivers ? double.parse((km * 0.30).toStringAsFixed(2)) : 0.0;
-    final double retFee =
-        ownerPicks ? double.parse((km * 0.30).toStringAsFixed(2)) : 0.0;
-    final bool expressSelected = (widget.booking['expressRequested'] == true) ||
-        (widget.booking['expressStatus'] == 'accepted');
-    final double expressFee = expressSelected ? 5.0 : 0.0;
-    final double expressFeePlatform = expressFee > 0
-        ? double.parse((expressFee * 0.10).toStringAsFixed(2))
-        : 0.0;
-    final double totalPaid = double.parse(
-      (rentalSubtotal +
-              fee +
-              dropFee +
-              retFee +
-              expressFee +
-              expressFeePlatform)
-          .toStringAsFixed(2),
-    );
-
-    final renterName = (widget.booking['renterName'] as String?)?.trim();
-    final ownerName = (widget.booking['listerName'] as String?)?.trim();
-    final invoice = Invoice(
-      id: 'receipt_${requestId.isNotEmpty ? requestId : bookingId}',
-      invoiceNumber:
-          'SIT-${bookingId.replaceAll(RegExp(r'[^A-Za-z0-9-]'), '')}',
-      bookingId: bookingId,
-      requestId: requestId.isNotEmpty ? requestId : bookingId,
-      type: InvoiceType.invoice,
-      date: DateTime.now(),
-      title: title,
-      amount: totalPaid,
-      booking: InvoiceBookingDetails(
-        itemTitle: title,
-        renterName: (renterName?.isNotEmpty == true ? renterName! : 'Mieter'),
-        ownerName: (ownerName?.isNotEmpty == true ? ownerName! : 'Vermieter'),
-        rentalDays: daysVal,
-      ),
-      pricing: InvoicePriceBreakdown(
-        vatRate: 0.19,
-        netAmount: double.parse(netAmount.toStringAsFixed(2)),
-        taxAmount: double.parse(taxAmount.toStringAsFixed(2)),
-        totalAfterTax: double.parse(rentalSubtotal.toStringAsFixed(2)),
-        platformFee: double.parse(fee.toStringAsFixed(2)),
-        payoutToOwner: double.parse(
-          (totalPaid - fee).clamp(0.0, totalPaid).toStringAsFixed(2),
-        ),
-      ),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-
     try {
+      final documents = await InvoicesService.getInvoicesForCurrentUser();
+      final canonicalId = requestId.isNotEmpty ? requestId : bookingId;
+      final matching = documents.where((document) =>
+          document.bookingId == canonicalId &&
+          document.type == InvoiceType.bookingPaymentReceipt);
+      if (matching.isEmpty) {
+        if (mounted) {
+          await AppPopup.info(
+            context,
+            title: 'Noch kein Zahlungsbeleg',
+            message:
+                'Der Beleg wird erst nach einer erfolgreich erfassten Zahlung bereitgestellt.',
+          );
+        }
+        return;
+      }
+      final invoice = matching.first;
+      await InvoicesService.verifyDownloadArtifact(invoice);
       final bytes = await InvoicePdfService.buildPdf(invoice);
       final fileName =
-          'SIT_Buchungsbeleg_${bookingId}_${DateTime.now().toIso8601String().split('T').first}.pdf';
+          'SIT_Buchungsbeleg_${invoice.bookingId}_${invoice.issuedAt.toIso8601String().split('T').first}.pdf';
       final saveResult = await LocalArtifactStorageService.maybeSaveReceiptPdf(
         bytes: bytes,
         artifactKey:
-            'booking-receipt:${invoice.id}:${invoice.updatedAt.toIso8601String()}',
+            'financial-document:${invoice.id}:${invoice.artifactSha256}',
         filename: fileName,
       );
       if (!saveResult.handledPrimaryAction) {
@@ -3863,7 +3762,13 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       }
     } catch (e) {
       debugPrint('[BookingDetailScreen] receipt download failed: $e');
-      _toast('Beleg konnte nicht erstellt werden');
+      if (mounted) {
+        await AppPopup.error(
+          context,
+          title: 'Beleg konnte nicht geladen werden',
+          message: 'Bitte versuche es erneut.',
+        );
+      }
     }
   }
 

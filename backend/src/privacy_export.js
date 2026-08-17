@@ -46,6 +46,8 @@ export async function buildAccountExport(client, userId) {
     payments,
     refunds,
     payouts,
+    financialDocuments,
+    financialDocumentEvents,
     depositMandates,
     depositCharges,
     disputes,
@@ -245,6 +247,20 @@ export async function buildAccountExport(client, userId) {
               paid_at, created_at, updated_at
        FROM payouts WHERE payee_id = $1 ORDER BY created_at`, userId),
     rows(client,
+      `SELECT id, booking_id, document_type, document_number, currency,
+              amount_minor, private_rent_minor, sit_fee_minor,
+              owner_payout_minor, rent_refund_minor, sit_fee_refund_minor,
+              supplier_role, debtor_role, tax_treatment, test_mode,
+              snapshot, content_html, artifact_sha256, issued_at, created_at
+       FROM financial_documents
+       WHERE audience_user_id = $1 ORDER BY issued_at`, userId),
+    rows(client,
+      `SELECT event.id, event.document_id, event.event_type,
+              event.artifact_sha256, event.occurred_at, event.metadata
+       FROM financial_document_events AS event
+       JOIN financial_documents AS document ON document.id = event.document_id
+       WHERE document.audience_user_id = $1 ORDER BY event.occurred_at`, userId),
+    rows(client,
       `SELECT id, booking_id, status, maximum_amount_minor,
               charged_amount_minor, currency, consent_version, consented_at,
               expires_at, created_at, updated_at
@@ -305,6 +321,8 @@ export async function buildAccountExport(client, userId) {
       withdrawalRefundObligationEvents,
       cancellationRefundObligations,
       payouts,
+      financialDocuments,
+      financialDocumentEvents,
       depositMandates,
       depositCharges,
     },

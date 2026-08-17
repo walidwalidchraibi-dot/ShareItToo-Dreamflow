@@ -2,8 +2,8 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lendify/models/invoice.dart';
 import 'package:lendify/services/invoice_pdf_service.dart';
+import 'package:lendify/services/invoices_service.dart';
 import 'package:lendify/services/local_artifact_storage_service.dart';
-import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:printing/printing.dart';
 
@@ -32,9 +32,10 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
+      await InvoicesService.verifyDownloadArtifact(widget.invoice);
       final bytes = await InvoicePdfService.buildPdf(widget.invoice);
       final fileName =
-          'SIT_Rechnung_${widget.invoice.bookingId}_${widget.invoice.date.toIso8601String().split('T').first}.pdf';
+          'SIT_Beleg_${widget.invoice.bookingId}_${widget.invoice.date.toIso8601String().split('T').first}.pdf';
       final saveResult = await LocalArtifactStorageService.maybeSaveReceiptPdf(
         bytes: bytes,
         artifactKey:
@@ -65,6 +66,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
+      await InvoicesService.verifyDownloadArtifact(widget.invoice);
       final bytes = await InvoicePdfService.buildPdf(widget.invoice);
       await Printing.sharePdf(
           bytes: bytes, filename: '${widget.invoice.invoiceNumber}.pdf');
@@ -119,6 +121,21 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
                 children: [
+                  if (inv.testMode) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.orangeAccent),
+                      ),
+                      child: const Text(
+                        'TESTBELEG – kein Echtgeld und keine steuerliche Rechnung',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   Text(_typeLabel(inv.type), style: theme.textTheme.titleLarge),
                   const SizedBox(height: 4),
                   Text(inv.bookingId,
@@ -143,7 +160,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
                         children: [
                           _kv(context, 'Datum', _formatDate(inv.date)),
                           _kv(context, 'Buchungs-ID', inv.bookingId),
-                          _kv(context, 'Rechnungsnr.', inv.invoiceNumber),
+                          _kv(context, 'Dokumentnr.', inv.invoiceNumber),
                         ]),
                   ),
                   const SizedBox(height: 12),
@@ -189,21 +206,15 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Preisübersicht',
-                              style: theme.textTheme.titleMedium),
+                          Text('Beträge', style: theme.textTheme.titleMedium),
                           const SizedBox(height: 10),
-                          _moneyRow(
-                            context,
-                            'Mietpreis des Vermieters',
-                            inv.pricing.netAmount,
-                          ),
+                          ..._documentAmountRows(context, inv),
                           const SizedBox(height: 8),
                           Container(
                               height: 1,
                               color: Colors.white.withValues(alpha: 0.08)),
                           const SizedBox(height: 8),
-                          _moneyRow(context, 'Gesamtbetrag',
-                              inv.pricing.totalAfterTax,
+                          _moneyRow(context, 'Dokumentbetrag', inv.amount,
                               emphasize: true),
                           const SizedBox(height: 12),
                           Container(
@@ -214,51 +225,23 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
                               border: Border.all(
                                   color: cs.primary.withValues(alpha: 0.22)),
                             ),
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(children: [
-                                    Container(
-                                      width: 34,
-                                      height: 34,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(12),
-                                        gradient: const LinearGradient(colors: [
-                                          BrandColors.logoGradientStart,
-                                          BrandColors.logoGradientEnd
-                                        ]),
-                                      ),
-                                      child: Icon(Icons.percent_rounded,
-                                          color: Colors.white
-                                              .withValues(alpha: 0.95),
-                                          size: 18),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                        child: Text(
-                                            'ShareItToo Plattformgebühr',
-                                            style: theme.textTheme.bodyMedium
-                                                ?.copyWith(
-                                                    fontWeight:
-                                                        FontWeight.w800))),
-                                  ]),
-                                  const SizedBox(height: 8),
-                                  Text('10 % des Gesamtbetrags nach Steuern',
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.76))),
-                                  const SizedBox(height: 10),
-                                  _moneyRow(
-                                    context,
-                                    'SIT Plattformbeitrag 10 %',
-                                    inv.pricing.platformFee,
-                                  ),
-                                  _moneyRow(context, 'Auszahlung an Vermieter',
-                                      inv.pricing.payoutToOwner,
-                                      emphasize: true),
-                                ]),
+                            child: Text(
+                              _documentNotice(inv),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.82),
+                                height: 1.4,
+                              ),
+                            ),
                           ),
+                          if (inv.artifactSha256.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              'Unveränderlicher Nachweis: ${inv.artifactSha256.substring(0, 12)}…',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: Colors.white60,
+                              ),
+                            ),
+                          ],
                         ]),
                   ),
                 ],
@@ -318,16 +301,54 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
 
 String _typeLabel(InvoiceType type) {
   switch (type) {
-    case InvoiceType.invoice:
-      return 'Rechnung';
-    case InvoiceType.payment:
-      return 'Zahlung';
-    case InvoiceType.refund:
-      return 'Rückerstattung';
-    case InvoiceType.fee:
-      return 'Gebühr';
+    case InvoiceType.bookingPaymentReceipt:
+      return 'Buchungs- und Zahlungsübersicht';
+    case InvoiceType.ownerPayoutStatement:
+      return 'Auszahlungsnachweis';
+    case InvoiceType.refundReceipt:
+      return 'Erstattungsbeleg';
+    case InvoiceType.sitFeeReceipt:
+      return 'SIT-Gebührenbeleg';
   }
 }
+
+List<Widget> _documentAmountRows(BuildContext context, Invoice invoice) {
+  switch (invoice.type) {
+    case InvoiceType.bookingPaymentReceipt:
+      return [
+        _moneyRow(context, 'Privater Mietpreis – Vermieter',
+            invoice.privateRentMinor / 100),
+        _moneyRow(context, 'SIT-Plattformgebühr', invoice.sitFeeMinor / 100),
+      ];
+    case InvoiceType.sitFeeReceipt:
+      return [
+        _moneyRow(context, 'SIT-Plattformgebühr', invoice.sitFeeMinor / 100),
+      ];
+    case InvoiceType.ownerPayoutStatement:
+      return [
+        _moneyRow(context, 'Ausgezahlter privater Mietpreis',
+            invoice.ownerPayoutMinor / 100),
+      ];
+    case InvoiceType.refundReceipt:
+      return [
+        _moneyRow(context, 'Mietpreis – Schuldner Vermieter',
+            invoice.rentRefundMinor / 100),
+        _moneyRow(context, 'SIT-Gebühr – Schuldner SIT',
+            invoice.sitFeeRefundMinor / 100),
+      ];
+  }
+}
+
+String _documentNotice(Invoice invoice) => switch (invoice.type) {
+      InvoiceType.bookingPaymentReceipt =>
+        'Der private Vermieter erbringt die Mietleistung. SIT ist nicht Vermieter und weist auf den privaten Mietpreis keine Umsatzsteuer aus.',
+      InvoiceType.sitFeeReceipt =>
+        'Dieser Beleg betrifft ausschließlich die SIT-Plattformgebühr. ${invoice.sitFeeTaxLabel}',
+      InvoiceType.ownerPayoutStatement =>
+        'Dies ist ein Auszahlungsnachweis und keine Rechnung von SIT über den privaten Mietpreis.',
+      InvoiceType.refundReceipt =>
+        'Mietpreis und SIT-Plattformgebühr sind mit getrenntem Schuldner ausgewiesen.',
+    };
 
 Widget _kv(BuildContext context, String k, String v) {
   final theme = Theme.of(context);

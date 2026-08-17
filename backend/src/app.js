@@ -128,6 +128,11 @@ import {
   inspectRetentionInventory,
   RetentionInventoryError,
 } from './retention_inventory.js';
+import {
+  FinancialDocumentError,
+  getFinancialDocumentArtifact,
+  listFinancialDocuments,
+} from './financial_documents.js';
 import { releaseMetadata } from './release.js';
 import {
   privatePilotDeclarations,
@@ -2753,6 +2758,44 @@ export function createApp({
       'X-SIT-Artifact-SHA256': receipt.artifactSha256,
     });
     res.send(receipt.contentHtml);
+  }));
+
+  app.get('/v1/financial-documents', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    try {
+      const documents = await inTransaction((client) => listFinancialDocuments(client, {
+        actorId: req.auth.userId,
+        legalConfig: config.financialDocuments,
+      }));
+      res.json({ documents });
+    } catch (error) {
+      if (error instanceof FinancialDocumentError) {
+        throw new HttpError(error.status, error.code);
+      }
+      throw error;
+    }
+  }));
+
+  app.get('/v1/financial-documents/:id/artifact', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    let artifact;
+    try {
+      artifact = await inTransaction((client) => getFinancialDocumentArtifact(client, {
+        actorId: req.auth.userId,
+        documentId: safeText(req.params.id, 160),
+      }));
+    } catch (error) {
+      if (error instanceof FinancialDocumentError) {
+        throw new HttpError(error.status, error.code);
+      }
+      throw error;
+    }
+    res.set({
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${artifact.documentNumber}.html"`,
+      'Cache-Control': 'private, no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'X-SIT-Artifact-SHA256': artifact.artifactSha256,
+    });
+    res.send(artifact.contentHtml);
   }));
 
   app.post('/v1/bookings/:id/flow-time', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {

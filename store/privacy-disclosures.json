@@ -48,7 +48,7 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "d020933a9203136e8d874ad8d9a76094e55c6d0ffa887c142aa03e9ddaa8eb8a"
+      "sha256": "704de255427d3626b2611da64fa75479cdde1871f0d8c174a39c252d388eeeb1"
     },
     {
       "path": "backend/src/booking_workflow.js",
@@ -108,15 +108,51 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "d7236432b4ea526fd994e49c4130a55332213937c4823608c3eb39533f9aee4e"
+      "sha256": "826903673fc4eb6e9e52182401976e548c6303b7eda61337a4b9d13d258f6940"
+    },
+    {
+      "path": "backend/src/financial_documents.js",
+      "sha256": "f8de734a21577f038cd881aca8e07f6fcd3ecf776ab18e9e76bdd48b72177000"
+    },
+    {
+      "path": "backend/sql/migrations/020_v51_financial_documents.up.sql",
+      "sha256": "0ed5451601e962c0b3632008db0e3437a1ee9d837d14a1a0512eb6e190567201"
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "8655c72d8d517a3f6d73e834f5d3004b78e50b21e004e025a6e99f3428c0926b"
+      "sha256": "d6e20c252d9d91e4158ebbb9d115d375d68e1d5e782b91bbd45752d89f390104"
+    },
+    {
+      "path": "lib/models/invoice.dart",
+      "sha256": "88a76b48770de56737b6e9a2330101ffaa34261b050ef728befe64043105574c"
+    },
+    {
+      "path": "lib/services/invoices_service.dart",
+      "sha256": "00df3ef3c2f31b00e1bd50889ec67d6af25a9d2285a2e2c3bfb1ab299eb7ad4a"
+    },
+    {
+      "path": "lib/services/invoice_pdf_service.dart",
+      "sha256": "f76a8e85a7b969f385c36a2853ae27a3644f89d6b9379809cd47c3bc3b942a3a"
+    },
+    {
+      "path": "lib/screens/invoices_screen.dart",
+      "sha256": "2313df95285340683deadb31ed9141f393fd1ec4ac56a7ec358ce38a775497ac"
+    },
+    {
+      "path": "lib/screens/invoice_detail_screen.dart",
+      "sha256": "18270de113da5210087f4c105ce609d10a7e3d7b60ac458dbc3f639e5ce671eb"
+    },
+    {
+      "path": "lib/screens/booking_detail_screen.dart",
+      "sha256": "7fe4decb91d671313a90573052f093c6e30e135e2415b0e9cadb41c4e98b8b76"
+    },
+    {
+      "path": "lib/screens/ongoing_owner_detail_screen.dart",
+      "sha256": "dbd328c9323d9797e422765ee201f13592b1cc27c5236e835cb89401de47f0e9"
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "8322e23946dae19a8af0d07918bc8755ed07461f14de5b2ffb20b24895777d49"
+      "sha256": "526a9a011e580cc1eb1f16b371db6e1d41b0c6fcf68ff3a7c87c6a070c79adf9"
     },
     {
       "path": "lib/screens/platform_withdrawal_screen.dart",
@@ -132,7 +168,7 @@
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "cfa3a767b96e2d11706afac85d767c27d41c0c8647487f0729e90c5539412200"
+      "sha256": "4e3e095849cba2b75208f0d5b6df601d487c74ec183e9769af5d41b57189afdf"
     },
     {
       "path": "backend/src/notifications.js",
@@ -188,7 +224,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "a65acc2b6a0d7e6ae96328a12222f9e1d662bfc7c01322b075f62d6008971ba7"
+      "sha256": "59ae29aa0d24909c0eb8175fa73e8525b0ea4a5d1a487dab35430e462d8caeaa"
     },
     {
       "path": "lib/screens/create_listing_screen.dart",

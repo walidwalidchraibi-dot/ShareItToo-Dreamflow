@@ -110,3 +110,28 @@ Rolloutschritt durchgeführt.
   offenen Aufbewahrungsentscheidung.
 - Checkout-Vertrag, exakt zwei V5.1-Erklärungen, dauerhafter Beleg und sichtbare
   Serverpreisbindung sind der nächste Baustein. Echtgeld bleibt aus.
+
+## Fortschreibung 16.126 – unveränderliche Finanzdokumente
+
+- Migration 020 führt append-only Finanzdokumente und Downloadereignisse ein.
+  PostgreSQL erzwingt Quelltyp, Zielnutzer, Rollen und alle
+  Summengleichungen.
+- Dokumente entstehen nur aus vollständig erfasster Zahlung, erfolgreicher
+  Erstattung oder tatsächlich ausgeführter Auszahlung. Eine bloße Buchung,
+  Autorisierung, Stornierung oder ausstehende Auszahlung erzeugt keinen Beleg.
+- Privater Mietpreis und SIT-Plattformgebühr bleiben getrennte Leistungen. SIT
+  weist auf die private Miete keine pauschalen 19 % Umsatzsteuer aus; der
+  Vermieter erhält keine SIT-Gebührenrechnung.
+- Die Release-App lädt ausschließlich authentifizierte Serversnapshots. Vor
+  lokaler PDF-Darstellung muss der exakte Serverartefakt-Hash übereinstimmen;
+  unbekannte Typen, falsche Summen und beschädigte Snapshots werden nicht
+  angezeigt. Lokale Belege existieren nur als klarer QA-Testmodus.
+- Datenschutzexport und Aufbewahrungsinventar enthalten Dokumente und
+  Ereignisse. Die konkrete Frist bleibt Teil der neun offenen
+  Retention-/Löschentscheidungen.
+- FCM-Push und Firebase Crashlytics bleiben unverändert erhalten: getrennte
+  freiwillige Opt-ins, beide standardmäßig aus, keine Kopplung. Werbung,
+  Marketingtracking, allgemeine Analytics und externe generative KI bleiben
+  aus.
+- Echtgeld, Migration/Deployment auf Staging oder Produktion, Store-Aktion und
+  neuer Kandidat wurden nicht ausgelöst.

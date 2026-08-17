@@ -31,6 +31,8 @@ const sourcePaths = [
   'backend/src/booking_confirmation_workflow.js',
   'backend/src/message_workflow.js',
   'backend/src/retention_inventory.js',
+  'backend/src/financial_documents.js',
+  'backend/sql/migrations/020_v51_financial_documents.up.sql',
   'backend/src/security.js',
   'backend/src/maps_proxy.js',
   'backend/src/config.js',
@@ -43,6 +45,13 @@ const sourcePaths = [
   'lib/services/firebase_service_preferences.dart',
   'lib/services/data_service.dart',
   'lib/services/backend_repository.dart',
+  'lib/models/invoice.dart',
+  'lib/services/invoices_service.dart',
+  'lib/services/invoice_pdf_service.dart',
+  'lib/screens/invoices_screen.dart',
+  'lib/screens/invoice_detail_screen.dart',
+  'lib/screens/booking_detail_screen.dart',
+  'lib/screens/ongoing_owner_detail_screen.dart',
   'lib/screens/platform_withdrawal_screen.dart',
   'lib/services/account_deletion_service.dart',
   'lib/services/auth_service.dart',
@@ -267,8 +276,48 @@ function assertSourceContracts({ root, sourceTexts }) {
   }
 
   const exportSource = sourceText(root, sourceTexts, 'backend/src/privacy_export.js');
-  for (const marker of ['pushDevices', 'listings', 'bookings', 'messages', 'uploads', 'payments', 'refunds', 'payouts', 'disputes']) {
+  for (const marker of [
+    'pushDevices', 'listings', 'bookings', 'messages', 'uploads',
+    'payments', 'refunds', 'payouts', 'financialDocuments',
+    'financialDocumentEvents', 'disputes',
+  ]) {
     if (!exportSource.includes(marker)) fail(`Backend privacy export is missing ${marker}.`);
+  }
+
+  const financialDocuments = sourceText(root, sourceTexts, 'backend/src/financial_documents.js');
+  for (const marker of [
+    'booking_payment_receipt',
+    'sit_fee_receipt',
+    'owner_payout_statement',
+    'refund_receipt',
+    'financial_document_live_issuance_not_approved',
+    'private_rent_no_sit_vat',
+    'observedHash !== row.artifact_sha256',
+  ]) {
+    if (!financialDocuments.includes(marker)) {
+      fail(`Immutable financial documents are missing ${marker}.`);
+    }
+  }
+  const financialMigration = sourceText(
+    root,
+    sourceTexts,
+    'backend/sql/migrations/020_v51_financial_documents.up.sql',
+  );
+  for (const marker of [
+    'CREATE TABLE IF NOT EXISTS financial_documents',
+    'CREATE TABLE IF NOT EXISTS financial_document_events',
+    'financial_documents_append_only',
+    'financial_document_events_append_only',
+  ]) {
+    if (!financialMigration.includes(marker)) {
+      fail(`Financial-document persistence is missing ${marker}.`);
+    }
+  }
+  const invoiceService = sourceText(root, sourceTexts, 'lib/services/invoices_service.dart');
+  if (!invoiceService.includes('BackendRepository.getFinancialDocuments()')
+      || invoiceService.includes('quoteForItem')
+      || invoiceService.includes('platformFeeMinor(')) {
+    fail('Release financial documents must come from server snapshots without client repricing.');
   }
 
   const firebase = sourceText(root, sourceTexts, 'lib/services/firebase_runtime.dart');

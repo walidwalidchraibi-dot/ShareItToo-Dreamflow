@@ -1608,6 +1608,9 @@ class DataService {
         },
         quotedTotalRenter: 74.0,
         quotedSubtitle: 'historischer Testfall',
+        quotedRentalSubtotalMinor: 6727,
+        quotedPlatformFeeMinor: 673,
+        quotedTotalMinor: 7400,
       );
       final needsReviewRequest = RentalRequest(
         id: 'qa_req_review_$userId',
@@ -1626,6 +1629,9 @@ class DataService {
         reviewRequestedAt: now.subtract(const Duration(days: 4, hours: 2)),
         quotedTotalRenter: 61.0,
         quotedSubtitle: 'mit Review-Hold Testfall',
+        quotedRentalSubtotalMinor: 5545,
+        quotedPlatformFeeMinor: 555,
+        quotedTotalMinor: 6100,
       );
       final pendingRequest = RentalRequest(
         id: 'qa_req_pending_$userId',
@@ -1721,6 +1727,9 @@ class DataService {
         needsReview: false,
         quotedTotalRenter: 73.0,
         quotedSubtitle: 'abgeschlossen / clean',
+        quotedRentalSubtotalMinor: 6636,
+        quotedPlatformFeeMinor: 664,
+        quotedTotalMinor: 7300,
       );
       final ownerCompletedProblemRequest = RentalRequest(
         id: 'qa_owner_completed_problem_$userId',
@@ -1743,6 +1752,9 @@ class DataService {
         reviewRequestedAt: now.subtract(const Duration(days: 3, hours: 4)),
         quotedTotalRenter: 96.0,
         quotedSubtitle: 'abgeschlossen / prüfung',
+        quotedRentalSubtotalMinor: 8727,
+        quotedPlatformFeeMinor: 873,
+        quotedTotalMinor: 9600,
       );
 
       final sharedOwnerRenterRequest =
