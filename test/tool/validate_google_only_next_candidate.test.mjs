@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -10,20 +12,38 @@ const futurePubspec = readFileSync(new URL('../../pubspec.yaml', import.meta.url
   .replace(/^version:\s*([^+\s]+)\+\d+\s*$/mu, 'version: $1+2026081510');
 const repeatedPubspec = futurePubspec
   .replace(/^version:\s*([^+\s]+)\+\d+\s*$/mu, 'version: $1+2026081509');
+const preparedFixtureDirectory = mkdtempSync(join(tmpdir(), 'sit-next-candidate-'));
+const preparedManifestPath = join(preparedFixtureDirectory, 'candidate.json');
+const preparedManifest = JSON.parse(readFileSync(
+  new URL('../../store/google-only-next-candidate.json', import.meta.url),
+  'utf8',
+));
+preparedManifest.state = 'prepared-not-built';
+delete preparedManifest.builtCandidate;
+writeFileSync(preparedManifestPath, `${JSON.stringify(preparedManifest, null, 2)}\n`);
+test.after(() => rmSync(preparedFixtureDirectory, { recursive: true, force: true }));
 
-test('accepts the prepared Google-only plan without building', () => {
+test('accepts the verified local Google-only build without treating it as uploaded', () => {
   assert.deepEqual(validateGoogleOnlyNextCandidate({ repositoryRoot }), {
-    state: 'prepared-not-built',
+    state: 'built-local-not-uploaded',
     baselineBuildNumber: '2026081509',
     plannedBuildNumber: '2026081510',
     buildable: false,
   });
 });
 
+test('refuses to rebuild the already archived candidate in place', () => {
+  assert.throws(() => validateGoogleOnlyNextCandidate({
+    repositoryRoot,
+    requireBuildable: true,
+  }), /already built and must not be rebuilt/);
+});
+
 test('refuses a repeated candidate build number', () => {
   assert.throws(() => validateGoogleOnlyNextCandidate({
     repositoryRoot,
     requireBuildable: true,
+    manifestPath: preparedManifestPath,
     pubspecContents: repeatedPubspec,
     environment: { SIT_SOCIAL_GOOGLE_ENABLED: '1' },
   }), /strictly higher build number/);
@@ -33,6 +53,7 @@ test('accepts one future internal Staging build with Google only', () => {
   const result = validateGoogleOnlyNextCandidate({
     repositoryRoot,
     requireBuildable: true,
+    manifestPath: preparedManifestPath,
     pubspecContents: futurePubspec,
     environment: {
       SIT_SOCIAL_GOOGLE_ENABLED: '1',
@@ -53,6 +74,7 @@ test('rejects enabling Apple or Facebook in the Google-only build', () => {
     assert.throws(() => validateGoogleOnlyNextCandidate({
       repositoryRoot,
       requireBuildable: true,
+      manifestPath: preparedManifestPath,
       pubspecContents: futurePubspec,
       environment: {
         SIT_SOCIAL_GOOGLE_ENABLED: '1',
@@ -68,6 +90,7 @@ test('rejects production or Store submission', () => {
   assert.throws(() => validateGoogleOnlyNextCandidate({
     repositoryRoot,
     requireBuildable: true,
+    manifestPath: preparedManifestPath,
     pubspecContents: futurePubspec,
     environment: {
       SIT_SOCIAL_GOOGLE_ENABLED: '1',
@@ -92,6 +115,7 @@ test('rejects omitting or reusing a controlled Crashlytics run id', () => {
     assert.throws(() => validateGoogleOnlyNextCandidate({
       repositoryRoot,
       requireBuildable: true,
+      manifestPath: preparedManifestPath,
       pubspecContents: futurePubspec,
       environment: finalEnvironment,
     }), /exactly one build-bound sanitized Crashlytics run/);

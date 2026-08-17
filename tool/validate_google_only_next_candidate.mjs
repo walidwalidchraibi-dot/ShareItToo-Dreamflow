@@ -29,9 +29,11 @@ export function validateGoogleOnlyNextCandidate({
   const device = JSON.parse(readFileSync(resolve(repositoryRoot, 'store/device-validation.json'), 'utf8'));
   const policy = manifest.nextCandidatePolicy ?? {};
   const baseline = manifest.baselineCandidate ?? {};
+  const built = manifest.builtCandidate ?? null;
+  const allowedStates = ['prepared-not-built', 'built-local-not-uploaded'];
   if (manifest.schemaVersion !== 1 ||
       manifest.kind !== 'google-only-next-consolidated-candidate' ||
-      manifest.state !== 'prepared-not-built' ||
+      !allowedStates.includes(manifest.state) ||
       baseline.applicationId !== device.candidate?.applicationId ||
       baseline.versionName !== device.candidate?.versionName ||
       baseline.buildNumber !== device.candidate?.buildNumber ||
@@ -106,7 +108,30 @@ export function validateGoogleOnlyNextCandidate({
     fail('Google-only next-candidate hard stops are incomplete or unsafe.');
   }
   const plannedBuildNumber = buildNumberFromPubspec(pubspecContents);
+  if (manifest.state === 'prepared-not-built') {
+    if (built !== null) {
+      fail('A prepared candidate must not contain invented build evidence.');
+    }
+  } else if (built?.applicationId !== baseline.applicationId ||
+      built?.versionName !== policy.versionName ||
+      built?.buildNumber !== plannedBuildNumber ||
+      typeof built?.commit !== 'string' ||
+      !/^[0-9a-f]{40}$/u.test(built.commit) ||
+      built?.releaseChannel !== policy.releaseChannel ||
+      built?.apiBaseUrl !== policy.apiBaseUrl ||
+      typeof built?.aabSha256 !== 'string' ||
+      !/^[0-9a-f]{64}$/u.test(built.aabSha256) ||
+      typeof built?.apkSha256 !== 'string' ||
+      !/^[0-9a-f]{64}$/u.test(built.apkSha256) ||
+      built?.archivedAndVerified !== true ||
+      built?.installedDirectOnPhysicalAndroid !== true ||
+      built?.externalUploadPerformed !== false) {
+    fail('The locally built candidate evidence is incomplete or unsafe.');
+  }
   if (requireBuildable) {
+    if (manifest.state !== 'prepared-not-built') {
+      fail('The consolidated candidate is already built and must not be rebuilt in place.');
+    }
     if (BigInt(plannedBuildNumber) <= BigInt(baseline.buildNumber)) {
       fail('Next consolidated candidate requires a strictly higher build number.');
     }

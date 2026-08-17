@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.135
+Stand: 17.08.2026, lokaler Checkpoint 16.136
 
 ## Verbindliche Grenzen
 
@@ -240,3 +240,30 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
 - Produktion, Store, Echtgeld, öffentliche Rechtstexte und der bestehende
   Kandidat blieben unverändert. Nachweis:
   `docs/evidence/b11/next-candidate-safety-contract-2026081510-20260817.json`
+
+## Prüfstand Checkpoint 16.136
+
+- der konsolidierte interne Android-Kandidat `1.0.0+2026081510` wurde aus
+  Commit `4cb004641391efe40fa2bf89f62da11bc1f71291` gebaut, kanonisch signiert,
+  binär auf Datenschutz geprüft und im privaten unveränderlichen Archiv
+  abgelegt
+- AAB und APK sind lokal vorhanden; es erfolgte kein Upload, keine
+  Store-Einreichung, keine Closed-Test-Änderung, keine Produktion und kein
+  Echtgeldvorgang
+- vollständige Regression: 279 Flutter-Tests bestanden, 1 bewusster Skip,
+  Analyzer 229 Hinweise und 0 Fehler, Web- und Android-Debug-Build grün sowie
+  14/14 Kandidaten-/Rollover-Tests grün
+- der Kandidat wurde nach der erwarteten Signaturabweichung zur installierten
+  Play-Version direkt auf dem Pixel 7 Pro installiert; Kaltstart und
+  Staging-Feed bestanden
+- Push und Crashdiagnose waren nach Neuinstallation getrennt sichtbar und
+  beide standardmäßig aus; Push wurde mit eigenem Einwilligungsdialog
+  aktiviert, Crash blieb dabei aus, anschließend wurde Push wieder
+  ausgeschaltet
+- Endzustand auf dem Testgerät: Push aus, Crashdiagnose aus; die Android-
+  Benachrichtigungsberechtigung wurde beim Push-Grenztest erteilt
+- der kontrollierte bereinigte Crashlauf `b11-android-2026081510` wurde noch
+  nicht übertragen, weil dafür eine separate ausdrückliche Freigabe für die
+  technische Firebase-Datenübertragung erforderlich ist
+- GO/NO-GO bleibt `HOLD`. Nachweis:
+  `docs/evidence/b11/android-candidate-2026081510-build-and-device-services-20260817.json`
