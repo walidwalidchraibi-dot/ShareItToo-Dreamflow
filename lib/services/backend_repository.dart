@@ -485,7 +485,22 @@ class BackendRepository {
       method: 'GET',
       path: '/payments/connect/status',
     );
-    return Map<String, dynamic>.from(response['account'] as Map);
+    return {
+      ...Map<String, dynamic>.from(response['account'] as Map),
+      'capabilities': response['capabilities'] is Map
+          ? Map<String, dynamic>.from(response['capabilities'] as Map)
+          : const <String, dynamic>{},
+    };
+  }
+
+  static Future<Map<String, dynamic>> getPaymentCapabilities() async {
+    final response = await _authorized(
+      method: 'GET',
+      path: '/payments/capabilities',
+    );
+    return response['capabilities'] is Map
+        ? Map<String, dynamic>.from(response['capabilities'] as Map)
+        : const <String, dynamic>{};
   }
 
   static Future<Map<String, dynamic>> startConnectOnboarding({

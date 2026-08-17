@@ -452,17 +452,17 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             id: 'zahlungsmethoden',
             title: 'Buchung sicher bezahlen',
             short:
-                'Zahlungsdaten ausschließlich im sicheren Stripe-Checkout eingeben.',
+                'Zahlungsdaten ausschließlich im sicheren Checkout des tatsächlich freigeschalteten Zahlungsdienstleisters eingeben.',
             body: _HelpBody(
               intro:
-                  'ShareItToo speichert keine vollständigen Karten- oder Kontodaten auf deinem Gerät. Der verbindliche Betrag wird vom Server berechnet und bei Stripe bezahlt.',
+                  'ShareItToo speichert keine vollständigen Karten- oder Kontodaten auf deinem Gerät. Der verbindliche Betrag wird vom Server berechnet. Ohne freigeschalteten Marketplace-Zahlungsdienst bleibt der Abschluss gesperrt.',
               steps: [
                 'Öffne eine vom Vermieter angenommene Buchung.',
                 'Wähle „Zahlung“.',
-                'Prüfe Betrag und Gebühr und öffne den sicheren Stripe-Checkout.'
+                'Prüfe Betrag und Gebühr und öffne nur einen vom Server freigeschalteten Zahlungs-Checkout.'
               ],
               tips: [
-                'Eine Buchung gilt erst als bezahlt, wenn Stripe die Zahlung serverseitig bestätigt hat.'
+                'Eine Buchung gilt erst als bezahlt, wenn der freigeschaltete Zahlungsdienst die Zahlung serverseitig bestätigt hat.'
               ],
             ),
           ),
@@ -470,17 +470,17 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             id: 'auszahlungsmethoden',
             title: 'Auszahlungskonto einrichten',
             short:
-                'Identität und Bankverbindung sicher bei Stripe hinterlegen.',
+                'Identität und Bankverbindung nur beim tatsächlich freigeschalteten Marketplace-Zahlungsdienst hinterlegen.',
             body: _HelpBody(
               intro:
-                  'Vermieter richten ihr Auszahlungskonto direkt im Stripe-Onboarding ein. ShareItToo speichert keine vollständige IBAN in der App.',
+                  'Vermieter richten ihr Auszahlungskonto erst nach sichtbarer Anbieterfreigabe direkt beim Zahlungsdienst ein. ShareItToo speichert keine vollständige IBAN in der App.',
               steps: [
                 'Gehe zu „Kontoeinstellungen“ → „Auszahlungsmethoden“.',
-                'Öffne das sichere Stripe-Onboarding.',
-                'Vervollständige Identitäts- und Bankangaben bei Stripe.'
+                'Öffne das sichere Anbieter-Onboarding nur, wenn die App es ausdrücklich als verfügbar zeigt.',
+                'Vervollständige Identitäts- und Bankangaben direkt beim freigeschalteten Zahlungsdienst.'
               ],
               tips: [
-                'Auszahlungen bleiben gesperrt, bis Stripe das Konto freigegeben hat.'
+                'Auszahlungen bleiben gesperrt, bis der freigeschaltete Zahlungsdienst das Konto bestätigt hat.'
               ],
             ),
           ),
@@ -494,7 +494,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               steps: [
                 'Nach Abschluss der Buchung prüft der Server die Sicherheitsfrist.',
                 'Offene Streitfälle oder Erstattungen blockieren die Freigabe.',
-                'Nach der Freigabe verarbeitet Stripe die Auszahlung auf das hinterlegte Konto.'
+                'Nach der Freigabe verarbeitet der Marketplace-Zahlungsdienst die Auszahlung auf das dort hinterlegte Konto.'
               ],
               tips: [
                 'Bei Problemen: Support kontaktieren und Buchungsnummer nennen.'
@@ -509,8 +509,8 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               intro:
                   'Gebühren decken Plattformbetrieb, Support und Sicherheit ab.',
               steps: [
-                'Du siehst Gesamtbetrag und Plattformgebühr vor dem Öffnen von Stripe.',
-                'Stripe zeigt den endgültigen Zahlbetrag nochmals im sicheren Checkout.'
+                'Du siehst Gesamtbetrag und Plattformgebühr vor dem Öffnen des Zahlungsdienstes.',
+                'Der freigeschaltete Zahlungsdienst zeigt den endgültigen Zahlbetrag nochmals im sicheren Checkout.'
               ],
               tips: [
                 'Wir zeigen dir Kosten immer vor der endgültigen Bestätigung.'

@@ -3,7 +3,7 @@
   "state": "draft",
   "approvalAllowed": false,
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "dcb18c60146370cfffd389fc2c80e1b2a2c5b1f30751492dbbc202ba04655733"},
+    {"path": "backend/src/app.js", "sha256": "dede8e5d38598d0c9bb698ee55f663a3606e97771295748cc11ef8c77be114a0"},
     {"path": "backend/src/server.js", "sha256": "56eb8383d74e6f609ff2b54f4af4910c26c76b4006dc7ea5fe6f456eb97e68c3"},
     {"path": "backend/src/credential_cleanup.js", "sha256": "53386748f6a9cf2869c2fc98bacdd367270b4d97f5b044fffcf58dab12a2b18b"},
     {"path": "backend/src/moderation_workflow.js", "sha256": "acdc6f8158d2acdf7cd0b5e53ff125a44e0286fca7db1bbf5569ba0de271cafc"},
@@ -42,7 +42,9 @@
     {"path": "lib/services/firebase_service_preferences.dart", "sha256": "b3841d4e36a30eddc5f3808fb6d939de34c0766491784be38089f3d8b204d97f"},
     {"path": "lib/services/account_deletion_service.dart", "sha256": "b9d0ed721aed96e2aaad932416d82c5384d8430c0e444ba767a330b14815fe1a"},
     {"path": "lib/services/maps_service.dart", "sha256": "a8cb474b2849d7e894919ae1056e8158d51c66fbfe8e0b1fab40d1db7fdaf32f"},
-    {"path": "lib/services/backend_repository.dart", "sha256": "d6e20c252d9d91e4158ebbb9d115d375d68e1d5e782b91bbd45752d89f390104"},
+    {"path": "lib/services/backend_repository.dart", "sha256": "60f4599624201ba5661e84b284dd72c21579aa74d909dd7cc8a9f30afc76ac75"},
+    {"path": "lib/screens/payment_methods_screen.dart", "sha256": "47591d15c4ae31869be0d6483a99cf173bd581efa0cd70deda5091160d4b21ff"},
+    {"path": "lib/screens/stripe_payout_account_screen.dart", "sha256": "6bc62a6da035fdb3d7f9b81c651c05798ff8e3a259e21b1f910121f1f1f75d08"},
     {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "5ae3786fe933f51a04e660399d6339f16e64aa4b75c7f130e15a02aebbcb91c5"},
     {"path": "lib/screens/privacy_info_screen.dart", "sha256": "00a5403b14b80c496b40e978809908871da9cde82f39736ed8353dc3c3e72a59"}
   ],

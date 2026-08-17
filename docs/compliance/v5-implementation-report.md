@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.166
+Stand: 17.08.2026, lokaler Checkpoint 16.167
 
 ## Verbindliche Grenzen
 
@@ -1061,3 +1061,37 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   oder Kandidatenwechsel, keine Migration, keine Kennungsübertragung und kein
   Crashereignis. Nachweis:
   `docs/evidence/b11/v51-crashlytics-provider-deletion-foundation-20260817T133007Z.json`
+
+## Prüfstand Checkpoint 16.167
+
+- die erreichbaren Kontoansichten für Zahlungsmethoden und Auszahlungen
+  behaupten keinen realen Anbieter und bieten keine Zahlungs- oder
+  Onboarding-Aktion mehr an, solange der Server keinen tatsächlich
+  angebundenen und für das Konto freigegebenen Marketplace-Zahlungsdienst
+  bestätigt
+- eine neue authentifizierte, kontogebundene und nicht cachebare
+  Serverauskunft ist die gemeinsame Wahrheit für Checkout,
+  Auszahlungs-Onboarding und die Zahlungsangabe im Buchungsangebot
+- nicht verfügbare Ansichten fordern ausdrücklich keine Karten-, Konto-,
+  Bank- oder Identitätsdaten an; ein freigeschalteter Testmodus wird klar als
+  Test ohne Echtgeld gekennzeichnet. Nur der Live-Modus darf Stripe nennen
+- auch die Hilfe verwendet bis zur echten Anbieterfreigabe neutrale und
+  wahrheitsgemäße Formulierungen. Der lokale Memory-Zahlungsweg bleibt allein
+  für isolierte Backendtests in der exakt bezeichneten Testumgebung
+  aufrufbar und wird weder Staging noch Produktion als Fähigkeit gemeldet
+- 4/4 neue Fail-closed-Verkabelungs-, 5/5 neue Widget- und 51/51 gezielte
+  Flutter-Tests bestanden; 13/13 gezielt wiederholte Backendtests waren grün.
+  Die gesamte Backendbilanz beträgt 209 bestanden und 1 bewusster
+  PostgreSQL-Skip ohne lokale `TEST_DATABASE_URL`
+- die vollständige technische Regression bestand mit 287 Flutter-Tests und
+  1 bewusstem Skip, 224 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web-
+  und Android-Debug-Builds; Datenschutz-, Retention- und Rechtsvalidatoren
+  blieben grün
+- FCM-Push und Firebase Crashlytics bleiben ausdrücklich bestehen, getrennt,
+  freiwillig und im nächsten Kandidaten standardmäßig aus; Push aktiviert
+  Crashlytics nicht. Werbung, Marketingtracking, allgemeine Analytics und
+  externe generative KI bleiben aus
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store-, Anbieterconsole-
+  oder Kandidatenwechsel, keine Migration und keine zusätzliche
+  Crashlytics-Kennungsübertragung. Nachweis:
+  `docs/evidence/b11/v51-payment-provider-ui-truth-20260817T135537Z.json`

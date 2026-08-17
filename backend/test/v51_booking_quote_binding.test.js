@@ -123,7 +123,7 @@ test('checkout renders the server quote and stays locked without real payment tr
   );
   assert.match(
     app,
-    /paymentMethodAvailable: config\.payments\.transport === 'stripe'[\s\S]*&& contractDocumentsAvailable/u,
+    /paymentMethodAvailable: paymentCapabilitiesFor\(req\.auth\.userId\)[\s\S]*?\.checkoutAvailable && contractDocumentsAvailable/u,
   );
   assert.match(checkout, /PrivatePilotQuote\.fromServerJson/u);
   assert.match(checkout, /_checkoutQuote = Map<String, dynamic>\.from\(envelope\)/u);

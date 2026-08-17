@@ -52,6 +52,8 @@ const sourcePaths = [
   'lib/widgets/app_image.dart',
   'lib/services/data_service.dart',
   'lib/services/backend_repository.dart',
+  'lib/screens/payment_methods_screen.dart',
+  'lib/screens/stripe_payout_account_screen.dart',
   'lib/models/invoice.dart',
   'lib/services/invoices_service.dart',
   'lib/services/invoice_pdf_service.dart',

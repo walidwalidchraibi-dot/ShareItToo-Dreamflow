@@ -224,6 +224,32 @@ const crashlyticsReportDeleteClient = config.crashReportDeletion.enabled
   })
   : null;
 
+function paymentCapabilitiesFor(userId) {
+  const providerBacked = config.payments.transport === 'stripe';
+  const userEligible = config.payments.pilotUserIds.length === 0 ||
+    config.payments.pilotUserIds.includes(userId);
+  const available = providerBacked && userEligible;
+  return {
+    provider: providerBacked ? 'stripe' : null,
+    providerBacked,
+    userEligible,
+    checkoutAvailable: available,
+    payoutOnboardingAvailable: available,
+    liveMoney: available && config.payments.livemode,
+    mode: !available
+      ? 'unavailable'
+      : (config.payments.livemode ? 'live' : 'test'),
+    currency: config.payments.currency,
+    country: config.payments.connectCountry,
+  };
+}
+
+function paymentOnboardingExecutionAllowed(userId) {
+  if (paymentCapabilitiesFor(userId).payoutOnboardingAvailable) return true;
+  return config.deploymentEnvironment === 'test' &&
+    config.payments.transport === 'memory';
+}
+
 function kickNotificationWorker() {
   void drainNotificationOutbox().catch((error) => {
     console.error('[notifications] background drain failed', error?.message ?? error);
@@ -1568,8 +1594,17 @@ export function createApp({
     success: req.query.state === 'complete',
   })));
 
+  app.get('/v1/payments/capabilities', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    res.set('Cache-Control', 'private, no-store').json({
+      capabilities: paymentCapabilitiesFor(req.auth.userId),
+    });
+  }));
+
   app.get('/v1/payments/connect/status', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
-    res.json({ account: await getConnectStatus(req.actor.id) });
+    res.json({
+      account: await getConnectStatus(req.actor.id),
+      capabilities: paymentCapabilitiesFor(req.auth.userId),
+    });
   }));
 
   app.post('/v1/admin/step-up', requireAuth, requireActiveAccount, staffElevationLimiter, asyncRoute(async (req, res) => {
@@ -1582,6 +1617,9 @@ export function createApp({
   }));
 
   app.post('/v1/payments/connect/onboarding', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    if (!paymentOnboardingExecutionAllowed(req.auth.userId)) {
+      throw new HttpError(503, 'payment_provider_unavailable');
+    }
     const result = await createConnectOnboarding({
       actor: req.actor,
       raw: req.body,
@@ -2781,8 +2819,8 @@ export function createApp({
     res.json({
       ...quote,
       contractDocumentsAvailable,
-      paymentMethodAvailable: config.payments.transport === 'stripe'
-        && contractDocumentsAvailable,
+      paymentMethodAvailable: paymentCapabilitiesFor(req.auth.userId)
+        .checkoutAvailable && contractDocumentsAvailable,
     });
   }));
 
