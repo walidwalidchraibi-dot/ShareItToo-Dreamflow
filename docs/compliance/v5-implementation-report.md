@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.137
+Stand: 17.08.2026, lokaler Checkpoint 16.138
 
 ## Verbindliche Grenzen
 
@@ -283,3 +283,19 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
 - TalkBack bleibt als eigenständiger manueller Bedienungshilfe-Test offen und
   wird durch diesen Großtext-Pass nicht vorweggenommen. Nachweis:
   `docs/evidence/b11/android-large-text-physical-2026081510-20260817T070236Z.json`
+
+## Prüfstand Checkpoint 16.138
+
+- Google TalkBack wurde auf dem physischen Pixel kurz gebunden; Android
+  bestätigte gesprochenes Feedback und das fokussierte ShareItToo-Fenster
+- Erkunden, Kategorien, Inserate und alle fünf Hauptnavigationseinträge waren
+  mit aussagekräftigen Semantikbeschriftungen im Kandidaten sichtbar
+- eine simulierte horizontale Geste öffnete jedoch das Android-Systemmenü und
+  bewies keine verlässliche TalkBack-Fokusnavigation; deshalb bleiben
+  sequentielle gesprochene Navigation und Doppeltipp-Aktivierung offen
+- das Systemmenü wurde sofort geschlossen; TalkBack, Accessibility und
+  Touch-Erkundung wurden vollständig deaktiviert. Schriftgröße `0.85`,
+  automatische Drehung und null gebundene Accessibility-Dienste wurden
+  verifiziert
+- der Versuch wird ausdrücklich nicht als TalkBack-Pass gewertet. Nachweis:
+  `docs/evidence/b11/android-talkback-bounded-probe-2026081510-20260817T071110Z.json`
