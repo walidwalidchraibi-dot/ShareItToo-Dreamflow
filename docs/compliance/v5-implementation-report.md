@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.161
+Stand: 17.08.2026, lokaler Checkpoint 16.162
 
 ## Verbindliche Grenzen
 
@@ -907,3 +907,28 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   Echtgeld-, Store-, Anbieterconsole- oder Kandidatenwechsel und kein
   Crashereignis. Nachweis:
   `docs/evidence/b11/v51-crashlytics-privacy-preserving-deletion-boundary-20260817T120447Z.json`
+
+## Prüfstand Checkpoint 16.162
+
+- aus der Artikel-Detailansicht wurde ausschließlich die projektweit
+  unreferenzierte lokale Darstellungsklasse `_TagChips` entfernt; der
+  Laufzeitdiff umfasst exakt 19 Löschungen und keine Ergänzung
+- die aktive Liefer- und Kategoriedarstellung, einklappbare Beschreibung,
+  Preis- und Buchungslogik, Checkout, Vermieterprofil und Wunschlistenaktion
+  bleiben unverändert erhalten
+- vier neue abschnittsgebundene Fail-closed-Prüfungen verhindern die
+  Wiedereinführung der toten Klasse und schützen die aktiven Nachbarpfade;
+  zusammen mit der Analyzer-Sperre waren 6/6 gezielte Node- und 34/34
+  gezielte Flutter-Tests grün
+- die Ansicht ist nicht an das Datenschutz-Quellinventar gebunden; Erhebung,
+  Speicherung, Übertragung, Berechtigungen, Anbieter, öffentliche Angaben
+  und Store-Metadaten blieben unverändert
+- die vollständige Regression bestand mit 282 Flutter-Tests, 1 bewusstem
+  Skip, jetzt 225 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds; die bekannten externen WebAssembly-Trockenlaufhinweise
+  blieben unverändert
+- FCM-Push und Crashlytics bleiben getrennt, freiwillig und im nächsten
+  Kandidaten standardmäßig aus; Push aktiviert Crash nicht. Es erfolgte kein
+  Deployment, Upload, Echtgeld-, Store-, Anbieterconsole- oder
+  Kandidatenwechsel und kein Crashereignis. Nachweis:
+  `docs/evidence/b11/v51-item-details-dead-tag-chips-cleanup-20260817T122246Z.json`

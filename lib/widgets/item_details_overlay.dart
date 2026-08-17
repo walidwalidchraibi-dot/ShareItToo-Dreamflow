@@ -1574,25 +1574,6 @@ class _CategoryNameById extends StatelessWidget {
   }
 }
 
-class _TagChips extends StatelessWidget {
-  final List<String> tags;
-  const _TagChips({required this.tags});
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(spacing: 8, runSpacing: 8, children: [
-      for (final t in tags)
-        Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(999),
-                border:
-                    Border.all(color: Colors.white.withValues(alpha: 0.12))),
-            child: Text(t, style: const TextStyle(color: Colors.white)))
-    ]);
-  }
-}
-
 class _CollapsingDescriptionSlot extends StatefulWidget {
   final String text;
   final GlobalKey ownerBoxKey;
