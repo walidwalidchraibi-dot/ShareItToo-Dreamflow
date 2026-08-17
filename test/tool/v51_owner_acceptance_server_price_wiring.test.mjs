@@ -234,3 +234,30 @@ test('the owner request overview refreshes exactly at the next server deadline',
   assert.match(ownerRequests, /Annahmefrist abgelaufen/u);
   assert.match(ownerRequests, /Annahme gesperrt/u);
 });
+
+test('the open owner detail disables acceptance exactly at the server deadline', () => {
+  const ownerDetail = readFileSync(
+    new URL('../../lib/screens/ongoing_owner_detail_screen.dart', import.meta.url),
+    'utf8',
+  );
+  assert.match(ownerDetail, /Timer\? _acceptanceDeadlineTimer/u);
+  assert.match(
+    ownerDetail,
+    /void _scheduleAcceptanceDeadlineRefresh\(RentalRequest request\)[\s\S]*?!BackendConfig\.enabled[\s\S]*?QaRuntimeService\.isEnabled[\s\S]*?request\.bindingExpiresAt[\s\S]*?_acceptanceDeadlineTimer = Timer\(remaining,[\s\S]*?setState\(\(\) \{\}\)/u,
+  );
+  assert.match(
+    ownerDetail,
+    /void dispose\(\)[\s\S]*?_acceptanceDeadlineTimer\?\.cancel\(\)/u,
+  );
+  assert.match(
+    ownerDetail,
+    /final acceptanceDeadlineValid = _ownerAcceptanceDeadlineValid\(req\)/u,
+  );
+  assert.match(
+    ownerDetail,
+    /onPressed: acceptanceDeadlineValid[\s\S]*?showPrivatePilotOwnerAcceptanceDialog/u,
+  );
+  assert.match(ownerDetail, /Annahmefrist abgelaufen/u);
+  assert.match(ownerDetail, /Die verbindliche Annahmefrist fehlt/u);
+  assert.match(ownerDetail, /commitPrivatePilotOwnerAcceptance/u);
+});

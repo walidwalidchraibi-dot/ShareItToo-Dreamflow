@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.153
+Stand: 17.08.2026, lokaler Checkpoint 16.154
 
 ## Verbindliche Grenzen
 
@@ -671,3 +671,32 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
   übertragen. Nachweis:
   `docs/evidence/b11/v51-owner-request-overview-live-expiry-20260817T101258Z.json`
+
+## Prüfstand Checkpoint 16.154
+
+- auch die geöffnete Vermieter-Detailansicht beobachtet ihre servergebundene
+  Annahmefrist jetzt selbst und baut sich am exakten Ablaufzeitpunkt neu auf
+- ihr bisher optisch aktiver grüner Annahmebutton wird dann technisch
+  deaktiviert; Statusmarke und Erklärung zeigen sichtbar
+  „Annahmefrist abgelaufen“ statt eine weiterhin aktive Anfrage zu behaupten
+- fehlt im echten Backend die Pflichtfrist, zeigt die Ansicht
+  „Annahme gesperrt“ und erklärt, dass die verbindliche Annahmefrist fehlt;
+  der isolierte QA-Modus bleibt davon getrennt
+- der Ansichtszeitgeber wird bei jedem Neuladen ersetzt und beim Verlassen
+  beendet; gemeinsamer Dialog, Antippprüfung und Backendschranke bleiben als
+  zusätzliche unabhängige Schutzschichten bestehen
+- 12/12 Annahme-Wiring-Tests und 53/53 gezielte Flutter-Buchungs-,
+  Hydrations- und Sicherheitstests bestanden; die gezielte Dateianalyse blieb
+  bei 26 bereits vorhandenen Hinweisen und ohne neue Diagnose
+- die vollständige Regression blieb mit 282 bestandenen Tests, 1 bewusstem
+  Skip, 229 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün; das technische Gesamttor bestand mit
+  der dokumentierten lokalen Kandidaten-Rollover-Grenze
+- der Quellhash der bereits inventarisierten Detailansicht wurde aktualisiert;
+  Datenerhebung, Speicherung, Transport, Anbieter und Berechtigungen änderten
+  sich nicht
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder Kandidatenwechsel
+- Push und Crashdiagnose bleiben bestehen, getrennt, freiwillig und
+  standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
+  übertragen. Nachweis:
+  `docs/evidence/b11/v51-owner-detail-live-expiry-20260817T102341Z.json`

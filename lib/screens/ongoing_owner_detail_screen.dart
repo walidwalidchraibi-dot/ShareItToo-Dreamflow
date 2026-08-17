@@ -10,7 +10,9 @@ import 'package:lendify/widgets/user_avatar.dart';
 import 'package:lendify/models/user.dart';
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
+import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/widgets/return_handover_stepper_sheet.dart';
@@ -55,6 +57,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   Map<String, dynamic>? _deliverySel;
   Map<String, dynamic> _flowState = const {};
   bool _reviewAlreadySubmitted = false;
+  Timer? _acceptanceDeadlineTimer;
   StreamSubscription<String>? _sharedPersistenceSub;
   final SharedPersistenceRefreshCoordinator _sharedPersistenceRefresh =
       SharedPersistenceRefreshCoordinator();
@@ -98,6 +101,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       _flowState = flowState;
       _reviewAlreadySubmitted = alreadyReviewed;
     });
+    _scheduleAcceptanceDeadlineRefresh(req);
     // Show one-time handover banner if present (e.g., renter confirmed)
     if (mounted && item != null) {
       final bookingId = _computeBookingId(item, req);
@@ -110,10 +114,35 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
 
   @override
   void dispose() {
+    _acceptanceDeadlineTimer?.cancel();
     _sharedPersistenceSub?.cancel();
     _sharedPersistenceRefresh.dispose();
     _manualCodeCtrl.dispose();
     super.dispose();
+  }
+
+  void _scheduleAcceptanceDeadlineRefresh(RentalRequest request) {
+    _acceptanceDeadlineTimer?.cancel();
+    _acceptanceDeadlineTimer = null;
+    if (!BackendConfig.enabled ||
+        QaRuntimeService.isEnabled ||
+        request.status.toLowerCase().trim() != 'pending') {
+      return;
+    }
+    final deadline = request.bindingExpiresAt;
+    if (deadline == null) return;
+    final remaining = deadline.difference(DateTime.now());
+    if (remaining <= Duration.zero) return;
+    _acceptanceDeadlineTimer = Timer(remaining, () {
+      if (!mounted) return;
+      setState(() {});
+    });
+  }
+
+  bool _ownerAcceptanceDeadlineValid(RentalRequest request) {
+    if (!BackendConfig.enabled || QaRuntimeService.isEnabled) return true;
+    final deadline = request.bindingExpiresAt;
+    return deadline != null && deadline.isAfter(DateTime.now());
   }
 
   List<String> get _photos => (_item?.photos ?? const <String>[]);
@@ -668,6 +697,7 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final diff = due.difference(now);
     final isOverdue = now.isAfter(due) && req.status != 'completed';
     final category = _categoryFor(req);
+    final acceptanceDeadlineValid = _ownerAcceptanceDeadlineValid(req);
 
     final isCompleted = req.status == 'completed';
     final isHeldForReview = req.needsReview;
@@ -925,7 +955,10 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                           }
                           switch (category) {
                             case 'requests':
-                              return Colors.grey.withValues(alpha: 0.12);
+                              return (acceptanceDeadlineValid
+                                      ? Colors.grey
+                                      : const Color(0xFFF43F5E))
+                                  .withValues(alpha: 0.12);
                             case 'upcoming':
                               return const Color(
                                 0xFF0EA5E9,
@@ -954,6 +987,12 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                             return 'Abgeschlossen';
                           }
                           if (isCompleted) return 'Abgeschlossen';
+                          if (category == 'requests' &&
+                              !acceptanceDeadlineValid) {
+                            return req.bindingExpiresAt == null
+                                ? 'Annahme gesperrt'
+                                : 'Annahmefrist abgelaufen';
+                          }
                           if (category == 'requests') return 'Anfrage';
                           if (category == 'upcoming') return 'Kommend';
                           return 'Laufend';
@@ -968,9 +1007,12 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
                                   : const Color(0xFF22C55E);
                             }
                             if (isCompleted) return const Color(0xFF22C55E);
-                            return category == 'requests'
-                                ? Colors.grey
-                                : const Color(0xFF0EA5E9);
+                            if (category == 'requests') {
+                              return acceptanceDeadlineValid
+                                  ? Colors.grey
+                                  : const Color(0xFFF43F5E);
+                            }
+                            return const Color(0xFF0EA5E9);
                           }(),
                           fontWeight: FontWeight.w700,
                         ),
@@ -1225,64 +1267,71 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final declarations =
-                        await showPrivatePilotOwnerAcceptanceDialog(
-                      context,
-                      request: req,
-                    );
-                    if (declarations == null) return;
-                    if (!context.mounted) return;
-                    final accepted = await commitPrivatePilotOwnerAcceptance(
-                      context,
-                      request: req,
-                      legalDeclarations: declarations,
-                    );
-                    if (!accepted) return;
-                    await DataService.addTimelineEvent(
-                      requestId: req.id,
-                      type: 'accepted',
-                      note: 'Anfrage akzeptiert',
-                    );
-                    if (!mounted) return;
-                    await _load();
-                    // Auto-close after 3 seconds
-                    Future.delayed(const Duration(seconds: 3), () {
-                      if (mounted) {
-                        Navigator.of(context, rootNavigator: true).maybePop();
-                      }
-                    });
-                    // Result popup
-                    // ignore: unawaited_futures
-                    AppPopup.show(
-                      context,
-                      icon: Icons.check_circle_outline,
-                      title: 'Du hast die Anfrage akzeptiert.',
-                      message:
-                          'Du findest diese Vermietung jetzt unter Kommende Vermietungen.',
-                      barrierDismissible: true,
-                      showCloseIcon: false,
-                      plainCloseIcon: true,
-                      autoCloseAfter: const Duration(seconds: 20),
-                      actions: [
-                        FilledButton(
-                          onPressed: () {
-                            Navigator.of(
-                              context,
-                              rootNavigator: true,
-                            ).maybePop();
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    OwnerRequestsScreen(initialTabIndex: 1),
+                  onPressed: acceptanceDeadlineValid
+                      ? () async {
+                          final declarations =
+                              await showPrivatePilotOwnerAcceptanceDialog(
+                            context,
+                            request: req,
+                          );
+                          if (declarations == null) return;
+                          if (!context.mounted) return;
+                          final accepted =
+                              await commitPrivatePilotOwnerAcceptance(
+                            context,
+                            request: req,
+                            legalDeclarations: declarations,
+                          );
+                          if (!accepted) return;
+                          await DataService.addTimelineEvent(
+                            requestId: req.id,
+                            type: 'accepted',
+                            note: 'Anfrage akzeptiert',
+                          );
+                          if (!mounted) return;
+                          await _load();
+                          // Auto-close after 3 seconds
+                          Future.delayed(const Duration(seconds: 3), () {
+                            if (mounted) {
+                              Navigator.of(context, rootNavigator: true)
+                                  .maybePop();
+                            }
+                          });
+                          // Result popup
+                          // ignore: unawaited_futures
+                          AppPopup.show(
+                            context,
+                            icon: Icons.check_circle_outline,
+                            title: 'Du hast die Anfrage akzeptiert.',
+                            message:
+                                'Du findest diese Vermietung jetzt unter Kommende Vermietungen.',
+                            barrierDismissible: true,
+                            showCloseIcon: false,
+                            plainCloseIcon: true,
+                            autoCloseAfter: const Duration(seconds: 20),
+                            actions: [
+                              FilledButton(
+                                onPressed: () {
+                                  Navigator.of(
+                                    context,
+                                    rootNavigator: true,
+                                  ).maybePop();
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(
+                                      builder: (_) => OwnerRequestsScreen(
+                                        initialTabIndex: 1,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: const Text(
+                                  'Zu Kommende Vermietungen',
+                                ),
                               ),
-                            );
-                          },
-                          child: const Text('Zu Kommende Vermietungen'),
-                        ),
-                      ],
-                    );
-                  },
+                            ],
+                          );
+                        }
+                      : null,
                   icon: const Icon(
                     Icons.check_circle_outline,
                     color: Color(0xFF22C55E),
@@ -1298,6 +1347,18 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
               ),
             ],
           ),
+          if (!acceptanceDeadlineValid) ...[
+            const SizedBox(height: 8),
+            Text(
+              req.bindingExpiresAt == null
+                  ? 'Die verbindliche Annahmefrist fehlt. Diese Anfrage kann nicht angenommen werden; bitte lade die Ansicht neu.'
+                  : 'Die 30-Minuten-Annahmefrist ist abgelaufen. Diese Anfrage kann nicht mehr angenommen werden.',
+              style: const TextStyle(
+                color: Color(0xFFF43F5E),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ],
 
         const SizedBox(height: 12),
