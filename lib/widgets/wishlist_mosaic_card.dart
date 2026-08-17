@@ -28,6 +28,7 @@ class WishlistMosaicCard extends StatelessWidget {
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final isEmpty = count == 0;
+    final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.6;
     final cardBg = isDark
         ? cs.surface.withValues(alpha: isEmpty ? 0.45 : 0.72)
         : AppTheme.surfaceSecondary(context);
@@ -52,9 +53,16 @@ class WishlistMosaicCard extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title,
-              maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle),
+              maxLines: largeText ? 2 : 1,
+              overflow: TextOverflow.ellipsis,
+              style: titleStyle),
           const SizedBox(height: 2),
-          Text(isEmpty ? 'Noch leer' : '$count Artikel', style: metaStyle),
+          Text(
+            isEmpty ? 'Noch leer' : '$count Artikel',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: metaStyle,
+          ),
         ]),
       ),
     ]);

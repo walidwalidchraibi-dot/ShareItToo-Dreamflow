@@ -141,15 +141,17 @@ extension on _WishlistsScreenState {
       );
     }).toList();
 
+    final columnCount = _wishlistGridColumnCount(context);
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       itemCount: cards.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+        crossAxisCount: columnCount,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
         // Dynamically size height so the 1:1 image mosaic + text fits without overflow
-        childAspectRatio: _mosaicChildAspectRatio(context),
+        childAspectRatio:
+            _mosaicChildAspectRatio(context, columnCount: columnCount),
       ),
       itemBuilder: (_, i) {
         final c = cards[i];
@@ -562,7 +564,16 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
 // Compute a childAspectRatio that gives enough vertical room for
 // 1:1 mosaic image + text block without causing pixel overflow,
 // while staying visually balanced on various widths and text scales.
-double _mosaicChildAspectRatio(BuildContext context) {
+int _wishlistGridColumnCount(BuildContext context) {
+  final size = MediaQuery.sizeOf(context);
+  final textScale = MediaQuery.textScalerOf(context).scale(1);
+  return size.width < 360 || textScale >= 1.6 ? 1 : 2;
+}
+
+double _mosaicChildAspectRatio(
+  BuildContext context, {
+  required int columnCount,
+}) {
   final size = MediaQuery.sizeOf(context);
   final textScaler = MediaQuery.textScalerOf(context);
 
@@ -571,25 +582,29 @@ double _mosaicChildAspectRatio(BuildContext context) {
   const crossSpacing = 12.0;
 
   // Column width per card
-  final colWidth = (size.width - horizontalPadding - crossSpacing) / 2.0;
+  final totalSpacing = crossSpacing * (columnCount - 1);
+  final colWidth =
+      (size.width - horizontalPadding - totalSpacing) / columnCount;
 
   // Estimate height from actual card layout: mosaic (fixed aspect) + padded text block.
   // This keeps the card frame ending right below the count text without dead space.
   final theme = Theme.of(context).textTheme;
   final titleFs = textScaler.scale(theme.titleSmall?.fontSize ?? 16);
   final labelFs = textScaler.scale(theme.labelSmall?.fontSize ?? 12);
-  final titleHeight = titleFs * (theme.titleSmall?.height ?? 1.2);
+  final titleLines = textScaler.scale(1) >= 1.6 ? 2 : 1;
+  final titleHeight = titleFs * (theme.titleSmall?.height ?? 1.2) * titleLines;
   final labelHeight = labelFs * (theme.labelSmall?.height ?? 1.2);
 
   const mosaicAspect = 1.18; // width / height used in card
   final mosaicHeight = colWidth / mosaicAspect;
   final textBlockHeight =
-      6 + titleHeight + 2 + labelHeight + 2; // padding + gaps
+      6 + titleHeight + 2 + labelHeight + 18; // padding, gaps and font metrics
 
   final totalHeight = mosaicHeight + textBlockHeight;
   final ratio = colWidth / totalHeight;
   // Keep within a safe band to avoid overflow on small screens or large text scales
-  return math.min(0.9, math.max(0.7, ratio));
+  final maxRatio = columnCount == 1 ? 0.96 : 0.9;
+  return math.min(maxRatio, math.max(0.62, ratio));
 }
 
 // Keep wishlist detail item cards a bit tighter than the generic grid,

@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.131
+Stand: 17.08.2026, lokaler Checkpoint 16.132
 
 ## Verbindliche Grenzen
 
@@ -149,3 +149,29 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
 - bestehender Kandidat `1.0.0+2026081509`, Staging, Produktion, Store,
   Echtgeld und öffentliche Rechtstexte blieben unverändert. Nachweis:
   `docs/evidence/b11/v51-release-image-origin-policy-20260817.json`
+
+## Prüfstand Checkpoint 16.132
+
+- der unveränderte Play-Internal-Kandidat `1.0.0+2026081509` wurde auf dem
+  physischen Pixel 7 Pro ohne TalkBack bei 200-Prozent-Schrift auf allen fünf
+  Hauptflächen geprüft
+- Erkunden, Wunschlisten, Buchungen, Nachrichten, Profil und die
+  Hauptnavigation renderten; Wunschlistentitel und zentrale Profilfakten
+  wurden im bestehenden Kandidaten jedoch sichtbar gekürzt
+- der Großtext-Fall bleibt deshalb ehrlich `testing` beziehungsweise nicht
+  bestanden; TalkBack-Traversierung bleibt als eigener Nachweis offen
+- die Quelle schaltet Wunschlisten ab 160 Prozent auf eine einspaltige,
+  höhenangepasste Darstellung mit zwei Titelzeilen und stapelt im Profil
+  Identität und ungekürzte Kennzahlen vertikal
+- zwei neue 200-Prozent-Widgettests und vier fail-closed
+  Verkabelungstests sichern die Korrektur; vollständige Regressionen ergaben
+  279 Flutter-Tests plus einen bewussten Skip und 622 Tooltests ohne Fehler
+- Analyzer unverändert 229 Hinweise bei 0 Fehlern; Android- und
+  Web-Debug-Build bestanden
+- der Quellfix ist noch kein physischer Pass: Er benötigt einen neuen,
+  eindeutig gebundenen signierten Kandidaten und erneute Geräteprüfung
+- FCM-Push und Firebase Crashlytics blieben unverändert erhalten, getrennt,
+  freiwillig und standardmäßig aus; Push aktiviert Crashlytics nicht
+- Produktion, Store, Echtgeld, öffentliche Rechtstexte und der bestehende
+  Kandidat blieben unverändert. Nachweis:
+  `docs/evidence/b11/android-large-text-physical-2026081509-20260817T053900Z.json`

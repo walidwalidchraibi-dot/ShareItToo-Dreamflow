@@ -27,6 +27,22 @@ class ProfileHeaderCard extends StatelessWidget {
     final l10n = context.watch<LocalizationController>();
     final isGuest = _isGuestUser;
     final avatarUrl = isGuest ? null : user.photoURL;
+    final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.6;
+    final identity = _IdentitySummary(
+      user: user,
+      avatarUrl: avatarUrl,
+      identityLabel: isGuest
+          ? l10n.t('Nicht angemeldet')
+          : user.isVerified
+              ? l10n.t('Identität bestätigt')
+              : l10n.t('Identität noch nicht geprüft'),
+    );
+    final metrics = _ProfileMetrics(
+      rating: isGuest ? '—' : _ratingText(context, user),
+      bookings: isGuest ? '—' : (completedBookingsCount?.toString() ?? '—'),
+      joined: isGuest ? '—' : _joinedMonthYear(user.createdAt),
+      listings: isGuest ? '—' : listingsCount.toString(),
+    );
     return GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
@@ -37,100 +53,37 @@ class ProfileHeaderCard extends StatelessWidget {
             border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
           ),
           padding: const EdgeInsets.all(16),
-          child: IntrinsicHeight(
-            child:
-                Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-              SizedBox(
-                // Slightly narrower to move the divider left and free space for metrics.
-                // (User request) push divider further left to gain room for right-side stats.
-                width: 132,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+          child: largeText
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Stack(children: [
-                      SitUserAvatar(
-                        url: avatarUrl,
-                        radius: 36,
-                        borderColor: Colors.white.withValues(alpha: 0.12),
-                      ),
-                      if (user.isVerified)
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            decoration: const BoxDecoration(
-                                color: Colors.white, shape: BoxShape.circle),
-                            padding: const EdgeInsets.all(4),
-                            child: const Icon(
-                              Icons.verified,
-                              size: 16,
-                              color: Color(0xFF22C55E),
-                            ),
-                          ),
-                        ),
-                    ]),
-                    const SizedBox(height: 8),
-                    Text(
-                      user.displayName,
-                      maxLines: 3,
-                      textAlign: TextAlign.center,
-                      overflow: TextOverflow.fade,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleSmall
-                          ?.copyWith(color: Colors.white, height: 1.2),
+                    identity,
+                    const SizedBox(height: 16),
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Colors.white54.withValues(alpha: 0.15),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      isGuest
-                          ? l10n.t('Nicht angemeldet')
-                          : user.isVerified
-                              ? l10n.t('Identität bestätigt')
-                              : l10n.t('Identität noch nicht geprüft'),
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.white70),
-                    ),
+                    const SizedBox(height: 16),
+                    metrics,
                   ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  color: Colors.white54.withValues(alpha: 0.15)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                )
+              : IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _MetricLine(
-                          label: l10n.t('Bewertung'),
-                          value: isGuest ? '—' : _ratingText(context, user)),
-                      const SizedBox(height: 8),
-                      _MetricLine(
-                          label: l10n.t('Buchungen'),
-                          value: isGuest
-                              ? '—'
-                              : (completedBookingsCount?.toString() ?? '—')),
-                      const SizedBox(height: 8),
-                      _MetricLine(
-                          label: l10n.t('Dabei seit'),
-                          value:
-                              isGuest ? '—' : _joinedMonthYear(user.createdAt)),
-                      const SizedBox(height: 8),
-                      _MetricLine(
-                          label: l10n.t('Anzeigen'),
-                          value: isGuest ? '—' : listingsCount.toString()),
+                      SizedBox(width: 132, child: identity),
+                      const SizedBox(width: 8),
+                      VerticalDivider(
+                        width: 1,
+                        thickness: 1,
+                        color: Colors.white54.withValues(alpha: 0.15),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(child: Center(child: metrics)),
                     ],
                   ),
                 ),
-              ),
-            ]),
-          ),
         ));
   }
 
@@ -162,6 +115,101 @@ class ProfileHeaderCard extends StatelessWidget {
   }
 }
 
+class _IdentitySummary extends StatelessWidget {
+  final User user;
+  final String? avatarUrl;
+  final String identityLabel;
+
+  const _IdentitySummary({
+    required this.user,
+    required this.avatarUrl,
+    required this.identityLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Stack(children: [
+          SitUserAvatar(
+            url: avatarUrl,
+            radius: 36,
+            borderColor: Colors.white.withValues(alpha: 0.12),
+          ),
+          if (user.isVerified)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                decoration: const BoxDecoration(
+                    color: Colors.white, shape: BoxShape.circle),
+                padding: const EdgeInsets.all(4),
+                child: const Icon(
+                  Icons.verified,
+                  size: 16,
+                  color: Color(0xFF22C55E),
+                ),
+              ),
+            ),
+        ]),
+        const SizedBox(height: 8),
+        Text(
+          user.displayName,
+          maxLines: 3,
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.fade,
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
+              ?.copyWith(color: Colors.white, height: 1.2),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          identityLabel,
+          textAlign: TextAlign.center,
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: Colors.white70),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileMetrics extends StatelessWidget {
+  final String rating;
+  final String bookings;
+  final String joined;
+  final String listings;
+
+  const _ProfileMetrics({
+    required this.rating,
+    required this.bookings,
+    required this.joined,
+    required this.listings,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.watch<LocalizationController>();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _MetricLine(label: l10n.t('Bewertung'), value: rating),
+        const SizedBox(height: 8),
+        _MetricLine(label: l10n.t('Buchungen'), value: bookings),
+        const SizedBox(height: 8),
+        _MetricLine(label: l10n.t('Dabei seit'), value: joined),
+        const SizedBox(height: 8),
+        _MetricLine(label: l10n.t('Anzeigen'), value: listings),
+      ],
+    );
+  }
+}
+
 class _MetricLine extends StatelessWidget {
   final String label;
   final String value;
@@ -172,6 +220,17 @@ class _MetricLine extends StatelessWidget {
     final labelStyle = textTheme.labelSmall?.copyWith(color: Colors.white70);
     final valueStyle = textTheme.bodySmall
         ?.copyWith(color: Colors.white, fontWeight: FontWeight.w700);
+    final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.6;
+    if (largeText) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: labelStyle),
+          const SizedBox(height: 2),
+          Text(value, style: valueStyle),
+        ],
+      );
+    }
     // Keep the value close to the label by using a fixed label column.
     // This avoids pushing values to the far right edge.
     return Row(
