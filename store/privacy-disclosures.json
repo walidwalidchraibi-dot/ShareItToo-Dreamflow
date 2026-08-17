@@ -144,7 +144,7 @@
     },
     {
       "path": "lib/screens/booking_detail_screen.dart",
-      "sha256": "d3b2ad61def13cddeaa0110ac87b4e379a5b0208b8cef7c3d36a2ce0277d936a"
+      "sha256": "2e255e492976adb768a7e902fe378295bfec3cdf973247b079dbf220db2c6527"
     },
     {
       "path": "lib/screens/ongoing_owner_detail_screen.dart",

@@ -7,7 +7,7 @@ set -euo pipefail
 # safe mechanical cleanup, the targeted correctness/startup-safety batch, and
 # removal of all unused local variables, private state remnants, and
 # unreferenced legacy UI components without changing reachable UI paths.
-ANALYZER_BASELINE=227
+ANALYZER_BASELINE=226
 FORBIDDEN_ANALYZER_CODES=(
   dead_code
   empty_catches
@@ -302,6 +302,7 @@ node --test test/tool/ongoing_owner_detail_dead_manual_handover_state_cleanup_wi
 node --test test/tool/ongoing_owner_detail_dead_start_handover_gate_cleanup_wiring.test.mjs
 node --test test/tool/booking_detail_dead_can_message_getter_cleanup_wiring.test.mjs
 node --test test/tool/return_handover_stepper_dead_datetime_formatter_cleanup_wiring.test.mjs
+node --test test/tool/booking_detail_dead_return_renter_code_cleanup_wiring.test.mjs
 node --test test/tool/firebase_device_services_opt_in_wiring.test.mjs
 node --test test/tool/v51_withdrawal_and_cancellation_wiring.test.mjs
 node --test test/tool/v51_condition_evidence_wiring.test.mjs

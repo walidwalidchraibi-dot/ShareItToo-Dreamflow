@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.159
+Stand: 17.08.2026, lokaler Checkpoint 16.160
 
 ## Verbindliche Grenzen
 
@@ -845,3 +845,32 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   Deployment, Upload, Echtgeld-, Store-, Anbieterconsole- oder
   Kandidatenwechsel und kein Crashereignis. Nachweis:
   `docs/evidence/b11/v51-return-stepper-dead-datetime-cleanup-20260817T113817Z.json`
+
+## Prüfstand Checkpoint 16.160
+
+- aus der Buchungsdetailansicht wurde ausschließlich der projektweit
+  unreferenzierte lokale Rückgabe-Code-Helfer `_returnRenterCode` entfernt;
+  der Laufzeitdiff umfasst exakt fünf Löschungen und keine Ergänzung
+- die aktive Abholcode-Erzeugung bleibt an Buchung, Abholsegment und
+  Vermieterrolle gebunden; die echte Rückgabe verwendet keine lokale
+  Ersatzerzeugung, sondern weiterhin die serverseitig ausgestellte Challenge
+- der Rückgabe-Stepper sowie die direkten QR- und manuellen Codepfade prüfen
+  unverändert Rückgabesegment, präsentierende Mieterrolle und aktuellen
+  Buchungskontext; ein Abschluss setzt weiterhin den verifizierten Kontext
+- fünf neue abschnittsgebundene Fail-closed-Prüfungen verhindern die
+  Wiedereinführung des toten Helfers und schützen alle genannten aktiven
+  Sicherheitswege
+- 16/16 kombinierte gezielte Node-Prüfungen, 16/16 Datenschutzprüfungen und
+  59/59 gezielte Flutter-Übergabe-/Rückgabeprüfungen bestanden
+- der bereits vorhandene Datenschutz-Quellnachweis wurde ausschließlich auf
+  den neuen Buchungsdetail-Hash aktualisiert; Datenarten, Zwecke, Anbieter,
+  Übertragung, Berechtigungen und öffentliche Angaben blieben unverändert
+- die vollständige Regression bestand mit 282 Flutter-Tests, 1 bewusstem
+  Skip, jetzt 226 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds; die bekannten externen WebAssembly-Trockenlaufhinweise
+  blieben unverändert
+- FCM-Push und Crashlytics bleiben getrennt, freiwillig und im nächsten
+  Kandidaten standardmäßig aus; Push aktiviert Crash nicht. Es erfolgte kein
+  Deployment, Upload, Echtgeld-, Store-, Anbieterconsole- oder
+  Kandidatenwechsel und kein Crashereignis. Nachweis:
+  `docs/evidence/b11/v51-booking-detail-dead-return-code-cleanup-20260817T114634Z.json`

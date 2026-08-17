@@ -3139,11 +3139,6 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         presenterRole: HandoverCodeService.presenterOwner,
       );
 
-  String _returnRenterCode() => _confirmationCode(
-        segment: HandoverCodeService.segmentReturn,
-        presenterRole: HandoverCodeService.presenterRenter,
-      );
-
   Future<Map<String, dynamic>?> _issueSecureChallenge(String segment) async {
     final requestId = (widget.booking['requestId'] as String?)?.trim();
     if (requestId == null || requestId.isEmpty) return null;
