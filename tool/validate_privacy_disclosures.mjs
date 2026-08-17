@@ -11,6 +11,8 @@ const sourcePaths = [
   'ios/Runner/Info.plist',
   'ios/Runner/PrivacyInfo.xcprivacy',
   'lib/screens/legal_privacy_screen.dart',
+  'assets/legal/de/privacy_v5.html',
+  'assets/legal/de/legal_manifest_v5.json',
   'lib/screens/privacy_info_screen.dart',
   'backend/src/account_actions.js',
   'backend/src/privacy_export.js',
@@ -378,6 +380,34 @@ function assertSourceContracts({ root, sourceTexts }) {
   }
 
   const legalPrivacy = sourceText(root, sourceTexts, 'lib/screens/legal_privacy_screen.dart');
+  const v51Privacy = sourceText(root, sourceTexts, 'assets/legal/de/privacy_v5.html');
+  const v51LegalManifest = JSON.parse(sourceText(
+    root,
+    sourceTexts,
+    'assets/legal/de/legal_manifest_v5.json',
+  ));
+  if (v51LegalManifest.status !== 'draft-blocked'
+      || v51LegalManifest.activationAllowed !== false
+      || v51LegalManifest.productDecisions?.firebaseCloudMessaging?.decision !== 'retained'
+      || v51LegalManifest.productDecisions?.firebaseCloudMessaging
+        ?.requiresSeparateVoluntaryOptIn !== true
+      || v51LegalManifest.productDecisions?.firebaseCrashlytics?.decision !== 'retained'
+      || v51LegalManifest.productDecisions?.firebaseCrashlytics
+        ?.requiresSeparateVoluntaryOptIn !== true
+      || !v51LegalManifest.knownConflicts?.some(
+        (entry) => entry?.id === 'firebase-push-crash-retained-after-v51-source'
+          && entry?.status === 'blocks-activation',
+      )) {
+    fail('The V5.1 legal bundle must preserve retained, independently opted-in Push and Crashlytics while blocking the conflicting draft.');
+  }
+  for (const marker of [
+    'Externe Push-Benachrichtigungen sind im Startbetrieb nicht aktiviert.',
+    'Im Startbetrieb sind keine externen Crashanalyse-',
+  ]) {
+    if (!v51Privacy.includes(marker)) {
+      fail(`The source-bound V5.1 privacy draft is missing its disclosed conflict marker: ${marker}`);
+    }
+  }
   const privacyInfo = sourceText(root, sourceTexts, 'lib/screens/privacy_info_screen.dart');
   for (const [label, source] of [
     ['legal privacy notice', legalPrivacy],

@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "e958ca7570d80050df5499850a6f685a5bf2c8c2c99cbdbf04bb07fdffdc9a71"
+      "sha256": "b5daef785d40ceb0c70e8308712c5410974c88d8c54067fc32e220a1ff12d66c"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -29,6 +29,14 @@
     {
       "path": "lib/screens/legal_privacy_screen.dart",
       "sha256": "544bfb2ea2633119e2333bb778ec3912e77fddc36797dde2fe4a30afa1119953"
+    },
+    {
+      "path": "assets/legal/de/privacy_v5.html",
+      "sha256": "f7baada60fb1c3fee15b647a30f7b0b773772a55733a62021872e80c861d23a4"
+    },
+    {
+      "path": "assets/legal/de/legal_manifest_v5.json",
+      "sha256": "096c6cc0fe645a591e03dd0ebab374413d79b2d2033d10d8df1028218e411d25"
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
