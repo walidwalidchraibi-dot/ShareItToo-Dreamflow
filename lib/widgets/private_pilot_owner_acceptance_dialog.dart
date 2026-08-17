@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/models/rental_request.dart';
@@ -29,131 +31,184 @@ Future<List<Map<String, dynamic>>?> showPrivatePilotOwnerAcceptanceDialog(
   final requiresRemoteDeadline =
       BackendConfig.enabled && !QaRuntimeService.isEnabled;
   final bindingDeadline = request.bindingExpiresAt;
-  var confirmed = false;
   return showDialog<List<Map<String, dynamic>>>(
     context: context,
     barrierDismissible: false,
-    builder: (dialogContext) => StatefulBuilder(
-      builder: (context, setState) {
-        final deadlineValid = !requiresRemoteDeadline ||
-            (bindingDeadline != null &&
-                bindingDeadline.isAfter(DateTime.now()));
-        final acceptanceAllowed = displayedQuote != null && deadlineValid;
-        return AlertDialog(
-          title: const Text('Buchungsanfrage annehmen'),
-          content: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Zeitraum: ${_date(request.start)} bis ${_date(request.end)}',
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    displayedQuote == null
-                        ? 'Preisprüfung fehlgeschlagen'
-                        : bindingServerQuote
-                            ? 'Verbindlicher Serverpreis'
-                            : 'Lokaler Testpreis · kein Echtgeld',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  if (!deadlineValid) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Die 30-Minuten-Annahmefrist ist abgelaufen. Diese Anfrage kann nicht mehr angenommen werden.',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ] else if (displayedQuote == null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Der verbindliche Preis fehlt oder ist widersprüchlich. Die Annahme bleibt gesperrt; bitte lade die Anfrage neu.',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ] else ...[
-                    if (requiresRemoteDeadline) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                          'Annahme möglich bis ${_dateTime(bindingDeadline!)}.'),
-                    ],
-                    const SizedBox(height: 4),
-                    Text(
-                      'Privater Mietpreis / deine vorgesehene Auszahlung: ${_money(displayedQuote.rentalSubtotalMinor)}',
-                    ),
-                    Text(
-                      'SIT-Plattformbeitrag des Mieters: ${_money(displayedQuote.platformFeeMinor)}',
-                    ),
-                    Text(
-                      'Gesamtpreis des Mieters: ${_money(displayedQuote.totalMinor)}',
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  const PrivatePilotRiskNotice(
-                    title: 'Privatvermietung ohne SIT-Schadenschutz',
-                  ),
-                  const SizedBox(height: 8),
-                  CheckboxListTile(
-                    value: confirmed,
-                    onChanged: acceptanceAllowed
-                        ? (value) => setState(() => confirmed = value == true)
-                        : null,
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    title: const Text(
-                      PrivatePilotConfig.ownerAcceptanceDeclaration,
-                    ),
-                    subtitle: const Text(
-                      '${PrivatePilotConfig.documentName} · ${PrivatePilotConfig.documentVersion}',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Abbrechen'),
-            ),
-            FilledButton(
-              onPressed: confirmed && acceptanceAllowed
-                  ? () {
-                      if (requiresRemoteDeadline &&
-                          (bindingDeadline == null ||
-                              !bindingDeadline.isAfter(DateTime.now()))) {
-                        setState(() => confirmed = false);
-                        return;
-                      }
-                      final acceptedAt = DateTime.now();
-                      Navigator.of(dialogContext).pop([
-                        {
-                          'type': 'owner_booking_acceptance',
-                          'exactWording':
-                              PrivatePilotConfig.ownerAcceptanceDeclaration,
-                          'documentName': PrivatePilotConfig.documentName,
-                          'documentVersion': PrivatePilotConfig.documentVersion,
-                          'language': PrivatePilotConfig.language,
-                          'accepted': true,
-                          'acceptedAt': acceptedAt.toIso8601String(),
-                        },
-                      ]);
-                    }
-                  : null,
-              child: const Text('Verbindlich annehmen'),
-            ),
-          ],
-        );
-      },
+    builder: (dialogContext) => _OwnerAcceptanceDialog(
+      request: request,
+      displayedQuote: displayedQuote,
+      bindingServerQuote: bindingServerQuote,
+      requiresRemoteDeadline: requiresRemoteDeadline,
+      bindingDeadline: bindingDeadline,
     ),
   );
+}
+
+class _OwnerAcceptanceDialog extends StatefulWidget {
+  final RentalRequest request;
+  final PrivatePilotQuote? displayedQuote;
+  final bool bindingServerQuote;
+  final bool requiresRemoteDeadline;
+  final DateTime? bindingDeadline;
+
+  const _OwnerAcceptanceDialog({
+    required this.request,
+    required this.displayedQuote,
+    required this.bindingServerQuote,
+    required this.requiresRemoteDeadline,
+    required this.bindingDeadline,
+  });
+
+  @override
+  State<_OwnerAcceptanceDialog> createState() => _OwnerAcceptanceDialogState();
+}
+
+class _OwnerAcceptanceDialogState extends State<_OwnerAcceptanceDialog> {
+  Timer? _deadlineTimer;
+  bool _confirmed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final deadline = widget.bindingDeadline;
+    if (!widget.requiresRemoteDeadline || deadline == null) return;
+    final remaining = deadline.difference(DateTime.now());
+    if (remaining <= Duration.zero) return;
+    _deadlineTimer = Timer(remaining, () {
+      if (!mounted) return;
+      setState(() => _confirmed = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _deadlineTimer?.cancel();
+    super.dispose();
+  }
+
+  bool get _deadlineValid =>
+      !widget.requiresRemoteDeadline ||
+      (widget.bindingDeadline != null &&
+          widget.bindingDeadline!.isAfter(DateTime.now()));
+
+  @override
+  Widget build(BuildContext context) {
+    final displayedQuote = widget.displayedQuote;
+    final deadlineValid = _deadlineValid;
+    final acceptanceAllowed = displayedQuote != null && deadlineValid;
+    return AlertDialog(
+      title: const Text('Buchungsanfrage annehmen'),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Zeitraum: ${_date(widget.request.start)} bis ${_date(widget.request.end)}',
+              ),
+              const SizedBox(height: 8),
+              Text(
+                displayedQuote == null
+                    ? 'Preisprüfung fehlgeschlagen'
+                    : widget.bindingServerQuote
+                        ? 'Verbindlicher Serverpreis'
+                        : 'Lokaler Testpreis · kein Echtgeld',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              if (!deadlineValid) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Die 30-Minuten-Annahmefrist ist abgelaufen. Diese Anfrage kann nicht mehr angenommen werden.',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ] else if (displayedQuote == null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Der verbindliche Preis fehlt oder ist widersprüchlich. Die Annahme bleibt gesperrt; bitte lade die Anfrage neu.',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ] else ...[
+                if (widget.requiresRemoteDeadline) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                      'Annahme möglich bis ${_dateTime(widget.bindingDeadline!)}.'),
+                ],
+                const SizedBox(height: 4),
+                Text(
+                  'Privater Mietpreis / deine vorgesehene Auszahlung: ${_money(displayedQuote.rentalSubtotalMinor)}',
+                ),
+                Text(
+                  'SIT-Plattformbeitrag des Mieters: ${_money(displayedQuote.platformFeeMinor)}',
+                ),
+                Text(
+                  'Gesamtpreis des Mieters: ${_money(displayedQuote.totalMinor)}',
+                ),
+              ],
+              const SizedBox(height: 12),
+              const PrivatePilotRiskNotice(
+                title: 'Privatvermietung ohne SIT-Schadenschutz',
+              ),
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                value: _confirmed,
+                onChanged: acceptanceAllowed
+                    ? (value) => setState(() => _confirmed = value == true)
+                    : null,
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text(
+                  PrivatePilotConfig.ownerAcceptanceDeclaration,
+                ),
+                subtitle: const Text(
+                  '${PrivatePilotConfig.documentName} · ${PrivatePilotConfig.documentVersion}',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton(
+          onPressed: _confirmed && acceptanceAllowed
+              ? () {
+                  if (widget.requiresRemoteDeadline &&
+                      (widget.bindingDeadline == null ||
+                          !widget.bindingDeadline!.isAfter(DateTime.now()))) {
+                    setState(() => _confirmed = false);
+                    return;
+                  }
+                  final acceptedAt = DateTime.now();
+                  Navigator.of(context).pop([
+                    {
+                      'type': 'owner_booking_acceptance',
+                      'exactWording':
+                          PrivatePilotConfig.ownerAcceptanceDeclaration,
+                      'documentName': PrivatePilotConfig.documentName,
+                      'documentVersion': PrivatePilotConfig.documentVersion,
+                      'language': PrivatePilotConfig.language,
+                      'accepted': true,
+                      'acceptedAt': acceptedAt.toIso8601String(),
+                    },
+                  ]);
+                }
+              : null,
+          child: const Text('Verbindlich annehmen'),
+        ),
+      ],
+    );
+  }
 }
 
 Future<bool> commitPrivatePilotOwnerAcceptance(

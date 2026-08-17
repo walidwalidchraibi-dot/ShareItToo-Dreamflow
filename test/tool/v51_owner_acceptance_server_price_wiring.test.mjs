@@ -98,7 +98,7 @@ test('acceptance dialog and backend transition receive the same guarded quote fl
   );
   assert.match(
     dialog,
-    /onPressed: confirmed && acceptanceAllowed/u,
+    /onPressed: _confirmed && acceptanceAllowed/u,
   );
   assert.match(
     dialog,
@@ -141,7 +141,7 @@ test('remote owner acceptance is bound to the server 30-minute deadline', () => 
   assert.match(dialog, /final acceptanceAllowed = displayedQuote != null && deadlineValid/u);
   assert.match(
     dialog,
-    /bindingDeadline == null \|\|\s+!bindingDeadline\.isAfter\(DateTime\.now\(\)\)/u,
+    /widget\.bindingDeadline == null \|\|[\s\S]*?!widget\.bindingDeadline!\.isAfter\(DateTime\.now\(\)\)/u,
   );
   assert.match(backend, /throw new BookingWorkflowError\(409, 'booking_request_expired'\)/u);
 });
@@ -191,4 +191,24 @@ test('an acceptance race at the server deadline becomes a centered SIT message',
   );
   assert.match(dialog, /Diese Anfrage kann nicht mehr angenommen werden/u);
   assert.match(dialog, /Bitte lade die Ansicht neu/u);
+});
+
+test('an already-open acceptance dialog expires itself and clears confirmation', () => {
+  assert.match(dialog, /class _OwnerAcceptanceDialog extends StatefulWidget/u);
+  assert.match(
+    dialog,
+    /_deadlineTimer = Timer\(remaining,[\s\S]*?setState\(\(\) => _confirmed = false\)/u,
+  );
+  assert.match(
+    dialog,
+    /void dispose\(\)[\s\S]*?_deadlineTimer\?\.cancel\(\)[\s\S]*?super\.dispose\(\)/u,
+  );
+  assert.match(
+    dialog,
+    /bool get _deadlineValid[\s\S]*?bindingDeadline!\.isAfter\(DateTime\.now\(\)\)/u,
+  );
+  assert.match(
+    dialog,
+    /value: _confirmed,[\s\S]*?onChanged: acceptanceAllowed[\s\S]*?onPressed: _confirmed && acceptanceAllowed/u,
+  );
 });

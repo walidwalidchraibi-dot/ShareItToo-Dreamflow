@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.151
+Stand: 17.08.2026, lokaler Checkpoint 16.152
 
 ## Verbindliche Grenzen
 
@@ -618,3 +618,29 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
   übertragen. Nachweis:
   `docs/evidence/b11/v51-owner-acceptance-live-deadline-20260817T095017Z.json`
+
+## Prüfstand Checkpoint 16.152
+
+- ein bereits geöffnetes zentrales Vermieter-Annahmefenster beobachtet die
+  gebundene 30-Minuten-Frist jetzt selbst und wechselt beim exakten Ablauf
+  ohne erneutes Tippen oder Schließen in den abgelaufenen Zustand
+- eine zuvor gesetzte Annahmeerklärung wird beim Ablauf sofort zurückgesetzt;
+  Checkbox und verbindlicher Annahmebutton werden gleichzeitig technisch
+  deaktiviert und der sichtbare Ablaufhinweis erscheint im selben Dialog
+- der Dialog verwendet genau einen Fristzeitgeber und beendet ihn beim
+  Schließen zuverlässig; ein späterer Callback kann keine bereits entfernte
+  Ansicht mehr verändern
+- die zusätzliche Prüfung beim Antippen, der gemeinsame Serverabschluss und
+  die serverseitige Schranke `booking_request_expired` bleiben unverändert;
+  alle vier Annahmewege profitieren vom gemeinsamen Dialog
+- 10/10 Annahme-Wiring-Tests und 52/52 gezielte Flutter-Buchungs- und
+  Sicherheitstests bestanden; die gezielte Dialoganalyse hatte 0 Hinweise
+- die vollständige Regression blieb mit 282 bestandenen Tests, 1 bewusstem
+  Skip, 229 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün; das technische Gesamttor bestand mit
+  der dokumentierten lokalen Kandidaten-Rollover-Grenze
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder Kandidatenwechsel
+- Push und Crashdiagnose bleiben bestehen, getrennt, freiwillig und
+  standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
+  übertragen. Nachweis:
+  `docs/evidence/b11/v51-owner-acceptance-dialog-live-expiry-20260817T100225Z.json`
