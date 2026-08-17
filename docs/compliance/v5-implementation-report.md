@@ -1229,3 +1229,33 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   nicht. Es erfolgte kein Deployment, Upload, Echtgeld-, Store-,
   Anbieterconsole- oder Kandidatenwechsel. Nachweis:
   `docs/evidence/b11/v51-remove-request-express-ui-20260817T150818Z.json`
+
+## Prüfstand Checkpoint 16.173
+
+- auch die Vermieter-Detailansicht liest keine gespeicherte Lieferauswahl mehr
+  ein und enthält keine Expressannahme/-ablehnung, Prioritätsgebühr,
+  Lieferadresse oder Lieferkarte mehr; dadurch kann auch ein alter lokaler
+  Auswahlrest keine abgeschaltete Transportleistung sichtbar reaktivieren
+- für den Privat-Pilot nennt die Ansicht jetzt ausschließlich die gültige
+  Selbstabholung und Selbstrückgabe. Die tatsächlich im abgesicherten
+  Übergabe-/Rückgabeablauf bestätigten Orte und Kartenlinks bleiben erhalten
+- Preis-Snapshot, verbindliche Annahmefrist, Annahme und Ablehnung, Chat,
+  sichere Übergabe/Rückgabe mit Challenge, QR/Code und Fotos sowie Storno und
+  Bewertung blieben unverändert und werden durch fail-closed Tests geschützt
+- 6/6 neue Transport-Abwesenheitstests, 26/26 kombinierte Funktionsschutztests
+  und 30/30 gezielte Datenschutz-/Store-Prüfungen bestanden; aus der
+  Laufzeitansicht entfielen netto 269 Zeilen. Der gebundene
+  Datenschutz-Quellhash wurde auf die geprüfte Quelle aktualisiert, ohne eine
+  Erhebungs-, Speicher-, Übertragungs- oder Berechtigungsänderung zu behaupten
+- die vollständige technische Regression bestand mit 292 Flutter-Tests und
+  1 bewusstem Skip, 213 Backendtests und 1 bewusstem PostgreSQL-Skip, 224
+  Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds
+- FCM-Push und Firebase Crashlytics bleiben ausdrücklich bestehen, getrennt,
+  freiwillig und im nächsten Kandidaten standardmäßig aus; Push aktiviert
+  Crashlytics nicht. Werbung, Marketingtracking, allgemeine Analytics und
+  externe generative KI bleiben aus
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store-, Anbieterconsole-
+  oder Kandidatenwechsel und keine zusätzliche Crashlytics-
+  Kennungsübertragung. Nachweis:
+  `docs/evidence/b11/v51-remove-owner-detail-transport-ui-20260817T152652Z.json`

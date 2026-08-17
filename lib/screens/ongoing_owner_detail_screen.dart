@@ -24,8 +24,6 @@ import 'package:lendify/widgets/app_image.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
 import 'package:lendify/widgets/sit_glass_time_picker.dart';
 import 'dart:ui' show ImageFilter;
-import 'package:lendify/services/address_privacy.dart';
-import 'package:lendify/widgets/approx_location_map.dart';
 import 'package:lendify/widgets/sit_overflow_menu.dart';
 import 'package:lendify/services/handover_code.dart';
 import 'package:lendify/models/invoice.dart';
@@ -54,7 +52,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
   User? _renter;
   User? _owner;
   final TextEditingController _manualCodeCtrl = TextEditingController();
-  Map<String, dynamic>? _deliverySel;
   Map<String, dynamic> _flowState = const {};
   bool _reviewAlreadySubmitted = false;
   Timer? _acceptanceDeadlineTimer;
@@ -81,9 +78,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final item = await DataService.getItemById(req.itemId);
     final renter = await DataService.getUserById(req.renterId);
     final owner = await DataService.getUserById(req.ownerId);
-    final sel = item != null
-        ? await DataService.getSavedDeliverySelection(item.id)
-        : null;
     final flowState = await DataService.getHandoverReturnState(req.id);
     final alreadyReviewed = owner != null
         ? await DataService.hasSubmittedReview(
@@ -97,7 +91,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
       _item = item;
       _renter = renter;
       _owner = owner;
-      _deliverySel = sel;
       _flowState = flowState;
       _reviewAlreadySubmitted = alreadyReviewed;
     });
@@ -701,192 +694,14 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
 
     final isCompleted = req.status == 'completed';
     final isHeldForReview = req.needsReview;
-    final location = item.locationText;
-    // Derive responsibilities robustly from persisted request snapshot; fall back to
-    // transient selection and express/address hints for legacy data.
-    final bool inferredOwnerDeliversByTransient =
-        (_deliverySel?['hinweg'] == true);
-    final bool inferredOwnerDeliversByExpress =
-        req.expressRequested || (req.expressStatus != null);
-    final bool inferredOwnerDeliversByAddress =
-        ((req.deliveryAddressLine ?? '').toString().trim().isNotEmpty) ||
-            ((req.deliveryCity ?? '').toString().trim().isNotEmpty);
-    final bool ownerDelivers = req.ownerDeliversAtDropoffChosen ||
-        inferredOwnerDeliversByTransient ||
-        inferredOwnerDeliversByExpress ||
-        inferredOwnerDeliversByAddress;
-
-    final bool inferredOwnerPicksUpByTransient =
-        (_deliverySel?['rueckweg'] == true);
-    final bool ownerPicksUp =
-        req.ownerPicksUpAtReturnChosen || inferredOwnerPicksUpByTransient;
-
-    final String targetAddr = _composeTargetAddressFromReq(
-      req,
-      _deliverySel,
-      fallback: location,
-    );
-
-    final breakdown = DataService.priceBreakdownForRequest(
-      item: item,
-      req: req,
-      deliverySel: _deliverySel,
-    );
+    final breakdown =
+        DataService.priceBreakdownForRequest(item: item, req: req);
     final totalPaid = breakdown.totalRenter;
     final fee = breakdown.platformFee;
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Priorität confirmation card (only when request pending confirmation and express was requested)
-        if (req.status == 'pending' &&
-            req.expressRequested &&
-            (req.expressStatus == null || req.expressStatus == 'pending')) ...[
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.20),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-            ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: const [
-                    Icon(Icons.flash_on_outlined, color: Colors.white70),
-                    SizedBox(width: 8),
-                    Text(
-                      'Prioritätslieferung angefragt',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Prioritätslieferung in den nächsten 2 Stunden möglich?',
-                  style: TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  '(5,00 € Zusatzvergütung – wird automatisch gutgeschrieben)',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          await DataService.updateRentalRequestExpress(
-                            requestId: req.id,
-                            accept: true,
-                          );
-                          await DataService.addTimelineEvent(
-                            requestId: req.id,
-                            type: 'express_accepted',
-                            note: 'Prioritätslieferung bestätigt',
-                          );
-                          await DataService.addNotification(
-                            title: 'Priorität bestätigt',
-                            body:
-                                'Die Prioritätslieferung wurde bestätigt (+5,00 €).',
-                          );
-                          await _load();
-                        },
-                        icon: const Icon(Icons.check_circle_outline),
-                        label: const Text('Ja, bestätigen'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          await DataService.updateRentalRequestExpress(
-                            requestId: req.id,
-                            accept: false,
-                          );
-                          await DataService.addTimelineEvent(
-                            requestId: req.id,
-                            type: 'express_declined',
-                            note: 'Prioritätslieferung abgelehnt',
-                          );
-                          await DataService.addNotification(
-                            title: 'Priorität abgelehnt',
-                            body:
-                                'Die 5,00 € Prioritäts-Zahlung wird dem Mieter automatisch erstattet.',
-                          );
-                          await _load();
-                        },
-                        icon: const Icon(Icons.cancel_outlined),
-                        label: const Text('Ablehnen'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-        ] else if (req.expressRequested && req.expressStatus == 'accepted') ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF22C55E).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF22C55E).withValues(alpha: 0.24),
-              ),
-            ),
-            child: Row(
-              children: const [
-                Icon(Icons.check_circle_outline, color: Color(0xFF22C55E)),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Prioritätslieferung bestätigt (+5,00 €)',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-        ] else if (req.expressRequested && req.expressStatus == 'declined') ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF43F5E).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFFF43F5E).withValues(alpha: 0.24),
-              ),
-            ),
-            child: Row(
-              children: const [
-                Icon(Icons.info_outline, color: Color(0xFFF43F5E)),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Prioritätslieferung abgelehnt – 5,00 € werden erstattet',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-
         // Hero image with overlays: status chip (bottom-left), optional countdown (bottom-right),
         // and for upcoming a cancel button (top-right)
         if (_photos.isNotEmpty)
@@ -1383,18 +1198,14 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Transport info sentence inline (no extra card)
+              // Private-pilot transport is self pickup and self return.
               Builder(
                 builder: (context) {
                   String? t;
                   if (category == 'upcoming' || category == 'requests') {
-                    t = ownerDelivers
-                        ? 'Du lieferst den Artikel zum Mieter.'
-                        : 'Der Mieter holt den Artikel selbst ab.';
+                    t = 'Der Mieter holt den Artikel selbst ab.';
                   } else if (category == 'ongoing') {
-                    t = ownerPicksUp
-                        ? 'Du holst den Artikel wieder ab.'
-                        : 'Der Mieter bringt den Artikel selbst zurück.';
+                    t = 'Der Mieter bringt den Artikel selbst zurück.';
                   }
                   if (t == null) return const SizedBox.shrink();
                   return Padding(
@@ -1469,70 +1280,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
             ],
           ),
         ),
-
-        // Approximate pickup/return map directly under the card (only when der Vermieter liefert/abholt)
-        if (category == 'upcoming' && ownerDelivers) ...[
-          const SizedBox(height: 8),
-          ApproxLocationMap(
-            lat: item.lat,
-            lng: item.lng,
-            label: AddressPrivacy.nearbyShort(kindLabel: 'Abholung'),
-          ),
-          const SizedBox(height: 8),
-          Builder(
-            builder: (context) {
-              final reveal = AddressPrivacy.shouldRevealExactAddress(
-                isAccepted: true,
-                handoverAt: req.start,
-              );
-              final text = reveal
-                  ? 'Abholort: $targetAddr'
-                  : AddressPrivacy.privacyNoticePickup();
-              final icon = reveal ? Icons.place_outlined : Icons.lock_outline;
-              return _AddressInfoCardInline(icon: icon, text: text);
-            },
-          ),
-        ],
-        if (category == 'requests' && ownerDelivers) ...[
-          const SizedBox(height: 8),
-          ApproxLocationMap(
-            lat: item.lat,
-            lng: item.lng,
-            label: AddressPrivacy.nearbyShort(kindLabel: 'Abholung'),
-          ),
-          const SizedBox(height: 8),
-          Builder(
-            builder: (context) {
-              final reveal = AddressPrivacy.shouldRevealExactAddress(
-                isAccepted: req.status.toLowerCase().trim() == 'accepted',
-                handoverAt: req.start,
-              );
-              final text = reveal
-                  ? 'Abholort: $targetAddr'
-                  : AddressPrivacy.privacyNoticePickup();
-              final icon = reveal ? Icons.place_outlined : Icons.lock_outline;
-              return _AddressInfoCardInline(icon: icon, text: text);
-            },
-          ),
-        ],
-        if (category == 'ongoing' && ownerPicksUp) ...[
-          const SizedBox(height: 8),
-          ApproxLocationMap(
-            lat: item.lat,
-            lng: item.lng,
-            label: AddressPrivacy.nearbyShort(kindLabel: 'Rückgabe'),
-          ),
-          const SizedBox(height: 8),
-          Builder(
-            builder: (context) {
-              // For ongoing bookings, always show the exact address
-              return _AddressInfoCardInline(
-                icon: Icons.place_outlined,
-                text: 'Rückgabeort: $targetAddr',
-              );
-            },
-          ),
-        ],
 
         if (_confirmedLocationText(false) != null) ...[
           const SizedBox(height: 12),
@@ -2057,22 +1804,6 @@ class _OngoingOwnerDetailScreenState extends State<OngoingOwnerDetailScreen> {
     final m = months[(payout.month - 1).clamp(0, 11)];
     final dd = payout.day.toString().padLeft(2, '0');
     return '$dd. $m';
-  }
-
-  String _composeTargetAddressFromReq(
-    RentalRequest req,
-    Map<String, dynamic>? sel, {
-    required String fallback,
-  }) {
-    // Prefer persisted snapshot on the request; fall back to last-known transient selection.
-    final String line =
-        (req.deliveryAddressLine ?? (sel?['addressLine'] as String?) ?? '')
-            .trim();
-    final String city =
-        (req.deliveryCity ?? (sel?['city'] as String?) ?? '').trim();
-    if (line.isEmpty && city.isEmpty) return fallback;
-    if (line.isNotEmpty && city.isNotEmpty) return '$line, $city';
-    return line.isNotEmpty ? line : city;
   }
 
   void _toast(BuildContext context, String msg) {
