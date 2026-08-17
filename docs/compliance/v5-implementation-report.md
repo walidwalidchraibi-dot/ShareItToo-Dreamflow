@@ -1,6 +1,6 @@
 # ShareItToo V5.1 - Umsetzungsbericht
 
-Stand: 17.08.2026, lokaler Checkpoint 16.150
+Stand: 17.08.2026, lokaler Checkpoint 16.151
 
 ## Verbindliche Grenzen
 
@@ -592,3 +592,29 @@ Produktion, Echtgeld, öffentliche Verträge oder Store-Review.
   standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
   übertragen. Nachweis:
   `docs/evidence/b11/v51-checkout-reconfirmation-after-requote-20260817T093351Z.json`
+
+## Prüfstand Checkpoint 16.151
+
+- eine offen gelassene Vermieter-Anfragedetailansicht beobachtet jetzt auch
+  die normale serverseitige 30-Minuten-Annahmefrist und baut sich beim Ablauf
+  ohne manuelles Neuladen neu auf
+- unmittelbar nach dem Ablauf wechselt der sichtbare Hinweis auf
+  „Annahmefrist abgelaufen“ und der Annahmebutton wird deaktiviert; ein zuvor
+  gerenderter aktiver Button bleibt nicht bis zur nächsten Navigation stehen
+- der Zeitgeber läuft nur für eine tatsächlich ausstehende Remote-Anfrage mit
+  zukünftiger gebundener Frist oder für den bereits vorhandenen
+  Express-Bestätigungsfall und beendet sich nach Wegfall beider Gründe
+- lokale QA-Daten erhalten keinen fälschlich servergebundenen Zeitgeber; die
+  Backendprüfung `booking_request_expired` und der zentrale SIT-Fehlerdialog
+  bleiben unverändert die letzte maßgebliche Schranke
+- 14/14 gezielte Strukturtests und 52/52 gezielte Flutter-Buchungs- und
+  Sicherheitstests bestanden
+- die vollständige Regression blieb mit 282 bestandenen Tests, 1 bewusstem
+  Skip, 229 Analyzer-Hinweisen bei 0 Fehlern sowie grünen Web- und
+  Android-Debug-Builds vollständig grün; das technische Gesamttor bestand mit
+  der dokumentierten lokalen Kandidaten-Rollover-Grenze
+- es erfolgte kein Deployment, Upload, Echtgeld-, Store- oder Kandidatenwechsel
+- Push und Crashdiagnose bleiben bestehen, getrennt, freiwillig und
+  standardmäßig aus; Push aktiviert Crash nicht. Es wurden keine Crashdaten
+  übertragen. Nachweis:
+  `docs/evidence/b11/v51-owner-acceptance-live-deadline-20260817T095017Z.json`

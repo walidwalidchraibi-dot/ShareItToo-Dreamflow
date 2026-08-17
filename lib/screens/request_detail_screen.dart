@@ -54,23 +54,52 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
   void _startOrStopTicker() {
     _ticker?.cancel();
     final req = _req;
-    if (req != null &&
-        req.expressRequested &&
-        (req.expressStatus == null || req.expressStatus == 'pending')) {
-      _computeRemaining();
-      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (!mounted) return;
-        _computeRemaining();
-      });
+    if (req == null) return;
+    final now = DateTime.now();
+    if (!_expressConfirmationPending(req) &&
+        !_bindingDeadlinePending(req, now)) {
+      return;
     }
+    _refreshTimedState(now);
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final current = _req;
+      if (current == null) {
+        _ticker?.cancel();
+        _ticker = null;
+        return;
+      }
+      final tickNow = DateTime.now();
+      _refreshTimedState(tickNow);
+      if (!_expressConfirmationPending(current) &&
+          !_bindingDeadlinePending(current, tickNow)) {
+        _ticker?.cancel();
+        _ticker = null;
+      }
+    });
   }
 
-  void _computeRemaining() {
+  bool _expressConfirmationPending(RentalRequest req) =>
+      req.expressRequested &&
+      (req.expressStatus == null || req.expressStatus == 'pending');
+
+  bool _bindingDeadlinePending(RentalRequest req, DateTime now) {
+    final deadline = req.bindingExpiresAt;
+    return BackendConfig.enabled &&
+        !QaRuntimeService.isEnabled &&
+        req.status.toLowerCase().trim() == 'pending' &&
+        deadline != null &&
+        deadline.isAfter(now);
+  }
+
+  void _refreshTimedState(DateTime now) {
     final req = _req;
     if (req == null) return;
-    final started = req.expressRequestedAt ?? req.createdAt;
-    final deadline = started.add(const Duration(minutes: 30));
-    final left = deadline.difference(DateTime.now());
+    final left = _expressConfirmationPending(req)
+        ? (req.expressRequestedAt ?? req.createdAt)
+            .add(const Duration(minutes: 30))
+            .difference(now)
+        : _remainingConfirm;
     setState(() {
       _remainingConfirm = left.isNegative ? Duration.zero : left;
     });

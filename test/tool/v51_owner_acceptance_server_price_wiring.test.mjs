@@ -146,6 +146,25 @@ test('remote owner acceptance is bound to the server 30-minute deadline', () => 
   assert.match(backend, /throw new BookingWorkflowError\(409, 'booking_request_expired'\)/u);
 });
 
+test('an open request detail view rebuilds exactly when the binding deadline expires', () => {
+  assert.match(
+    requestDetail,
+    /_bindingDeadlinePending\(RentalRequest req, DateTime now\)[\s\S]*?BackendConfig\.enabled[\s\S]*?!QaRuntimeService\.isEnabled[\s\S]*?req\.status\.toLowerCase\(\)\.trim\(\) == 'pending'[\s\S]*?deadline\.isAfter\(now\)/u,
+  );
+  assert.match(
+    requestDetail,
+    /Timer\.periodic\(const Duration\(seconds: 1\)[\s\S]*?_refreshTimedState\(tickNow\)[\s\S]*?!_bindingDeadlinePending\(current, tickNow\)[\s\S]*?_ticker\?\.cancel\(\)/u,
+  );
+  assert.match(
+    requestDetail,
+    /final deadlineValid = !usesRemoteBackend \|\|[\s\S]*?bindingDeadline\.isAfter\(DateTime\.now\(\)\)/u,
+  );
+  assert.match(
+    requestDetail,
+    /onAccept: displayedQuote == null \|\| !deadlineValid\s+\? null/u,
+  );
+});
+
 test('every alternative owner-acceptance surface reaches the guarded dialog', () => {
   for (const relative of [
     '../../lib/screens/ongoing_owner_detail_screen.dart',
