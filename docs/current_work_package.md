@@ -11,8 +11,8 @@ Create the V5.2 legal registry proven open by
   parts A-I;
 - bind the source and every generated asset by exact SHA-256, version and page
   range in a new V5.2 manifest;
-- keep all documents and the manifest fail-closed while operator, provider,
-  URL and professional-review facts remain open;
+- keep all documents and the manifest fail-closed while operator, provider and
+  URL facts remain open, while disclosing that no professional review occurred;
 - exclude internal source parts J-L from every user asset.
 
 ## Baseline and inputs
