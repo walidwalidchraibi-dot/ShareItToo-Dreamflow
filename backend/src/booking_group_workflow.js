@@ -6,13 +6,21 @@ import {
   BookingGroupDomainError,
   maximumBookingGroupPositions,
 } from './booking_group_domain.js';
+import {
+  assertTechnicalBookingGroupLegalDocumentSet,
+  bookingGroupLegalDocumentSet,
+} from './booking_group_legal_document.js';
 import { parseRentalDates } from './booking_domain.js';
 import { BookingWorkflowError, quoteBooking } from './booking_workflow.js';
+
+const technicalGroupLegalDocumentSet = assertTechnicalBookingGroupLegalDocumentSet(
+  bookingGroupLegalDocumentSet.version,
+);
 
 const groupPolicy = Object.freeze({
   marketplaceContext: 'private_c2c',
   handoverPolicyVersion: 'private_owner_pickup_v1',
-  legalDocumentSetVersion: 'g3_multi_item_draft_v1',
+  legalDocumentSetVersion: technicalGroupLegalDocumentSet.version,
   cancellationPolicyVersion: 'v52_private_cancellation',
   paymentConfigurationKey: 'disabled_test_only',
 });

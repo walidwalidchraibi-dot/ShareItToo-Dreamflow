@@ -847,7 +847,7 @@ if (!databaseUrl) {
            $1, 'owner', 'renter-a', 'EUR',
            '2026-10-01', '2026-10-03', $2, $3, $4,
            $5, 'private_owner_pickup_v1',
-           'g3_multi_item_draft_v1', 'v52_private_cancellation',
+           'G3L-DRAFT-2026-08-20.1', 'v52_private_cancellation',
            'disabled_test_only', $6
          )`,
         [bookingGroupId, quoted.timezone, quoted.start, quoted.end, 'a'.repeat(64), 'b'.repeat(64)],

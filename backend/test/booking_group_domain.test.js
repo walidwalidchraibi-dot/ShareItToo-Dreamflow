@@ -27,7 +27,7 @@ function candidate(overrides = {}) {
     endsAt: '2026-10-02T22:00:00.000Z',
     handoverLocationKey: 'a'.repeat(64),
     handoverPolicyVersion: 'private_owner_pickup_v1',
-    legalDocumentSetVersion: 'g3_multi_item_draft_v1',
+    legalDocumentSetVersion: 'G3L-DRAFT-2026-08-20.1',
     cancellationPolicyVersion: 'v52_private_cancellation',
     paymentConfigurationKey: 'disabled_test_only',
     items: [
