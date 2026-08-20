@@ -6,11 +6,11 @@ Verified: 2026-08-20 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current FI0 implementation head:
-  `28566f22488adf2047e88e5258f4b8361d2db59c`.
-- At that implementation head the local branch, remote branch and PR head are
-  identical; the working tree is clean and the PR is cleanly mergeable.
-- Exact GitHub Actions run `32376912466` is green: backend regression and
+- Current G2A implementation head:
+  `335eb8999d79aa33159ca3c0498d515947040833`.
+- The G2A implementation commit is contained in the local branch, remote
+  branch and PR head; the PR remains cleanly mergeable.
+- Exact GitHub Actions run `32380693921` is green: backend regression and
   Flutter regression passed, while image publication was skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
   release or published artifact occurred.
@@ -42,6 +42,15 @@ Verified: 2026-08-20 on the Mac mini.
 - FI0 defines six unassigned functional roles, a critical-process schema, the
   existing append-only audit binding, manual monthly founder-hours aggregates
   and a reusable absence/delegate runbook. No account assignment was invented.
+- G2A changes the five primary destinations to `Entdecken`, `Mietkorb`,
+  `Buchungen`, `Nachrichten`, `Mein SIT` while preserving the established
+  Bookings asset icon and profile-image affordance.
+- Existing Wishlist data stays on `wishlists_meta_v1` and
+  `wishlist_assign_v1` and is presented as `Mietkorb` > `Gemerkt` with an
+  explicit non-binding/no-reservation notice. No persistent cart or project
+  data was introduced.
+- The old internal `WishlistsScreen` type remains a compatibility entry point;
+  existing app/deep-link contracts are unchanged.
 
 ## Current safe operating state
 
@@ -68,7 +77,7 @@ Verified: 2026-08-20 on the Mac mini.
 - Exact CI backend suite: 273 passed, 0 failed, 0 skipped with PostgreSQL.
 - Local backend suite: 272 passed, 0 failed and one expected PostgreSQL skip
   without local `TEST_DATABASE_URL`.
-- Complete Flutter suite: 298 passed with one documented skip; the extra
+- Complete Flutter suite: 301 passed with one documented skip; the extra
   Google-only profile test, analyzer baseline, web debug build and Android
   debug APK passed.
 - Analyzer remains at the accepted 223-item baseline. Dependency audit has no
@@ -90,7 +99,8 @@ Verified: 2026-08-20 on the Mac mini.
 
 ## Next source of truth
 
-The active bounded task is `docs/current_work_package.md`: G2A navigation and
-Gemerkt migration only. FI0 is technically complete; its external role and
-account assignments remain HOLD. Older reports and root `architecture.md` are
-evidence/history, not permission to reopen a closed launch boundary.
+The active bounded task is `docs/current_work_package.md`: G2L legal/privacy
+delta for G2 only. G2A is technically complete; FI0 external role/account
+assignments and all C1I release/device gates remain HOLD. Older reports and
+root `architecture.md` are evidence/history, not permission to reopen a closed
+launch boundary.

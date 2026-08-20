@@ -1,90 +1,91 @@
-# Current Work Package: G2A - Navigation and Gemerkt Migration
+# Current Work Package: G2L - Legal/Privacy Delta for G2
 
-Status: active after green FI0 implementation and exact GitHub CI.
+Status: active after green G2A implementation and exact GitHub CI.
 
 ## Objective
 
-Change only the primary navigation and existing wishlist presentation to the
-approved G2 vocabulary:
+Version only the legal/privacy terminology and data-lifecycle contracts that
+are affected by the G2 vocabulary and the planned cart topology. Cover
+`Gemerkt`, `Mietkorb` and the later `Projektkorb` in export, deletion and
+retention before persistent cart work begins. Preserve every historical legal,
+consent, quote and evidence snapshot unchanged.
 
-`Entdecken · Mietkorb · Buchungen · Nachrichten · Mein SIT`
-
-Move the existing heart/wishlist experience into a clearly labelled `Gemerkt`
-area under `Mietkorb` without losing data, breaking old routes or implying that
-saved items are reserved. Preserve the current Bookings icon, profile-image
-navigation affordance, direct single-item rental and all existing C1 rules.
+This package is fail-closed: it may bind an inactive future cart data type or
+record an open decision, but it must not claim collection, approval, a fixed
+retention period or a deletion implementation that does not yet exist.
 
 ## Baseline and inputs
 
 - Branch: `codex/master-workflow-20260808`; draft PR #7.
-- FI0 implementation head:
-  `28566f22488adf2047e88e5258f4b8361d2db59c`; exact GitHub Actions run
-  `32376912466` is green and created no signed or published artifact.
+- G2A implementation head:
+  `335eb8999d79aa33159ca3c0498d515947040833`; exact GitHub Actions run
+  `32380693921` is green and created no signed or published artifact.
 - Drive controls: `01_CONTROL_V2.3_AUTONOMOUS.md` and
   `02_CODEX_WORK_PACKAGES_SIT_V2.3.md`.
-- Mapped Growth source:
+- Growth terminology source:
   `02_SIT_GROWTH_PRODUCT_PROJEKTKORB_UND_PLANER.pdf`, version 2.0,
-  18.08.2026. V5.2 price, contract, booking, privacy and release rules retain
-  higher subject-specific authority.
-- Existing wishlist persistence, route/deep-link handling, bottom navigation,
-  Bookings icon and profile-image icon must be audited before editing.
+  18.08.2026.
+- V5.2 Core/Legal Map, current privacy and retention inventories, data export,
+  account deletion and exact `sourceInventory` bindings retain higher
+  subject-specific authority.
+- G2A implementation report:
+  `docs/compliance/g2a-navigation-gemerkt-migration-2026-08-20.md`.
 
 ## Allowed work
 
-- Inspect current navigation destinations, selected-index behavior, back-stack,
-  guest/auth gates, old wishlist entry points, persisted wishlist keys and
-  supported app/deep links.
-- Rename and reorder the five primary destinations exactly as approved.
-- Add a bounded `Mietkorb` navigation shell that can expose existing `Gemerkt`
-  content while truthfully keeping cart/reservation behavior unavailable until
-  G2B.
-- Migrate or alias existing wishlist state non-destructively so current saved
-  items remain available after update and rollback.
-- Preserve the old internal `WishlistsScreen` entry point as a compatibility
-  alias and leave every already-supported app/deep-link contract unchanged.
-  The audited baseline has no dedicated wishlist/favorites app-link route, so
-  G2A must not invent one or force a privacy-inventory hash change before G2L.
-- Preserve direct search, single-item listing and booking flows.
-- Add focused widget, persistence, migration, route and accessibility tests.
+- Audit every current legal/privacy term, manifest, validator, export route,
+  account-deletion route and retention contract affected by G2A or required
+  before G2B.
+- Classify `Gemerkt` as the existing non-binding saved-item state without
+  pretending it is a reservation or persistent rental cart.
+- Define the later `Mietkorb`/`Projektkorb` data topology only to the minimum
+  needed for truthful export, deletion and retention coverage. Mark runtime-
+  inactive or unimplemented facts explicitly.
+- Version current affected legal/privacy artifacts and refresh exact hashes
+  only after the source changes are reviewed. Update every binding for a
+  changed `sourceInventory` path.
+- Extend validators and focused tests so missing cart export/deletion/retention
+  coverage fails closed before G2B can activate persistence.
+- Preserve current draft/open/HOLD states and document every unresolved owner,
+  legal, processor or retention decision.
 
-## Not allowed in G2A
+## Not allowed in G2L
 
-- No server-persistent rental/project cart, cart availability checks, project
-  containers, multi-item request, partial offer, multi-owner checkout or grouped
-  payment/ledger behavior; those belong to G2B or later.
-- No legal/privacy text, version, hash, export, deletion or retention change;
-  the required terminology/data delta belongs to G2L after G2A.
-- No SIT Planer, productive external AI, project recommendation, ranking,
-  project analytics or marketing/advertising analytics.
-- No change to quote arithmetic, discounts, contracts, declarations, checkout,
-  booking lifecycle, handover/return evidence, moderation or financial
-  documents.
-- No silent deletion, overwrite or relabelling of saved user data.
-- No production, provider, account, cloud, payment, Store, signed-candidate,
-  public rollout, SSH or destructive Git action.
+- No rewrite, deletion or replacement of historical legal, consent, quote,
+  contract, privacy, retention or device-evidence snapshots.
+- No invented legal basis, retention period, controller/processor role,
+  company/operator fact, approval, consent wording or deletion capability.
+- No persistent rental/project cart, server schema, cart API, login-return,
+  availability/quote recheck, grouped booking, multi-owner or Payment behavior;
+  those belong to G2B or later.
+- No change to prices, discounts, contract formation, withdrawal,
+  cancellation, evidence, moderation, financial documents or release state.
+- No productive AI, analytics/ads, new provider traffic or new data collection.
+- No production, VPS/OpenClaw, SSH, DNS, cloud-console, payment, Store, signed
+  candidate, public rollout, account or destructive Git action.
 
 ## Acceptance criteria
 
-- Primary navigation renders exactly five destinations in this order:
-  `Entdecken`, `Mietkorb`, `Buchungen`, `Nachrichten`, `Mein SIT`.
-- The established Bookings icon remains the Bookings icon. `Mein SIT` retains
-  the profile-image affordance rather than regressing to an unrelated generic
-  icon.
-- Every existing saved/wishlist item survives migration and remains removable
-  and reachable under `Mietkorb` > `Gemerkt`.
-- `Gemerkt` visibly states that saving is non-binding and not a reservation.
-  G2A introduces no false cart, availability or booking guarantee.
-- Old internal wishlist callers reach `Gemerkt` through the compatibility type;
-  all existing listing, profile, booking, chat, auth, payment and notification
-  app/deep links remain unchanged and pass their existing regression tests.
-- Guest/auth behavior, selected-tab restoration, back navigation, direct
-  single-item rental and all C1 contracts remain unchanged.
-- Focused navigation, persistence/migration, deep-link and accessibility tests
-  pass; complete regression and exact GitHub CI are green.
+- Current public/internal terminology truthfully distinguishes `Gemerkt` from
+  a reservation and distinguishes the empty G2A `Mietkorb` shell from the
+  inactive persistent cart planned for G2B.
+- Existing saved-item metadata and assignments are included in current export,
+  deletion and retention reasoning under their real legacy keys.
+- The planned rental/project-cart data class cannot become persistent in G2B
+  unless export, deletion and retention validators recognize it.
+- Runtime-inactive future data is not falsely listed as currently collected;
+  open retention/legal decisions remain explicit and fail closed.
+- Every changed current artifact has a new version/hash where required, while
+  all historical snapshots and their hashes remain byte-identical.
+- Privacy, retention, legal and Store validators pass in honest draft mode and
+  still reject premature approval or activation.
+- Focused lifecycle, hash-drift and negative tests pass; complete regression
+  and exact GitHub CI are green.
 
 ## Expected next transition
 
-GREEN: G2L - legal/privacy delta for the changed G2 terminology and data
-topology before persistent cart work. YELLOW/RED: preserve the old wishlist
-data and stop at the exact migration, route, accessibility or legal ambiguity
-without guessing or proceeding to G2B.
+GREEN: G2B - persistent rental cart with login return and server-side
+availability/quote recheck. YELLOW/RED: stop before G2B at the exact legal,
+privacy, retention, export, deletion or historical-snapshot ambiguity. A
+substantive choice not already settled by V5.2/current decisions is a HARD
+STOP and must not be guessed.
