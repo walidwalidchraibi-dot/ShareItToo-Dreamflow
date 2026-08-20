@@ -59,6 +59,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('Projektkorb'), findsNothing);
+    expect(find.text('Technische Mehrfachanfrage'), findsNothing);
     semantics.dispose();
   });
 
@@ -104,5 +105,6 @@ void main() {
     expect(find.text(item.title), findsOneWidget);
     expect(find.text('Anmelden & synchronisieren'), findsOneWidget);
     expect(find.textContaining('Reservierung erstellt'), findsNothing);
+    expect(find.text('Technische Mehrfachanfrage'), findsNothing);
   });
 }

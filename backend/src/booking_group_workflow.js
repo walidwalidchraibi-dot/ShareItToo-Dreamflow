@@ -736,11 +736,30 @@ export async function getBookingGroup(client, { actorId, bookingGroupId }) {
   if (![current.group.owner_id, current.group.renter_id].includes(actorId)) {
     throw new BookingWorkflowError(403, 'booking_group_forbidden');
   }
+  let previousQuote = null;
+  if (current.quote.predecessor_quote_id) {
+    const previousResult = await client.query(
+      `SELECT id, booking_group_id, quote_revision, predecessor_quote_id,
+              proposal_kind, proposed_by_id, proposed_by_role,
+              compatibility_hash, item_count, currency, rental_subtotal_minor,
+              platform_fee_minor, total_minor, owner_payout_minor,
+              security_deposit_minor, quote_payload, quote_hash, issued_at, expires_at
+         FROM booking_group_quotes
+        WHERE id = $1 AND booking_group_id = $2`,
+      [current.quote.predecessor_quote_id, groupId],
+    );
+    if (!previousResult.rowCount) {
+      throw new BookingWorkflowError(409, 'booking_group_predecessor_quote_not_found');
+    }
+    const previous = previousResult.rows[0];
+    previousQuote = publicQuote(storedQuote(previous), previous.expires_at);
+  }
   return {
     bookingGroupId: groupId,
     ownerId: current.group.owner_id,
     renterId: current.group.renter_id,
     state: current.event.to_state,
     quote: publicQuote(storedQuote(current.quote), current.quote.expires_at),
+    previousQuote,
   };
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:lendify/config/booking_group_technical_config.dart';
+import 'package:lendify/models/booking_group.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_cart.dart';
+import 'package:lendify/screens/booking_group_technical_screen.dart';
 import 'package:lendify/screens/login_screen.dart';
 import 'package:lendify/screens/private_pilot_checkout_screen.dart';
 import 'package:lendify/services/auth_service.dart';
@@ -248,6 +251,22 @@ class _RentalCartScreenState extends State<RentalCartScreen> {
     }
   }
 
+  Future<void> _openBookingGroupCandidate(
+    RentalCartGroupCandidate candidate,
+  ) async {
+    final session = await AuthService.readSession();
+    if (!mounted) return;
+    if (session == null) {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => const LoginScreen(returnTabIndex: 1),
+      ));
+      return;
+    }
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => BookingGroupTechnicalScreen(candidate: candidate),
+    ));
+  }
+
   Future<void> _addCustomList() async {
     final controller = TextEditingController();
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -351,6 +370,9 @@ extension on _RentalCartScreenState {
   Widget _buildRentalCartSection(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final cart = _rentalCart;
+    final groupCandidates = BookingGroupTechnicalConfig.available
+        ? RentalCartGroupCandidate.fromCart(cart)
+        : const <RentalCartGroupCandidate>[];
     final itemHeight =
         cart.items.isEmpty ? 72.0 : math.min(300.0, 96.0 * cart.items.length);
     return Card(
@@ -509,6 +531,33 @@ extension on _RentalCartScreenState {
                       },
                     ),
             ),
+            if (groupCandidates.isNotEmpty) ...[
+              const Divider(height: 20),
+              Text(
+                'Technische Mehrfachanfrage',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Nur für kompatible Artikel desselben Vermieters. Noch keine Reservierung, kein Vertrag und keine Zahlung.',
+              ),
+              for (final candidate in groupCandidates)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.inventory_2_outlined),
+                  title: Text(
+                    '${candidate.items.length} Artikel gemeinsam prüfen',
+                  ),
+                  subtitle: Text(
+                    '${_cartDate(candidate.startDate)} – ${_cartDate(candidate.endDate)}',
+                  ),
+                  trailing: const Icon(Icons.arrow_forward),
+                  onTap: () => _openBookingGroupCandidate(candidate),
+                ),
+            ],
             Row(
               children: [
                 TextButton.icon(

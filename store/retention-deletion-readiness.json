@@ -237,7 +237,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "64602f1bafb412c92206807f17053d1f369b82477b0db4b4c7083eba2c16b6dd"
+      "sha256": "03bd8e5042ba128a6fc267e616e33ebb36c54e3ba781c2c1f112b220d2720a10"
     },
     {
       "path": "lib/models/rental_cart.dart",

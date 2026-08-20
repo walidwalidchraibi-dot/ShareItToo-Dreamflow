@@ -134,6 +134,8 @@ test('G3C workflow requotes on the server and requires explicit exact consent', 
   assert.match(workflow, /explicit_booking_group_counteroffer_consent_required/u);
   assert.match(workflow, /candidate\.accepted !== true/u);
   assert.match(workflow, /assertCurrentQuote\(candidate, current\.quote\)/u);
+  assert.match(workflow, /booking_group_predecessor_quote_not_found/u);
+  assert.match(workflow, /previousQuote = publicQuote/u);
   assert.doesNotMatch(workflow, /candidate\.(?:totalMinor|platformFeeMinor|ownerPayoutMinor)/u);
   assert.match(app, /assertBookingGroupsEnabled\(config\)/u);
   assert.match(app, /app\.post\('\/v1\/booking-groups'/u);

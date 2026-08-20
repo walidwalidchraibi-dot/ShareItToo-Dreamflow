@@ -325,6 +325,83 @@ class BackendRepository {
     return _authorized(method: 'POST', path: '/bookings/quote', body: booking);
   }
 
+  static Future<Map<String, dynamic>> requestBookingGroup({
+    required List<String> listingIds,
+    required String startDate,
+    required String endDate,
+    required String idempotencyKey,
+  }) {
+    return _authorized(
+      method: 'POST',
+      path: '/booking-groups',
+      body: <String, dynamic>{
+        'listingIds': listingIds,
+        'startDate': startDate,
+        'endDate': endDate,
+      },
+      additionalHeaders: <String, String>{
+        'Idempotency-Key': idempotencyKey,
+      },
+    );
+  }
+
+  static Future<Map<String, dynamic>> getBookingGroup(String id) {
+    return _authorized(
+      method: 'GET',
+      path: '/booking-groups/${Uri.encodeComponent(id)}',
+    );
+  }
+
+  static Future<Map<String, dynamic>> decideBookingGroup({
+    required String id,
+    required String action,
+    required String quoteId,
+    required String quoteHash,
+    required String idempotencyKey,
+    List<String>? listingIds,
+  }) {
+    return _authorized(
+      method: 'POST',
+      path: '/booking-groups/${Uri.encodeComponent(id)}/owner-decision',
+      body: <String, dynamic>{
+        'action': action,
+        'quoteId': quoteId,
+        'quoteHash': quoteHash,
+        if (listingIds != null) 'listingIds': listingIds,
+      },
+      additionalHeaders: <String, String>{
+        'Idempotency-Key': idempotencyKey,
+      },
+    );
+  }
+
+  static Future<Map<String, dynamic>> acceptBookingGroupCounteroffer({
+    required String id,
+    required String quoteId,
+    required String quoteHash,
+    required String idempotencyKey,
+  }) {
+    return _authorized(
+      method: 'POST',
+      path: '/booking-groups/${Uri.encodeComponent(id)}/counteroffer-consent',
+      body: <String, dynamic>{
+        'accepted': true,
+        'quoteId': quoteId,
+        'quoteHash': quoteHash,
+      },
+      additionalHeaders: <String, String>{
+        'Idempotency-Key': idempotencyKey,
+      },
+    );
+  }
+
+  static Future<Map<String, dynamic>> getBookingGroupHandoverReturn(String id) {
+    return _authorized(
+      method: 'GET',
+      path: '/booking-groups/${Uri.encodeComponent(id)}/handover-return',
+    );
+  }
+
   static Future<Map<String, dynamic>> getRentalCart() async {
     final response = await _authorized(method: 'GET', path: '/rental-cart');
     return Map<String, dynamic>.from(response['cart'] as Map);

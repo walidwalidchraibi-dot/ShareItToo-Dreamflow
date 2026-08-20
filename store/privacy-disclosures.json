@@ -272,7 +272,7 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "64602f1bafb412c92206807f17053d1f369b82477b0db4b4c7083eba2c16b6dd"
+      "sha256": "03bd8e5042ba128a6fc267e616e33ebb36c54e3ba781c2c1f112b220d2720a10"
     },
     {
       "path": "lib/models/rental_cart.dart",
@@ -292,7 +292,7 @@
     },
     {
       "path": "lib/screens/wishlists_screen.dart",
-      "sha256": "0ba44c3252ef47e1864e6e6aaae15e96a5c84be72e612e6ecced3fd32e8ecad8"
+      "sha256": "3b4442c43e43d17045319c030fe850670340b29f977dcf480b7412df8f53bae7"
     },
     {
       "path": "lib/widgets/item_details_overlay.dart",

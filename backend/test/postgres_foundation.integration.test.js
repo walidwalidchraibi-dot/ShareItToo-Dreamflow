@@ -959,6 +959,7 @@ if (!databaseUrl) {
       const {
         acceptBookingGroupCounteroffer,
         decideBookingGroup,
+        getBookingGroup,
         requestBookingGroup,
       } = await import('../src/booking_group_workflow.js');
       const runBookingGroupCommand = async (command) => {
@@ -1050,6 +1051,14 @@ if (!databaseUrl) {
       assert.equal(counterDecision.quote.itemCount, 1);
       assert.equal(counterDecision.quote.items[0].listingId, 'listing-1');
       assert.notEqual(counterDecision.quote.quoteHash, counterInitial.quote.quoteHash);
+      const counterProjection = await runBookingGroupCommand((client) => getBookingGroup(client, {
+        actorId: groupActors.renter.id,
+        bookingGroupId: counterInitial.group.id,
+      }));
+      assert.equal(counterProjection.quote.id, counterDecision.quote.id);
+      assert.equal(counterProjection.previousQuote.id, counterInitial.quote.id);
+      assert.equal(counterProjection.previousQuote.totalMinor, counterInitial.quote.totalMinor);
+      assert.equal(counterProjection.previousQuote.quoteHash, counterInitial.quote.quoteHash);
       const counterDecisionReplay = await runBookingGroupCommand((client) => decideBookingGroup(client, {
         actor: groupActors.owner,
         bookingGroupId: counterInitial.group.id,
