@@ -1,81 +1,87 @@
-# Current Work Package: FI0 - Founder-Independence Guardrails
+# Current Work Package: G2A - Navigation and Gemerkt Migration
 
-Status: active after technically complete C1I readiness audit with release HOLD.
+Status: active after green FI0 implementation and exact GitHub CI.
 
 ## Objective
 
-Reduce avoidable founder-only operational dependencies without changing the
-product roadmap or activating external systems. Audit personal hardcodes and
-define narrow role, delegate, audit and runbook standards. Apply code or
-documentation guardrails only where the audit proves an in-scope gap.
+Change only the primary navigation and existing wishlist presentation to the
+approved G2 vocabulary:
+
+`Entdecken · Mietkorb · Buchungen · Nachrichten · Mein SIT`
+
+Move the existing heart/wishlist experience into a clearly labelled `Gemerkt`
+area under `Mietkorb` without losing data, breaking old routes or implying that
+saved items are reserved. Preserve the current Bookings icon, profile-image
+navigation affordance, direct single-item rental and all existing C1 rules.
 
 ## Baseline and inputs
 
 - Branch: `codex/master-workflow-20260808`; draft PR #7.
-- C1H implementation head:
-  `2a67a43ce79da87a127836edfc764079edccbd27`; exact GitHub Actions run
-  `32374184599` is green.
-- C1I is technically complete with release-readiness HOLD. It created no
-  signed candidate and changed no Store, provider, device or production state.
+- FI0 implementation head:
+  `28566f22488adf2047e88e5258f4b8361d2db59c`; exact GitHub Actions run
+  `32376912466` is green and created no signed or published artifact.
 - Drive controls: `01_CONTROL_V2.3_AUTONOMOUS.md` and
   `02_CODEX_WORK_PACKAGES_SIT_V2.3.md`.
-- FI0 source of truth: the mapped Founder-Independence and delegation reference
-  in the current SIT Drive package. Growth, Business and architecture sources
-  are not permission to implement later packages early.
+- Mapped Growth source:
+  `02_SIT_GROWTH_PRODUCT_PROJEKTKORB_UND_PLANER.pdf`, version 2.0,
+  18.08.2026. V5.2 price, contract, booking, privacy and release rules retain
+  higher subject-specific authority.
+- Existing wishlist persistence, route/deep-link handling, bottom navigation,
+  Bookings icon and profile-image icon must be audited before editing.
 
 ## Allowed work
 
-- Search repository code, configuration templates, CI, operations documents
-  and tests for personal names, personal email addresses, personal accounts,
-  individual-only approval assumptions, single-person recovery paths and
-  founder-bound operational wording.
-- Distinguish acceptable protected local ownership from avoidable product or
-  operational hardcoding. Never copy protected values into repository files.
-- Define stable role names, least-privilege delegate expectations, separation
-  of duties, append-only audit expectations, break-glass handling and concise
-  runbook ownership.
-- Add narrow configuration validation, neutral role constants, documentation
-  or tests only where existing touched surfaces need a proven guardrail.
-- Keep every unknown owner, delegate, account, provider and legal fact
-  unresolved and fail-closed.
-- Produce a dated FI0 audit/report with done/open/deferred classifications and
-  update current-state/current-package artifacts.
+- Inspect current navigation destinations, selected-index behavior, back-stack,
+  guest/auth gates, old wishlist entry points, persisted wishlist keys and
+  supported app/deep links.
+- Rename and reorder the five primary destinations exactly as approved.
+- Add a bounded `Mietkorb` navigation shell that can expose existing `Gemerkt`
+  content while truthfully keeping cart/reservation behavior unavailable until
+  G2B.
+- Migrate or alias existing wishlist state non-destructively so current saved
+  items remain available after update and rollback.
+- Preserve old wishlist/favorites routes through a compatibility redirect or
+  equivalent tested route mapping.
+- Preserve direct search, single-item listing and booking flows.
+- Add focused widget, persistence, migration, route and accessibility tests.
 
-## Not allowed in FI0
+## Not allowed in G2A
 
-- No invasive time tracking, employee monitoring, productivity surveillance or
-  collection of personal activity data.
-- No creation, deletion, invitation or permission change for GitHub, Google,
-  Firebase, Apple, Play, payment, email, DNS, cloud, VPS/OpenClaw, Store or
-  provider accounts.
-- No password, passkey, 2FA, secret, signing material or recovery-code movement.
-- No invented person, delegate, legal representative, mailbox, phone number,
-  account owner, company role, approval or escalation route.
-- No production, public, live traffic, payment, real-money, signed-candidate,
-  Store, SSH, destructive Git or user-data migration action.
-- No G2 navigation/cart implementation before FI0 is closed and the exact G2A
-  package is opened.
+- No server-persistent rental/project cart, cart availability checks, project
+  containers, multi-item request, partial offer, multi-owner checkout or grouped
+  payment/ledger behavior; those belong to G2B or later.
+- No legal/privacy text, version, hash, export, deletion or retention change;
+  the required terminology/data delta belongs to G2L after G2A.
+- No SIT Planer, productive external AI, project recommendation, ranking,
+  project analytics or marketing/advertising analytics.
+- No change to quote arithmetic, discounts, contracts, declarations, checkout,
+  booking lifecycle, handover/return evidence, moderation or financial
+  documents.
+- No silent deletion, overwrite or relabelling of saved user data.
+- No production, provider, account, cloud, payment, Store, signed-candidate,
+  public rollout, SSH or destructive Git action.
 
 ## Acceptance criteria
 
-- Repository personal hardcodes and individual-only operational dependencies
-  are inventoried with file-bound evidence and classified as safe-local,
-  remediation-needed, external-owner-gate or later-package scope.
-- System-facing authorization uses neutral roles/capabilities rather than a
-  named person wherever the current repository already exposes that surface.
-- Every sensitive operation retains least privilege, traceable actor/action/
-  time/result evidence, explicit approval boundaries and a documented recovery
-  owner without publishing protected identity data.
-- Founder-only steps have a role/delegate/runbook standard or an explicit
-  external HOLD; no unavailable delegate is fabricated.
-- Tests and validators cover any changed executable guardrail. Full regression
-  remains green in proportion to the implementation change.
-- No invasive tracking, account/provider mutation, secret movement, signed
-  artifact, Store action or live-system change occurs.
+- Primary navigation renders exactly five destinations in this order:
+  `Entdecken`, `Mietkorb`, `Buchungen`, `Nachrichten`, `Mein SIT`.
+- The established Bookings icon remains the Bookings icon. `Mein SIT` retains
+  the profile-image affordance rather than regressing to an unrelated generic
+  icon.
+- Every existing saved/wishlist item survives migration and remains removable
+  and reachable under `Mietkorb` > `Gemerkt`.
+- `Gemerkt` visibly states that saving is non-binding and not a reservation.
+  G2A introduces no false cart, availability or booking guarantee.
+- Old supported wishlist/favorites routes and deep links reach the new
+  `Gemerkt` destination without loops or data loss.
+- Guest/auth behavior, selected-tab restoration, back navigation, direct
+  single-item rental and all C1 contracts remain unchanged.
+- Focused navigation, persistence/migration, deep-link and accessibility tests
+  pass; complete regression and exact GitHub CI are green.
 
 ## Expected next transition
 
-GREEN: G2A - Navigation and Gemerkt migration, using only its mapped Drive
-sources and preserving Bookings icon, profile-image icon, wishlist data and
-deep links. YELLOW/RED: preserve the FI0 evidence and stop at the exact owner,
-account, secret, legal or external permission gate without guessing.
+GREEN: G2L - legal/privacy delta for the changed G2 terminology and data
+topology before persistent cart work. YELLOW/RED: preserve the old wishlist
+data and stop at the exact migration, route, accessibility or legal ambiguity
+without guessing or proceeding to G2B.

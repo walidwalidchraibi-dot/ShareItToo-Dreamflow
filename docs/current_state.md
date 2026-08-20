@@ -6,11 +6,11 @@ Verified: 2026-08-20 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current C1H implementation head:
-  `2a67a43ce79da87a127836edfc764079edccbd27`.
+- Current FI0 implementation head:
+  `28566f22488adf2047e88e5258f4b8361d2db59c`.
 - At that implementation head the local branch, remote branch and PR head are
   identical; the working tree is clean and the PR is cleanly mergeable.
-- Exact GitHub Actions run `32374184599` is green: backend regression and
+- Exact GitHub Actions run `32376912466` is green: backend regression and
   Flutter regression passed, while image publication was skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
   release or published artifact occurred.
@@ -36,6 +36,12 @@ Verified: 2026-08-20 on the Mac mini.
   is not permission to create or sign a release.
 - C1I revalidated the canonical Android upload-signing gate and both protected
   Firebase platform configurations without disclosing protected values.
+- FI0 removes the named personal GHCR namespace from critical CI, Docker and
+  preflight configuration. Registry and source identity are repository- or
+  role-configured; missing explicit preflight configuration fails closed.
+- FI0 defines six unassigned functional roles, a critical-process schema, the
+  existing append-only audit binding, manual monthly founder-hours aggregates
+  and a reusable absence/delegate runbook. No account assignment was invented.
 
 ## Current safe operating state
 
@@ -78,10 +84,13 @@ Verified: 2026-08-20 on the Mac mini.
   its build `2026081510` binds commit `4cb0046`, not the current implementation
   head. Phone-verification readiness also fails current-source binding and is
   historical rather than a current release proof.
+- FI0 role assignees, delegates, company-system ownership, account RBAC,
+  absence tests and the normalized founder-replacement compensation amount
+  remain explicit external gates. No personal activity monitoring is enabled.
 
 ## Next source of truth
 
-The active bounded task is `docs/current_work_package.md`: FI0 founder-
-independence guardrails. C1I is technically complete with an explicit release
-HOLD. Older reports and root `architecture.md` are evidence/history, not
-permission to reopen a closed launch boundary.
+The active bounded task is `docs/current_work_package.md`: G2A navigation and
+Gemerkt migration only. FI0 is technically complete; its external role and
+account assignments remain HOLD. Older reports and root `architecture.md` are
+evidence/history, not permission to reopen a closed launch boundary.
