@@ -6,11 +6,11 @@ Verified: 2026-08-21 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current G3L-DRAFT implementation head:
-  `5963ec5544b94fa1e62000a1299d2577133c0cf9`.
-- The G3L-DRAFT implementation commit is contained in the local branch, remote
+- Current G4A implementation head:
+  `c1350f30838e6584c53604312a11c1aea70b36a8`.
+- The G4A implementation commit is contained in the local branch, remote
   branch and PR head; the PR remains cleanly mergeable.
-- Exact GitHub Actions run `32421588353` is green: backend regression and
+- Exact GitHub Actions run `32423242364` is green: backend regression and
   Flutter regression passed, while the signed candidate and image publication
   were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
@@ -206,15 +206,34 @@ Verified: 2026-08-21 on the Mac mini.
   ADR-032 are the detailed evidence. V2.4 auto-continues to disabled G4A while
   retaining a hard stop before public/live G3 activation.
 
+## G4A deterministic planner core
+
+- `G4A-2026-08-21.1` is a pure deterministic rules engine with no network,
+  database, persistence, route, public UI, telemetry or external-AI provider.
+- Five reviewed templates cover terrace cleaning, renovation, garden, move and
+  event/camping. Each asks four or five bounded single-choice questions and
+  rejects missing, invalid or unexpected answers before creating a plan.
+- Every possible bounded answer combination returns required, recommended and
+  optional item types. Exact category/subcategory targets are validated at
+  module load against the authoritative private-pilot allowlist.
+- Plans include explicit assumptions plus compatibility and safety rules. They
+  never invent a listing, owner, availability, quote, price or reservation;
+  those server facts remain explicitly unresolved for G4B.
+- Backend and Flutter technical controls default off. Production backend
+  enabling is rejected, release-mode Flutter access is unavailable and there
+  is no switch for external generative AI or inventory resolution in G4A.
+- `docs/compliance/g4a-deterministic-planner-core-2026-08-21.md` and ADR-033
+  are the detailed evidence. V2.4 auto-continues to disabled G4B.
+
 ## Validation and rollback
 
-- Exact G3L-DRAFT CI `32421588353` is green at
-  `5963ec5544b94fa1e62000a1299d2577133c0cf9`: 299 backend tests and 312
+- Exact G4A CI `32423242364` is green at
+  `c1350f30838e6584c53604312a11c1aea70b36a8`: 308 backend tests and 313
   Flutter tests passed, with the one documented Flutter skip. PostgreSQL
   migration/integration, web debug and Android debug builds also passed.
-- Local backend suite: 298 passed, 0 failed and one expected PostgreSQL skip
+- Local backend suite: 307 passed, 0 failed and one expected PostgreSQL skip
   without local `TEST_DATABASE_URL`.
-- Complete local Flutter suite: 312 passed with one documented skip; the extra
+- Complete local Flutter suite: 313 passed with one documented skip; the extra
   Google-only profile test, analyzer baseline, web debug build and Android
   debug APK passed.
 - Analyzer remains at the accepted 223-item baseline. Dependency audit has no
@@ -250,12 +269,16 @@ Verified: 2026-08-21 on the Mac mini.
   points and historical V5.2/G3B-G3D evidence remain unchanged.
 - G3L-DRAFT has no migration or external state. Its rollback is a revert of
   `5963ec5`; the V5.2 parent bytes and disabled G3 controls remain unchanged.
+- G4A has no migration or external state. Its rollback is a revert of
+  `c1350f3` plus restoration of the two exact config-source hash bindings; no
+  stored plan, listing, quote, reservation or provider state exists.
 
 ## Next source of truth
 
-`docs/current_work_package.md` records active G4A under the V2.4
+`docs/current_work_package.md` records active G4B under the V2.4
 rolling-autonomy runway. G3B, G2A, G2L, G2B and U0 remain technically complete;
 FI0 external role/account assignments and all C1I release/device gates remain
 HOLD. Booking groups remain disabled and must not become public/live before the
-later legal/release gate. Older reports and root `architecture.md` are
-evidence/history, not permission to reopen a closed launch boundary.
+later legal/release gate. The planner remains disabled and non-public. Older
+reports and root `architecture.md` are evidence/history, not permission to
+reopen a closed launch boundary.
