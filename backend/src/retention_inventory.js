@@ -64,6 +64,8 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'userIntent', 'rental_carts', count(*)::bigint, min(created_at), max(updated_at) FROM rental_carts
        UNION ALL SELECT 'userIntent', 'rental_cart_projects', count(*)::bigint, min(created_at), max(updated_at) FROM rental_cart_projects
        UNION ALL SELECT 'userIntent', 'rental_cart_items', count(*)::bigint, min(created_at), max(updated_at) FROM rental_cart_items
+       UNION ALL SELECT 'userIntent', 'listing_supply_enrichment', count(*)::bigint, min(created_at), max(updated_at)
+         FROM listings WHERE payload ? 'supplyEnrichment'
        UNION ALL SELECT 'transactions', 'bookings', count(*)::bigint, min(created_at), max(updated_at) FROM bookings
        UNION ALL SELECT 'transactions', 'booking_quotes', count(*)::bigint, min(issued_at), max(issued_at) FROM booking_quotes
        UNION ALL SELECT 'transactions', 'booking_groups', count(*)::bigint, min(created_at), max(created_at) FROM booking_groups

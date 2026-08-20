@@ -143,6 +143,66 @@ test('public listings disclose only an approximate location', () => {
   assert.equal(shaped.distanceKm, 1.3);
 });
 
+test('G5A evidence is server-owned, preserved on edit, and publicly exposes only confirmed accessories', () => {
+  const supplyEnrichment = {
+    detectionBasis: {
+      categoryId: 'cat8',
+      subcategory: 'Bohrmaschinen',
+    },
+    suggestions: [
+      {
+        label: 'Passende Handwerkzeuge',
+        outcome: 'included_accessory',
+        documentation: {
+          label: 'Passende Handwerkzeuge',
+          ownerConfirmed: true,
+          privateFeedback: 'never-public',
+        },
+      },
+      {
+        label: 'Werkstatt-Unterstützung',
+        outcome: 'wrong_detection',
+        documentation: { feedback: 'wrong_detection' },
+      },
+    ],
+  };
+  const normalized = normalizeListingPayload({
+    ...validListing,
+    supplyEnrichment: { suggestions: [{ label: 'client-injected' }] },
+  }, {
+    id: 'listing-1',
+    ownerId: 'owner',
+    existing: {
+      createdAt: '2026-08-21T00:00:00.000Z',
+      supplyEnrichment,
+    },
+  });
+  assert.deepEqual(normalized.supplyEnrichment, supplyEnrichment);
+  const shaped = shapePublicListing(normalized);
+  assert.equal('supplyEnrichment' in shaped, false);
+  assert.deepEqual(shaped.includedAccessories, ['Passende Handwerkzeuge']);
+
+  const created = normalizeListingPayload({
+    ...validListing,
+    supplyEnrichment: { suggestions: [{ label: 'client-injected' }] },
+  }, { id: 'listing-2', ownerId: 'owner' });
+  assert.equal('supplyEnrichment' in created, false);
+
+  const recategorized = normalizeListingPayload({
+    ...validListing,
+    categoryId: 'cat3',
+    subcategory: 'Kameras',
+  }, {
+    id: 'listing-1',
+    ownerId: 'owner',
+    existing: {
+      createdAt: '2026-08-21T00:00:00.000Z',
+      supplyEnrichment,
+    },
+  });
+  assert.equal('supplyEnrichment' in recategorized, false);
+});
+
 test('catalog query parsing bounds filters and pagination', () => {
   const query = parseCatalogQuery({
     q: ' Kamera ',

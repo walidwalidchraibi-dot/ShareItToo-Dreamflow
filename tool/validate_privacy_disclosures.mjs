@@ -22,6 +22,7 @@ const sourcePaths = [
   'backend/src/planner_inventory_workflow.js',
   'backend/src/private_pilot_domain.js',
   'backend/src/listing_catalog.js',
+  'backend/src/listing_supply_enrichment.js',
   'backend/src/moderation_domain.js',
   'backend/src/moderation_workflow.js',
   'backend/src/moderation_decision_workflow.js',
@@ -81,6 +82,8 @@ const sourcePaths = [
   'lib/screens/wishlists_screen.dart',
   'lib/widgets/item_details_overlay.dart',
   'lib/config/private_pilot_config.dart',
+  'lib/config/supply_enrichment_technical_config.dart',
+  'lib/models/supply_enrichment.dart',
   'lib/models/rental_request.dart',
   'lib/screens/private_pilot_checkout_screen.dart',
   'lib/screens/v52_legal_document_screen.dart',
@@ -105,6 +108,8 @@ const sourcePaths = [
   'backend/src/app.js',
   'tool/run_staging_synthetic_booking.mjs',
   'lib/screens/create_listing_screen.dart',
+  'lib/screens/explore_screen.dart',
+  'lib/widgets/supply_enrichment_dialog.dart',
   'lib/screens/message_thread_screen.dart',
   'lib/widgets/return_handover_stepper_sheet.dart',
   'lib/screens/report_issue_screen.dart',
@@ -372,6 +377,26 @@ function assertSourceContracts({ root, sourceTexts }) {
   }
   if (!rentalCartApp.includes('DELETE FROM rental_carts WHERE user_id = $1')) {
     fail('Account erasure must delete the account-bound rental cart.');
+  }
+  const supplyEnrichment = sourceText(
+    root,
+    sourceTexts,
+    'backend/src/listing_supply_enrichment.js',
+  );
+  for (const marker of [
+    'MAX_SUGGESTIONS = 3',
+    'suggestionIsDetectionTruth: false',
+    'externalGenerativeAiUsed: false',
+    'acceptedAsListingTruth: false',
+    'handoverEvidenceSlot: \'accessories\'',
+  ]) {
+    if (!supplyEnrichment.includes(marker)) {
+      fail(`Supply-enrichment privacy boundary is missing ${marker}.`);
+    }
+  }
+  if (!rentalCartApp.includes("payload = jsonb_build_object(")
+      || !rentalCartApp.includes("'photos', '[]'::jsonb")) {
+    fail('Account erasure must rebuild listing payloads without supply-enrichment feedback.');
   }
 
   const financialDocuments = sourceText(root, sourceTexts, 'backend/src/financial_documents.js');

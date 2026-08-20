@@ -245,14 +245,42 @@ class BackendRepository {
   }
 
   static Future<Map<String, dynamic>> createListing(
-    Map<String, dynamic> listing,
-  ) async {
+      Map<String, dynamic> listing,
+      {Map<String, dynamic>? supplyEnrichmentLink}) async {
     final response = await _authorized(
       method: 'POST',
       path: '/listings',
-      body: listing,
+      body: <String, dynamic>{
+        ...listing,
+        if (supplyEnrichmentLink != null)
+          'supplyEnrichmentLink': supplyEnrichmentLink,
+      },
     );
     return Map<String, dynamic>.from(response['listing'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> generateListingSupplyEnrichment(
+    String listingId,
+  ) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/listings/${Uri.encodeComponent(listingId)}/supply-enrichment',
+    );
+    return Map<String, dynamic>.from(response['enrichment'] as Map);
+  }
+
+  static Future<Map<String, dynamic>> recordListingSupplyEnrichmentOutcome({
+    required String listingId,
+    required String suggestionId,
+    required String outcome,
+  }) async {
+    final response = await _authorized(
+      method: 'POST',
+      path: '/listings/${Uri.encodeComponent(listingId)}'
+          '/supply-enrichment/${Uri.encodeComponent(suggestionId)}/outcome',
+      body: <String, dynamic>{'outcome': outcome},
+    );
+    return Map<String, dynamic>.from(response['result'] as Map);
   }
 
   static Future<Map<String, dynamic>> updateListing(

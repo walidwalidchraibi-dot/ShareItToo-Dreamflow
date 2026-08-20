@@ -18,6 +18,7 @@ const sourcePaths = [
   'backend/src/privacy_export.js',
   'backend/src/rental_cart_workflow.js',
   'backend/src/planner_inventory_workflow.js',
+  'backend/src/listing_supply_enrichment.js',
   'backend/src/account_actions.js',
   'backend/src/config.js',
   'backend/src/notifications.js',
@@ -66,6 +67,11 @@ const sourcePaths = [
   'lib/services/data_service.dart',
   'lib/services/maps_service.dart',
   'lib/services/backend_repository.dart',
+  'lib/config/supply_enrichment_technical_config.dart',
+  'lib/models/supply_enrichment.dart',
+  'lib/screens/create_listing_screen.dart',
+  'lib/screens/explore_screen.dart',
+  'lib/widgets/supply_enrichment_dialog.dart',
   'lib/models/rental_cart.dart',
   'lib/screens/payment_methods_screen.dart',
   'lib/screens/stripe_payout_account_screen.dart',
@@ -349,6 +355,7 @@ function assertSourceContracts(root, sourceTexts) {
     'rental_carts',
     'rental_cart_projects',
     'rental_cart_items',
+    'listing_supply_enrichment',
   ]) {
     if (!rentalCartRetention.includes(`'userIntent', '${dataset}'`)) {
       fail(`Retention inventory is missing the rental-cart dataset: ${dataset}.`);

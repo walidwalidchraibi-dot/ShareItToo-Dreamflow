@@ -674,12 +674,18 @@ class DataService {
   }
 
   // Add or update an item in local storage
-  static Future<Item> addItem(Item item) async {
+  static Future<Item> addItem(
+    Item item, {
+    Map<String, dynamic>? supplyEnrichmentLink,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final itemsJson = prefs.getString(_itemsKey);
     final List<dynamic> list = itemsJson == null ? [] : jsonDecode(itemsJson);
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-      final remote = await BackendRepository.createListing(item.toJson());
+      final remote = await BackendRepository.createListing(
+        item.toJson(),
+        supplyEnrichmentLink: supplyEnrichmentLink,
+      );
       final saved = Item.fromJson(remote);
       list.removeWhere(
         (entry) =>

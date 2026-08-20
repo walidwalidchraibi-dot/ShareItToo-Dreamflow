@@ -141,6 +141,10 @@ export function normalizeListingPayload(raw, {
   const pilotFields = privatePilot
     ? privatePilotListingFields(raw, { allowedRegions: privatePilotAllowedRegions })
     : null;
+  const existingSupplyEnrichment = existing?.supplyEnrichment;
+  const preserveSupplyEnrichment = existingSupplyEnrichment != null
+    && existingSupplyEnrichment?.detectionBasis?.categoryId === categoryId
+    && existingSupplyEnrichment?.detectionBasis?.subcategory === subcategory;
   return {
     id,
     ownerId,
@@ -192,6 +196,11 @@ export function normalizeListingPayload(raw, {
     // Kept on the wire for old clients, but no protection product is offered.
     protectionModel: 'none',
     availabilityMode: 'calendar',
+    // Server-owned G5A evidence is never accepted from the client. Preserve an
+    // existing session across ordinary owner edits until its own route changes it.
+    ...(preserveSupplyEnrichment
+      ? { supplyEnrichment: existingSupplyEnrichment }
+      : {}),
   };
 }
 
@@ -237,12 +246,22 @@ export function storageNameFromListingPhoto(photoUrl, publicBaseUrl) {
 }
 
 export function shapePublicListing(payload, { distanceKm = null } = {}) {
+  const { supplyEnrichment, ...publicPayload } = payload;
   const latitude = finiteNumber(payload.lat);
   const longitude = finiteNumber(payload.lng);
   const city = text(payload.city, 120);
   const country = text(payload.country, 120);
+  const includedAccessories = Array.isArray(supplyEnrichment?.suggestions)
+    ? supplyEnrichment.suggestions
+      .filter((entry) => entry?.outcome === 'included_accessory'
+        && entry?.documentation?.ownerConfirmed === true)
+      .slice(0, 3)
+      .map((entry) => text(entry?.documentation?.label, 120))
+      .filter(Boolean)
+    : [];
   return {
-    ...payload,
+    ...publicPayload,
+    includedAccessories,
     locationText: [city, country].filter(Boolean).join(', '),
     lat: latitude === null ? null : Math.round(latitude * 100) / 100,
     lng: longitude === null ? null : Math.round(longitude * 100) / 100,

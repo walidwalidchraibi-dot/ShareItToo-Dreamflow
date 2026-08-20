@@ -3,8 +3,13 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:lendify/models/item.dart';
+import 'package:lendify/models/supply_enrichment.dart';
 import 'package:lendify/models/user.dart' as model;
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/backend_config.dart';
+import 'package:lendify/services/backend_repository.dart';
+import 'package:lendify/services/qa_runtime_service.dart';
+import 'package:lendify/config/supply_enrichment_technical_config.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/widgets/search_header.dart';
 import 'package:lendify/widgets/category_icon_row.dart';
@@ -14,6 +19,7 @@ import 'package:lendify/widgets/filters_overlay.dart';
 import 'package:lendify/widgets/item_details_overlay.dart';
 import 'package:lendify/screens/owner_requests_screen.dart';
 import 'package:lendify/screens/my_listings_screen.dart';
+import 'package:lendify/screens/create_listing_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:lendify/widgets/wishlist_selection_sheet.dart';
 import 'package:geolocator/geolocator.dart';
@@ -29,6 +35,7 @@ import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/widgets/rating_badge.dart';
 import 'package:lendify/widgets/listing_options_dialog.dart';
 import 'package:lendify/widgets/long_press_feedback_wrapper.dart';
+import 'package:lendify/widgets/supply_enrichment_dialog.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -215,7 +222,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ? 'Anzeige wurde für später gespeichert'
         : 'Anzeige wurde erstellt';
     if (!mounted) return;
-    await showDialog<void>(
+    final viewListing = await showDialog<bool>(
       context: context,
       barrierDismissible: true,
       builder: (context) {
@@ -241,7 +248,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 fontWeight: FontWeight.w800,
                                 fontSize: 16))),
                     IconButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
+                        onPressed: () => Navigator.of(context).pop(false),
                         icon: const Icon(Icons.close, color: Colors.white70)),
                   ]),
                   const SizedBox(height: 8),
@@ -255,7 +262,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   Row(children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => Navigator.of(context).maybePop(),
+                        onPressed: () => Navigator.of(context).pop(false),
                         icon: const Icon(Icons.check),
                         label: const Text('Schließen'),
                       ),
@@ -263,13 +270,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: () async {
-                          Navigator.of(context).maybePop();
-                          await Future<void>.delayed(
-                              const Duration(milliseconds: 50));
-                          if (!mounted) return;
-                          ItemDetailsOverlay.showFullPage(context, item: item);
-                        },
+                        onPressed: () => Navigator.of(context).pop(true),
                         icon: const Icon(Icons.visibility),
                         label: Text(
                             draft ? 'Vorschau ansehen' : 'Anzeige ansehen'),
@@ -283,6 +284,57 @@ class _ExploreScreenState extends State<ExploreScreen> {
         );
       },
     );
+    if (!mounted) return;
+    if (viewListing == true) {
+      await ItemDetailsOverlay.showFullPage(context, item: item);
+    }
+    if (!draft && mounted) await _showSupplyEnrichment(item);
+  }
+
+  Future<void> _showSupplyEnrichment(Item item) async {
+    if (!BackendConfig.enabled ||
+        QaRuntimeService.isEnabled ||
+        !SupplyEnrichmentTechnicalConfig.available) {
+      return;
+    }
+    try {
+      final session = SupplyEnrichmentSession.fromJson(
+        await BackendRepository.generateListingSupplyEnrichment(item.id),
+      );
+      if (!session.primaryListingCreated ||
+          session.primaryListingBlocked ||
+          session.externalGenerativeAiUsed ||
+          session.suggestions.isEmpty ||
+          !mounted) {
+        return;
+      }
+      final result = await SupplyEnrichmentDialog.show(
+        context,
+        session: session,
+        onOutcome: (suggestion, outcome) async {
+          return SupplyEnrichmentOutcomeResult.fromJson(
+            await BackendRepository.recordListingSupplyEnrichmentOutcome(
+              listingId: item.id,
+              suggestionId: suggestion.id,
+              outcome: outcome.wireValue,
+            ),
+          );
+        },
+      );
+      final prefill = result?.prefill;
+      if (prefill != null && mounted) {
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => CreateListingScreen(supplyPrefill: prefill),
+          ),
+        );
+      }
+    } catch (error) {
+      // G5A is deliberately fail-open: the already-created listing stays
+      // successful even if the optional technical suggestion path is down.
+      debugPrint(
+          'Supply enrichment unavailable after listing creation: $error');
+    }
   }
 
   Future<void> _handleListingCreated(Item created) async {

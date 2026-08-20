@@ -59,6 +59,12 @@ if (plannerInventoryEnabled && deploymentEnvironment === 'production') {
 if (plannerInventoryEnabled && !plannerCoreEnabled) {
   throw new Error('planner inventory requires the planner core');
 }
+const listingSupplyEnrichmentEnabled = (
+  process.env.LISTING_SUPPLY_ENRICHMENT_ENABLED ?? 'false'
+).trim().toLowerCase() === 'true';
+if (listingSupplyEnrichmentEnabled && deploymentEnvironment === 'production') {
+  throw new Error('listing supply enrichment cannot be enabled in production before the release gate');
+}
 const privatePilotAllowedRegions = Object.freeze([
   ...new Set(
     csv(process.env.PRIVATE_PILOT_ALLOWED_REGIONS)
@@ -273,6 +279,11 @@ export const config = Object.freeze({
     publicReleaseAllowed: false,
     externalGenerativeAiAllowed: false,
     inventoryResolutionAllowed: false,
+  }),
+  listingSupplyEnrichment: Object.freeze({
+    enabled: listingSupplyEnrichmentEnabled,
+    publicReleaseAllowed: false,
+    externalGenerativeAiAllowed: false,
   }),
   privatePilot: Object.freeze({
     allowedRegions: privatePilotAllowedRegions,

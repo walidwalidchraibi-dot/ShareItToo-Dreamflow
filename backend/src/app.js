@@ -242,6 +242,13 @@ import {
   shapePublicListing,
   storageNameFromListingPhoto,
 } from './listing_catalog.js';
+import {
+  assertListingSupplyEnrichmentTechnicalAccess,
+  generateListingSupplyEnrichment,
+  linkListingSupplyEnrichmentFollowUp,
+  ListingSupplyEnrichmentError,
+  recordListingSupplyEnrichmentOutcome,
+} from './listing_supply_enrichment.js';
 import { ImageProcessingError, sanitizeImage } from './media_pipeline.js';
 import {
   bearerToken,
@@ -503,6 +510,9 @@ function listingPayload(raw, {
             createdAt: existingCreatedAt,
             verificationStatus: safeText(existingPayload?.verificationStatus, 30) || 'pending',
             timesLent: Number.isInteger(existingPayload?.timesLent) ? existingPayload.timesLent : 0,
+            ...(existingPayload?.supplyEnrichment == null
+              ? {}
+              : { supplyEnrichment: existingPayload.supplyEnrichment }),
           }
         : null,
       privatePilot: config.privatePilotV4Enabled,
@@ -2803,10 +2813,88 @@ export function createApp({
         resourceType: 'listing',
         resourceId: id,
       });
+      if (req.body?.supplyEnrichmentLink != null) {
+        assertListingSupplyEnrichmentTechnicalAccess(config);
+        const linked = await linkListingSupplyEnrichmentFollowUp(client, {
+          actorId: req.auth.userId,
+          targetListingId: id,
+          raw: req.body.supplyEnrichmentLink,
+        });
+        await writeAudit(client, {
+          actor: req.actor,
+          action: 'listing.supply_enrichment_follow_up_linked',
+          resourceType: 'listing',
+          resourceId: linked.sourceListingId,
+          requestId: req.requestId,
+          metadata: {
+            suggestionId: linked.suggestionId,
+            outcome: linked.outcome,
+            linkedListingId: linked.linkedListingId,
+          },
+        });
+      }
       return inserted;
     });
     publishToAll({ type: 'changed', resource: 'listings' });
     res.status(201).json({ listing: result.rows[0].payload });
+  }));
+
+  app.post('/v1/listings/:id/supply-enrichment', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
+    assertListingSupplyEnrichmentTechnicalAccess(config);
+    const listingId = safeText(req.params.id, 120);
+    const enrichment = await inTransaction(async (client) => {
+      const generated = await generateListingSupplyEnrichment(client, {
+        actorId: req.auth.userId,
+        listingId,
+      });
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'listing.supply_enrichment_generated',
+        resourceType: 'listing',
+        resourceId: listingId,
+        requestId: req.requestId,
+        metadata: {
+          heuristicVersion: generated.heuristicVersion,
+          suggestionCount: generated.suggestions.length,
+          externalGenerativeAiUsed: false,
+        },
+      });
+      return generated;
+    });
+    res.set('Cache-Control', 'no-store');
+    res.json({ enrichment });
+  }));
+
+  app.post('/v1/listings/:id/supply-enrichment/:suggestionId/outcome', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
+    assertListingSupplyEnrichmentTechnicalAccess(config);
+    const listingId = safeText(req.params.id, 120);
+    const result = await inTransaction(async (client) => {
+      const recorded = await recordListingSupplyEnrichmentOutcome(client, {
+        actorId: req.auth.userId,
+        listingId,
+        suggestionId: safeText(req.params.suggestionId, 120),
+        outcome: req.body?.outcome,
+      });
+      await writeAudit(client, {
+        actor: req.actor,
+        action: 'listing.supply_enrichment_outcome_recorded',
+        resourceType: 'listing',
+        resourceId: listingId,
+        requestId: req.requestId,
+        metadata: {
+          suggestionId: recorded.suggestion.id,
+          outcome: recorded.suggestion.outcome,
+          nextAction: recorded.nextAction,
+          acceptedAsListingTruth: recorded.suggestion.outcome === 'included_accessory',
+        },
+      });
+      return recorded;
+    });
+    if (result.suggestion.outcome === 'included_accessory') {
+      publishToAll({ type: 'changed', resource: 'listings' });
+    }
+    res.set('Cache-Control', 'no-store');
+    res.json({ result });
   }));
 
   app.put('/v1/listings/:id', requireAuth, requireActiveAccount, requireUnsuspendedScope('listing'), asyncRoute(async (req, res) => {
@@ -4436,6 +4524,7 @@ export function createApp({
     const workflowError = error instanceof BookingWorkflowError;
     const rentalCartError = error instanceof RentalCartError;
     const plannerInventoryError = error instanceof PlannerInventoryError;
+    const listingSupplyEnrichmentError = error instanceof ListingSupplyEnrichmentError;
     const flowTimeError = error instanceof BookingFlowTimeError;
     const messageWorkflowError = error instanceof MessageWorkflowError;
     const paymentWorkflowError = error instanceof PaymentDomainError;
@@ -4451,14 +4540,14 @@ export function createApp({
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || rentalCartError || plannerInventoryError || listingSupplyEnrichmentError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });

@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/category.dart';
+import 'package:lendify/models/supply_enrichment.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/backend_repository.dart';
@@ -26,7 +27,9 @@ import 'package:lendify/theme.dart';
 
 class CreateListingScreen extends StatefulWidget {
   final Item? existing; // when provided -> edit mode
-  const CreateListingScreen({super.key, this.existing});
+  final SupplyEnrichmentPrefill? supplyPrefill;
+  const CreateListingScreen({super.key, this.existing, this.supplyPrefill})
+      : assert(existing == null || supplyPrefill == null);
   @override
   State<CreateListingScreen> createState() => _CreateListingScreenState();
 }
@@ -147,6 +150,14 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           _tier3Pct = tiers[2].discountPercent;
         }
       }
+    } else if (widget.supplyPrefill case final prefill?) {
+      _titleCtrl.text = prefill.title;
+      _categoryId = prefill.categoryId;
+      _subcategory = prefill.subcategory;
+      _registeredCity = prefill.city;
+      _addressCtrl.text = prefill.locationText;
+      _selectedAddrLat = prefill.latitude;
+      _selectedAddrLng = prefill.longitude;
     }
   }
 
@@ -169,7 +180,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     }
     setState(() {
       _categories = cats;
-      final existingCategory = widget.existing?.categoryId;
+      final existingCategory =
+          widget.existing?.categoryId ?? widget.supplyPrefill?.categoryId;
       _categoryId = cats.isEmpty
           ? null
           : (cats.any((category) => category.id == existingCategory)
@@ -186,13 +198,17 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   ))
               .toList(growable: false) ??
           const <String>[];
-      _subcategory = allowedSubcategories.contains(widget.existing?.subcategory)
-          ? widget.existing?.subcategory
+      final requestedSubcategory =
+          widget.existing?.subcategory ?? widget.supplyPrefill?.subcategory;
+      _subcategory = allowedSubcategories.contains(requestedSubcategory)
+          ? requestedSubcategory
           : (allowedSubcategories.isEmpty ? null : allowedSubcategories.first);
       _coarseCats =
           ordered.isNotEmpty ? ordered : DataService.coarseCategoryOrder;
       _catsByCoarse = byCoarse;
-      _registeredCity = user?.city ?? DataService.getCities().keys.first;
+      _registeredCity = widget.supplyPrefill?.city ??
+          user?.city ??
+          DataService.getCities().keys.first;
     });
   }
 
@@ -536,7 +552,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         privateStatusConfirmed: _privateStatusConfirmed,
       );
 
-      final saved = await DataService.addItem(item);
+      final saved = await DataService.addItem(
+        item,
+        supplyEnrichmentLink: widget.supplyPrefill?.link.toJson(),
+      );
       if (!mounted) return;
       DataService.setLastCreateEvent(saved, draft: forceInactive);
       Navigator.of(context).pushAndRemoveUntil(

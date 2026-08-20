@@ -5,7 +5,7 @@
   "sourceInventory": [
     {
       "path": "backend/src/app.js",
-      "sha256": "cd619f45ac76886e1c57ced2907db7a6bf09fae78f7783a3177c380017c5bd44"
+      "sha256": "dbb2d5d275534d868021918ba28f70e8856301f8700b915af10aadf49836485a"
     },
     {
       "path": "backend/src/server.js",
@@ -37,7 +37,7 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "9f4985b35fff46b63200dc561e644f6fef5bde8e395fb1512c39b0c87aad3f36"
+      "sha256": "efafab1ffa72a79628a767480dc717922fa5c6f403b2c5cd8cce8bfbcc6846dd"
     },
     {
       "path": "backend/src/privacy_export.js",
@@ -52,12 +52,16 @@
       "sha256": "99cad617e07d47c20a223929b8acb37f640098288036e3ab73422c463b34666e"
     },
     {
+      "path": "backend/src/listing_supply_enrichment.js",
+      "sha256": "51e9989fb6a6251cc13c7ca1c6f938d12d418b6071e24185e1ea00193fea2578"
+    },
+    {
       "path": "backend/src/account_actions.js",
       "sha256": "bf8699272c9711d351d71c95beacd0f723188ed134880e1640814a04a7e21e10"
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "487cc3576d3af717624ead54edabbbcde12e411f423bd0120aca6174f3d603bc"
+      "sha256": "7c16ae9bd26b127c80f9b56c7bf513824a4901d5b0f7133f78295bb5d8298b61"
     },
     {
       "path": "backend/src/notifications.js",
@@ -233,7 +237,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "c3eb912d1744e82a2126b764b8122aaa59f6bb99a8af8660c22bf5363e394e20"
+      "sha256": "6160142ac3d161665facc773dbba24fb050274152506e289cddafe8ba5e68899"
     },
     {
       "path": "lib/services/maps_service.dart",
@@ -241,7 +245,27 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "03bd8e5042ba128a6fc267e616e33ebb36c54e3ba781c2c1f112b220d2720a10"
+      "sha256": "e035fcef2c7cecec218d5f3f994e8285220da17201868f23bb805f7a6c3781ad"
+    },
+    {
+      "path": "lib/config/supply_enrichment_technical_config.dart",
+      "sha256": "d7c03235652992350dac2e3e5e0724abdfb50ebeca7a34a86b460e2fc6dcf2da"
+    },
+    {
+      "path": "lib/models/supply_enrichment.dart",
+      "sha256": "19010224715bc7c4e0be768f3ef065c9c896265fa2161db4117b908cd2f2bba1"
+    },
+    {
+      "path": "lib/screens/create_listing_screen.dart",
+      "sha256": "2b7db23eb65387cc4f318d0176f9e29980fa28e5a9c297b96f5b78676c67bfd2"
+    },
+    {
+      "path": "lib/screens/explore_screen.dart",
+      "sha256": "b5ac8da1c3263f488204b4d0854031fa14e3d8c3c14b89d31fec706b7d7449a7"
+    },
+    {
+      "path": "lib/widgets/supply_enrichment_dialog.dart",
+      "sha256": "d732956a4b41f9c2604c47b73ed5fe95724585e99146fbc244a691eca133805e"
     },
     {
       "path": "lib/models/rental_cart.dart",
