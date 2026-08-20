@@ -87,6 +87,7 @@ if (!databaseUrl) {
         '023_v52_contract_binding.up.sql',
         '024_v52_actual_loss_resolution.up.sql',
         '025_v52_handover_return_evidence.up.sql',
+        '026_v52_categories_moderation_operator.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
