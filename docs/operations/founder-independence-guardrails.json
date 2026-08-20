@@ -145,6 +145,10 @@
       "recordedByRole",
       "recordedAt"
     ],
+    "recordingRoles": [
+      "admin",
+      "system"
+    ],
     "forbiddenCollection": [
       "exact_activity_timestamps",
       "keystrokes",
@@ -159,6 +163,26 @@
     "automaticCollectionAllowed": false,
     "cashAndNormalizedResultSeparated": true,
     "normalizedResultIncludesFounderReplacementCompensation": true
+  },
+  "founderEscalationEvents": {
+    "eventType": "founder_escalation_aggregate_recorded",
+    "collectionMode": "manual-monthly-aggregate-only",
+    "requiredFields": [
+      "periodMonth",
+      "totalCount",
+      "roleRoutedCount",
+      "founderOnlyCount",
+      "unroutedCount",
+      "recordedByRole",
+      "recordedAt"
+    ],
+    "recordingRoles": [
+      "admin",
+      "system"
+    ],
+    "routingQualityRule": "roleRoutedCount + founderOnlyCount + unroutedCount = totalCount",
+    "caseDetailsAllowed": false,
+    "automaticCollectionAllowed": false
   },
   "runbookTemplate": "docs/operations/FOUNDER_INDEPENDENCE_RUNBOOK_TEMPLATE.md",
   "externalGates": {

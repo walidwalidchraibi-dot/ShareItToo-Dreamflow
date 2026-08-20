@@ -92,7 +92,16 @@ one category: `strategy`, `operations`, `support`, `technical` or `emergency`.
 Do not collect exact activity timestamps, keystrokes, screenshots, URLs, app
 usage, message content, location, biometrics or continuous activity data.
 
-## 9. Acceptance and review
+## 9. Founder-escalation aggregate
+
+Record only one manual monthly aggregate with `totalCount`,
+`roleRoutedCount`, `founderOnlyCount` and `unroutedCount`. The three routing
+counts must add up to the total. Do not store case text, user identities,
+message content or exact activity timestamps in this aggregate. A missing,
+duplicate or inconsistent month remains unavailable in the pilot cockpit; it
+must not be treated as zero.
+
+## 10. Acceptance and review
 
 - Owner and delegate roles approved:
 - Runbook executable without oral explanation:

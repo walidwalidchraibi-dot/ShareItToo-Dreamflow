@@ -162,6 +162,8 @@ export function validateFounderIndependenceGuardrails({
   exactArray(founderHours.requiredFields,
     ['periodMonth', 'category', 'minutes', 'recordedByRole', 'recordedAt'],
     'founderHoursEvents.requiredFields');
+  exactArray(founderHours.recordingRoles, ['admin', 'system'],
+    'founderHoursEvents.recordingRoles');
   exactArray(founderHours.forbiddenCollection, [
     'exact_activity_timestamps',
     'keystrokes',
@@ -173,6 +175,30 @@ export function validateFounderIndependenceGuardrails({
     'biometrics',
     'continuous_monitoring',
   ], 'founderHoursEvents.forbiddenCollection');
+
+  const founderEscalations = object(
+    guardrails.founderEscalationEvents,
+    'founderEscalationEvents',
+  );
+  if (founderEscalations.eventType !== 'founder_escalation_aggregate_recorded' ||
+      founderEscalations.collectionMode !== 'manual-monthly-aggregate-only' ||
+      founderEscalations.routingQualityRule !==
+        'roleRoutedCount + founderOnlyCount + unroutedCount = totalCount' ||
+      founderEscalations.caseDetailsAllowed !== false ||
+      founderEscalations.automaticCollectionAllowed !== false) {
+    fail('Founder-escalation evidence must remain manual, aggregate-only and privacy-minimal.');
+  }
+  exactArray(founderEscalations.requiredFields, [
+    'periodMonth',
+    'totalCount',
+    'roleRoutedCount',
+    'founderOnlyCount',
+    'unroutedCount',
+    'recordedByRole',
+    'recordedAt',
+  ], 'founderEscalationEvents.requiredFields');
+  exactArray(founderEscalations.recordingRoles, ['admin', 'system'],
+    'founderEscalationEvents.recordingRoles');
 
   const externalGates = object(guardrails.externalGates, 'externalGates');
   if (externalGates.companySystemOwnership !== 'open' ||
@@ -211,6 +237,7 @@ export function validateFounderIndependenceGuardrails({
     '## 6. Audit contract',
     '## 7. Absence and delegate test',
     '## 8. Founder-hours aggregate',
+    '## 9. Founder-escalation aggregate',
   ]) requireIncludes(runbook, heading, 'FI0 runbook template');
 
   const criticalPaths = [

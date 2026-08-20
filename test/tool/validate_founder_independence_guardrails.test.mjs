@@ -58,6 +58,16 @@ test('automatic or invasive founder tracking remains forbidden', () => {
     () => validateFounderIndependenceGuardrails({ root, manifest: invasive }),
     /boundary must remain false/u,
   );
+
+  const escalationDetails = structuredClone(manifest);
+  escalationDetails.founderEscalationEvents.caseDetailsAllowed = true;
+  assert.throws(
+    () => validateFounderIndependenceGuardrails({
+      root,
+      manifest: escalationDetails,
+    }),
+    /manual, aggregate-only and privacy-minimal/u,
+  );
 });
 
 test('a named person cannot return to a critical runtime source', () => {

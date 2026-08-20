@@ -34,6 +34,12 @@ Kategorien spezifiziert. Exakte Aktivitaetszeiten, Tastenanschlaege,
 Screenshots, URLs, App-Nutzung, Nachrichteninhalte, Standort, Biometrie und
 kontinuierliches Monitoring bleiben ausdruecklich verboten.
 
+U0 ergaenzt darauf aufbauend einen ebenso manuellen, aggregierten
+Eskalationsvertrag. Er speichert monatlich nur Gesamtzahl,
+fachrollengeroutete, founder-only und ungeroutete Faelle. Falldetails,
+Identitaeten und Nachrichteninhalte bleiben ausgeschlossen; fehlende oder
+widerspruechliche Monate gelten nicht als null.
+
 ## Verbindliche Quelle
 
 - Drive-Dokument `03_SIT_FOUNDER_INDEPENDENCE_UND_DELEGATION.pdf`, Stand
@@ -118,6 +124,13 @@ bereit. Fehlender Owner oder Delegate haelt den Prozess auf `hold`.
 - Pflichtfelder sind Monat, Kategorie, Minuten, erfassende Rolle und
   Erfassungszeit. Es gibt keine automatische Erfassung und noch keine realen
   Stundenwerte.
+- Founder-Hours- und Eskalationsaggregate duerfen nur durch die bestehenden
+  neutralen Backendrollen `admin` oder `system` erfasst werden. Das U0-Cockpit
+  fuegt dafuer keinen schreibenden Endpoint hinzu.
+- Eskalationen nutzen den Eventtyp `founder_escalation_aggregate_recorded` und
+  enthalten ausschliesslich Monat, Gesamtzahl, die drei Routingklassen,
+  erfassende Rolle und Erfassungszeit. Die Routingklassen muessen exakt zur
+  Gesamtzahl summieren.
 - Cash-Liquiditaet und normalisiertes Ergebnis sind getrennt. Die Hoehe einer
   kalkulatorischen Ersatzverguetung bleibt eine offene Finance-/Owner-
   Entscheidung und wurde nicht erfunden.

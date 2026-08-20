@@ -1394,6 +1394,15 @@ if (!databaseUrl) {
       const missingStepUp = await fetch(`${baseUrl}/v1/admin/overview`, { headers: adminHeaders });
       assert.equal(missingStepUp.status, 401);
       assert.equal((await missingStepUp.json()).error, 'staff_step_up_required');
+      const missingPilotCockpitStepUp = await fetch(
+        `${baseUrl}/v1/admin/pilot-cockpit?from=2026-01-01&to=2027-01-01`,
+        { headers: adminHeaders },
+      );
+      assert.equal(missingPilotCockpitStepUp.status, 401);
+      assert.equal(
+        (await missingPilotCockpitStepUp.json()).error,
+        'staff_step_up_required',
+      );
       const adminElevation = await fetch(`${baseUrl}/v1/admin/step-up`, {
         method: 'POST',
         headers: adminHeaders,
@@ -1401,6 +1410,27 @@ if (!databaseUrl) {
       });
       assert.equal(adminElevation.status, 200);
       adminHeaders['X-Admin-Step-Up'] = (await adminElevation.json()).elevation.token;
+      const ownerPilotCockpit = await fetch(
+        `${baseUrl}/v1/admin/pilot-cockpit?from=2026-01-01&to=2027-01-01`,
+        { headers: ownerHeaders },
+      );
+      assert.equal(ownerPilotCockpit.status, 403);
+      assert.equal((await ownerPilotCockpit.json()).error, 'admin_role_required');
+      const invalidPilotCockpitPeriod = await fetch(
+        `${baseUrl}/v1/admin/pilot-cockpit?from=2027-01-01&to=2026-01-01`,
+        { headers: adminHeaders },
+      );
+      assert.equal(invalidPilotCockpitPeriod.status, 400);
+      assert.equal(
+        (await invalidPilotCockpitPeriod.json()).error,
+        'invalid_pilot_cockpit_period',
+      );
+      const pilotCockpitWrite = await fetch(`${baseUrl}/v1/admin/pilot-cockpit`, {
+        method: 'POST',
+        headers: adminHeaders,
+        body: JSON.stringify({ from: '2026-01-01', to: '2027-01-01' }),
+      });
+      assert.equal(pilotCockpitWrite.status, 404);
       const connectOnboarding = await fetch(`${baseUrl}/v1/payments/connect/onboarding`, {
         method: 'POST',
         headers: { ...ownerHeaders, 'Idempotency-Key': 'b8-connect-owner-integration' },
@@ -1692,6 +1722,32 @@ if (!databaseUrl) {
       });
       assert.equal(supportElevation.status, 200);
       supportHeaders['X-Admin-Step-Up'] = (await supportElevation.json()).elevation.token;
+      const supportPilotCockpit = await fetch(
+        `${baseUrl}/v1/admin/pilot-cockpit?from=2026-01-01&to=2027-01-01`,
+        { headers: supportHeaders },
+      );
+      assert.equal(supportPilotCockpit.status, 403);
+      assert.equal((await supportPilotCockpit.json()).error, 'admin_role_required');
+      const pilotCockpitResponse = await fetch(
+        `${baseUrl}/v1/admin/pilot-cockpit?from=2026-01-01&to=2027-01-01`,
+        { headers: adminHeaders },
+      );
+      assert.equal(pilotCockpitResponse.status, 200);
+      assert.match(pilotCockpitResponse.headers.get('cache-control'), /private/u);
+      assert.match(pilotCockpitResponse.headers.get('cache-control'), /no-store/u);
+      const pilotCockpit = (await pilotCockpitResponse.json()).cockpit;
+      assert.equal(pilotCockpit.access.role, 'admin');
+      assert.equal(pilotCockpit.access.readOnly, true);
+      assert.equal(pilotCockpit.currencyAggregation, 'separate-no-fx');
+      assert.equal(pilotCockpit.profitability, 'undetermined');
+      assert.equal(pilotCockpit.privacy.aggregateOnly, true);
+      assert.equal(pilotCockpit.privacy.containsUserIdentity, false);
+      assert.equal(pilotCockpit.projectFunnel.reservationOrHoldCreatedByCart, false);
+      assert.equal(pilotCockpit.founderIndependence.totalMinutes.value, null);
+      assert.doesNotMatch(
+        JSON.stringify(pilotCockpit),
+        /owner@example\.com|renter-a@example\.com|admin@example\.com/u,
+      );
       const supportUsers = await fetch(`${baseUrl}/v1/admin/users`, { headers: supportHeaders });
       assert.equal(supportUsers.status, 200);
       assert.ok((await supportUsers.json()).users.every((user) => !Object.hasOwn(user, 'email')));

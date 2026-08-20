@@ -146,6 +146,10 @@ import {
   RetentionInventoryError,
 } from './retention_inventory.js';
 import {
+  getPilotCockpitSnapshot,
+  PilotCockpitError,
+} from './pilot_cockpit.js';
+import {
   FinancialDocumentError,
   getFinancialDocumentArtifact,
   listFinancialDocuments,
@@ -394,6 +398,11 @@ const requireStaffElevation = asyncRoute(async (req, _res, next) => {
   });
   next();
 });
+
+function requireAdminRole(req, _res, next) {
+  if (req.actor?.role !== 'admin') throw new HttpError(403, 'admin_role_required');
+  next();
+}
 
 async function writeAudit(client, {
   actor = null,
@@ -3985,6 +3994,16 @@ export function createApp({
     res.json({ inventory });
   }));
 
+  app.get('/v1/admin/pilot-cockpit', requireAuth, requireActiveAccount, requireAdminRole, requireStaffElevation, asyncRoute(async (req, res) => {
+    const cockpit = await getPilotCockpitSnapshot(pool, {
+      actor: req.actor,
+      from: req.query.from,
+      to: req.query.to,
+      reportingCurrencies: [config.payments.currency],
+    });
+    res.set('Cache-Control', 'private, no-store').json({ cockpit });
+  }));
+
   app.get('/v1/admin/compliance/professional-review', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (_req, res) => {
     res.json({ status: await getProfessionalReviewStatus(pool) });
   }));
@@ -4300,6 +4319,7 @@ export function createApp({
     const paymentWorkflowError = error instanceof PaymentDomainError;
     const moderationWorkflowError = error instanceof ModerationDomainError;
     const retentionInventoryError = error instanceof RetentionInventoryError;
+    const pilotCockpitError = error instanceof PilotCockpitError;
     const mapsProxyError = error instanceof MapsProxyError;
     const bookingConfirmationError = error instanceof BookingConfirmationError;
     const v51WithdrawalError = error instanceof V51WithdrawalError;
@@ -4309,14 +4329,14 @@ export function createApp({
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || rentalCartError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || rentalCartError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || rentalCartError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || rentalCartError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || pilotCockpitError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });
