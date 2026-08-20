@@ -6,11 +6,11 @@ Verified: 2026-08-20 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current U0 implementation head:
-  `d36dc091868a9840e597a7fdc40702a496f81593`.
-- The U0 implementation commit is contained in the local branch, remote
+- Current G3B implementation head:
+  `7b1be00420b41941758678e77f2a8caa1dc3a659`.
+- The G3B implementation commit is contained in the local branch, remote
   branch and PR head; the PR remains cleanly mergeable.
-- Exact GitHub Actions run `32392289397` is green: backend regression and
+- Exact GitHub Actions run `32409736722` is green: backend regression and
   Flutter regression passed, while the signed candidate and image publication
   were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
@@ -19,7 +19,7 @@ Verified: 2026-08-20 on the Mac mini.
 ## Implemented system
 
 - Flutter client version `1.0.0+2026081510` with Android, iOS and web targets.
-- Node/Express backend with PostgreSQL migrations through `027`, deterministic
+- Node/Express backend with PostgreSQL migrations through `028`, deterministic
   server quotes, immutable legal/acceptance evidence, checkout and booking
   lifecycle, withdrawal/cancellation and actual-loss rules, handover/return
   evidence, messaging and moderation foundations.
@@ -108,32 +108,28 @@ Verified: 2026-08-20 on the Mac mini.
 - No production, VPS/OpenClaw, SSH, DNS, cloud-console, payment, Store or
   live-provider mutation was made. The MacBook is not required.
 
-## G3A architecture decision state
+## G3B booking-group foundation
 
-- Walid authorized G3A only as a decision and architecture package on
-  2026-08-20. No grouped-booking implementation is authorized or present.
-- The current repository remains single-item from quote and contract through
-  booking, payment allocation, evidence, damage and refund. The G2 cart is not
-  a booking aggregate.
-- The reviewed recommendation is one owner booking group with normalized item
-  positions. It provides one itemized offer/acceptance process while retaining
-  item-specific quote, proof, damage, review, refund and ledger truth.
-- The two retained alternatives are a coordinator over independent bookings
-  and a synthetic bundle listing. Their effects and rejection risks are
-  recorded in
-  `docs/architecture/g3a-same-owner-multi-item-decision-2026-08-20.md`.
-- A group must never mix owners, private/Business workspaces, countries,
-  currencies, legal sets or payment configurations. Historical V5.2 contracts
-  remain immutable.
-- G3A is now stopped at `G3A_ENTSCHEIDUNG_A`, `G3A_ENTSCHEIDUNG_B` or
-  `G3A_ENTSCHEIDUNG_C`. No schema/API/UI/legal/payment work may begin from the
-  recommendation alone.
+- Walid selected G3A Variant A and authorized the V2.4 rolling-autonomy runway.
+- G3B adds immutable group compatibility envelopes and normalized append-only
+  item positions. Owner, renter, private context, Germany, currency, period,
+  location, handover, legal, cancellation and payment configuration are bound
+  at group level.
+- Listing, quote, allocation and optional booking references are verified per
+  position. Existing booking IDs remain the bridge to item-specific evidence,
+  damage, refund and ledger truth; historical V5.2 objects are untouched.
+- The feature has no route or public UI, defaults disabled in every checked
+  deployment surface and is explicitly rejected in production.
+- Migration 028 has a tested additive forward path. Rollback removes only G3B
+  objects when empty and refuses to destroy existing group evidence.
+- `docs/compliance/g3b-booking-group-foundation-2026-08-20.md` and ADR-028 are
+  the detailed G3B evidence. V2.4 auto-continues to G3C.
 
 ## Validation and rollback
 
-- Exact U0 CI is green with PostgreSQL integration and Cockpit HTTP/access
-  coverage: 283 backend tests passed, 0 failed.
-- Local backend suite: 282 passed, 0 failed and one expected PostgreSQL skip
+- Exact G3B CI is green with PostgreSQL migration, rollback, concurrency and
+  boundary coverage: 287 backend tests passed, 0 failed.
+- Local backend suite: 286 passed, 0 failed and one expected PostgreSQL skip
   without local `TEST_DATABASE_URL`.
 - Complete Flutter suite: 307 passed with one documented skip; the extra
   Google-only profile test, analyzer baseline, web debug build and Android
@@ -156,14 +152,14 @@ Verified: 2026-08-20 on the Mac mini.
   remain explicit external gates. No personal activity monitoring is enabled.
 - U0 has no migration. Its normal rollback is a revert of `d36dc09` together
   with the exact Privacy-/Retention-Quellhashbindungen for `backend/src/app.js`.
+- G3B rollback removes only empty migration-028 objects and otherwise fails
+  closed. It never rewrites or deletes historical V5.2 truth.
 
 ## Next source of truth
 
-There is no active implementation package. `docs/current_work_package.md`
-records the completed G3A decision package and the mandatory Walid choice.
-G2A, G2L, G2B and U0 remain technically complete; FI0 external role/account
-assignments and all C1I release/device gates remain HOLD. Do not begin G3
-implementation or a later package until Walid selects the architecture and
-separately authorizes the next bounded package. Older reports and root
-`architecture.md` are evidence/history, not permission to reopen a closed
-launch boundary.
+`docs/current_work_package.md` records active G3C under the V2.4
+rolling-autonomy runway. G3B, G2A, G2L, G2B and U0 remain technically complete;
+FI0 external role/account assignments and all C1I release/device gates remain
+HOLD. Booking groups remain disabled and must not become public/live before the
+later legal/release gate. Older reports and root `architecture.md` are
+evidence/history, not permission to reopen a closed launch boundary.
