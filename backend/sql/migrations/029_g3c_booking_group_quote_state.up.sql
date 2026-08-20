@@ -262,10 +262,10 @@ DECLARE
   totals RECORD;
   target_quote_id TEXT;
 BEGIN
-  target_quote_id := CASE
-    WHEN TG_TABLE_NAME = 'booking_group_quotes' THEN NEW.id
-    ELSE NEW.group_quote_id
-  END;
+  target_quote_id := COALESCE(
+    to_jsonb(NEW)->>'group_quote_id',
+    to_jsonb(NEW)->>'id'
+  );
   SELECT * INTO target_quote FROM booking_group_quotes WHERE id = target_quote_id;
   SELECT count(*)::int AS item_count,
          COALESCE(sum(rental_subtotal_minor), 0)::bigint AS rental_subtotal_minor,

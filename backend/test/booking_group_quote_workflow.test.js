@@ -112,6 +112,7 @@ test('G3C migration binds immutable quotes, positions, transitions and rollback'
     'booking_group_commands',
   ]) assert.match(up, new RegExp(`CREATE TABLE ${table}`, 'u'));
   assert.match(up, /booking_group_quote_balance_mismatch/u);
+  assert.match(up, /to_jsonb\(NEW\)->>'group_quote_id'/u);
   assert.match(up, /booking_group_event_transition_mismatch/u);
   assert.match(up, /booking_group_quotes_append_only/u);
   assert.match(up, /booking_group_quote_positions_append_only/u);
