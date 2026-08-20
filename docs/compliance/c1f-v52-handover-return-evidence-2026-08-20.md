@@ -4,11 +4,11 @@ Stand: 20.08.2026
 
 Branch: `codex/master-workflow-20260808`
 
-Implementierungsstand: lokaler Implementierungs-Commit und GitHub CI ausstehend.
+Implementierungsstand: `a2ef9163ad3118a2dfba18e3335d877511daa8d1`.
 
 ## Ergebnis
 
-**Die begrenzte C1F-Implementierung ist lokal GREEN. Release, Echtgeld,
+**Die begrenzte C1F-Implementierung ist commitgebunden GREEN. Release, Echtgeld,
 Rechtsaktivierung und jede Live-Umgebung bleiben HOLD.**
 
 Die bestehende Übergabe- und Rückgabelogik ist für neue V5.2-Verträge an den
@@ -92,7 +92,7 @@ und im Schema exakt null.
 - Alle neuen C1F-Tabellen verweigern Update und Delete über den bestehenden
   Append-only-Trigger. V5.1-Zeilen bleiben lesbar und unverändert.
 
-## Verifikation vor Commit
+## Verifikation und commitgebundene CI
 
 - Fokussierte C1F-, Rollen-, Challenge-, T0/T1-, Hash-, Upload-, Betrags- und
   No-Charge-Tests: PASS.
@@ -106,8 +106,17 @@ und im Schema exakt null.
   keine verbotene Korrektheitsregression.
 - Web-Debug-Build und Android-Debug-APK: PASS.
 - `node --check`, Privacy-/Retention-CLI und `git diff --check`: PASS.
-- GitHub Actions mit disposable PostgreSQL-Migrationslauf: noch ausstehend;
-  C1F bleibt bis zum grünen commitgebundenen Lauf aktiv.
+- GitHub Actions Lauf
+  [`32356255645`](https://github.com/walidwalidchraibi-dot/ShareItToo-Dreamflow/actions/runs/32356255645)
+  für den exakten Implementierungs-Commit: GREEN.
+- Backend-Regression einschließlich disposable PostgreSQL und Migration 025:
+  245 PASS, 0 Skip, 0 Fehler; Container-, Compose-, History- und
+  commitgelabelter Image-Build ebenfalls PASS.
+- Flutter-Regression: 295 PASS, ein dokumentierter Skip, 0 Fehler;
+  Web-Debug- und Android-Debug-Build PASS. Der signierte Kandidatenschritt
+  blieb erwartungsgemäß übersprungen.
+- Das Publish-Job blieb erwartungsgemäß übersprungen; es wurde kein Image
+  veröffentlicht.
 
 Der technische Lauf nutzte `CI=true` ausschließlich für den vorgesehenen
 Metadatenpfad des owner-only Play-Archivs. Das fehlende lokale private AAB
@@ -125,10 +134,8 @@ Rebase, Force-Push, destruktives Entfernen der Migration und History-Rewrite
 bleiben ausgeschlossen. Bei einem App-Rollback bleiben die neuen Tabellen
 inert erhalten.
 
-## Offene Gates
+## Fortbestehende Gates
 
-- Der disposable PostgreSQL-Lauf und die Migration 025 müssen für den exakten
-  Implementierungs-Commit in GitHub CI grün sein.
 - Privacy, Retention, Legal, Store, Payment, Provider und signierte Releases
   behalten ihre vorhandenen offenen oder blockierten Zustände.
 - Keine Fallentscheidung, Auszahlung, Erstattung, Abbuchung oder sonstige
@@ -136,7 +143,7 @@ inert erhalten.
 
 ## Nächster Schritt
 
-Nach grünem GitHub CI darf der reine Dokumentationsübergang auf
-**C1G - V5.2 Privacy, Network, FCM and Crashlytics** erfolgen. Bei einem
-Migration-, Vertrags-, Hash-, Rollen-, Zeit-, Betrags-, Privacy- oder
-Payment-Konflikt bleibt C1F aktiv und fail-closed.
+C1F ist GREEN abgeschlossen. Der reine Dokumentationsübergang auf
+**C1G - V5.2 Privacy, Network, FCM and Crashlytics** ist zulässig. Reale
+Provider-, Vertrags-, Transfer-, Store- und Betreiberfakten bleiben offene
+FI0-Gates und dürfen in C1G nicht angenommen werden.

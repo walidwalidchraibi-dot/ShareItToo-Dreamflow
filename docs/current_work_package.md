@@ -1,118 +1,109 @@
-# Current Work Package: C1F - V5.2 Handover, Return, Evidence and needsReview
+# Current Work Package: C1G - V5.2 Privacy, Network, FCM and Crashlytics
 
-Status: active after green C1E implementation and GitHub CI.
+Status: active after green C1F implementation and GitHub CI.
 
 ## Objective
 
-Migrate the existing handover, return, private condition-evidence and return-case
-foundation to the exact V5.2 contract and authorization boundaries without
-activating payments or the draft legal bundle:
+Close only the technical privacy and network gaps proven open by C1A while
+keeping every provider, contract, transfer, Store and live-environment fact
+truthfully open:
 
-- bind pickup/return evidence and counterparty confirmation to the exact V5.2
-  platform contract, quote and `handover_return_damage` document snapshot;
-- preserve four current presenter photos, the correct presenter/counterparty
-  roles, counterparty confirmation or at least one deviation photo, QR or
-  six-digit fallback and the prohibition on self-confirmation;
-- make T0, the 48-hour report window, the neutral T0+5-day missing-confirmation
-  window and T1 case deadlines server-owned and immutable;
-- replace the remaining client-writable `needsReview` opening path with an
-  owned, private-evidence-bound, idempotent server workflow;
-- keep alleged physical damage documentary only and release the undisputed
-  authorized booking portion without creating a charge, offset or deposit.
+- make every FCM notification transactional, neutral on the lock screen,
+  free of sensitive payload data and bound to a short event-specific TTL;
+- preserve FCM and Crashlytics as separate, voluntary, default-off choices so
+  enabling push can never enable crash collection;
+- keep Google Analytics, BigQuery delivery export, analytics breadcrumbs,
+  advertising SDKs, marketing push and external generative AI disabled;
+- complete code-level network allowlists and provider-bound feature gates for
+  external maps/geocoding, fonts, image hosts and other launch traffic, with
+  truthful manual or internal fallbacks;
+- synchronize machine-readable privacy, retention, deletion and Store
+  readiness artifacts without inventing or approving provider facts.
 
 ## Baseline and inputs
 
 - Branch: `codex/master-workflow-20260808`; draft PR #7.
-- C1E implementation: `52f2ed7a301d84a9855a2a152b46b824f16264fb`;
-  GitHub Actions run `32351561805` is green.
-- Drive control `02_CODEX_WORK_PACKAGES_SIT_V2.3.md` maps C1F specifically to
-  handover, return, evidence and `needsReview`.
-- V5.2 Core sections 8 and 9 and the corresponding user-facing legal-map parts
-  require the exact four-photo roles, counterparty verification, private
-  evidence and the T0/T1 timeline.
-- Existing foundations include migration 019,
-  `backend/src/booking_condition_evidence_workflow.js`,
-  `backend/src/booking_confirmation_workflow.js`,
-  `backend/src/private_pilot_return_domain.js` and
-  `backend/src/return_lifecycle_workflow.js`.
-- C1A marks the basic photo and return-timeline behavior done, but explicitly
-  requires V5.2 version migration and missing boundary/authorization tests.
-- The pre-implementation audit found one material open boundary: the legacy
-  rental-request metadata path can still request `needsReview` with
-  client-provided evidence references and a client-provided contested amount,
-  and it checks the end but not the beginning of the T0-to-T0+48h window.
+- C1F implementation: `a2ef9163ad3118a2dfba18e3335d877511daa8d1`;
+  GitHub Actions run `32356255645` is green.
+- Drive control `02_CODEX_WORK_PACKAGES_SIT_V2.3.md` maps C1G to privacy,
+  network, FCM and Crashlytics.
+- V5.2 Core section 11 requires neutral transactional FCM, shortest sensible
+  per-message TTL, default-off voluntary Crashlytics and fail-closed external
+  provider gates.
+- C1A items 20-23 prove the remaining bounded gaps: current notification code
+  exposes specific titles/item text and entity identifiers and has no
+  event-specific TTL; provider/Store facts remain open; final full-device
+  network evidence belongs to C1I.
+- Existing Crashlytics consent, revocation, sanitization, no-user-ID and
+  default-off controls are already green and must not be weakened or coupled
+  to push.
 
 ## Allowed work
 
-- Add only forward, append-only schema/events required to bind V5.2 condition
-  evidence, confirmation and return cases to contract/document/quote/upload
-  facts while preserving all V5.1 rows.
-- Require owned, private, server-processed image uploads with stored SHA-256 and
-  the exact handover/return/report purpose before evidence or a substantiated
-  case is accepted.
-- Enforce pickup presenter `owner`, pickup verifier `renter`, return presenter
-  `renter` and return verifier `owner`; no actor may confirm their own challenge.
-- Preserve at least four presenter images for overall view, detail, accessories
-  and a critical condition point. A deviation decision requires at least one
-  counterparty photo; a clean confirmation cannot silently coexist with a
-  deviation photo.
-- Bind QR and six-digit verification to one booking, segment, presenter,
-  counterparty, challenge lifetime and exact evidence set, with bounded retries
-  and idempotent replay.
-- Derive T0 from mutually confirmed actual return, otherwise mutually confirmed
-  changed return, otherwise the stored scheduled return. Reject return-case
-  opening before T0 or after T0+48 hours.
-- Keep missing confirmation neutral as `awaitingReturnConfirmation` until
-  T0+5 calendar days. An incomplete report may request completion but cannot
-  create `needsReview` or extend the payout timeline by itself.
-- For a substantiated case, persist T1, exact reason, owned evidence, the
-  already-authorized contested amount, undisputed releasable amount, T1+5
-  response deadline and T1+7/weekly status schedule.
-- Add focused role, ownership, hash, mutation, idempotency, early/late boundary,
-  neutral-state, amount-cap, no-charge and event-order tests and wire them into
-  the complete technical regression.
+- Define one server-owned transactional notification contract with a neutral
+  visible title/body, opaque authenticated in-app routing and an allowlisted,
+  event-specific TTL shorter than the FCM four-week default.
+- Remove chat text, exact address, payment data, photos, damage evidence,
+  listing/item text and raw business/entity identifiers from push payloads.
+- Keep detail retrieval behind normal authenticated SIT API access after the
+  user opens the app; push refusal must not block registration, listings or
+  bookings.
+- Add focused tests for notification purpose, TTL, payload key allowlist,
+  token cleanup, invalid-token handling and the absence of sensitive fields.
+- Verify and harden local-font, controlled-image and disabled external
+  AI/Places/Nominatim/OSM/analytics/ads paths with provider-bound fail-closed
+  feature flags and functional manual/internal fallbacks.
+- Preserve and test separate Crashlytics consent, default-off startup,
+  revocation, unsent-report cleanup, sanitization allowlist and the prohibition
+  on user identifiers.
+- Update privacy/retention/Store readiness manifests only with locally proven
+  implementation facts and stable open blocker codes.
+- Add focused static/network-contract validators and wire them into the
+  complete technical regression.
 
-## Not allowed in C1F
+## Not allowed in C1G
 
-- No new client-authoritative booking status, case status, amount, deadline or
-  evidence reference.
-- No damage award, automatic damage charge, damage offset, security deposit,
-  protection product, guarantee, SIT collection or legal adjudication.
-- No actual payout, refund, capture, transfer, chargeback or other PSP action;
-  only truthful local authorization splits and instructions may be recorded.
-- No provisioning or activation of the `draft-blocked` V5.2 legal bundle and no
-  invented legal, provider, delivery or public-URL fact.
-- No destructive migration, V5.1 history rewrite, reset, rebase, force-push or
-  branch deletion.
-- No production, VPS/OpenClaw, DNS, cloud console, payment, Store, provider,
-  signed-release, public-rollout or live-traffic action.
+- No Firebase, Google Cloud, provider or Store console action; no live push,
+  crash upload, analytics event, network capture against live accounts or
+  external provider traffic.
+- No invented provider company, contract, DPT date, region, subprocessors,
+  transfer mechanism, retention promise, deletion completion or Store answer.
+- No closing FI0 owner/provider/transfer/retention/deletion gates based only on
+  code configuration or documentation.
+- No enabling Google Analytics, BigQuery export, analytics breadcrumbs,
+  marketing push, advertising SDKs, external generative AI or arbitrary image
+  hosts.
+- No production, VPS/OpenClaw, DNS, payment, Store, signed-release,
+  public-rollout or destructive Git action.
 
 ## Acceptance criteria
 
-- Every new V5.2 pickup/return evidence item and confirmation is bound to the
-  exact booking participant, platform contract, quote, V5.2 document snapshot,
-  upload purpose/content hash, source and timestamp.
-- Presenter and verifier roles are exact for both segments; four presenter
-  photos are mandatory, deviation requires a counterparty photo, and neither
-  QR nor fallback code permits self-confirmation or cross-booking reuse.
-- Historical V5.1 evidence remains readable and immutable; no existing row or
-  hash is relabeled as V5.2.
-- T0 precedence is exact. `needsReview` is impossible before T0, after T0+48h,
-  for only a missing confirmation or from incomplete/unowned evidence.
-- Missing confirmation remains neutral until T0+5 days and then advances
-  without automatically inventing a dispute.
-- A substantiated T1 case records the reason, exact already-authorized contested
-  amount, zero additional charge, undisputed releasable amount, response
-  deadline and recurring status schedule server-side and append-only.
-- Direct legacy metadata attempts to create or alter a V5.2 return case fail
-  closed and point callers to the authorized workflow.
-- Account export, privacy inventory and retention inventory cover every new
-  evidence, case and event dataset without changing draft/approval state.
-- Existing V5.1 behavior stays green; focused tests, full local technical
-  regression and GitHub CI are green for the bounded implementation commit.
+- Every FCM request uses the exact neutral lock-screen message and contains no
+  sensitive or business-readable detail; its data payload is an allowlisted
+  opaque navigation signal only.
+- Each approved transactional event class has a documented shortest-sensible
+  TTL; unknown, marketing or malformed event classes fail closed and no code
+  path relies on FCM's default four-week TTL.
+- Notification-token lifecycle and invalid-token cleanup stay green; denying
+  or disabling push leaves all core flows available in-app.
+- Crashlytics remains off before separate voluntary consent, sends no SIT user
+  identifier or forbidden custom/log data, and stops new reports after
+  revocation. Push cannot change this state.
+- Google Analytics, FCM BigQuery export, analytics breadcrumbs, ads and
+  marketing push are machine-verifiably disabled.
+- Runtime font fetching, arbitrary production image hosts and unapproved
+  external AI/maps/geocoding/tile traffic are absent or fail closed behind a
+  provider-complete gate; the corresponding fallback remains functional.
+- Privacy, retention, deletion and Store readiness files distinguish proven
+  local controls from unresolved provider/account facts and remain
+  draft/fail-closed where those facts are missing.
+- Focused tests, complete local technical regression and GitHub CI are green
+  for the bounded implementation commit. Full physical network/device proof is
+  explicitly deferred to C1I rather than claimed early.
 
 ## Expected next transition
 
-GREEN: C1G - V5.2 Privacy, Network, FCM and Crashlytics.
-YELLOW/RED: preserve evidence and stop at the exact contract binding,
-authorization, timeline, amount, privacy or payment conflict.
+GREEN: C1H - V5.2 Categories, Moderation, Invoice/Receipt and Operator
+fail-closed configuration.
+YELLOW/RED: preserve evidence and stop at the exact privacy, provider,
+notification, network, Store or consent conflict without enabling a service.
