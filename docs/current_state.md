@@ -225,13 +225,42 @@ Verified: 2026-08-21 on the Mac mini.
 - `docs/compliance/g4a-deterministic-planner-core-2026-08-21.md` and ADR-033
   are the detailed evidence. V2.4 auto-continues to disabled G4B.
 
+## G4B real inventory planner and project cart
+
+- `G4B-2026-08-21.1` resolves only exact G4A item targets against active,
+  moderated, public-image-backed database listings and then reuses the
+  authoritative booking quote preview for current eligibility, availability
+  revision and EUR price truth.
+- Exactly three deterministic variants are returned: `1-Stop` only when one
+  actual owner covers every selected item, price-efficient from current EUR
+  quote inputs, and top-rated only from published renter-to-owner ratings.
+  Missing factual support makes the named variant unavailable.
+- Item removal/restoration is bounded to the answer-bound G4A plan. Removing a
+  required item blocks cart sync; an edited listing must be a current candidate
+  for its exact item type and duplicate physical listings are rejected.
+- The complete current candidate set is hash-bound. Cart sync re-resolves that
+  snapshot in one transaction before mutation and every selected item is
+  re-quoted by the existing cart writer. Drift aborts rather than silently
+  substituting inventory.
+- Only deterministic planner-owned lines in the named project are replaced.
+  Manual cart content is preserved, and the cart creates no request, booking,
+  hold, reservation, contract or payment.
+- Internal funnel events are data-minimized and omit actor, answers, dates,
+  location, listing/owner identifiers, quote hashes and prices. No external
+  analytics or generative-AI provider is called.
+- Backend and Compose controls default off, require the G4A core, reject
+  production enabling and retain fixed false public-release/external-AI
+  boundaries. `docs/compliance/g4b-real-inventory-project-cart-2026-08-21.md`
+  and ADR-034 are the detailed evidence. V2.4 auto-continues to disabled G5A.
+
 ## Validation and rollback
 
-- Exact G4A CI `32423242364` is green at
-  `c1350f30838e6584c53604312a11c1aea70b36a8`: 308 backend tests and 313
+- Exact G4B CI `32425415877` is green at
+  `24f5f062e09e22de62f5b8dc0035c0a2cfc6840c`: 315 backend tests and 313
   Flutter tests passed, with the one documented Flutter skip. PostgreSQL
-  migration/integration, web debug and Android debug builds also passed.
-- Local backend suite: 307 passed, 0 failed and one expected PostgreSQL skip
+  integration, web debug and Android debug builds also passed; the publish
+  job remained skipped.
+- Local backend suite: 314 passed, 0 failed and one expected PostgreSQL skip
   without local `TEST_DATABASE_URL`.
 - Complete local Flutter suite: 313 passed with one documented skip; the extra
   Google-only profile test, analyzer baseline, web debug build and Android
@@ -272,13 +301,16 @@ Verified: 2026-08-21 on the Mac mini.
 - G4A has no migration or external state. Its rollback is a revert of
   `c1350f3` plus restoration of the two exact config-source hash bindings; no
   stored plan, listing, quote, reservation or provider state exists.
+- G4B has no migration or external provider state. Its rollback is a revert of
+  `24f5f06` plus restoration of the exact Privacy/Retention source inventories;
+  existing G2 project-cart data and all historical booking truth remain valid.
 
 ## Next source of truth
 
-`docs/current_work_package.md` records active G4B under the V2.4
+`docs/current_work_package.md` records active G5A under the V2.4
 rolling-autonomy runway. G3B, G2A, G2L, G2B and U0 remain technically complete;
 FI0 external role/account assignments and all C1I release/device gates remain
 HOLD. Booking groups remain disabled and must not become public/live before the
-later legal/release gate. The planner remains disabled and non-public. Older
-reports and root `architecture.md` are evidence/history, not permission to
-reopen a closed launch boundary.
+later legal/release gate. The planner and supply-enrichment runway remain
+disabled and non-public. Older reports and root `architecture.md` are
+evidence/history, not permission to reopen a closed launch boundary.
