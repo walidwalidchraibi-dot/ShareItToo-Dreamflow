@@ -19,12 +19,13 @@ const {
 const now = new Date('2026-08-17T10:00:00.000Z');
 
 function document() {
+  const contentText = 'Widerruf <script>nicht ausführen</script>';
   return {
     id: 'withdrawal-doc-1',
     document_version: 'V5.1-2026-08-16',
     content_type: 'text/plain',
-    content_text: 'Widerruf <script>nicht ausführen</script>',
-    content_sha256: 'a'.repeat(64),
+    content_text: contentText,
+    content_sha256: crypto.createHash('sha256').update(contentText).digest('hex'),
   };
 }
 

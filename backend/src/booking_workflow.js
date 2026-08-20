@@ -19,6 +19,7 @@ import {
 } from './private_pilot_return_domain.js';
 import { v51CancellationAmounts } from './v51_termination_domain.js';
 import { settleV51WithdrawalRefundAtReturn } from './v51_withdrawal_workflow.js';
+import { openV52ActualLossCase } from './v52_actual_loss_workflow.js';
 import { hasVerifiedBookingConfirmation } from './booking_confirmation_workflow.js';
 import {
   assertPrivatePilotBooking,
@@ -999,7 +1000,21 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
   const commandKey = idempotencyKey(key ?? candidate.idempotencyKey);
   const requested = workflowStatus(candidate.workflowStatus ?? candidate.status);
   if (!requested) throw new BookingWorkflowError(400, 'invalid_booking_status');
-  const commandRequest = { bookingId, requested, expectedRevision: candidate.expectedRevision ?? null };
+  const cancellationType = candidate.cancellationType == null
+    ? 'standard'
+    : text(candidate.cancellationType, 40);
+  if (!['standard', 'renter_no_show'].includes(cancellationType)) {
+    throw new BookingWorkflowError(400, 'invalid_cancellation_type');
+  }
+  if (requested !== 'cancelled' && cancellationType !== 'standard') {
+    throw new BookingWorkflowError(400, 'cancellation_type_without_cancellation');
+  }
+  const commandRequest = {
+    bookingId,
+    requested,
+    cancellationType,
+    expectedRevision: candidate.expectedRevision ?? null,
+  };
   const replay = await startCommand(client, {
     key: commandKey,
     actorId: actor.id,
@@ -1026,6 +1041,37 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
     ownerId: row.owner_id,
     renterId: row.renter_id,
   });
+  const transitionedAt = new Date();
+  if (requested === 'cancelled' && actorRole === 'renter') {
+    const contract = await client.query(
+      `SELECT contract_version, accepted_at
+         FROM platform_contracts WHERE booking_id = $1`,
+      [bookingId],
+    );
+    const acceptedAt = contract.rows[0]?.accepted_at
+      ? new Date(contract.rows[0].accepted_at)
+      : null;
+    const rightExpiresAt = acceptedAt
+      ? new Date(acceptedAt.getTime() + (14 * 24 * 60 * 60 * 1000))
+      : null;
+    if (String(contract.rows[0]?.contract_version ?? '').startsWith('V5.2-')
+        && rightExpiresAt
+        && transitionedAt <= rightExpiresAt) {
+      throw new BookingWorkflowError(409, 'v52_withdrawal_precedes_cancellation', {
+        bookingId,
+        rightExpiresAt: rightExpiresAt.toISOString(),
+        withdrawalPath: `/v1/bookings/${encodeURIComponent(bookingId)}/withdrawal`,
+      });
+    }
+  }
+  if (requested === 'cancelled' && cancellationType === 'renter_no_show') {
+    if (actorRole !== 'owner') {
+      throw new BookingWorkflowError(403, 'renter_no_show_owner_required');
+    }
+    if (transitionedAt < new Date(row.starts_at)) {
+      throw new BookingWorkflowError(409, 'renter_no_show_before_start');
+    }
+  }
   let current = row.workflow_status;
   if (current === requested) {
     const response = { booking: bookingPayload(row, actor.id), replayed: false };
@@ -1140,9 +1186,10 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
     if (next === 'cancelled' && config.privatePilotV4Enabled) {
       const outcome = evaluateCancellation({
         rentalStartAt: row.starts_at,
-        cancelAt: new Date(),
+        cancelAt: transitionedAt,
         contractConfirmedAt: row.accepted_at,
-        actor: actorRole,
+        actor: cancellationType === 'renter_no_show' ? 'renter' : actorRole,
+        noShow: cancellationType === 'renter_no_show',
       });
       const calculated = outcome.calculationStatus === 'final'
         ? v51CancellationAmounts({
@@ -1170,6 +1217,7 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
         calculatedAt: new Date().toISOString(),
         modelVersion: 'V5.1-2026-08-16',
       };
+      const cancellationObligations = {};
       for (const [refundType, debtorRole, maximumMinor, amountMinor] of [
         [
           'rent_refund',
@@ -1184,13 +1232,21 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
           calculated?.sitFeeRefundMinor ?? null,
         ],
       ]) {
-        await client.query(
-          `INSERT INTO v51_cancellation_refund_obligations (
-             booking_id, refund_type, debtor_role, currency, status,
-             amount_due_minor, maximum_minor, calculation_basis,
-             idempotency_key
-           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
-           ON CONFLICT (idempotency_key) DO NOTHING`,
+        const obligation = await client.query(
+          `WITH inserted AS (
+             INSERT INTO v51_cancellation_refund_obligations (
+               booking_id, refund_type, debtor_role, currency, status,
+               amount_due_minor, maximum_minor, calculation_basis,
+               idempotency_key
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9)
+             ON CONFLICT (idempotency_key) DO NOTHING
+             RETURNING id
+           )
+           SELECT id FROM inserted
+           UNION ALL
+           SELECT id FROM v51_cancellation_refund_obligations
+            WHERE idempotency_key = $9
+           LIMIT 1`,
           [
             bookingId,
             refundType,
@@ -1208,6 +1264,23 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
             `${commandKey}:cancellation:${refundType}`,
           ],
         );
+        cancellationObligations[refundType] = obligation.rows[0]?.id;
+      }
+      if (calculated == null) {
+        const actualLossCase = await openV52ActualLossCase(client, {
+          actor,
+          bookingId,
+          cause: cancellationType === 'renter_no_show'
+            ? 'renter_no_show'
+            : 'after_start',
+          rentRefundObligationId: cancellationObligations.rent_refund,
+          sitFeeRefundObligationId: cancellationObligations.sit_fee_refund,
+          idempotencyKey: `${commandKey}:actual-loss`,
+          now: transitionedAt,
+        });
+        if (actualLossCase) {
+          nextPayload.cancellationOutcome.actualLossCase = actualLossCase;
+        }
       }
     }
     row.payload = nextPayload;

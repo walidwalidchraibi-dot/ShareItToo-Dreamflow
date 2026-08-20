@@ -6,6 +6,7 @@ import {
   evaluateV51WithdrawalEffect,
   v51CancellationAmounts,
   v51ShortNoticeGraceDeadline,
+  v52ActualLossAmounts,
 } from '../src/v51_termination_domain.js';
 
 test('V5.1 cancellation keeps 24-hour and exact 60-minute grace rules', () => {
@@ -57,6 +58,43 @@ test('after start and no-show never produce a fixed 100-percent penalty', () => 
     assert.equal(decision.rentRefundBasisPoints, null);
     assert.equal(decision.requiresActualLossAssessment, true);
   }
+});
+
+test('V5.2 actual loss deducts savings and replacement rental and honors lower or zero loss', () => {
+  assert.deepEqual(v52ActualLossAmounts({
+    rentalSubtotalMinor: 10000,
+    platformFeeMinor: 1000,
+    ownerClaimedLossMinor: 9000,
+    savedExpenseMinor: 1000,
+    replacementRentalMinor: 2500,
+    provenLowerLossMinor: 4000,
+  }), {
+    rentalSubtotalMinor: 10000,
+    ownerClaimedLossMinor: 9000,
+    savedExpenseMinor: 1000,
+    replacementRentalMinor: 2500,
+    provenLowerLossMinor: 4000,
+    rentRetainedMinor: 4000,
+    rentRefundMinor: 6000,
+    platformFeeMinor: 1000,
+    sitFeeRetainedMinor: 400,
+    sitFeeRefundMinor: 600,
+  });
+  assert.equal(v52ActualLossAmounts({
+    rentalSubtotalMinor: 10000,
+    platformFeeMinor: 1000,
+    ownerClaimedLossMinor: 50000,
+    savedExpenseMinor: 0,
+    replacementRentalMinor: 0,
+  }).rentRetainedMinor, 10000);
+  assert.equal(v52ActualLossAmounts({
+    rentalSubtotalMinor: 10000,
+    platformFeeMinor: 1000,
+    ownerClaimedLossMinor: 9000,
+    savedExpenseMinor: 0,
+    replacementRentalMinor: 0,
+    provenLowerLossMinor: 0,
+  }).rentRetainedMinor, 0);
 });
 
 test('withdrawal before handover ends booking and creates two full obligations', () => {

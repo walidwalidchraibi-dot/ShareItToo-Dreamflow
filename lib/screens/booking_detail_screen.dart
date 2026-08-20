@@ -37,6 +37,7 @@ import 'package:lendify/services/address_privacy.dart';
 import 'package:lendify/widgets/approx_location_map.dart';
 import 'package:lendify/screens/support_flow_screen.dart';
 import 'package:lendify/screens/payment_checkout_screen.dart';
+import 'package:lendify/screens/platform_withdrawal_screen.dart';
 import 'package:lendify/widgets/sit_glass_time_picker.dart';
 import 'package:lendify/widgets/sit_overflow_menu.dart';
 import 'package:lendify/services/handover_code.dart';
@@ -81,6 +82,18 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
     if (widget.viewerIsOwner) return null;
     final raw = widget.booking['platformContract'];
     return raw is Map ? Map<String, dynamic>.from(raw) : null;
+  }
+
+  bool get _v52WithdrawalWindowOpen {
+    final contract = _platformContract;
+    if (!(contract?['contractVersion']?.toString() ?? '').startsWith('V5.2-')) {
+      return false;
+    }
+    final acceptedAt = DateTime.tryParse(
+      contract?['acceptedAt']?.toString() ?? '',
+    );
+    return acceptedAt != null &&
+        !DateTime.now().isAfter(acceptedAt.add(const Duration(days: 14)));
   }
 
   Future<void> _sharePlatformContractReceipt() async {
@@ -134,6 +147,65 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
       await AppPopup.error(
         context,
         title: 'Vertragsbestätigung nicht geladen',
+        message:
+            'Authentifizierung oder Integritätsprüfung ist fehlgeschlagen. Es wurde kein ungeprüfter Beleg geöffnet.',
+      );
+    }
+  }
+
+  Future<void> _shareActualLossReceipt(
+    Map<String, dynamic> cancellationOutcome,
+  ) async {
+    final resolutionId =
+        cancellationOutcome['actualLossResolutionId']?.toString() ?? '';
+    final receiptRaw = cancellationOutcome['receipt'];
+    final receipt = receiptRaw is Map
+        ? Map<String, dynamic>.from(receiptRaw)
+        : const <String, dynamic>{};
+    final expectedHash = receipt['artifactSha256']?.toString() ?? '';
+    if (resolutionId.isEmpty || expectedHash.length != 64) {
+      await AppPopup.error(
+        context,
+        title: 'Stornoabrechnung nicht verfügbar',
+        message:
+            'Der unveränderliche Abrechnungsbezug ist unvollständig. Es wurde kein Beleg geöffnet.',
+      );
+      return;
+    }
+    try {
+      final downloaded =
+          await BackendRepository.downloadActualLossReceipt(resolutionId);
+      final observedHash =
+          downloaded.headers['x-sit-artifact-sha256']?.trim() ?? '';
+      final contentHash =
+          dart_crypto.sha256.convert(downloaded.bytes).toString();
+      if (observedHash != expectedHash || contentHash != expectedHash) {
+        throw const BackendException(
+          409,
+          'v52_actual_loss_receipt_integrity_failed',
+        );
+      }
+      const filename = 'shareittoo-stornoabrechnung.html';
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile.fromData(
+              downloaded.bytes,
+              name: filename,
+              mimeType: 'text/html',
+            ),
+          ],
+          fileNameOverrides: const [filename],
+          subject: 'ShareItToo Stornoabrechnung',
+          text: 'Dauerhafte Abrechnung zu Stornierung oder Nicht-Erscheinen.',
+          downloadFallbackEnabled: true,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      await AppPopup.error(
+        context,
+        title: 'Stornoabrechnung nicht geladen',
         message:
             'Authentifizierung oder Integritätsprüfung ist fehlgeschlagen. Es wurde kein ungeprüfter Beleg geöffnet.',
       );
@@ -2590,6 +2662,16 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                       color: Colors.white70,
                     ),
                   ),
+                  if (outcome['receipt'] is Map &&
+                      (outcome['actualLossResolutionId']?.toString() ?? '')
+                          .isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    FilledButton.tonalIcon(
+                      onPressed: () => _shareActualLossReceipt(outcome),
+                      icon: const Icon(Icons.receipt_long_outlined),
+                      label: const Text('Stornoabrechnung herunterladen'),
+                    ),
+                  ],
                 ],
               );
             },
@@ -4248,6 +4330,17 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   }
 
   Future<void> _confirmCancelUpcoming() async {
+    if (_v52WithdrawalWindowOpen) {
+      final requestId = widget.booking['requestId']?.toString() ?? '';
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PlatformWithdrawalScreen(
+            initialBookingId: requestId.isEmpty ? null : requestId,
+          ),
+        ),
+      );
+      return;
+    }
     await AppPopup.show(
       context,
       icon: Icons.close,

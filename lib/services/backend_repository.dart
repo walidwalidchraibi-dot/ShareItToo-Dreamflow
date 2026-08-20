@@ -480,6 +480,67 @@ class BackendRepository {
     }
   }
 
+  static Future<Map<String, dynamic>> getActualLossCase(
+    String bookingId,
+  ) async {
+    return _authorized(
+      method: 'GET',
+      path: '/bookings/${Uri.encodeComponent(bookingId)}/actual-loss',
+    );
+  }
+
+  static Future<Map<String, dynamic>> recordActualLossStatement({
+    required String bookingId,
+    required List<String> evidenceUploadIds,
+    int? ownerClaimedLossMinor,
+    int? savedExpenseMinor,
+    int? replacementRentalMinor,
+    int? provenLowerLossMinor,
+    String? statementText,
+    required String idempotencyKey,
+  }) async {
+    return _authorized(
+      method: 'POST',
+      path:
+          '/bookings/${Uri.encodeComponent(bookingId)}/actual-loss/statements',
+      body: {
+        'evidenceUploadIds': evidenceUploadIds,
+        if (ownerClaimedLossMinor != null)
+          'ownerClaimedLossMinor': ownerClaimedLossMinor,
+        if (savedExpenseMinor != null) 'savedExpenseMinor': savedExpenseMinor,
+        if (replacementRentalMinor != null)
+          'replacementRentalMinor': replacementRentalMinor,
+        if (provenLowerLossMinor != null)
+          'provenLowerLossMinor': provenLowerLossMinor,
+        if (statementText != null && statementText.trim().isNotEmpty)
+          'statementText': statementText.trim(),
+      },
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+  }
+
+  static Future<BackendBinaryResponse> downloadActualLossReceipt(
+    String resolutionId,
+  ) async {
+    var token = await _token();
+    try {
+      return await BackendHttp.requestBytes(
+        path:
+            '/actual-loss-resolutions/${Uri.encodeComponent(resolutionId)}/receipt',
+        accessToken: token,
+      );
+    } on BackendException catch (error) {
+      if (error.statusCode != 401) rethrow;
+      token = await AuthService.refreshAccessToken() ?? '';
+      if (token.isEmpty) rethrow;
+      return BackendHttp.requestBytes(
+        path:
+            '/actual-loss-resolutions/${Uri.encodeComponent(resolutionId)}/receipt',
+        accessToken: token,
+      );
+    }
+  }
+
   static Future<BackendBinaryResponse> downloadPlatformContractReceipt(
     String contractId,
   ) async {

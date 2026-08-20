@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:crypto/crypto.dart' as dart_crypto;
 import 'package:lendify/models/rental_request.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/backend_http.dart';
@@ -9,7 +10,9 @@ import 'package:lendify/widgets/app_popup.dart';
 import 'package:share_plus/share_plus.dart';
 
 class PlatformWithdrawalScreen extends StatefulWidget {
-  const PlatformWithdrawalScreen({super.key});
+  final String? initialBookingId;
+
+  const PlatformWithdrawalScreen({super.key, this.initialBookingId});
 
   @override
   State<PlatformWithdrawalScreen> createState() =>
@@ -37,15 +40,28 @@ class _PlatformWithdrawalScreenState extends State<PlatformWithdrawalScreen> {
         ? <RentalRequest>[]
         : await DataService.getRentalRequestsForRenter(current.id);
     if (!mounted) return;
+    final eligibleRequests = requests
+        .where(
+          (request) => !{'declined', 'cancelled'}.contains(request.status),
+        )
+        .toList(growable: false);
+    final initialBookingId = widget.initialBookingId?.trim() ?? '';
+    RentalRequest? initiallySelected;
+    for (final request in eligibleRequests) {
+      if (request.id == initialBookingId) {
+        initiallySelected = request;
+        break;
+      }
+    }
     setState(() {
       _actorName = current?.displayName.trim().isNotEmpty == true
           ? current!.displayName.trim()
           : 'SIT-Nutzer';
-      _requests = requests
-          .where(
-            (request) => !{'declined', 'cancelled'}.contains(request.status),
-          )
-          .toList(growable: false);
+      _requests = eligibleRequests;
+      if (initiallySelected != null) {
+        _selected = initiallySelected;
+        _scope = 'booking_contract';
+      }
       _loading = false;
     });
   }
@@ -58,7 +74,23 @@ class _PlatformWithdrawalScreenState extends State<PlatformWithdrawalScreen> {
     if (id.isEmpty || receipt is! Map) {
       throw const BackendException(409, 'v51_withdrawal_receipt_unavailable');
     }
+    final expectedHash = receipt['artifactSha256']?.toString() ?? '';
+    if (expectedHash.length != 64) {
+      throw const BackendException(
+        409,
+        'v51_withdrawal_receipt_integrity_failed',
+      );
+    }
     final downloaded = await BackendRepository.downloadWithdrawalReceipt(id);
+    final observedHash =
+        downloaded.headers['x-sit-artifact-sha256']?.trim() ?? '';
+    final contentHash = dart_crypto.sha256.convert(downloaded.bytes).toString();
+    if (observedHash != expectedHash || contentHash != expectedHash) {
+      throw const BackendException(
+        409,
+        'v51_withdrawal_receipt_integrity_failed',
+      );
+    }
     const filename = 'shareittoo-widerrufsbestaetigung.html';
     await SharePlus.instance.share(
       ShareParams(
@@ -196,8 +228,9 @@ class _PlatformWithdrawalScreenState extends State<PlatformWithdrawalScreen> {
                         RadioListTile<String>(
                           value: 'booking_contract',
                           title: Text('Buchungsbezogener SIT-Vertrag'),
-                          subtitle:
-                              Text('Mit den V5.1-Folgen für diese Buchung'),
+                          subtitle: Text(
+                            'Mit den vertraglich gebundenen Folgen für diese Buchung',
+                          ),
                         ),
                       ],
                     ),
@@ -311,7 +344,7 @@ class _Info extends StatelessWidget {
 
 String _backendMessage(String code) => switch (code) {
       'v51_withdrawal_document_unavailable' =>
-        'Die verbindliche V5.1-Widerrufsinformation ist serverseitig nicht verfügbar. Der Vorgang bleibt sicher blockiert.',
+        'Die verbindliche Widerrufsinformation ist serverseitig nicht verfügbar. Der Vorgang bleibt sicher blockiert.',
       'v51_withdrawal_receipt_unavailable' ||
       'v51_withdrawal_receipt_integrity_failed' =>
         'Die dauerhafte Eingangsbestätigung konnte nicht sicher erstellt oder geprüft werden. Es wurde kein Erfolg behauptet.',

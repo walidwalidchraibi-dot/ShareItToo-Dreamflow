@@ -153,6 +153,51 @@ export function v51CancellationAmounts({
   });
 }
 
+export function v52ActualLossAmounts({
+  rentalSubtotalMinor,
+  platformFeeMinor,
+  ownerClaimedLossMinor,
+  savedExpenseMinor,
+  replacementRentalMinor,
+  provenLowerLossMinor = null,
+  platformFeeRateBasisPoints = 1000,
+}) {
+  const rental = minor(rentalSubtotalMinor, 'invalid_rental_subtotal');
+  const fee = minor(platformFeeMinor, 'invalid_platform_fee');
+  const claimed = minor(ownerClaimedLossMinor, 'invalid_owner_claimed_loss');
+  const saved = minor(savedExpenseMinor, 'invalid_saved_expense');
+  const replacement = minor(replacementRentalMinor, 'invalid_replacement_rental');
+  const lower = provenLowerLossMinor == null
+    ? null
+    : minor(provenLowerLossMinor, 'invalid_proven_lower_loss');
+  if (!Number.isSafeInteger(platformFeeRateBasisPoints)
+      || platformFeeRateBasisPoints < 0
+      || platformFeeRateBasisPoints > 10000) {
+    throw new Error('invalid_platform_fee_rate');
+  }
+  const lossAfterDeductionsMinor = Math.max(0, claimed - saved - replacement);
+  const rentRetainedMinor = Math.min(
+    rental,
+    lower == null ? lossAfterDeductionsMinor : Math.min(lossAfterDeductionsMinor, lower),
+  );
+  const sitFeeRetainedMinor = Math.min(
+    fee,
+    Math.floor((rentRetainedMinor * platformFeeRateBasisPoints + 5000) / 10000),
+  );
+  return Object.freeze({
+    rentalSubtotalMinor: rental,
+    ownerClaimedLossMinor: claimed,
+    savedExpenseMinor: saved,
+    replacementRentalMinor: replacement,
+    provenLowerLossMinor: lower,
+    rentRetainedMinor,
+    rentRefundMinor: rental - rentRetainedMinor,
+    platformFeeMinor: fee,
+    sitFeeRetainedMinor,
+    sitFeeRefundMinor: fee - sitFeeRetainedMinor,
+  });
+}
+
 export function evaluateV51WithdrawalEffect({
   workflowStatus,
   rentalStartAt,

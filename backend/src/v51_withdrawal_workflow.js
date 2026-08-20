@@ -65,7 +65,7 @@ function publicRefund(row) {
   });
 }
 
-async function withdrawalDocument(client, at) {
+async function v51WithdrawalDocument(client, at) {
   const result = await client.query(
     `SELECT id, document_version, content_type, content_text, content_sha256
        FROM legal_document_snapshots
@@ -80,7 +80,30 @@ async function withdrawalDocument(client, at) {
   if (!result.rowCount) {
     throw new V51WithdrawalError(409, 'v51_withdrawal_document_unavailable');
   }
-  return result.rows[0];
+  const document = result.rows[0];
+  if (sha256(document.content_text) !== document.content_sha256) {
+    throw new V51WithdrawalError(409, 'v51_withdrawal_document_integrity_failed');
+  }
+  return document;
+}
+
+function contractWithdrawalDocument(row) {
+  if (!String(row.contract_version ?? '').startsWith('V5.2-')) return null;
+  if (!row.withdrawal_document_snapshot_id
+      || row.withdrawal_document_key !== 'imprint_withdrawal_shorttexts'
+      || row.withdrawal_document_version !== row.contract_version
+      || row.withdrawal_document_locale !== row.contract_locale
+      || sha256(row.withdrawal_document_content_text ?? '')
+        !== row.withdrawal_document_content_sha256) {
+    throw new V51WithdrawalError(409, 'v52_withdrawal_contract_binding_invalid');
+  }
+  return Object.freeze({
+    id: row.withdrawal_document_snapshot_id,
+    document_version: row.withdrawal_document_version,
+    content_type: row.withdrawal_document_content_type,
+    content_text: row.withdrawal_document_content_text,
+    content_sha256: row.withdrawal_document_content_sha256,
+  });
 }
 
 function effectConsequences(effect) {
@@ -250,7 +273,9 @@ export async function recordV51Withdrawal(client, {
   );
   if (!user.rowCount) throw new V51WithdrawalError(404, 'user_not_found');
   const name = actorName(user.rows[0].profile, user.rows[0].email);
-  const document = await withdrawalDocument(client, submittedAt);
+  let document = scope === 'account_contract'
+    ? await v51WithdrawalDocument(client, submittedAt)
+    : null;
 
   let row = null;
   let effect = Object.freeze({
@@ -279,10 +304,20 @@ export async function recordV51Withdrawal(client, {
               booking.rental_subtotal_minor, booking.platform_fee_minor,
               booking.workflow_revision, request.payload,
               contract.id AS platform_contract_id,
-              contract.accepted_at AS platform_contract_accepted_at
+              contract.accepted_at AS platform_contract_accepted_at,
+              contract.contract_version, contract.locale AS contract_locale,
+              withdrawal_document.id AS withdrawal_document_snapshot_id,
+              withdrawal_document.document_key AS withdrawal_document_key,
+              withdrawal_document.document_version AS withdrawal_document_version,
+              withdrawal_document.locale AS withdrawal_document_locale,
+              withdrawal_document.content_type AS withdrawal_document_content_type,
+              withdrawal_document.content_text AS withdrawal_document_content_text,
+              withdrawal_document.content_sha256 AS withdrawal_document_content_sha256
          FROM bookings AS booking
          JOIN rental_requests AS request ON request.id = booking.id
          JOIN platform_contracts AS contract ON contract.booking_id = booking.id
+         LEFT JOIN legal_document_snapshots AS withdrawal_document
+           ON withdrawal_document.id = contract.imprint_withdrawal_shorttexts_snapshot_id
         WHERE booking.id = $1
         FOR UPDATE OF booking, request`,
       [normalizedBookingId],
@@ -295,6 +330,8 @@ export async function recordV51Withdrawal(client, {
     if (['declined', 'refunded'].includes(row.workflow_status)) {
       throw new V51WithdrawalError(409, 'v51_withdrawal_booking_not_eligible');
     }
+    document = contractWithdrawalDocument(row)
+      ?? await v51WithdrawalDocument(client, submittedAt);
     effect = evaluateV51WithdrawalEffect({
       workflowStatus: row.workflow_status,
       rentalStartAt: row.starts_at,
@@ -323,6 +360,8 @@ export async function recordV51Withdrawal(client, {
       });
     }
   }
+
+  if (!document) throw new V51WithdrawalError(409, 'v51_withdrawal_document_unavailable');
 
   const inserted = await client.query(
     `INSERT INTO v51_withdrawals (

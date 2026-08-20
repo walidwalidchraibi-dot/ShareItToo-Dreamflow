@@ -71,6 +71,12 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'transactions', 'v51_refund_obligations', count(*)::bigint, min(created_at), max(created_at) FROM v51_refund_obligations
        UNION ALL SELECT 'transactions', 'v51_refund_obligation_events', count(*)::bigint, min(occurred_at), max(occurred_at) FROM v51_refund_obligation_events
        UNION ALL SELECT 'transactions', 'v51_cancellation_refund_obligations', count(*)::bigint, min(created_at), max(created_at) FROM v51_cancellation_refund_obligations
+       UNION ALL SELECT 'transactions', 'v52_actual_loss_cases', count(*)::bigint, min(opened_at), max(created_at) FROM v52_actual_loss_cases
+       UNION ALL SELECT 'transactions', 'v52_actual_loss_statements', count(*)::bigint, min(submitted_at), max(created_at) FROM v52_actual_loss_statements
+       UNION ALL SELECT 'transactions', 'v52_actual_loss_resolutions', count(*)::bigint, min(resolved_at), max(created_at) FROM v52_actual_loss_resolutions
+       UNION ALL SELECT 'transactions', 'v52_cancellation_refund_resolution_events', count(*)::bigint, min(occurred_at), max(occurred_at) FROM v52_cancellation_refund_resolution_events
+       UNION ALL SELECT 'transactions', 'v52_actual_loss_receipts', count(*)::bigint, min(generated_at), max(created_at) FROM v52_actual_loss_receipts
+       UNION ALL SELECT 'transactions', 'v52_actual_loss_receipt_events', count(*)::bigint, min(occurred_at), max(occurred_at) FROM v52_actual_loss_receipt_events
        UNION ALL SELECT 'transactions', 'v51_withdrawal_receipts', count(*)::bigint, min(generated_at), max(created_at) FROM v51_withdrawal_receipts
        UNION ALL SELECT 'transactions', 'v51_withdrawal_receipt_events', count(*)::bigint, min(occurred_at), max(occurred_at) FROM v51_withdrawal_receipt_events
        UNION ALL SELECT 'transactions', 'payments', count(*)::bigint, min(created_at), max(updated_at) FROM payments
@@ -90,6 +96,8 @@ export async function inspectRetentionInventory(client, { actor }) {
          FROM booking_condition_evidence
        UNION ALL SELECT 'handoverEvidence', 'booking_condition_confirmations', count(*)::bigint, min(created_at), max(created_at)
          FROM booking_condition_confirmations
+       UNION ALL SELECT 'handoverEvidence', 'v52_actual_loss_statement_evidence', count(*)::bigint, min(created_at), max(created_at)
+         FROM v52_actual_loss_statement_evidence
        UNION ALL SELECT 'moderation', 'reports', count(*)::bigint, min(created_at), max(updated_at) FROM reports
        UNION ALL SELECT 'moderation', 'report_evidence', count(*)::bigint, min(created_at), max(created_at) FROM report_evidence
        UNION ALL SELECT 'moderation', 'moderation_case_events', count(*)::bigint, min(created_at), max(created_at) FROM moderation_case_events

@@ -31,6 +31,12 @@ export async function buildAccountExport(client, userId) {
     withdrawalRefundObligations,
     withdrawalRefundObligationEvents,
     cancellationRefundObligations,
+    actualLossCases,
+    actualLossStatements,
+    actualLossResolutions,
+    actualLossRefundResolutionEvents,
+    actualLossReceipts,
+    actualLossReceiptEvents,
     withdrawalReceipts,
     withdrawalReceiptEvents,
     messageThreads,
@@ -178,6 +184,70 @@ export async function buildAccountExport(client, userId) {
        JOIN bookings AS booking ON booking.id = obligation.booking_id
        WHERE booking.owner_id = $1 OR booking.renter_id = $1
        ORDER BY obligation.created_at`, userId),
+    rows(client,
+      `SELECT loss_case.id, loss_case.booking_id, loss_case.cause,
+              loss_case.contract_version, loss_case.locale,
+              loss_case.quote_id, loss_case.quote_hash,
+              loss_case.rental_subtotal_minor, loss_case.platform_fee_minor,
+              loss_case.currency, loss_case.opened_at, loss_case.created_at
+       FROM v52_actual_loss_cases AS loss_case
+       JOIN bookings AS booking ON booking.id = loss_case.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY loss_case.opened_at`, userId),
+    rows(client,
+      `SELECT statement.id, statement.case_id, statement.actor_role,
+              statement.statement_type, statement.owner_claimed_loss_minor,
+              statement.saved_expense_minor, statement.replacement_rental_minor,
+              statement.proven_lower_loss_minor, statement.evidence_references,
+              statement.statement_text, statement.submitted_at
+       FROM v52_actual_loss_statements AS statement
+       JOIN v52_actual_loss_cases AS loss_case ON loss_case.id = statement.case_id
+       JOIN bookings AS booking ON booking.id = loss_case.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY statement.submitted_at`, userId),
+    rows(client,
+      `SELECT resolution.id, resolution.case_id,
+              resolution.renter_lower_loss_accepted, resolution.reason_code,
+              resolution.calculation_basis, resolution.rent_refund_minor,
+              resolution.rent_retained_minor, resolution.sit_fee_refund_minor,
+              resolution.sit_fee_retained_minor, resolution.resolved_at
+       FROM v52_actual_loss_resolutions AS resolution
+       JOIN v52_actual_loss_cases AS loss_case ON loss_case.id = resolution.case_id
+       JOIN bookings AS booking ON booking.id = loss_case.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY resolution.resolved_at`, userId),
+    rows(client,
+      `SELECT event.id, event.resolution_id, event.refund_type,
+              event.debtor_role, event.amount_due_minor,
+              event.calculation_basis, event.occurred_at
+       FROM v52_cancellation_refund_resolution_events AS event
+       JOIN v52_actual_loss_resolutions AS resolution
+         ON resolution.id = event.resolution_id
+       JOIN v52_actual_loss_cases AS loss_case ON loss_case.id = resolution.case_id
+       JOIN bookings AS booking ON booking.id = loss_case.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY event.occurred_at`, userId),
+    rows(client,
+      `SELECT receipt.id, receipt.resolution_id, receipt.artifact_format,
+              receipt.content_html, receipt.artifact_sha256,
+              receipt.generated_at, receipt.created_at
+       FROM v52_actual_loss_receipts AS receipt
+       JOIN v52_actual_loss_resolutions AS resolution
+         ON resolution.id = receipt.resolution_id
+       JOIN v52_actual_loss_cases AS loss_case ON loss_case.id = resolution.case_id
+       JOIN bookings AS booking ON booking.id = loss_case.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY receipt.generated_at`, userId),
+    rows(client,
+      `SELECT event.id, event.resolution_id, event.event_type,
+              event.artifact_sha256, event.occurred_at, event.metadata
+       FROM v52_actual_loss_receipt_events AS event
+       JOIN v52_actual_loss_resolutions AS resolution
+         ON resolution.id = event.resolution_id
+       JOIN v52_actual_loss_cases AS loss_case ON loss_case.id = resolution.case_id
+       JOIN bookings AS booking ON booking.id = loss_case.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY event.occurred_at`, userId),
     rows(client,
       `SELECT receipt.id, receipt.withdrawal_id, receipt.artifact_format,
               receipt.content_html, receipt.artifact_sha256,
@@ -328,6 +398,11 @@ export async function buildAccountExport(client, userId) {
       withdrawals,
       withdrawalReceipts,
       withdrawalReceiptEvents,
+      actualLossCases,
+      actualLossStatements,
+      actualLossResolutions,
+      actualLossReceipts,
+      actualLossReceiptEvents,
     },
     communication: {
       messageThreads,
@@ -347,6 +422,7 @@ export async function buildAccountExport(client, userId) {
       withdrawalRefundObligations,
       withdrawalRefundObligationEvents,
       cancellationRefundObligations,
+      actualLossRefundResolutionEvents,
       payouts,
       financialDocuments,
       financialDocumentEvents,

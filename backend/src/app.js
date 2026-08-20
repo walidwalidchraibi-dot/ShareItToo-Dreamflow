@@ -150,6 +150,13 @@ import {
   V51WithdrawalError,
 } from './v51_withdrawal_workflow.js';
 import {
+  getV52ActualLossCase,
+  getV52ActualLossReceipt,
+  recordV52ActualLossStatement,
+  resolveV52ActualLossCase,
+  V52ActualLossError,
+} from './v52_actual_loss_workflow.js';
+import {
   evaluateReturnTimeline,
   splitAuthorizedBookingAmount,
 } from './private_pilot_return_domain.js';
@@ -3058,6 +3065,39 @@ export function createApp({
     res.send(receipt.contentHtml);
   }));
 
+  app.get('/v1/bookings/:id/actual-loss', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => getV52ActualLossCase(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+    }));
+    res.json(result);
+  }));
+
+  app.post('/v1/bookings/:id/actual-loss/statements', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => recordV52ActualLossStatement(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }), { deadlockRetries: 2 });
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.get('/v1/actual-loss-resolutions/:id/receipt', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const receipt = await inTransaction((client) => getV52ActualLossReceipt(client, {
+      actor: req.actor,
+      resolutionId: safeText(req.params.id, 80),
+    }));
+    res.set({
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Disposition': 'attachment; filename="shareittoo-stornoabrechnung.html"',
+      'Cache-Control': 'private, no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'X-SIT-Artifact-SHA256': receipt.artifactSha256,
+    });
+    res.send(receipt.contentHtml);
+  }));
+
   app.get('/v1/rental-requests', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const requests = await inTransaction((client) => listRentalRequests(client, req.auth.userId));
     res.json({ requests });
@@ -3675,6 +3715,20 @@ export function createApp({
     res.json({ bookings: await listStaffBookings(pool, req.query) });
   }));
 
+  app.post('/v1/admin/bookings/:id/actual-loss/resolve', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => resolveV52ActualLossCase(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }), { deadlockRetries: 2 });
+    publishToUsers(result.participantUserIds, {
+      type: 'changed',
+      resource: 'rental_requests',
+    });
+    res.json(result);
+  }));
+
   app.get('/v1/admin/payments', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
     res.json({ payments: await listStaffPayments(pool, req.query) });
   }));
@@ -3954,18 +4008,19 @@ export function createApp({
     const mapsProxyError = error instanceof MapsProxyError;
     const bookingConfirmationError = error instanceof BookingConfirmationError;
     const v51WithdrawalError = error instanceof V51WithdrawalError;
+    const v52ActualLossError = error instanceof V52ActualLossError;
     const status = bookingConflict
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });
