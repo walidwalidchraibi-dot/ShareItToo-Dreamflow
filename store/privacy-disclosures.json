@@ -204,7 +204,7 @@
     },
     {
       "path": "backend/src/firebase_identity_cleanup.js",
-      "sha256": "fc7b99d321a7a2bb0a871dc4f57f18357ec47923fb03a19c1777bce8270a3057"
+      "sha256": "92055ce98dac3037b2fe0cbfa09c04f4717664fe5665a906b6048558403b4f03"
     },
     {
       "path": "backend/src/crashlytics_cleanup.js",

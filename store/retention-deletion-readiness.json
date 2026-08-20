@@ -29,7 +29,7 @@
     {"path": "backend/src/financial_documents.js", "sha256": "f8de734a21577f038cd881aca8e07f6fcd3ecf776ab18e9e76bdd48b72177000"},
     {"path": "backend/src/firebase_social_auth.js", "sha256": "eb94da31526a69226e5cc4081f05b80b2504114aa557c3de3fad63cfb84559c6"},
     {"path": "backend/src/firebase_phone_verification.js", "sha256": "ea8fb71aeada7eab59006e789d7890c697e1d6d43fbf7c94a3bed5df615d81dc"},
-    {"path": "backend/src/firebase_identity_cleanup.js", "sha256": "fc7b99d321a7a2bb0a871dc4f57f18357ec47923fb03a19c1777bce8270a3057"},
+    {"path": "backend/src/firebase_identity_cleanup.js", "sha256": "92055ce98dac3037b2fe0cbfa09c04f4717664fe5665a906b6048558403b4f03"},
     {"path": "backend/src/crashlytics_cleanup.js", "sha256": "fef8a5977fabec6c2547d0d6ca0dc7e19e6e0db5bd6e6fe300d194d37d1d36c6"},
     {"path": "backend/src/maps_proxy.js", "sha256": "e3b3ec6db438488910e8638fe498f0d61652250d803e007a513f74eec8f6b8de"},
     {"path": "backend/sql/migrations/020_v51_financial_documents.up.sql", "sha256": "0ed5451601e962c0b3632008db0e3437a1ee9d837d14a1a0512eb6e190567201"},
