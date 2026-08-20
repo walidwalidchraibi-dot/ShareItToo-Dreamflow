@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:lendify/services/backend_repository.dart';
+import 'package:lendify/services/data_service.dart';
 import 'package:lendify/theme.dart';
 import 'package:lendify/widgets/app_popup.dart';
 import 'package:share_plus/share_plus.dart';
@@ -21,7 +22,12 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
     if (_exporting) return;
     setState(() => _exporting = true);
     try {
-      final export = await BackendRepository.exportAccountData();
+      final export = Map<String, dynamic>.from(
+        await BackendRepository.exportAccountData(),
+      );
+      export['localDevice'] = <String, dynamic>{
+        'savedItems': await DataService.exportSavedItemsForPrivacy(),
+      };
       final bytes = Uint8List.fromList(
         utf8.encode(const JsonEncoder.withIndent('  ').convert(export)),
       );
@@ -168,6 +174,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
         bullets: [
           'Buchungen abzuwickeln',
           'Kommunikation zwischen Nutzern zu ermöglichen',
+          'deine lokal unter „Gemerkt“ gespeicherten Artikel und Merklisten bereitzustellen',
           'Buchungsbeträge und Gebühren transparent darzustellen',
           'die Sicherheit der Plattform zu gewährleisten',
           'die Nutzung der Plattform zu verbessern',
@@ -197,6 +204,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
         bullets: [
           'Kontodaten und Zustimmungen',
           'eigene Angebote, Buchungen und Kommunikation',
+          'lokal auf diesem Gerät gespeicherte Merklisten und Artikelzuordnungen',
           'Benachrichtigungen, Bewertungen und Zahlungsstatus',
         ],
         note:
@@ -212,6 +220,7 @@ class _PrivacyInfoScreenState extends State<PrivacyInfoScreen> {
         extraTitle: 'Beim Löschen eines Kontos werden:',
         extraBullets: [
           'persönliche Daten entfernt oder anonymisiert',
+          'lokal auf diesem Gerät gespeicherte Daten unter „Gemerkt“ entfernt',
           'verknüpfte Firebase-Anmeldeidentitäten zur Anbieterlöschung vorgemerkt und bei vorübergehenden Fehlern erneut angefragt',
           'Buchungsdaten gemäß gesetzlichen Anforderungen gespeichert',
         ],

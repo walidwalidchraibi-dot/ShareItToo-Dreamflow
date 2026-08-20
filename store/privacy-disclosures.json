@@ -28,7 +28,7 @@
     },
     {
       "path": "lib/screens/legal_privacy_screen.dart",
-      "sha256": "5ae3786fe933f51a04e660399d6339f16e64aa4b75c7f130e15a02aebbcb91c5"
+      "sha256": "c06ca405fd2f819b72abf6ba363053610fd2256cdfa238c9a36328a69235bf4e"
     },
     {
       "path": "assets/legal/de/privacy_v5.html",
@@ -40,7 +40,7 @@
     },
     {
       "path": "lib/screens/privacy_info_screen.dart",
-      "sha256": "815fdf46ecffa72ce9f517633646a484e932282f84cdc8f44a6bbedd6eff1be6"
+      "sha256": "e2b75deb970182c360b01a11a322dcc2eb2875c08b6b69f881db4f0efafd25fb"
     },
     {
       "path": "backend/src/account_actions.js",
@@ -236,7 +236,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "33a499439c102f66ced4088fd44971ac5c2857cb2a2588a4127f0e3c9168cb19"
+      "sha256": "50db6ea9dee0874b8a29acc2527ea8eec1c522eddad16746c4c7b115505bcb97"
     },
     {
       "path": "lib/screens/platform_withdrawal_screen.dart",
@@ -332,7 +332,7 @@
     },
     {
       "path": "lib/services/account_deletion_service.dart",
-      "sha256": "b9d0ed721aed96e2aaad932416d82c5384d8430c0e444ba767a330b14815fe1a"
+      "sha256": "971771f9dadb05feb40830f4358811cd71da18ef128bf1f0decc6c1463e67f99"
     },
     {
       "path": "lib/services/auth_service.dart",
@@ -385,6 +385,10 @@
     {
       "path": "store/phone-verification-readiness.json",
       "sha256": "9da039562a4b4c4f03e33e907af27e92b83780bcced4585bcf92f708c0b50dda"
+    },
+    {
+      "path": "store/g2-data-lifecycle.json",
+      "sha256": "ae30471e6db6d380045a5152ba635b527d6f9691f086c647b85efa3cc2de9616"
     }
   ],
   "binaryEvidence": {

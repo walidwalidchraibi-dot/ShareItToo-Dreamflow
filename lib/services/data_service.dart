@@ -2798,6 +2798,69 @@ class DataService {
         .toList();
   }
 
+  /// Returns only the local saved-item state that belongs in a user-requested
+  /// privacy export. The current G2A Mietkorb contains Gemerkt only; it has no
+  /// persistent rental or project cart.
+  static Future<Map<String, dynamic>> exportSavedItemsForPrivacy() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final savedLists = <Map<String, dynamic>>[];
+    final listsRaw = prefs.getString(_wishlistsMetaKey);
+    if (listsRaw != null && listsRaw.isNotEmpty) {
+      final decoded = jsonDecode(listsRaw);
+      if (decoded is! List) {
+        throw const FormatException('Invalid saved-list metadata');
+      }
+      for (final entry in decoded) {
+        if (entry is! Map) {
+          throw const FormatException('Invalid saved-list entry');
+        }
+        savedLists.add(Map<String, dynamic>.from(entry));
+      }
+    }
+
+    final assignments = <String, String>{};
+    final assignmentsRaw = prefs.getString(_wishlistAssignKey);
+    if (assignmentsRaw != null && assignmentsRaw.isNotEmpty) {
+      final decoded = jsonDecode(assignmentsRaw);
+      if (decoded is! Map) {
+        throw const FormatException('Invalid saved-item assignments');
+      }
+      for (final entry in decoded.entries) {
+        assignments[entry.key.toString()] = entry.value.toString();
+      }
+    }
+
+    final legacySavedItemIds =
+        List<String>.from(prefs.getStringList(_savedItemsKey) ?? const <String>[])
+          ..sort();
+    return <String, dynamic>{
+      'schemaVersion': 1,
+      'scope': 'local-device',
+      'terminology': 'Gemerkt',
+      'binding': 'non-binding-no-reservation',
+      'storageKeys': const <String>[
+        _savedItemsKey,
+        _wishlistsMetaKey,
+        _wishlistAssignKey,
+      ],
+      'legacySavedItemIds': legacySavedItemIds,
+      'lists': savedLists,
+      'itemAssignments': assignments,
+      'persistentRentalCart': false,
+      'persistentProjectCart': false,
+    };
+  }
+
+  /// Removes only local Gemerkt data after account deletion has already been
+  /// confirmed. Unrelated device preferences remain untouched.
+  static Future<void> clearSavedItemsForAccountDeletion() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_savedItemsKey);
+    await prefs.remove(_wishlistsMetaKey);
+    await prefs.remove(_wishlistAssignKey);
+  }
+
   static Future<Set<String>> getSavedItemIds() async {
     final prefs = await SharedPreferences.getInstance();
     final legacy = prefs.getStringList(_savedItemsKey) ?? <String>[];

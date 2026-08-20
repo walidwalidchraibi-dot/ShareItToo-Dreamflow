@@ -161,6 +161,7 @@ class AccountDeletionService {
     try {
       if (BackendConfig.enabled) {
         await BackendRepository.deleteAccount(currentPassword: currentPassword);
+        await DataService.clearSavedItemsForAccountDeletion();
         await FirebaseRuntime.deleteInstallationForAccountDeletion();
         await AuthService.clearSession();
         await DataService.clearCurrentUserAndMarkDeleted();
@@ -169,6 +170,7 @@ class AccountDeletionService {
       await DataService.anonymizeAndDeactivateUser(userId: user.id);
       await DataService.deactivateAllListingsForUser(user.id);
       await DataService.archiveAllMessageThreadsForUser(user.id);
+      await DataService.clearSavedItemsForAccountDeletion();
       await FirebaseRuntime.deleteInstallationForAccountDeletion();
       await DataService.clearCurrentUserAndMarkDeleted();
     } catch (e) {

@@ -100,6 +100,7 @@ const sourcePaths = [
   'lib/screens/report_issue_screen.dart',
   'lib/screens/report_user_screen.dart',
   'store/phone-verification-readiness.json',
+  'store/g2-data-lifecycle.json',
 ];
 
 const dataTypeIds = [

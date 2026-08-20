@@ -56,14 +56,16 @@
     {"path": "lib/services/app_link_service.dart", "sha256": "792b39a68f4c135b3d49fbf0b9452229274dfe9057ae58af2ddceeb5eb3e4f63"},
     {"path": "lib/screens/app_link_destination_screen.dart", "sha256": "3551ccd9715fe1aea6defd7a37a8d0d6d1b21c1fef7b27262bf59bded5493728"},
     {"path": "android/app/src/main/kotlin/com/shareittoo/app/MainActivity.kt", "sha256": "146ae316618bbd56eada1e4d0208038b8ac6f4ab9b1b45a4d1b98e0870443941"},
-    {"path": "lib/services/account_deletion_service.dart", "sha256": "b9d0ed721aed96e2aaad932416d82c5384d8430c0e444ba767a330b14815fe1a"},
+    {"path": "lib/services/account_deletion_service.dart", "sha256": "971771f9dadb05feb40830f4358811cd71da18ef128bf1f0decc6c1463e67f99"},
+    {"path": "lib/services/data_service.dart", "sha256": "50db6ea9dee0874b8a29acc2527ea8eec1c522eddad16746c4c7b115505bcb97"},
     {"path": "lib/services/maps_service.dart", "sha256": "a8cb474b2849d7e894919ae1056e8158d51c66fbfe8e0b1fab40d1db7fdaf32f"},
     {"path": "lib/services/backend_repository.dart", "sha256": "dcc0cbe1a31d18bcfd53752d4b7ef69164fcf8ea7013cb051ad307a11d309338"},
     {"path": "lib/screens/payment_methods_screen.dart", "sha256": "47591d15c4ae31869be0d6483a99cf173bd581efa0cd70deda5091160d4b21ff"},
     {"path": "lib/screens/stripe_payout_account_screen.dart", "sha256": "6bc62a6da035fdb3d7f9b81c651c05798ff8e3a259e21b1f910121f1f1f75d08"},
     {"path": "lib/screens/payment_checkout_screen.dart", "sha256": "154ae02a27644d6e366b07014bcbeccc946bb687f6e8fdf9f1fa224dffc9a8fc"},
-    {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "5ae3786fe933f51a04e660399d6339f16e64aa4b75c7f130e15a02aebbcb91c5"},
-    {"path": "lib/screens/privacy_info_screen.dart", "sha256": "815fdf46ecffa72ce9f517633646a484e932282f84cdc8f44a6bbedd6eff1be6"}
+    {"path": "lib/screens/legal_privacy_screen.dart", "sha256": "c06ca405fd2f819b72abf6ba363053610fd2256cdfa238c9a36328a69235bf4e"},
+    {"path": "lib/screens/privacy_info_screen.dart", "sha256": "e2b75deb970182c360b01a11a322dcc2eb2875c08b6b69f881db4f0efafd25fb"},
+    {"path": "store/g2-data-lifecycle.json", "sha256": "ae30471e6db6d380045a5152ba635b527d6f9691f086c647b85efa3cc2de9616"}
   ],
   "implementedControls": {
     "accountErasure": {

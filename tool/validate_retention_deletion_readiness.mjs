@@ -60,6 +60,7 @@ const sourcePaths = [
   'lib/screens/app_link_destination_screen.dart',
   'android/app/src/main/kotlin/com/shareittoo/app/MainActivity.kt',
   'lib/services/account_deletion_service.dart',
+  'lib/services/data_service.dart',
   'lib/services/maps_service.dart',
   'lib/services/backend_repository.dart',
   'lib/screens/payment_methods_screen.dart',
@@ -67,6 +68,7 @@ const sourcePaths = [
   'lib/screens/payment_checkout_screen.dart',
   'lib/screens/legal_privacy_screen.dart',
   'lib/screens/privacy_info_screen.dart',
+  'store/g2-data-lifecycle.json',
 ];
 
 const decisionKeys = [

@@ -146,6 +146,9 @@ node --test test/tool/run_isolated_android_device_message_diagnostic.test.mjs
 node --check tool/diagnose_android_app_links.mjs
 node --test test/tool/diagnose_android_app_links.test.mjs
 node --test test/tool/g2a_navigation_migration_wiring.test.mjs
+node --check tool/validate_g2_data_lifecycle.mjs
+node --test test/tool/validate_g2_data_lifecycle.test.mjs
+node tool/validate_g2_data_lifecycle.mjs
 node --check tool/diagnose_android_authenticated_session.mjs
 node --test test/tool/diagnose_android_authenticated_session.test.mjs
 node --check tool/diagnose_android_authenticated_links.mjs

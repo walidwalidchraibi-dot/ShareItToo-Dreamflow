@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "state": "g2a-current-g2b-inactive",
+  "terminology": {
+    "savedItems": "Gemerkt",
+    "cartArea": "Mietkorb",
+    "projectContainer": "Projektkorb"
+  },
+  "currentSavedItems": {
+    "runtimeStatus": "active-local-device",
+    "binding": "non-binding-no-reservation",
+    "storageScope": "local-device-shared-preferences",
+    "legacyKeys": [
+      "saved_item_ids",
+      "wishlists_meta_v1",
+      "wishlist_assign_v1"
+    ],
+    "exportStatus": "implemented-local-device-section",
+    "accountDeletionStatus": "implemented-local-purge",
+    "retentionRule": "user-controlled-until-removal-account-deletion-or-app-data-clear"
+  },
+  "plannedPersistentData": {
+    "rentalCart": {
+      "runtimeStatus": "inactive-not-collected",
+      "storageKeys": [],
+      "serverDatasets": [],
+      "exportStatus": "required-before-activation",
+      "accountDeletionStatus": "required-before-activation",
+      "retentionStatus": "open-before-activation"
+    },
+    "projectCart": {
+      "runtimeStatus": "inactive-not-collected",
+      "storageKeys": [],
+      "serverDatasets": [],
+      "exportStatus": "required-before-activation",
+      "accountDeletionStatus": "required-before-activation",
+      "retentionStatus": "open-before-activation"
+    }
+  },
+  "boundaries": {
+    "persistentCartEnabled": false,
+    "projectCartEnabled": false,
+    "newDataCollectionEnabled": false,
+    "retentionPeriodInvented": false,
+    "legalApprovalChanged": false,
+    "historicalSnapshotsChanged": false,
+    "productionChanged": false
+  }
+}
