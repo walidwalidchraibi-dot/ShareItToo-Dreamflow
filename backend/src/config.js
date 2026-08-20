@@ -44,6 +44,12 @@ const bookingGroupsEnabled = (process.env.BOOKING_GROUPS_ENABLED ?? 'false')
 if (bookingGroupsEnabled && deploymentEnvironment === 'production') {
   throw new Error('booking groups cannot be enabled in production before the release gate');
 }
+const plannerCoreEnabled = (process.env.PLANNER_CORE_ENABLED ?? 'false')
+  .trim()
+  .toLowerCase() === 'true';
+if (plannerCoreEnabled && deploymentEnvironment === 'production') {
+  throw new Error('planner core cannot be enabled in production before the release gate');
+}
 const privatePilotAllowedRegions = Object.freeze([
   ...new Set(
     csv(process.env.PRIVATE_PILOT_ALLOWED_REGIONS)
@@ -251,6 +257,12 @@ export const config = Object.freeze({
   bookingGroups: Object.freeze({
     enabled: bookingGroupsEnabled,
     publicReleaseAllowed: false,
+  }),
+  planner: Object.freeze({
+    enabled: plannerCoreEnabled,
+    publicReleaseAllowed: false,
+    externalGenerativeAiAllowed: false,
+    inventoryResolutionAllowed: false,
   }),
   privatePilot: Object.freeze({
     allowedRegions: privatePilotAllowedRegions,

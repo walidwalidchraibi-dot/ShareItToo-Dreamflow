@@ -53,7 +53,7 @@
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "041aec32ca43926ea74aa66a719c8fccc65a752447a6613f2bf67b1569468962"
+      "sha256": "942c76317d994ebdc44c9e417fd4d093c703d280917e3f0b744a430d7433e0cf"
     },
     {
       "path": "backend/src/notifications.js",
