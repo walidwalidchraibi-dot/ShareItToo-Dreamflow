@@ -63,10 +63,11 @@ test('locked booking paths serialize users before listings in a deterministic or
     : '';
 
   assert.notEqual(helper, '');
-  assert.match(helper, /ORDER BY id\s+FOR UPDATE/u);
+  assert.match(helper, /const userIds =[\s\S]*\.sort\(\)/u);
+  assert.match(helper, /for \(const userId of userIds\)[\s\S]*WHERE id = \$1\s+FOR UPDATE/u);
   assert.match(helper, /FOR UPDATE OF listing/u);
   assert.doesNotMatch(helper, /FOR UPDATE OF listing, owner/u);
-  assert.ok(helper.indexOf('ORDER BY id') < helper.indexOf('FOR UPDATE OF listing'));
+  assert.ok(helper.indexOf('for (const userId of userIds)') < helper.indexOf('FOR UPDATE OF listing'));
   assert.match(
     source,
     /listingForBooking\(client, listingId, \{\s+lock: true,\s+participantIds: \[actor\.id\]/u,

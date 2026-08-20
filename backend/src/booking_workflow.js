@@ -262,15 +262,18 @@ async function listingForBooking(client, listingId, {
       owner.rows[0].owner_id,
       ...participantIds.filter((id) => typeof id === 'string' && id),
     ])].sort();
-    const users = await client.query(
-      `SELECT id, private_use_confirmed_at, private_marketplace_review_status
-         FROM users
-        WHERE id = ANY($1::text[])
-        ORDER BY id
-        FOR UPDATE`,
-      [userIds],
-    );
-    lockedOwner = users.rows.find((row) => row.id === owner.rows[0].owner_id) ?? null;
+    const lockedUsers = [];
+    for (const userId of userIds) {
+      const user = await client.query(
+        `SELECT id, private_use_confirmed_at, private_marketplace_review_status
+           FROM users
+          WHERE id = $1
+          FOR UPDATE`,
+        [userId],
+      );
+      if (user.rowCount) lockedUsers.push(user.rows[0]);
+    }
+    lockedOwner = lockedUsers.find((row) => row.id === owner.rows[0].owner_id) ?? null;
     if (!lockedOwner) throw new BookingWorkflowError(404, 'listing_not_found');
   }
   const result = await client.query(

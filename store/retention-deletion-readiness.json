@@ -3,7 +3,7 @@
   "state": "draft",
   "approvalAllowed": false,
   "sourceInventory": [
-    {"path": "backend/src/app.js", "sha256": "3e18d43afa2a6a032fe65608a8c052902bc0d7b1bebd0738fb6dc98f8664d5cc"},
+    {"path": "backend/src/app.js", "sha256": "d2dbe3177f82fa9b72eee74903d2e1c660d84a9423c8d834f92ad07caa66193a"},
     {"path": "backend/src/server.js", "sha256": "56eb8383d74e6f609ff2b54f4af4910c26c76b4006dc7ea5fe6f456eb97e68c3"},
     {"path": "backend/src/credential_cleanup.js", "sha256": "53386748f6a9cf2869c2fc98bacdd367270b4d97f5b044fffcf58dab12a2b18b"},
     {"path": "backend/src/moderation_workflow.js", "sha256": "2d652e2145499396ab022c24fbbe34e4ba9d806bae1ef3f20e6f6e2e001e96ab"},
@@ -22,7 +22,7 @@
     {"path": "backend/src/v51_contract_workflow.js", "sha256": "506c735128379bcc2d57d08be12755fc533aa05ca1ddd5dbb8626efe56b78fc6"},
     {"path": "backend/src/v51_contract_receipt.js", "sha256": "aaf9e2544c82a24a3871c269cffbd2dfb15bf131974b3f9ef1de63815db20ac5"},
     {"path": "backend/src/v51_withdrawal_workflow.js", "sha256": "3e1551d67baf914da6ba0cd805862e6b1a25ffd7b8c532bad62183210b33e999"},
-    {"path": "backend/src/booking_workflow.js", "sha256": "6170b2f93a12767da918c36647c503192b9d0fd93b8df49d5afc3c912c9ada6c"},
+    {"path": "backend/src/booking_workflow.js", "sha256": "4964834d2e9c95b0787b66e6c3c39ca885b971619e4d37cc16156f730115bbb9"},
     {"path": "backend/src/v51_termination_domain.js", "sha256": "d98e7560755f9f84d328d3369162d6c5daa4b8b0eddd806e7be4c12115c83f88"},
     {"path": "backend/src/v52_actual_loss_workflow.js", "sha256": "11721edd53f0c4e195289cce133663a5c822253d2b2216c519fe4b2651e62596"},
     {"path": "backend/src/v52_handover_return_workflow.js", "sha256": "e87bae45625e4f51138ac66b03f68aab7630d01aecb375230f760ebf99cbf76a"},
