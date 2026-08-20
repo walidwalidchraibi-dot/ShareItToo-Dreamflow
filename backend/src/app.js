@@ -48,6 +48,13 @@ import {
   transitionBooking,
 } from './booking_workflow.js';
 import {
+  acceptBookingGroupCounteroffer,
+  assertBookingGroupsEnabled,
+  decideBookingGroup,
+  getBookingGroup,
+  requestBookingGroup,
+} from './booking_group_workflow.js';
+import {
   deleteRentalCartItem,
   deleteRentalCartProject,
   getRentalCart,
@@ -2995,6 +3002,55 @@ export function createApp({
       paymentMethodAvailable: paymentCapabilitiesFor(req.auth.userId)
         .checkoutAvailable && contractDocumentsAvailable,
     });
+  }));
+
+  app.post('/v1/booking-groups', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    assertBookingGroupsEnabled(config);
+    const result = await inTransaction((client) => requestBookingGroup(client, {
+      actor: req.actor,
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+      privatePilotAllowedRegions: config.privatePilot.allowedRegions,
+    }), { deadlockRetries: 2 });
+    publishToUsers([result.group.ownerId, result.group.renterId], {
+      type: 'changed',
+      resource: 'booking_groups',
+    });
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.get('/v1/booking-groups/:id', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    assertBookingGroupsEnabled(config);
+    const result = await inTransaction((client) => getBookingGroup(client, {
+      actorId: req.auth.userId,
+      bookingGroupId: safeText(req.params.id, 160),
+    }));
+    res.set('Cache-Control', 'private, no-store').json(result);
+  }));
+
+  app.post('/v1/booking-groups/:id/owner-decision', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    assertBookingGroupsEnabled(config);
+    const result = await inTransaction((client) => decideBookingGroup(client, {
+      actor: req.actor,
+      bookingGroupId: safeText(req.params.id, 160),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+      privatePilotAllowedRegions: config.privatePilot.allowedRegions,
+    }), { deadlockRetries: 2 });
+    publishToUsers([req.auth.userId], { type: 'changed', resource: 'booking_groups' });
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/booking-groups/:id/counteroffer-consent', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    assertBookingGroupsEnabled(config);
+    const result = await inTransaction((client) => acceptBookingGroupCounteroffer(client, {
+      actor: req.actor,
+      bookingGroupId: safeText(req.params.id, 160),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }), { deadlockRetries: 2 });
+    publishToUsers([req.auth.userId], { type: 'changed', resource: 'booking_groups' });
+    res.status(result.replayed ? 200 : 201).json(result);
   }));
 
   app.get('/v1/rental-cart', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {

@@ -90,6 +90,7 @@ if (!databaseUrl) {
         '026_v52_categories_moderation_operator.up.sql',
         '027_g2_persistent_rental_cart.up.sql',
         '028_g3b_booking_group_foundation.up.sql',
+        '029_g3c_booking_group_quote_state.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);
@@ -113,10 +114,21 @@ if (!databaseUrl) {
           WHERE table_schema = 'public'
             AND table_name = ANY($1::text[])
           ORDER BY table_name`,
-        [['booking_group_positions', 'booking_groups']],
+        [[
+          'booking_group_commands',
+          'booking_group_positions',
+          'booking_group_quote_positions',
+          'booking_group_quotes',
+          'booking_group_state_events',
+          'booking_groups',
+        ]],
       );
       assert.deepEqual(bookingGroupTables.rows, [
+        { table_name: 'booking_group_commands' },
         { table_name: 'booking_group_positions' },
+        { table_name: 'booking_group_quote_positions' },
+        { table_name: 'booking_group_quotes' },
+        { table_name: 'booking_group_state_events' },
         { table_name: 'booking_groups' },
       ]);
       const financialDocumentTables = await setupPool.query(
@@ -561,6 +573,20 @@ if (!databaseUrl) {
         Authorization: `Bearer ${tokenFor('renter-b')}`,
         'Content-Type': 'application/json',
       };
+      const disabledGroupRequest = await fetch(`${baseUrl}/v1/booking-groups`, {
+        method: 'POST',
+        headers: {
+          ...renterAHeaders,
+          'Idempotency-Key': 'g3c-disabled-route-probe',
+        },
+        body: JSON.stringify({
+          listingIds: ['listing-1', 'unpublished-second-listing'],
+          startDate: '2027-07-01',
+          endDate: '2027-07-03',
+        }),
+      });
+      assert.equal(disabledGroupRequest.status, 503);
+      assert.equal((await disabledGroupRequest.json()).error, 'booking_groups_not_enabled');
       const phoneStatus = await fetch(`${baseUrl}/v1/auth/phone-verification/status`, {
         headers: ownerHeaders,
       });
@@ -779,14 +805,28 @@ if (!databaseUrl) {
       )).rows[0].count;
       await setupPool.query(
         `INSERT INTO listings (
+           id, owner_id, payload, is_active, catalog_version, catalog_revision,
+           status, currency, price_per_day_minor, title, description,
+           category_id, subcategory, condition, location_text, city, country,
+           latitude, longitude, min_days, max_days, availability_timezone,
+           private_status_confirmed_at, private_pilot_region_code
+         ) VALUES (
+           'g3b-listing-2', 'owner',
+           '{"id":"g3b-listing-2","ownerId":"owner","title":"Lens","description":"Lens for booking group integration tests","categoryId":"cat3","subcategory":"Objektive","condition":"good","city":"Berlin","country":"Deutschland","currency":"EUR","pricePerDay":12,"status":"active","isActive":true,"protectionModel":"none"}'::jsonb,
+           true, 1, 1, 'active', 'EUR', 1200, 'Lens',
+           'Lens for booking group integration tests', 'cat3', 'Objektive',
+           'good', 'Owner exact address', 'Berlin', 'Deutschland', 52.5201,
+           13.4051, 1, 30, 'Europe/Berlin', now(), 'berlin'
+         )`,
+      );
+      await setupPool.query(
+        `INSERT INTO listings (
            id, owner_id, payload, is_active, currency, price_per_day_minor, country
-         ) VALUES
-           ('g3b-listing-2', 'owner',
-            '{"id":"g3b-listing-2","ownerId":"owner","title":"Lens","currency":"EUR","country":"Deutschland"}'::jsonb,
-            true, 'EUR', 1200, 'Deutschland'),
-           ('g3b-foreign-listing', 'outsider',
+         ) VALUES (
+           'g3b-foreign-listing', 'outsider',
             '{"id":"g3b-foreign-listing","ownerId":"outsider","title":"Foreign","currency":"EUR","country":"Deutschland"}'::jsonb,
-            true, 'EUR', 1200, 'Deutschland')`,
+           true, 'EUR', 1200, 'Deutschland'
+         )`,
       );
       const bookingGroupId = 'booking_group_11111111-1111-4111-8111-111111111111';
       await setupPool.query(
@@ -894,6 +934,262 @@ if (!databaseUrl) {
       assert.equal((await setupPool.query(
         'SELECT count(*)::int AS count FROM bookings',
       )).rows[0].count, bookingCountBeforeGroup);
+
+      await setupPool.query(
+        `UPDATE users
+            SET private_use_confirmed_at = now(),
+                private_marketplace_review_status = 'clear'
+          WHERE id IN ('owner', 'renter-a')`,
+      );
+      await setupPool.query(
+        `UPDATE listings
+            SET subcategory = 'Kameras',
+                private_status_confirmed_at = now(),
+                private_pilot_region_code = 'berlin',
+                availability_timezone = 'Europe/Berlin'
+          WHERE id = 'listing-1'`,
+      );
+      const {
+        acceptBookingGroupCounteroffer,
+        decideBookingGroup,
+        requestBookingGroup,
+      } = await import('../src/booking_group_workflow.js');
+      const runBookingGroupCommand = async (command) => {
+        const client = await setupPool.connect();
+        try {
+          await client.query('BEGIN');
+          const result = await command(client);
+          await client.query('COMMIT');
+          return result;
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      };
+      const groupActors = {
+        owner: { id: 'owner', role: 'user' },
+        renter: { id: 'renter-a', role: 'user' },
+        outsider: { id: 'outsider', role: 'user' },
+      };
+      const groupRequest = {
+        listingIds: ['listing-1', 'g3b-listing-2'],
+        startDate: '2027-07-01',
+        endDate: '2027-07-03',
+      };
+      const groupPrivateRegions = ['berlin'];
+      const boundaryCountsBeforeG3c = (await setupPool.query(
+        `SELECT
+           (SELECT count(*)::int FROM bookings) AS bookings,
+           (SELECT count(*)::int FROM rental_requests) AS rental_requests,
+           (SELECT count(*)::int FROM listing_availability_blocks) AS availability_blocks,
+           (SELECT count(*)::int FROM platform_contracts) AS contracts,
+           (SELECT count(*)::int FROM payments) AS payments`,
+      )).rows[0];
+
+      const counterInitial = await runBookingGroupCommand((client) => requestBookingGroup(client, {
+        actor: groupActors.renter,
+        raw: groupRequest,
+        idempotencyKey: 'g3c-request-counter-path',
+        privatePilotAllowedRegions: groupPrivateRegions,
+      }));
+      assert.equal(counterInitial.group.state, 'requested');
+      assert.equal(counterInitial.group.positions.length, 2);
+      assert.equal(counterInitial.quote.itemCount, 2);
+      assert.equal(
+        counterInitial.quote.totalMinor,
+        counterInitial.quote.items.reduce((total, item) => total + item.totalMinor, 0),
+      );
+      assert.equal(counterInitial.replayed, false);
+      const counterInitialReplay = await runBookingGroupCommand((client) => requestBookingGroup(client, {
+        actor: groupActors.renter,
+        raw: groupRequest,
+        idempotencyKey: 'g3c-request-counter-path',
+        privatePilotAllowedRegions: groupPrivateRegions,
+      }));
+      assert.equal(counterInitialReplay.replayed, true);
+      assert.equal(counterInitialReplay.group.id, counterInitial.group.id);
+
+      await assert.rejects(
+        runBookingGroupCommand((client) => decideBookingGroup(client, {
+          actor: groupActors.outsider,
+          bookingGroupId: counterInitial.group.id,
+          raw: {
+            action: 'accept_all',
+            quoteId: counterInitial.quote.id,
+            quoteHash: counterInitial.quote.quoteHash,
+          },
+          idempotencyKey: 'g3c-outsider-owner-decision',
+          privatePilotAllowedRegions: groupPrivateRegions,
+        })),
+        (error) => error?.code === 'booking_group_owner_forbidden',
+      );
+      const counterDecision = await runBookingGroupCommand((client) => decideBookingGroup(client, {
+        actor: groupActors.owner,
+        bookingGroupId: counterInitial.group.id,
+        raw: {
+          action: 'counteroffer',
+          quoteId: counterInitial.quote.id,
+          quoteHash: counterInitial.quote.quoteHash,
+          listingIds: ['listing-1'],
+        },
+        idempotencyKey: 'g3c-owner-counteroffer',
+        privatePilotAllowedRegions: groupPrivateRegions,
+      }));
+      assert.equal(counterDecision.state, 'counteroffered');
+      assert.equal(counterDecision.quote.revision, 2);
+      assert.equal(counterDecision.quote.predecessorQuoteId, counterInitial.quote.id);
+      assert.equal(counterDecision.quote.itemCount, 1);
+      assert.equal(counterDecision.quote.items[0].listingId, 'listing-1');
+      assert.notEqual(counterDecision.quote.quoteHash, counterInitial.quote.quoteHash);
+      const counterDecisionReplay = await runBookingGroupCommand((client) => decideBookingGroup(client, {
+        actor: groupActors.owner,
+        bookingGroupId: counterInitial.group.id,
+        raw: {
+          action: 'counteroffer',
+          quoteId: counterInitial.quote.id,
+          quoteHash: counterInitial.quote.quoteHash,
+          listingIds: ['listing-1'],
+        },
+        idempotencyKey: 'g3c-owner-counteroffer',
+        privatePilotAllowedRegions: groupPrivateRegions,
+      }));
+      assert.equal(counterDecisionReplay.replayed, true);
+      assert.equal(counterDecisionReplay.quote.id, counterDecision.quote.id);
+
+      await assert.rejects(
+        runBookingGroupCommand((client) => acceptBookingGroupCounteroffer(client, {
+          actor: groupActors.renter,
+          bookingGroupId: counterInitial.group.id,
+          raw: {
+            accepted: false,
+            quoteId: counterDecision.quote.id,
+            quoteHash: counterDecision.quote.quoteHash,
+          },
+          idempotencyKey: 'g3c-renter-refused-consent-probe',
+        })),
+        (error) => error?.code === 'explicit_booking_group_counteroffer_consent_required',
+      );
+      await assert.rejects(
+        runBookingGroupCommand((client) => acceptBookingGroupCounteroffer(client, {
+          actor: groupActors.renter,
+          bookingGroupId: counterInitial.group.id,
+          raw: {
+            accepted: true,
+            quoteId: counterInitial.quote.id,
+            quoteHash: counterInitial.quote.quoteHash,
+          },
+          idempotencyKey: 'g3c-renter-stale-consent-probe',
+        })),
+        (error) => error?.code === 'booking_group_quote_changed',
+      );
+      const counterAccepted = await runBookingGroupCommand(
+        (client) => acceptBookingGroupCounteroffer(client, {
+          actor: groupActors.renter,
+          bookingGroupId: counterInitial.group.id,
+          raw: {
+            accepted: true,
+            quoteId: counterDecision.quote.id,
+            quoteHash: counterDecision.quote.quoteHash,
+          },
+          idempotencyKey: 'g3c-renter-counteroffer-consent',
+        }),
+      );
+      assert.equal(counterAccepted.state, 'counteroffer_accepted');
+      const counterAcceptedReplay = await runBookingGroupCommand(
+        (client) => acceptBookingGroupCounteroffer(client, {
+          actor: groupActors.renter,
+          bookingGroupId: counterInitial.group.id,
+          raw: {
+            accepted: true,
+            quoteId: counterDecision.quote.id,
+            quoteHash: counterDecision.quote.quoteHash,
+          },
+          idempotencyKey: 'g3c-renter-counteroffer-consent',
+        }),
+      );
+      assert.equal(counterAcceptedReplay.replayed, true);
+
+      const acceptedInitial = await runBookingGroupCommand((client) => requestBookingGroup(client, {
+        actor: groupActors.renter,
+        raw: groupRequest,
+        idempotencyKey: 'g3c-request-accept-all-path',
+        privatePilotAllowedRegions: groupPrivateRegions,
+      }));
+      const acceptedAll = await runBookingGroupCommand((client) => decideBookingGroup(client, {
+        actor: groupActors.owner,
+        bookingGroupId: acceptedInitial.group.id,
+        raw: {
+          action: 'accept_all',
+          quoteId: acceptedInitial.quote.id,
+          quoteHash: acceptedInitial.quote.quoteHash,
+        },
+        idempotencyKey: 'g3c-owner-accept-all',
+        privatePilotAllowedRegions: groupPrivateRegions,
+      }));
+      assert.equal(acceptedAll.state, 'owner_accepted');
+      assert.equal(acceptedAll.quote.itemCount, 2);
+
+      const declinedInitial = await runBookingGroupCommand((client) => requestBookingGroup(client, {
+        actor: groupActors.renter,
+        raw: groupRequest,
+        idempotencyKey: 'g3c-request-decline-all-path',
+        privatePilotAllowedRegions: groupPrivateRegions,
+      }));
+      const declinedAll = await runBookingGroupCommand((client) => decideBookingGroup(client, {
+        actor: groupActors.owner,
+        bookingGroupId: declinedInitial.group.id,
+        raw: {
+          action: 'decline_all',
+          quoteId: declinedInitial.quote.id,
+          quoteHash: declinedInitial.quote.quoteHash,
+        },
+        idempotencyKey: 'g3c-owner-decline-all',
+        privatePilotAllowedRegions: groupPrivateRegions,
+      }));
+      assert.equal(declinedAll.state, 'declined');
+
+      const counterEvents = await setupPool.query(
+        `SELECT event_sequence, event_type, from_state, to_state, group_quote_id
+           FROM booking_group_state_events
+          WHERE booking_group_id = $1
+          ORDER BY event_sequence`,
+        [counterInitial.group.id],
+      );
+      assert.deepEqual(counterEvents.rows.map((row) => row.event_type), [
+        'booking_group.requested',
+        'booking_group.owner_counteroffered',
+        'booking_group.renter_accepted_counteroffer',
+      ]);
+      assert.deepEqual(counterEvents.rows.map((row) => row.to_state), [
+        'requested',
+        'counteroffered',
+        'counteroffer_accepted',
+      ]);
+      assert.equal(counterEvents.rows[1].group_quote_id, counterDecision.quote.id);
+      assert.equal(counterEvents.rows[2].group_quote_id, counterDecision.quote.id);
+      assert.equal((await setupPool.query(
+        `SELECT count(*)::int AS count
+           FROM booking_group_commands
+          WHERE booking_group_id IN ($1, $2, $3)`,
+        [counterInitial.group.id, acceptedInitial.group.id, declinedInitial.group.id],
+      )).rows[0].count, 7);
+      assert.equal((await setupPool.query(
+        `SELECT count(*)::int AS count
+           FROM audit_log
+          WHERE resource_type = 'booking_group'
+            AND resource_id IN ($1, $2, $3)`,
+        [counterInitial.group.id, acceptedInitial.group.id, declinedInitial.group.id],
+      )).rows[0].count, 7);
+      assert.deepEqual((await setupPool.query(
+        `SELECT
+           (SELECT count(*)::int FROM bookings) AS bookings,
+           (SELECT count(*)::int FROM rental_requests) AS rental_requests,
+           (SELECT count(*)::int FROM listing_availability_blocks) AS availability_blocks,
+           (SELECT count(*)::int FROM platform_contracts) AS contracts,
+           (SELECT count(*)::int FROM payments) AS payments`,
+      )).rows[0], boundaryCountsBeforeG3c);
 
       const quoteCountBeforeCart = (await setupPool.query(
         'SELECT count(*)::int AS count FROM booking_quotes WHERE renter_id = $1',
@@ -2784,26 +3080,57 @@ if (!databaseUrl) {
         path.resolve(currentDir, '../sql/migrations/028_g3b_booking_group_foundation.up.sql'),
         'utf8',
       );
+      const g3cDown = await fs.readFile(
+        path.resolve(currentDir, '../sql/migrations/029_g3c_booking_group_quote_state.down.sql'),
+        'utf8',
+      );
+      const g3cUp = await fs.readFile(
+        path.resolve(currentDir, '../sql/migrations/029_g3c_booking_group_quote_state.up.sql'),
+        'utf8',
+      );
+      await assert.rejects(
+        setupPool.query(g3cDown),
+        (error) => error?.code === 'P0001'
+          && error?.message === 'G3C rollback blocked: booking group quote or state data exists',
+      );
       await assert.rejects(
         setupPool.query(g3bDown),
         (error) => error?.code === 'P0001'
           && error?.message === 'G3B rollback blocked: booking group data exists',
       );
-      await setupPool.query('TRUNCATE booking_group_positions, booking_groups');
+      await setupPool.query(
+        `TRUNCATE
+           booking_group_commands,
+           booking_group_state_events,
+           booking_group_quote_positions,
+           booking_group_quotes,
+           booking_group_positions,
+           booking_groups`,
+      );
+      await setupPool.query(g3cDown);
       await setupPool.query(g3bDown);
       assert.equal((await setupPool.query(
         `SELECT count(*)::int AS count
            FROM information_schema.tables
           WHERE table_schema = 'public'
-            AND table_name IN ('booking_groups', 'booking_group_positions')`,
+            AND table_name IN (
+              'booking_group_commands', 'booking_group_positions',
+              'booking_group_quote_positions', 'booking_group_quotes',
+              'booking_group_state_events', 'booking_groups'
+            )`,
       )).rows[0].count, 0);
       await setupPool.query(g3bUp);
+      await setupPool.query(g3cUp);
       assert.equal((await setupPool.query(
         `SELECT count(*)::int AS count
            FROM information_schema.tables
           WHERE table_schema = 'public'
-            AND table_name IN ('booking_groups', 'booking_group_positions')`,
-      )).rows[0].count, 2);
+            AND table_name IN (
+              'booking_group_commands', 'booking_group_positions',
+              'booking_group_quote_positions', 'booking_group_quotes',
+              'booking_group_state_events', 'booking_groups'
+            )`,
+      )).rows[0].count, 6);
 
       const limitedAttempts = [];
       for (let attempt = 0; attempt < 9; attempt += 1) {

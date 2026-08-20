@@ -4,6 +4,7 @@ import { parseBookingPeriod, parseRentalDates } from './booking_domain.js';
 
 export const bookingGroupSchemaVersion = 1;
 export const bookingGroupPositionVersion = 1;
+export const bookingGroupQuoteSchemaVersion = 1;
 export const maximumBookingGroupPositions = 20;
 
 export class BookingGroupDomainError extends Error {
@@ -58,6 +59,78 @@ function uuid(value, code) {
 
 function compatibilityHash(parts) {
   return crypto.createHash('sha256').update(parts.join('\n'), 'utf8').digest('hex');
+}
+
+function stable(value) {
+  if (Array.isArray(value)) return value.map(stable);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])]));
+}
+
+function safeMinor(value, code) {
+  const candidate = Number(value);
+  if (!Number.isSafeInteger(candidate) || candidate < 0) {
+    throw new BookingGroupDomainError(code);
+  }
+  return candidate;
+}
+
+function freezeQuoteItem(raw, index, expectedCurrency) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new BookingGroupDomainError('invalid_booking_group_quote_item');
+  }
+  const groupPositionId = token(
+    raw.groupPositionId,
+    'invalid_booking_group_quote_position',
+  );
+  const listingId = token(raw.listingId, 'invalid_booking_group_quote_listing');
+  const bookingQuoteId = token(
+    raw.bookingQuoteId,
+    'invalid_booking_group_single_quote',
+  );
+  const bookingQuoteHash = hash(
+    raw.bookingQuoteHash,
+    'invalid_booking_group_single_quote_hash',
+  );
+  const itemCurrency = currency(raw.currency);
+  if (itemCurrency !== expectedCurrency) {
+    throw new BookingGroupDomainError('booking_group_quote_currency_mismatch');
+  }
+  const rentalSubtotalMinor = safeMinor(
+    raw.rentalSubtotalMinor,
+    'invalid_booking_group_rental_subtotal',
+  );
+  const platformFeeMinor = safeMinor(
+    raw.platformFeeMinor,
+    'invalid_booking_group_platform_fee',
+  );
+  const totalMinor = safeMinor(raw.totalMinor, 'invalid_booking_group_total');
+  const ownerPayoutMinor = safeMinor(
+    raw.ownerPayoutMinor,
+    'invalid_booking_group_owner_payout',
+  );
+  const securityDepositMinor = safeMinor(
+    raw.securityDepositMinor,
+    'invalid_booking_group_security_deposit',
+  );
+  if (securityDepositMinor !== 0
+    || rentalSubtotalMinor > ownerPayoutMinor
+    || ownerPayoutMinor + platformFeeMinor !== totalMinor) {
+    throw new BookingGroupDomainError('invalid_booking_group_item_allocation');
+  }
+  return Object.freeze({
+    groupPositionId,
+    listingId,
+    bookingQuoteId,
+    bookingQuoteHash,
+    currency: itemCurrency,
+    rentalSubtotalMinor,
+    platformFeeMinor,
+    totalMinor,
+    ownerPayoutMinor,
+    securityDepositMinor,
+    sortOrder: index,
+  });
 }
 
 export function buildBookingGroupFoundation(raw, { idFactory = crypto.randomUUID } = {}) {
@@ -173,4 +246,98 @@ export function buildBookingGroupFoundation(raw, { idFactory = crypto.randomUUID
     positions: Object.freeze(positions),
   });
   return group;
+}
+
+export function buildBookingGroupQuote(raw, { idFactory = crypto.randomUUID } = {}) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new BookingGroupDomainError('invalid_booking_group_quote_payload');
+  }
+  const bookingGroupId = token(raw.bookingGroupId, 'invalid_booking_group_identifier');
+  const quoteRevision = Number(raw.quoteRevision);
+  if (!Number.isSafeInteger(quoteRevision) || quoteRevision < 1) {
+    throw new BookingGroupDomainError('invalid_booking_group_quote_revision');
+  }
+  const proposalKind = token(raw.proposalKind, 'invalid_booking_group_proposal_kind');
+  if (!['initial', 'owner_counteroffer'].includes(proposalKind)) {
+    throw new BookingGroupDomainError('invalid_booking_group_proposal_kind');
+  }
+  const proposedById = token(raw.proposedById, 'invalid_booking_group_quote_actor');
+  const proposedByRole = token(raw.proposedByRole, 'invalid_booking_group_quote_actor_role');
+  if ((proposalKind === 'initial' && proposedByRole !== 'renter')
+    || (proposalKind === 'owner_counteroffer' && proposedByRole !== 'owner')) {
+    throw new BookingGroupDomainError('booking_group_quote_actor_mismatch');
+  }
+  const predecessorQuoteId = raw.predecessorQuoteId == null
+    ? null
+    : token(raw.predecessorQuoteId, 'invalid_booking_group_predecessor_quote');
+  if ((quoteRevision === 1 || proposalKind === 'initial') && predecessorQuoteId !== null) {
+    throw new BookingGroupDomainError('invalid_booking_group_predecessor_quote');
+  }
+  if ((quoteRevision > 1 || proposalKind === 'owner_counteroffer')
+    && predecessorQuoteId === null) {
+    throw new BookingGroupDomainError('booking_group_predecessor_quote_required');
+  }
+  const compatibility = hash(
+    raw.compatibilityHash,
+    'invalid_booking_group_compatibility_hash',
+  );
+  const quoteCurrency = currency(raw.currency);
+  if (!Array.isArray(raw.items)
+    || raw.items.length < 1
+    || raw.items.length > maximumBookingGroupPositions) {
+    throw new BookingGroupDomainError('invalid_booking_group_quote_item_count');
+  }
+  const seenPositions = new Set();
+  const seenListings = new Set();
+  const seenQuotes = new Set();
+  const items = raw.items.map((item, index) => {
+    const normalized = freezeQuoteItem(item, index, quoteCurrency);
+    if (seenPositions.has(normalized.groupPositionId)
+      || seenListings.has(normalized.listingId)
+      || seenQuotes.has(normalized.bookingQuoteId)) {
+      throw new BookingGroupDomainError('duplicate_booking_group_quote_item');
+    }
+    seenPositions.add(normalized.groupPositionId);
+    seenListings.add(normalized.listingId);
+    seenQuotes.add(normalized.bookingQuoteId);
+    return normalized;
+  });
+  const totals = items.reduce((result, item) => ({
+    rentalSubtotalMinor: result.rentalSubtotalMinor + item.rentalSubtotalMinor,
+    platformFeeMinor: result.platformFeeMinor + item.platformFeeMinor,
+    totalMinor: result.totalMinor + item.totalMinor,
+    ownerPayoutMinor: result.ownerPayoutMinor + item.ownerPayoutMinor,
+    securityDepositMinor: result.securityDepositMinor + item.securityDepositMinor,
+  }), {
+    rentalSubtotalMinor: 0,
+    platformFeeMinor: 0,
+    totalMinor: 0,
+    ownerPayoutMinor: 0,
+    securityDepositMinor: 0,
+  });
+  if (!Object.values(totals).every(Number.isSafeInteger)) {
+    throw new BookingGroupDomainError('booking_group_quote_total_overflow');
+  }
+  const quotePayload = Object.freeze({
+    schemaVersion: bookingGroupQuoteSchemaVersion,
+    bookingGroupId,
+    quoteRevision,
+    proposalKind,
+    predecessorQuoteId,
+    proposedById,
+    proposedByRole,
+    compatibilityHash: compatibility,
+    currency: quoteCurrency,
+    itemCount: items.length,
+    ...totals,
+    items: Object.freeze(items),
+  });
+  return Object.freeze({
+    id: `booking_group_quote_${uuid(idFactory, 'invalid_booking_group_quote_identifier')}`,
+    ...quotePayload,
+    quoteHash: crypto
+      .createHash('sha256')
+      .update(JSON.stringify(stable(quotePayload)), 'utf8')
+      .digest('hex'),
+  });
 }
