@@ -142,6 +142,17 @@ class _OwnerAcceptanceDialogState extends State<_OwnerAcceptanceDialog> {
                       'Annahme möglich bis ${_dateTime(widget.bindingDeadline!)}.'),
                 ],
                 const SizedBox(height: 4),
+                const Text(
+                  'Preisaufschlüsselung',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  'Privater Mietpreis vor Rabatt: ${_money(displayedQuote.baseRentalMinor)}',
+                ),
+                if (displayedQuote.discountMinor > 0)
+                  Text(
+                    '${displayedQuote.discountLabel}: -${_money(displayedQuote.discountMinor)}',
+                  ),
                 Text(
                   'Privater Mietpreis / deine vorgesehene Auszahlung: ${_money(displayedQuote.rentalSubtotalMinor)}',
                 ),

@@ -308,6 +308,8 @@ class _BookingsScreenState extends State<BookingsScreen>
       // Persisted renter-facing constants for stable display across all states
       if (r.quotedTotalRenter != null) 'quotedTotalRenter': r.quotedTotalRenter,
       if (r.quotedSubtitle != null) 'quotedSubtitle': r.quotedSubtitle,
+      if (r.quotedQuoteVersion != null)
+        'quotedQuoteVersion': r.quotedQuoteVersion,
       if (r.quotedDays != null) 'quotedDays': r.quotedDays,
       if (r.quotedPricePerDayMinor != null)
         'quotedPricePerDayMinor': r.quotedPricePerDayMinor,
@@ -315,6 +317,13 @@ class _BookingsScreenState extends State<BookingsScreen>
         'quotedBaseRentalMinor': r.quotedBaseRentalMinor,
       if (r.quotedDiscountPercent != null)
         'quotedDiscountPercent': r.quotedDiscountPercent,
+      if (r.quotedDiscountId != null) 'quotedDiscountId': r.quotedDiscountId,
+      if (r.quotedDiscountLabel != null)
+        'quotedDiscountLabel': r.quotedDiscountLabel,
+      if (r.quotedDiscountFundingSource != null)
+        'quotedDiscountFundingSource': r.quotedDiscountFundingSource,
+      if (r.quotedDiscountThresholdDays != null)
+        'quotedDiscountThresholdDays': r.quotedDiscountThresholdDays,
       if (r.quotedDiscountMinor != null)
         'quotedDiscountMinor': r.quotedDiscountMinor,
       if (r.quotedRentalSubtotalMinor != null)

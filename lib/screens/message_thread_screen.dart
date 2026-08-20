@@ -3430,6 +3430,8 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
       'pricePaid': total > 0 ? '${total.round()} €' : null,
       'quotedTotalRenter': total,
       if (req.quotedSubtitle != null) 'quotedSubtitle': req.quotedSubtitle,
+      if (req.quotedQuoteVersion != null)
+        'quotedQuoteVersion': req.quotedQuoteVersion,
       if (req.quotedDays != null) 'quotedDays': req.quotedDays,
       if (req.quotedPricePerDayMinor != null)
         'quotedPricePerDayMinor': req.quotedPricePerDayMinor,
@@ -3437,6 +3439,14 @@ class _MessageThreadScreenState extends State<MessageThreadScreen> {
         'quotedBaseRentalMinor': req.quotedBaseRentalMinor,
       if (req.quotedDiscountPercent != null)
         'quotedDiscountPercent': req.quotedDiscountPercent,
+      if (req.quotedDiscountId != null)
+        'quotedDiscountId': req.quotedDiscountId,
+      if (req.quotedDiscountLabel != null)
+        'quotedDiscountLabel': req.quotedDiscountLabel,
+      if (req.quotedDiscountFundingSource != null)
+        'quotedDiscountFundingSource': req.quotedDiscountFundingSource,
+      if (req.quotedDiscountThresholdDays != null)
+        'quotedDiscountThresholdDays': req.quotedDiscountThresholdDays,
       if (req.quotedDiscountMinor != null)
         'quotedDiscountMinor': req.quotedDiscountMinor,
       if (req.quotedRentalSubtotalMinor != null)

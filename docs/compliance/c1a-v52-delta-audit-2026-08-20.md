@@ -1,8 +1,8 @@
 # C1A - V5.2 Delta Audit
 
-Stand: 20.08.2026  
-Branch: `codex/master-workflow-20260808`  
-R0-Produktbaseline: `df62700a4ead526abc5d84edb0139f17fb0c21bc`  
+Stand: 20.08.2026
+Branch: `codex/master-workflow-20260808`
+R0-Produktbaseline: `df62700a4ead526abc5d84edb0139f17fb0c21bc`
 R1-Guidance-Stand: `04a9db9df19e88e2fd379cc47606d063134d978b`
 
 ## Ergebnis

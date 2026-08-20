@@ -1460,6 +1460,21 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
                     ),
                   if (boundPrice?.pricePerDay != null ||
                       providedBasePerDay != null)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Preisaufschlüsselung',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (boundPrice?.pricePerDay != null ||
+                      providedBasePerDay != null)
                     _AmountRow(
                       label:
                           'Grundpreis: ${_formatEuro(boundPrice?.pricePerDay ?? providedBasePerDay!)} × ${boundPrice?.days ?? daysLocal}',
@@ -4758,6 +4773,7 @@ class _BoundBookingPriceSnapshot {
   final int? baseRentalMinor;
   final int? discountMinor;
   final double? discountPercent;
+  final String? boundDiscountLabel;
 
   const _BoundBookingPriceSnapshot({
     required this.rentalSubtotalMinor,
@@ -4769,6 +4785,7 @@ class _BoundBookingPriceSnapshot {
     required this.baseRentalMinor,
     required this.discountMinor,
     required this.discountPercent,
+    required this.boundDiscountLabel,
   });
 
   static _BoundBookingPriceSnapshot? fromBooking(
@@ -4823,6 +4840,36 @@ class _BoundBookingPriceSnapshot {
         ? rawPercent
         : null;
 
+    final rawQuoteVersion = readInt('quotedQuoteVersion');
+    final rawDiscountId = booking['quotedDiscountId']?.toString().trim();
+    final rawDiscountLabel = booking['quotedDiscountLabel']?.toString().trim();
+    final rawFundingSource =
+        booking['quotedDiscountFundingSource']?.toString().trim();
+    final rawThresholdDays = readInt('quotedDiscountThresholdDays');
+    if (rawQuoteVersion == 3) {
+      if (!hasExactDaily || exactPercent == null) return null;
+      final discountBasisPoints = (exactPercent * 100).round();
+      final expectedDiscount =
+          ((rawBase * discountBasisPoints) + 5000) ~/ 10000;
+      if (rawDiscount != expectedDiscount) return null;
+      final hasDiscount = discountBasisPoints > 0;
+      final metadataValid = hasDiscount
+          ? rawDiscountId != null &&
+              rawDiscountId ==
+                  'listing_long_rental_${rawThresholdDays}d_${discountBasisPoints}bp' &&
+              rawDiscountLabel != null &&
+              rawDiscountLabel.isNotEmpty &&
+              rawFundingSource == 'owner' &&
+              rawThresholdDays != null &&
+              rawThresholdDays >= 2 &&
+              rawThresholdDays <= rawDays
+          : (rawDiscountId == null || rawDiscountId.isEmpty) &&
+              (rawDiscountLabel == null || rawDiscountLabel.isEmpty) &&
+              (rawFundingSource == null || rawFundingSource.isEmpty) &&
+              rawThresholdDays == null;
+      if (!metadataValid) return null;
+    }
+
     return _BoundBookingPriceSnapshot(
       rentalSubtotalMinor: rental,
       platformFeeMinor: fee,
@@ -4833,6 +4880,7 @@ class _BoundBookingPriceSnapshot {
       baseRentalMinor: hasExactDiscount ? rawBase : null,
       discountMinor: hasExactDiscount ? rawDiscount : null,
       discountPercent: hasExactDiscount ? exactPercent : null,
+      boundDiscountLabel: rawQuoteVersion == 3 ? rawDiscountLabel : null,
     );
   }
 
@@ -4848,6 +4896,8 @@ class _BoundBookingPriceSnapshot {
   double? get discount => discountMinor == null ? null : discountMinor! / 100;
 
   String get discountLabel {
+    final stored = boundDiscountLabel;
+    if (stored != null && stored.isNotEmpty) return stored;
     final percent = discountPercent;
     if (percent == null || percent <= 0) return 'Rabatt';
     final text = percent == percent.roundToDouble()

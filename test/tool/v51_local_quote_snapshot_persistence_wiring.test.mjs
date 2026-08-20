@@ -17,10 +17,15 @@ const addRequest = source.slice(addRequestStart, addRequestEnd);
 
 test('local and QA persistence copies the complete immutable quote snapshot', () => {
   for (const field of [
+    'quotedQuoteVersion',
     'quotedDays',
     'quotedPricePerDayMinor',
     'quotedBaseRentalMinor',
     'quotedDiscountPercent',
+    'quotedDiscountId',
+    'quotedDiscountLabel',
+    'quotedDiscountFundingSource',
+    'quotedDiscountThresholdDays',
     'quotedDiscountMinor',
     'quotedRentalSubtotalMinor',
     'quotedPlatformFeeMinor',

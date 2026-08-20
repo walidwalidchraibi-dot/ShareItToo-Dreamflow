@@ -48,10 +48,15 @@ class RentalRequest {
   final String?
       quotedSubtitle; // the small info line under Gesamtbetrag at request time
   final bool privateStatusConfirmed;
+  final int? quotedQuoteVersion;
   final int? quotedDays;
   final int? quotedPricePerDayMinor;
   final int? quotedBaseRentalMinor;
   final double? quotedDiscountPercent;
+  final String? quotedDiscountId;
+  final String? quotedDiscountLabel;
+  final String? quotedDiscountFundingSource;
+  final int? quotedDiscountThresholdDays;
   final int? quotedDiscountMinor;
   final int? quotedRentalSubtotalMinor;
   final int? quotedPlatformFeeMinor;
@@ -111,10 +116,15 @@ class RentalRequest {
     this.quotedTotalRenter,
     this.quotedSubtitle,
     this.privateStatusConfirmed = false,
+    this.quotedQuoteVersion,
     this.quotedDays,
     this.quotedPricePerDayMinor,
     this.quotedBaseRentalMinor,
     this.quotedDiscountPercent,
+    this.quotedDiscountId,
+    this.quotedDiscountLabel,
+    this.quotedDiscountFundingSource,
+    this.quotedDiscountThresholdDays,
     this.quotedDiscountMinor,
     this.quotedRentalSubtotalMinor,
     this.quotedPlatformFeeMinor,
@@ -171,10 +181,15 @@ class RentalRequest {
     double? quotedTotalRenter,
     String? quotedSubtitle,
     bool? privateStatusConfirmed,
+    int? quotedQuoteVersion,
     int? quotedDays,
     int? quotedPricePerDayMinor,
     int? quotedBaseRentalMinor,
     double? quotedDiscountPercent,
+    String? quotedDiscountId,
+    String? quotedDiscountLabel,
+    String? quotedDiscountFundingSource,
+    int? quotedDiscountThresholdDays,
     int? quotedDiscountMinor,
     int? quotedRentalSubtotalMinor,
     int? quotedPlatformFeeMinor,
@@ -238,6 +253,7 @@ class RentalRequest {
         quotedSubtitle: quotedSubtitle ?? this.quotedSubtitle,
         privateStatusConfirmed:
             privateStatusConfirmed ?? this.privateStatusConfirmed,
+        quotedQuoteVersion: quotedQuoteVersion ?? this.quotedQuoteVersion,
         quotedDays: quotedDays ?? this.quotedDays,
         quotedPricePerDayMinor:
             quotedPricePerDayMinor ?? this.quotedPricePerDayMinor,
@@ -245,6 +261,12 @@ class RentalRequest {
             quotedBaseRentalMinor ?? this.quotedBaseRentalMinor,
         quotedDiscountPercent:
             quotedDiscountPercent ?? this.quotedDiscountPercent,
+        quotedDiscountId: quotedDiscountId ?? this.quotedDiscountId,
+        quotedDiscountLabel: quotedDiscountLabel ?? this.quotedDiscountLabel,
+        quotedDiscountFundingSource:
+            quotedDiscountFundingSource ?? this.quotedDiscountFundingSource,
+        quotedDiscountThresholdDays:
+            quotedDiscountThresholdDays ?? this.quotedDiscountThresholdDays,
         quotedDiscountMinor: quotedDiscountMinor ?? this.quotedDiscountMinor,
         quotedRentalSubtotalMinor:
             quotedRentalSubtotalMinor ?? this.quotedRentalSubtotalMinor,
@@ -319,31 +341,38 @@ class RentalRequest {
       quotedTotalRenter: (json['quotedTotalRenter'] as num?)?.toDouble(),
       quotedSubtitle: json['quotedSubtitle'] as String?,
       privateStatusConfirmed: json['privateStatusConfirmed'] == true,
-      quotedDays: (json['quotedDays'] as num?)?.toInt() ??
-          (quote['days'] as num?)?.toInt(),
-      quotedPricePerDayMinor:
-          (json['quotedPricePerDayMinor'] as num?)?.toInt() ??
-              (quote['pricePerDayMinor'] as num?)?.toInt(),
-      quotedBaseRentalMinor: (json['quotedBaseRentalMinor'] as num?)?.toInt() ??
-          (quote['baseRentalMinor'] as num?)?.toInt(),
-      quotedDiscountPercent:
-          (json['quotedDiscountPercent'] as num?)?.toDouble() ??
-              (quote['discountPercent'] as num?)?.toDouble(),
-      quotedDiscountMinor: (json['quotedDiscountMinor'] as num?)?.toInt() ??
-          (quote['discountMinor'] as num?)?.toInt(),
+      quotedQuoteVersion: (quote['quoteVersion'] as num?)?.toInt() ??
+          (json['quotedQuoteVersion'] as num?)?.toInt(),
+      quotedDays: (quote['days'] as num?)?.toInt() ??
+          (json['quotedDays'] as num?)?.toInt(),
+      quotedPricePerDayMinor: (quote['pricePerDayMinor'] as num?)?.toInt() ??
+          (json['quotedPricePerDayMinor'] as num?)?.toInt(),
+      quotedBaseRentalMinor: (quote['baseRentalMinor'] as num?)?.toInt() ??
+          (json['quotedBaseRentalMinor'] as num?)?.toInt(),
+      quotedDiscountPercent: (quote['discountPercent'] as num?)?.toDouble() ??
+          (json['quotedDiscountPercent'] as num?)?.toDouble(),
+      quotedDiscountId:
+          quote['discountId'] as String? ?? json['quotedDiscountId'] as String?,
+      quotedDiscountLabel: quote['discountLabel'] as String? ??
+          json['quotedDiscountLabel'] as String?,
+      quotedDiscountFundingSource: quote['discountFundingSource'] as String? ??
+          json['quotedDiscountFundingSource'] as String?,
+      quotedDiscountThresholdDays:
+          (quote['discountThresholdDays'] as num?)?.toInt() ??
+              (json['quotedDiscountThresholdDays'] as num?)?.toInt(),
+      quotedDiscountMinor: (quote['discountMinor'] as num?)?.toInt() ??
+          (json['quotedDiscountMinor'] as num?)?.toInt(),
       quotedRentalSubtotalMinor:
-          (json['quotedRentalSubtotalMinor'] as num?)?.toInt() ??
-              (quote['rentalSubtotalMinor'] as num?)?.toInt(),
-      quotedPlatformFeeMinor:
-          (json['quotedPlatformFeeMinor'] as num?)?.toInt() ??
-              (quote['platformFeeMinor'] as num?)?.toInt(),
-      quotedTotalMinor: (json['quotedTotalMinor'] as num?)?.toInt() ??
-          (quote['totalMinor'] as num?)?.toInt(),
-      quotedOwnerPayoutMinor:
-          (json['quotedOwnerPayoutMinor'] as num?)?.toInt() ??
-              (quote['ownerPayoutMinor'] as num?)?.toInt(),
+          (quote['rentalSubtotalMinor'] as num?)?.toInt() ??
+              (json['quotedRentalSubtotalMinor'] as num?)?.toInt(),
+      quotedPlatformFeeMinor: (quote['platformFeeMinor'] as num?)?.toInt() ??
+          (json['quotedPlatformFeeMinor'] as num?)?.toInt(),
+      quotedTotalMinor: (quote['totalMinor'] as num?)?.toInt() ??
+          (json['quotedTotalMinor'] as num?)?.toInt(),
+      quotedOwnerPayoutMinor: (quote['ownerPayoutMinor'] as num?)?.toInt() ??
+          (json['quotedOwnerPayoutMinor'] as num?)?.toInt(),
       quotedCurrency:
-          json['quotedCurrency'] as String? ?? quote['currency'] as String?,
+          quote['currency'] as String? ?? json['quotedCurrency'] as String?,
       legalDeclarations: _parseMapList(json['legalDeclarations']),
       returnState: (json['returnState'] as String?) ?? 'not_started',
       returnT0: _parseDt(json['returnT0']),
@@ -402,10 +431,15 @@ class RentalRequest {
         'quotedTotalRenter': quotedTotalRenter,
         'quotedSubtitle': quotedSubtitle,
         'privateStatusConfirmed': privateStatusConfirmed,
+        'quotedQuoteVersion': quotedQuoteVersion,
         'quotedDays': quotedDays,
         'quotedPricePerDayMinor': quotedPricePerDayMinor,
         'quotedBaseRentalMinor': quotedBaseRentalMinor,
         'quotedDiscountPercent': quotedDiscountPercent,
+        'quotedDiscountId': quotedDiscountId,
+        'quotedDiscountLabel': quotedDiscountLabel,
+        'quotedDiscountFundingSource': quotedDiscountFundingSource,
+        'quotedDiscountThresholdDays': quotedDiscountThresholdDays,
         'quotedDiscountMinor': quotedDiscountMinor,
         'quotedRentalSubtotalMinor': quotedRentalSubtotalMinor,
         'quotedPlatformFeeMinor': quotedPlatformFeeMinor,

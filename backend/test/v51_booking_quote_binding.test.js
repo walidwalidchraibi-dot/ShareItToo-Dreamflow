@@ -56,6 +56,33 @@ test('private-pilot creation fails closed without the stored fresh quote', async
   assert.match(source, /hashCommand\(currentBinding\) === quoteHash/u);
 });
 
+test('V5.2 discount identity and amounts overwrite every client scalar', async () => {
+  const source = await readFile(workflowPath, 'utf8');
+
+  assert.match(source, /function quoteSnapshotPayload\(quote\)/u);
+  for (const field of [
+    'quotedQuoteVersion',
+    'quotedDiscountId',
+    'quotedDiscountLabel',
+    'quotedDiscountFundingSource',
+    'quotedDiscountThresholdDays',
+    'quotedDiscountMinor',
+    'quotedRentalSubtotalMinor',
+    'quotedPlatformFeeMinor',
+    'quotedTotalMinor',
+  ]) {
+    assert.match(
+      source,
+      new RegExp(`${field}: quote\\.`, 'u'),
+      `${field} must come from the server quote`,
+    );
+  }
+  assert.match(
+    source,
+    /\.\.\.candidate,[\s\S]*?\.\.\.quoteSnapshotPayload\(quote\),[\s\S]*?quote,/u,
+  );
+});
+
 test('booking request is not emitted before the immutable platform contract exists', async () => {
   const [source, contractSource] = await Promise.all([
     readFile(workflowPath, 'utf8'),

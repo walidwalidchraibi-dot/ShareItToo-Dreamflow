@@ -125,6 +125,26 @@ function money(value) {
   return Number(value) / 100;
 }
 
+function quoteSnapshotPayload(quote) {
+  return {
+    quotedQuoteVersion: quote.quoteVersion,
+    quotedDays: quote.days,
+    quotedPricePerDayMinor: quote.pricePerDayMinor,
+    quotedBaseRentalMinor: quote.baseRentalMinor,
+    quotedDiscountPercent: quote.discountPercent,
+    quotedDiscountId: quote.discountId,
+    quotedDiscountLabel: quote.discountLabel,
+    quotedDiscountFundingSource: quote.discountFundingSource,
+    quotedDiscountThresholdDays: quote.discountThresholdDays,
+    quotedDiscountMinor: quote.discountMinor,
+    quotedRentalSubtotalMinor: quote.rentalSubtotalMinor,
+    quotedPlatformFeeMinor: quote.platformFeeMinor,
+    quotedTotalMinor: quote.totalMinor,
+    quotedOwnerPayoutMinor: quote.ownerPayoutMinor,
+    quotedCurrency: quote.currency,
+  };
+}
+
 function databaseDate(value) {
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   return String(value).slice(0, 10);
@@ -692,6 +712,7 @@ export async function createBooking(client, {
     createdAt: createdAt.toISOString(),
     bindingExpiresAt: bindingExpiresAt.toISOString(),
     quotedTotalRenter: money(quote.totalMinor),
+    ...quoteSnapshotPayload(quote),
     quote,
     ...(quoteBinding ?? {}),
   };
@@ -874,6 +895,7 @@ export async function amendBooking(client, { actor, bookingId, raw, key }) {
     start: new Date(period.starts_at).toISOString(),
     end: new Date(period.ends_at).toISOString(),
     quotedTotalRenter: money(quote.totalMinor),
+    ...quoteSnapshotPayload(quote),
     quote,
   };
   delete nextPayload.idempotencyKey;

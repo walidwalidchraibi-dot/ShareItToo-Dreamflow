@@ -177,11 +177,21 @@ function normalizedDiscountTiers(value) {
     const percent = Number(raw?.discountPercent);
     if (!Number.isSafeInteger(days) || days < 2 || days > 365) continue;
     if (!Number.isFinite(percent) || percent <= 0 || percent > 90) continue;
-    byDays.set(days, percent);
+    const discountBasisPoints = Math.round(percent * 100);
+    if (discountBasisPoints <= 0 || discountBasisPoints > 9_000) continue;
+    const previous = byDays.get(days) ?? 0;
+    if (discountBasisPoints > previous) byDays.set(days, discountBasisPoints);
   }
   return [...byDays.entries()]
-    .map(([days, discountPercent]) => ({ days, discountPercent }))
+    .map(([days, discountBasisPoints]) => ({ days, discountBasisPoints }))
     .sort((left, right) => left.days - right.days);
+}
+
+function formatDiscountPercent(discountBasisPoints) {
+  const whole = Math.trunc(discountBasisPoints / 100);
+  const fraction = discountBasisPoints % 100;
+  if (fraction === 0) return String(whole);
+  return `${whole},${String(fraction).padStart(2, '0').replace(/0+$/u, '')}`;
 }
 
 export function quoteRental({
@@ -200,13 +210,23 @@ export function quoteRental({
   if (!Number.isSafeInteger(pricePerDayMinor) || pricePerDayMinor < 0) return null;
   const baseRentalMinor = pricePerDayMinor * days;
   if (!Number.isSafeInteger(baseRentalMinor)) return null;
-  let discountPercent = 0;
+  let selectedDiscountTier = null;
   if (autoApplyDiscounts) {
     for (const tier of normalizedDiscountTiers(discountTiers)) {
-      if (tier.days <= days && tier.discountPercent > discountPercent) discountPercent = tier.discountPercent;
+      if (tier.days <= days && (
+        selectedDiscountTier === null
+        || tier.discountBasisPoints > selectedDiscountTier.discountBasisPoints
+      )) {
+        selectedDiscountTier = tier;
+      }
     }
   }
-  const discountMinor = Math.min(baseRentalMinor, Math.round(baseRentalMinor * discountPercent / 100));
+  const discountBasisPoints = selectedDiscountTier?.discountBasisPoints ?? 0;
+  const discountPercent = discountBasisPoints / 100;
+  const discountMinor = Math.min(
+    baseRentalMinor,
+    Math.floor((baseRentalMinor * discountBasisPoints + 5_000) / 10_000),
+  );
   const rentalSubtotalMinor = baseRentalMinor - discountMinor;
   const platformContributionMinor = platformFeeMinor(rentalSubtotalMinor);
   const safeExtra = (value) => (Number.isSafeInteger(value) && value >= 0 ? value : 0);
@@ -216,13 +236,22 @@ export function quoteRental({
   const expressPlatformMinor = express > 0 ? Math.round(express * 0.1) : 0;
   const totalMinor = rentalSubtotalMinor + platformContributionMinor + delivery + pickup + express + expressPlatformMinor;
   const ownerPayoutMinor = rentalSubtotalMinor + delivery + pickup + express;
+  const discountThresholdDays = selectedDiscountTier?.days ?? null;
   return Object.freeze({
-    quoteVersion: 2,
+    quoteVersion: 3,
     currency: normalizeCurrency(currency),
     days,
     pricePerDayMinor,
     baseRentalMinor,
     discountPercent,
+    discountId: selectedDiscountTier
+      ? `listing_long_rental_${discountThresholdDays}d_${discountBasisPoints}bp`
+      : null,
+    discountLabel: selectedDiscountTier
+      ? `Rabatt ab ${discountThresholdDays} Tagen (${formatDiscountPercent(discountBasisPoints)} %)`
+      : null,
+    discountFundingSource: selectedDiscountTier ? 'owner' : null,
+    discountThresholdDays,
     discountMinor,
     rentalSubtotalMinor,
     platformFeeMinor: platformContributionMinor,

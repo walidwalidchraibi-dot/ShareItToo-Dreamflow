@@ -35,6 +35,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Preisaufschlüsselung'), findsOneWidget);
     expect(find.text('Gesamtpreis'), findsOneWidget);
     expect(find.text('44,00 €'), findsOneWidget);
     final prefs = await SharedPreferences.getInstance();

@@ -33,6 +33,10 @@ void main() {
     expect(quote.rentalSubtotalMinor, 2703);
     expect(quote.platformFeeMinor, 270);
     expect(quote.totalMinor, 2973);
+    expect(quote.discountId, 'listing_long_rental_3d_1000bp');
+    expect(quote.discountLabel, 'Rabatt ab 3 Tagen (10 %)');
+    expect(quote.discountFundingSource, 'owner');
+    expect(quote.discountThresholdDays, 3);
   });
 
   test('public unit price already includes the contribution', () {
@@ -43,10 +47,15 @@ void main() {
   test('checkout renders the authoritative server quote without recomputing',
       () {
     final quote = PrivatePilotQuote.fromServerJson({
+      'quoteVersion': 3,
       'days': 3,
       'pricePerDayMinor': 2000,
       'baseRentalMinor': 6000,
       'discountPercent': 10,
+      'discountId': 'listing_long_rental_3d_1000bp',
+      'discountLabel': 'Rabatt ab 3 Tagen (10 %)',
+      'discountFundingSource': 'owner',
+      'discountThresholdDays': 3,
       'discountMinor': 600,
       'rentalSubtotalMinor': 5400,
       'platformFeeMinor': 540,
@@ -55,6 +64,7 @@ void main() {
     });
 
     expect(quote.discountBasisPoints, 1000);
+    expect(quote.discountLabel, 'Rabatt ab 3 Tagen (10 %)');
     expect(quote.rentalSubtotalMinor, 5400);
     expect(quote.platformFeeMinor, 540);
     expect(quote.totalMinor, 5940);
@@ -63,10 +73,15 @@ void main() {
   test('malformed server money is rejected', () {
     expect(
       () => PrivatePilotQuote.fromServerJson({
+        'quoteVersion': 3,
         'days': 3,
         'pricePerDayMinor': 2000,
         'baseRentalMinor': 6000,
         'discountPercent': 10,
+        'discountId': 'listing_long_rental_3d_1000bp',
+        'discountLabel': 'Rabatt ab 3 Tagen (10 %)',
+        'discountFundingSource': 'owner',
+        'discountThresholdDays': 3,
         'discountMinor': 600,
         'rentalSubtotalMinor': 5400,
         'platformFeeMinor': 540,
@@ -79,10 +94,15 @@ void main() {
 
   test('inconsistent or non-EUR server quotes are rejected', () {
     Map<String, dynamic> validQuote() => {
+          'quoteVersion': 3,
           'days': 3,
           'pricePerDayMinor': 2000,
           'baseRentalMinor': 6000,
           'discountPercent': 10,
+          'discountId': 'listing_long_rental_3d_1000bp',
+          'discountLabel': 'Rabatt ab 3 Tagen (10 %)',
+          'discountFundingSource': 'owner',
+          'discountThresholdDays': 3,
           'discountMinor': 600,
           'rentalSubtotalMinor': 5400,
           'platformFeeMinor': 540,
@@ -114,10 +134,15 @@ void main() {
       start: DateTime(2026, 9, 1),
       end: DateTime(2026, 9, 4),
       status: 'pending',
+      quotedQuoteVersion: 3,
       quotedDays: 3,
       quotedPricePerDayMinor: 2000,
       quotedBaseRentalMinor: 6000,
       quotedDiscountPercent: 10,
+      quotedDiscountId: 'listing_long_rental_3d_1000bp',
+      quotedDiscountLabel: 'Rabatt ab 3 Tagen (10 %)',
+      quotedDiscountFundingSource: 'owner',
+      quotedDiscountThresholdDays: 3,
       quotedDiscountMinor: 600,
       quotedRentalSubtotalMinor: 5400,
       quotedPlatformFeeMinor: 540,
@@ -129,6 +154,7 @@ void main() {
     final quote = PrivatePilotQuote.fromRentalRequestSnapshot(request);
 
     expect(quote.rentalSubtotalMinor, 5400);
+    expect(quote.discountLabel, 'Rabatt ab 3 Tagen (10 %)');
     expect(quote.platformFeeMinor, 540);
     expect(quote.totalMinor, 5940);
     expect(
@@ -141,6 +167,24 @@ void main() {
       () => PrivatePilotQuote.fromRentalRequestSnapshot(
         request.copyWith(quotedOwnerPayoutMinor: 5399),
       ),
+      throwsFormatException,
+    );
+  });
+
+  test('discounted V3 snapshots fail closed without bound metadata', () {
+    expect(
+      () => PrivatePilotQuote.fromServerJson({
+        'quoteVersion': 3,
+        'days': 3,
+        'pricePerDayMinor': 2000,
+        'baseRentalMinor': 6000,
+        'discountPercent': 10,
+        'discountMinor': 600,
+        'rentalSubtotalMinor': 5400,
+        'platformFeeMinor': 540,
+        'totalMinor': 5940,
+        'currency': 'EUR',
+      }),
       throwsFormatException,
     );
   });

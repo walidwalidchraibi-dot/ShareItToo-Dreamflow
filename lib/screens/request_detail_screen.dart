@@ -414,6 +414,26 @@ class _PriceCard extends StatelessWidget {
                           ?.copyWith(color: Colors.white70),
                     ),
                     const SizedBox(height: 6),
+                    const Text(
+                      'Preisaufschlüsselung',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    _OwnerPriceLine(
+                      label: 'Privater Mietpreis vor Rabatt',
+                      value: PrivatePilotPricing.formatMinor(
+                        price.baseRentalMinor,
+                        currency: price.currency,
+                      ),
+                    ),
+                    if (price.discountMinor > 0)
+                      _OwnerPriceLine(
+                        label: price.discountLabel!,
+                        value:
+                            '-${PrivatePilotPricing.formatMinor(price.discountMinor, currency: price.currency)}',
+                      ),
                     _OwnerPriceLine(
                       label: 'Privater Mietpreis',
                       value: PrivatePilotPricing.formatMinor(

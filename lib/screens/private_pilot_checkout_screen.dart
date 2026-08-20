@@ -207,18 +207,6 @@ class _PrivatePilotCheckoutScreenState
     return '${_date(value)}, ${two(value.hour)}:${two(value.minute)} Uhr';
   }
 
-  String _discountLabel(PrivatePilotQuote quote) {
-    final matching = widget.item.longRentalDiscounts
-        .where((tier) =>
-            tier.days <= quote.days &&
-            (tier.discountPercent * 100).round() == quote.discountBasisPoints)
-        .toList()
-      ..sort((left, right) => right.days.compareTo(left.days));
-    final threshold = matching.isEmpty ? quote.days : matching.first.days;
-    final percent = (quote.discountBasisPoints / 100).toStringAsFixed(0);
-    return 'Rabatt ab $threshold Tagen ($percent %)';
-  }
-
   bool get _freshQuoteAvailable =>
       !_usesRemoteBackend ||
       (_checkoutQuote != null &&
@@ -265,10 +253,15 @@ class _PrivatePilotCheckoutScreenState
         quotedTotalRenter: PrivatePilotPricing.minorToEuros(quote.totalMinor),
         quotedSubtitle: 'inkl. ShareItToo-Plattformbeitrag 10 %',
         privateStatusConfirmed: true,
+        quotedQuoteVersion: quote.quoteVersion,
         quotedDays: quote.days,
         quotedPricePerDayMinor: quote.ownerPricePerDayMinor,
         quotedBaseRentalMinor: quote.baseRentalMinor,
         quotedDiscountPercent: quote.discountBasisPoints / 100,
+        quotedDiscountId: quote.discountId,
+        quotedDiscountLabel: quote.discountLabel,
+        quotedDiscountFundingSource: quote.discountFundingSource,
+        quotedDiscountThresholdDays: quote.discountThresholdDays,
         quotedDiscountMinor: quote.discountMinor,
         quotedRentalSubtotalMinor: quote.rentalSubtotalMinor,
         quotedPlatformFeeMinor: quote.platformFeeMinor,
@@ -442,7 +435,15 @@ class _PrivatePilotCheckoutScreenState
             child: Padding(
               padding: const EdgeInsets.all(18),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Text(
+                    'Preisaufschlüsselung',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   _PriceRow(
                     label:
                         'Mietpreis - ${quote.days} ${quote.days == 1 ? 'Tag' : 'Tage'}',
@@ -453,7 +454,7 @@ class _PrivatePilotCheckoutScreenState
                   ),
                   if (quote.discountMinor > 0)
                     _PriceRow(
-                      label: _discountLabel(quote),
+                      label: quote.discountLabel!,
                       value:
                           '-${PrivatePilotPricing.formatMinor(quote.discountMinor, currency: quote.currency)}',
                     ),

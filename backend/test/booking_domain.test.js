@@ -73,12 +73,16 @@ test('server quote is deterministic in minor units and matches launch fee rules'
     currency: 'eur',
   });
   assert.deepEqual(quote, {
-    quoteVersion: 2,
+    quoteVersion: 3,
     currency: 'EUR',
     days: 5,
     pricePerDayMinor: 1_500,
     baseRentalMinor: 7_500,
     discountPercent: 20,
+    discountId: 'listing_long_rental_5d_2000bp',
+    discountLabel: 'Rabatt ab 5 Tagen (20 %)',
+    discountFundingSource: 'owner',
+    discountThresholdDays: 5,
     discountMinor: 1_500,
     rentalSubtotalMinor: 6_000,
     platformFeeMinor: 600,
@@ -114,6 +118,53 @@ test('Privat-Pilot contribution is 10 percent after discounts without a minimum 
   assert.equal(quote.totalMinor, 2_973);
   assert.equal(quote.ownerPayoutMinor, 2_703);
   assert.equal(quote.securityDepositMinor, 0);
+  assert.equal(quote.discountId, 'listing_long_rental_3d_1000bp');
+  assert.equal(quote.discountLabel, 'Rabatt ab 3 Tagen (10 %)');
+  assert.equal(quote.discountFundingSource, 'owner');
+  assert.equal(quote.discountThresholdDays, 3);
+});
+
+test('V5.2 quote snapshots bind discounts and canonical cent examples', () => {
+  const withoutDiscount = quoteRental({ days: 3, pricePerDayMinor: 2_000 });
+  assert.equal(withoutDiscount.baseRentalMinor, 6_000);
+  assert.equal(withoutDiscount.discountMinor, 0);
+  assert.equal(withoutDiscount.rentalSubtotalMinor, 6_000);
+  assert.equal(withoutDiscount.platformFeeMinor, 600);
+  assert.equal(withoutDiscount.totalMinor, 6_600);
+  assert.equal(withoutDiscount.discountId, null);
+  assert.equal(withoutDiscount.discountLabel, null);
+  assert.equal(withoutDiscount.discountFundingSource, null);
+  assert.equal(withoutDiscount.discountThresholdDays, null);
+
+  const withDiscount = quoteRental({
+    days: 3,
+    pricePerDayMinor: 2_000,
+    autoApplyDiscounts: true,
+    discountTiers: [{ days: 3, discountPercent: 10 }],
+  });
+  assert.equal(withDiscount.rentalSubtotalMinor, 5_400);
+  assert.equal(withDiscount.platformFeeMinor, 540);
+  assert.equal(withDiscount.totalMinor, 5_940);
+  assert.equal(withDiscount.discountLabel, 'Rabatt ab 3 Tagen (10 %)');
+
+  for (const [subtotal, fee] of [[1, 0], [999, 100], [1_000, 100], [1_001, 100], [3_333, 333]]) {
+    assert.equal(platformFeeMinor(subtotal), fee);
+  }
+});
+
+test('discount tier selection has a stable lowest-threshold tie break', () => {
+  const quote = quoteRental({
+    days: 7,
+    pricePerDayMinor: 1_000,
+    autoApplyDiscounts: true,
+    discountTiers: [
+      { days: 5, discountPercent: 10 },
+      { days: 3, discountPercent: 10 },
+      { days: 7, discountPercent: 7.5 },
+    ],
+  });
+  assert.equal(quote.discountId, 'listing_long_rental_3d_1000bp');
+  assert.equal(quote.discountLabel, 'Rabatt ab 3 Tagen (10 %)');
 });
 
 test('distance delivery fees and workflow roles are server-controlled', () => {

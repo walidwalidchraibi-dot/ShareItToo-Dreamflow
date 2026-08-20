@@ -16,10 +16,15 @@ const bookingMaps = [
 
 test('RentalRequest preserves the complete server price snapshot', () => {
   for (const field of [
+    'quotedQuoteVersion',
     'quotedDays',
     'quotedPricePerDayMinor',
     'quotedBaseRentalMinor',
     'quotedDiscountPercent',
+    'quotedDiscountId',
+    'quotedDiscountLabel',
+    'quotedDiscountFundingSource',
+    'quotedDiscountThresholdDays',
     'quotedDiscountMinor',
     'quotedRentalSubtotalMinor',
     'quotedPlatformFeeMinor',
@@ -36,9 +41,16 @@ test('RentalRequest preserves the complete server price snapshot', () => {
 });
 
 test('checkout binds every displayed quote amount to the request', () => {
+  assert.match(checkout, /quotedQuoteVersion: quote\.quoteVersion/u);
   assert.match(checkout, /quotedDays: quote\.days/u);
   assert.match(checkout, /quotedBaseRentalMinor: quote\.baseRentalMinor/u);
   assert.match(checkout, /quotedDiscountMinor: quote\.discountMinor/u);
+  assert.match(checkout, /quotedDiscountId: quote\.discountId/u);
+  assert.match(checkout, /quotedDiscountLabel: quote\.discountLabel/u);
+  assert.match(
+    checkout,
+    /quotedDiscountFundingSource: quote\.discountFundingSource/u,
+  );
   assert.match(checkout, /quotedRentalSubtotalMinor: quote\.rentalSubtotalMinor/u);
   assert.match(checkout, /quotedPlatformFeeMinor: quote\.platformFeeMinor/u);
   assert.match(checkout, /quotedTotalMinor: quote\.totalMinor/u);
@@ -48,7 +60,12 @@ test('checkout binds every displayed quote amount to the request', () => {
 test('every route into booking detail forwards the immutable quote values', () => {
   for (const source of bookingMaps) {
     for (const field of [
+      'quotedQuoteVersion',
       'quotedBaseRentalMinor',
+      'quotedDiscountId',
+      'quotedDiscountLabel',
+      'quotedDiscountFundingSource',
+      'quotedDiscountThresholdDays',
       'quotedDiscountMinor',
       'quotedRentalSubtotalMinor',
       'quotedPlatformFeeMinor',
@@ -68,6 +85,9 @@ test('booking detail accepts only a self-consistent EUR launch snapshot', () => 
   assert.match(detail, /rawOwnerPayout != rental/u);
   assert.match(detail, /rawBase - rawDiscount == rental/u);
   assert.match(detail, /rawDaily \* rawDays == rawBase/u);
+  assert.match(detail, /rawQuoteVersion == 3/u);
+  assert.match(detail, /rawFundingSource == 'owner'/u);
+  assert.match(detail, /return stored/u);
 });
 
 test('all booking states prefer exact server rent, fee, total and payout', () => {

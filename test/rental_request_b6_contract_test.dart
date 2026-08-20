@@ -50,11 +50,18 @@ void main() {
       'end': '2026-09-04T10:00:00.000Z',
       'status': 'pending',
       'bindingExpiresAt': '2026-09-01T10:30:00.000Z',
+      'quotedDiscountLabel': 'nicht autorisierter Clientwert',
+      'quotedTotalMinor': 1,
       'quote': {
+        'quoteVersion': 3,
         'days': 3,
         'pricePerDayMinor': 2500,
         'baseRentalMinor': 7500,
         'discountPercent': 20,
+        'discountId': 'listing_long_rental_3d_2000bp',
+        'discountLabel': 'Rabatt ab 3 Tagen (20 %)',
+        'discountFundingSource': 'owner',
+        'discountThresholdDays': 3,
         'discountMinor': 1500,
         'rentalSubtotalMinor': 6000,
         'platformFeeMinor': 600,
@@ -67,10 +74,15 @@ void main() {
     final copied = request.copyWith(status: 'accepted');
     final json = copied.toJson();
 
+    expect(json['quotedQuoteVersion'], 3);
     expect(json['quotedDays'], 3);
     expect(json['quotedPricePerDayMinor'], 2500);
     expect(json['quotedBaseRentalMinor'], 7500);
     expect(json['quotedDiscountPercent'], 20);
+    expect(json['quotedDiscountId'], 'listing_long_rental_3d_2000bp');
+    expect(json['quotedDiscountLabel'], 'Rabatt ab 3 Tagen (20 %)');
+    expect(json['quotedDiscountFundingSource'], 'owner');
+    expect(json['quotedDiscountThresholdDays'], 3);
     expect(json['quotedDiscountMinor'], 1500);
     expect(json['quotedRentalSubtotalMinor'], 6000);
     expect(json['quotedPlatformFeeMinor'], 600);

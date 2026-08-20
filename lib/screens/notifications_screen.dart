@@ -1035,6 +1035,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       'pricePaid': '${total.round()} €',
       'quotedTotalRenter': total,
       if (req.quotedSubtitle != null) 'quotedSubtitle': req.quotedSubtitle,
+      if (req.quotedQuoteVersion != null)
+        'quotedQuoteVersion': req.quotedQuoteVersion,
       if (req.quotedDays != null) 'quotedDays': req.quotedDays,
       if (req.quotedPricePerDayMinor != null)
         'quotedPricePerDayMinor': req.quotedPricePerDayMinor,
@@ -1042,6 +1044,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         'quotedBaseRentalMinor': req.quotedBaseRentalMinor,
       if (req.quotedDiscountPercent != null)
         'quotedDiscountPercent': req.quotedDiscountPercent,
+      if (req.quotedDiscountId != null)
+        'quotedDiscountId': req.quotedDiscountId,
+      if (req.quotedDiscountLabel != null)
+        'quotedDiscountLabel': req.quotedDiscountLabel,
+      if (req.quotedDiscountFundingSource != null)
+        'quotedDiscountFundingSource': req.quotedDiscountFundingSource,
+      if (req.quotedDiscountThresholdDays != null)
+        'quotedDiscountThresholdDays': req.quotedDiscountThresholdDays,
       if (req.quotedDiscountMinor != null)
         'quotedDiscountMinor': req.quotedDiscountMinor,
       if (req.quotedRentalSubtotalMinor != null)

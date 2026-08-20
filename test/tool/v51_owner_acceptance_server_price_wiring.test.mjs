@@ -21,10 +21,15 @@ const pricing = readFileSync(
 test('owner acceptance reconstructs the strict immutable request snapshot', () => {
   assert.match(pricing, /PrivatePilotQuote\.fromRentalRequestSnapshot/u);
   for (const field of [
+    'quotedQuoteVersion',
     'quotedDays',
     'quotedPricePerDayMinor',
     'quotedBaseRentalMinor',
     'quotedDiscountPercent',
+    'quotedDiscountId',
+    'quotedDiscountLabel',
+    'quotedDiscountFundingSource',
+    'quotedDiscountThresholdDays',
     'quotedDiscountMinor',
     'quotedRentalSubtotalMinor',
     'quotedPlatformFeeMinor',
@@ -66,6 +71,8 @@ test('local fallback is visibly nonbinding and isolated from the remote branch',
 
 test('owner sees exact rent, renter fee, renter total and intended payout', () => {
   for (const label of [
+    'Preisaufschlüsselung',
+    'Privater Mietpreis vor Rabatt',
     'Privater Mietpreis',
     'SIT-Plattformbeitrag des Mieters',
     'Gesamtpreis des Mieters',
@@ -76,6 +83,8 @@ test('owner sees exact rent, renter fee, renter total and intended payout', () =
   assert.match(dialog, /displayedQuote\.rentalSubtotalMinor/u);
   assert.match(dialog, /displayedQuote\.platformFeeMinor/u);
   assert.match(dialog, /displayedQuote\.totalMinor/u);
+  assert.match(dialog, /displayedQuote\.discountLabel/u);
+  assert.match(requestDetail, /price\.discountLabel/u);
 });
 
 test('acceptance dialog and backend transition receive the same guarded quote flow', () => {
