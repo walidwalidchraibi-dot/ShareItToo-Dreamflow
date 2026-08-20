@@ -252,7 +252,7 @@ export async function diagnoseAndroidAppLinks({
       commandRunner,
       adbPath,
       device,
-      requiredAny: ['ShareItToo', 'Erkunden', 'Jetzt suchen'],
+      requiredAny: ['ShareItToo', 'Entdecken', 'Erkunden', 'Jetzt suchen'],
       forbidden: ['Anzeige nicht verfügbar', 'Bitte zuerst anmelden', 'sicheren Chat-Kontext'],
       wait,
     });

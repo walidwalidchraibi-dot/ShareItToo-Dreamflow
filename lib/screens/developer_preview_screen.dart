@@ -109,7 +109,7 @@ class DeveloperPreviewScreen extends StatelessWidget {
             child: FilledButton.tonalIcon(
               onPressed: () => _backToExplore(context),
               icon: const Icon(Icons.explore_outlined, size: 18),
-              label: const Text('Erkunden'),
+              label: const Text('Entdecken'),
             ),
           ),
         ],
@@ -246,7 +246,7 @@ String _subtitleForState(DeveloperUserState s) {
     case DeveloperUserState.loggedOut:
       return 'Gastmodus: Anzeigen/Profile ansehen, aber keine Aktionen.';
     case DeveloperUserState.loggedIn:
-      return 'Normaler Flow: Erkunden, Wunschlisten, Buchungen, Nachrichten, Profil.';
+      return 'Normaler Flow: Entdecken, Mietkorb, Buchungen, Nachrichten, Mein SIT.';
     case DeveloperUserState.verifiedUser:
       return 'Wie Logged In, aber Profil zeigt ✓ Verifiziert und alles ist freigeschaltet.';
   }

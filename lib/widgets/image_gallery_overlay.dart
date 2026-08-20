@@ -186,8 +186,8 @@ class _ImageGalleryOverlayState extends State<ImageGalleryOverlay> {
                         ? Icons.favorite
                         : Icons.favorite_border,
                     semanticLabel: widget.isWishlisted()
-                        ? 'Aus Wunschliste entfernen'
-                        : 'Zur Wunschliste hinzufügen',
+                        ? 'Aus Gemerkt entfernen'
+                        : 'Unter Gemerkt speichern',
                     iconSize: 20, // Herz bewusst etwas kleiner als Teilen-Icon
                     onTap: () async {
                       try {

@@ -165,12 +165,12 @@ class GuestRestrictionSheet extends StatelessWidget {
       case GuestGateContext.favorites:
         return const GuestGateContent(
           icon: Icons.favorite_border,
-          title: 'Favoriten speichern',
+          title: 'Unter Gemerkt speichern',
           description:
-              'Mit einem Konto bleiben deine Favoriten auf all deinen Geräten erhalten.',
+              'Mit einem Konto bleibt Gemerkt auf all deinen Geräten erhalten.',
           benefits: [
-            'Favoriten synchron speichern',
-            'Listen anlegen',
+            'Gemerktes synchron speichern',
+            'Merklisten anlegen',
             'Schneller wiederfinden'
           ],
         );
@@ -207,7 +207,7 @@ class GuestRestrictionSheet extends StatelessWidget {
               'In Sekunden registrieren – und alle Funktionen freischalten.',
           benefits: [
             'Sicher buchen & kommunizieren',
-            'Favoriten & Buchungen verwalten',
+            'Gemerktes & Buchungen verwalten',
             'Verifizierungen nutzen'
           ],
         );

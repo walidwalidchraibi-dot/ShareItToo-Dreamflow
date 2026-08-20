@@ -36,9 +36,9 @@ function node(label, bounds, extra = '') {
   return `<node text="" content-desc="${label}" enabled="true" clickable="true" bounds="${bounds}" ${extra}/>`;
 }
 
-const mainHierarchy = `<hierarchy>${node('Erkunden&#10;Tab 1 of 5', '[0,100][200,200]')}${node('Nachrichten&#10;Tab 4 of 5', '[400,100][600,200]')}${node('Profil&#10;Tab 5 of 5', '[800,100][1000,200]')}</hierarchy>`;
-const authenticatedHierarchy = `<hierarchy>${node('Meine Anzeigen', '[10,10][300,80]')}${node('Offene Box mit runder Sprechblase&#10;Mietanfragen', '[10,90][300,160]')}${node('Abmelden', '[10,170][300,240]')}${node('Erkunden', '[0,100][200,200]')}${node('Profil', '[800,100][1000,200]')}<node text="private@example.com" content-desc=""/></hierarchy>`;
-const guestHierarchy = `<hierarchy>${node('Anmelden', '[10,10][300,80]')}${node('Konto erstellen', '[10,90][300,160]')}${node('Erkunden', '[0,100][200,200]')}${node('Profil', '[800,100][1000,200]')}</hierarchy>`;
+const mainHierarchy = `<hierarchy>${node('Entdecken&#10;Tab 1 of 5', '[0,100][200,200]')}${node('Nachrichten&#10;Tab 4 of 5', '[400,100][600,200]')}${node('Mein SIT&#10;Tab 5 of 5', '[800,100][1000,200]')}</hierarchy>`;
+const authenticatedHierarchy = `<hierarchy>${node('Meine Anzeigen', '[10,10][300,80]')}${node('Offene Box mit runder Sprechblase&#10;Mietanfragen', '[10,90][300,160]')}${node('Abmelden', '[10,170][300,240]')}${node('Entdecken', '[0,100][200,200]')}${node('Mein SIT', '[800,100][1000,200]')}<node text="private@example.com" content-desc=""/></hierarchy>`;
+const guestHierarchy = `<hierarchy>${node('Anmelden', '[10,10][300,80]')}${node('Konto erstellen', '[10,90][300,160]')}${node('Entdecken', '[0,100][200,200]')}${node('Mein SIT', '[800,100][1000,200]')}</hierarchy>`;
 
 function fakeRunner({
   locked = false,

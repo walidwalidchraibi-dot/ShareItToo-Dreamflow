@@ -541,7 +541,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onPressed: () => Navigator.of(context).maybePop(),
           icon: const Icon(Icons.arrow_back),
         ),
-        title: Text(l10n.t('Profil')),
+        title: Text(l10n.t('Mein SIT')),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 4),

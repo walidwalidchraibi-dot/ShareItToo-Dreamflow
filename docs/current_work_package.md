@@ -40,8 +40,10 @@ navigation affordance, direct single-item rental and all existing C1 rules.
   G2B.
 - Migrate or alias existing wishlist state non-destructively so current saved
   items remain available after update and rollback.
-- Preserve old wishlist/favorites routes through a compatibility redirect or
-  equivalent tested route mapping.
+- Preserve the old internal `WishlistsScreen` entry point as a compatibility
+  alias and leave every already-supported app/deep-link contract unchanged.
+  The audited baseline has no dedicated wishlist/favorites app-link route, so
+  G2A must not invent one or force a privacy-inventory hash change before G2L.
 - Preserve direct search, single-item listing and booking flows.
 - Add focused widget, persistence, migration, route and accessibility tests.
 
@@ -72,8 +74,9 @@ navigation affordance, direct single-item rental and all existing C1 rules.
   and reachable under `Mietkorb` > `Gemerkt`.
 - `Gemerkt` visibly states that saving is non-binding and not a reservation.
   G2A introduces no false cart, availability or booking guarantee.
-- Old supported wishlist/favorites routes and deep links reach the new
-  `Gemerkt` destination without loops or data loss.
+- Old internal wishlist callers reach `Gemerkt` through the compatibility type;
+  all existing listing, profile, booking, chat, auth, payment and notification
+  app/deep links remain unchanged and pass their existing regression tests.
 - Guest/auth behavior, selected-tab restoration, back navigation, direct
   single-item rental and all C1 contracts remain unchanged.
 - Focused navigation, persistence/migration, deep-link and accessibility tests

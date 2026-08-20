@@ -344,7 +344,7 @@ Future<void> showPublicProfileBlockSuccessDialog(
           child: FilledButton(
             onPressed: () =>
                 Navigator.of(context, rootNavigator: true).maybePop(),
-            child: const Text('Zu Erkunden'),
+            child: const Text('Zu Entdecken'),
           ),
         ),
       ],

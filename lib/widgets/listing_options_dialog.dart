@@ -163,8 +163,7 @@ Future<List<_ListingOption>> _buildOptions(
   Future<void> shareListing() async {
     final url = AppLinkBuilder.listing(item.id).toString();
     try {
-      await SharePlus.instance
-          .share(ShareParams(text: '${item.title}\n$url'));
+      await SharePlus.instance.share(ShareParams(text: '${item.title}\n$url'));
     } catch (_) {
       await Clipboard.setData(ClipboardData(text: url));
       if (context.mounted) {
@@ -200,8 +199,8 @@ Future<List<_ListingOption>> _buildOptions(
         await AppPopup.toast(context,
             icon: Icons.favorite,
             title: currentWishlistId == null
-                ? 'Zur Wunschliste hinzugefügt'
-                : 'In Wunschliste verschoben');
+                ? 'Unter Gemerkt gespeichert'
+                : 'In Merkliste verschoben');
       }
     }
   }
@@ -211,7 +210,7 @@ Future<List<_ListingOption>> _buildOptions(
     onWishlistChanged?.call();
     if (context.mounted) {
       await AppPopup.toast(context,
-          icon: Icons.delete_outline, title: 'Aus Wunschliste entfernt');
+          icon: Icons.delete_outline, title: 'Aus Gemerkt entfernt');
     }
   }
 
@@ -230,7 +229,7 @@ Future<List<_ListingOption>> _buildOptions(
       if (context.mounted) {
         await AppPopup.toast(context,
             icon: Icons.drive_file_move_outline,
-            title: 'In Wunschliste verschoben');
+            title: 'In Merkliste verschoben');
       }
     }
   }
@@ -412,12 +411,12 @@ Future<List<_ListingOption>> _buildOptions(
           icon: Icons.open_in_new, label: 'Anzeige öffnen', onTap: openListing),
       _ListingOption(
           icon: Icons.delete_outline,
-          label: 'Aus Wunschliste entfernen',
+          label: 'Aus Gemerkt entfernen',
           onTap: removeFromWishlist,
           destructive: true),
       _ListingOption(
           icon: Icons.drive_file_move_outline,
-          label: 'In andere Wunschliste verschieben',
+          label: 'In andere Merkliste verschieben',
           onTap: moveToAnotherWishlist),
       _ListingOption(
           icon: Icons.ios_share, label: 'Teilen', onTap: shareListing),
@@ -441,7 +440,7 @@ Future<List<_ListingOption>> _buildOptions(
         onTap: openOwnerProfile),
     _ListingOption(
         icon: Icons.favorite_border,
-        label: 'Zur Wunschliste hinzufügen',
+        label: 'Unter Gemerkt speichern',
         onTap: addToWishlist),
     _ListingOption(icon: Icons.ios_share, label: 'Teilen', onTap: shareListing),
     _ListingOption(

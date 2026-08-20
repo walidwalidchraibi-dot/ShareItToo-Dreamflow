@@ -128,7 +128,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               intro:
                   'Du kannst ShareItToo im MVP ohne komplizierte Schritte starten. Später kommen mehr Login-Optionen hinzu.',
               steps: [
-                'Öffne „Profil“ und wähle „Anmelden“ oder „Konto erstellen“.',
+                'Öffne „Mein SIT“ und wähle „Anmelden“ oder „Konto erstellen“.',
                 'Vervollständige Profilangaben (Name, Stadt).',
                 'Optional: Verifizierung durchführen, um Vertrauen zu erhöhen.',
               ],
@@ -145,7 +145,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               intro:
                   'Ein vollständiges Profil erhöht Vertrauen und reduziert Rückfragen.',
               steps: [
-                'Gehe zu „Profil“ → „Kontoeinstellungen“ → „Profilinformationen“.',
+                'Gehe zu „Mein SIT“ → „Kontoeinstellungen“ → „Profilinformationen“.',
                 'Passe Foto, Beschreibung und Basisdaten an.',
                 'Speichere deine Änderungen.',
               ],
@@ -234,7 +234,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               intro:
                   'Je klarer deine Anzeige, desto weniger Rückfragen und desto höher die Buchungsrate.',
               steps: [
-                'Öffne „Erkunden“ und wähle „Neue Anzeige erstellen“.',
+                'Öffne „Entdecken“ und wähle „Neue Anzeige erstellen“.',
                 'Wähle Kategorie, Titel und Beschreibung.',
                 'Lege Standort und Verfügbarkeit fest.',
               ],
@@ -545,7 +545,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             body: _HelpBody(
               intro: 'Verifizierung ist ein wichtiger Baustein gegen Betrug.',
               steps: [
-                'Profil → Kontoeinstellungen → Verifizierung öffnen.',
+                'Mein SIT → Kontoeinstellungen → Verifizierung öffnen.',
                 'Schritte in der App folgen.'
               ],
               tips: [

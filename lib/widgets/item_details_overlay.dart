@@ -319,7 +319,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
         if (!mounted) return;
         setState(() => _wishlistId = sel);
         await AppPopup.toast(context,
-            icon: Icons.favorite, title: 'Zur Wunschliste hinzugefügt');
+            icon: Icons.favorite, title: 'Unter Gemerkt gespeichert');
       }
       return;
     }
@@ -577,7 +577,7 @@ class _ItemDetailsSheetState extends State<_ItemDetailsSheet> {
                       const SizedBox(width: 12),
                       Expanded(
                           child: _ActionCard(
-                              title: l10n.t('Zu Wunschlisten hinzufügen'),
+                              title: l10n.t('Unter Gemerkt speichern'),
                               icon: Icons.favorite_border,
                               onTap: _addToWishlist)),
                     ]),
@@ -691,7 +691,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
         if (!mounted) return;
         setState(() => _wishlistId = sel);
         await AppPopup.toast(context,
-            icon: Icons.favorite, title: 'Zur Wunschliste hinzugefügt');
+            icon: Icons.favorite, title: 'Unter Gemerkt gespeichert');
       }
       return;
     }
@@ -928,7 +928,7 @@ class _ItemDetailsPageState extends State<_ItemDetailsPage> {
                     value: 'share'),
                 SitMenuOption(
                     icon: Icons.favorite_border,
-                    label: 'Zu Wunschlisten',
+                    label: 'Unter Gemerkt speichern',
                     value: 'wishlist'),
                 SitMenuOption(
                     icon: Icons.flag_outlined,

@@ -63,7 +63,7 @@ function fakeRunner({ locked = false, associateForeignHost = false } = {}) {
       if (activeCase === 'guest-chat') {
         return '<node content-desc="Bitte zuerst anmelden"/><node content-desc="Nach der Anmeldung öffnen wir den sicheren Chat-Kontext."/><node content-desc="Anmelden"/>';
       }
-      return '<node content-desc="ShareItToo"/><node content-desc="Erkunden"/>';
+      return '<node content-desc="ShareItToo"/><node content-desc="Entdecken"/>';
     }
     if (joined === 'shell rm -f /sdcard/sit-app-link-diagnostic.xml') return '';
     if (command[0] === 'shell' && command[1] === 'cmd' && command[2] === 'package') {

@@ -231,12 +231,12 @@ export async function captureGooglePlayAndroidScreenshots({
   let hierarchy = await waitForUi(
     adbPath,
     device,
-    (value) => nodes(value, 'Erkunden').length === 1 && nodes(value, 'Jetzt suchen').length === 1,
+    (value) => nodes(value, 'Entdecken').length === 1 && nodes(value, 'Jetzt suchen').length === 1,
     wait,
     'feed',
   );
-  if (attribute(nodes(hierarchy, 'Erkunden')[0], 'selected') !== 'true') {
-    tapNode(adbPath, device, hierarchy, 'Erkunden');
+  if (attribute(nodes(hierarchy, 'Entdecken')[0], 'selected') !== 'true') {
+    tapNode(adbPath, device, hierarchy, 'Entdecken');
     hierarchy = await waitForUi(
       adbPath,
       device,

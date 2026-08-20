@@ -15,9 +15,9 @@ class WishlistSelectionSheet {
     return AppPopup.showCustom<String>(
       context,
       icon: Icons.favorite,
-      title: 'Zu welcher Wunschliste hinzufügen?',
+      title: 'In welcher Merkliste speichern?',
       body: _SelectorContent(
-        title: 'Zu welcher Wunschliste hinzufügen?',
+        title: 'In welcher Merkliste speichern?',
         options: [
           // System lists first
           for (final e in system)
@@ -75,9 +75,9 @@ class WishlistSelectionSheet {
     return AppPopup.showCustom<String>(
       context,
       icon: Icons.drive_file_move_rtl,
-      title: 'In andere Wunschliste verschieben',
+      title: 'In andere Merkliste verschieben',
       body: _SelectorContent(
-        title: 'In andere Wunschliste verschieben',
+        title: 'In andere Merkliste verschieben',
         options: options.toList(),
         grid: false,
         onDark: isDark,
@@ -102,7 +102,7 @@ class WishlistSelectionSheet {
     return AppPopup.showCustom<String>(
       context,
       icon: Icons.favorite,
-      title: 'Wunschliste',
+      title: 'Gemerkt',
       body: Padding(
         padding: const EdgeInsets.only(left: 6, right: 6, bottom: 2),
         child: Column(
@@ -111,7 +111,7 @@ class WishlistSelectionSheet {
             _CompactActionRow(
               icon: Icons.swap_horiz,
               iconColor: cs.primary,
-              label: 'In andere Wunschliste verschieben',
+              label: 'In andere Merkliste verschieben',
               onDark: isDark,
               onTap: () => Navigator.of(context).pop('move'),
             ),
@@ -128,7 +128,7 @@ class WishlistSelectionSheet {
             _CompactActionRow(
               icon: Icons.delete_outline,
               iconColor: cs.error,
-              label: 'Aus Wunschliste entfernen',
+              label: 'Aus Gemerkt entfernen',
               onDark: isDark,
               onTap: () => Navigator.of(context).pop('remove'),
             ),
@@ -372,7 +372,7 @@ class _CreateListCard extends StatelessWidget {
           final name = await AppPopup.showCustom<String>(
             context,
             icon: Icons.favorite_border,
-            title: 'Neue Wunschliste erstellen',
+            title: 'Neue Merkliste erstellen',
             showCloseIcon: false,
             showLeading: false,
             showAccentLine: false,
@@ -407,7 +407,7 @@ class _CreateListCard extends StatelessWidget {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Neue Wunschliste erstellen',
+                        Text('Neue Merkliste erstellen',
                             style: Theme.of(context)
                                 .textTheme
                                 .titleMedium
@@ -467,7 +467,7 @@ class _CreateListForm extends StatelessWidget {
                   color: isDark ? Colors.white : AppTheme.textPrimary(context)),
               cursorColor: cs.primary,
               decoration: InputDecoration(
-                hintText: 'Name der Wunschliste',
+                hintText: 'Name der Merkliste',
                 hintStyle: TextStyle(
                     color: isDark
                         ? Colors.white70

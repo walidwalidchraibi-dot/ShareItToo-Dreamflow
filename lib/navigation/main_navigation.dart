@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kReleaseMode;
+import 'package:flutter/foundation.dart' show kReleaseMode, visibleForTesting;
 import 'dart:math' as math;
 import 'package:lendify/screens/explore_screen.dart';
 import 'package:lendify/screens/wishlists_screen.dart';
@@ -28,6 +28,15 @@ bool shouldGateAccountTab({
   final guestGateEnabled = backendEnabled || releaseMode || previewGuest;
   return guestGateEnabled && (!hasSession || !hasCurrentUser);
 }
+
+@visibleForTesting
+const List<String> mainNavigationLabelKeys = <String>[
+  'Entdecken',
+  'Mietkorb',
+  'Buchungen',
+  'Nachrichten',
+  'Mein SIT',
+];
 
 class MainNavigation extends StatefulWidget {
   final int initialIndex;
@@ -61,7 +70,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _screens = [
     const ExploreScreen(),
-    const WishlistsScreen(),
+    const RentalCartScreen(),
     const BookingsScreen(),
     const MessagesScreen(),
     const ProfileScreen(),
@@ -173,13 +182,13 @@ class _MainNavigationState extends State<MainNavigation> {
               BottomNavigationBarItem(
                 icon: _navIcon(Icons.search, 0),
                 activeIcon: _HoveringNavIcon(icon: Icons.search, active: true),
-                label: l10n.t('Erkunden'),
+                label: l10n.t(mainNavigationLabelKeys[0]),
               ),
               BottomNavigationBarItem(
-                icon: _navIcon(Icons.favorite_border, 1),
-                activeIcon:
-                    _HoveringNavIcon(icon: Icons.favorite_border, active: true),
-                label: l10n.t('Wunschlisten'),
+                icon: _navIcon(Icons.shopping_bag_outlined, 1),
+                activeIcon: _HoveringNavIcon(
+                    icon: Icons.shopping_bag_outlined, active: true),
+                label: l10n.t(mainNavigationLabelKeys[1]),
               ),
               BottomNavigationBarItem(
                 icon: _HoveringAssetNavIcon(
@@ -190,19 +199,19 @@ class _MainNavigationState extends State<MainNavigation> {
                     asset: 'assets/images/icononly_transparent_nobuffer.png',
                     active: true,
                     baseSize: 32.0),
-                label: l10n.t('Buchungen'),
+                label: l10n.t(mainNavigationLabelKeys[2]),
               ),
               BottomNavigationBarItem(
                 icon: _MessagesNavIcon(
                     active: _currentIndex == 3, userId: _currentUser?.id),
                 activeIcon:
                     _MessagesNavIcon(active: true, userId: _currentUser?.id),
-                label: l10n.t('Nachrichten'),
+                label: l10n.t(mainNavigationLabelKeys[3]),
               ),
               BottomNavigationBarItem(
                 icon: _buildProfileNavIcon(active: _currentIndex == 4),
                 activeIcon: _buildProfileNavIcon(active: true),
-                label: l10n.t('Profil'),
+                label: l10n.t(mainNavigationLabelKeys[4]),
               ),
             ],
           ),

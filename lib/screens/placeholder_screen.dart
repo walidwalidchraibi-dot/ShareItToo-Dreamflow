@@ -26,7 +26,7 @@ class PlaceholderScreen extends StatelessWidget {
             child: FilledButton.tonalIcon(
               onPressed: () => _backToExplore(context),
               icon: const Icon(Icons.explore_outlined, size: 18),
-              label: const Text('Erkunden'),
+              label: const Text('Entdecken'),
             ),
           ),
         ],
@@ -42,7 +42,7 @@ class PlaceholderScreen extends StatelessWidget {
             FilledButton.tonalIcon(
               onPressed: () => _backToExplore(context),
               icon: const Icon(Icons.explore_outlined),
-              label: const Text('Zurück zu Erkunden'),
+              label: const Text('Zurück zu Entdecken'),
             ),
           ]),
         ),

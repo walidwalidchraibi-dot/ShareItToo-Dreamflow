@@ -99,6 +99,16 @@ class LocalizationController extends ChangeNotifier {
 
   static const Map<String, String> _de = {
     // Navigation
+    'Entdecken': 'Entdecken',
+    'Mietkorb': 'Mietkorb',
+    'Mein SIT': 'Mein SIT',
+    'Gemerkt': 'Gemerkt',
+    'Noch keine Merklisten': 'Noch keine Merklisten',
+    'Unter Gemerkt speichern': 'Unter Gemerkt speichern',
+    'saved.nonBindingSemantics':
+        'Gemerkt. Unverbindlich gespeichert. Keine Reservierung.',
+    'saved.nonBindingNotice':
+        'Unverbindlich gespeichert – keine Reservierung. Verfügbarkeit und Mietanfrage werden erst beim direkten Buchen geprüft.',
     'Erkunden': 'Erkunden',
     'Wunschlisten': 'Wunschlisten',
     'Buchungen': 'Buchungen',
@@ -316,6 +326,16 @@ class LocalizationController extends ChangeNotifier {
 
   static const Map<String, String> _en = {
     // Navigation
+    'Entdecken': 'Discover',
+    'Mietkorb': 'Rental cart',
+    'Mein SIT': 'My SIT',
+    'Gemerkt': 'Saved',
+    'Noch keine Merklisten': 'No saved lists yet',
+    'Unter Gemerkt speichern': 'Save for later',
+    'saved.nonBindingSemantics':
+        'Saved. Non-binding. This is not a reservation.',
+    'saved.nonBindingNotice':
+        'Saved without obligation – this is not a reservation. Availability and the rental request are checked only when you book the individual item.',
     'Erkunden': 'Explore',
     'Wunschlisten': 'Wishlists',
     'Buchungen': 'Bookings',

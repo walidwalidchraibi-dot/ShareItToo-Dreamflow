@@ -11,14 +11,21 @@ import 'package:lendify/widgets/app_popup.dart';
 import 'package:lendify/navigation/main_nav_controller.dart';
 import 'package:lendify/theme.dart';
 
-class WishlistsScreen extends StatefulWidget {
-  const WishlistsScreen({super.key});
+class RentalCartScreen extends StatefulWidget {
+  const RentalCartScreen({super.key});
 
   @override
-  State<WishlistsScreen> createState() => _WishlistsScreenState();
+  State<RentalCartScreen> createState() => _RentalCartScreenState();
 }
 
-class _WishlistsScreenState extends State<WishlistsScreen> {
+/// Compatibility type for callers that still use the pre-G2A screen name.
+/// Persisted wishlist values remain on the original keys for safe rollback.
+@Deprecated('Use RentalCartScreen; saved wishlist data remains compatible.')
+class WishlistsScreen extends RentalCartScreen {
+  const WishlistsScreen({super.key});
+}
+
+class _RentalCartScreenState extends State<RentalCartScreen> {
   bool _loading = true;
   List<Map<String, dynamic>> _lists = [];
   Map<String, List<Item>> _itemsByList = {};
@@ -47,7 +54,7 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
     final name = await AppPopup.showCustom<String>(
       context,
       icon: Icons.bookmark_add_outlined,
-      title: 'Neue Wunschliste',
+      title: 'Neue Merkliste',
       showCloseIcon: false,
       showLeading: false,
       showAccentLine: false,
@@ -71,11 +78,11 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
             onPressed: () => Navigator.of(context).maybePop(),
             icon: const Icon(Icons.arrow_back)),
-        title: Text(l10n.t('Wunschlisten')),
+        title: Text(l10n.t('Mietkorb')),
         centerTitle: true,
         actions: [
           IconButton(
-            tooltip: 'Neue Wunschliste',
+            tooltip: 'Neue Merkliste',
             onPressed: _addCustomList,
             icon: const Icon(Icons.add),
           )
@@ -91,14 +98,43 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 420),
-                      child: Text(
-                        'Merke dir Artikel, die du bald brauchst oder später mieten möchtest.',
-                        textAlign: TextAlign.center,
-                        style:
-                            Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: cs.onSurface.withValues(alpha: 0.55),
-                                  height: 1.5,
-                                ),
+                      child: Semantics(
+                        container: true,
+                        label: l10n.t('saved.nonBindingSemantics'),
+                        child: ExcludeSemantics(
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.bookmark_border,
+                                      size: 20, color: cs.primary),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    l10n.t('Gemerkt'),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                l10n.t('saved.nonBindingNotice'),
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
+                                    ?.copyWith(
+                                      color:
+                                          cs.onSurface.withValues(alpha: 0.55),
+                                      height: 1.5,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -110,14 +146,14 @@ class _WishlistsScreenState extends State<WishlistsScreen> {
   }
 }
 
-extension on _WishlistsScreenState {
+extension on _RentalCartScreenState {
   Widget _buildFolderGrid(BuildContext context) {
     if (_lists.isEmpty) {
       return Center(
           child: Text(
               context
                   .watch<LocalizationController>()
-                  .t('Noch keine Wunschlisten'),
+                  .t('Noch keine Merklisten'),
               style: Theme.of(context).textTheme.titleMedium));
     }
 
@@ -248,7 +284,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
 
   String _systemDetailSubline(String id) {
     if (id == DataService.wlSoonId) {
-      return 'Speichere passende Artikel aus Erkunden,\num deine nächste Miete zu planen.';
+      return 'Speichere passende Artikel aus Entdecken,\num deine nächste Miete zu planen.';
     }
     if (id == DataService.wlLaterId) {
       return 'Sammle Ideen für spätere Mieten\nund finde sie hier wieder.';
@@ -256,7 +292,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
     if (id == DataService.wlAgainId) {
       return 'Merke dir Artikel, die du bereits\ngemietet hast und erneut mieten möchtest.';
     }
-    return 'Speichere passende Artikel aus Erkunden.';
+    return 'Speichere passende Artikel aus Entdecken.';
   }
 
   @override
@@ -300,7 +336,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                     icon: _editMode
                         ? Icons.check_circle_outline
                         : Icons.edit_outlined,
-                    label: _editMode ? 'Fertig' : 'Wunschliste bearbeiten',
+                    label: _editMode ? 'Fertig' : 'Merkliste bearbeiten',
                     color:
                         isDark ? Colors.white : AppTheme.textSecondary(context)
                   ));
@@ -318,7 +354,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                     (
                       value: 'delete',
                       icon: Icons.delete_outline,
-                      label: 'Wunschliste löschen',
+                      label: 'Merkliste löschen',
                       color: cs.error
                     ),
                   ]);
@@ -378,7 +414,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
                                   Text(
                                     widget.system
                                         ? _systemDetailSubline(widget.listId)
-                                        : 'Speichere passende Artikel aus Erkunden.',
+                                        : 'Speichere passende Artikel aus Entdecken.',
                                     textAlign: TextAlign.center,
                                     style: Theme.of(context)
                                         .textTheme
@@ -527,7 +563,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
     final newName = await AppPopup.showCustom<String>(
       context,
       icon: Icons.drive_file_rename_outline,
-      title: 'Wunschliste umbenennen',
+      title: 'Merkliste umbenennen',
       showCloseIcon: false,
       showLeading: false,
       showAccentLine: false,
@@ -547,7 +583,7 @@ class _WishlistFolderDetailState extends State<_WishlistFolderDetail> {
     bool? confirmed = await AppPopup.showCustom<bool>(
       context,
       icon: Icons.delete_outline,
-      title: 'Wunschliste löschen',
+      title: 'Merkliste löschen',
       showCloseIcon: false,
       showLeading: false,
       showAccentLine: false,

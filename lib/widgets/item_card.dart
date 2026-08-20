@@ -281,7 +281,7 @@ class _WishlistHeartButtonState extends State<_WishlistHeartButton> {
         });
         final l10n = context.read<LocalizationController>();
         AppPopup.toast(context,
-            icon: Icons.favorite, title: l10n.t('Zur Wunschliste hinzugefügt'));
+            icon: Icons.favorite, title: l10n.t('Unter Gemerkt gespeichert'));
       }
       return;
     }

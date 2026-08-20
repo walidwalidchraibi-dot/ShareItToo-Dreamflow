@@ -146,6 +146,13 @@ function namedNodes(hierarchy, label) {
       || matchesLabel(attribute(tag, 'hint')));
 }
 
+const discoverNavigationLabels = ['Entdecken', 'Erkunden'];
+const accountNavigationLabels = ['Mein SIT', 'Profil'];
+
+function availableNavigationLabel(hierarchy, labels) {
+  return labels.find((label) => namedNodes(hierarchy, label).length >= 1) ?? null;
+}
+
 function nodeCenter(tag, label) {
   const bounds = /^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$/.exec(attribute(tag, 'bounds') ?? '');
   if (!bounds) fail(`The sanitized ${label} action has invalid bounds.`);
@@ -195,7 +202,9 @@ async function waitForHierarchy({ commandRunner, adbPath, device, predicate, wai
 }
 
 function hasMainNavigation(hierarchy) {
-  return ['Erkunden', 'Nachrichten', 'Profil'].every((label) => namedNodes(hierarchy, label).length >= 1);
+  return availableNavigationLabel(hierarchy, discoverNavigationLabels) !== null
+    && namedNodes(hierarchy, 'Nachrichten').length >= 1
+    && availableNavigationLabel(hierarchy, accountNavigationLabels) !== null;
 }
 
 function hasAuthenticatedProfile(hierarchy) {
@@ -279,7 +288,13 @@ async function openProfile({ commandRunner, adbPath, device, wait }) {
     predicate: hasMainNavigation,
     wait,
   });
-  tapNamedNode(commandRunner, adbPath, device, main, 'Profil');
+  tapNamedNode(
+    commandRunner,
+    adbPath,
+    device,
+    main,
+    availableNavigationLabel(main, accountNavigationLabels) ?? 'Mein SIT',
+  );
   return waitForHierarchy({
     commandRunner,
     adbPath,

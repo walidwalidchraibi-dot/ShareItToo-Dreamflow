@@ -149,7 +149,7 @@ class _Mosaic extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'Tippe auf ♡ beim Erkunden',
+                'Tippe auf ♡ bei Entdecken',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: isDark
                           ? cs.onSurface.withValues(alpha: 0.28)
