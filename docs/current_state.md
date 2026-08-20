@@ -6,11 +6,11 @@ Verified: 2026-08-20 on the Mac mini.
 
 - Checkout: `/Users/walidchraibi/Worktrees/SIT-master-workflow-20260808`
 - Branch / PR: `codex/master-workflow-20260808`, draft PR #7 against `main`.
-- Current G2B implementation head:
-  `c14dacb8a99669724839d07c41c2dbf6b0b497b5`.
-- The G2B implementation commit is contained in the local branch, remote
+- Current U0 implementation head:
+  `d36dc091868a9840e597a7fdc40702a496f81593`.
+- The U0 implementation commit is contained in the local branch, remote
   branch and PR head; the PR remains cleanly mergeable.
-- Exact GitHub Actions run `32388755772` is green: backend regression and
+- Exact GitHub Actions run `32392289397` is green: backend regression and
   Flutter regression passed, while the signed candidate and image publication
   were skipped.
 - No rebase, force-push, history rewrite, branch deletion, PR merge, signed
@@ -72,6 +72,21 @@ Verified: 2026-08-20 on the Mac mini.
 - Current Privacy terminology truthfully distinguishes `Gemerkt`, local guest
   intent and the account-bound non-reserving cart. Historical legal/privacy
   snapshots are unchanged.
+- U0 adds the internal `GET /v1/admin/pilot-cockpit` endpoint. An active admin
+  account and the existing Staff-Step-up are mandatory; the response is
+  aggregate-only, `private, no-store` and has no write counterpart.
+- Cash flows, normalized economics, project-funnel counts and FI0 aggregates
+  carry evidence class, provenance and completeness. All monetary values use
+  integer minor units and separate ISO-currency buckets without implicit FX.
+- Missing VAT components, provider fees, cloud costs, founder-hour aggregates
+  or founder-replacement rates remain `unavailable` and force normalized
+  profitability to `undetermined`; they never become silent zeroes.
+- KYC, fraud-provider, external AI and marketing costs are explicitly shown as
+  configured disabled zeroes under the current pilot boundary. Cloud billing
+  remains unavailable.
+- FI0 now also defines a manual monthly aggregate for total, role-routed,
+  founder-only and unrouted escalations. No case detail or automatic founder
+  activity monitoring is permitted, and U0 adds no collection endpoint.
 
 ## Current safe operating state
 
@@ -95,8 +110,9 @@ Verified: 2026-08-20 on the Mac mini.
 
 ## Validation and rollback
 
-- Exact G2B CI is green with PostgreSQL migration/integration coverage.
-- Local backend suite: 276 passed, 0 failed and one expected PostgreSQL skip
+- Exact U0 CI is green with PostgreSQL integration and Cockpit HTTP/access
+  coverage: 283 backend tests passed, 0 failed.
+- Local backend suite: 282 passed, 0 failed and one expected PostgreSQL skip
   without local `TEST_DATABASE_URL`.
 - Complete Flutter suite: 307 passed with one documented skip; the extra
   Google-only profile test, analyzer baseline, web debug build and Android
@@ -117,11 +133,15 @@ Verified: 2026-08-20 on the Mac mini.
 - FI0 role assignees, delegates, company-system ownership, account RBAC,
   absence tests and the normalized founder-replacement compensation amount
   remain explicit external gates. No personal activity monitoring is enabled.
+- U0 has no migration. Its normal rollback is a revert of `d36dc09` together
+  with the exact Privacy-/Retention-Quellhashbindungen for `backend/src/app.js`.
 
 ## Next source of truth
 
-The active bounded task is `docs/current_work_package.md`: U0 pilot cockpit and
-unit economics only. G2A, G2L and G2B are technically complete; FI0 external
-role/account assignments and all C1I release/device gates remain HOLD. Older
-reports and root `architecture.md` are evidence/history, not permission to
-reopen a closed launch boundary.
+There is no active implementation package. `docs/current_work_package.md`
+records the completed U0 gate and the end of the authorized autonomous runway.
+G2A, G2L, G2B and U0 are technically complete; FI0 external role/account
+assignments and all C1I release/device gates remain HOLD. Do not begin G3A or a
+later package until Walid decides its timing and scope. Older reports and root
+`architecture.md` are evidence/history, not permission to reopen a closed
+launch boundary.
