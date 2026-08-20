@@ -52,7 +52,7 @@
     },
     {
       "path": "backend/src/booking_workflow.js",
-      "sha256": "4964834d2e9c95b0787b66e6c3c39ca885b971619e4d37cc16156f730115bbb9"
+      "sha256": "6170b2f93a12767da918c36647c503192b9d0fd93b8df49d5afc3c912c9ada6c"
     },
     {
       "path": "backend/src/private_pilot_domain.js",
@@ -356,7 +356,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "d2dbe3177f82fa9b72eee74903d2e1c660d84a9423c8d834f92ad07caa66193a"
+      "sha256": "3e18d43afa2a6a032fe65608a8c052902bc0d7b1bebd0738fb6dc98f8664d5cc"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",

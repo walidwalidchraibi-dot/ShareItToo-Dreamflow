@@ -246,36 +246,7 @@ async function periodInstants(client, dates, timezone) {
   return result.rows[0];
 }
 
-async function listingForBooking(client, listingId, {
-  lock = false,
-  includeInactive = false,
-  participantIds = [],
-} = {}) {
-  let lockedOwner = null;
-  if (lock) {
-    const owner = await client.query(
-      'SELECT owner_id FROM listings WHERE id = $1',
-      [listingId],
-    );
-    if (!owner.rowCount) throw new BookingWorkflowError(404, 'listing_not_found');
-    const userIds = [...new Set([
-      owner.rows[0].owner_id,
-      ...participantIds.filter((id) => typeof id === 'string' && id),
-    ])].sort();
-    const lockedUsers = [];
-    for (const userId of userIds) {
-      const user = await client.query(
-        `SELECT id, private_use_confirmed_at, private_marketplace_review_status
-           FROM users
-          WHERE id = $1
-          FOR UPDATE`,
-        [userId],
-      );
-      if (user.rowCount) lockedUsers.push(user.rows[0]);
-    }
-    lockedOwner = lockedUsers.find((row) => row.id === owner.rows[0].owner_id) ?? null;
-    if (!lockedOwner) throw new BookingWorkflowError(404, 'listing_not_found');
-  }
+async function listingForBooking(client, listingId, { lock = false, includeInactive = false } = {}) {
   const result = await client.query(
     `SELECT listing.id, listing.owner_id, listing.payload, listing.status,
             listing.is_active, listing.catalog_version, listing.catalog_revision,
@@ -292,18 +263,13 @@ async function listingForBooking(client, listingId, {
        FROM listings AS listing
        JOIN users AS owner ON owner.id = listing.owner_id
       WHERE listing.id = $1
-        ${lock ? 'AND listing.owner_id = $2' : ''}
         AND listing.catalog_version = 1
         AND listing.moderation_status = 'active'
         ${includeInactive ? '' : "AND listing.is_active = true AND listing.status = 'active'"}
-      ${lock ? 'FOR UPDATE OF listing' : ''}`,
-    lock ? [listingId, lockedOwner.id] : [listingId],
+      ${lock ? 'FOR UPDATE OF listing, owner' : ''}`,
+    [listingId],
   );
   if (!result.rowCount) throw new BookingWorkflowError(404, 'listing_not_found');
-  if (lockedOwner) {
-    result.rows[0].owner_private_use_confirmed_at = lockedOwner.private_use_confirmed_at;
-    result.rows[0].owner_private_marketplace_review_status = lockedOwner.private_marketplace_review_status;
-  }
   return result.rows[0];
 }
 
@@ -763,10 +729,7 @@ export async function createBooking(client, {
   await expireBookingHolds(client);
 
   const listingId = text(candidate.itemId ?? candidate.listingId, 120);
-  const listing = await listingForBooking(client, listingId, {
-    lock: true,
-    participantIds: [actor.id],
-  });
+  const listing = await listingForBooking(client, listingId, { lock: true });
   if (listing.owner_id === actor.id) throw new BookingWorkflowError(409, 'cannot_rent_own_listing');
   if (privatePilot) {
     await assertPrivatePilotBookingEligibility(client, {
@@ -1214,10 +1177,7 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
     if (config.privatePilotV4Enabled) {
       requiredPrivatePilotOwnerAcceptance(candidate);
     }
-    const listing = await listingForBooking(client, row.listing_id, {
-      lock: true,
-      participantIds: [row.renter_id],
-    });
+    const listing = await listingForBooking(client, row.listing_id, { lock: true });
     if (config.privatePilotV4Enabled) {
       await assertPrivatePilotBookingEligibility(client, {
         actorId: row.renter_id,

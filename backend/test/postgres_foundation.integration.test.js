@@ -1684,6 +1684,12 @@ if (!databaseUrl) {
           status: 'actioned',
           reasonCode: 'documented_policy_violation',
           resolution: { outcome: 'listing_temporarily_hidden' },
+          decision: {
+            facts: 'Controlled integration evidence confirms the report target and policy breach.',
+            basis: 'Controlled marketplace moderation policy fixture.',
+            reasoning: 'The verified fixture requires a temporary reversible listing restriction.',
+            detectionMethod: 'human',
+          },
         }),
       });
       assert.equal(adminAction.status, 200);
