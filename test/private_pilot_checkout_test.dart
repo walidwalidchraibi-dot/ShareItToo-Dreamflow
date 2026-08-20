@@ -42,6 +42,13 @@ void main() {
     expect(jsonDecode(prefs.getString('rental_requests')!) as List, isEmpty);
 
     final scrollable = find.byType(Scrollable).first;
+    final platformTermsLink = find.textContaining('Teil A · V5.2-2026-08-16');
+    await tester.scrollUntilVisible(
+      platformTermsLink,
+      200,
+      scrollable: scrollable,
+    );
+    expect(platformTermsLink, findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Bestätigen und bezahlen'),
       300,

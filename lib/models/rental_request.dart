@@ -64,6 +64,7 @@ class RentalRequest {
   final int? quotedOwnerPayoutMinor;
   final String? quotedCurrency;
   final List<Map<String, dynamic>> legalDeclarations;
+  final Map<String, dynamic>? platformContract;
   final String returnState;
   final DateTime? returnT0;
   final DateTime? returnReportDeadline;
@@ -132,6 +133,7 @@ class RentalRequest {
     this.quotedOwnerPayoutMinor,
     this.quotedCurrency,
     this.legalDeclarations = const [],
+    this.platformContract,
     this.returnState = 'not_started',
     this.returnT0,
     this.returnReportDeadline,
@@ -197,6 +199,7 @@ class RentalRequest {
     int? quotedOwnerPayoutMinor,
     String? quotedCurrency,
     List<Map<String, dynamic>>? legalDeclarations,
+    Map<String, dynamic>? platformContract,
     String? returnState,
     DateTime? returnT0,
     DateTime? returnReportDeadline,
@@ -277,6 +280,7 @@ class RentalRequest {
             quotedOwnerPayoutMinor ?? this.quotedOwnerPayoutMinor,
         quotedCurrency: quotedCurrency ?? this.quotedCurrency,
         legalDeclarations: legalDeclarations ?? this.legalDeclarations,
+        platformContract: platformContract ?? this.platformContract,
         returnState: returnState ?? this.returnState,
         returnT0: returnT0 ?? this.returnT0,
         returnReportDeadline: returnReportDeadline ?? this.returnReportDeadline,
@@ -374,6 +378,7 @@ class RentalRequest {
       quotedCurrency:
           quote['currency'] as String? ?? json['quotedCurrency'] as String?,
       legalDeclarations: _parseMapList(json['legalDeclarations']),
+      platformContract: _parseMap(json['platformContract']),
       returnState: (json['returnState'] as String?) ?? 'not_started',
       returnT0: _parseDt(json['returnT0']),
       returnReportDeadline: _parseDt(json['returnReportDeadline']),
@@ -447,6 +452,7 @@ class RentalRequest {
         'quotedOwnerPayoutMinor': quotedOwnerPayoutMinor,
         'quotedCurrency': quotedCurrency,
         'legalDeclarations': legalDeclarations,
+        'platformContract': platformContract,
         'returnState': returnState,
         'returnT0': returnT0?.toIso8601String(),
         'returnReportDeadline': returnReportDeadline?.toIso8601String(),

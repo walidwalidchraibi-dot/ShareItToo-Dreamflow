@@ -5581,6 +5581,7 @@ class DataService {
       quotedOwnerPayoutMinor: req.quotedOwnerPayoutMinor,
       quotedCurrency: req.quotedCurrency,
       legalDeclarations: req.legalDeclarations,
+      platformContract: req.platformContract,
       returnState: req.returnState,
       returnT0: req.returnT0,
       returnReportDeadline: req.returnReportDeadline,
@@ -5593,6 +5594,7 @@ class DataService {
     );
     if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
       final createPayload = toStore.toJson();
+      createPayload['clientBuild'] = PrivatePilotConfig.v52ClientBuild;
       final freshQuote = checkoutQuote == null
           ? await BackendRepository.quoteBooking(createPayload)
           : Map<String, dynamic>.from(checkoutQuote);

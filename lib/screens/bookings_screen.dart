@@ -291,6 +291,7 @@ class _BookingsScreenState extends State<BookingsScreen>
       'cancellationOutcome': r.cancellationOutcome,
       'workflowStatus': r.workflowStatus,
       'platformWithdrawal': r.platformWithdrawal,
+      'platformContract': r.platformContract,
       'needsReview': r.needsReview,
       'hasSubmittedReview': reviewSubmitted,
       'title': it.title,

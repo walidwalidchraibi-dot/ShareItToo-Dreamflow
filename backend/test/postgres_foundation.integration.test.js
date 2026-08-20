@@ -84,6 +84,7 @@ if (!databaseUrl) {
         '020_v51_financial_documents.up.sql',
         '021_firebase_identity_deletion_outbox.up.sql',
         '022_crashlytics_subject_deletion.up.sql',
+        '023_v52_contract_binding.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);

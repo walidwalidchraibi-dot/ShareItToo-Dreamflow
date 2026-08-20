@@ -139,7 +139,7 @@ import {
   privatePilotDeclarations,
   privatePilotDocument,
 } from './private_pilot_domain.js';
-import { v51ContractDocumentReadiness } from './v51_contract_workflow.js';
+import { v52ContractDocumentReadiness } from './v52_contract_workflow.js';
 import {
   getV51ContractReceipt,
   V51ContractReceiptError,
@@ -2821,7 +2821,7 @@ export function createApp({
       privatePilot: config.privatePilotV4Enabled,
     }));
     const contractDocumentsAvailable = config.payments.transport === 'stripe'
-      ? (await inTransaction((client) => v51ContractDocumentReadiness(client))).ready
+      ? (await inTransaction((client) => v52ContractDocumentReadiness(client))).ready
       : false;
     res.json({
       ...quote,
@@ -2838,7 +2838,6 @@ export function createApp({
       raw: req.body,
       key: req.get('Idempotency-Key'),
       privatePilot: config.privatePilotV4Enabled,
-      appVersion: releaseMetadata.version,
     }), { deadlockRetries: 2 });
     publishToUsers([result.booking.ownerId, result.booking.renterId], {
       type: 'changed',

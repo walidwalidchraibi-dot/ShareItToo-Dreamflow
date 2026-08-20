@@ -92,6 +92,12 @@ function createFetch(log) {
     if (path === '/uploads') return response(201, { url: 'https://staging.shareittoo.com/api/v1/uploads/fixture.webp' });
     if (path === '/listings') return response(201, { listing: { id: 'fixture' } });
     if (path.endsWith('/availability')) return response(200, { availability: {} });
+    if (path === '/bookings/quote') {
+      return response(200, {
+        quoteId: 'quote-1',
+        quoteHash: 'a'.repeat(64),
+      });
+    }
     if (path === '/bookings') return response(201, { booking: { workflowStatus: 'requested' } });
     throw new Error(`Unexpected path ${path}`);
   };
@@ -137,9 +143,13 @@ test('creates an isolated requested booking and returns no credentials or identi
   assert.equal(
     bookingCall.body.legalDeclarations.every((entry) => (
       entry.accepted === true
-      && entry.documentName === 'ShareItToo Rechtsmappe Privat-Launch'
-      && entry.documentVersion === 'V5.1-2026-08-16'
+      && entry.documentName === 'ShareItToo Rechtsmappe Privat-Launch V5.2'
+      && entry.documentVersion === 'V5.2-2026-08-16'
       && entry.language === 'de'
+      && entry.clientBuild === 'synthetic-review-tool-v52'
+      && entry.quoteId === 'quote-1'
+      && entry.quoteHash === 'a'.repeat(64)
+      && Array.isArray(entry.documentReferences)
     )),
     true,
   );
@@ -277,6 +287,12 @@ test('runs the complete role-visible lifecycle without returning private fixture
       if (path === '/uploads') return response(201, { url: 'https://staging.shareittoo.com/api/v1/uploads/fixture.webp' });
       if (path === '/listings') return response(201, { listing: { id: 'fixture' } });
       if (path.endsWith('/availability')) return response(200, { availability: {} });
+      if (path === '/bookings/quote') {
+        return response(200, {
+          quoteId: 'quote-1',
+          quoteHash: 'a'.repeat(64),
+        });
+      }
       if (path === '/bookings') {
         workflowStatus = 'requested';
         return response(201, { booking: { workflowStatus } });
@@ -367,6 +383,12 @@ test('reuses one prepared listing after a failed booking request', async () => {
         }] });
       }
       if (path === '/rental-requests') return response(200, { requests: [] });
+      if (path === '/bookings/quote') {
+        return response(200, {
+          quoteId: 'quote-1',
+          quoteHash: 'a'.repeat(64),
+        });
+      }
       if (path === '/bookings') {
         return response(201, { booking: { workflowStatus: 'requested' } });
       }
@@ -402,6 +424,12 @@ test('reports only a safe API error code and request id for a failed booking', a
         if (path === '/uploads') return response(201, { url: 'https://staging.shareittoo.com/api/v1/uploads/fixture.webp' });
         if (path === '/listings') return response(201, { listing: { id: 'fixture' } });
         if (path.endsWith('/availability')) return response(200, { availability: {} });
+        if (path === '/bookings/quote') {
+          return response(200, {
+            quoteId: 'quote-1',
+            quoteHash: 'a'.repeat(64),
+          });
+        }
         if (path === '/bookings') {
           return response(500, {
             error: 'internal_error',

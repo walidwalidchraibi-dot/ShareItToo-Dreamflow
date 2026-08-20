@@ -480,6 +480,28 @@ class BackendRepository {
     }
   }
 
+  static Future<BackendBinaryResponse> downloadPlatformContractReceipt(
+    String contractId,
+  ) async {
+    var token = await _token();
+    final path =
+        '/platform-contracts/${Uri.encodeComponent(contractId)}/receipt';
+    try {
+      return await BackendHttp.requestBytes(
+        path: path,
+        accessToken: token,
+      );
+    } on BackendException catch (error) {
+      if (error.statusCode != 401) rethrow;
+      token = await AuthService.refreshAccessToken() ?? '';
+      if (token.isEmpty) rethrow;
+      return BackendHttp.requestBytes(
+        path: path,
+        accessToken: token,
+      );
+    }
+  }
+
   static Future<Map<String, dynamic>> getConnectStatus() async {
     final response = await _authorized(
       method: 'GET',

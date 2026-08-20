@@ -30,9 +30,9 @@ import {
   PrivatePilotValidationError,
 } from './private_pilot_domain.js';
 import {
-  persistV51PlatformContract,
-  V51ContractWorkflowError,
-} from './v51_contract_workflow.js';
+  persistV52PlatformContract,
+  V52ContractWorkflowError,
+} from './v52_contract_workflow.js';
 import {
   v51DisabledTransportCode,
   v51ZeroTransportQuote,
@@ -150,10 +150,13 @@ function databaseDate(value) {
   return String(value).slice(0, 10);
 }
 
-function bookingPayload(row) {
+function bookingPayload(row, viewerUserId = null) {
   const stored = row.payload && typeof row.payload === 'object' && !Array.isArray(row.payload)
-    ? row.payload
+    ? { ...row.payload }
     : {};
+  if (viewerUserId && viewerUserId !== row.renter_id) {
+    delete stored.platformContract;
+  }
   const breakdown = row.quote_breakdown && typeof row.quote_breakdown === 'object'
     ? row.quote_breakdown
     : {};
@@ -344,7 +347,7 @@ async function requireFreshBookingQuote(client, {
   const result = await client.query(
     `SELECT renter_id, listing_id, rental_start_date, rental_end_date,
             rental_timezone, starts_at, ends_at, catalog_revision,
-            availability_revision, quote_payload, quote_hash, expires_at
+            availability_revision, quote_payload, quote_hash, issued_at, expires_at
        FROM booking_quotes
       WHERE id = $1 AND quote_hash = $2`,
     [quoteId, quoteHash],
@@ -377,7 +380,12 @@ async function requireFreshBookingQuote(client, {
   if (!bindingMatches) {
     throw new BookingWorkflowError(409, 'booking_quote_changed');
   }
-  return { quoteId, quoteHash };
+  return {
+    quoteId,
+    quoteHash,
+    issuedAt: new Date(stored.issued_at).toISOString(),
+    expiresAt: new Date(stored.expires_at).toISOString(),
+  };
 }
 
 async function checkPeriodAvailability(client, { listing, dates, startsAt, endsAt, excludeBookingId = null }) {
@@ -554,7 +562,7 @@ export async function listBookings(client, userId) {
      ORDER BY booking.created_at DESC`,
     [userId],
   );
-  return result.rows.map(bookingPayload);
+  return result.rows.map((row) => bookingPayload(row, userId));
 }
 
 export async function quoteBooking(client, { actorId, raw, privatePilot = false }) {
@@ -627,9 +635,12 @@ export async function createBooking(client, {
   raw,
   key,
   privatePilot = false,
-  appVersion = 'development',
 }) {
   const candidate = object(raw);
+  const clientBuild = text(candidate.clientBuild, 120);
+  if (privatePilot && !clientBuild) {
+    throw new BookingWorkflowError(400, 'v52_contract_build_required');
+  }
   if (privatePilot) {
     try {
       assertPrivatePilotBooking(candidate);
@@ -752,19 +763,21 @@ export async function createBooking(client, {
   );
   if (privatePilot) {
     try {
-      payload.platformContract = await persistV51PlatformContract(client, {
+      payload.platformContract = await persistV52PlatformContract(client, {
         userId: actor.id,
         bookingId: id,
         quoteId: quoteBinding.quoteId,
         quoteHash: quoteBinding.quoteHash,
-        clientBuild: appVersion,
+        quoteIssuedAt: quoteBinding.issuedAt,
+        quoteExpiresAt: quoteBinding.expiresAt,
+        clientBuild,
         declarations: candidate.legalDeclarations,
         idempotencyKey: `${commandKey}:platform-contract`,
         acceptedAt: createdAt,
       });
     } catch (error) {
-      if (error instanceof V51ContractWorkflowError) {
-        const status = error.code === 'v51_contract_documents_unavailable'
+      if (error instanceof V52ContractWorkflowError) {
+        const status = error.code === 'v52_contract_documents_unavailable'
           ? 409
           : 400;
         throw new BookingWorkflowError(status, error.code);
@@ -774,6 +787,23 @@ export async function createBooking(client, {
     await client.query(
       'UPDATE rental_requests SET payload = $2::jsonb WHERE id = $1',
       [id, JSON.stringify(payload)],
+    );
+    await client.query(
+      `INSERT INTO booking_events (
+         booking_id, actor_id, event_type, idempotency_key, metadata
+       ) VALUES ($1, $2, 'platform_contract.accepted', $3, $4::jsonb)`,
+      [
+        id,
+        actor.id,
+        `${commandKey}:platform-contract-accepted`,
+        JSON.stringify({
+          state: payload.platformContract.state,
+          platformContractId: payload.platformContract.id,
+          contractVersion: payload.platformContract.contractVersion,
+          acceptedAt: payload.platformContract.acceptedAt,
+          receiptSha256: payload.platformContract.receipt.artifactSha256,
+        }),
+      ],
     );
   }
   if (privatePilot) {
@@ -794,7 +824,7 @@ export async function createBooking(client, {
           declaration.wording,
           privatePilotCheckoutDocument.name,
           privatePilotCheckoutDocument.version,
-          appVersion,
+          clientBuild,
           privatePilotCheckoutDocument.locale,
           new Date(accepted.acceptedAt),
         ],
@@ -858,6 +888,9 @@ export async function amendBooking(client, { actor, bookingId, raw, key }) {
 
   const row = await lockedBooking(client, bookingId, { allowQuarantined: true });
   if (row.renter_id !== actor.id) throw new BookingWorkflowError(403, 'booking_forbidden');
+  if (row.payload?.platformContract) {
+    throw new BookingWorkflowError(409, 'platform_contract_reconsent_required');
+  }
   const revalidatingRollback = Number(row.workflow_version) === 0;
   if (revalidatingRollback && row.status !== 'pending') {
     throw new BookingWorkflowError(409, 'booking_requires_manual_revalidation', { status: row.status });
@@ -948,7 +981,7 @@ export async function amendBooking(client, { actor, bookingId, raw, key }) {
     metadata: { startDate: dates.startDate, endDate: dates.endDate },
   });
   const updated = await lockedBooking(client, bookingId);
-  const response = { booking: bookingPayload(updated), replayed: false };
+  const response = { booking: bookingPayload(updated, actor.id), replayed: false };
   await completeCommand(client, commandKey, bookingId, response);
   return response;
 }
@@ -995,7 +1028,7 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
   });
   let current = row.workflow_status;
   if (current === requested) {
-    const response = { booking: bookingPayload(row), replayed: false };
+    const response = { booking: bookingPayload(row, actor.id), replayed: false };
     await completeCommand(client, commandKey, bookingId, response);
     return response;
   }
@@ -1217,7 +1250,7 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
     current = next;
   }
   const updated = await lockedBooking(client, bookingId);
-  const response = { booking: bookingPayload(updated), replayed: false };
+  const response = { booking: bookingPayload(updated, actor.id), replayed: false };
   await completeCommand(client, commandKey, bookingId, response);
   return response;
 }

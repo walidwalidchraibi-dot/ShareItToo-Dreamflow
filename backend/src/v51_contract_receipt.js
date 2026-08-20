@@ -56,7 +56,9 @@ export function renderV51ContractReceipt({
   acceptedAt,
   platformTerms,
   privateRentalTerms,
+  documents,
   declarations,
+  sitAcceptance,
 }) {
   if (!Array.isArray(declarations) || declarations.length !== 2) {
     throw new V51ContractReceiptError('v51_receipt_declarations_invalid');
@@ -72,7 +74,21 @@ export function renderV51ContractReceipt({
     ['Client-Build', requiredText(clientBuild, 120, 'v51_receipt_build_required')],
     ['SIT-Annahme', acceptedIso],
   ];
-  const declarationHtml = declarations.map((entry) => `
+  const declarationHtml = declarations.map((entry) => {
+    if (entry.documentReferences != null
+        && (!Array.isArray(entry.documentReferences)
+          || entry.documentReferences.length === 0
+          || entry.documentReferences.length > 9)) {
+      throw new V51ContractReceiptError('v51_receipt_references_invalid');
+    }
+    const referenceHtml = entry.documentReferences == null
+      ? ''
+      : `<h4>Gebundene Dokumente</h4><ul>${entry.documentReferences.map((reference) => (
+        `<li>Teil ${escapeHtml(requiredText(reference.part, 8, 'v51_receipt_reference_part_required'))}: `
+        + `${escapeHtml(requiredText(reference.documentKey, 120, 'v51_receipt_reference_key_required'))} `
+        + `(${escapeHtml(requiredText(reference.documentVersion, 120, 'v51_receipt_reference_version_required'))})</li>`
+      )).join('')}</ul>`;
+    return `
     <section>
       <h3>${escapeHtml(requiredText(entry.type, 120, 'v51_receipt_declaration_type_required'))}</h3>
       <p>${escapeHtml(requiredText(entry.exactWording, 5000, 'v51_receipt_declaration_wording_required'))}</p>
@@ -80,16 +96,46 @@ export function renderV51ContractReceipt({
         <dt>Text-Hash</dt><dd>${escapeHtml(requiredHash(entry.wordingSha256, 'v51_receipt_declaration_hash_invalid'))}</dd>
         <dt>Bestätigt</dt><dd>${escapeHtml(iso(entry.acceptedAt, 'v51_receipt_declaration_time_invalid'))}</dd>
       </dl>
-    </section>`).join('');
-  const documentHtml = [platformTerms, privateRentalTerms].map((document) => `
+      ${referenceHtml}
+    </section>`;
+  }).join('');
+  const receiptDocuments = documents ?? [platformTerms, privateRentalTerms];
+  if (!Array.isArray(receiptDocuments)
+      || receiptDocuments.length < 2
+      || receiptDocuments.length > 9) {
+    throw new V51ContractReceiptError('v51_receipt_documents_invalid');
+  }
+  const documentKeys = new Set();
+  const documentHtml = receiptDocuments.map((document) => {
+    const documentKey = requiredText(
+      document.document_key,
+      120,
+      'v51_receipt_document_key_required',
+    );
+    if (documentKeys.has(documentKey)) {
+      throw new V51ContractReceiptError('v51_receipt_document_duplicate');
+    }
+    documentKeys.add(documentKey);
+    return `
     <section>
-      <h2>${escapeHtml(requiredText(document.document_key, 120, 'v51_receipt_document_key_required'))}</h2>
+      <h2>${escapeHtml(documentKey)}</h2>
       <dl>
         <dt>Version</dt><dd>${escapeHtml(requiredText(document.document_version, 120, 'v51_receipt_document_version_required'))}</dd>
         <dt>Inhalt-Hash</dt><dd>${escapeHtml(requiredHash(document.content_sha256, 'v51_receipt_document_hash_invalid'))}</dd>
       </dl>
       <pre>${escapeHtml(requiredContent(document.content_text, 1_000_000, 'v51_receipt_document_content_required'))}</pre>
-    </section>`).join('');
+    </section>`;
+  }).join('');
+  const sitAcceptanceHtml = sitAcceptance == null
+    ? '<p>ShareItToo bestätigt die Annahme des SIT-Plattformvertrags zum unten genannten Zeitpunkt.</p>'
+    : `<section>
+      <h2>Ausdrückliche SIT-Annahme</h2>
+      <p>${escapeHtml(requiredText(sitAcceptance.wording, 5000, 'v51_receipt_sit_acceptance_required'))}</p>
+      <dl>
+        <dt>Text-Hash</dt><dd>${escapeHtml(requiredHash(sitAcceptance.wordingSha256, 'v51_receipt_sit_acceptance_hash_invalid'))}</dd>
+        <dt>Angenommen</dt><dd>${escapeHtml(iso(sitAcceptance.acceptedAt, 'v51_receipt_sit_acceptance_time_invalid'))}</dd>
+      </dl>
+    </section>`;
   const details = rows.map(([label, value]) => (
     `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd>`
   )).join('');
@@ -103,7 +149,7 @@ export function renderV51ContractReceipt({
 <body>
   <main>
     <h1>ShareItToo Vertragsbestätigung</h1>
-    <p>ShareItToo bestätigt die Annahme des SIT-Plattformvertrags zum unten genannten Zeitpunkt.</p>
+    ${sitAcceptanceHtml}
     <dl>${details}</dl>
     <h2>Ausdrückliche Erklärungen</h2>${declarationHtml}
     <h2>Vertragsdokumente</h2>${documentHtml}

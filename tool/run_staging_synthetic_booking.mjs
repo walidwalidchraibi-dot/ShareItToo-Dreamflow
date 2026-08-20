@@ -350,13 +350,34 @@ export async function createSyntheticBookingFixture({
     });
   }
   const acceptedAt = now.toISOString();
+  const quote = await request(fetchImpl, '/bookings/quote', {
+    method: 'POST',
+    token: renterToken,
+    body: {
+      itemId: listingId,
+      startDate,
+      endDate,
+      ownerDeliversAtDropoffChosen: false,
+      ownerPicksUpAtReturnChosen: false,
+      expressRequested: false,
+    },
+  });
+  if (typeof quote?.quoteId !== 'string'
+      || typeof quote?.quoteHash !== 'string'
+      || !/^[0-9a-f]{64}$/.test(quote.quoteHash)) {
+    fail('The synthetic booking quote is not immutably bound.');
+  }
+  const clientBuild = 'synthetic-review-tool-v52';
   const legalDeclarations = privatePilotRequiredCheckoutDeclarations.map(
-    ({ type, wording }) => ({
+    ({ type, wording, documentReferences }) => ({
       type,
       exactWording: wording,
       documentName: privatePilotCheckoutDocument.name,
       documentVersion: privatePilotCheckoutDocument.version,
-      appVersion: 'synthetic-review-tool',
+      clientBuild,
+      quoteId: quote.quoteId,
+      quoteHash: quote.quoteHash,
+      documentReferences,
       language: privatePilotCheckoutDocument.locale,
       accepted: true,
       acceptedAt,
@@ -372,6 +393,9 @@ export async function createSyntheticBookingFixture({
       startDate,
       endDate,
       privateStatusConfirmed: true,
+      clientBuild,
+      quoteId: quote.quoteId,
+      quoteHash: quote.quoteHash,
       legalDeclarations,
     },
     expected: [201],

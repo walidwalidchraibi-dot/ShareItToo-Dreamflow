@@ -25,6 +25,12 @@ function checkoutDeclarations() {
     documentName: privatePilotCheckoutDocument.name,
     documentVersion: privatePilotCheckoutDocument.version,
     language: privatePilotCheckoutDocument.locale,
+    clientBuild: '1.0.0+2026081510',
+    quoteId: 'quote-1',
+    quoteHash: 'a'.repeat(64),
+    documentReferences: entry.documentReferences.map((reference) => ({
+      ...reference,
+    })),
     accepted: true,
     acceptedAt: '2026-08-14T12:00:00.000Z',
   }));
@@ -83,7 +89,7 @@ test('private listing and booking guardrails reject bypasses', () => {
       legalDeclarations: checkoutDeclarations().slice(0, -1),
     }),
     (error) => error.code ===
-      'v51_exactly_two_declarations_required',
+      'v52_exactly_two_declarations_required',
   );
 });
 

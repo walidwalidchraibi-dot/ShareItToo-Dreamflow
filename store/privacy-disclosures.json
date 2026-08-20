@@ -12,7 +12,7 @@
   "sourceInventory": [
     {
       "path": "pubspec.yaml",
-      "sha256": "a0a38309f9926a3d254b05c0c3498a499d74891b803d4e8239e50fbc979486b5"
+      "sha256": "0de954c4523d6f7a59c94f8856c7ed0bc5bdc9e60228d745b06bcecd3d88d2ff"
     },
     {
       "path": "android/app/src/main/AndroidManifest.xml",
@@ -48,15 +48,15 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "704de255427d3626b2611da64fa75479cdde1871f0d8c174a39c252d388eeeb1"
+      "sha256": "956bdedea57365f89c0651988d9bc1105882ffe20f8018e8220eb5d1d9dd0d0f"
     },
     {
       "path": "backend/src/booking_workflow.js",
-      "sha256": "e45d1b3b78df8a30c194e5a0fc60deaaffe20daddd87ed57a91c3ca0fb02a961"
+      "sha256": "b166c6d2432a47bc7545b2af35097388137d76f4d488cfef6f79df915d4a08b8"
     },
     {
       "path": "backend/src/private_pilot_domain.js",
-      "sha256": "ee244c36e8bf1db23c7a16ce54d9a285b740a36abab2b777abc7d1dbd470b0a7"
+      "sha256": "c2f0806df35bcdab7ae1afb1f4923c00bf4fd6bc618831806c2736a73c927d86"
     },
     {
       "path": "backend/src/v51_contract_workflow.js",
@@ -64,7 +64,11 @@
     },
     {
       "path": "backend/src/v51_contract_receipt.js",
-      "sha256": "fda446610acd69c9ed54abf4969bba03da9acab1acfbabc93855ee51f03db494"
+      "sha256": "aaf9e2544c82a24a3871c269cffbd2dfb15bf131974b3f9ef1de63815db20ac5"
+    },
+    {
+      "path": "backend/src/v52_contract_workflow.js",
+      "sha256": "f23279025fb8388fe4f796ce5f0401195c3798eea8ebaf457669e8bca803e60c"
     },
     {
       "path": "backend/src/v51_termination_domain.js",
@@ -95,6 +99,10 @@
       "sha256": "8ff5dfe3d41517df4d3bd18a0effa30c9f0e41fc3387663cac7b8c5fb96bab07"
     },
     {
+      "path": "backend/sql/migrations/023_v52_contract_binding.up.sql",
+      "sha256": "ad22ad9dd1f07d7b2a4ec7ad45baba50bb24c4b8bf3c6511a7f451d788dd102c"
+    },
+    {
       "path": "backend/src/booking_condition_evidence_workflow.js",
       "sha256": "43d1ed3a27de3738422107ca5c2517db4fc1b8c3b136954b5f7aaf4bd167eda1"
     },
@@ -120,7 +128,27 @@
     },
     {
       "path": "lib/services/backend_repository.dart",
-      "sha256": "60f4599624201ba5661e84b284dd72c21579aa74d909dd7cc8a9f30afc76ac75"
+      "sha256": "93f05b84202a37f910ca5e6777bc98cd6baf03759edca733c28ee41a1f5d20f6"
+    },
+    {
+      "path": "lib/config/private_pilot_config.dart",
+      "sha256": "58a44a65b5cf1e83465b975c63e0d67e3e0e7a8b499d02424299725c351fd28e"
+    },
+    {
+      "path": "lib/models/rental_request.dart",
+      "sha256": "215db2c0864e0b20b4e7bfa3af6b178b86f245d1ab59ad7e86af691983b40b0b"
+    },
+    {
+      "path": "lib/screens/private_pilot_checkout_screen.dart",
+      "sha256": "1a5a56bbb421767f559b477ea6860a47d4ff69b58ceb7ce5e64aa85c310e644a"
+    },
+    {
+      "path": "lib/screens/v52_legal_document_screen.dart",
+      "sha256": "924918e28fe0a8b284e91193b671a0502b3f22c63d4fa4ce0f7f1586203aa15a"
+    },
+    {
+      "path": "lib/screens/bookings_screen.dart",
+      "sha256": "94aca4516978f26727d7ff04447806d070427f17a7a2b70b3177f85fc6dae3bf"
     },
     {
       "path": "lib/screens/payment_methods_screen.dart",
@@ -156,7 +184,7 @@
     },
     {
       "path": "lib/screens/booking_detail_screen.dart",
-      "sha256": "75d0bb5c34f261ee1acd2e6a053e383f3871a97561c8b0a58e31e935fbdcb686"
+      "sha256": "526f7609d8d16d2d555d33c83e40ecb052f7ae383fd21263be948cd9b6f3bb1e"
     },
     {
       "path": "lib/screens/ongoing_owner_detail_screen.dart",
@@ -164,7 +192,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "fd896fbbbac02bc4077692ea294071563aea1ac66330ae993a9bb873e3b6e549"
+      "sha256": "5d726c035a50128c679154c1d236e0cdb99b8d52c48f5bbdccefaea7670e9e58"
     },
     {
       "path": "lib/screens/platform_withdrawal_screen.dart",
@@ -264,7 +292,11 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "46e6d343c89e2c1b20136f67318858b813e0659ff7c6455d409df1f61ecd6e3b"
+      "sha256": "5cd1440f67a6835b0ce647fab8c434d308b32d98c6bd60142efd44f8c4fe78ed"
+    },
+    {
+      "path": "tool/run_staging_synthetic_booking.mjs",
+      "sha256": "face60a9cf8c2acf7ad0763bfaf145b1d9fa8439775876d9fa010abead656e82"
     },
     {
       "path": "lib/screens/create_listing_screen.dart",

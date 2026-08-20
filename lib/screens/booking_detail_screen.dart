@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:crypto/crypto.dart' as dart_crypto;
 import 'package:lendify/screens/message_thread_screen.dart';
 import 'package:lendify/screens/bookings_screen.dart';
 import 'package:lendify/screens/public_profile_screen.dart';
 import 'package:lendify/services/data_service.dart';
 import 'package:lendify/services/backend_config.dart';
+import 'package:lendify/services/backend_http.dart';
+import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/shared_persistence_sync.dart';
 import 'package:lendify/models/invoice.dart';
 import 'package:lendify/services/invoice_pdf_service.dart';
@@ -38,6 +41,7 @@ import 'package:lendify/widgets/sit_glass_time_picker.dart';
 import 'package:lendify/widgets/sit_overflow_menu.dart';
 import 'package:lendify/services/handover_code.dart';
 import 'package:lendify/utils/cancellation_policy_text.dart';
+import 'package:share_plus/share_plus.dart';
 
 class BookingDetailScreen extends StatefulWidget {
   final Map<String, dynamic> booking;
@@ -72,6 +76,127 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
   StreamSubscription<String>? _sharedPersistenceSub;
   final SharedPersistenceRefreshCoordinator _sharedPersistenceRefresh =
       SharedPersistenceRefreshCoordinator();
+
+  Map<String, dynamic>? get _platformContract {
+    if (widget.viewerIsOwner) return null;
+    final raw = widget.booking['platformContract'];
+    return raw is Map ? Map<String, dynamic>.from(raw) : null;
+  }
+
+  Future<void> _sharePlatformContractReceipt() async {
+    final contract = _platformContract;
+    final contractId = contract?['id']?.toString() ?? '';
+    final receiptRaw = contract?['receipt'];
+    final receipt = receiptRaw is Map
+        ? Map<String, dynamic>.from(receiptRaw)
+        : const <String, dynamic>{};
+    final expectedHash = receipt['artifactSha256']?.toString() ?? '';
+    if (contractId.isEmpty || expectedHash.length != 64) {
+      await AppPopup.error(
+        context,
+        title: 'Vertragsbestätigung nicht verfügbar',
+        message:
+            'Der unveränderliche Vertragsbezug ist unvollständig. Es wurde kein Beleg geöffnet.',
+      );
+      return;
+    }
+    try {
+      final downloaded =
+          await BackendRepository.downloadPlatformContractReceipt(contractId);
+      final observedHash =
+          downloaded.headers['x-sit-artifact-sha256']?.trim() ?? '';
+      final contentHash =
+          dart_crypto.sha256.convert(downloaded.bytes).toString();
+      if (observedHash != expectedHash || contentHash != expectedHash) {
+        throw const BackendException(
+          409,
+          'v52_contract_receipt_integrity_failed',
+        );
+      }
+      const filename = 'shareittoo-plattformvertrag.html';
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile.fromData(
+              downloaded.bytes,
+              name: filename,
+              mimeType: 'text/html',
+            ),
+          ],
+          fileNameOverrides: const [filename],
+          subject: 'ShareItToo Vertragsbestätigung',
+          text: 'Dauerhafte Bestätigung deines SIT-Plattformvertrags.',
+          downloadFallbackEnabled: true,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      await AppPopup.error(
+        context,
+        title: 'Vertragsbestätigung nicht geladen',
+        message:
+            'Authentifizierung oder Integritätsprüfung ist fehlgeschlagen. Es wurde kein ungeprüfter Beleg geöffnet.',
+      );
+    }
+  }
+
+  Widget _buildPlatformContractCard(ThemeData theme) {
+    final contract = _platformContract;
+    if (contract == null ||
+        contract['state'] != 'platformContractAccepted' ||
+        contract['sitAcceptance'] is! Map ||
+        contract['receipt'] is! Map) {
+      return const SizedBox.shrink();
+    }
+    final acceptance =
+        Map<String, dynamic>.from(contract['sitAcceptance'] as Map);
+    final acceptedAt = DateTime.tryParse(
+      contract['acceptedAt']?.toString() ?? '',
+    )?.toLocal();
+    return Card(
+      key: const ValueKey('platform-contract-receipt-card'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'SIT-Plattformvertrag angenommen',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(acceptance['wording']?.toString() ?? ''),
+            const SizedBox(height: 6),
+            Text(
+              [
+                contract['contractVersion']?.toString(),
+                if (acceptedAt != null) _dateTimeLabel(acceptedAt),
+              ]
+                  .whereType<String>()
+                  .where((value) => value.isNotEmpty)
+                  .join(' · '),
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              key: const ValueKey('platform-contract-receipt-download'),
+              onPressed: _sharePlatformContractReceipt,
+              icon: const Icon(Icons.download_outlined),
+              label: const Text('Vertragsbestätigung speichern oder teilen'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _dateTimeLabel(DateTime value) {
+    String two(int part) => part.toString().padLeft(2, '0');
+    return '${two(value.day)}.${two(value.month)}.${value.year}, '
+        '${two(value.hour)}:${two(value.minute)} Uhr';
+  }
 
   List<String> get _photos {
     final b = widget.booking;
@@ -1020,6 +1145,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 12),
+        ],
+        if (_platformContract != null) ...[
+          _buildPlatformContractCard(theme),
           const SizedBox(height: 12),
         ],
         // Image carousel
@@ -2396,6 +2525,10 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
             },
           ),
         ),
+        if (_platformContract != null) ...[
+          const SizedBox(height: 12),
+          _buildPlatformContractCard(theme),
+        ],
         // Refund info (only relevant for Storniert)
         if (isCancelled) ...[
           const SizedBox(height: 8),

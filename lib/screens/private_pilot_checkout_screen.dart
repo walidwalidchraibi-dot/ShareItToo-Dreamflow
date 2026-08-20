@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:lendify/config/private_pilot_config.dart';
 import 'package:lendify/models/item.dart';
 import 'package:lendify/models/rental_request.dart';
-import 'package:lendify/screens/legal_screen.dart';
+import 'package:lendify/screens/v52_legal_document_screen.dart';
 import 'package:lendify/services/backend_config.dart';
 import 'package:lendify/services/backend_http.dart';
 import 'package:lendify/services/backend_repository.dart';
@@ -176,23 +176,51 @@ class _PrivatePilotCheckoutScreenState
   }
 
   List<Map<String, dynamic>> _legalDeclarations(DateTime acceptedAt) {
-    Map<String, dynamic> declaration(String type, String exactWording) => {
+    final quoteId =
+        _checkoutQuote?['quoteId']?.toString() ?? 'local-qa-not-server-bound';
+    final quoteHash = _checkoutQuote?['quoteHash']?.toString() ??
+        '0000000000000000000000000000000000000000000000000000000000000000';
+    Map<String, dynamic> reference(String part, String documentKey) => {
+          'part': part,
+          'documentKey': documentKey,
+          'documentVersion': PrivatePilotConfig.v52DocumentVersion,
+        };
+    Map<String, dynamic> declaration(
+      String type,
+      String exactWording,
+      List<Map<String, dynamic>> documentReferences,
+    ) =>
+        {
           'type': type,
           'exactWording': exactWording,
-          'documentName': PrivatePilotConfig.v51DocumentName,
-          'documentVersion': PrivatePilotConfig.v51DocumentVersion,
+          'documentName': PrivatePilotConfig.v52DocumentName,
+          'documentVersion': PrivatePilotConfig.v52DocumentVersion,
           'language': PrivatePilotConfig.language,
+          'clientBuild': PrivatePilotConfig.v52ClientBuild,
+          'quoteId': quoteId,
+          'quoteHash': quoteHash,
+          'documentReferences': documentReferences,
           'accepted': true,
           'acceptedAt': acceptedAt.toIso8601String(),
         };
     return [
       declaration(
         'private_terms_and_platform_terms',
-        PrivatePilotConfig.v51PrivateAndPlatformTermsDeclaration,
+        PrivatePilotConfig.v52PrivateAndPlatformTermsDeclaration,
+        [
+          reference('A', 'platform_terms'),
+          reference('B', 'private_rental_terms'),
+          reference('C', 'cancellation_refund'),
+          reference('D', 'handover_return_damage'),
+        ],
       ),
       declaration(
         'early_performance_and_withdrawal',
-        PrivatePilotConfig.v51EarlyPerformanceAndWithdrawalDeclaration,
+        PrivatePilotConfig.v52EarlyPerformanceAndWithdrawalDeclaration,
+        [
+          reference('A', 'platform_terms'),
+          reference('I', 'imprint_withdrawal_shorttexts'),
+        ],
       ),
     ];
   }
@@ -274,6 +302,19 @@ class _PrivatePilotCheckoutScreenState
         request,
         checkoutQuote: _checkoutQuote,
       );
+      if (_usesRemoteBackend) {
+        final contract = stored.platformContract;
+        final receipt = contract?['receipt'];
+        if (contract?['state'] != 'platformContractAccepted' ||
+            contract?['sitAcceptance'] is! Map ||
+            receipt is! Map ||
+            receipt['artifactSha256']?.toString().length != 64) {
+          throw const BackendException(
+            409,
+            'v52_platform_contract_response_invalid',
+          );
+        }
+      }
       if (!mounted) return;
       final rootNavigator = Navigator.of(context, rootNavigator: true);
       final rootContext = rootNavigator.context;
@@ -282,9 +323,9 @@ class _PrivatePilotCheckoutScreenState
       if (!rootContext.mounted) return;
       await AppPopup.success(
         rootContext,
-        title: 'Buchungsanfrage gesendet',
+        title: 'SIT-Plattformvertrag angenommen',
         message:
-            'Anfrage ${stored.id}: Der Vermieter kann sie jetzt prüfen. Es wurde noch kein echtes Zahlungsmittel belastet.',
+            'ShareItToo hat den SIT-Plattformvertrag ausdrücklich angenommen und die dauerhafte Vertragsbestätigung bereitgestellt. Erst danach wurde Anfrage ${stored.id} an den Vermieter gesendet. Es wurde noch kein echtes Zahlungsmittel belastet.',
       );
     } on BackendException catch (error) {
       if (!mounted) return;
@@ -394,6 +435,14 @@ class _PrivatePilotCheckoutScreenState
             title: 'Buchung vorübergehend nicht verfügbar',
             message:
                 'Buchungsanfragen sind momentan nicht freigeschaltet. Es wurde nichts belastet.',
+            refreshQuote: false,
+          ),
+        'v52_contract_documents_unavailable' ||
+        'v52_platform_contract_response_invalid' =>
+          (
+            title: 'Vertragsabschluss nicht verfügbar',
+            message:
+                'Die V5.2-Rechtstexte oder die dauerhafte Vertragsbestätigung sind noch nicht vollständig und unveränderlich bereitgestellt. Es wurde keine Anfrage gesendet.',
             refreshQuote: false,
           ),
         _ => (
@@ -559,15 +608,70 @@ class _PrivatePilotCheckoutScreenState
             children: [
               TextButton(
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const LegalScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const V52LegalDocumentScreen(
+                      title: 'Plattformbedingungen',
+                      documents: [
+                        V52LegalAsset(
+                          part: 'A',
+                          title: 'Plattform-Nutzungsbedingungen',
+                          assetPath:
+                              'assets/legal/de/v52/part_a_platform_terms.html',
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 child: Text(
-                  'SIT-Plattformbedingungen und Privat-Mietbedingungen · ${PrivatePilotConfig.v51DocumentVersion}',
+                  'SIT-Plattformbedingungen · Teil A · ${PrivatePilotConfig.v52DocumentVersion}',
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const LegalScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const V52LegalDocumentScreen(
+                      title: 'Privat-Mietbedingungen und Regeln',
+                      documents: [
+                        V52LegalAsset(
+                          part: 'B',
+                          title: 'Privat-Mietbedingungen',
+                          assetPath:
+                              'assets/legal/de/v52/part_b_private_rental_terms.html',
+                        ),
+                        V52LegalAsset(
+                          part: 'C',
+                          title: 'Storno und Refund',
+                          assetPath:
+                              'assets/legal/de/v52/part_c_cancellation_refund.html',
+                        ),
+                        V52LegalAsset(
+                          part: 'D',
+                          title: 'Übergabe, Rückgabe und Schaden',
+                          assetPath:
+                              'assets/legal/de/v52/part_d_handover_return_damage.html',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                child: Text(
+                  'Privat-Mietbedingungen und Regeln · Teile B-D · ${PrivatePilotConfig.v52DocumentVersion}',
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const V52LegalDocumentScreen(
+                      title: 'Datenschutzerklärung',
+                      documents: [
+                        V52LegalAsset(
+                          part: 'H',
+                          title: 'Datenschutzerklärung für ShareItToo',
+                          assetPath: 'assets/legal/de/v52/part_h_privacy.html',
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 child: const Text(
                   'Wie SIT deine Daten verarbeitet: Datenschutzerklärung',
@@ -583,10 +687,10 @@ class _PrivatePilotCheckoutScreenState
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
             title: const Text(
-              PrivatePilotConfig.v51PrivateAndPlatformTermsDeclaration,
+              PrivatePilotConfig.v52PrivateAndPlatformTermsDeclaration,
             ),
             subtitle: Text(
-              '${PrivatePilotConfig.v51DocumentName} · ${PrivatePilotConfig.v51DocumentVersion}',
+              '${PrivatePilotConfig.v52DocumentName} · ${PrivatePilotConfig.v52DocumentVersion}',
             ),
           ),
           CheckboxListTile(
@@ -597,7 +701,7 @@ class _PrivatePilotCheckoutScreenState
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
             title: const Text(
-              PrivatePilotConfig.v51EarlyPerformanceAndWithdrawalDeclaration,
+              PrivatePilotConfig.v52EarlyPerformanceAndWithdrawalDeclaration,
             ),
           ),
           const SizedBox(height: 8),

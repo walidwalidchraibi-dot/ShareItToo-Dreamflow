@@ -86,18 +86,45 @@ export async function buildAccountExport(client, userId) {
       `SELECT contract.id, contract.booking_id, contract.quote_id,
               contract.quote_hash, contract.contract_version, contract.locale,
               contract.client_build, contract.accepted_at, contract.created_at,
+              contract.sit_acceptance_wording,
+              contract.sit_acceptance_sha256,
               platform_terms.content_sha256 AS platform_terms_sha256,
-              private_terms.content_sha256 AS private_rental_terms_sha256
+              private_terms.content_sha256 AS private_rental_terms_sha256,
+              cancellation_refund.content_sha256 AS cancellation_refund_sha256,
+              handover_return_damage.content_sha256 AS handover_return_damage_sha256,
+              payment_payout.content_sha256 AS payment_payout_sha256,
+              community_safety.content_sha256 AS community_safety_sha256,
+              reporting_moderation.content_sha256 AS reporting_moderation_review_sha256,
+              privacy.content_sha256 AS privacy_sha256,
+              imprint_withdrawal.content_sha256 AS imprint_withdrawal_shorttexts_sha256
        FROM platform_contracts AS contract
        JOIN legal_document_snapshots AS platform_terms
          ON platform_terms.id = contract.platform_terms_snapshot_id
        JOIN legal_document_snapshots AS private_terms
          ON private_terms.id = contract.private_rental_terms_snapshot_id
+       LEFT JOIN legal_document_snapshots AS cancellation_refund
+         ON cancellation_refund.id = contract.cancellation_refund_snapshot_id
+       LEFT JOIN legal_document_snapshots AS handover_return_damage
+         ON handover_return_damage.id = contract.handover_return_damage_snapshot_id
+       LEFT JOIN legal_document_snapshots AS payment_payout
+         ON payment_payout.id = contract.payment_payout_snapshot_id
+       LEFT JOIN legal_document_snapshots AS community_safety
+         ON community_safety.id = contract.community_safety_snapshot_id
+       LEFT JOIN legal_document_snapshots AS reporting_moderation
+         ON reporting_moderation.id = contract.reporting_moderation_review_snapshot_id
+       LEFT JOIN legal_document_snapshots AS privacy
+         ON privacy.id = contract.privacy_snapshot_id
+       LEFT JOIN legal_document_snapshots AS imprint_withdrawal
+         ON imprint_withdrawal.id = contract.imprint_withdrawal_shorttexts_snapshot_id
        WHERE contract.user_id = $1 ORDER BY contract.accepted_at`, userId),
     rows(client,
       `SELECT declaration.id, declaration.contract_id,
               declaration.declaration_type, declaration.exact_wording,
               declaration.wording_sha256, declaration.accepted_at,
+              declaration.user_id, declaration.booking_id,
+              declaration.document_version, declaration.locale,
+              declaration.client_build, declaration.quote_id,
+              declaration.quote_hash, declaration.document_references,
               declaration.created_at
        FROM platform_contract_declarations AS declaration
        JOIN platform_contracts AS contract ON contract.id = declaration.contract_id

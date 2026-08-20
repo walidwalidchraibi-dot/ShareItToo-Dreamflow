@@ -56,6 +56,14 @@ class PrivatePilotConfig {
       'Ich handle bei dieser Buchung ausschließlich privat und akzeptiere die SIT-Plattformbedingungen sowie die Privat-Mietbedingungen einschließlich Storno-, Übergabe- und Schadenregeln.';
   static const String v51EarlyPerformanceAndWithdrawalDeclaration =
       'Ich verlange ausdrücklich, dass ShareItToo unmittelbar nach Abschluss des Plattformvertrags und vor Ablauf der 14-tägigen Widerrufsfrist mit der Plattformleistung beginnt. Mir ist bekannt, dass mein gesetzliches Widerrufsrecht erlischt, sobald SIT die vereinbarte Plattformleistung vollständig erbracht hat. Mein zusätzliches vertragliches 14-Tage-Lösungsrecht bleibt unberührt.';
+  static const String v52DocumentName =
+      'ShareItToo Rechtsmappe Privat-Launch V5.2';
+  static const String v52DocumentVersion = 'V5.2-2026-08-16';
+  static const String v52ClientBuild = '1.0.0+2026081510';
+  static const String v52PrivateAndPlatformTermsDeclaration =
+      'Ich handle bei dieser Buchung ausschließlich privat und akzeptiere die SIT-Plattformbedingungen [Teil A, Version V5.2-2026-08-16] sowie die Privat-Mietbedingungen einschließlich Storno-, Übergabe- und Schadenregeln [Teile B-D, Version V5.2-2026-08-16].';
+  static const String v52EarlyPerformanceAndWithdrawalDeclaration =
+      'Ich verlange ausdrücklich, dass ShareItToo unmittelbar nach Abschluss des Plattformvertrags und vor Ablauf der 14-tägigen Widerrufsfrist mit der Plattformleistung beginnt. Mir ist bekannt, dass mein gesetzliches Widerrufsrecht erlischt, sobald SIT die vereinbarte Plattformleistung vollständig erbracht hat. Mein zusätzliches vertragliches 14-Tage-Lösungsrecht bleibt unberührt.';
   static const int bookingRequestBindingMinutes = 30;
 
   static const int platformFeeBasisPoints = 1000; // 10.00%
