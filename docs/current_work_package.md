@@ -1,47 +1,58 @@
-# Current Work Package: C1A - V5.2 Delta Audit
+# Current Work Package: C1B - V5.2 Price and Quote Truth
 
-Status: active after the green R1 guidance commit.
+Status: active after the green C1A delta audit.
 
 ## Objective
 
-Compare the verified R0 baseline and current implementation against the two
-authoritative V5.2 documents in the Drive folder `10_C1_V5.2_AFTER_CUTOVER`.
-Produce a read-only `done / open / obsolete / conflict` matrix before any C1
-product implementation.
+Close only the pricing deltas proven open by
+`docs/compliance/c1a-v52-delta-audit-2026-08-20.md`:
+
+- bind every discount to a stable server-side identifier, concrete display
+  label and funding source inside the immutable quote snapshot;
+- make the checkout expose the exact `Preisaufschlüsselung` while keeping the
+  renter total visible without an extra interaction;
+- ensure card, detail, checkout, owner acceptance, cancellation and receipt
+  paths use the same stored cent values rather than current listing state.
 
 ## Baseline and inputs
 
 - Branch: `codex/master-workflow-20260808`; draft PR #7.
-- Verified R0 product baseline: `df62700a4ead526abc5d84edb0139f17fb0c21bc`.
-- Local authority: `AGENTS.md`, `docs/current_state.md`, current code, tests,
-  migrations and validated manifests.
-- Drive authority: V2.3 control/work-package documents plus V5.2 Core and V5.2
-  Legal Map. Treat V5.2 as a specification to audit, not as a one-shot command.
+- R1 guidance commit: `04a9db9df19e88e2fd379cc47606d063134d978b`.
+- C1A result: GREEN for bounded C1B-C1I continuation; release remains HOLD.
+- Authoritative product rules: V5.2 Core sections 1-3 and 14 plus the V5.2
+  Legal Map price and event-flow decisions.
 
 ## Allowed work
 
-- Read code, tests, migrations, manifests and mapped Drive specifications.
-- Run non-mutating searches and focused validation needed to prove status.
-- Write a sanitized C1A audit artifact and update this handover after the audit.
+- Add forward-only schema fields or a new migration for immutable discount
+  evidence if required.
+- Update server quote generation, strict client parsing and price surfaces.
+- Add or update focused backend, Flutter, wiring and PostgreSQL tests.
+- Update hash-bound manifests only for changed inventoried source files while
+  preserving every draft/open/fail-closed status.
 
-## Not allowed in C1A
+## Not allowed in C1B
 
-- No product behavior, schema, legal text, manifest approval or release change.
+- No V5.2 legal-text activation, contract wording change or declaration
+  migration; those belong to C1C/C1D.
 - No production, VPS/OpenClaw, DNS, cloud, payment, Store, provider or live
   traffic action.
-- No signed candidate, deployment, public rollout or destructive Git action.
+- No real-money enablement, signed release upload, public rollout or
+  destructive Git action.
 
 ## Acceptance criteria
 
-- Every material V5.2 requirement is classified as done, open, obsolete or
-  conflict with repository evidence.
-- Dependencies and the smallest safe order for proven-open C1B-C1I slices are
-  explicit.
-- Unresolved legal/product conflicts become a hard stop; no silent assumption.
-- If no conflict exists, continue only into the C1 slices proven open by the
-  audit, in dependency order.
+- The server is the only binding source for discount identity, wording,
+  funding and all monetary values.
+- Discounted and undiscounted canonical V5.2 examples plus cent-rounding cases
+  pass in backend and Flutter tests.
+- The exact checkout label `Preisaufschlüsselung` is present and the total
+  remains visible without opening it.
+- Existing transport/deposit/protection/real-money boundaries remain closed.
+- Full local technical regression and GitHub CI are green after the bounded
+  commit.
 
 ## Expected next transition
 
-GREEN: implement only proven-open C1B-C1I slices. YELLOW/RED: preserve the audit
-and stop at the specific legal/product/account gate.
+GREEN: C1C - V5.2 Legal Registry and Immutable Assets.
+YELLOW/RED: preserve evidence and stop at the exact pricing/schema conflict.
