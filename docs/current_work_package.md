@@ -1,56 +1,59 @@
-# Current Work Package: U0 - Complete / Final Gate
+# Current Work Package: G3A - Same-owner Multi-item Decision
 
-Status: complete after exact local regression and GitHub CI on 20.08.2026.
+Status: **decision and architecture package complete; Walid decision required**
+on 20.08.2026. No productive implementation is authorized or active.
 
-## Verified result
+## Authorization and boundary
 
-- Implementation commit:
-  `d36dc091868a9840e597a7fdc40702a496f81593`.
-- Exact GitHub Actions run:
-  [`32392289397`](https://github.com/walidwalidchraibi-dot/ShareItToo-Dreamflow/actions/runs/32392289397),
-  GREEN for the implementation commit.
-- Backend: 283 PASS with PostgreSQL and real HTTP/access coverage for the
-  read-only cockpit.
-- Flutter: 307 PASS plus one documented skip; Google-only profile, analyzer
-  baseline 223, web debug and Android debug passed.
-- Signed Android candidate and API image publication were skipped.
-- Full implementation and formula handover:
-  `docs/compliance/u0-pilot-cockpit-unit-economics-2026-08-20.md`.
+Walid authorized exactly `G3A_FREIGABE`: inspect the current code, V5.2,
+Rechtsmappe and Growth Master, present no more than three structures for several
+items from the same owner, recommend one and stop for his decision.
 
-## Delivered boundary
+No source runtime, database migration, API, Flutter flow, contract template,
+payment, Store, cloud, VPS, production or provider state was changed. PR #7
+must remain Draft and unmerged. G3B/G3C and every later package remain closed.
 
-The internal `GET /v1/admin/pilot-cockpit` endpoint is active in code only. It
-requires an active `admin` account and the existing Staff-Step-up, accepts an
-explicit bounded period, returns `private, no-store`, has no write counterpart
-and exposes only privacy-minimal aggregates.
+## Delivered decision package
 
-Cash facts and normalized economics are separate. Metrics use integer minor
-units, ISO currencies, no implicit FX and the exact evidence classes `actual`,
-`configured`, `estimated` or `unavailable`. Missing VAT, provider, cloud,
-founder-hours or founder-replacement inputs cannot become zero and keep
-profitability `undetermined`.
+The complete source/code analysis, three-variant comparison and legal/payment/
+evidence/scaling impact record is:
 
-The project funnel does not infer a cart-to-booking conversion without an
-attribution key. Founder hours and escalation quality use manual monthly
-aggregate contracts only; there is no automatic activity tracking and no
-collection endpoint.
+`docs/architecture/g3a-same-owner-multi-item-decision-2026-08-20.md`
 
-## Preserved holds
+The current code is single-item end to end. The G2 cart can contain and recheck
+several lines but deliberately creates no grouped request, reservation, booking
+or payment.
 
-- No production, VPS/OpenClaw/Maximus, SSH, DNS, cloud-console, payment, Store,
-  provider, account, signed-release, deployment or public mutation occurred.
-- PR #7 remains Draft and unmerged.
-- Real Finance inputs, VAT/provider evidence, cloud billing, founder
-  replacement compensation, functional-role assignees/delegates, company
-  account ownership, account RBAC and absence tests remain open.
-- Existing legal, privacy, retention, release, Store and device gates remain
-  fail-closed.
+## Preferred direction
 
-## Required next decision
+**Variant A: one owner booking group with normalized item positions.**
 
-U0 is the end of the authorized autonomous runway. There is no active follow-up
-implementation package. Do not start G3A, grouped booking, G4, G5, P0, A0, AI,
-SIT Business or global work without a new explicit Walid decision.
+- One renter, one owner and one immutable legal/country/currency/payment
+  compatibility key define a group.
+- One itemized group offer, acceptance decision and appointment provide the
+  grouped experience.
+- Existing booking semantics remain normalized positions with immutable quote,
+  evidence, damage, refund and ledger allocation per item.
+- An owner may accept all, reject all or send a partial counter-offer/new quote
+  requiring active renter consent. There is no silent partial acceptance.
+- Private/Business, owners, countries, currencies or legal/payment
+  configurations are never mixed in one group.
+- Historical V5.2 snapshots are not rewritten. A prospective legal/document
+  version and professional review are mandatory before implementation.
 
-The only next gate is Walid's decision on **G3A timing and scope**. Preserve the
-clean branch and this verified rollback state while that decision is open.
+## Alternatives retained for Walid's decision
+
+1. `G3A_ENTSCHEIDUNG_A` - owner group plus item positions (**recommended**).
+2. `G3A_ENTSCHEIDUNG_B` - process coordinator over N independent bookings.
+3. `G3A_ENTSCHEIDUNG_C` - synthetic bundle listing (not recommended).
+
+Variant B preserves more current code but cannot provide one real offer,
+acceptance, payment or lifecycle. Variant C obscures individual inventory,
+quotes, evidence, damage and refunds and is unsuitable for Business/global
+scaling.
+
+## Required next gate
+
+Stop after G3A. Walid must choose one of the three decision tokens above. His
+architecture choice does not itself authorize implementation or live changes;
+a separately bounded implementation/legal package is required afterward.

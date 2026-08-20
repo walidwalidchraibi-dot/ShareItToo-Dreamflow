@@ -108,6 +108,27 @@ Verified: 2026-08-20 on the Mac mini.
 - No production, VPS/OpenClaw, SSH, DNS, cloud-console, payment, Store or
   live-provider mutation was made. The MacBook is not required.
 
+## G3A architecture decision state
+
+- Walid authorized G3A only as a decision and architecture package on
+  2026-08-20. No grouped-booking implementation is authorized or present.
+- The current repository remains single-item from quote and contract through
+  booking, payment allocation, evidence, damage and refund. The G2 cart is not
+  a booking aggregate.
+- The reviewed recommendation is one owner booking group with normalized item
+  positions. It provides one itemized offer/acceptance process while retaining
+  item-specific quote, proof, damage, review, refund and ledger truth.
+- The two retained alternatives are a coordinator over independent bookings
+  and a synthetic bundle listing. Their effects and rejection risks are
+  recorded in
+  `docs/architecture/g3a-same-owner-multi-item-decision-2026-08-20.md`.
+- A group must never mix owners, private/Business workspaces, countries,
+  currencies, legal sets or payment configurations. Historical V5.2 contracts
+  remain immutable.
+- G3A is now stopped at `G3A_ENTSCHEIDUNG_A`, `G3A_ENTSCHEIDUNG_B` or
+  `G3A_ENTSCHEIDUNG_C`. No schema/API/UI/legal/payment work may begin from the
+  recommendation alone.
+
 ## Validation and rollback
 
 - Exact U0 CI is green with PostgreSQL integration and Cockpit HTTP/access
@@ -139,9 +160,10 @@ Verified: 2026-08-20 on the Mac mini.
 ## Next source of truth
 
 There is no active implementation package. `docs/current_work_package.md`
-records the completed U0 gate and the end of the authorized autonomous runway.
-G2A, G2L, G2B and U0 are technically complete; FI0 external role/account
-assignments and all C1I release/device gates remain HOLD. Do not begin G3A or a
-later package until Walid decides its timing and scope. Older reports and root
+records the completed G3A decision package and the mandatory Walid choice.
+G2A, G2L, G2B and U0 remain technically complete; FI0 external role/account
+assignments and all C1I release/device gates remain HOLD. Do not begin G3
+implementation or a later package until Walid selects the architecture and
+separately authorizes the next bounded package. Older reports and root
 `architecture.md` are evidence/history, not permission to reopen a closed
 launch boundary.
