@@ -198,14 +198,16 @@ export async function bindBookingGroupPositionToV52Booking(client, {
     throw new BookingWorkflowError(409, 'booking_group_item_v52_contract_not_found');
   }
   const item = source.rows[0];
+  let inserted;
   try {
-    const inserted = await client.query(
+    inserted = await client.query(
       `INSERT INTO booking_group_position_booking_bindings (
          booking_group_id, group_quote_id, group_quote_hash,
          group_quote_position_id, group_position_id, listing_id,
          booking_id, platform_contract_id, booking_quote_id,
          booking_quote_hash, bound_by_id
        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       ON CONFLICT DO NOTHING
        RETURNING id, created_at`,
       [
         groupId, group.group_quote_id, group.group_quote_hash,
@@ -214,6 +216,13 @@ export async function bindBookingGroupPositionToV52Booking(client, {
         item.booking_quote_hash, actor.id,
       ],
     );
+  } catch (error) {
+    if (error?.code === '23514') {
+      throw new BookingWorkflowError(409, 'booking_group_item_binding_invalid');
+    }
+    throw error;
+  }
+  if (inserted.rowCount) {
     await client.query(
       `INSERT INTO audit_log (
          actor_id, actor_role, action, resource_type, resource_id, metadata
@@ -236,33 +245,26 @@ export async function bindBookingGroupPositionToV52Booking(client, {
       platformContractId: item.platform_contract_id,
       replayed: false,
     });
-  } catch (error) {
-    if (error?.code !== '23505') {
-      if (error?.code === '23514') {
-        throw new BookingWorkflowError(409, 'booking_group_item_binding_invalid');
-      }
-      throw error;
-    }
-    const existing = await client.query(
-      `SELECT id, booking_id, platform_contract_id
-         FROM booking_group_position_booking_bindings
-        WHERE booking_group_id = $1 AND group_position_id = $2`,
-      [groupId, positionId],
-    );
-    const row = existing.rows[0];
-    if (!row || row.booking_id !== itemBookingId
-      || row.platform_contract_id !== item.platform_contract_id) {
-      throw new BookingWorkflowError(409, 'booking_group_item_binding_changed');
-    }
-    return Object.freeze({
-      id: row.id,
-      bookingGroupId: groupId,
-      groupPositionId: positionId,
-      bookingId: itemBookingId,
-      platformContractId: item.platform_contract_id,
-      replayed: true,
-    });
   }
+  const existing = await client.query(
+    `SELECT id, booking_id, platform_contract_id
+       FROM booking_group_position_booking_bindings
+      WHERE booking_group_id = $1 AND group_position_id = $2`,
+    [groupId, positionId],
+  );
+  const row = existing.rows[0];
+  if (!row || row.booking_id !== itemBookingId
+    || row.platform_contract_id !== item.platform_contract_id) {
+    throw new BookingWorkflowError(409, 'booking_group_item_binding_changed');
+  }
+  return Object.freeze({
+    id: row.id,
+    bookingGroupId: groupId,
+    groupPositionId: positionId,
+    bookingId: itemBookingId,
+    platformContractId: item.platform_contract_id,
+    replayed: true,
+  });
 }
 
 export async function scheduleBookingGroupAppointments(client, {

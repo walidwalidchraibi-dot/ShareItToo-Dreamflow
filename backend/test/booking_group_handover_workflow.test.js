@@ -138,6 +138,7 @@ test('G3D route exposes the overlay but binding stays an internal materializer s
   assert.match(workflow, /v52_return_cases/u);
   assert.match(workflow, /booking_group\.item_v52_booking_bound/u);
   assert.match(workflow, /booking_group\.shared_appointments_scheduled/u);
+  assert.match(workflow, /ON CONFLICT DO NOTHING[\s\S]*RETURNING id, created_at/u);
   assert.match(workflow, /message_threads AS thread ON thread\.booking_id/u);
   assert.match(workflow, /groupNeedsReview: null/u);
   assert.match(workflow, /itemReviewIsolation: true/u);
