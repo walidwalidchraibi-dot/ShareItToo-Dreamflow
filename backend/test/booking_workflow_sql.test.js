@@ -50,6 +50,29 @@ test('private booking eligibility is rechecked from persisted state at quote, re
   );
   assert.match(
     source,
-    /listingForBooking\(client, row\.listing_id, \{ lock: true \}\)[\s\S]*allowedRegions: config\.privatePilot\?\.allowedRegions/u,
+    /listingForBooking\(client, row\.listing_id, \{\s+lock: true,\s+participantIds: \[row\.renter_id\],[\s\S]*allowedRegions: config\.privatePilot\?\.allowedRegions/u,
+  );
+});
+
+test('locked booking paths serialize users before listings in a deterministic order', async () => {
+  const source = await readFile(workflowPath, 'utf8');
+  const helperStart = source.indexOf('async function listingForBooking');
+  const helperEnd = source.indexOf('async function assertPrivatePilotBookingEligibility');
+  const helper = helperStart >= 0 && helperEnd > helperStart
+    ? source.slice(helperStart, helperEnd)
+    : '';
+
+  assert.notEqual(helper, '');
+  assert.match(helper, /ORDER BY id\s+FOR UPDATE/u);
+  assert.match(helper, /FOR UPDATE OF listing/u);
+  assert.doesNotMatch(helper, /FOR UPDATE OF listing, owner/u);
+  assert.ok(helper.indexOf('ORDER BY id') < helper.indexOf('FOR UPDATE OF listing'));
+  assert.match(
+    source,
+    /listingForBooking\(client, listingId, \{\s+lock: true,\s+participantIds: \[actor\.id\]/u,
+  );
+  assert.match(
+    source,
+    /listingForBooking\(client, row\.listing_id, \{\s+lock: true,\s+participantIds: \[row\.renter_id\]/u,
   );
 });

@@ -534,16 +534,21 @@ async function requirePrivatePilotListingOwner(client, ownerId) {
 
 async function requirePrivatePilotStoredListing(client, listingId, ownerId) {
   if (!config.privatePilotV4Enabled) return;
+  const owner = await client.query(
+    `SELECT private_use_confirmed_at, private_marketplace_review_status
+       FROM users
+      WHERE id = $1 AND deactivated_at IS NULL AND account_status = 'active'
+      FOR UPDATE`,
+    [ownerId],
+  );
+  if (!owner.rowCount) throw new HttpError(404, 'user_not_found');
   const result = await client.query(
     `SELECT listing.category_id, listing.subcategory, listing.city,
             listing.country, listing.private_status_confirmed_at,
-            listing.private_pilot_region_code,
-            owner.private_use_confirmed_at,
-            owner.private_marketplace_review_status
+            listing.private_pilot_region_code
        FROM listings AS listing
-       JOIN users AS owner ON owner.id = listing.owner_id
       WHERE listing.id = $1 AND listing.owner_id = $2
-      FOR UPDATE OF listing, owner`,
+      FOR UPDATE OF listing`,
     [listingId, ownerId],
   );
   if (!result.rowCount) throw new HttpError(404, 'listing_not_found');
@@ -556,8 +561,8 @@ async function requirePrivatePilotStoredListing(client, listingId, ownerId) {
       country: row.country,
       privateStatusConfirmedAt: row.private_status_confirmed_at,
       pilotRegionCode: row.private_pilot_region_code,
-      ownerPrivateUseConfirmedAt: row.private_use_confirmed_at,
-      ownerPrivateMarketplaceReviewStatus: row.private_marketplace_review_status,
+      ownerPrivateUseConfirmedAt: owner.rows[0].private_use_confirmed_at,
+      ownerPrivateMarketplaceReviewStatus: owner.rows[0].private_marketplace_review_status,
     }, { allowedRegions: config.privatePilot.allowedRegions });
   } catch (error) {
     translatePrivatePilotEligibilityError(error);
