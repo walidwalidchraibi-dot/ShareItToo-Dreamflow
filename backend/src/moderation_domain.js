@@ -7,6 +7,7 @@ const REVIEW_CRITERIA = Object.freeze([
   'article_as_described',
   'handover_return',
 ]);
+const MODERATION_DETECTION_METHODS = new Set(['human', 'automated', 'hybrid']);
 
 const REPORT_TRANSITIONS = Object.freeze({
   support: Object.freeze({
@@ -113,6 +114,64 @@ export function assertReportTransition({ role, fromStatus, toStatus, resolution 
       && (!resolution || typeof resolution !== 'object' || Array.isArray(resolution))) {
     throw new ModerationDomainError(400, 'report_resolution_required');
   }
+}
+
+export function moderationReviewDeadline(issuedAt) {
+  const date = issuedAt instanceof Date ? new Date(issuedAt) : new Date(issuedAt);
+  if (!Number.isFinite(date.getTime())) {
+    throw new ModerationDomainError(400, 'moderation_decision_time_invalid');
+  }
+  const day = date.getUTCDate();
+  date.setUTCDate(1);
+  date.setUTCMonth(date.getUTCMonth() + 6);
+  const lastDay = new Date(Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth() + 1,
+    0,
+  )).getUTCDate();
+  date.setUTCDate(Math.min(day, lastDay));
+  return date;
+}
+
+export function normalizeModerationDecisionInput(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new ModerationDomainError(400, 'moderation_decision_required');
+  }
+  const detectionMethod = requiredText(
+    raw.detectionMethod,
+    30,
+    'moderation_detection_method_required',
+  ).toLowerCase();
+  if (!MODERATION_DETECTION_METHODS.has(detectionMethod)) {
+    throw new ModerationDomainError(400, 'moderation_detection_method_invalid');
+  }
+  const automatedMeans = optionalText(
+    raw.automatedMeans,
+    2000,
+    'moderation_automated_means_invalid',
+  );
+  if (detectionMethod === 'human' && automatedMeans) {
+    throw new ModerationDomainError(400, 'moderation_automated_means_not_applicable');
+  }
+  if (detectionMethod !== 'human' && !automatedMeans) {
+    throw new ModerationDomainError(400, 'moderation_automated_means_required');
+  }
+  return Object.freeze({
+    facts: requiredText(raw.facts, 8000, 'moderation_facts_required'),
+    basis: requiredText(raw.basis, 2000, 'moderation_basis_required'),
+    reasoning: requiredText(raw.reasoning, 8000, 'moderation_reasoning_required'),
+    detectionMethod,
+    automatedMeans,
+  });
+}
+
+export function normalizeModerationReviewRequestInput(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new ModerationDomainError(400, 'moderation_review_request_invalid');
+  }
+  return Object.freeze({
+    reason: requiredText(raw.reason, 8000, 'moderation_review_reason_required'),
+  });
 }
 
 export function normalizeReviewInput(raw) {

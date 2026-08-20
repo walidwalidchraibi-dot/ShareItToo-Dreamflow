@@ -90,6 +90,92 @@ export const privatePilotAllowedCategoryIds = Object.freeze(new Set([
   'cat12', 'cat14', 'cat15', 'cat16', 'cat17', 'cat20', 'cat22', 'cat23',
 ]));
 
+export const privatePilotAllowedSubcategories = Object.freeze({
+  cat1: Object.freeze(['Smartphones', 'Tablets', 'Wearables', 'Audio', 'Zubehör']),
+  cat2: Object.freeze(['Laptops', 'Desktops', 'Monitore', 'Drucker', 'Netzwerk']),
+  cat3: Object.freeze(['Kameras', 'Objektive', 'Stative', 'Licht']),
+  cat4: Object.freeze(['Konsolen', 'Gaming-PC', 'VR', 'Lenkräder', 'Retro']),
+  cat5: Object.freeze(['Staubsauger', 'Mixer', 'Kaffeemaschinen', 'Waschmaschinen', 'Trockner']),
+  cat6: Object.freeze(['Sofas', 'Tische', 'Stühle', 'Beleuchtung', 'Deko']),
+  cat7: Object.freeze(['Rasenmäher', 'Heckenscheren', 'Gartengeräte', 'Bewässerung', 'Pflanzkisten']),
+  cat8: Object.freeze(['Handwerkzeuge', 'Elektrowerkzeuge', 'Bohrmaschinen', 'Sägen', 'Schleifer']),
+  cat12: Object.freeze(['Kleidung', 'Taschen', 'Schuhe', 'Schmuck', 'Uhren']),
+  cat14: Object.freeze(['Gitarren', 'Tastaturen', 'Schlagzeug', 'Blasinstrumente', 'Studio']),
+  cat15: Object.freeze(['Bücher', 'Filme', 'Spiele', 'Hörbücher', 'Magazine']),
+  cat16: Object.freeze(['Ringe', 'Ketten', 'Uhren', 'Ohrringe', 'Sets']),
+  cat17: Object.freeze(['Gemälde', 'Skulpturen', 'Drucke', 'Figuren', 'Seltenes']),
+  cat20: Object.freeze(['Bürotechnik', 'Präsentation', 'Werkstatt', 'Lager', 'Zubehör']),
+  cat22: Object.freeze(['Party-Deko', 'Eventtechnik', 'Tische & Stühle', 'Pavillons', 'Buffet & Catering']),
+  cat23: Object.freeze(['Zelte', 'Schlafsäcke', 'Rucksäcke & Koffer', 'Campingküche', 'Outdoor-Zubehör']),
+});
+
+export const privatePilotAllowedCatalogKeys = Object.freeze(
+  Object.entries(privatePilotAllowedSubcategories).flatMap(([categoryId, subcategories]) => (
+    subcategories.map((subcategory) => `${categoryId}\u001f${subcategory}`)
+  )),
+);
+
+export function normalizePrivatePilotRegion(value) {
+  return typeof value === 'string'
+    ? value.trim().normalize('NFKC').toLocaleLowerCase('de-DE').replace(/\s+/gu, ' ')
+    : '';
+}
+
+function allowedRegionSet(values) {
+  const source = values instanceof Set ? [...values] : (Array.isArray(values) ? values : []);
+  return new Set(source.map(normalizePrivatePilotRegion).filter(Boolean));
+}
+
+export function privatePilotCatalogKey(categoryId, subcategory) {
+  return `${String(categoryId ?? '').trim()}\u001f${String(subcategory ?? '').trim()}`;
+}
+
+export function assertPrivatePilotCatalogEntry(raw, { allowedRegions = [] } = {}) {
+  const categoryId = String(raw?.categoryId ?? '').trim();
+  if (!privatePilotAllowedCategoryIds.has(categoryId)) {
+    throw new PrivatePilotValidationError('private_pilot_category_not_allowed');
+  }
+  if (!privatePilotAllowedCatalogKeys.includes(
+    privatePilotCatalogKey(categoryId, raw?.subcategory),
+  )) {
+    throw new PrivatePilotValidationError('private_pilot_subcategory_not_allowed');
+  }
+  const country = String(raw?.country ?? '').trim().toLowerCase();
+  if (!['de', 'deutschland', 'germany'].includes(country)) {
+    throw new PrivatePilotValidationError('private_pilot_country_not_allowed');
+  }
+  const regionCode = normalizePrivatePilotRegion(raw?.city);
+  if (!regionCode || !allowedRegionSet(allowedRegions).has(regionCode)) {
+    throw new PrivatePilotValidationError('private_pilot_region_not_allowed');
+  }
+  return Object.freeze({ categoryId, regionCode });
+}
+
+export function assertPrivatePilotAccountState(raw) {
+  if (!raw?.privateUseConfirmedAt) {
+    throw new PrivatePilotValidationError('private_pilot_account_declaration_required');
+  }
+  if (String(raw?.privateMarketplaceReviewStatus ?? 'clear') !== 'clear') {
+    throw new PrivatePilotValidationError('private_pilot_commercial_review_blocked');
+  }
+  return true;
+}
+
+export function assertPrivatePilotStoredListing(raw, { allowedRegions = [] } = {}) {
+  assertPrivatePilotAccountState({
+    privateUseConfirmedAt: raw?.ownerPrivateUseConfirmedAt,
+    privateMarketplaceReviewStatus: raw?.ownerPrivateMarketplaceReviewStatus,
+  });
+  if (!raw?.privateStatusConfirmedAt) {
+    throw new PrivatePilotValidationError('private_pilot_listing_declaration_required');
+  }
+  const { regionCode } = assertPrivatePilotCatalogEntry(raw, { allowedRegions });
+  if (String(raw?.pilotRegionCode ?? '') !== regionCode) {
+    throw new PrivatePilotValidationError('private_pilot_listing_region_unbound');
+  }
+  return true;
+}
+
 export class PrivatePilotValidationError extends Error {
   constructor(code) {
     super(code);
@@ -97,18 +183,11 @@ export class PrivatePilotValidationError extends Error {
   }
 }
 
-export function assertPrivatePilotListing(raw) {
+export function assertPrivatePilotListing(raw, { allowedRegions = [] } = {}) {
   if (raw?.privateStatusConfirmed !== true) {
     throw new PrivatePilotValidationError('private_status_confirmation_required');
   }
-  const categoryId = String(raw?.categoryId ?? '').trim();
-  if (!privatePilotAllowedCategoryIds.has(categoryId)) {
-    throw new PrivatePilotValidationError('private_pilot_category_not_allowed');
-  }
-  const country = String(raw?.country ?? '').trim().toLowerCase();
-  if (!['de', 'deutschland', 'germany'].includes(country)) {
-    throw new PrivatePilotValidationError('private_pilot_country_not_allowed');
-  }
+  assertPrivatePilotCatalogEntry(raw, { allowedRegions });
   if (raw?.offersDeliveryAtDropoff === true
       || raw?.offersPickupAtReturn === true
       || raw?.offersExpressAtDropoff === true
@@ -119,9 +198,11 @@ export function assertPrivatePilotListing(raw) {
   return true;
 }
 
-export function privatePilotListingFields(raw) {
+export function privatePilotListingFields(raw, { allowedRegions = [] } = {}) {
+  const { regionCode } = assertPrivatePilotCatalogEntry(raw, { allowedRegions });
   return Object.freeze({
     privateStatusConfirmed: raw?.privateStatusConfirmed === true,
+    pilotRegionCode: regionCode,
     offersDeliveryAtDropoff: false,
     offersPickupAtReturn: false,
     offersExpressAtDropoff: false,

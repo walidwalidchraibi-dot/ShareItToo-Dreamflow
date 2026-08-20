@@ -124,6 +124,13 @@ import {
   updateStaffReport,
   verifyStaffElevation,
 } from './moderation_workflow.js';
+import {
+  listMyModerationDecisions,
+  listStaffModerationReviewRequests,
+  resolveModerationReviewRequest,
+  setPrivateMarketplaceReviewStatus,
+  submitModerationReviewRequest,
+} from './moderation_decision_workflow.js';
 import { publishToAll, publishToUsers } from './realtime.js';
 import {
   inspectRetentionInventory,
@@ -136,8 +143,12 @@ import {
 } from './financial_documents.js';
 import { releaseMetadata } from './release.js';
 import {
+  assertPrivatePilotAccountState,
+  assertPrivatePilotStoredListing,
+  privatePilotAllowedCatalogKeys,
   privatePilotDeclarations,
   privatePilotDocument,
+  PrivatePilotValidationError,
 } from './private_pilot_domain.js';
 import { v52ContractDocumentReadiness } from './v52_contract_workflow.js';
 import {
@@ -167,6 +178,12 @@ import {
 import { errorPayload, requestContext, safeErrorLog } from './observability.js';
 import { buildAccountExport } from './privacy_export.js';
 import { createMapsProxy, MapsProxyError } from './maps_proxy.js';
+import {
+  ComplianceReviewError,
+  getProfessionalReviewStatus,
+  recordComplianceReserveAttestation,
+  recordProfessionalReviewIncident,
+} from './compliance_review.js';
 import {
   SocialAuthError,
   verifyFirebaseSocialToken,
@@ -453,6 +470,7 @@ function listingPayload(raw, {
           }
         : null,
       privatePilot: config.privatePilotV4Enabled,
+      privatePilotAllowedRegions: config.privatePilot.allowedRegions,
     });
   } catch (error) {
     if (error instanceof ListingValidationError) {
@@ -475,6 +493,7 @@ function listingProjectionValues(payload) {
     projection.locationText,
     projection.city,
     projection.country,
+    projection.pilotRegionCode,
     projection.latitude,
     projection.longitude,
     projection.minDays,
@@ -484,6 +503,65 @@ function listingProjectionValues(payload) {
     projection.publishedAt,
     projection.endedAt,
   ];
+}
+
+function translatePrivatePilotEligibilityError(error) {
+  if (error instanceof PrivatePilotValidationError) {
+    throw new HttpError(409, error.code);
+  }
+  throw error;
+}
+
+async function requirePrivatePilotListingOwner(client, ownerId) {
+  if (!config.privatePilotV4Enabled) return;
+  const result = await client.query(
+    `SELECT private_use_confirmed_at, private_marketplace_review_status
+       FROM users
+      WHERE id = $1 AND deactivated_at IS NULL AND account_status = 'active'
+      FOR UPDATE`,
+    [ownerId],
+  );
+  if (!result.rowCount) throw new HttpError(404, 'user_not_found');
+  try {
+    assertPrivatePilotAccountState({
+      privateUseConfirmedAt: result.rows[0].private_use_confirmed_at,
+      privateMarketplaceReviewStatus: result.rows[0].private_marketplace_review_status,
+    });
+  } catch (error) {
+    translatePrivatePilotEligibilityError(error);
+  }
+}
+
+async function requirePrivatePilotStoredListing(client, listingId, ownerId) {
+  if (!config.privatePilotV4Enabled) return;
+  const result = await client.query(
+    `SELECT listing.category_id, listing.subcategory, listing.city,
+            listing.country, listing.private_status_confirmed_at,
+            listing.private_pilot_region_code,
+            owner.private_use_confirmed_at,
+            owner.private_marketplace_review_status
+       FROM listings AS listing
+       JOIN users AS owner ON owner.id = listing.owner_id
+      WHERE listing.id = $1 AND listing.owner_id = $2
+      FOR UPDATE OF listing, owner`,
+    [listingId, ownerId],
+  );
+  if (!result.rowCount) throw new HttpError(404, 'listing_not_found');
+  const row = result.rows[0];
+  try {
+    assertPrivatePilotStoredListing({
+      categoryId: row.category_id,
+      subcategory: row.subcategory,
+      city: row.city,
+      country: row.country,
+      privateStatusConfirmedAt: row.private_status_confirmed_at,
+      pilotRegionCode: row.private_pilot_region_code,
+      ownerPrivateUseConfirmedAt: row.private_use_confirmed_at,
+      ownerPrivateMarketplaceReviewStatus: row.private_marketplace_review_status,
+    }, { allowedRegions: config.privatePilot.allowedRegions });
+  } catch (error) {
+    translatePrivatePilotEligibilityError(error);
+  }
 }
 
 async function bindListingUploads(client, { listingId, ownerId, photos, requirePhoto }) {
@@ -543,6 +621,21 @@ function buildCatalogSearch(search) {
     "listing.status = 'active'",
     "listing.moderation_status = 'active'",
   ];
+  if (config.privatePilotV4Enabled) {
+    clauses.push(
+      'listing.private_status_confirmed_at IS NOT NULL',
+      `listing.private_pilot_region_code = ANY(${bind(config.privatePilot.allowedRegions)}::text[])`,
+      `concat(listing.category_id, E'\\x1f', listing.subcategory) = ANY(${bind(privatePilotAllowedCatalogKeys)}::text[])`,
+      `EXISTS (
+        SELECT 1 FROM users AS pilot_owner
+        WHERE pilot_owner.id = listing.owner_id
+          AND pilot_owner.deactivated_at IS NULL
+          AND pilot_owner.account_status = 'active'
+          AND pilot_owner.private_use_confirmed_at IS NOT NULL
+          AND pilot_owner.private_marketplace_review_status = 'clear'
+      )`,
+    );
+  }
   let distanceExpression = 'NULL::double precision';
   if (search.latitude !== null && search.longitude !== null) {
     const latitude = bind(search.latitude);
@@ -2614,20 +2707,21 @@ export function createApp({
     const financials = listingFinancials(payload);
     const projection = listingProjectionValues(payload);
     const result = await inTransaction(async (client) => {
+      await requirePrivatePilotListingOwner(client, req.auth.userId);
       const inserted = await client.query(
         `INSERT INTO listings (
            id, owner_id, payload, currency, price_per_day_minor,
            security_deposit_minor, catalog_version, catalog_revision,
            status, is_active, title, description,
            category_id, subcategory, condition, location_text, city, country,
-           latitude, longitude, min_days, max_days, handover_radius_km,
+           private_pilot_region_code, latitude, longitude, min_days, max_days, handover_radius_km,
            protection_model, published_at, ended_at, created_at
          )
          VALUES (
            $1, $2, $3::jsonb, $4, $5, $6, 1, 1,
            $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-           $17, $18, $19, $20, $21, $22, $23::timestamptz,
-           $24::timestamptz, $25::timestamptz
+           $17, $18, $19, $20, $21, $22, $23, $24::timestamptz,
+           $25::timestamptz, $26::timestamptz
          )
          RETURNING payload`,
         [
@@ -2687,6 +2781,7 @@ export function createApp({
     const financials = listingFinancials(payload);
     const projection = listingProjectionValues(payload);
     const result = await inTransaction(async (client) => {
+      await requirePrivatePilotListingOwner(client, req.auth.userId);
       const updated = await client.query(
         `UPDATE listings
          SET payload = $2::jsonb, currency = $3,
@@ -2695,11 +2790,12 @@ export function createApp({
              status = $6, is_active = $7, title = $8, description = $9,
              category_id = $10, subcategory = $11, condition = $12,
              location_text = $13, city = $14, country = $15,
-             latitude = $16, longitude = $17, min_days = $18,
-             max_days = $19, handover_radius_km = $20,
-             protection_model = $21,
-             published_at = CASE WHEN $6 = 'active' THEN COALESCE(published_at, $22::timestamptz) ELSE published_at END,
-             ended_at = $23::timestamptz
+             private_pilot_region_code = $16,
+             latitude = $17, longitude = $18, min_days = $19,
+             max_days = $20, handover_radius_km = $21,
+             protection_model = $22,
+             published_at = CASE WHEN $6 = 'active' THEN COALESCE(published_at, $23::timestamptz) ELSE published_at END,
+             ended_at = $24::timestamptz
          WHERE id = $1
          RETURNING payload`,
         [
@@ -2747,6 +2843,7 @@ export function createApp({
     const isActive = status === 'active';
     const result = await inTransaction(async (client) => {
       if (isActive) {
+        await requirePrivatePilotStoredListing(client, id, req.auth.userId);
         const media = await client.query(
           `SELECT 1 FROM uploads
            WHERE listing_id = $1 AND owner_id = $2
@@ -2868,6 +2965,7 @@ export function createApp({
       actorId: req.auth.userId,
       raw: req.body,
       privatePilot: config.privatePilotV4Enabled,
+      privatePilotAllowedRegions: config.privatePilot.allowedRegions,
     }));
     const contractDocumentsAvailable = config.payments.transport === 'stripe'
       ? (await inTransaction((client) => v52ContractDocumentReadiness(client))).ready
@@ -2887,6 +2985,7 @@ export function createApp({
       raw: req.body,
       key: req.get('Idempotency-Key'),
       privatePilot: config.privatePilotV4Enabled,
+      privatePilotAllowedRegions: config.privatePilot.allowedRegions,
     }), { deadlockRetries: 2 });
     publishToUsers([result.booking.ownerId, result.booking.renterId], {
       type: 'changed',
@@ -3457,6 +3556,20 @@ export function createApp({
     res.json({ reports: await listMyReports(pool, req.auth.userId) });
   }));
 
+  app.get('/v1/moderation/decisions', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    res.json({ decisions: await listMyModerationDecisions(pool, req.auth.userId) });
+  }));
+
+  app.post('/v1/moderation/decisions/:id/review', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => submitModerationReviewRequest(client, {
+      actor: req.actor,
+      decisionId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
   app.post('/v1/messages/:id/reports', requireAuth, requireActiveAccount, asyncRoute(async (req, res) => {
     const result = await inTransaction((client) => createReport(client, {
       actor: req.actor,
@@ -3807,6 +3920,28 @@ export function createApp({
     res.json({ inventory });
   }));
 
+  app.get('/v1/admin/compliance/professional-review', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (_req, res) => {
+    res.json({ status: await getProfessionalReviewStatus(pool) });
+  }));
+
+  app.post('/v1/admin/compliance/reserve-attestations', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => recordComplianceReserveAttestation(client, {
+      actor: req.actor,
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.post('/v1/admin/compliance/professional-review-incidents', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => recordProfessionalReviewIncident(client, {
+      actor: req.actor,
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
   app.get('/v1/admin/legal-holds', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
     res.json({ legalHolds: await listAccountLegalHolds(pool, { actor: req.actor, ...req.query }) });
   }));
@@ -3840,6 +3975,35 @@ export function createApp({
     }));
     publishToUsers([safeText(req.params.id, 120)], { type: 'changed', resource: 'profiles' });
     res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
+  app.put('/v1/admin/users/:id/private-marketplace-review', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => setPrivateMarketplaceReviewStatus(client, {
+      actor: req.actor,
+      userId: safeText(req.params.id, 120),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    publishToUsers([safeText(req.params.id, 120)], { type: 'changed', resource: 'profiles' });
+    res.json(result);
+  }));
+
+  app.get('/v1/admin/moderation/reviews', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    res.json({
+      reviewRequests: await listStaffModerationReviewRequests(pool, {
+        status: req.query.status,
+      }),
+    });
+  }));
+
+  app.post('/v1/admin/moderation/reviews/:id/resolve', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
+    const result = await inTransaction((client) => resolveModerationReviewRequest(client, {
+      actor: req.actor,
+      reviewRequestId: safeText(req.params.id, 80),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }));
+    res.json(result);
   }));
 
   app.post('/v1/admin/suspensions/:id/lift', requireAuth, requireActiveAccount, requireStaffElevation, asyncRoute(async (req, res) => {
@@ -4079,14 +4243,14 @@ export function createApp({
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError || error instanceof ComplianceReviewError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });

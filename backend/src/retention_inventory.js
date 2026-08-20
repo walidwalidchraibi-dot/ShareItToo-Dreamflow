@@ -111,6 +111,10 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'moderation', 'moderation_case_events', count(*)::bigint, min(created_at), max(created_at) FROM moderation_case_events
        UNION ALL SELECT 'moderation', 'moderation_actions', count(*)::bigint, min(created_at), max(created_at) FROM moderation_actions
        UNION ALL SELECT 'moderation', 'user_suspensions', count(*)::bigint, min(created_at), max(created_at) FROM user_suspensions
+       UNION ALL SELECT 'moderation', 'private_marketplace_review_events', count(*)::bigint, min(created_at), max(created_at) FROM private_marketplace_review_events
+       UNION ALL SELECT 'moderation', 'moderation_decisions', count(*)::bigint, min(created_at), max(created_at) FROM moderation_decisions
+       UNION ALL SELECT 'moderation', 'moderation_review_requests', count(*)::bigint, min(submitted_at), max(updated_at) FROM moderation_review_requests
+       UNION ALL SELECT 'moderation', 'moderation_review_events', count(*)::bigint, min(created_at), max(created_at) FROM moderation_review_events
        UNION ALL SELECT 'moderation', 'v52_return_cases', count(*)::bigint, min(t1), max(created_at) FROM v52_return_cases
        UNION ALL SELECT 'moderation', 'v52_return_case_evidence', count(*)::bigint, min(created_at), max(created_at) FROM v52_return_case_evidence
        UNION ALL SELECT 'moderation', 'v52_return_case_events', count(*)::bigint, min(occurred_at), max(created_at) FROM v52_return_case_events
@@ -119,6 +123,8 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'securityAudit', 'notification_delivery_attempts', count(*)::bigint, min(created_at), max(created_at)
          FROM notification_delivery_attempts
        UNION ALL SELECT 'securityAudit', 'auth_sessions', count(*)::bigint, min(created_at), max(last_seen_at) FROM auth_sessions
+       UNION ALL SELECT 'securityAudit', 'compliance_reserve_attestations', count(*)::bigint, min(recorded_at), max(recorded_at) FROM compliance_reserve_attestations
+       UNION ALL SELECT 'securityAudit', 'compliance_professional_review_incidents', count(*)::bigint, min(recorded_at), max(recorded_at) FROM compliance_professional_review_incidents
        UNION ALL SELECT 'legalHold', 'account_legal_holds', count(*)::bigint, min(created_at), max(COALESCE(released_at, created_at))
          FROM account_legal_holds
      )

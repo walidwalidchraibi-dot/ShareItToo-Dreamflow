@@ -7,8 +7,9 @@ export async function buildAccountExport(client, userId) {
   const accountResult = await client.query(
     `SELECT id, email, profile, role, account_status, phone_e164,
             email_verified_at, phone_verified_at, terms_accepted_at,
-            privacy_accepted_at, minimum_age_confirmed_at, created_at,
-            updated_at, password_changed_at
+            privacy_accepted_at, minimum_age_confirmed_at,
+            private_use_confirmed_at, private_marketplace_review_status,
+            created_at, updated_at, password_changed_at
      FROM users WHERE id = $1`,
     [userId],
   );
@@ -55,6 +56,9 @@ export async function buildAccountExport(client, userId) {
     notifications,
     reviews,
     reports,
+    privateMarketplaceReviewEvents,
+    moderationDecisions,
+    moderationReviewRequests,
     blocks,
     payments,
     refunds,
@@ -80,7 +84,8 @@ export async function buildAccountExport(client, userId) {
     rows(client,
       `SELECT id, payload, status, is_active, currency, price_per_day_minor,
               security_deposit_minor, moderation_status,
-              moderation_reason_code, created_at, updated_at
+              moderation_reason_code, private_status_confirmed_at,
+              private_pilot_region_code, created_at, updated_at
        FROM listings WHERE owner_id = $1 ORDER BY created_at`, userId),
     rows(client,
       `SELECT id, listing_id,
@@ -416,6 +421,22 @@ export async function buildAccountExport(client, userId) {
               priority, reporter_reference, created_at, updated_at, closed_at
        FROM reports WHERE reporter_id = $1 ORDER BY created_at`, userId),
     rows(client,
+      `SELECT id, from_status, to_status, reason_code, created_at
+       FROM private_marketplace_review_events
+       WHERE user_id = $1 ORDER BY created_at, id`, userId),
+    rows(client,
+      `SELECT id, report_id, target_type, target_id, measure_type,
+              measure_state, facts, basis, reasoning, detection_method,
+              automated_means, review_available, review_deadline_at, created_at
+       FROM moderation_decisions
+       WHERE recipient_user_id = $1 ORDER BY created_at, id`, userId),
+    rows(client,
+      `SELECT request.id, request.decision_id, request.reason, request.status,
+              request.resolution, request.submitted_at, request.updated_at,
+              request.resolved_at
+       FROM moderation_review_requests AS request
+       WHERE request.requester_id = $1 ORDER BY request.submitted_at, request.id`, userId),
+    rows(client,
       `SELECT id, blocked_id, reason_code, created_at, unblocked_at
        FROM user_blocks WHERE blocker_id = $1 ORDER BY created_at`, userId),
     rows(client,
@@ -521,7 +542,15 @@ export async function buildAccountExport(client, userId) {
       preferences: notificationPreferences[0] ?? null,
       history: notifications,
     },
-    trustAndSafety: { reviews, reports, blocks, disputes },
+    trustAndSafety: {
+      reviews,
+      reports,
+      privateMarketplaceReviewEvents,
+      moderationDecisions,
+      moderationReviewRequests,
+      blocks,
+      disputes,
+    },
     financialActivity: {
       payments,
       refunds,

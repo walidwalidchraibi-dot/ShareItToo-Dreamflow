@@ -4,7 +4,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter/foundation.dart'
-    show debugPrint, kDebugMode, visibleForTesting;
+    show debugPrint, kDebugMode, listEquals, visibleForTesting;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lendify/services/auth_service.dart';
 import 'package:lendify/services/backend_config.dart';
@@ -806,10 +806,19 @@ class DataService {
 
     bool mutated = false;
     for (final seed in seeds) {
-      final exists = categories.any((c) => c.id == seed.id);
-      if (!exists) {
+      final index = categories.indexWhere((category) => category.id == seed.id);
+      if (index < 0) {
         categories.add(seed);
         mutated = true;
+      } else {
+        final current = categories[index];
+        if (current.name != seed.name ||
+            current.slug != seed.slug ||
+            current.iconName != seed.iconName ||
+            !listEquals(current.subcategories, seed.subcategories)) {
+          categories[index] = seed;
+          mutated = true;
+        }
       }
     }
 
@@ -3250,7 +3259,7 @@ class DataService {
     'Sonstiges',
   ];
 
-  /// Maps a fine-grained category name (e.g., "Elektronik", "Kameras & Drohnen")
+  /// Maps a fine-grained category name (e.g., "Elektronik", "Kameras & Foto")
   /// to a coarse, simplified group used for display. Defaults to "Sonstiges".
   static String coarseCategoryFor(String name) {
     final n = name.toLowerCase();
@@ -3565,10 +3574,10 @@ class DataService {
       ),
       (
         'cat3',
-        'Kameras & Drohnen',
-        'kameras-drohnen',
+        'Kameras & Foto',
+        'kameras-foto',
         'camera_alt',
-        ['Kameras', 'Objektive', 'Drohnen', 'Stative', 'Licht'],
+        ['Kameras', 'Objektive', 'Stative', 'Licht'],
       ),
       (
         'cat4',
@@ -3912,7 +3921,7 @@ class DataService {
       'cat3': [
         'Canon EOS R5',
         'Sony A7 IV',
-        'DJI Mini 3 Pro',
+        'Canon RF 70-200mm',
         'Fujifilm X-T5',
         'Nikon Z6 II',
       ],
@@ -4070,7 +4079,7 @@ class DataService {
           'https://images.unsplash.com/photo-1484788984921-03950022c9ef?w=800&h=800&fit=crop',
         ],
         'cat3': [
-          // Kameras & Drohnen
+          // Kameras & Foto
           'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800&h=800&fit=crop',
           'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=800&h=800&fit=crop',
@@ -4164,7 +4173,7 @@ class DataService {
       final basePrice = switch (cat.id) {
         'cat1' => 12 + rnd.nextInt(30), // Elektronik
         'cat2' => 8 + rnd.nextInt(25), // Computer & IT
-        'cat3' => 35 + rnd.nextInt(100), // Kameras & Drohnen
+        'cat3' => 35 + rnd.nextInt(100), // Kameras & Foto
         'cat4' => 10 + rnd.nextInt(35), // Gaming & VR
         'cat5' => 10 + rnd.nextInt(35), // Haushaltsgeräte
         'cat6' => 10 + rnd.nextInt(30), // Möbel & Wohnen

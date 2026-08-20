@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  assertPrivatePilotAccountState,
   assertPrivatePilotBooking,
+  assertPrivatePilotCatalogEntry,
   assertPrivatePilotListing,
+  assertPrivatePilotStoredListing,
   privatePilotCheckoutDocument,
   privatePilotOpenDecisions,
   privatePilotRequiredCheckoutDeclarations,
@@ -78,14 +81,18 @@ test('private listing and booking guardrails reject bypasses', () => {
   assert.equal(assertPrivatePilotListing({
     privateStatusConfirmed: true,
     categoryId: 'cat8',
+    subcategory: 'Bohrmaschinen',
     country: 'Deutschland',
-  }), true);
+    city: 'Berlin',
+  }, { allowedRegions: ['berlin'] }), true);
   assert.throws(
     () => assertPrivatePilotListing({
       privateStatusConfirmed: true,
       categoryId: 'cat10',
+      subcategory: 'Autos',
       country: 'Deutschland',
-    }),
+      city: 'Berlin',
+    }, { allowedRegions: ['berlin'] }),
     (error) => error instanceof PrivatePilotValidationError
       && error.code === 'private_pilot_category_not_allowed',
   );
@@ -107,6 +114,71 @@ test('private listing and booking guardrails reject bypasses', () => {
     }),
     (error) => error.code ===
       'v52_exactly_two_declarations_required',
+  );
+});
+
+test('private pilot allowlist binds exact subcategories, Germany and configured regions', () => {
+  assert.deepEqual(assertPrivatePilotCatalogEntry({
+    categoryId: 'cat3',
+    subcategory: 'Kameras',
+    country: 'DE',
+    city: ' Berlin ',
+  }, { allowedRegions: ['berlin'] }), {
+    categoryId: 'cat3',
+    regionCode: 'berlin',
+  });
+  for (const [override, code] of [
+    [{ subcategory: 'Drohnen' }, 'private_pilot_subcategory_not_allowed'],
+    [{ city: 'Hamburg' }, 'private_pilot_region_not_allowed'],
+    [{ country: 'Frankreich' }, 'private_pilot_country_not_allowed'],
+  ]) {
+    assert.throws(
+      () => assertPrivatePilotCatalogEntry({
+        categoryId: 'cat3',
+        subcategory: 'Kameras',
+        country: 'Deutschland',
+        city: 'Berlin',
+        ...override,
+      }, { allowedRegions: ['berlin'] }),
+      (error) => error instanceof PrivatePilotValidationError && error.code === code,
+    );
+  }
+});
+
+test('stored account and listing eligibility is persistent and review-aware', () => {
+  assert.equal(assertPrivatePilotAccountState({
+    privateUseConfirmedAt: '2026-08-20T00:00:00Z',
+    privateMarketplaceReviewStatus: 'clear',
+  }), true);
+  assert.equal(assertPrivatePilotStoredListing({
+    categoryId: 'cat8',
+    subcategory: 'Bohrmaschinen',
+    country: 'Deutschland',
+    city: 'Berlin',
+    privateStatusConfirmedAt: '2026-08-20T00:00:00Z',
+    pilotRegionCode: 'berlin',
+    ownerPrivateUseConfirmedAt: '2026-08-20T00:00:00Z',
+    ownerPrivateMarketplaceReviewStatus: 'clear',
+  }, { allowedRegions: ['berlin'] }), true);
+  assert.throws(
+    () => assertPrivatePilotAccountState({
+      privateUseConfirmedAt: '2026-08-20T00:00:00Z',
+      privateMarketplaceReviewStatus: 'review_required',
+    }),
+    (error) => error.code === 'private_pilot_commercial_review_blocked',
+  );
+  assert.throws(
+    () => assertPrivatePilotStoredListing({
+      categoryId: 'cat8',
+      subcategory: 'Bohrmaschinen',
+      country: 'Deutschland',
+      city: 'Berlin',
+      privateStatusConfirmedAt: '2026-08-20T00:00:00Z',
+      pilotRegionCode: 'hamburg',
+      ownerPrivateUseConfirmedAt: '2026-08-20T00:00:00Z',
+      ownerPrivateMarketplaceReviewStatus: 'clear',
+    }, { allowedRegions: ['berlin'] }),
+    (error) => error.code === 'private_pilot_listing_region_unbound',
   );
 });
 

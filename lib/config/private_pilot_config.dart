@@ -156,7 +156,7 @@ class PrivatePilotConfig {
   static const Set<String> allowedCategoryIds = {
     'cat1', // Elektronik
     'cat2', // Computer & IT
-    'cat3', // Kameras & Drohnen
+    'cat3', // Kameras & Foto; Drohnen sind nicht freigeschaltet
     'cat4', // Gaming & VR
     'cat5', // Haushaltsgeraete
     'cat6', // Moebel & Wohnen
@@ -172,6 +172,65 @@ class PrivatePilotConfig {
     'cat23', // Reise- und Campingausstattung
   };
 
+  static const Map<String, Set<String>> allowedSubcategories = {
+    'cat1': {'Smartphones', 'Tablets', 'Wearables', 'Audio', 'Zubehör'},
+    'cat2': {'Laptops', 'Desktops', 'Monitore', 'Drucker', 'Netzwerk'},
+    'cat3': {'Kameras', 'Objektive', 'Stative', 'Licht'},
+    'cat4': {'Konsolen', 'Gaming-PC', 'VR', 'Lenkräder', 'Retro'},
+    'cat5': {
+      'Staubsauger',
+      'Mixer',
+      'Kaffeemaschinen',
+      'Waschmaschinen',
+      'Trockner',
+    },
+    'cat6': {'Sofas', 'Tische', 'Stühle', 'Beleuchtung', 'Deko'},
+    'cat7': {
+      'Rasenmäher',
+      'Heckenscheren',
+      'Gartengeräte',
+      'Bewässerung',
+      'Pflanzkisten',
+    },
+    'cat8': {
+      'Handwerkzeuge',
+      'Elektrowerkzeuge',
+      'Bohrmaschinen',
+      'Sägen',
+      'Schleifer',
+    },
+    'cat12': {'Kleidung', 'Taschen', 'Schuhe', 'Schmuck', 'Uhren'},
+    'cat14': {
+      'Gitarren',
+      'Tastaturen',
+      'Schlagzeug',
+      'Blasinstrumente',
+      'Studio',
+    },
+    'cat15': {'Bücher', 'Filme', 'Spiele', 'Hörbücher', 'Magazine'},
+    'cat16': {'Ringe', 'Ketten', 'Uhren', 'Ohrringe', 'Sets'},
+    'cat17': {'Gemälde', 'Skulpturen', 'Drucke', 'Figuren', 'Seltenes'},
+    'cat20': {'Bürotechnik', 'Präsentation', 'Werkstatt', 'Lager', 'Zubehör'},
+    'cat22': {
+      'Party-Deko',
+      'Eventtechnik',
+      'Tische & Stühle',
+      'Pavillons',
+      'Buffet & Catering',
+    },
+    'cat23': {
+      'Zelte',
+      'Schlafsäcke',
+      'Rucksäcke & Koffer',
+      'Campingküche',
+      'Outdoor-Zubehör',
+    },
+  };
+
   static bool categoryAllowed(String categoryId) =>
       allowedCategoryIds.contains(categoryId.trim());
+
+  static bool subcategoryAllowed(String categoryId, String subcategory) =>
+      allowedSubcategories[categoryId.trim()]?.contains(subcategory.trim()) ==
+      true;
 }

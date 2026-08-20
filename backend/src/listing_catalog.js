@@ -62,13 +62,14 @@ export function normalizeListingPayload(raw, {
   existing = null,
   now = new Date(),
   privatePilot = false,
+  privatePilotAllowedRegions = [],
 } = {}) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     throw new ListingValidationError('invalid_listing');
   }
   if (privatePilot) {
     try {
-      assertPrivatePilotListing(raw);
+      assertPrivatePilotListing(raw, { allowedRegions: privatePilotAllowedRegions });
     } catch (error) {
       if (error instanceof PrivatePilotValidationError) {
         throw new ListingValidationError(error.code);
@@ -137,7 +138,9 @@ export function normalizeListingPayload(raw, {
     : null;
   const isActive = status === 'active';
 
-  const pilotFields = privatePilot ? privatePilotListingFields(raw) : null;
+  const pilotFields = privatePilot
+    ? privatePilotListingFields(raw, { allowedRegions: privatePilotAllowedRegions })
+    : null;
   return {
     id,
     ownerId,
@@ -182,6 +185,7 @@ export function normalizeListingPayload(raw, {
     handoverRadiusKm: pilotFields?.handoverRadiusKm ?? handoverRadiusKm,
     privateStatusConfirmed:
       pilotFields?.privateStatusConfirmed ?? raw.privateStatusConfirmed === true,
+    pilotRegionCode: pilotFields?.pilotRegionCode ?? '',
     cancellationPolicy: ['flexible', 'moderate', 'strict', 'unified'].includes(raw.cancellationPolicy)
       ? raw.cancellationPolicy
       : 'unified',
@@ -209,6 +213,7 @@ export function listingProjection(payload) {
     maxDays: payload.maxDays,
     handoverRadiusKm: payload.handoverRadiusKm,
     protectionModel: payload.protectionModel,
+    pilotRegionCode: payload.pilotRegionCode || null,
     publishedAt: payload.status === 'active' ? new Date().toISOString() : null,
     endedAt: payload.endedAt,
   };

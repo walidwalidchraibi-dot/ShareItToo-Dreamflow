@@ -31,3 +31,25 @@ test('missing owner pilot acceptance is translated into a client error', async (
     3,
   );
 });
+
+test('private booking eligibility is rechecked from persisted state at quote, request and acceptance', async () => {
+  const source = await readFile(workflowPath, 'utf8');
+
+  for (const marker of [
+    'listing.private_pilot_region_code',
+    'owner.private_use_confirmed_at AS owner_private_use_confirmed_at',
+    'owner.private_marketplace_review_status AS owner_private_marketplace_review_status',
+    'SELECT private_use_confirmed_at, private_marketplace_review_status',
+    'assertPrivatePilotStoredListing({',
+    'assertPrivatePilotAccountState({',
+    'allowedRegions: config.privatePilot?.allowedRegions ?? []',
+  ]) assert.match(source, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'u'));
+  assert.equal(
+    source.match(/await assertPrivatePilotBookingEligibility\(client,/gu)?.length,
+    3,
+  );
+  assert.match(
+    source,
+    /listingForBooking\(client, row\.listing_id, \{ lock: true \}\)[\s\S]*allowedRegions: config\.privatePilot\?\.allowedRegions/u,
+  );
+});

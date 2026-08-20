@@ -17,6 +17,10 @@ test('private pilot V4 is explicitly bound to both deployment environments', () 
       source(composeFile),
       /PRIVATE_PILOT_V4_ENABLED: \$\{PRIVATE_PILOT_V4_ENABLED:-false\}/,
     );
+    assert.match(
+      source(composeFile),
+      /PRIVATE_PILOT_ALLOWED_REGIONS: \$\{PRIVATE_PILOT_ALLOWED_REGIONS:-\}/,
+    );
   }
 });
 
@@ -28,5 +32,13 @@ test('isolated staging enables V4 while production remains fail-closed', () => {
   assert.match(
     source('.env.example'),
     /^PRIVATE_PILOT_V4_ENABLED=false$/m,
+  );
+  assert.match(
+    source('.env.staging.example'),
+    /^PRIVATE_PILOT_ALLOWED_REGIONS=$/m,
+  );
+  assert.match(
+    source('.env.example'),
+    /^PRIVATE_PILOT_ALLOWED_REGIONS=$/m,
   );
 });

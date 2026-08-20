@@ -3,6 +3,8 @@ import path from 'node:path';
 
 import { validateFirebaseServiceAccount } from './firebase_service_account.js';
 import { evaluateGoogleMapsActivation } from './google_maps_activation.js';
+import { evaluateOperatorReadiness } from './operator_readiness.js';
+import { normalizePrivatePilotRegion } from './private_pilot_domain.js';
 
 function required(name) {
   const value = process.env[name]?.trim();
@@ -36,6 +38,13 @@ if (!['off', 'pilot', 'on'].includes(bookingPilotMode)) {
 const privatePilotV4Enabled = (process.env.PRIVATE_PILOT_V4_ENABLED ?? 'false')
   .trim()
   .toLowerCase() === 'true';
+const privatePilotAllowedRegions = Object.freeze([
+  ...new Set(
+    csv(process.env.PRIVATE_PILOT_ALLOWED_REGIONS)
+      .map(normalizePrivatePilotRegion)
+      .filter(Boolean),
+  ),
+]);
 const pushTransport = (process.env.PUSH_TRANSPORT ?? (
   deploymentEnvironment === 'staging' || deploymentEnvironment === 'test'
     ? 'memory'
@@ -139,6 +148,11 @@ if (paymentTransport === 'stripe' && stripeLivemode && paymentPilotUserIds.lengt
   throw new Error('PAYMENT_PILOT_USER_IDS is required for live Stripe transport');
 }
 
+const mailTransport = (process.env.MAIL_TRANSPORT ?? 'disabled').trim().toLowerCase();
+if (!['disabled', 'memory', 'smtp'].includes(mailTransport)) {
+  throw new Error('MAIL_TRANSPORT must be disabled, memory, or smtp');
+}
+
 const publicComplianceApproved = (process.env.PUBLIC_COMPLIANCE_APPROVED ?? 'false')
   .trim()
   .toLowerCase() === 'true';
@@ -150,6 +164,10 @@ const publicCompliance = {
   providerAddress: process.env.PUBLIC_LEGAL_PROVIDER_ADDRESS?.trim() ?? '',
   representative: process.env.PUBLIC_LEGAL_REPRESENTATIVE?.trim() ?? '',
   contentResponsible: process.env.PUBLIC_LEGAL_CONTENT_RESPONSIBLE?.trim() ?? '',
+  registerCourt: process.env.PUBLIC_LEGAL_REGISTER_COURT?.trim() ?? '',
+  registerNumber: process.env.PUBLIC_LEGAL_REGISTER_NUMBER?.trim() ?? '',
+  competentAuthority: process.env.PUBLIC_LEGAL_COMPETENT_AUTHORITY?.trim() ?? '',
+  withdrawalUrl: process.env.PUBLIC_LEGAL_WITHDRAWAL_URL?.trim() ?? '',
   effectiveDate: process.env.PUBLIC_PRIVACY_EFFECTIVE_DATE?.trim() ?? '',
 };
 const financialDocumentsLiveIssuanceApproved =
@@ -160,35 +178,25 @@ const financialDocumentsSitFeeTaxLabel =
   process.env.FINANCIAL_DOCUMENTS_SIT_FEE_TAX_LABEL?.trim() ?? '';
 
 const googleMapsActivation = evaluateGoogleMapsActivation(process.env);
-if (publicComplianceApproved) {
-  const requiredComplianceFields = [
-    ['PUBLIC_SUPPORT_EMAIL', publicCompliance.supportEmail],
-    ['PUBLIC_PRIVACY_EMAIL', publicCompliance.privacyEmail],
-    ['PUBLIC_LEGAL_PROVIDER_NAME', publicCompliance.providerName],
-    ['PUBLIC_LEGAL_PROVIDER_ADDRESS', publicCompliance.providerAddress],
-    ['PUBLIC_LEGAL_REPRESENTATIVE', publicCompliance.representative],
-    ['PUBLIC_LEGAL_CONTENT_RESPONSIBLE', publicCompliance.contentResponsible],
-    ['PUBLIC_PRIVACY_EFFECTIVE_DATE', publicCompliance.effectiveDate],
+const firebaseAnyServiceEnabled = pushTransport === 'fcm'
+  || firebaseAuthEnabled
+  || firebasePhoneVerificationEnabled
+  || firebaseCrashReportDeletionEnabled;
+const operatorReadiness = evaluateOperatorReadiness(process.env, {
+  approvalRequested: publicComplianceApproved,
+  mailEnabled: mailTransport === 'smtp',
+  paymentProviderEnabled: paymentTransport === 'stripe',
+  firebaseEnabled: firebaseAnyServiceEnabled,
+  mapsEnabled: googleMapsActivation.enabled,
+});
+if (publicComplianceApproved && !operatorReadiness.activationAllowed) {
+  const blockers = [
+    ...operatorReadiness.missingFields,
+    ...operatorReadiness.invalidFields,
   ];
-  const missingComplianceFields = requiredComplianceFields
-    .filter(([, value]) => !value)
-    .map(([name]) => name);
-  if (missingComplianceFields.length > 0) {
-    throw new Error(
-      `PUBLIC_COMPLIANCE_APPROVED requires: ${missingComplianceFields.join(', ')}`,
-    );
-  }
-  for (const [name, value] of [
-    ['PUBLIC_SUPPORT_EMAIL', publicCompliance.supportEmail],
-    ['PUBLIC_PRIVACY_EMAIL', publicCompliance.privacyEmail],
-  ]) {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      throw new Error(`${name} must be a valid email address`);
-    }
-  }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(publicCompliance.effectiveDate)) {
-    throw new Error('PUBLIC_PRIVACY_EFFECTIVE_DATE must use YYYY-MM-DD');
-  }
+  throw new Error(
+    `PUBLIC_COMPLIANCE_APPROVED requires complete non-placeholder operator facts: ${blockers.join(', ')}`,
+  );
 }
 if (financialDocumentsLiveIssuanceApproved) {
   if (!publicComplianceApproved) {
@@ -234,10 +242,15 @@ export const config = Object.freeze({
   bookingPilotEnabled: bookingPilotMode !== 'off',
   bookingPilotWithoutPayment: bookingPilotMode === 'pilot',
   privatePilotV4Enabled,
+  privatePilot: Object.freeze({
+    allowedRegions: privatePilotAllowedRegions,
+    regionsConfigured: privatePilotAllowedRegions.length > 0,
+  }),
   failedLoginLimit: 10,
   failedLoginLockMinutes: 15,
   appPublicUrl: (process.env.APP_PUBLIC_URL ?? 'https://shareittoo.com').replace(/\/$/, ''),
   publicCompliance: Object.freeze(publicCompliance),
+  operatorReadiness,
   financialDocuments: Object.freeze({
     liveIssuanceApproved: financialDocumentsLiveIssuanceApproved,
     sitFeeTaxLabel: financialDocumentsSitFeeTaxLabel,
@@ -249,7 +262,7 @@ export const config = Object.freeze({
     serverApiKey: googleMapsActivation.serverApiKey,
   }),
   mail: Object.freeze({
-    transport: (process.env.MAIL_TRANSPORT ?? 'disabled').trim().toLowerCase(),
+    transport: mailTransport,
     host: process.env.SMTP_HOST?.trim() ?? '',
     port: Number.parseInt(process.env.SMTP_PORT ?? '587', 10),
     secure: (process.env.SMTP_SECURE ?? 'false').trim().toLowerCase() === 'true',

@@ -57,6 +57,7 @@ test('Privat-Pilot listing validation is fail-closed', () => {
     id: 'listing-pilot',
     ownerId: 'owner',
     privatePilot: true,
+    privatePilotAllowedRegions: ['berlin'],
   });
   assert.equal(pilotListing.privateStatusConfirmed, true);
   assert.equal(pilotListing.offersDeliveryAtDropoff, false);
@@ -74,10 +75,50 @@ test('Privat-Pilot listing validation is fail-closed', () => {
         id: 'listing-pilot',
         ownerId: 'owner',
         privatePilot: true,
+        privatePilotAllowedRegions: ['berlin'],
       }),
       (error) => error instanceof ListingValidationError && error.code === code,
     );
   }
+});
+
+test('Privat-Pilot persists the normalized region binding and rejects unconfigured places', () => {
+  const listing = normalizeListingPayload({
+    ...validListing,
+    privateStatusConfirmed: true,
+  }, {
+    id: 'listing-pilot-region',
+    ownerId: 'owner',
+    privatePilot: true,
+    privatePilotAllowedRegions: ['berlin'],
+  });
+  assert.equal(listing.pilotRegionCode, 'berlin');
+  assert.throws(
+    () => normalizeListingPayload({
+      ...validListing,
+      subcategory: 'Drohnen',
+      privateStatusConfirmed: true,
+    }, {
+      id: 'listing-drone',
+      ownerId: 'owner',
+      privatePilot: true,
+      privatePilotAllowedRegions: ['berlin'],
+    }),
+    (error) => error.code === 'private_pilot_subcategory_not_allowed',
+  );
+  assert.throws(
+    () => normalizeListingPayload({
+      ...validListing,
+      city: 'Hamburg',
+      privateStatusConfirmed: true,
+    }, {
+      id: 'listing-hamburg',
+      ownerId: 'owner',
+      privatePilot: true,
+      privatePilotAllowedRegions: ['berlin'],
+    }),
+    (error) => error.code === 'private_pilot_region_not_allowed',
+  );
 });
 
 test('active listings require an image while drafts may remain private without one', () => {

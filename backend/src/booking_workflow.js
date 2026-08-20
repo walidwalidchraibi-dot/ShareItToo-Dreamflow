@@ -22,8 +22,10 @@ import { settleV51WithdrawalRefundAtReturn } from './v51_withdrawal_workflow.js'
 import { openV52ActualLossCase } from './v52_actual_loss_workflow.js';
 import { hasVerifiedBookingConfirmation } from './booking_confirmation_workflow.js';
 import {
+  assertPrivatePilotAccountState,
   assertPrivatePilotBooking,
   assertPrivatePilotOwnerAcceptance,
+  assertPrivatePilotStoredListing,
   privatePilotCheckoutDocument,
   privatePilotDeclarations,
   privatePilotDocument,
@@ -246,22 +248,72 @@ async function periodInstants(client, dates, timezone) {
 
 async function listingForBooking(client, listingId, { lock = false, includeInactive = false } = {}) {
   const result = await client.query(
-    `SELECT id, owner_id, payload, status, is_active, catalog_version,
-            catalog_revision,
-            currency, price_per_day_minor, security_deposit_minor,
-            min_days, max_days, latitude, longitude,
-            availability_timezone, availability_revision,
-            booking_notice_hours, acceptance_window_minutes
-     FROM listings
-     WHERE id = $1
-       AND catalog_version = 1
-       AND moderation_status = 'active'
-       ${includeInactive ? '' : "AND is_active = true AND status = 'active'"}
-     ${lock ? 'FOR UPDATE' : ''}`,
+    `SELECT listing.id, listing.owner_id, listing.payload, listing.status,
+            listing.is_active, listing.catalog_version, listing.catalog_revision,
+            listing.currency, listing.price_per_day_minor,
+            listing.security_deposit_minor, listing.min_days, listing.max_days,
+            listing.latitude, listing.longitude, listing.availability_timezone,
+            listing.availability_revision, listing.booking_notice_hours,
+            listing.acceptance_window_minutes, listing.category_id,
+            listing.subcategory, listing.city, listing.country,
+            listing.private_status_confirmed_at,
+            listing.private_pilot_region_code,
+            owner.private_use_confirmed_at AS owner_private_use_confirmed_at,
+            owner.private_marketplace_review_status AS owner_private_marketplace_review_status
+       FROM listings AS listing
+       JOIN users AS owner ON owner.id = listing.owner_id
+      WHERE listing.id = $1
+        AND listing.catalog_version = 1
+        AND listing.moderation_status = 'active'
+        ${includeInactive ? '' : "AND listing.is_active = true AND listing.status = 'active'"}
+      ${lock ? 'FOR UPDATE OF listing, owner' : ''}`,
     [listingId],
   );
   if (!result.rowCount) throw new BookingWorkflowError(404, 'listing_not_found');
   return result.rows[0];
+}
+
+async function assertPrivatePilotBookingEligibility(client, {
+  actorId,
+  listing,
+  allowedRegions = [],
+}) {
+  try {
+    assertPrivatePilotStoredListing({
+      categoryId: listing.category_id,
+      subcategory: listing.subcategory,
+      city: listing.city,
+      country: listing.country,
+      privateStatusConfirmedAt: listing.private_status_confirmed_at,
+      pilotRegionCode: listing.private_pilot_region_code,
+      ownerPrivateUseConfirmedAt: listing.owner_private_use_confirmed_at,
+      ownerPrivateMarketplaceReviewStatus: listing.owner_private_marketplace_review_status,
+    }, { allowedRegions });
+  } catch (error) {
+    if (error instanceof PrivatePilotValidationError) {
+      throw new BookingWorkflowError(409, error.code);
+    }
+    throw error;
+  }
+  const renter = await client.query(
+    `SELECT private_use_confirmed_at, private_marketplace_review_status
+       FROM users
+      WHERE id = $1 AND deactivated_at IS NULL AND account_status = 'active'
+      FOR UPDATE`,
+    [actorId],
+  );
+  if (!renter.rowCount) throw new BookingWorkflowError(404, 'user_not_found');
+  try {
+    assertPrivatePilotAccountState({
+      privateUseConfirmedAt: renter.rows[0].private_use_confirmed_at,
+      privateMarketplaceReviewStatus: renter.rows[0].private_marketplace_review_status,
+    });
+  } catch (error) {
+    if (error instanceof PrivatePilotValidationError) {
+      throw new BookingWorkflowError(409, error.code);
+    }
+    throw error;
+  }
 }
 
 async function assertNewBookingAllowed(client, renterId, ownerId) {
@@ -566,7 +618,12 @@ export async function listBookings(client, userId) {
   return result.rows.map((row) => bookingPayload(row, userId));
 }
 
-export async function quoteBooking(client, { actorId, raw, privatePilot = false }) {
+export async function quoteBooking(client, {
+  actorId,
+  raw,
+  privatePilot = false,
+  privatePilotAllowedRegions = [],
+}) {
   await expireBookingHolds(client);
   const candidate = object(raw);
   if (privatePilot) {
@@ -582,6 +639,13 @@ export async function quoteBooking(client, { actorId, raw, privatePilot = false 
   const listingId = text(candidate.itemId ?? candidate.listingId, 120);
   const listing = await listingForBooking(client, listingId);
   if (listing.owner_id === actorId) throw new BookingWorkflowError(409, 'cannot_rent_own_listing');
+  if (privatePilot) {
+    await assertPrivatePilotBookingEligibility(client, {
+      actorId,
+      listing,
+      allowedRegions: privatePilotAllowedRegions,
+    });
+  }
   await assertNewBookingAllowed(client, actorId, listing.owner_id);
   const dates = rentalDatesFromCandidate(candidate);
   const period = await periodInstants(client, dates, listing.availability_timezone);
@@ -636,6 +700,7 @@ export async function createBooking(client, {
   raw,
   key,
   privatePilot = false,
+  privatePilotAllowedRegions = [],
 }) {
   const candidate = object(raw);
   const clientBuild = text(candidate.clientBuild, 120);
@@ -666,6 +731,13 @@ export async function createBooking(client, {
   const listingId = text(candidate.itemId ?? candidate.listingId, 120);
   const listing = await listingForBooking(client, listingId, { lock: true });
   if (listing.owner_id === actor.id) throw new BookingWorkflowError(409, 'cannot_rent_own_listing');
+  if (privatePilot) {
+    await assertPrivatePilotBookingEligibility(client, {
+      actorId: actor.id,
+      listing,
+      allowedRegions: privatePilotAllowedRegions,
+    });
+  }
   await assertNewBookingAllowed(client, actor.id, listing.owner_id);
   const dates = rentalDatesFromCandidate(candidate);
   const period = await periodInstants(client, dates, listing.availability_timezone);
@@ -1105,7 +1177,14 @@ export async function transitionBooking(client, { actor, bookingId, raw, key, co
     if (config.privatePilotV4Enabled) {
       requiredPrivatePilotOwnerAcceptance(candidate);
     }
-    const listing = await listingForBooking(client, row.listing_id);
+    const listing = await listingForBooking(client, row.listing_id, { lock: true });
+    if (config.privatePilotV4Enabled) {
+      await assertPrivatePilotBookingEligibility(client, {
+        actorId: row.renter_id,
+        listing,
+        allowedRegions: config.privatePilot?.allowedRegions ?? [],
+      });
+    }
     const dates = parseRentalDates(
       databaseDate(row.rental_start_date),
       databaseDate(row.rental_end_date),

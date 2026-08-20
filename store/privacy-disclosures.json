@@ -48,15 +48,39 @@
     },
     {
       "path": "backend/src/privacy_export.js",
-      "sha256": "fb3e4357e6da282cba875e294c0b71864e1427f0f317f07044ed1cc7a2c7bb61"
+      "sha256": "0a43576ed70a8006be00d565572b1479d4ee61c929a1f837736c42bd57c35df5"
     },
     {
       "path": "backend/src/booking_workflow.js",
-      "sha256": "75933bc0c7f4227625702d0f3f0adaafaec5be6be8e785afe683ab514f82d753"
+      "sha256": "6170b2f93a12767da918c36647c503192b9d0fd93b8df49d5afc3c912c9ada6c"
     },
     {
       "path": "backend/src/private_pilot_domain.js",
-      "sha256": "c2f0806df35bcdab7ae1afb1f4923c00bf4fd6bc618831806c2736a73c927d86"
+      "sha256": "bcc1f29927c15a29f4027b0ad731349bedced0bc445e0ce19aeff808d6fcbeee"
+    },
+    {
+      "path": "backend/src/listing_catalog.js",
+      "sha256": "45ff5b9c775468231106d2ed64f483d334bfbeaa51b8539b914c60cb82a724c9"
+    },
+    {
+      "path": "backend/src/moderation_domain.js",
+      "sha256": "40e4c83a7d56963ac46b0081b71e9a5e0f3faf3a3e90b389dc455606d5106d0d"
+    },
+    {
+      "path": "backend/src/moderation_workflow.js",
+      "sha256": "2d652e2145499396ab022c24fbbe34e4ba9d806bae1ef3f20e6f6e2e001e96ab"
+    },
+    {
+      "path": "backend/src/moderation_decision_workflow.js",
+      "sha256": "35c0eeac8d64c4e60e45a95bccf85a6d3ff26a4598f2e7a784fc38b4a64a8cbc"
+    },
+    {
+      "path": "backend/src/compliance_review.js",
+      "sha256": "9cc5638df2f482774d8837dede5a243a0f0b982f0b29bdee152863358a86615a"
+    },
+    {
+      "path": "backend/src/operator_readiness.js",
+      "sha256": "29688671ddc7933fbdafab5744b54d3d5c6a97b8e541779fcc096787d583b4e3"
     },
     {
       "path": "backend/src/v51_contract_workflow.js",
@@ -119,6 +143,10 @@
       "sha256": "35029b66a26cba807dc07b6aa3b4a32cf0ccb6af7d2c4524fae6e9f67875a194"
     },
     {
+      "path": "backend/sql/migrations/026_v52_categories_moderation_operator.up.sql",
+      "sha256": "005bc08898c46fe42952aafd4599672b3c6e769e40d805f7de25091555dac2a4"
+    },
+    {
       "path": "backend/src/booking_condition_evidence_workflow.js",
       "sha256": "839c3ddcf4cfecb72d5313968fcf6ca16e82e0b3f73fe5dfd71fb736753cfb88"
     },
@@ -132,7 +160,7 @@
     },
     {
       "path": "backend/src/retention_inventory.js",
-      "sha256": "2ae1c88fd4fe7e4efb4d0ae9deb78c7290ea4c5fccc567044264faa5dd731d2c"
+      "sha256": "c4ae7ea1f8b854334ed09eff2eea7425caceef3b5a44c31b5ea89f7037dcb61b"
     },
     {
       "path": "backend/src/financial_documents.js",
@@ -148,7 +176,7 @@
     },
     {
       "path": "lib/config/private_pilot_config.dart",
-      "sha256": "58a44a65b5cf1e83465b975c63e0d67e3e0e7a8b499d02424299725c351fd28e"
+      "sha256": "b81dfb764d4767b02f9114b4828650a15b0d980b5bc4138aa5ec2fc7c33ff1d4"
     },
     {
       "path": "lib/models/rental_request.dart",
@@ -208,7 +236,7 @@
     },
     {
       "path": "lib/services/data_service.dart",
-      "sha256": "c02a211230369119e9418f99742cc579e0de9f09e699ae1fdc0b0340a8bc78b1"
+      "sha256": "33a499439c102f66ced4088fd44971ac5c2857cb2a2588a4127f0e3c9168cb19"
     },
     {
       "path": "lib/screens/platform_withdrawal_screen.dart",
@@ -228,7 +256,7 @@
     },
     {
       "path": "backend/src/config.js",
-      "sha256": "d0a8f257afb54fdd7d5568441336ac0eeea03e41041308c12a356f61914ee200"
+      "sha256": "cd7c9fee3a1fed6eae25d46b4276773e08f74b72294b0a183ed8ee284eb2c9b0"
     },
     {
       "path": "backend/src/notifications.js",
@@ -328,7 +356,7 @@
     },
     {
       "path": "backend/src/app.js",
-      "sha256": "538bb7086dd9a020ca0800b945a64ae5f4b9249c1c63d6109952b28ffa829a74"
+      "sha256": "3e18d43afa2a6a032fe65608a8c052902bc0d7b1bebd0738fb6dc98f8664d5cc"
     },
     {
       "path": "tool/run_staging_synthetic_booking.mjs",
@@ -336,11 +364,11 @@
     },
     {
       "path": "lib/screens/create_listing_screen.dart",
-      "sha256": "4c9c515f8d59cdba1ab3153b858e5bf515fb36427cb8037389e2470626caf8ee"
+      "sha256": "a1c01504d42c4143a282ecf450762c13feecb6685e3f05710d9c2a1533e4ccfc"
     },
     {
       "path": "lib/screens/message_thread_screen.dart",
-      "sha256": "10a37eb1659f3afaa8505d2418637ef8a931bd41536b700a90801fd2c8346a5a"
+      "sha256": "9871694c374f01576c9e61599f2657a812a603e4df795d275eff305f894ac86c"
     },
     {
       "path": "lib/widgets/return_handover_stepper_sheet.dart",

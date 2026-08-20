@@ -160,7 +160,7 @@ class LocalizationController extends ChangeNotifier {
 
     // Category labels (used as keys)
     'Elektronik': 'Elektronik',
-    'Kameras & Drohnen': 'Kameras & Drohnen',
+    'Kameras & Foto': 'Kameras & Foto',
     'Werkzeuge': 'Werkzeuge',
     'Fahrzeuge': 'Fahrzeuge',
     'Freizeit & Sport': 'Freizeit & Sport',
@@ -377,7 +377,7 @@ class LocalizationController extends ChangeNotifier {
 
     // Category labels (keys are DE)
     'Elektronik': 'Electronics',
-    'Kameras & Drohnen': 'Cameras & drones',
+    'Kameras & Foto': 'Cameras & photography',
     'Werkzeuge': 'Tools',
     'Fahrzeuge': 'Vehicles',
     'Freizeit & Sport': 'Leisure & sports',

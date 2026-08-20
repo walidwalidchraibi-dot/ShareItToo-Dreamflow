@@ -48,6 +48,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   // Dropdowns / switches
   List<Category> _categories = [];
   String? _categoryId;
+  String? _subcategory;
   // Coarse/top-level categories for selection UI
   List<String> _coarseCats = [];
   // Map coarse label -> fine categories in that group
@@ -110,6 +111,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       _priceCtrl.text = ex.priceRaw.toStringAsFixed(
           ex.priceRaw.truncateToDouble() == ex.priceRaw ? 0 : 2);
       _categoryId = ex.categoryId;
+      _subcategory = ex.subcategory;
       _priceUnit = ex.priceUnit;
       // Enforce day-only pricing unit in UI
       if (_priceUnit != 'day') {
@@ -173,6 +175,20 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
           : (cats.any((category) => category.id == existingCategory)
               ? existingCategory
               : cats.first.id);
+      final selectedCategory = cats.cast<Category?>().firstWhere(
+            (category) => category?.id == _categoryId,
+            orElse: () => cats.isEmpty ? null : cats.first,
+          );
+      final allowedSubcategories = selectedCategory?.subcategories
+              .where((subcategory) => PrivatePilotConfig.subcategoryAllowed(
+                    selectedCategory.id,
+                    subcategory,
+                  ))
+              .toList(growable: false) ??
+          const <String>[];
+      _subcategory = allowedSubcategories.contains(widget.existing?.subcategory)
+          ? widget.existing?.subcategory
+          : (allowedSubcategories.isEmpty ? null : allowedSubcategories.first);
       _coarseCats =
           ordered.isNotEmpty ? ordered : DataService.coarseCategoryOrder;
       _catsByCoarse = byCoarse;
@@ -377,6 +393,21 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       );
       return;
     }
+    if (PrivatePilotConfig.enabled &&
+        !PrivatePilotConfig.subcategoryAllowed(
+          _categoryId ?? '',
+          _subcategory ?? '',
+        )) {
+      await AppPopup.show(
+        context,
+        icon: Icons.block_outlined,
+        title: 'Unterkategorie nicht zugelassen',
+        message:
+            'Bitte waehle eine serverseitig freigeschaltete Unterkategorie.',
+        plainCloseIcon: true,
+      );
+      return;
+    }
 
     final user = await DataService.getCurrentUser();
     if (user == null) {
@@ -465,7 +496,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         description: _descCtrl.text.trim(),
         categoryId: _categoryId ??
             (_categories.isNotEmpty ? _categories.first.id : 'cat1'),
-        subcategory: '-',
+        subcategory: _subcategory!,
         tags: const <String>[],
         pricePerDay: pricePerDay,
         currency: 'EUR',
@@ -523,7 +554,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       title: _titleCtrl.text.trim(),
       description: _descCtrl.text.trim(),
       categoryId: _categoryId ?? ex.categoryId,
-      subcategory: ex.subcategory,
+      subcategory: _subcategory ?? ex.subcategory,
       tags: ex.tags,
       pricePerDay: pricePerDay,
       currency: ex.currency,
@@ -663,6 +694,20 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     return DataService.coarseCategoryFor(fine.name);
   }
 
+  List<String> _availableSubcategories() {
+    if (_categoryId == null || _categories.isEmpty) return const [];
+    final category = _categories.firstWhere(
+      (candidate) => candidate.id == _categoryId,
+      orElse: () => _categories.first,
+    );
+    return category.subcategories
+        .where((subcategory) => PrivatePilotConfig.subcategoryAllowed(
+              category.id,
+              subcategory,
+            ))
+        .toList(growable: false);
+  }
+
   Future<void> _pickCategory() async {
     if (_coarseCats.isEmpty) return;
     final tiles = _coarseCats.map((label) {
@@ -680,7 +725,19 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
               orElse: () => MapEntry('', const <Category>[]))
           .value;
       final target = list.isNotEmpty ? list.first.id : selected;
-      setState(() => _categoryId = target);
+      final subcategories = _categories
+          .firstWhere(
+            (category) => category.id == target,
+            orElse: () => _categories.first,
+          )
+          .subcategories
+          .where((subcategory) =>
+              PrivatePilotConfig.subcategoryAllowed(target, subcategory))
+          .toList(growable: false);
+      setState(() {
+        _categoryId = target;
+        _subcategory = subcategories.isEmpty ? null : subcategories.first;
+      });
       _schedulePriceRecalc();
     }
   }
@@ -904,6 +961,32 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                 )
                               ]),
                             ),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            key: ValueKey(_categoryId),
+                            initialValue:
+                                _availableSubcategories().contains(_subcategory)
+                                    ? _subcategory
+                                    : null,
+                            decoration: const InputDecoration(
+                              labelText: 'Unterkategorie',
+                            ),
+                            items: _availableSubcategories()
+                                .map((subcategory) => DropdownMenuItem(
+                                      value: subcategory,
+                                      child: Text(subcategory),
+                                    ))
+                                .toList(growable: false),
+                            onChanged: (value) =>
+                                setState(() => _subcategory = value),
+                            validator: (value) =>
+                                PrivatePilotConfig.subcategoryAllowed(
+                              _categoryId ?? '',
+                              value ?? '',
+                            )
+                                    ? null
+                                    : 'Unterkategorie auswählen',
                           )
                         ])),
                 const SizedBox(height: 12),
@@ -1368,8 +1451,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                         ]),
                                   ),
                                   _ThresholdDiscountRow(
-                                    key: ValueKey(
-                                        'tier1_$_strategyEpoch'),
+                                    key: ValueKey('tier1_$_strategyEpoch'),
                                     days: _tier1Days,
                                     percent: _tier1Pct,
                                     pricePerDay: double.tryParse(_priceCtrl.text
@@ -1386,8 +1468,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                   ),
                                   const SizedBox(height: 6),
                                   _ThresholdDiscountRow(
-                                    key: ValueKey(
-                                        'tier2_$_strategyEpoch'),
+                                    key: ValueKey('tier2_$_strategyEpoch'),
                                     days: _tier2Days,
                                     percent: _tier2Pct,
                                     pricePerDay: double.tryParse(_priceCtrl.text
@@ -1404,8 +1485,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                                   ),
                                   const SizedBox(height: 6),
                                   _ThresholdDiscountRow(
-                                    key: ValueKey(
-                                        'tier3_$_strategyEpoch'),
+                                    key: ValueKey('tier3_$_strategyEpoch'),
                                     days: _tier3Days,
                                     percent: _tier3Pct,
                                     pricePerDay: double.tryParse(_priceCtrl.text
@@ -2838,7 +2918,8 @@ class _ThresholdDiscountRowState extends State<_ThresholdDiscountRow> {
                       filled: false,
                       hintText: '0',
                       hintStyle: TextStyle(
-                          color: primary.withValues(alpha: 0.35), fontSize: 14)),
+                          color: primary.withValues(alpha: 0.35),
+                          fontSize: 14)),
                   onChanged: (v) {
                     final n = int.tryParse(v.replaceAll(',', '.'));
                     if (n != null) widget.onDaysChanged(n.clamp(1, 365));

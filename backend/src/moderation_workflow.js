@@ -11,6 +11,7 @@ import {
   shapeStaffUser,
 } from './moderation_domain.js';
 import { verifyPassword } from './security.js';
+import { persistModerationDecision } from './moderation_decision_workflow.js';
 
 export class ModerationWorkflowError extends ModerationDomainError {}
 
@@ -467,6 +468,20 @@ export async function updateStaffReport(client, { actor, reportId, raw, idempote
       JSON.stringify({ status: nextStatus, assignedTo: nextAssignee }), `${key}:action`,
     ],
   );
+  let issuedDecision = null;
+  if (nextStatus !== row.status && ['actioned', 'dismissed', 'closed'].includes(nextStatus)) {
+    issuedDecision = await persistModerationDecision(client, {
+      actor,
+      recipientUserId: row.reporter_id,
+      reportId: row.id,
+      targetType: 'report',
+      targetId: row.id,
+      measureType: 'report_resolution',
+      measureState: nextStatus,
+      raw: candidate.decision,
+      idempotencyKey: `${key}:decision`,
+    });
+  }
   await audit(client, {
     actor,
     action: 'moderation.report_updated',
@@ -474,7 +489,11 @@ export async function updateStaffReport(client, { actor, reportId, raw, idempote
     resourceId: row.id,
     metadata: { fromStatus: row.status, toStatus: nextStatus, eventType },
   });
-  return { report: await getStaffReport(client, row.id), replayed: false };
+  return {
+    report: await getStaffReport(client, row.id),
+    decision: issuedDecision?.decision ?? null,
+    replayed: false,
+  };
 }
 
 export async function setUserSuspension(client, { actor, userId, raw, idempotencyKey }) {
@@ -498,6 +517,17 @@ export async function setUserSuspension(client, { actor, userId, raw, idempotenc
     const report = await client.query('SELECT id FROM reports WHERE id::text = $1', [reportId]);
     if (!report.rowCount) throw new ModerationWorkflowError(404, 'report_not_found');
   }
+  const decision = await persistModerationDecision(client, {
+    actor,
+    recipientUserId: userId,
+    reportId,
+    targetType: 'user',
+    targetId: userId,
+    measureType: scope === 'account' ? 'account_suspension' : 'scope_suspension',
+    measureState: scope,
+    raw: candidate.decision,
+    idempotencyKey: `${key}:decision`,
+  });
   const endsAt = candidate.endsAt ? new Date(candidate.endsAt) : null;
   if (endsAt && (!Number.isFinite(endsAt.getTime()) || endsAt <= new Date())) {
     throw new ModerationWorkflowError(400, 'invalid_suspension_end');
@@ -548,7 +578,7 @@ export async function setUserSuspension(client, { actor, userId, raw, idempotenc
     resourceId: userId,
     metadata: { scope, reportId, endsAt: endsAt?.toISOString() ?? null },
   });
-  return { suspension: inserted.rows[0], replayed: false };
+  return { suspension: inserted.rows[0], decision: decision.decision, replayed: false };
 }
 
 export async function liftUserSuspension(client, { actor, suspensionId, raw, idempotencyKey }) {
@@ -599,6 +629,17 @@ export async function liftUserSuspension(client, { actor, suspensionId, raw, ide
       [row.report_id, actor.id, actor.role, text(candidate.note, 8000) || null, JSON.stringify({ suspensionId: row.id }), `${key}:event`],
     );
   }
+  const decision = await persistModerationDecision(client, {
+    actor,
+    recipientUserId: row.user_id,
+    reportId: row.report_id,
+    targetType: 'user',
+    targetId: row.user_id,
+    measureType: 'measure_reversal',
+    measureState: `suspension_lifted:${row.scope}`,
+    raw: candidate.decision,
+    idempotencyKey: `${key}:decision`,
+  });
   await audit(client, {
     actor,
     action: 'moderation.user_suspension_lifted',
@@ -606,7 +647,11 @@ export async function liftUserSuspension(client, { actor, suspensionId, raw, ide
     resourceId: row.user_id,
     metadata: { suspensionId: row.id, scope: row.scope },
   });
-  return { suspension: { ...row, lifted_at: new Date(), lifted_by: actor.id }, replayed: false };
+  return {
+    suspension: { ...row, lifted_at: new Date(), lifted_by: actor.id },
+    decision: decision.decision,
+    replayed: false,
+  };
 }
 
 export async function createAccountLegalHold(client, { actor, userId, raw, idempotencyKey }) {
@@ -737,6 +782,17 @@ export async function setListingModeration(client, { actor, listingId, raw, idem
     const report = await client.query('SELECT id FROM reports WHERE id::text = $1', [reportId]);
     if (!report.rowCount) throw new ModerationWorkflowError(404, 'report_not_found');
   }
+  const decision = await persistModerationDecision(client, {
+    actor,
+    recipientUserId: locked.rows[0].owner_id,
+    reportId,
+    targetType: 'listing',
+    targetId: listingId,
+    measureType: status === 'active' ? 'measure_reversal' : 'listing_restriction',
+    measureState: status,
+    raw: candidate.decision,
+    idempotencyKey: `${key}:decision`,
+  });
   const firstRestriction = before === 'active' && status !== 'active';
   const restoredStatus = before === 'active'
     ? locked.rows[0].status
@@ -800,7 +856,7 @@ export async function setListingModeration(client, { actor, listingId, raw, idem
     resourceType: 'listing', resourceId: listingId,
     metadata: { from: before, to: status, reportId },
   });
-  return { listingId, status, replayed: false };
+  return { listingId, status, decision: decision.decision, replayed: false };
 }
 
 export async function createBookingReview(client, { actor, bookingId, raw }) {

@@ -375,7 +375,7 @@ class _OwnerRequestsScreenState extends State<OwnerRequestsScreen>
     );
     final itemUpcoming = buildItem(
       id: 'owner_demo_item_upcoming',
-      title: 'DJI Mini Drohne',
+      title: 'Sony Alpha Kamera',
       photo:
           'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=640',
       location: 'Berlin, Prenzlauer Berg',
