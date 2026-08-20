@@ -31,7 +31,7 @@ export async function enqueueFirebaseIdentityDeletions(client, { userId } = {}) 
        locked_at, last_error_code, updated_at
      )
      SELECT DISTINCT firebase_user_id, provider, 'pending', 0, now(),
-            NULL, NULL, now()
+            NULL::timestamptz, NULL::text, now()
      FROM auth_identities
      WHERE user_id = $1
        AND provider IN ('google', 'apple', 'facebook')
