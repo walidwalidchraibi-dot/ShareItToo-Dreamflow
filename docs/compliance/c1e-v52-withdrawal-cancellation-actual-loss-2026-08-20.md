@@ -4,14 +4,12 @@ Stand: 20.08.2026
 
 Branch: `codex/master-workflow-20260808`
 
-Implementierungsstand: lokaler C1E-Commit; GitHub-CI vor dem Paketabschluss noch
-ausstehend.
+Implementierungsstand: `52f2ed7a301d84a9855a2a152b46b824f16264fb`
 
 ## Ergebnis
 
-**C1E ist lokal GREEN. Der Paketabschluss und der Wechsel zu C1F erfolgen erst
-nach gruenem commitgebundenem GitHub-Lauf. Release, Echtgeld und jede
-Rechtsaktivierung bleiben HOLD.**
+**C1E ist GREEN. C1F darf innerhalb der bestehenden C1-Grenzen beginnen;
+Release, Echtgeld und jede Rechtsaktivierung bleiben HOLD.**
 
 Der buchungsbezogene V5.2-Widerruf ist an den exakten im Plattformvertrag
 gespeicherten Widerrufstext gebunden. Innerhalb der 14-Tage-Frist geht er einer
@@ -101,18 +99,23 @@ nicht als Mieter-No-Show umgedeutet.
 - Lokales Flutter: 295 PASS, ein dokumentierter Skip; Google-only 1/1 PASS.
 - Web-Debug-Build und Android-Debug-Build: PASS.
 - V5.2-, Datenschutz- und Retention-Validatoren einschliesslich
-  Mutationstests: PASS. Datenschutz bleibt `state=draft,
-  approvalAllowed=false`; Retention bleibt `state=draft` und
+  Mutationstests: PASS. Datenschutz bleibt `state=draft` und
+  `approvalAllowed=false`; Retention bleibt `state=draft` und
   `executionPreflight=blocked`.
 - Gezielte Flutter-Analyse: keine Fehler; die bestehende Baseline von 46
   Warnungen/Infos blieb sichtbar und wurde nicht unterdrueckt.
 - `git diff --check`: PASS.
+- GitHub Actions Run
+  [32351561805](https://github.com/walidwalidchraibi-dot/ShareItToo-Dreamflow/actions/runs/32351561805):
+  `backend-regression` mit 235/235 Tests einschliesslich disposable
+  PostgreSQL-Migrationslauf und `flutter-regression` erfolgreich fuer exakt
+  `52f2ed7a301d84a9855a2a152b46b824f16264fb`.
 
 Der lokale technische Lauf wurde mit `CI=true` nur als erlaubter
 Mac-mini-Metadatenlauf ausgefuehrt. Er belegt keinen signierten Kandidaten,
-keinen Store-Upload, keinen Geraetepass und keine Live-Umgebung. Die additive
-PostgreSQL-Migration muss vor C1E-Abschluss noch im disposable GitHub-Job ohne
-Skip laufen.
+keinen Store-Upload, keinen Geraetepass und keine Live-Umgebung. Der CI-Schritt
+fuer einen signierten Kandidaten und `publish-api-image` blieben
+erwartungsgemaess uebersprungen.
 
 ## Datenmigration und Rollback
 
@@ -121,8 +124,8 @@ Staging- oder Produktionsdatenbank provisioniert. Bestehende V5.1-Tabellen und
 -Zeilen bleiben unveraendert; die neuen V5.2-Zeilen koennen weder aktualisiert
 noch geloescht werden.
 
-Der Implementierungsdelta wird in einem einzelnen fast-forward Commit
-gepusht. Ein Rueckgaengigmachen darf nur ueber einen neuen Revert-Commit
+Der Implementierungsdelta liegt in einem einzelnen fast-forward gepushten
+Commit. Ein Rueckgaengigmachen darf nur ueber einen neuen Revert-Commit
 erfolgen; Reset, Rebase, Force-Push und destruktives Entfernen der Migration
 bleiben ausgeschlossen. Bei einem App-Rollback bleiben die neuen Tabellen
 inert erhalten.
@@ -135,14 +138,14 @@ inert erhalten.
   vorhanden. C1E fuehrt keine reale Streitentscheidung und keine echte
   Erstattung aus.
 - Die lokale PostgreSQL-Suite hat ohne `TEST_DATABASE_URL` erwartungsgemaess
-  uebersprungen. Erst die commitgebundene disposable GitHub-Datenbankpruefung
-  schliesst diesen technischen Gate.
+  uebersprungen; der commitgebundene GitHub-Job hat Migration 024 und die
+  PostgreSQL-Grenzen ohne Skip erfolgreich geprueft.
 - Es gab keine Produktions-, VPS/OpenClaw-, DNS-, Cloud-, Payment-, Store-,
   Provider-, signierte Release- oder sonstige Live-Aktion.
 
 ## Naechster Schritt
 
-Nach gruenem GitHub-Lauf: **C1F - V5.2 Handover, Return, Evidence and
-needsReview.** Dabei sind die bestehende Vier-Foto-Grenze, Gegenparteibestaetigung,
-Rueckgabe-Zeitlinie und `needsReview`-Ausloeser gegen die V5.2-Vorgaben zu
-pruefen, ohne Schadensabbuchung, Kaution oder Echtgeld zu aktivieren.
+**C1F - V5.2 Handover, Return, Evidence and needsReview:** die bestehende
+Vier-Foto-Grenze, Gegenparteibestaetigung, Rueckgabe-Zeitlinie und
+`needsReview`-Ausloeser an die exakten V5.2-Vertrags-, Upload-, Rollen- und
+Zeitgrenzen binden, ohne Schadensabbuchung, Kaution oder Echtgeld zu aktivieren.
