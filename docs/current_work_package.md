@@ -1,127 +1,81 @@
-# Current Work Package: C1H - V5.2 Categories, Moderation, Invoice/Receipt and Operator Configuration
+# Current Work Package: FI0 - Founder-Independence Guardrails
 
-Status: active after green C1G implementation and GitHub CI.
+Status: active after technically complete C1I readiness audit with release HOLD.
 
 ## Objective
 
-Close only the bounded category, private-marketplace, moderation, financial-
-document and operator-configuration gaps proven open by C1A while preserving
-historic records and keeping unknown legal or provider facts fail-closed:
-
-- make the private-pilot category and subcategory allowlist exclusively
-  server-owned and impossible to bypass through catalog reads, listing
-  reactivation, quoting or booking creation;
-- require persistent account, listing and booking private-status evidence and
-  block accounts carrying a server-authoritative commercial-activity review
-  indicator until it is resolved;
-- complete the user-bound moderation decision and internal-review path with
-  facts, contractual/legal basis, detection method, reasoning and deadline;
-- lock the already implemented SIT-fee receipt and private-rental summary to
-  stored payment, quote and refund snapshots without parallel tax arithmetic;
-- centralize operator/provider/legal activation facts so production-facing
-  legal and provider surfaces fail closed on missing, placeholder or
-  unapproved values;
-- add an internal, non-activating professional-review signal at the V5.2
-  cumulative platform-fee threshold, without unlocking any feature.
+Reduce avoidable founder-only operational dependencies without changing the
+product roadmap or activating external systems. Audit personal hardcodes and
+define narrow role, delegate, audit and runbook standards. Apply code or
+documentation guardrails only where the audit proves an in-scope gap.
 
 ## Baseline and inputs
 
 - Branch: `codex/master-workflow-20260808`; draft PR #7.
-- C1G implementation:
-  `f2781366a5c0c9f2e2a26401cf862272bc7f1609`; GitHub Actions run
-  `32358854576` is green and published no image or signed artifact.
-- Drive control `02_CODEX_WORK_PACKAGES_SIT_V2.3.md` maps C1H to categories,
-  moderation, invoice/receipt and operator fail-closed configuration.
-- V5.2 Core sections 12 and 13 require a server-only category allowlist,
-  private status at account/listing/booking, dealer-indicator blocking, DSA-
-  capable reports and reasoned decisions, and financially correct documents.
-- C1A items 1, 2, 19, 24 and 28 remain the bounded C1H gaps. Items 25 and 26
-  are already technically green and must be verified and preserved rather
-  than reimplemented without evidence.
-- Transport means remain excluded. `cat3` may cover cameras only; drones and
-  every vehicle, bicycle, e-bike, e-scooter, trailer, boat, handcart, sack
-  truck or other transport means stay unavailable.
+- C1H implementation head:
+  `2a67a43ce79da87a127836edfc764079edccbd27`; exact GitHub Actions run
+  `32374184599` is green.
+- C1I is technically complete with release-readiness HOLD. It created no
+  signed candidate and changed no Store, provider, device or production state.
+- Drive controls: `01_CONTROL_V2.3_AUTONOMOUS.md` and
+  `02_CODEX_WORK_PACKAGES_SIT_V2.3.md`.
+- FI0 source of truth: the mapped Founder-Independence and delegation reference
+  in the current SIT Drive package. Growth, Business and architecture sources
+  are not permission to implement later packages early.
 
 ## Allowed work
 
-- Define an immutable backend-owned category/subcategory launch allowlist and
-  enforce it on public catalog queries, listing create/update/reactivation,
-  quotes and booking creation while retaining inaccessible historic data.
-- Bind booking eligibility to persistent renter, owner, listing and booking
-  private-status declarations, Germany and an explicitly configured approved
-  pilot region; absent region facts must fail closed rather than be guessed.
-- Add a server-authoritative account review state for commercial/dealer
-  indicators. Provide no invented automatic legal threshold; an unresolved
-  indicator blocks new listings, quotes and bookings.
-- Extend moderation with append-only, user-bound decision receipts and review
-  requests. Keep reporter identity, private evidence and unrelated account
-  data out of affected-user responses.
-- Record moderation facts, rule or legal/contract basis, decision reasoning,
-  human/automated detection method, review availability and the approved
-  review deadline. Measures must be authoritative on the server, not local UI
-  flags only.
-- Verify SIT platform-fee receipts and private-rental booking summaries against
-  immutable stored payment/quote/refund evidence; add regression coverage for
-  unpaid, rejected, expired, refunded and no-fee cases.
-- Add one central legal/operator readiness evaluator covering exact registered
-  operator identity, address, management, register data, contacts, competent
-  authority, withdrawal URL and approved provider facts. Keep all unknown
-  values visibly unresolved and non-activating.
-- Implement an internal compliance signal when cumulative actually received
-  SIT platform fees reach EUR 5,000 and due operating, tax and refund reserves
-  are covered. The signal is advisory and cannot activate a service or claim
-  professional review completion.
-- Add forward-only database migrations, focused tests, static validators and
-  regression wiring required for these controls.
+- Search repository code, configuration templates, CI, operations documents
+  and tests for personal names, personal email addresses, personal accounts,
+  individual-only approval assumptions, single-person recovery paths and
+  founder-bound operational wording.
+- Distinguish acceptable protected local ownership from avoidable product or
+  operational hardcoding. Never copy protected values into repository files.
+- Define stable role names, least-privilege delegate expectations, separation
+  of duties, append-only audit expectations, break-glass handling and concise
+  runbook ownership.
+- Add narrow configuration validation, neutral role constants, documentation
+  or tests only where existing touched surfaces need a proven guardrail.
+- Keep every unknown owner, delegate, account, provider and legal fact
+  unresolved and fail-closed.
+- Produce a dated FI0 audit/report with done/open/deferred classifications and
+  update current-state/current-package artifacts.
 
-## Not allowed in C1H
+## Not allowed in FI0
 
-- No enabling or publishing of a transport, drone or otherwise excluded
-  category; no PStTG assumption for ordinary tools or camera rentals.
-- No invented pilot region, dealer threshold, registered company, address,
-  manager, register court/number, authority, hoster, SMTP, maps, PSP, Firebase,
-  DPA, transfer, tax or provider fact.
-- No claim that legal review, professional review, provider review, Store
-  review or production readiness has completed without the corresponding
-  owner or external evidence.
-- No rewriting, deleting or silently relabelling historic listings, bookings,
-  reports, payments, receipts or moderation events.
-- No issuing a SIT receipt for private rent, blanket 19 percent VAT on private
-  rent, landlord deduction for renter-paid SIT fees or document generation for
-  rejected, expired or unpaid requests.
-- No production, VPS/OpenClaw, cloud-console, DNS, live payment, Store,
-  signed-release, public-rollout or destructive Git action.
+- No invasive time tracking, employee monitoring, productivity surveillance or
+  collection of personal activity data.
+- No creation, deletion, invitation or permission change for GitHub, Google,
+  Firebase, Apple, Play, payment, email, DNS, cloud, VPS/OpenClaw, Store or
+  provider accounts.
+- No password, passkey, 2FA, secret, signing material or recovery-code movement.
+- No invented person, delegate, legal representative, mailbox, phone number,
+  account owner, company role, approval or escalation route.
+- No production, public, live traffic, payment, real-money, signed-candidate,
+  Store, SSH, destructive Git or user-data migration action.
+- No G2 navigation/cart implementation before FI0 is closed and the exact G2A
+  package is opened.
 
 ## Acceptance criteria
 
-- Disabled or unapproved categories and subcategories are absent from the
-  server catalog and are rejected consistently at every write, reactivation,
-  quote and booking boundary. Historic records remain intact but unavailable.
-- A booking cannot be quoted or created unless both parties and the listing
-  carry current persistent private-status evidence, the listing is in Germany
-  and its region is explicitly server-approved. An unresolved commercial-
-  activity indicator blocks the flow fail-closed.
-- Reporting remains available for listing, profile/user, review and message.
-  Every imposed measure has an append-only reasoned decision; the affected
-  user can retrieve their receipt and submit one bounded internal-review
-  request without learning protected reporter/evidence data.
-- Account and content measures are enforced by backend state and are covered
-  by authorization, idempotency and audit tests.
-- Financial documents use stored authoritative snapshots only, separate SIT
-  fee creditor/tax treatment from private rent, and are absent for unpaid or
-  otherwise ineligible requests.
-- Production-facing legal/operator/provider approval stays false when any
-  required value is absent, placeholder-like, inconsistent or not explicitly
-  approved. No missing fact is filled from a guess or sample.
-- The EUR 5,000 signal uses actually received SIT platform fees and separately
-  requires reserve coverage; it creates only an internal review requirement
-  and never an activation approval.
-- Focused tests, complete local technical regression and GitHub CI are green
-  for the bounded implementation commit. External legal/provider evidence and
-  physical launch validation remain truthful later gates.
+- Repository personal hardcodes and individual-only operational dependencies
+  are inventoried with file-bound evidence and classified as safe-local,
+  remediation-needed, external-owner-gate or later-package scope.
+- System-facing authorization uses neutral roles/capabilities rather than a
+  named person wherever the current repository already exposes that surface.
+- Every sensitive operation retains least privilege, traceable actor/action/
+  time/result evidence, explicit approval boundaries and a documented recovery
+  owner without publishing protected identity data.
+- Founder-only steps have a role/delegate/runbook standard or an explicit
+  external HOLD; no unavailable delegate is fabricated.
+- Tests and validators cover any changed executable guardrail. Full regression
+  remains green in proportion to the implementation change.
+- No invasive tracking, account/provider mutation, secret movement, signed
+  artifact, Store action or live-system change occurs.
 
 ## Expected next transition
 
-GREEN: C1I - V5.2 full QA, physical network/device matrix and launch evidence.
-YELLOW/RED: preserve evidence and stop at the exact missing legal, region,
-moderation, financial or operator fact without weakening the fail-closed gate.
+GREEN: G2A - Navigation and Gemerkt migration, using only its mapped Drive
+sources and preserving Bookings icon, profile-image icon, wishlist data and
+deep links. YELLOW/RED: preserve the FI0 evidence and stop at the exact owner,
+account, secret, legal or external permission gate without guessing.
