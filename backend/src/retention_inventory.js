@@ -96,6 +96,14 @@ export async function inspectRetentionInventory(client, { actor }) {
          FROM booking_condition_evidence
        UNION ALL SELECT 'handoverEvidence', 'booking_condition_confirmations', count(*)::bigint, min(created_at), max(created_at)
          FROM booking_condition_confirmations
+       UNION ALL SELECT 'handoverEvidence', 'v52_condition_evidence_bindings', count(*)::bigint, min(observed_at), max(created_at)
+         FROM v52_condition_evidence_bindings
+       UNION ALL SELECT 'handoverEvidence', 'v52_condition_confirmation_bindings', count(*)::bigint, min(confirmed_at), max(created_at)
+         FROM v52_condition_confirmation_bindings
+       UNION ALL SELECT 'handoverEvidence', 'v52_confirmation_challenge_bindings', count(*)::bigint, min(issued_at), max(created_at)
+         FROM v52_confirmation_challenge_bindings
+       UNION ALL SELECT 'handoverEvidence', 'v52_confirmation_verification_events', count(*)::bigint, min(verified_at), max(created_at)
+         FROM v52_confirmation_verification_events
        UNION ALL SELECT 'handoverEvidence', 'v52_actual_loss_statement_evidence', count(*)::bigint, min(created_at), max(created_at)
          FROM v52_actual_loss_statement_evidence
        UNION ALL SELECT 'moderation', 'reports', count(*)::bigint, min(created_at), max(updated_at) FROM reports
@@ -103,6 +111,9 @@ export async function inspectRetentionInventory(client, { actor }) {
        UNION ALL SELECT 'moderation', 'moderation_case_events', count(*)::bigint, min(created_at), max(created_at) FROM moderation_case_events
        UNION ALL SELECT 'moderation', 'moderation_actions', count(*)::bigint, min(created_at), max(created_at) FROM moderation_actions
        UNION ALL SELECT 'moderation', 'user_suspensions', count(*)::bigint, min(created_at), max(created_at) FROM user_suspensions
+       UNION ALL SELECT 'moderation', 'v52_return_cases', count(*)::bigint, min(t1), max(created_at) FROM v52_return_cases
+       UNION ALL SELECT 'moderation', 'v52_return_case_evidence', count(*)::bigint, min(created_at), max(created_at) FROM v52_return_case_evidence
+       UNION ALL SELECT 'moderation', 'v52_return_case_events', count(*)::bigint, min(occurred_at), max(created_at) FROM v52_return_case_events
        UNION ALL SELECT 'securityAudit', 'audit_log', count(*)::bigint, min(created_at), max(created_at) FROM audit_log
        UNION ALL SELECT 'securityAudit', 'booking_events', count(*)::bigint, min(created_at), max(created_at) FROM booking_events
        UNION ALL SELECT 'securityAudit', 'notification_delivery_attempts', count(*)::bigint, min(created_at), max(created_at)

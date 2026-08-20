@@ -130,6 +130,12 @@ void main() {
           segment: segment,
           kind: 'presenter_photo',
           source: 'camera',
+          semanticSlot: const [
+            'overview',
+            'detail',
+            'accessories',
+            'critical'
+          ][index],
         );
       }
       await DataService.setCurrentUser(verifier);

@@ -1092,6 +1092,27 @@ class BackendRepository {
     );
   }
 
+  static Future<Map<String, dynamic>> openV52ReturnCase({
+    required String bookingId,
+    required String reasonCode,
+    required String details,
+    required List<String> evidenceUploadIds,
+    required int contestedAuthorizedMinor,
+    required String idempotencyKey,
+  }) async {
+    return _authorized(
+      method: 'POST',
+      path: '/bookings/${Uri.encodeComponent(bookingId)}/return-cases',
+      body: {
+        'reasonCode': reasonCode,
+        'details': details.trim(),
+        'evidenceUploadIds': evidenceUploadIds,
+        'contestedAuthorizedMinor': contestedAuthorizedMinor,
+      },
+      additionalHeaders: {'Idempotency-Key': idempotencyKey},
+    );
+  }
+
   static Future<Map<String, dynamic>> uploadReportEvidence({
     required Uint8List bytes,
     required String filename,

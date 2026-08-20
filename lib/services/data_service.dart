@@ -6550,50 +6550,57 @@ class DataService {
     String requestId, {
     required String reason,
     required String source,
-    List<String> evidenceReferences = const [],
+    required String reasonCode,
+    List<String> evidenceUploadIds = const [],
+    List<String> localEvidenceReferences = const [],
     int contestedAuthorizedMinor = 0,
-    int allegedDamageMinor = 0,
   }) async {
     final normalizedReason = reason.trim();
-    if (normalizedReason.length < 10 || evidenceReferences.isEmpty) {
+    if (normalizedReason.length < 10 || contestedAuthorizedMinor <= 0) {
       return false;
     }
+    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+      if (evidenceUploadIds.isEmpty) return false;
+      await BackendRepository.openV52ReturnCase(
+        bookingId: requestId,
+        reasonCode: reasonCode,
+        details: normalizedReason,
+        evidenceUploadIds: evidenceUploadIds,
+        contestedAuthorizedMinor: contestedAuthorizedMinor,
+        idempotencyKey:
+            'v52_return_case_${requestId}_${evidenceUploadIds.first}',
+      );
+      await _getAllRentalRequests();
+      return true;
+    }
+    if (localEvidenceReferences.isEmpty) return false;
     final all = await _getAllRentalRequests();
     bool mutated = false;
     RentalRequest? updatedRequest;
     final requestedAt = DateTime.now();
-    final effectiveEvidenceReferences = [...evidenceReferences];
-    if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
-      final report = await BackendRepository.createReport(
-        targetType: 'booking',
-        targetId: requestId,
-        reasonCode: 'return_issue',
-        details: normalizedReason,
-        reference: source,
-      );
-      final reportId = report['id']?.toString().trim() ?? '';
-      if (reportId.isNotEmpty) {
-        effectiveEvidenceReferences.add('moderationReport:$reportId');
-      }
-    }
     for (int i = 0; i < all.length; i++) {
       if (all[i].id == requestId) {
         final request = all[i];
+        final authorizedBookingMinor = request.quotedTotalMinor ?? 0;
+        if (authorizedBookingMinor <= 0 ||
+            contestedAuthorizedMinor > authorizedBookingMinor) {
+          return false;
+        }
         final reportDeadline = (request.returnT0 ?? request.end).add(
           const Duration(hours: PrivatePilotConfig.returnReportWindowHours),
         );
         if (requestedAt.isAfter(reportDeadline)) return false;
         final split = PrivatePilotReturnPolicy.splitAuthorizedAmount(
-          authorizedBookingMinor: request.quotedTotalMinor ?? 0,
+          authorizedBookingMinor: authorizedBookingMinor,
           contestedAuthorizedMinor: contestedAuthorizedMinor,
-          allegedDamageMinor: allegedDamageMinor,
+          allegedDamageMinor: 0,
         );
         all[i] = all[i].copyWith(
           needsReview: true,
           reviewReason: normalizedReason,
           reviewSource: source,
           reviewRequestedAt: requestedAt,
-          reviewEvidenceReferences: effectiveEvidenceReferences,
+          reviewEvidenceReferences: localEvidenceReferences,
           returnState: PrivatePilotReturnState.needsReview.storageValue,
           returnCaseOpenedAt: requestedAt,
           returnT0: request.returnT0 ?? request.end,
@@ -7841,6 +7848,7 @@ class DataService {
     required String segment,
     required String kind,
     required String source,
+    required String semanticSlot,
   }) async {
     final id = requestId.trim();
     final normalizedSegment = segment == 'return' ? 'return' : 'pickup';
@@ -7903,6 +7911,7 @@ class DataService {
           'segment': normalizedSegment,
           'kind': normalizedKind,
           'source': normalizedSource,
+          'semanticSlot': semanticSlot,
         },
       );
       final prefs = await SharedPreferences.getInstance();

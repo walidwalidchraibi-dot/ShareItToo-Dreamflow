@@ -44,6 +44,13 @@ export async function buildAccountExport(client, userId) {
     uploads,
     bookingConditionEvidence,
     bookingConditionConfirmations,
+    v52ConditionEvidenceBindings,
+    v52ConditionConfirmationBindings,
+    v52ConfirmationChallengeBindings,
+    v52ConfirmationVerificationEvents,
+    v52ReturnCases,
+    v52ReturnCaseEvidence,
+    v52ReturnCaseEvents,
     notificationPreferences,
     notifications,
     reviews,
@@ -278,7 +285,8 @@ export async function buildAccountExport(client, userId) {
        ORDER BY message.created_at`, userId),
     rows(client,
       `SELECT id, purpose, visibility, listing_id, thread_id, mime_type,
-              byte_size, image_width, image_height, created_at
+              byte_size, image_width, image_height, content_sha256,
+              content_scan_status, created_at
        FROM uploads WHERE owner_id = $1 ORDER BY created_at`, userId),
     rows(client,
       `SELECT evidence.id, evidence.booking_id, evidence.segment,
@@ -298,6 +306,97 @@ export async function buildAccountExport(client, userId) {
        JOIN bookings AS booking ON booking.id = confirmation.booking_id
        WHERE booking.owner_id = $1 OR booking.renter_id = $1
        ORDER BY confirmation.created_at`, userId),
+    rows(client,
+      `SELECT binding.evidence_id, binding.booking_id,
+              binding.platform_contract_id,
+              binding.handover_return_damage_snapshot_id,
+              binding.quote_id, binding.quote_hash, binding.contract_version,
+              binding.locale, binding.segment, binding.evidence_kind,
+              binding.semantic_slot, binding.actor_role,
+              (binding.actor_id = $1) AS recorded_by_me,
+              binding.upload_id, binding.upload_purpose,
+              binding.upload_sha256, binding.source,
+              binding.observed_at, binding.created_at
+       FROM v52_condition_evidence_bindings AS binding
+       JOIN bookings AS booking ON booking.id = binding.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY binding.created_at`, userId),
+    rows(client,
+      `SELECT binding.confirmation_id, binding.booking_id,
+              binding.platform_contract_id,
+              binding.handover_return_damage_snapshot_id,
+              binding.quote_id, binding.quote_hash, binding.contract_version,
+              binding.locale, binding.segment, binding.verifier_role,
+              (binding.verifier_user_id = $1) AS verified_by_me,
+              binding.decision, binding.presenter_evidence_set_sha256,
+              binding.presenter_photo_count, binding.deviation_photo_count,
+              binding.confirmed_at, binding.created_at
+       FROM v52_condition_confirmation_bindings AS binding
+       JOIN bookings AS booking ON booking.id = binding.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY binding.confirmed_at`, userId),
+    rows(client,
+      `SELECT binding.challenge_id, binding.booking_id,
+              binding.platform_contract_id,
+              binding.handover_return_damage_snapshot_id,
+              binding.quote_id, binding.quote_hash, binding.contract_version,
+              binding.locale, binding.segment, binding.presenter_role,
+              (binding.presenter_user_id = $1) AS presented_by_me,
+              binding.presenter_evidence_set_sha256,
+              binding.issued_at, binding.created_at
+       FROM v52_confirmation_challenge_bindings AS binding
+       JOIN bookings AS booking ON booking.id = binding.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY binding.issued_at`, userId),
+    rows(client,
+      `SELECT event.id, event.challenge_id, event.confirmation_id,
+              event.booking_id,
+              (event.verifier_user_id = $1) AS verified_by_me,
+              event.verifier_role, event.presenter_evidence_set_sha256,
+              event.verification_method, event.verified_at, event.created_at
+       FROM v52_confirmation_verification_events AS event
+       JOIN bookings AS booking ON booking.id = event.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY event.verified_at`, userId),
+    rows(client,
+      `SELECT return_case.id, return_case.booking_case_id,
+              return_case.report_id, return_case.booking_id,
+              return_case.platform_contract_id,
+              return_case.handover_return_damage_snapshot_id,
+              return_case.quote_id, return_case.quote_hash,
+              return_case.contract_version, return_case.locale,
+              (return_case.opened_by = $1) AS opened_by_me,
+              return_case.opened_by_role, return_case.reason_code,
+              return_case.reason_details, return_case.t0, return_case.t1,
+              return_case.report_deadline, return_case.response_due_at,
+              return_case.next_status_update_due_at,
+              return_case.authorized_booking_minor,
+              return_case.contested_authorized_minor,
+              return_case.undisputed_releasable_minor,
+              return_case.additional_charge_minor, return_case.created_at
+       FROM v52_return_cases AS return_case
+       JOIN bookings AS booking ON booking.id = return_case.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY return_case.t1`, userId),
+    rows(client,
+      `SELECT evidence.return_case_id, evidence.upload_id,
+              evidence.upload_purpose, evidence.upload_sha256,
+              evidence.created_at
+       FROM v52_return_case_evidence AS evidence
+       JOIN v52_return_cases AS return_case ON return_case.id = evidence.return_case_id
+       JOIN bookings AS booking ON booking.id = return_case.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY evidence.created_at`, userId),
+    rows(client,
+      `SELECT event.id, event.return_case_id,
+              (event.actor_id = $1) AS acted_by_me,
+              event.actor_role, event.event_type, event.occurred_at,
+              event.metadata, event.created_at
+       FROM v52_return_case_events AS event
+       JOIN v52_return_cases AS return_case ON return_case.id = event.return_case_id
+       JOIN bookings AS booking ON booking.id = return_case.booking_id
+       WHERE booking.owner_id = $1 OR booking.renter_id = $1
+       ORDER BY event.occurred_at`, userId),
     rows(client,
       `SELECT in_app_enabled, email_enabled, push_enabled,
               message_push_enabled, booking_push_enabled, locale, updated_at
@@ -409,6 +508,13 @@ export async function buildAccountExport(client, userId) {
       messages,
       bookingConditionEvidence,
       bookingConditionConfirmations,
+      v52ConditionEvidenceBindings,
+      v52ConditionConfirmationBindings,
+      v52ConfirmationChallengeBindings,
+      v52ConfirmationVerificationEvents,
+      v52ReturnCases,
+      v52ReturnCaseEvidence,
+      v52ReturnCaseEvents,
     },
     uploadedFiles: uploads,
     notifications: {

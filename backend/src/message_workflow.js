@@ -304,7 +304,7 @@ async function validatedAttachments(client, {
   if (!ids.length) return [];
   const result = await client.query(
     `SELECT id::text, storage_name, thumbnail_storage_name, mime_type, byte_size,
-            image_width, image_height
+            image_width, image_height, content_sha256, content_scan_status
      FROM uploads
      WHERE owner_id = $1 AND thread_id = $2
        AND purpose = $3 AND visibility = 'private'
@@ -322,6 +322,8 @@ async function validatedAttachments(client, {
     byteSize: row.byte_size,
     width: row.image_width,
     height: row.image_height,
+    contentSha256: row.content_sha256,
+    contentScanStatus: row.content_scan_status,
   }));
 }
 
@@ -407,6 +409,7 @@ export async function sendThreadMessage(client, {
       conditionEvidence: conditionEvidence == null ? null : {
         segment: conditionEvidence.segment,
         kind: conditionEvidence.kind,
+        semanticSlot: conditionEvidence.semanticSlot,
       },
     })],
   );

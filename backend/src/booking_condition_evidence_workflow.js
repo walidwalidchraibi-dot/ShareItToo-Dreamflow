@@ -1,4 +1,8 @@
 import { BookingConfirmationError } from './booking_confirmation_domain.js';
+import {
+  bindV52ConditionConfirmation,
+  bindV52ConditionEvidence,
+} from './v52_handover_return_workflow.js';
 
 const SEGMENTS = new Set(['pickup', 'return']);
 const DECISIONS = new Set(['confirmed', 'deviation_recorded']);
@@ -58,6 +62,9 @@ export function parseConditionEvidence(raw, { booking, actorId }) {
     kind,
     actorRole: role,
     source,
+    semanticSlot: typeof raw.semanticSlot === 'string'
+      ? raw.semanticSlot.trim()
+      : '',
     requiredUploadPurpose: selectedSegment === 'pickup'
       ? 'handover_evidence'
       : 'return_evidence',
@@ -75,11 +82,12 @@ export async function recordConditionEvidenceForMessage(client, {
   if (!Array.isArray(attachments) || attachments.length !== 1) {
     throw new BookingConfirmationError(400, 'condition_evidence_requires_one_photo');
   }
-  await client.query(
+  const inserted = await client.query(
     `INSERT INTO booking_condition_evidence (
        booking_id, segment, evidence_kind, actor_role, actor_id,
        upload_id, message_id, source
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING id, created_at`,
     [
       bookingId,
       evidence.segment,
@@ -91,6 +99,14 @@ export async function recordConditionEvidenceForMessage(client, {
       evidence.source,
     ],
   );
+  await bindV52ConditionEvidence(client, {
+    evidenceId: inserted.rows[0].id,
+    bookingId,
+    actorId,
+    evidence,
+    attachment: attachments[0],
+    observedAt: inserted.rows[0].created_at,
+  });
 }
 
 async function lockedBooking(client, bookingId) {
@@ -190,8 +206,8 @@ export async function recordConditionConfirmation(client, {
        presenter_photo_count, deviation_photo_count
      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
      ON CONFLICT (booking_id, segment, verifier_role) DO NOTHING
-     RETURNING verifier_role, decision, presenter_photo_count,
-               deviation_photo_count, created_at`,
+     RETURNING id, booking_id, segment, verifier_role, verifier_user_id,
+               decision, presenter_photo_count, deviation_photo_count, created_at`,
     [
       bookingId,
       selectedSegment,
@@ -204,8 +220,8 @@ export async function recordConditionConfirmation(client, {
   );
   if (!inserted.rowCount) {
     const existing = await client.query(
-      `SELECT verifier_role, verifier_user_id, decision, presenter_photo_count,
-              deviation_photo_count, created_at
+      `SELECT id, booking_id, segment, verifier_role, verifier_user_id,
+              decision, presenter_photo_count, deviation_photo_count, created_at
          FROM booking_condition_confirmations
         WHERE booking_id = $1 AND segment = $2 AND verifier_role = $3`,
       [bookingId, selectedSegment, role],
@@ -214,12 +230,20 @@ export async function recordConditionConfirmation(client, {
     if (!row || row.verifier_user_id !== actor.id || row.decision !== decision) {
       throw new BookingConfirmationError(409, 'condition_confirmation_already_recorded');
     }
+    await bindV52ConditionConfirmation(client, {
+      confirmation: row,
+      bookingId,
+    });
     return {
       confirmation: row,
       replayed: true,
       participantUserIds: [booking.owner_id, booking.renter_id],
     };
   }
+  await bindV52ConditionConfirmation(client, {
+    confirmation: inserted.rows[0],
+    bookingId,
+  });
   return {
     confirmation: inserted.rows[0],
     replayed: false,

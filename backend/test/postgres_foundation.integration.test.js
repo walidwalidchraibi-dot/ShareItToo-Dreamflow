@@ -86,6 +86,7 @@ if (!databaseUrl) {
         '022_crashlytics_subject_deletion.up.sql',
         '023_v52_contract_binding.up.sql',
         '024_v52_actual_loss_resolution.up.sql',
+        '025_v52_handover_return_evidence.up.sql',
       ]);
       assert.match(migrationRows.rows[0].checksum, /^[0-9a-f]{64}$/);
       assert.match(migrationRows.rows[2].checksum, /^[0-9a-f]{64}$/);

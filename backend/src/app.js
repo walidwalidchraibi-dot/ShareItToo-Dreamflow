@@ -157,6 +157,10 @@ import {
   V52ActualLossError,
 } from './v52_actual_loss_workflow.js';
 import {
+  openV52ReturnCase,
+  V52HandoverReturnError,
+} from './v52_handover_return_workflow.js';
+import {
   evaluateReturnTimeline,
   splitAuthorizedBookingAmount,
 } from './private_pilot_return_domain.js';
@@ -631,6 +635,44 @@ function rentalPayload(raw, { id, itemId, ownerId, renterId, existingStatus = nu
     end: period.endsAt.toISOString(),
     createdAt: Date.parse(payload.createdAt) ? new Date(payload.createdAt).toISOString() : new Date().toISOString(),
   };
+}
+
+const V52_RETURN_CASE_SERVER_FIELDS = Object.freeze([
+  'needsReview',
+  'reviewReason',
+  'reviewSource',
+  'reviewRequestedAt',
+  'reviewEvidenceReferences',
+  'returnCaseOpenedAt',
+  'returnCaseClosedAt',
+  'returnState',
+  'returnT0',
+  'returnReportDeadline',
+  'returnClarificationDeadline',
+  'payoutInstructionDueAt',
+  'contestedAuthorizedMinor',
+  'undisputedReleasableMinor',
+  'allegedDamageMinorRecordedOnly',
+  'additionalChargeMinor',
+]);
+
+function sameServerOwnedValue(candidate, stored) {
+  if (Array.isArray(candidate) || Array.isArray(stored)) {
+    return Array.isArray(candidate)
+      && Array.isArray(stored)
+      && candidate.length === stored.length
+      && candidate.every((entry, index) => entry === stored[index]);
+  }
+  return candidate === stored;
+}
+
+function requestsV52ReturnCaseMutation(candidate, stored) {
+  if (candidate.needsReview === true && stored.needsReview !== true) return true;
+  if (stored.needsReview !== true) return false;
+  return V52_RETURN_CASE_SERVER_FIELDS.some((key) => (
+    Object.hasOwn(candidate, key)
+      && !sameServerOwnedValue(candidate[key], stored[key])
+  ));
 }
 
 function existingRentalPayload(raw, existing, actorId) {
@@ -2987,6 +3029,22 @@ export function createApp({
     res.status(result.replayed ? 200 : 201).json(result);
   }));
 
+  app.post('/v1/bookings/:id/return-cases', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), asyncRoute(async (req, res) => {
+    assertBookingPilot(config);
+    const result = await inTransaction((client) => openV52ReturnCase(client, {
+      actor: req.actor,
+      bookingId: safeText(req.params.id, 120),
+      raw: req.body,
+      idempotencyKey: req.get('Idempotency-Key'),
+    }), { deadlockRetries: 2 });
+    publishToUsers(result.participantUserIds, {
+      type: 'changed',
+      resource: 'rental_requests',
+    });
+    kickNotificationWorker();
+    res.status(result.replayed ? 200 : 201).json(result);
+  }));
+
   app.post('/v1/bookings/:id/confirmation-challenges/verify', requireAuth, requireActiveAccount, requireUnsuspendedScope('booking'), confirmationLimiter, asyncRoute(async (req, res) => {
     assertBookingPilot(config);
     const outcome = await inTransaction((client) => verifyBookingConfirmationChallenge(client, {
@@ -3115,9 +3173,11 @@ export function createApp({
         const existingResult = await client.query(
           `SELECT request.*, booking.status AS booking_status,
                   booking.workflow_version AS booking_workflow_version,
-                  booking.workflow_revision AS booking_workflow_revision
+                  booking.workflow_revision AS booking_workflow_revision,
+                  contract.contract_version AS platform_contract_version
            FROM rental_requests AS request
            LEFT JOIN bookings AS booking ON booking.id = request.id
+           LEFT JOIN platform_contracts AS contract ON contract.booking_id = request.id
            WHERE request.id = $1
            FOR UPDATE OF request`,
           [id],
@@ -3185,6 +3245,11 @@ export function createApp({
         const existing = existingResult.rows[0];
         if (existing.owner_id !== req.auth.userId && existing.renter_id !== req.auth.userId) {
           throw new HttpError(403, 'request_forbidden');
+        }
+        const storedPayload = ensureObject(existing.payload, 'invalid_stored_request');
+        if (requestsV52ReturnCaseMutation(candidate, storedPayload)
+            && String(existing.platform_contract_version ?? '').startsWith('V5.2-')) {
+          throw new HttpError(409, 'v52_return_case_requires_authorized_endpoint');
         }
         const payload = existingRentalPayload(candidate, existing, req.auth.userId);
         if (existing.booking_status === null) {
@@ -4009,18 +4074,19 @@ export function createApp({
     const bookingConfirmationError = error instanceof BookingConfirmationError;
     const v51WithdrawalError = error instanceof V51WithdrawalError;
     const v52ActualLossError = error instanceof V52ActualLossError;
+    const v52HandoverReturnError = error instanceof V52HandoverReturnError;
     const status = bookingConflict
       ? 409
       : (uploadTooLarge
           ? 413
-          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
+          : (invalidProcessedImage ? 422 : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError) ? error.status : (error?.status ?? 500))));
     const code = uploadTooLarge
       ? 'image_too_large'
       : (invalidProcessedImage
           ? error.code
           : (bookingConflict
           ? 'booking_period_unavailable'
-          : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
+          : ((error instanceof HttpError || workflowError || flowTimeError || messageWorkflowError || paymentWorkflowError || moderationWorkflowError || retentionInventoryError || mapsProxyError || bookingConfirmationError || v51WithdrawalError || v52ActualLossError || v52HandoverReturnError || error instanceof PhoneVerificationError) ? error.code : (status === 500 ? 'internal_error' : 'request_failed'))));
     if (status >= 500) console.error(safeErrorLog(req, status, code, error));
     res.status(status).json(errorPayload(req, code, error?.details));
   });

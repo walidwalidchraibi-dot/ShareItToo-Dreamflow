@@ -183,6 +183,12 @@ void main() {
           segment: 'pickup',
           kind: 'presenter_photo',
           source: 'camera',
+          semanticSlot: const [
+            'overview',
+            'detail',
+            'accessories',
+            'critical'
+          ][i],
         );
       }
 
@@ -237,6 +243,12 @@ void main() {
           segment: 'return',
           kind: 'presenter_photo',
           source: 'camera',
+          semanticSlot: const [
+            'overview',
+            'detail',
+            'accessories',
+            'critical'
+          ][i],
         );
       }
 

@@ -17,6 +17,11 @@ import {
 } from './booking_confirmation_domain.js';
 import { assertConditionEvidenceReadyForVerification } from './booking_condition_evidence_workflow.js';
 import { evaluateReturnTimeline } from './private_pilot_return_domain.js';
+import {
+  assertV52ChallengeEvidenceSet,
+  bindV52ConfirmationChallenge,
+  recordV52ConfirmationVerification,
+} from './v52_handover_return_workflow.js';
 
 async function lockedBooking(client, bookingId) {
   const result = await client.query(
@@ -114,6 +119,14 @@ export async function issueBookingConfirmationChallenge(client, {
       JSON.stringify({ version: 3 }),
     ],
   );
+  await bindV52ConfirmationChallenge(client, {
+    challengeId,
+    bookingId,
+    segment,
+    presenterRole,
+    presenterUserId: actor.id,
+    issuedAt: now,
+  });
   return challengeShape(inserted.rows[0], { code });
 }
 
@@ -220,6 +233,14 @@ export async function verifyBookingConfirmationChallenge(client, {
     if (challenge.verifier_user_id !== actor.id) {
       return { rejected: true, code: 'confirmation_challenge_invalid' };
     }
+    await recordV52ConfirmationVerification(client, {
+      challengeId: challenge.id,
+      bookingId,
+      segment: challenge.segment,
+      verifierUserId: actor.id,
+      verifierRole,
+      verifiedAt: challenge.consumed_at,
+    });
     return {
       challenge: challengeShape(challenge),
       participantUserIds: [booking.owner_id, booking.renter_id],
@@ -246,6 +267,12 @@ export async function verifyBookingConfirmationChallenge(client, {
     return { rejected: true, code: 'confirmation_challenge_invalid', attemptsRemaining: 5 - attempts };
   }
 
+  await assertV52ChallengeEvidenceSet(client, {
+    challengeId: challenge.id,
+    bookingId,
+    segment: challenge.segment,
+  });
+
   await assertConditionEvidenceReadyForVerification(client, {
     bookingId,
     selectedSegment: input.segment,
@@ -260,6 +287,15 @@ export async function verifyBookingConfirmationChallenge(client, {
     [challenge.id, actor.id, now],
   );
   if (!consumed.rowCount) return { rejected: true, code: 'confirmation_challenge_invalid' };
+
+  await recordV52ConfirmationVerification(client, {
+    challengeId: challenge.id,
+    bookingId,
+    segment: challenge.segment,
+    verifierUserId: actor.id,
+    verifierRole,
+    verifiedAt: now,
+  });
 
   const payload = booking.payload && typeof booking.payload === 'object' ? { ...booking.payload } : {};
   const key = input.segment === 'pickup' ? 'handoverConfirmation' : 'returnConfirmation';

@@ -38,7 +38,19 @@ function memoryClient({
       }
       if (compact.startsWith('INSERT INTO booking_condition_evidence')) {
         state.evidenceInserts.push(values);
-        return { rowCount: 1, rows: [] };
+        return {
+          rowCount: 1,
+          rows: [{
+            id: '00000000-0000-4000-8000-000000000001',
+            created_at: new Date('2026-08-17T08:00:00.000Z'),
+          }],
+        };
+      }
+      if (compact.includes('LEFT JOIN platform_contracts AS contract')) {
+        return {
+          rowCount: 1,
+          rows: [{ ...state.booking, contract_version: null }],
+        };
       }
       if (compact.startsWith('SELECT evidence_kind, count(*)::integer AS count')) {
         const rows = [];
@@ -63,6 +75,11 @@ function memoryClient({
           ? { rowCount: 1, rows: [{ ...state.confirmation }] }
           : { rowCount: 0, rows: [] };
       }
+      if (compact.startsWith('SELECT id, booking_id, segment, verifier_role')) {
+        return state.confirmation
+          ? { rowCount: 1, rows: [{ ...state.confirmation }] }
+          : { rowCount: 0, rows: [] };
+      }
       if (compact.startsWith('SELECT decision, verifier_user_id, deviation_photo_count')) {
         return state.confirmation
           ? { rowCount: 1, rows: [{ ...state.confirmation }] }
@@ -70,6 +87,9 @@ function memoryClient({
       }
       if (compact.startsWith('INSERT INTO booking_condition_confirmations')) {
         state.confirmation = {
+          id: '00000000-0000-4000-8000-000000000002',
+          booking_id: values[0],
+          segment: values[1],
           verifier_role: values[2],
           verifier_user_id: values[3],
           decision: values[4],

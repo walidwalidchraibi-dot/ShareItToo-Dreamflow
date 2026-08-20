@@ -166,6 +166,18 @@ enum ReturnFlowMode { returnFlow, pickupFlow }
 enum _StepKind { photos, damage, codes }
 
 class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
+  static const List<String> _presenterEvidenceSlots = <String>[
+    'overview',
+    'detail',
+    'accessories',
+    'critical',
+  ];
+  static const Map<String, String> _presenterEvidenceLabels = <String, String>{
+    'overview': 'Gesamtansicht',
+    'detail': 'Detailansicht',
+    'accessories': 'Zubehör',
+    'critical': 'kritischer Zustandspunkt',
+  };
   // Dynamic steps based on mode
   late final List<_StepKind> _steps = _buildSteps();
   int _step = 0;
@@ -323,6 +335,9 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
         final source = _checkoutPhotoSources.isEmpty
             ? (kIsWeb ? 'browser_picker' : 'gallery')
             : _checkoutPhotoSources.first;
+        final semanticSlot = _viewerIsPresenter
+            ? _presenterEvidenceSlots[_presenterEvidenceCount]
+            : 'deviation';
         await DataService.addConditionEvidencePhoto(
           requestId: widget.request.id,
           bytes: bytes,
@@ -330,6 +345,7 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
           segment: _evidenceSegment,
           kind: kind,
           source: source,
+          semanticSlot: semanticSlot,
         );
         if (!mounted) return false;
         setState(() {
@@ -837,14 +853,24 @@ class _ReturnHandoverStepperState extends State<_ReturnHandoverStepper> {
                           color: Colors.white, fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 8),
+                    Text(
+                      'Pflichtmotive: ${_presenterEvidenceSlots.map((slot) => _presenterEvidenceLabels[slot]).join(', ')}.',
+                      style: const TextStyle(color: Colors.white60),
+                    ),
+                    const SizedBox(height: 8),
                     _photoGrid(
                       _checkoutPhotos,
                       () => _pickPhotosMenu((newOnes) {
-                        _checkoutPhotos = [..._checkoutPhotos, ...newOnes];
+                        final remaining = 4 -
+                            _presenterEvidenceCount -
+                            _checkoutPhotos.length;
+                        if (remaining <= 0) return;
+                        final accepted = newOnes.take(remaining).toList();
+                        _checkoutPhotos = [..._checkoutPhotos, ...accepted];
                         _checkoutPhotoSources = [
                           ..._checkoutPhotoSources,
                           ...List<String>.filled(
-                              newOnes.length, _lastPhotoSource),
+                              accepted.length, _lastPhotoSource),
                         ];
                       }, multiple: true),
                       emptyText: '',

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:lendify/services/backend_config.dart';
+import 'package:lendify/services/backend_repository.dart';
 import 'package:lendify/services/data_service.dart';
+import 'package:lendify/services/qa_runtime_service.dart';
 import 'package:lendify/widgets/app_popup.dart';
 
 class ReportIssueScreen extends StatefulWidget {
@@ -15,6 +19,10 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   String?
       _selectedCode; // e.g., 'damage', 'delay', 'no_show', 'wrong_item', 'behavior', 'other'
   final TextEditingController _detailsCtrl = TextEditingController();
+  final TextEditingController _contestedAmountCtrl = TextEditingController();
+  final List<_IssueEvidence> _evidence = [];
+  bool _uploadingEvidence = false;
+  bool _submitting = false;
 
   bool _isHardIssue(String code) =>
       const {'damage', 'no_show', 'wrong_item', 'behavior'}.contains(code);
@@ -29,6 +37,18 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
     };
     if (note.isEmpty) return base;
     return '$base — $note';
+  }
+
+  int? _contestedAmountMinor() {
+    final normalized = _contestedAmountCtrl.text.trim().replaceAll(',', '.');
+    final match = RegExp(r'^(\d{1,7})(?:\.(\d{1,2}))?$').firstMatch(normalized);
+    if (match == null) return null;
+    final euros = int.tryParse(match.group(1)!);
+    final centsText = (match.group(2) ?? '').padRight(2, '0');
+    final cents = centsText.isEmpty ? 0 : int.tryParse(centsText);
+    if (euros == null || cents == null) return null;
+    final minor = euros * 100 + cents;
+    return minor > 0 ? minor : null;
   }
 
   final List<_IssueType> _types = const [
@@ -56,7 +76,49 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   @override
   void dispose() {
     _detailsCtrl.dispose();
+    _contestedAmountCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _addEvidence() async {
+    if (_uploadingEvidence || _evidence.length >= 8) return;
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 90,
+      maxWidth: 2048,
+      maxHeight: 2048,
+    );
+    if (picked == null) return;
+    setState(() => _uploadingEvidence = true);
+    try {
+      String? uploadId;
+      if (BackendConfig.enabled && !QaRuntimeService.isEnabled) {
+        final upload = await BackendRepository.uploadReportEvidence(
+          bytes: await picked.readAsBytes(),
+          filename: picked.name,
+        );
+        uploadId = upload['id']?.toString().trim();
+        if ((uploadId ?? '').isEmpty) {
+          throw StateError('return_case_upload_id_missing');
+        }
+      }
+      if (!mounted) return;
+      setState(() => _evidence.add(_IssueEvidence(
+            name: picked.name,
+            uploadId: uploadId,
+          )));
+    } catch (error) {
+      debugPrint('[issue] evidence upload failed: $error');
+      if (mounted) {
+        await AppPopup.error(
+          context,
+          title: 'Nachweis nicht hochgeladen',
+          message: 'Bitte prüfe das Bild und versuche es erneut.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingEvidence = false);
+    }
   }
 
   Future<void> _submit() async {
@@ -76,6 +138,27 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
       );
       return;
     }
+    if (_isHardIssue(code) && _evidence.isEmpty) {
+      await AppPopup.info(
+        context,
+        title: 'Privater Bildnachweis erforderlich',
+        message:
+            'Für einen Rückgabe-Prüffall ist mindestens ein geschütztes Foto erforderlich.',
+      );
+      return;
+    }
+    final contestedAmountMinor =
+        _isHardIssue(code) ? _contestedAmountMinor() : null;
+    if (_isHardIssue(code) && contestedAmountMinor == null) {
+      await AppPopup.info(
+        context,
+        title: 'Strittigen Betrag angeben',
+        message:
+            'Bitte gib den strittigen Anteil der bereits autorisierten Miete exakt an, zum Beispiel 12,50. Dadurch entsteht keine Zusatzbelastung.',
+      );
+      return;
+    }
+    setState(() => _submitting = true);
     try {
       await DataService.addTimelineEvent(
         requestId: widget.requestId,
@@ -92,10 +175,15 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
           widget.requestId,
           reason: _reviewReason(code, note),
           source: 'report_issue_screen',
-          evidenceReferences: [
-            'timeline:issue:$code',
-            'handover_return_photo_record',
-          ],
+          reasonCode: code,
+          evidenceUploadIds: _evidence
+              .map((entry) => entry.uploadId)
+              .whereType<String>()
+              .toList(growable: false),
+          localEvidenceReferences: _evidence
+              .map((entry) => 'local-private-photo:${entry.name}')
+              .toList(growable: false),
+          contestedAuthorizedMinor: contestedAmountMinor!,
         );
         if (!opened && mounted) {
           await AppPopup.info(
@@ -118,6 +206,8 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
       if (!mounted) return;
       AppPopup.toast(context,
           icon: Icons.error_outline, title: 'Meldung fehlgeschlagen');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
@@ -191,11 +281,68 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                           style: const TextStyle(color: Colors.white),
                         ),
                       ),
+                      if (_isHardIssue(_selectedCode!)) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          'Strittiger Anteil der autorisierten Miete',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _contestedAmountCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            hintText: 'z. B. 12,50',
+                            suffixText: 'EUR',
+                            helperText:
+                                'Keine Zusatzbelastung oder Schadensabbuchung.',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Geschützter Bildnachweis',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Mindestens ein Foto. Es bleibt privat und wird nur für diesen Prüffall verarbeitet.',
+                          style: TextStyle(color: Colors.white60),
+                        ),
+                        const SizedBox(height: 8),
+                        for (final evidence in _evidence)
+                          ListTile(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.lock_outline,
+                                color: Colors.white70),
+                            title: Text(evidence.name,
+                                style: const TextStyle(color: Colors.white)),
+                          ),
+                        OutlinedButton.icon(
+                          onPressed: _uploadingEvidence ? null : _addEvidence,
+                          icon: _uploadingEvidence
+                              ? const SizedBox.square(
+                                  dimension: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.add_a_photo_outlined),
+                          label: const Text('Foto hinzufügen'),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       SizedBox(
                         height: 44,
                         child: FilledButton.icon(
-                          onPressed: _submit,
+                          onPressed: _submitting ? null : _submit,
                           icon: const Icon(Icons.send),
                           label: const Text('Meldung senden'),
                         ),
@@ -207,6 +354,13 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
       ),
     );
   }
+}
+
+class _IssueEvidence {
+  final String name;
+  final String? uploadId;
+
+  const _IssueEvidence({required this.name, required this.uploadId});
 }
 
 class _IssueType {

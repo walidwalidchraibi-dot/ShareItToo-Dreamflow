@@ -14,9 +14,26 @@ import {
   evaluateCancellation,
   cancellationAmounts,
   isBookingChatOpen,
+  resolveReturnT0,
   shortNoticeGraceDeadline,
   splitAuthorizedBookingAmount,
 } from '../src/private_pilot_return_domain.js';
+
+test('T0 prefers mutually confirmed actual return, then changed return, then schedule', () => {
+  const base = {
+    scheduledReturnAt: '2026-09-01T10:00:00Z',
+    mutuallyConfirmedChangedReturnAt: '2026-09-01T11:00:00Z',
+    mutuallyConfirmedActualReturnAt: '2026-09-01T09:30:00Z',
+  };
+  assert.equal(resolveReturnT0(base).toISOString(), '2026-09-01T09:30:00.000Z');
+  assert.equal(resolveReturnT0({
+    ...base,
+    mutuallyConfirmedActualReturnAt: null,
+  }).toISOString(), '2026-09-01T11:00:00.000Z');
+  assert.equal(resolveReturnT0({
+    scheduledReturnAt: base.scheduledReturnAt,
+  }).toISOString(), '2026-09-01T10:00:00.000Z');
+});
 
 function checkoutDeclarations() {
   return privatePilotRequiredCheckoutDeclarations.map((entry) => ({

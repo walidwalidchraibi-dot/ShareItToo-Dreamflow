@@ -39,6 +39,15 @@ function memoryClient({ workflowStatus = 'accepted', evidenceReady = true } = {}
       if (compact.startsWith('SELECT booking.id, booking.owner_id, booking.renter_id, booking.workflow_status, request.payload FROM bookings AS booking JOIN rental_requests AS request ON request.id = booking.id')) {
         return { rowCount: 1, rows: [{ ...state.booking }] };
       }
+      if (compact.includes('LEFT JOIN platform_contracts AS contract')) {
+        return {
+          rowCount: 1,
+          rows: [{ ...state.booking, contract_version: null }],
+        };
+      }
+      if (compact.startsWith('SELECT presenter_evidence_set_sha256 FROM v52_confirmation_challenge_bindings')) {
+        return { rowCount: 0, rows: [] };
+      }
       if (compact.startsWith('UPDATE booking_confirmation_challenges SET revoked_at')) {
         for (const challenge of state.challenges.values()) {
           if (challenge.booking_id === values[0]
