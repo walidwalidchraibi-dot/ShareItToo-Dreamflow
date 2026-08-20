@@ -1,109 +1,127 @@
-# Current Work Package: C1G - V5.2 Privacy, Network, FCM and Crashlytics
+# Current Work Package: C1H - V5.2 Categories, Moderation, Invoice/Receipt and Operator Configuration
 
-Status: active after green C1F implementation and GitHub CI.
+Status: active after green C1G implementation and GitHub CI.
 
 ## Objective
 
-Close only the technical privacy and network gaps proven open by C1A while
-keeping every provider, contract, transfer, Store and live-environment fact
-truthfully open:
+Close only the bounded category, private-marketplace, moderation, financial-
+document and operator-configuration gaps proven open by C1A while preserving
+historic records and keeping unknown legal or provider facts fail-closed:
 
-- make every FCM notification transactional, neutral on the lock screen,
-  free of sensitive payload data and bound to a short event-specific TTL;
-- preserve FCM and Crashlytics as separate, voluntary, default-off choices so
-  enabling push can never enable crash collection;
-- keep Google Analytics, BigQuery delivery export, analytics breadcrumbs,
-  advertising SDKs, marketing push and external generative AI disabled;
-- complete code-level network allowlists and provider-bound feature gates for
-  external maps/geocoding, fonts, image hosts and other launch traffic, with
-  truthful manual or internal fallbacks;
-- synchronize machine-readable privacy, retention, deletion and Store
-  readiness artifacts without inventing or approving provider facts.
+- make the private-pilot category and subcategory allowlist exclusively
+  server-owned and impossible to bypass through catalog reads, listing
+  reactivation, quoting or booking creation;
+- require persistent account, listing and booking private-status evidence and
+  block accounts carrying a server-authoritative commercial-activity review
+  indicator until it is resolved;
+- complete the user-bound moderation decision and internal-review path with
+  facts, contractual/legal basis, detection method, reasoning and deadline;
+- lock the already implemented SIT-fee receipt and private-rental summary to
+  stored payment, quote and refund snapshots without parallel tax arithmetic;
+- centralize operator/provider/legal activation facts so production-facing
+  legal and provider surfaces fail closed on missing, placeholder or
+  unapproved values;
+- add an internal, non-activating professional-review signal at the V5.2
+  cumulative platform-fee threshold, without unlocking any feature.
 
 ## Baseline and inputs
 
 - Branch: `codex/master-workflow-20260808`; draft PR #7.
-- C1F implementation: `a2ef9163ad3118a2dfba18e3335d877511daa8d1`;
-  GitHub Actions run `32356255645` is green.
-- Drive control `02_CODEX_WORK_PACKAGES_SIT_V2.3.md` maps C1G to privacy,
-  network, FCM and Crashlytics.
-- V5.2 Core section 11 requires neutral transactional FCM, shortest sensible
-  per-message TTL, default-off voluntary Crashlytics and fail-closed external
-  provider gates.
-- C1A items 20-23 prove the remaining bounded gaps: current notification code
-  exposes specific titles/item text and entity identifiers and has no
-  event-specific TTL; provider/Store facts remain open; final full-device
-  network evidence belongs to C1I.
-- Existing Crashlytics consent, revocation, sanitization, no-user-ID and
-  default-off controls are already green and must not be weakened or coupled
-  to push.
+- C1G implementation:
+  `f2781366a5c0c9f2e2a26401cf862272bc7f1609`; GitHub Actions run
+  `32358854576` is green and published no image or signed artifact.
+- Drive control `02_CODEX_WORK_PACKAGES_SIT_V2.3.md` maps C1H to categories,
+  moderation, invoice/receipt and operator fail-closed configuration.
+- V5.2 Core sections 12 and 13 require a server-only category allowlist,
+  private status at account/listing/booking, dealer-indicator blocking, DSA-
+  capable reports and reasoned decisions, and financially correct documents.
+- C1A items 1, 2, 19, 24 and 28 remain the bounded C1H gaps. Items 25 and 26
+  are already technically green and must be verified and preserved rather
+  than reimplemented without evidence.
+- Transport means remain excluded. `cat3` may cover cameras only; drones and
+  every vehicle, bicycle, e-bike, e-scooter, trailer, boat, handcart, sack
+  truck or other transport means stay unavailable.
 
 ## Allowed work
 
-- Define one server-owned transactional notification contract with a neutral
-  visible title/body, opaque authenticated in-app routing and an allowlisted,
-  event-specific TTL shorter than the FCM four-week default.
-- Remove chat text, exact address, payment data, photos, damage evidence,
-  listing/item text and raw business/entity identifiers from push payloads.
-- Keep detail retrieval behind normal authenticated SIT API access after the
-  user opens the app; push refusal must not block registration, listings or
-  bookings.
-- Add focused tests for notification purpose, TTL, payload key allowlist,
-  token cleanup, invalid-token handling and the absence of sensitive fields.
-- Verify and harden local-font, controlled-image and disabled external
-  AI/Places/Nominatim/OSM/analytics/ads paths with provider-bound fail-closed
-  feature flags and functional manual/internal fallbacks.
-- Preserve and test separate Crashlytics consent, default-off startup,
-  revocation, unsent-report cleanup, sanitization allowlist and the prohibition
-  on user identifiers.
-- Update privacy/retention/Store readiness manifests only with locally proven
-  implementation facts and stable open blocker codes.
-- Add focused static/network-contract validators and wire them into the
-  complete technical regression.
+- Define an immutable backend-owned category/subcategory launch allowlist and
+  enforce it on public catalog queries, listing create/update/reactivation,
+  quotes and booking creation while retaining inaccessible historic data.
+- Bind booking eligibility to persistent renter, owner, listing and booking
+  private-status declarations, Germany and an explicitly configured approved
+  pilot region; absent region facts must fail closed rather than be guessed.
+- Add a server-authoritative account review state for commercial/dealer
+  indicators. Provide no invented automatic legal threshold; an unresolved
+  indicator blocks new listings, quotes and bookings.
+- Extend moderation with append-only, user-bound decision receipts and review
+  requests. Keep reporter identity, private evidence and unrelated account
+  data out of affected-user responses.
+- Record moderation facts, rule or legal/contract basis, decision reasoning,
+  human/automated detection method, review availability and the approved
+  review deadline. Measures must be authoritative on the server, not local UI
+  flags only.
+- Verify SIT platform-fee receipts and private-rental booking summaries against
+  immutable stored payment/quote/refund evidence; add regression coverage for
+  unpaid, rejected, expired, refunded and no-fee cases.
+- Add one central legal/operator readiness evaluator covering exact registered
+  operator identity, address, management, register data, contacts, competent
+  authority, withdrawal URL and approved provider facts. Keep all unknown
+  values visibly unresolved and non-activating.
+- Implement an internal compliance signal when cumulative actually received
+  SIT platform fees reach EUR 5,000 and due operating, tax and refund reserves
+  are covered. The signal is advisory and cannot activate a service or claim
+  professional review completion.
+- Add forward-only database migrations, focused tests, static validators and
+  regression wiring required for these controls.
 
-## Not allowed in C1G
+## Not allowed in C1H
 
-- No Firebase, Google Cloud, provider or Store console action; no live push,
-  crash upload, analytics event, network capture against live accounts or
-  external provider traffic.
-- No invented provider company, contract, DPT date, region, subprocessors,
-  transfer mechanism, retention promise, deletion completion or Store answer.
-- No closing FI0 owner/provider/transfer/retention/deletion gates based only on
-  code configuration or documentation.
-- No enabling Google Analytics, BigQuery export, analytics breadcrumbs,
-  marketing push, advertising SDKs, external generative AI or arbitrary image
-  hosts.
-- No production, VPS/OpenClaw, DNS, payment, Store, signed-release,
-  public-rollout or destructive Git action.
+- No enabling or publishing of a transport, drone or otherwise excluded
+  category; no PStTG assumption for ordinary tools or camera rentals.
+- No invented pilot region, dealer threshold, registered company, address,
+  manager, register court/number, authority, hoster, SMTP, maps, PSP, Firebase,
+  DPA, transfer, tax or provider fact.
+- No claim that legal review, professional review, provider review, Store
+  review or production readiness has completed without the corresponding
+  owner or external evidence.
+- No rewriting, deleting or silently relabelling historic listings, bookings,
+  reports, payments, receipts or moderation events.
+- No issuing a SIT receipt for private rent, blanket 19 percent VAT on private
+  rent, landlord deduction for renter-paid SIT fees or document generation for
+  rejected, expired or unpaid requests.
+- No production, VPS/OpenClaw, cloud-console, DNS, live payment, Store,
+  signed-release, public-rollout or destructive Git action.
 
 ## Acceptance criteria
 
-- Every FCM request uses the exact neutral lock-screen message and contains no
-  sensitive or business-readable detail; its data payload is an allowlisted
-  opaque navigation signal only.
-- Each approved transactional event class has a documented shortest-sensible
-  TTL; unknown, marketing or malformed event classes fail closed and no code
-  path relies on FCM's default four-week TTL.
-- Notification-token lifecycle and invalid-token cleanup stay green; denying
-  or disabling push leaves all core flows available in-app.
-- Crashlytics remains off before separate voluntary consent, sends no SIT user
-  identifier or forbidden custom/log data, and stops new reports after
-  revocation. Push cannot change this state.
-- Google Analytics, FCM BigQuery export, analytics breadcrumbs, ads and
-  marketing push are machine-verifiably disabled.
-- Runtime font fetching, arbitrary production image hosts and unapproved
-  external AI/maps/geocoding/tile traffic are absent or fail closed behind a
-  provider-complete gate; the corresponding fallback remains functional.
-- Privacy, retention, deletion and Store readiness files distinguish proven
-  local controls from unresolved provider/account facts and remain
-  draft/fail-closed where those facts are missing.
+- Disabled or unapproved categories and subcategories are absent from the
+  server catalog and are rejected consistently at every write, reactivation,
+  quote and booking boundary. Historic records remain intact but unavailable.
+- A booking cannot be quoted or created unless both parties and the listing
+  carry current persistent private-status evidence, the listing is in Germany
+  and its region is explicitly server-approved. An unresolved commercial-
+  activity indicator blocks the flow fail-closed.
+- Reporting remains available for listing, profile/user, review and message.
+  Every imposed measure has an append-only reasoned decision; the affected
+  user can retrieve their receipt and submit one bounded internal-review
+  request without learning protected reporter/evidence data.
+- Account and content measures are enforced by backend state and are covered
+  by authorization, idempotency and audit tests.
+- Financial documents use stored authoritative snapshots only, separate SIT
+  fee creditor/tax treatment from private rent, and are absent for unpaid or
+  otherwise ineligible requests.
+- Production-facing legal/operator/provider approval stays false when any
+  required value is absent, placeholder-like, inconsistent or not explicitly
+  approved. No missing fact is filled from a guess or sample.
+- The EUR 5,000 signal uses actually received SIT platform fees and separately
+  requires reserve coverage; it creates only an internal review requirement
+  and never an activation approval.
 - Focused tests, complete local technical regression and GitHub CI are green
-  for the bounded implementation commit. Full physical network/device proof is
-  explicitly deferred to C1I rather than claimed early.
+  for the bounded implementation commit. External legal/provider evidence and
+  physical launch validation remain truthful later gates.
 
 ## Expected next transition
 
-GREEN: C1H - V5.2 Categories, Moderation, Invoice/Receipt and Operator
-fail-closed configuration.
-YELLOW/RED: preserve evidence and stop at the exact privacy, provider,
-notification, network, Store or consent conflict without enabling a service.
+GREEN: C1I - V5.2 full QA, physical network/device matrix and launch evidence.
+YELLOW/RED: preserve evidence and stop at the exact missing legal, region,
+moderation, financial or operator fact without weakening the fail-closed gate.

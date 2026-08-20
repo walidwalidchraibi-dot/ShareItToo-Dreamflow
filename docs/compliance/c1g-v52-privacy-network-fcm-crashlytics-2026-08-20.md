@@ -4,8 +4,12 @@ Stand: 20.08.2026
 
 Branch: `codex/master-workflow-20260808`
 
-Implementierungsstand: wird nach dem Implementierungscommit und der daran
-gebundenen GitHub-CI in diesem Nachweis ergaenzt.
+Implementierungscommit:
+`f2781366a5c0c9f2e2a26401cf862272bc7f1609`
+
+GitHub Actions:
+[`32358854576`](https://github.com/walidwalidchraibi-dot/ShareItToo-Dreamflow/actions/runs/32358854576)
+ist fuer genau diesen Commit GREEN.
 
 ## Ergebnis
 
@@ -146,6 +150,23 @@ Der lokale Lauf erzeugte keinen signierten Kandidaten, ersetzte kein AAB und
 belegt keinen Store-Upload, keine Providerfreigabe und keinen realen
 Geraete-/Netzwerkpass.
 
+## Commitgebundene GitHub-CI
+
+- Backend-Regression: GREEN mit 253 PASS, 0 Skip und 0 Fehler. Der Lauf mit
+  CI-`TEST_DATABASE_URL` schliesst den lokal bewusst uebersprungenen
+  Datenbankpfad ein.
+- Der historische und Working-Tree-Secret-Scan ist GREEN: die zwoelf exakt
+  bekannten historischen Baseline-Funde wurden wiedererkannt und es wurde
+  kein neues hochkonfidentes Secret in Git-Historie oder Working Tree
+  gefunden.
+- Flutter-Regression: GREEN mit 296 PASS, einem dokumentierten Skip und 0
+  Fehlern. Der zusaetzliche konsolidierte Social-Profile-Test ist ebenfalls
+  GREEN.
+- Analyzer-Baseline, Web-Debug-Build und Android-Debug-APK sind GREEN; die
+  CI baute `app-debug.apk`, aber kein signiertes Release-Artefakt.
+- `publish-api-image` wurde erwartungsgemaess uebersprungen. Es wurde kein
+  Container-Image veroeffentlicht und kein Live-System veraendert.
+
 ## Fortbestehende Gates
 
 - C1A Punkt 20 ist auf Code- und Testebene geschlossen, benoetigt fuer einen
@@ -159,8 +180,10 @@ Geraete-/Netzwerkpass.
 - Privacy, Retention, Legal, Store, Payment, Provider und signierte Releases
   bleiben fail-closed.
 
-## Naechster Schritt
+## Abschluss und naechster Schritt
 
-Nach gruenem GitHub-CI-Lauf fuer den exakten Implementierungscommit darf C1G
-commitgebunden geschlossen und auf **C1H - V5.2 Categories, Moderation,
-Invoice/Receipt and Operator fail-closed configuration** uebergeben werden.
+C1G ist mit dem gruenen, commitgebundenen GitHub-CI-Lauf technisch
+geschlossen. Das aktive Folgepaket ist **C1H - V5.2 Categories, Moderation,
+Invoice/Receipt and Operator fail-closed configuration**. Alle oben genannten
+Live-, Provider-, Rechts-, Store-, Payment- und Release-Gates bleiben dabei
+unveraendert offen und fail-closed.
